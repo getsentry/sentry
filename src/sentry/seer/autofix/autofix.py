@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
@@ -25,12 +25,17 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.autofix.types import (
+    AutofixCreatePRPayload,
+    AutofixSelectRootCausePayload,
+    AutofixSelectSolutionPayload,
+    AutofixUpdateRequest,
+)
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_repos_from_project_code_mappings,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -451,7 +456,7 @@ def _call_autofix(
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
                 "disable_coding_step": not group.organization.get_option(
-                    "sentry:enable_seer_coding", default=True
+                    "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
                 ),
                 "stopping_point": stopping_point,
             },
@@ -473,7 +478,9 @@ def _call_autofix(
     return response.json().get("run_id")
 
 
-def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
+def get_all_tags_overview(
+    group: Group, start: datetime | None = None, end: datetime | None = None
+) -> dict[str, Any] | None:
     """
     Get high-level overview of all tags for an issue.
     Returns aggregated tag data with percentages for all tags.
@@ -484,6 +491,8 @@ def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
         keys=None,  # Get all tags
         value_limit=3,  # Get top 3 values per tag
         tenant_ids={"organization_id": group.project.organization_id},
+        start=start,
+        end=end,
     )
 
     all_tags: list[dict] = []
@@ -592,12 +601,6 @@ def trigger_autofix(
     if group.organization.get_option("sentry:hide_ai_features"):
         return _respond_with_error("AI features are disabled for this organization.", 403)
 
-    if not get_seer_org_acknowledgement(group.organization):
-        return _respond_with_error(
-            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer.",
-            403,
-        )
-
     # check billing quota for autofix
     has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id,
@@ -703,3 +706,35 @@ def trigger_autofix(
         },
         status=202,
     )
+
+
+def update_autofix(
+    *,
+    organization_id: int,
+    run_id: int,
+    payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload,
+) -> Response:
+    """
+    Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
+    """
+
+    path = "/v1/automation/autofix/update"
+    data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
+    body = orjson.dumps(data)
+    response = requests.post(
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={"content-type": "application/json;charset=utf-8", **sign_with_seer_secret(body)},
+    )
+
+    try:
+        response.raise_for_status()
+    except Exception:
+        return Response({"detail": "Failed to update autofix run"}, status=500)
+
+    try:
+        response_data = response.json()
+    except Exception:
+        return Response({"detail": "Seer returned an invalid response"}, status=500)
+
+    return Response(response_data, status=200)

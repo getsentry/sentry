@@ -1,9 +1,9 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Flex} from 'sentry/components/core/layout';
 import {IconClock, IconLightning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -23,8 +23,8 @@ function ProductTrialRibbon({
     color: 'white' as const,
   };
   const ribbonColor = activeProductTrial
-    ? theme.tokens.graphics.promotion
-    : theme.tokens.graphics.accent;
+    ? theme.tokens.graphics.promotion.vibrant
+    : theme.tokens.graphics.accent.vibrant;
 
   if (!activeProductTrial && !potentialProductTrial) {
     return null;
@@ -36,7 +36,7 @@ function ProductTrialRibbon({
     : t('Trial available');
 
   return (
-    <RibbonContainer>
+    <RibbonContainer isActiveProductTrial={!!activeProductTrial}>
       <RibbonBase ribbonColor={ribbonColor}>
         <Tooltip title={tooltipContent}>
           {activeProductTrial ? (
@@ -56,11 +56,11 @@ function ProductTrialRibbon({
 
 export default ProductTrialRibbon;
 
-const RibbonContainer = styled('td')`
+const RibbonContainer = styled('td')<{isActiveProductTrial: boolean}>`
   display: flex;
   position: absolute;
   left: -1px;
-  top: 14px;
+  top: ${p => (p.isActiveProductTrial ? '16px' : '20px')};
   z-index: 1000;
 `;
 

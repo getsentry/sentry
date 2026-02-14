@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {ContextIcon, NAMES} from 'sentry/components/events/contexts/contextIcon';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
@@ -49,6 +50,6 @@ const Cell = styled('div')`
   cursor: pointer;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;

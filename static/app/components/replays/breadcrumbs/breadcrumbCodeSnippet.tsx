@@ -1,7 +1,8 @@
-import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Container} from '@sentry/scraps/layout';
+
 import Placeholder from 'sentry/components/placeholder';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
@@ -33,16 +34,10 @@ export function BreadcrumbCodeSnippet({
   }
 
   return extraction?.html?.map(html => (
-    <CodeContainer key={html}>
+    <Container maxWidth="100%" maxHeight="400px" overflow="auto" key={html}>
       <CodeBlock language="html" hideCopyButton>
         {beautify.html(html, {indent_size: 2})}
       </CodeBlock>
-    </CodeContainer>
+    </Container>
   ));
 }
-
-const CodeContainer = styled('div')`
-  max-height: 400px;
-  max-width: 100%;
-  overflow: auto;
-`;

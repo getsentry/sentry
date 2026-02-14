@@ -9,6 +9,7 @@ export function ApiApplicationFixture(
     clientSecret: null,
     homepageUrl: null,
     id: '123',
+    isPublic: false,
     name: 'Adjusted Shrimp',
     privacyUrl: null,
     redirectUris: [],

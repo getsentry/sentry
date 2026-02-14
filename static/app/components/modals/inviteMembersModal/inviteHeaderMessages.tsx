@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,6 +31,6 @@ export function InviteMessage() {
 }
 
 const Subtext = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: ${space(3)};
 `;

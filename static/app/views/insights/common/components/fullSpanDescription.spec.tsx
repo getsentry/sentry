@@ -4,11 +4,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/utils/usePageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('FullSpanDescription', () => {
   beforeEach(() => {

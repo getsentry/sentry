@@ -2,16 +2,18 @@ import {Fragment, useCallback, useMemo, useRef, useState, type ChangeEvent} from
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Link} from 'sentry/components/core/link';
+import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Repository} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MAX_REPOS_LIMIT} from 'sentry/views/settings/projectSeer/constants';
 
@@ -23,29 +25,22 @@ type Props = ModalRenderProps & {
    */
   onSave: (repoIds: string[]) => void;
   /**
-   * All available repositories from the organization.
-   */
-  repositories: Repository[];
-  /**
    * Repositories currently selected for Autofix in the parent component.
    */
   selectedRepoIds: string[];
-  /**
-   * Loading state for fetching repositories.
-   */
-  isFetchingRepositories?: boolean;
 };
 
-export function AddAutofixRepoModalContent({
-  repositories,
+export function AddAutofixRepoModal({
   selectedRepoIds,
   onSave,
   Header,
   Body,
   Footer,
   closeModal,
-  isFetchingRepositories,
 }: Props) {
+  const {data: repositories, isFetching: isFetchingRepositories} =
+    useOrganizationRepositories();
+
   const organization = useOrganization();
   const [modalSearchQuery, setModalSearchQuery] = useState('');
   const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
@@ -130,10 +125,10 @@ export function AddAutofixRepoModalContent({
           </InputGroup>
         </SearchContainer>
         {isFetchingRepositories ? (
-          <LoadingContainer>
+          <Stack justify="center" align="center" padding="3xl" gap="xl" width="100%">
             <StyledLoadingIndicator size={36} />
             <LoadingMessage>{t('Loading repositories...')}</LoadingMessage>
-          </LoadingContainer>
+          </Stack>
         ) : filteredModalRepositories.length === 0 ? (
           <EmptyMessage>
             {modalSearchQuery.trim() && unselectedRepositories.length > 0
@@ -176,7 +171,7 @@ export function AddAutofixRepoModalContent({
         )}
       </Body>
       <Footer>
-        <FooterRow>
+        <Flex justify="between" align="center" width="100%">
           <div>
             {tct(
               "Don't see the repo you want? [manageRepositoriesLink:Manage repositories here.]",
@@ -202,28 +197,21 @@ export function AddAutofixRepoModalContent({
                 )
               : t('Done')}
           </Button>
-        </FooterRow>
+        </Flex>
       </Footer>
     </Fragment>
   );
 }
 
-const FooterRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-`;
-
 const ModalReposContainer = styled('div')`
   height: 35vh;
   overflow-y: auto;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   & > div > div {
     &:not(:last-child) {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
 `;
@@ -235,19 +223,9 @@ const SearchContainer = styled('div')<{hasAlert: boolean}>`
 
 const EmptyMessage = styled('div')`
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: ${space(4)};
-  width: 100%;
-  flex-direction: column;
-  gap: ${space(2)};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -255,6 +233,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const LoadingMessage = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;

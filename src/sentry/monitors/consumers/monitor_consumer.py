@@ -663,7 +663,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     # When accepting for upsert attempt to assign a seat for the monitor,
     # otherwise the monitor is marked as disabled
     if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
-        seat_outcome = quotas.backend.assign_seat(DataCategory.MONITOR_SEAT, monitor)
+        seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
             monitor.update(status=ObjectStatus.DISABLED)
 

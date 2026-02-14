@@ -1,13 +1,13 @@
 import type React from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconClose, IconWarning} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import type {Color} from 'sentry/utils/theme';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 const EXTRAPOLATED_AREA_STRIPE_IMG =
@@ -26,15 +26,15 @@ export const extrapolatedAreaStyle = {
 export function OnDemandWarningIcon({
   msg,
   isHoverable,
-  color = 'gray300',
+  variant = 'muted',
 }: {
   msg: React.ReactNode;
-  color?: Color;
   isHoverable?: boolean;
+  variant?: 'primary' | 'warning' | 'danger' | 'muted';
 }) {
   return (
     <Tooltip skipWrapper title={msg} isHoverable={isHoverable}>
-      <HoverableIconWarning color={color} />
+      <HoverableIconWarning variant={variant} />
     </Tooltip>
   );
 }

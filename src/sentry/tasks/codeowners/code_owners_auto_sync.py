@@ -18,10 +18,10 @@ from sentry.taskworker.retry import Retry
     name="sentry.tasks.code_owners_auto_sync",
     namespace=issues_tasks,
     retry=Retry(times=3, delay=60),
-    processing_deadline_duration=300,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
 )
-@retry(on=(Commit.DoesNotExist,))
+@retry(on=(), on_silent=(Commit.DoesNotExist,))
 def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
     from django.db.models import BooleanField, Case, Exists, OuterRef, Subquery, When
 

@@ -1,8 +1,8 @@
 import type {Location} from 'history';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -240,4 +240,22 @@ export function getTraceAttributesTreeActions(
       organization: params.organization,
     });
   };
+}
+
+/**
+ * Attempts to parse a JSON string, recursively unwrapping double-stringified arrays.
+ */
+export function tryParseJson(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  try {
+    const parsedValue = JSON.parse(value);
+    if (!Array.isArray(parsedValue)) {
+      return parsedValue;
+    }
+    return parsedValue.map((item: unknown): unknown => tryParseJson(item));
+  } catch {
+    return value;
+  }
 }

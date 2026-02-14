@@ -22,8 +22,10 @@ import {getItemsWithKeys, shouldCloseOnSelect} from './utils';
 
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
-interface BaseSelectProps<Value extends SelectKey>
-  extends Omit<ControlProps, 'onClear' | 'clearable'> {
+interface BaseSelectProps<Value extends SelectKey> extends Omit<
+  ControlProps,
+  'onClear' | 'clearable'
+> {
   options: Array<SelectOptionOrSection<Value>>;
   /**
    * Number of options above which virtualization will be enabled.
@@ -77,7 +79,6 @@ export function CompactSelect<Value extends SelectKey>({
   emptyMessage,
   size = 'md',
   closeOnSelect,
-  triggerProps,
   menuWidth,
   ...controlProps
 }: SelectProps<Value>) {
@@ -165,7 +166,7 @@ export function CompactSelect<Value extends SelectKey>({
       menuWidth={menuWidth ?? measuredMenuWidth}
       // decrease height to 1px during measuring so that scrollbars are shown & measured
       menuHeight={needsMeasuring ? '1px' : undefined}
-      triggerProps={{...triggerProps, id: triggerId}}
+      triggerId={triggerId}
       disabled={controlDisabled}
       grid={grid}
       size={size}

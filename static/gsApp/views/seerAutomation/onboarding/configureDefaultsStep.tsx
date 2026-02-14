@@ -1,15 +1,16 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import defaultsImg from 'sentry-images/spot/seer-config-error.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Link} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
 import {
   GuidedSteps,
   useGuidedStepsContext,
@@ -72,6 +73,9 @@ export function ConfigureDefaultsStep() {
           setCurrentStep(currentStep + 1);
         },
         onError: () => {
+          Sentry.captureException(
+            new Error('Seer Onboarding: Unable to update defaults')
+          );
           addErrorMessage(
             t('Failed to update Seer default settings, reload and try again')
           );
@@ -94,19 +98,21 @@ export function ConfigureDefaultsStep() {
         <MaxWidthPanel>
           <PanelBody>
             <PanelDescription>
-              <p>
-                {tct(
-                  `Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].`,
-                  {
-                    link: <Link to={`/settings/${organization.slug}/seer/`} />,
-                  }
-                )}
-              </p>
-              <p>
-                {t(
-                  `This will not effect the configuration of the repos and projects on the previous two steps.`
-                )}
-              </p>
+              <Flex direction="column" gap="md">
+                <Text density="comfortable">
+                  {tct(
+                    `Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].`,
+                    {
+                      link: <Link to={`/settings/${organization.slug}/seer/`} />,
+                    }
+                  )}
+                </Text>
+                <Text density="comfortable">
+                  {t(
+                    `This will not effect the configuration of the repos and projects on the previous two steps.`
+                  )}
+                </Text>
+              </Flex>
             </PanelDescription>
 
             <Field>
@@ -130,11 +136,9 @@ export function ConfigureDefaultsStep() {
               <Flex direction="column" flex="1" gap="xs">
                 <FieldLabel>{t('Enable Root Cause Analysis')}</FieldLabel>
                 <FieldDescription>
-                  <Text>
-                    {t(
-                      'For all NEW projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
-                    )}
-                  </Text>
+                  {t(
+                    'For all NEW projects, Seer will automatically analyze highly actionable issues, create a root cause analysis, and propose a solution. '
+                  )}
                 </FieldDescription>
               </Flex>
               <Switch

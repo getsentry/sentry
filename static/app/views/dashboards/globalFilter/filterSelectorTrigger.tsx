@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Badge} from 'sentry/components/core/badge';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
@@ -41,6 +41,8 @@ function FilterSelectorTrigger({
   const filterValue = activeFilterValues[0] ?? '';
   const isDefaultOperator = operator === TermOperator.DEFAULT;
   const opLabel = isDefaultOperator ? ':' : OP_LABELS[operator];
+  const label =
+    options.find(option => option.value === filterValue)?.label || filterValue;
 
   return (
     <ButtonLabelWrapper gap="xs">
@@ -53,7 +55,7 @@ function FilterSelectorTrigger({
           {isAllSelected ? (
             t('All')
           ) : (
-            <FilterValueTruncated>{filterValue}</FilterValueTruncated>
+            <FilterValueTruncated>{label}</FilterValueTruncated>
           )}
         </span>
       )}
@@ -89,12 +91,15 @@ const ButtonLabelWrapper = styled(Flex)`
 `;
 
 export const FilterValueTruncated = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 300px;
   width: min-content;
 `;
 
 const SubText = styled('span')`
   color: ${p => p.theme.colors.gray500};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

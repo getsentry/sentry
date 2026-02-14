@@ -52,7 +52,7 @@ export function MetricDetails({
     return (
       <MetricsDetailsWrapper ref={ref}>
         <EmptyStreamWrapper>
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </EmptyStreamWrapper>
       </MetricsDetailsWrapper>
     );

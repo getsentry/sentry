@@ -193,7 +193,14 @@ function GroupReleaseChart(props: Props) {
           showTimeInTooltip
           showMarkLineLabel
           height={42}
-          colors={environment ? undefined : [theme.colors.blue400, theme.colors.blue400]}
+          colors={
+            environment
+              ? undefined
+              : [
+                  theme.tokens.dataviz.semantic.accent,
+                  theme.tokens.dataviz.semantic.accent,
+                ]
+          }
           series={series}
           grid={{
             top: 6,
@@ -209,7 +216,7 @@ function GroupReleaseChart(props: Props) {
 
 const EventNumber = styled('div')`
   line-height: 1;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 export default GroupReleaseChart;

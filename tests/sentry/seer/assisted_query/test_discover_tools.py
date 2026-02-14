@@ -9,7 +9,6 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
-
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
@@ -46,6 +45,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             include_feature_flags=True,
+            stats_period="7d",
         )
 
         assert result is not None
@@ -98,6 +98,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             include_feature_flags=False,
+            stats_period="7d",
         )
 
         assert result is not None
@@ -145,6 +146,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             result = get_event_filter_keys(
                 org_id=self.organization.id,
                 project_ids=pids,
+                stats_period="7d",
             )
 
             assert result is not None
@@ -153,7 +155,6 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
 
 
 class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
-
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
@@ -190,6 +191,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="environment",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -246,6 +248,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="organizations:test-feature",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -278,6 +281,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="has",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -293,6 +297,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="count()",
+            stats_period="7d",
         )
 
         assert result == []
@@ -339,6 +344,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             project_ids=[self.project.id],
             filter_key="environment",
             substring="prod",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -358,6 +364,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             filter_key="nonexistent_tag_key_12345",
+            stats_period="7d",
         )
         # Should return empty list, not None
         assert result == []
@@ -390,6 +397,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
                 org_id=self.organization.id,
                 project_ids=pids,
                 filter_key="region",
+                stats_period="7d",
             )
 
             assert result is not None

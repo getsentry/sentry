@@ -51,7 +51,9 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
         )
 
         with self.feature(self.features):
-            response = self.client.get(f"/api/0/issues/{group.id}/suspect/flags/")
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/suspect/flags/"
+            )
 
         assert response.status_code == 200
         assert response.json() == {
@@ -91,13 +93,17 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
     def test_get_no_flag_access(self) -> None:
         """Does not have feature-flag access."""
         group = self.create_group()
-        response = self.client.get(f"/api/0/issues/{group.id}/suspect/flags/")
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/suspect/flags/"
+        )
         assert response.status_code == 404
 
     def test_get_no_group(self) -> None:
         """Group not found."""
         with self.feature(self.features):
-            response = self.client.get("/api/0/issues/22/suspect/flags/")
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/22/suspect/flags/"
+            )
             assert response.status_code == 404
 
     def _mock_event(

@@ -2,7 +2,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import GridEditable from 'sentry/components/tables/gridEditable';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';

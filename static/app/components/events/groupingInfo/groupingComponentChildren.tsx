@@ -51,16 +51,19 @@ const GroupingValue = styled('code')<{
 }>`
   display: inline-block;
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: 0 ${space(0.25)};
   background: ${p => (p.contributes ? 'rgba(112, 163, 214, 0.1)' : 'transparent')};
-  color: ${p => (p.contributes ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.contributes ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 
   ${({valueType, theme, contributes}) =>
     (valueType === 'function' || valueType === 'symbol') &&
     css`
-      font-weight: ${contributes ? theme.fontWeight.bold : 'normal'};
-      color: ${contributes ? theme.tokens.content.primary : theme.subText};
+      font-weight: ${contributes ? theme.font.weight.sans.medium : 'normal'};
+      color: ${contributes
+        ? theme.tokens.content.primary
+        : theme.tokens.content.secondary};
     `}
 `;
 

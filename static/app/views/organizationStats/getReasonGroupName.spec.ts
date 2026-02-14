@@ -96,6 +96,10 @@ describe('getReasonGroupName', () => {
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'queue_overflow')).toBe(
       ClientDiscardReason.QUEUE_OVERFLOW
     );
+
+    expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'ignored')).toBe(
+      ClientDiscardReason.IGNORED
+    );
   });
 
   it('handles abuse limit reason types', () => {

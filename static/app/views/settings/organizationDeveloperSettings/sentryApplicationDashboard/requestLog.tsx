@@ -3,11 +3,14 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Button, StyledButton} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -23,6 +26,7 @@ import type {
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
@@ -118,7 +122,12 @@ function makeRequestLogQueryKey(
   slug: string,
   query: Record<string, string>
 ): ApiQueryKey {
-  return [`/sentry-apps/${slug}/webhook-requests/`, {query}];
+  return [
+    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/webhook-requests/`, {
+      path: {sentryAppIdOrSlug: slug},
+    }),
+    {query},
+  ];
 }
 
 export default function RequestLog({app}: RequestLogProps) {
@@ -192,7 +201,9 @@ export default function RequestLog({app}: RequestLogProps) {
 
         <RequestLogFilters>
           <CompactSelect
-            triggerProps={{children: eventType}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps}>{eventType}</OverlayTrigger.Button>
+            )}
             value={eventType}
             options={getEventTypes(app).map(type => ({
               value: type,
@@ -202,10 +213,10 @@ export default function RequestLog({app}: RequestLogProps) {
           />
 
           <StyledErrorsOnlyButton onClick={handleChangeErrorsOnly}>
-            <ErrorsOnlyCheckbox>
+            <Flex align="center" gap="md">
               <Checkbox checked={errorsOnly} onChange={() => {}} />
               {t('Errors Only')}
-            </ErrorsOnlyCheckbox>
+            </Flex>
           </StyledErrorsOnlyButton>
         </RequestLogFilters>
       </div>
@@ -300,15 +311,10 @@ const RequestLogFilters = styled('div')`
   align-items: center;
   padding-bottom: ${space(1)};
 
-  > :first-child ${StyledButton} {
+  > :first-child button,
+  > :first-child a {
     border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   }
-`;
-
-const ErrorsOnlyCheckbox = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const StyledErrorsOnlyButton = styled(Button)`
@@ -319,7 +325,7 @@ const StyledErrorsOnlyButton = styled(Button)`
 
 const StyledIconOpen = styled(IconOpen)`
   margin-left: 6px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Tags = styled('div')`

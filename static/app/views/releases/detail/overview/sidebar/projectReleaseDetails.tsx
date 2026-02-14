@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -200,7 +201,7 @@ const ButtonContainer = styled('div')`
 `;
 
 const FinalizeButton = styled(Button)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding-inline: ${space(0.5)};
 `;
 

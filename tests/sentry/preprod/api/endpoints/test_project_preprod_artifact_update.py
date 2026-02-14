@@ -1,10 +1,12 @@
 from typing import Any
+from unittest.mock import patch
 
 import orjson
 from django.test import override_settings
 
 from sentry.preprod.api.endpoints.project_preprod_artifact_update import find_or_create_release
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
+from sentry.preprod.quotas import DISTRIBUTION_ENABLED_QUERY_KEY, SIZE_ENABLED_QUERY_KEY
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 
@@ -52,8 +54,6 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert set(resp_data["updatedFields"]) == {
             "date_built",
             "artifact_type",
-            "build_version",
-            "build_number",
             "state",
         }
 
@@ -61,8 +61,8 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert self.preprod_artifact.date_built is not None
         assert self.preprod_artifact.date_built.isoformat() == "2024-01-01T00:00:00+00:00"
         assert self.preprod_artifact.artifact_type == 1
-        assert self.preprod_artifact.build_version == "1.2.3"
-        assert self.preprod_artifact.build_number == 123
+        assert self.preprod_artifact.mobile_app_info.build_version == "1.2.3"
+        assert self.preprod_artifact.mobile_app_info.build_number == 123
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_partial_update(self) -> None:
@@ -354,8 +354,11 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         self.preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
         self.preprod_artifact.app_id = "com.example.app"
-        self.preprod_artifact.build_version = "1.0.0"
-        self.preprod_artifact.build_number = 123
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.preprod_artifact,
+            build_version="1.0.0",
+            build_number=123,
+        )
         self.preprod_artifact.save()
 
         response = self._make_request({})
@@ -453,6 +456,173 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert self.preprod_artifact.fastlane_plugin_version is None
         assert self.preprod_artifact.gradle_plugin_version == "8.5.2"
         assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_creates_mobile_app_info(self) -> None:
+        data = {
+            "build_version": "1.2.3",
+            "build_number": 456,
+            "app_name": "Test App",
+            "app_icon_id": "icon-123",
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+
+        assert self.preprod_artifact.mobile_app_info.build_version == "1.2.3"
+        assert self.preprod_artifact.mobile_app_info.build_number == 456
+        assert self.preprod_artifact.mobile_app_info.app_name == "Test App"
+        assert self.preprod_artifact.mobile_app_info.app_icon_id == "icon-123"
+
+        self.preprod_artifact.refresh_from_db()
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_updates_existing_mobile_app_info(self) -> None:
+        initial_data = {
+            "build_version": "1.0.0",
+            "build_number": 100,
+            "app_name": "Initial App",
+        }
+        response1 = self._make_request(initial_data)
+        assert response1.status_code == 200
+
+        assert self.preprod_artifact.mobile_app_info.build_version == "1.0.0"
+        assert self.preprod_artifact.mobile_app_info.build_number == 100
+        assert self.preprod_artifact.mobile_app_info.app_name == "Initial App"
+        assert self.preprod_artifact.mobile_app_info.app_icon_id is None
+        initial_mobile_app_info_id = self.preprod_artifact.mobile_app_info.id
+
+        updated_data = {
+            "build_version": "2.0.0",
+            "build_number": 200,
+            "app_icon_id": "new-icon-456",
+        }
+        response2 = self._make_request(updated_data)
+        assert response2.status_code == 200
+
+        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert mobile_app_info.build_version == "2.0.0"
+        assert mobile_app_info.build_number == 200
+        assert mobile_app_info.app_name == "Initial App"
+        assert mobile_app_info.app_icon_id == "new-icon-456"
+        assert mobile_app_info.id == initial_mobile_app_info_id
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_partial_mobile_app_info_update(self) -> None:
+        data = {"build_version": "3.0.0"}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+
+        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert mobile_app_info.build_version == "3.0.0"
+        assert mobile_app_info.build_number is None
+        assert mobile_app_info.app_name is None
+        assert mobile_app_info.app_icon_id is None
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_returns_requested_features(self) -> None:
+        """Test that the response includes requestedFeatures with both features by default."""
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" in resp_data["requestedFeatures"]
+        assert "build_distribution" in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_filters_size_by_query(self) -> None:
+        """Test that SIZE_ANALYSIS is filtered out when project query doesn't match."""
+        self.preprod_artifact.app_id = "com.my.app"
+        self.preprod_artifact.save()
+
+        # Set a query filter that doesn't match
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" not in resp_data["requestedFeatures"]
+        assert "build_distribution" in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_includes_size_when_query_matches(self) -> None:
+        """Test that SIZE_ANALYSIS is included when project query matches."""
+        self.preprod_artifact.app_id = "com.my.app"
+        self.preprod_artifact.save()
+
+        # Set a query filter that matches
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.my.app")
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" in resp_data["requestedFeatures"]
+        assert "build_distribution" in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_filters_distribution_by_query(self) -> None:
+        """Test that BUILD_DISTRIBUTION is filtered out when project query doesn't match."""
+        self.preprod_artifact.app_id = "com.my.app"
+        self.preprod_artifact.save()
+
+        # Set a query filter that doesn't match
+        self.project.update_option(DISTRIBUTION_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" in resp_data["requestedFeatures"]
+        assert "build_distribution" not in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    @patch("sentry.preprod.quotas.has_size_quota")
+    def test_update_preprod_artifact_filters_size_when_no_quota(self, mock_has_size_quota) -> None:
+        """Test that SIZE_ANALYSIS is filtered out when organization has no quota."""
+        mock_has_size_quota.return_value = False
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" not in resp_data["requestedFeatures"]
+        assert "build_distribution" in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    @patch("sentry.preprod.quotas.has_installable_quota")
+    def test_update_preprod_artifact_filters_distribution_when_no_quota(
+        self, mock_has_installable_quota
+    ) -> None:
+        """Test that BUILD_DISTRIBUTION is filtered out when organization has no quota."""
+        mock_has_installable_quota.return_value = False
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" in resp_data["requestedFeatures"]
+        assert "build_distribution" not in resp_data["requestedFeatures"]
 
 
 class FindOrCreateReleaseTest(TestCase):

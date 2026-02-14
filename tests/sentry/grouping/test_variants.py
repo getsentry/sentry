@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
-from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
+from sentry.grouping.fingerprinting.types import FingerprintRuleJSON
 from sentry.grouping.variants import BaseVariant, CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all

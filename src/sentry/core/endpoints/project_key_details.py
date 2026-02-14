@@ -1,4 +1,3 @@
-from django.db.models import F
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -7,8 +6,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.project_key import ProjectKeyEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project_key import ProjectKeySerializer
 from sentry.api.serializers.rest_framework import ProjectKeyPutSerializer
@@ -25,12 +23,13 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
+from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 
 
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
-class ProjectKeyDetailsEndpoint(ProjectEndpoint):
+class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -52,18 +51,11 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
-    def get(self, request: Request, project, key_id) -> Response:
+    def get(self, request: Request, project_key: ProjectKey, **kwargs) -> Response:
         """
         Return a client key bound to a project.
         """
-        try:
-            key = ProjectKey.objects.for_request(request).get(
-                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
-            )
-        except ProjectKey.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        return Response(serialize(key, request.user, request=request), status=200)
+        return Response(serialize(project_key, request.user, request=request), status=200)
 
     @extend_schema(
         operation_id="Update a Client Key",
@@ -105,17 +97,12 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
-    def put(self, request: Request, project, key_id) -> Response:
+    def put(
+        self, request: Request, project_key: ProjectKey, project: Project, **kwargs
+    ) -> Response:
         """
         Update various settings for a client key.
         """
-        try:
-            key = ProjectKey.objects.for_request(request).get(
-                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
-            )
-        except ProjectKey.DoesNotExist:
-            raise ResourceDoesNotExist
-
         serializer = ProjectKeyPutSerializer(data=request.data, partial=True)
         default_version = get_default_sdk_version_for_project(project)
 
@@ -124,59 +111,59 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         result = serializer.validated_data
 
         if result.get("name"):
-            key.label = result["name"]
-        if not key.data:
-            key.data = {}
-        key.data["browserSdkVersion"] = (
+            project_key.label = result["name"]
+        if not project_key.data:
+            project_key.data = {}
+        project_key.data["browserSdkVersion"] = (
             default_version if not result.get("browserSdkVersion") else result["browserSdkVersion"]
         )
 
         result_dynamic_sdk_options = result.get("dynamicSdkLoaderOptions")
         if result_dynamic_sdk_options:
-            if key.data.get("dynamicSdkLoaderOptions"):
-                key.data["dynamicSdkLoaderOptions"].update(result_dynamic_sdk_options)
+            if project_key.data.get("dynamicSdkLoaderOptions"):
+                project_key.data["dynamicSdkLoaderOptions"].update(result_dynamic_sdk_options)
             else:
-                key.data["dynamicSdkLoaderOptions"] = result_dynamic_sdk_options
+                project_key.data["dynamicSdkLoaderOptions"] = result_dynamic_sdk_options
 
         if result.get("isActive") is True:
-            key.status = ProjectKeyStatus.ACTIVE
+            project_key.status = ProjectKeyStatus.ACTIVE
         elif result.get("isActive") is False:
-            key.status = ProjectKeyStatus.INACTIVE
+            project_key.status = ProjectKeyStatus.INACTIVE
 
         if features.has("projects:rate-limits", project):
             ratelimit = result.get("rateLimit", -1)
-            prev_rate_limit_count = key.rate_limit_count
-            prev_rate_limit_window = key.rate_limit_window
+            prev_rate_limit_count = project_key.rate_limit_count
+            prev_rate_limit_window = project_key.rate_limit_window
             if (
                 ratelimit is None
                 or ratelimit != -1
                 and ratelimit
                 and (ratelimit["count"] is None or ratelimit["window"] is None)
             ):
-                key.rate_limit_count = None
-                key.rate_limit_window = None
+                project_key.rate_limit_count = None
+                project_key.rate_limit_window = None
             elif result.get("rateLimit"):
-                key.rate_limit_count = result["rateLimit"]["count"]
-                key.rate_limit_window = result["rateLimit"]["window"]
+                project_key.rate_limit_count = result["rateLimit"]["count"]
+                project_key.rate_limit_window = result["rateLimit"]["window"]
 
-        key.save()
+        project_key.save()
 
-        data = key.get_audit_log_data()
+        data = project_key.get_audit_log_data()
         if features.has("projects:rate-limits", project):
-            if prev_rate_limit_count != key.rate_limit_count:
+            if prev_rate_limit_count != project_key.rate_limit_count:
                 data["prev_rate_limit_count"] = prev_rate_limit_count
-            if prev_rate_limit_window != key.rate_limit_window:
+            if prev_rate_limit_window != project_key.rate_limit_window:
                 data["prev_rate_limit_window"] = prev_rate_limit_window
 
         self.create_audit_entry(
             request=request,
             organization=project.organization,
-            target_object=key.id,
+            target_object=project_key.id,
             event=audit_log.get_event_id("PROJECTKEY_EDIT"),
             data=data,
         )
 
-        return Response(serialize(key, request.user, request=request), status=200)
+        return Response(serialize(project_key, request.user, request=request), status=200)
 
     @extend_schema(
         operation_id="Delete a Client Key",
@@ -192,25 +179,20 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         },
         examples=None,
     )
-    def delete(self, request: Request, project, key_id) -> Response:
+    def delete(
+        self, request: Request, project_key: ProjectKey, project: Project, **kwargs
+    ) -> Response:
         """
         Delete a client key for a given project.
         """
-        try:
-            key = ProjectKey.objects.for_request(request).get(
-                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
-            )
-        except ProjectKey.DoesNotExist:
-            raise ResourceDoesNotExist
-
         self.create_audit_entry(
             request=request,
             organization=project.organization,
-            target_object=key.id,
+            target_object=project_key.id,
             event=audit_log.get_event_id("PROJECTKEY_REMOVE"),
-            data=key.get_audit_log_data(),
+            data=project_key.get_audit_log_data(),
         )
 
-        key.delete()
+        project_key.delete()
 
         return Response(status=204)

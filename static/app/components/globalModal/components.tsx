@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -12,7 +13,7 @@ const ModalHeader = styled('header')`
   align-items: center;
   gap: ${space(1)};
   position: relative;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(3)} ${space(3)};
   margin: -${space(4)} -${space(2)} ${space(3)} -${space(3)};
 
@@ -28,7 +29,7 @@ const ModalHeader = styled('header')`
   h5,
   h6 {
     font-size: 20px;
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     margin-bottom: 0;
     line-height: 1.1;
   }
@@ -40,14 +41,14 @@ function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
       aria-label={t('Close Modal')}
       size="xs"
       icon={<IconClose size="xs" />}
-      borderless
+      priority="transparent"
       {...p}
     />
   );
 }
 
 const ModalBody = styled('section')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   p:last-child {
     margin-bottom: 0;
@@ -59,7 +60,7 @@ const ModalBody = styled('section')`
 `;
 
 const ModalFooter = styled('footer')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   justify-content: flex-end;
   padding: ${space(3)} ${space(2)};

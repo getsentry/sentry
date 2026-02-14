@@ -79,7 +79,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self.event = self.store_event(data=self.base_error_trace, project_id=self.project)
         self.group = self.event.group
         assert self.group
-        self.path = f"/api/0/issues/{self.group.id}/similar-issues-embeddings/"
+        self.path = f"/api/0/organizations/{self.org.slug}/issues/{self.group.id}/similar-issues-embeddings/"
         self.similar_event = self.store_event(
             data={"message": "Dogs are great!"}, project_id=self.project
         )
@@ -219,7 +219,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         assert event.group
-        path = f"/api/0/issues/{event.group.id}/similar-issues-embeddings/"
+        path = f"/api/0/organizations/{self.org.slug}/issues/{event.group.id}/similar-issues-embeddings/"
         response = self.client.get(path, data={"k": "1", "threshold": "0.01"})
 
         assert self.similar_event.group_id is not None
@@ -554,7 +554,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert group_no_contributing_exception
 
         response = self.client.get(
-            f"/api/0/issues/{group_no_contributing_exception.id}/similar-issues-embeddings/",
+            f"/api/0/organizations/{self.org.slug}/issues/{group_no_contributing_exception.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
         )
 
@@ -565,7 +565,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         group_no_exception = event_no_exception.group
         assert group_no_exception
         response = self.client.get(
-            f"/api/0/issues/{group_no_exception.id}/similar-issues-embeddings/",
+            f"/api/0/organizations/{self.org.slug}/issues/{group_no_exception.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
         )
 
@@ -576,7 +576,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_get_latest_event.return_value = None
 
         response = self.client.get(
-            f"/api/0/issues/{self.group.id}/similar-issues-embeddings/",
+            f"/api/0/organizations/{self.org.slug}/issues/{self.group.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
         )
 
@@ -587,7 +587,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_get_stacktrace_string.return_value = ""
 
         response = self.client.get(
-            f"/api/0/issues/{self.group.id}/similar-issues-embeddings/",
+            f"/api/0/organizations/{self.org.slug}/issues/{self.group.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
         )
 
@@ -745,7 +745,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         new_event = self.store_event(data=error_data, project_id=self.project)
         assert new_event.group
         response = self.client.get(
-            path=f"/api/0/issues/{new_event.group.id}/similar-issues-embeddings/",
+            path=f"/api/0/organizations/{self.org.slug}/issues/{new_event.group.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.01"},
         )
         assert response.data == []
@@ -777,7 +777,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         new_event = self.store_event(data=error_data, project_id=self.project)
         assert new_event.group
         response = self.client.get(
-            path=f"/api/0/issues/{new_event.group.id}/similar-issues-embeddings/",
+            path=f"/api/0/organizations/{self.org.slug}/issues/{new_event.group.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.01"},
         )
         assert response.data == []

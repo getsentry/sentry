@@ -8,6 +8,7 @@ from django.db import models, router, transaction
 from django.utils import timezone
 from jsonschema import ValidationError
 
+from sentry import options
 from sentry.api.exceptions import BadRequest
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.scopes import RelocationScope
@@ -128,6 +129,14 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryAppInstallation))):
             for outbox in self.outboxes_for_delete():
                 outbox.save()
+
+            if options.get("sentry-apps.hard-delete"):
+                # actually delete the object. we need to delete all soft-deleted objects before removing ParanoidModel
+                for update_outbox in self.outboxes_for_update():
+                    update_outbox.save()  # mimics ControlOutboxProducingModel
+
+                return models.Model.delete(self, *args, **kwargs)
+
             return super().delete(*args, **kwargs)
 
     @property
@@ -143,7 +152,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         return find_regions_for_orgs([self.organization_id])
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        # Use 0 in case of bad relations from api_applicaiton_id -- the replication ordering for
+        # Use 0 in case of bad relations from api_application_id -- the replication ordering for
         # these isn't so important in that case.
         return super().outboxes_for_update(shard_identifier=self.api_application_id or 0)
 
@@ -155,7 +164,11 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
                 region_name=region_name,
-                payload={"uuid": self.uuid},
+                payload={
+                    "uuid": self.uuid,
+                    "sentry_app_id": self.sentry_app_id,
+                    "organization_id": self.organization_id,
+                },
             )
             for region_name in find_all_region_names()
         ]

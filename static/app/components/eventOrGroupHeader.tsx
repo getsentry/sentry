@@ -2,10 +2,12 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconStar} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -15,7 +17,6 @@ import {getMessage, isGroup, isTombstone} from 'sentry/utils/events';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
@@ -26,6 +27,11 @@ interface EventOrGroupHeaderProps {
   eventId?: string;
   hideIcons?: boolean;
   hideLevel?: boolean;
+  /**
+   * Extra query params to include in the issue details link.
+   * Useful for feature-specific deep-linking.
+   */
+  issueLinkExtraQuery?: Record<string, string>;
   /** Group link clicked */
   onClick?: () => void;
   query?: string;
@@ -75,6 +81,7 @@ function usePreloadGroupOnHover({
  */
 function EventOrGroupHeader({
   data,
+  issueLinkExtraQuery,
   query,
   onClick,
   hideIcons,
@@ -96,7 +103,7 @@ function EventOrGroupHeader({
       <Fragment>
         {!hideIcons && isBookmarked && (
           <IconWrapper>
-            <IconStar isSolid color="yellow300" />
+            <IconStar isSolid variant="warning" />
           </IconWrapper>
         )}
         <ErrorBoundary customComponent={() => <EventTitleError />} mini>
@@ -126,6 +133,7 @@ function EventOrGroupHeader({
       referrer: source,
       location,
       query,
+      extraQuery: issueLinkExtraQuery,
     });
 
     return (
@@ -156,12 +164,12 @@ function EventOrGroupHeader({
 
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   & em {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     font-style: normal;
-    font-weight: ${p => p.theme.fontWeight.normal};
-    color: ${p => p.theme.subText};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -176,7 +184,11 @@ const IconWrapper = styled('span')`
 `;
 
 const TitleWithLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
@@ -185,11 +197,15 @@ const TitleWithLink = styled(Link)`
 `;
 
 const TitleWithoutLink = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default EventOrGroupHeader;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

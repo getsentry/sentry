@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -181,8 +182,8 @@ const ReadoutWrapper = styled('div')`
 `;
 
 const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   white-space: nowrap;
   height: ${space(3)};
@@ -191,6 +192,6 @@ const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`
 
 const ReadoutContentWrapper = styled('h4')<{alignment: 'left' | 'right'}>`
   margin: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-align: ${p => p.alignment};
 `;

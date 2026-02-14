@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Radio} from 'sentry/components/core/radio';
+import {Flex} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
+
 import {space} from 'sentry/styles/space';
 
 type RadioPanelGroupProps<C extends string> = {
@@ -71,9 +72,9 @@ const RadioLineItem = styled('label')<{
   justify-content: space-between;
   cursor: pointer;
   outline: none;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   transition: color 0.3s ease-in;
   padding: 0;
   position: relative;

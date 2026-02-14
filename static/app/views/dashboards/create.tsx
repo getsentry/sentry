@@ -1,23 +1,48 @@
+import {useState} from 'react';
+
+import {Alert} from '@sentry/scraps/alert';
+
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
 import {EMPTY_DASHBOARD, getDashboardTemplates} from './data';
 import DashboardDetail from './detail';
+import type {DashboardDetails, Widget} from './types';
 import {DashboardState} from './types';
 import {cloneDashboard} from './utils';
 
-type Props = RouteComponentProps<{templateId?: string; widgetId?: string}> & {
-  children: React.ReactNode;
-};
-
-function CreateDashboard(props: Props) {
+export default function CreateDashboard() {
   const organization = useOrganization();
-  const {templateId} = props.params;
+  const {templateId} = useParams<{templateId: string}>();
+  const location = useLocation();
+
+  const template = templateId
+    ? getDashboardTemplates(organization).find(
+        dashboardTemplate => dashboardTemplate.id === templateId
+      )
+    : undefined;
+
+  const baseDashboard = template
+    ? cloneDashboard(template)
+    : cloneDashboard(EMPTY_DASHBOARD);
+
+  const hasWidgetsToAdd = !!location.state?.widgets && location.state.widgets.length > 0;
+
+  const [dashboard] = useState<DashboardDetails>(() => {
+    if (hasWidgetsToAdd) {
+      // Pre-populate dashboard with widgets from location state
+      return {
+        ...baseDashboard,
+        widgets: location.state.widgets as Widget[],
+      };
+    }
+    return baseDashboard;
+  });
 
   function renderDisabled() {
     return (
@@ -31,14 +56,6 @@ function CreateDashboard(props: Props) {
     );
   }
 
-  const template = templateId
-    ? getDashboardTemplates(organization).find(
-        dashboardTemplate => dashboardTemplate.id === templateId
-      )
-    : undefined;
-  const dashboard = template ? cloneDashboard(template) : cloneDashboard(EMPTY_DASHBOARD);
-  const initialState = template ? DashboardState.PREVIEW : DashboardState.CREATE;
-
   return (
     <Feature
       features="dashboards-edit"
@@ -47,8 +64,7 @@ function CreateDashboard(props: Props) {
     >
       <ErrorBoundary>
         <DashboardDetail
-          {...props}
-          initialState={initialState}
+          initialState={template ? DashboardState.PREVIEW : DashboardState.CREATE}
           dashboard={dashboard}
           dashboards={[]}
         />
@@ -56,5 +72,3 @@ function CreateDashboard(props: Props) {
     </Feature>
   );
 }
-
-export default CreateDashboard;

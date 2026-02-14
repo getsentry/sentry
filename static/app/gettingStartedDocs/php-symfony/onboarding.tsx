@@ -1,11 +1,14 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
+import {logsVerify} from './logs';
 import {getConfigureSnippet, getExcimerInstallSteps} from './utils';
 
 export const onboarding: OnboardingConfig = {
@@ -66,7 +69,7 @@ SENTRY_DSN="${params.dsn.public}"
       ],
     },
   ],
-  verify: () => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -116,6 +119,14 @@ SENTRY_DSN="${params.dsn.public}"
         },
       ],
     },
+    ...(params.isLogsSelected
+      ? ([
+          {
+            title: t('Logs'),
+            content: [logsVerify(params)],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
   ],
   nextSteps: () => [],
 };

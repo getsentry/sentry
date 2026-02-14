@@ -3,7 +3,8 @@ import {CSS} from '@dnd-kit/utilities';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -39,7 +40,7 @@ function SortableVisualizeFieldWrapper({
       ...style,
       zIndex: 100,
       height: theme.form.md.height,
-      border: `2px dashed ${theme.border}`,
+      border: `2px dashed ${theme.tokens.border.primary}`,
       borderRadius: theme.radius.md,
     };
   }
@@ -53,7 +54,7 @@ function SortableVisualizeFieldWrapper({
           aria-label={t('Drag to reorder')}
           icon={<IconGrabbable size="xs" />}
           size="zero"
-          borderless
+          priority="transparent"
           isDragging={isDragging}
         />
       )}

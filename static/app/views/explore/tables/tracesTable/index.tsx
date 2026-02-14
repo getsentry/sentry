@@ -2,14 +2,15 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
@@ -22,7 +23,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
@@ -106,7 +106,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
           {showErrorState && (
             <StyledPanelItem span={6} overflow>
               <WarningStreamWrapper>
-                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+                <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
               </WarningStreamWrapper>
             </StyledPanelItem>
           )}
@@ -196,6 +196,9 @@ function TraceRow({
     return [...leadingProjects, ...trailingProjects];
   }, [selectedProjects, trace]);
 
+  const projectSlugs =
+    traceProjects.length > 0 ? traceProjects : trace.project ? [trace.project] : [];
+
   return (
     <Fragment>
       <StyledPanelItem align="center" center onClick={onClickExpand}>
@@ -204,7 +207,7 @@ function TraceRow({
           aria-label={t('Toggle trace details')}
           aria-expanded={expanded}
           size="zero"
-          borderless
+          priority="transparent"
           onClick={() =>
             trackAnalytics('trace_explorer.toggle_trace_details', {
               organization,
@@ -214,7 +217,9 @@ function TraceRow({
           }
         />
         <TraceIdRenderer
+          projectSlugs={projectSlugs}
           traceId={trace.trace}
+          traceName={trace.name}
           timestamp={trace.end}
           onClick={event => {
             event.stopPropagation();
@@ -230,15 +235,7 @@ function TraceRow({
         <Tooltip title={trace.name} containerDisplayMode="block" showOnlyOnOverflow>
           <Description>
             <ProjectBadgeWrapper>
-              <ProjectsRenderer
-                projectSlugs={
-                  traceProjects.length > 0
-                    ? traceProjects
-                    : trace.project
-                      ? [trace.project]
-                      : []
-                }
-              />
+              <ProjectsRenderer projectSlugs={projectSlugs} />
             </ProjectBadgeWrapper>
             {trace.name ? (
               <WrappingText>{trace.name}</WrappingText>

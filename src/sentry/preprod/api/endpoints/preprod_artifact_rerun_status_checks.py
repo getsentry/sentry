@@ -88,7 +88,9 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
             try:
                 match check_type:
                     case "size":
-                        create_preprod_status_check_task.delay(preprod_artifact_id=head_artifact.id)
+                        create_preprod_status_check_task.delay(
+                            preprod_artifact_id=head_artifact.id, caller="rerun_endpoint"
+                        )
                     case _:
                         continue
             except Exception:

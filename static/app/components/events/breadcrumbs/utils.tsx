@@ -2,7 +2,8 @@ import {useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
+import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+
 import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {
@@ -58,6 +59,7 @@ export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-d
 const Color = styled('span')<{
   colorConfig: NonNullable<TimelineItemProps['colorConfig']>;
 }>`
+  display: flex;
   color: ${p => p.colorConfig.icon};
 `;
 
@@ -267,31 +269,31 @@ function getBreadcrumbColorConfig(
   switch (type) {
     case BreadcrumbType.ERROR:
       return {
-        title: theme.colors.red500,
-        icon: theme.colors.red500,
-        iconBorder: theme.colors.red200,
+        title: theme.tokens.content.danger,
+        icon: theme.tokens.content.danger,
+        iconBorder: theme.tokens.border.transparent.danger.moderate,
       };
     case BreadcrumbType.WARNING:
       return {
-        title: theme.colors.yellow500,
-        icon: theme.colors.yellow500,
-        iconBorder: theme.colors.yellow200,
+        title: theme.tokens.content.warning,
+        icon: theme.tokens.content.warning,
+        iconBorder: theme.tokens.border.transparent.warning.moderate,
       };
     case BreadcrumbType.NAVIGATION:
     case BreadcrumbType.HTTP:
     case BreadcrumbType.QUERY:
     case BreadcrumbType.TRANSACTION:
       return {
-        title: theme.colors.green500,
-        icon: theme.colors.green500,
-        iconBorder: theme.colors.green200,
+        title: theme.tokens.content.success,
+        icon: theme.tokens.content.success,
+        iconBorder: theme.tokens.border.transparent.success.moderate,
       };
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
       return {
-        title: theme.colors.blue500,
-        icon: theme.colors.blue500,
-        iconBorder: theme.colors.blue200,
+        title: theme.tokens.content.accent,
+        icon: theme.tokens.content.accent,
+        iconBorder: theme.tokens.border.transparent.accent.moderate,
       };
     case BreadcrumbType.SYSTEM:
     case BreadcrumbType.SESSION:
@@ -299,22 +301,22 @@ function getBreadcrumbColorConfig(
     case BreadcrumbType.NETWORK:
     case BreadcrumbType.CONNECTIVITY:
       return {
-        title: theme.colors.pink500,
-        icon: theme.colors.pink500,
-        iconBorder: theme.colors.pink200,
+        title: theme.tokens.content.promotion,
+        icon: theme.tokens.content.promotion,
+        iconBorder: theme.tokens.border.transparent.promotion.moderate,
       };
     case BreadcrumbType.INFO:
       return {
-        title: theme.colors.blue500,
-        icon: theme.colors.blue400,
-        iconBorder: theme.colors.blue200,
+        title: theme.tokens.content.accent,
+        icon: theme.tokens.content.accent,
+        iconBorder: theme.tokens.border.transparent.accent.moderate,
       };
     case BreadcrumbType.DEBUG:
     default:
       return {
         title: theme.tokens.content.primary,
-        icon: theme.tokens.content.muted,
-        iconBorder: theme.tokens.content.muted,
+        icon: theme.tokens.content.primary,
+        iconBorder: theme.tokens.border.transparent.neutral.moderate,
       };
   }
 }
@@ -394,7 +396,7 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
 const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
   margin: 0 ${space(1)};
   font-weight: normal;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   border: 0;
   background: none;
   color: ${p => {
@@ -408,7 +410,7 @@ const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
       case BreadcrumbLevelType.DEBUG:
       case BreadcrumbLevelType.INFO:
       case BreadcrumbLevelType.LOG:
-        return p.theme.subText;
+        return p.theme.tokens.content.secondary;
     }
   }};
   display: ${p => (p.level === BreadcrumbLevelType.UNDEFINED ? 'none' : 'block')};

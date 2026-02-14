@@ -1,9 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Badge} from 'sentry/components/core/badge';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Badge} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
@@ -63,17 +65,18 @@ export function OwnershipOwnerFilter({
         }
         return handleChangeFilter(opts.map(opt => opt.value));
       }}
-      triggerProps={{
-        icon: <IconUser />,
-        children: (
-          <Fragment>
-            {label}
-            {!isMyTeams && selectedTeams.length > 1 && (
-              <StyledBadge variant="muted">{`+${selectedTeams.length - 1}`}</StyledBadge>
-            )}
-          </Fragment>
-        ),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} icon={<IconUser />}>
+          {
+            <Fragment>
+              {label}
+              {!isMyTeams && selectedTeams.length > 1 && (
+                <StyledBadge variant="muted">{`+${selectedTeams.length - 1}`}</StyledBadge>
+              )}
+            </Fragment>
+          }
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

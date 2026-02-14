@@ -1,22 +1,22 @@
 import styled from '@emotion/styled';
 
-import type {TooltipProps} from 'sentry/components/core/tooltip';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconInfo, IconQuestion} from 'sentry/icons';
 import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 
-interface QuestionProps
-  extends Partial<
-    Pick<
-      TooltipProps,
-      | 'containerDisplayMode'
-      | 'isHoverable'
-      | 'overlayStyle'
-      | 'position'
-      | 'skipWrapper'
-      | 'delay'
-    >
-  > {
+interface QuestionProps extends Partial<
+  Pick<
+    TooltipProps,
+    | 'containerDisplayMode'
+    | 'isHoverable'
+    | 'overlayStyle'
+    | 'position'
+    | 'skipWrapper'
+    | 'delay'
+  >
+> {
   /**
    * Sets the size of the icon.
    *
@@ -42,9 +42,9 @@ function QuestionTooltip({
     <QuestionIconContainer size={size} className={className}>
       <Tooltip skipWrapper title={title} {...tooltipProps}>
         {icon === 'info' ? (
-          <IconInfo size={size} color="subText" data-test-id="more-information" />
+          <IconInfo size={size} variant="muted" data-test-id="more-information" />
         ) : (
-          <IconQuestion size={size} color="subText" data-test-id="more-information" />
+          <IconQuestion size={size} variant="muted" data-test-id="more-information" />
         )}
       </Tooltip>
     </QuestionIconContainer>

@@ -188,3 +188,32 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
 
         # Should be denied access since user doesn't have access to the project
         assert response.status_code == 403
+
+    def test_install_groups_returned(self) -> None:
+        """Test that install_groups is returned from extras"""
+        self.preprod_artifact = self._create_ios_artifact(
+            extras={
+                "is_code_signature_valid": True,
+                "profile_name": "Test Profile",
+                "codesigning_type": "development",
+                "install_groups": ["beta", "qa"],
+            }
+        )
+
+        url = self._get_url()
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["install_groups"] == ["beta", "qa"]
+
+    def test_install_groups_null_when_not_set(self) -> None:
+        """Test that install_groups is null when not set in extras"""
+        self.preprod_artifact = self._create_ios_artifact()
+
+        url = self._get_url()
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["install_groups"] is None

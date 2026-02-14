@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {getTraceTimeRangeFromEvent} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -63,7 +64,9 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
     isError: isErrorIssuePlatform,
   } = useApiQuery<TraceEventResponse>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           // Get issue platform issues
@@ -99,7 +102,9 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
     meta: unknown;
   }>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           // Other events

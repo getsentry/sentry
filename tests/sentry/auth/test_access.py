@@ -203,7 +203,8 @@ class FromUserTest(AccessFactoryTestCase):
     def test_member_no_teams_closed_membership(self) -> None:
         user = self.create_user()
         organization = self.create_organization(
-            owner=self.user, flags=0  # disable default allow_joinleave
+            owner=self.user,
+            flags=0,  # disable default allow_joinleave
         )
         member = self.create_member(organization=organization, user=user, role="member")
         team = self.create_team(organization=organization)

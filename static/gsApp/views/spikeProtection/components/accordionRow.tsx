@@ -64,7 +64,7 @@ function AccordionRow({
       >
         {title}
         {!disabled && (
-          <IconChevron color="subText" direction={isExpanded ? 'up' : 'down'} size="sm" />
+          <IconChevron variant="muted" direction={isExpanded ? 'up' : 'down'} size="sm" />
         )}
       </Title>
 

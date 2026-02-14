@@ -1,8 +1,9 @@
 import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import TextCopyInput from 'sentry/components/textCopyInput';
 
 type Props = {

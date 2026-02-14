@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Tag} from 'sentry/components/core/badge';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -61,7 +62,7 @@ export function AssigneeBadge({
         {showLabel && (
           <StyledText>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</StyledText>
         )}
-        <IconChevron color="subText" direction={chevronDirection} size="xs" />
+        <IconChevron variant="muted" direction={chevronDirection} size="xs" />
       </Fragment>
     );
   };
@@ -70,7 +71,7 @@ export function AssigneeBadge({
     <Fragment>
       <StyledLoadingIndicator mini relative size={AVATAR_SIZE} />
       {showLabel && 'Loading...'}
-      <IconChevron color="subText" direction={chevronDirection} size="xs" />
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
@@ -83,7 +84,7 @@ export function AssigneeBadge({
         height={`${AVATAR_SIZE}px`}
       />
       {showLabel && <Fragment>Unassigned</Fragment>}
-      <IconChevron color="subText" direction={chevronDirection} size="xs" />
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
@@ -144,7 +145,11 @@ const TooltipWrapper = styled('div')`
 const StyledText = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   max-width: 114px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledTag = styled(Tag)`
@@ -152,23 +157,23 @@ const StyledTag = styled(Tag)`
   height: 24px;
   padding: ${space(0.5)};
   padding-right: ${space(0.25)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const UnassignedTag = styled(StyledTag)`
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   background-color: transparent;
 `;
 
 const TooltipSubtext = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

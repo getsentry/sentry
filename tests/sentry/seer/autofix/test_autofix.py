@@ -18,6 +18,7 @@ from sentry.seer.autofix.autofix import (
     get_all_tags_overview,
     trigger_autofix,
 )
+from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -783,11 +784,35 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
         assert staging_val["count"] == 1
         assert staging_val["percentage"] == "25%"
 
+    def test_get_all_tags_overview_respects_time_range(self) -> None:
+        """Only include tag counts for events within the provided time window (event 2 and 3)"""
+        now = before_now(minutes=0)
+        start = now - timedelta(minutes=3, seconds=30)
+        end = now - timedelta(minutes=1, seconds=30)
+
+        result = get_all_tags_overview(self.group, start=start, end=end)
+
+        assert result is not None
+        tags = {tag["key"]: tag for tag in result["tags_overview"]}
+
+        env_tag = tags["environment"]
+        assert env_tag["total_values"] == 2  # events ~2m and ~3m ago
+        env_values = {val["value"]: val for val in env_tag["top_values"]}
+        assert set(env_values.keys()) == {"production", "staging"}
+        assert env_values["production"]["count"] == 1
+        assert env_values["staging"]["count"] == 1
+
+        user_tag = tags["user_role"]
+        assert user_tag["total_values"] == 2
+        user_values = {val["value"]: val for val in user_tag["top_values"]}
+        assert set(user_values.keys()) == {"admin", "user"}
+        assert user_values["admin"]["count"] == 1
+        assert user_values["user"]["count"] == 1
+
 
 @requires_snuba
 @pytest.mark.django_db
 @with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         super().setUp()
@@ -808,7 +833,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_profile,
         mock_get_tags,
         mock_record_seer_run,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a specified event_id."""
         # Setup test data
@@ -875,7 +899,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_serialized_event,
         mock_get_latest_event,
         mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests error handling when no event can be found for the group."""
         mock_get_recommended_event.return_value = None
@@ -910,7 +933,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_profile,
         mock_get_tags,
         mock_record_seer_run,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a web vitals issue."""
         # Setup test data
@@ -952,47 +974,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 @requires_snuba
 @pytest.mark.django_db
 @with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
-class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-
-        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
-
-    @patch("sentry.models.Group.get_recommended_event_for_environments")
-    @patch("sentry.models.Group.get_latest_event")
-    @patch("sentry.seer.autofix.autofix._get_serialized_event")
-    def test_trigger_autofix_without_org_acknowledgement(
-        self,
-        mock_get_serialized_event,
-        mock_get_latest_event,
-        mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
-    ):
-        """Tests error handling when no event can be found for the group."""
-        mock_get_recommended_event.return_value = None
-        mock_get_latest_event.return_value = None
-        # We should never reach _get_serialized_event since we have no event
-        mock_get_serialized_event.return_value = (None, None)
-
-        group = self.create_group()
-        user = Mock(spec=AnonymousUser)
-
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
-
-        assert response.status_code == 403
-        assert (
-            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
-            in response.data["detail"]
-        )
-        # Verify _get_serialized_event was not called since we have no event
-        mock_get_serialized_event.assert_not_called()
-
-
-@requires_snuba
-@pytest.mark.django_db
-@with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1008,7 +989,6 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         mock_get_serialized_event,
         mock_get_latest_event,
         mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests that autofix is blocked when organization has hideAiFeatures set to True"""
         mock_get_recommended_event.return_value = None
@@ -1469,3 +1449,57 @@ class TestGetLogsForEvent(TestCase):
         assert merged[0]["message"] == "foo" and merged[0]["consecutive_count"] == 2
         assert merged[1]["message"] == "bar"
         assert merged[2]["message"] == "foo" and "consecutive_count" not in merged[2]
+
+
+class UpdateAutofixTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.run_id = 123
+        self.payload: AutofixSelectRootCausePayload = {"type": "select_root_cause", "cause_id": 1}
+
+    @patch("sentry.seer.autofix.autofix.requests.post")
+    def test_update_autofix_http_error(self, mock_post):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = Exception("bad request, fix something")
+        mock_post.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Failed to update autofix run"
+
+    @patch("sentry.seer.autofix.autofix.requests.post")
+    def test_update_autofix_json_decode_error(self, mock_post):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.side_effect = Exception("Invalid JSON")
+        mock_post.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Seer returned an invalid response"
+
+    @patch("sentry.seer.autofix.autofix.requests.post")
+    def test_update_autofix_success(self, mock_post):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"run_id": self.run_id, "status": "updated"}
+        mock_post.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
+
+        assert response.status_code == 200
+        assert response.data == mock_response.json.return_value

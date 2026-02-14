@@ -1,7 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -76,7 +77,7 @@ function GroupingComponentFrames({
 
 const ToggleCollapse = styled(Button)`
   margin: ${space(0.5)} 0;
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>`

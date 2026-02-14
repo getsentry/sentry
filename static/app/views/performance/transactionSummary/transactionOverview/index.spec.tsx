@@ -117,7 +117,7 @@ describe('Performance > TransactionSummary', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=2&query=is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/',
       body: [],
     });
 
@@ -764,7 +764,7 @@ describe('Performance > TransactionSummary', () => {
 
     it('triggers a navigation on search', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/issues/?limit=5&project=2&query=user.email%3Auhoh%2A%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d`,
+        url: '/organizations/org-slug/issues/',
         method: 'GET',
         body: [],
       });
@@ -866,7 +866,7 @@ describe('Performance > TransactionSummary', () => {
 
     it('forwards conditions to related issues', async () => {
       const issueGet = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d',
+        url: '/organizations/org-slug/issues/',
         body: [],
       });
 
@@ -883,7 +883,7 @@ describe('Performance > TransactionSummary', () => {
 
     it('does not forward event type to related issues', async () => {
       const issueGet = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d',
+        url: '/organizations/org-slug/issues/',
         body: [],
         match: [
           (_, options) => {
@@ -923,13 +923,13 @@ describe('Performance > TransactionSummary', () => {
 
     it('appends tag value to existing query when clicked', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/issues/?limit=5&project=2&query=tags%5Benvironment%5D%3Adev%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d`,
+        url: '/organizations/org-slug/issues/',
         method: 'GET',
         body: [],
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/issues/?limit=5&project=2&query=tags%5Benvironment%5D%3Adev%20foo%3Abar%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d`,
+        url: '/organizations/org-slug/issues/',
         method: 'GET',
         body: [],
       });
@@ -1090,7 +1090,7 @@ describe('Performance > TransactionSummary', () => {
 
     it('uses MEP dataset for stats query and shows fallback warning', async () => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/?limit=5&project=2&query=has%3Anot-compatible%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=trends&statsPeriod=14d',
+        url: '/organizations/org-slug/issues/',
         body: [],
       });
       MockApiClient.addMockResponse({

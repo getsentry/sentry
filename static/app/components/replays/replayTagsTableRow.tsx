@@ -3,8 +3,9 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -141,7 +142,7 @@ export default ReplayTagsTableRow;
 
 const ValueContainer = styled('div')`
   span {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
   display: flex;
   padding: ${space(0.25)};
@@ -149,7 +150,11 @@ const ValueContainer = styled('div')`
 `;
 
 const StyledTooltip = styled(Tooltip)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledVersionContainer = styled('div')`

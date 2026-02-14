@@ -85,7 +85,7 @@ class GroupCurrentReleaseTest(APITestCase):
         target_group, target_releases = self._set_up_current_release(group_seen_on_latest_release)
 
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{target_group.id}/current-release/"
+        url = f"/api/0/organizations/{target_group.project.organization.slug}/issues/{target_group.id}/current-release/"
         response = self.client.get(url, {"environment": environments_to_query}, format="json")
         assert response.status_code == 200
         return response.data["currentRelease"], target_releases

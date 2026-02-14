@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {useRendererContext} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/rendererContext';
@@ -129,8 +130,8 @@ function SubHeaderBlock(block: Extract<ContentBlock, {type: 'subheader'}>) {
 // TODO(aknaus): use <Heading/> instead
 const SubHeaderBlockWrapper = styled('h5')`
   ${baseBlockStyles}
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   ${p => coloredCodeStyles(p.theme)}
 `;
 

@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {Select} from '@sentry/scraps/select';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
-import {Alert} from 'sentry/components/core/alert';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
@@ -16,6 +17,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
@@ -53,7 +55,11 @@ function SentryAppExternalInstallationContent() {
 
   // Load data on mount.
   const {data: sentryApp, isPending: sentryAppLoading} = useApiQuery<SentryApp>(
-    [`/sentry-apps/${params.sentryAppSlug}/`],
+    [
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+        path: {sentryAppIdOrSlug: params.sentryAppSlug},
+      }),
+    ],
     {
       staleTime: 0,
     }

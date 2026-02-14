@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -14,9 +16,9 @@ import {IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {IssueSummary} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issueSummary';
 
 const TABLE_WIDTH_BREAKPOINTS = {
@@ -91,7 +93,9 @@ function useInsightIssues(
 
   const {isPending, data: maybeMatchingIssues} = useApiQuery<Group[]>(
     [
-      `/organizations/${organization.slug}/issues/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           query,
@@ -149,8 +153,8 @@ const Heading = styled('h6')`
   align-self: center;
   margin: 0 ${space(2)};
   width: 60px;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const IssueHeading = styled(Heading)`
@@ -253,7 +257,7 @@ const ChartWrapper = styled('div')`
 `;
 
 const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   font-variant-numeric: tabular-nums;
 `;
 

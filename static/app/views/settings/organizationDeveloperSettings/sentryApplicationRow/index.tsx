@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Link} from 'sentry/components/core/link';
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {space} from 'sentry/styles/space';
@@ -110,7 +110,9 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   </CenterFlex>
 ))`
   color: ${(props: PublishStatusProps) =>
-    props.status === 'published' ? props.theme.success : props.theme.colors.gray400};
+    props.status === 'published'
+      ? props.theme.tokens.content.success
+      : props.theme.colors.gray400};
   font-weight: light;
   margin-right: ${space(0.75)};
 `;

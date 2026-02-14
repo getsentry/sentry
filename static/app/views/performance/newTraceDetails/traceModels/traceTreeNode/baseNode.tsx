@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import type {Measurement} from 'sentry/types/event';
+import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
@@ -137,7 +137,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   /**
    * The maximum severity of the node's issues.
    */
-  private _max_severity: keyof Theme['level'] | undefined;
+  private _max_severity: Level | undefined;
 
   constructor(parent: BaseNode | null, value: T, extra: TraceTreeNodeExtra | null) {
     this.parent = parent;
@@ -278,6 +278,9 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   get visibleChildren(): BaseNode[] {
     const queue: BaseNode[] = [];
     const visibleChildren: BaseNode[] = [];
+    const visited = new Set<BaseNode>();
+    visited.add(this);
+
     if (this.directVisibleChildren.length > 0) {
       for (let i = this.directVisibleChildren.length - 1; i >= 0; i--) {
         queue.push(this.directVisibleChildren[i]!);
@@ -286,6 +289,12 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
     while (queue.length > 0) {
       const node = queue.pop()!;
+
+      // Cycle detection: skip already-visited nodes
+      if (visited.has(node)) {
+        continue;
+      }
+      visited.add(node);
 
       visibleChildren.push(node);
 
@@ -308,7 +317,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.children;
   }
 
-  get maxIssueSeverity(): keyof Theme['level'] {
+  get maxIssueSeverity(): Level {
     if (this._max_severity) {
       return this._max_severity;
     }
@@ -320,7 +329,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       }
     }
 
-    return 'default';
+    return 'unknown';
   }
 
   get path(): TraceTree.NodePath {
@@ -360,6 +369,19 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       : undefined;
   }
 
+  get traceOrigin(): number {
+    return (
+      ((this.value &&
+        Array.isArray(this.value) &&
+        this.value[0] &&
+        'additional_attributes' in this.value[0] &&
+        (this.value[0].additional_attributes?.[
+          'tags[performance.timeOrigin,number]'
+        ] as number)) ||
+        0) * 1000
+    );
+  }
+
   isRootNodeChild(): boolean {
     return this.parent?.value === null;
   }
@@ -375,6 +397,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   hasVisibleChildren(): boolean {
     return this.visibleChildren.length > 0;
+  }
+
+  hasDirectVisibleChildren(): boolean {
+    return this.directVisibleChildren.length > 0;
   }
 
   matchById(id: string): boolean {
@@ -397,16 +423,32 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.children;
   }
 
-  findChild<ChildType extends BaseNode = BaseNode>(
-    predicate: (child: BaseNode) => boolean
-  ): ChildType | null {
+  /**
+   * Cycle Detection Strategy
+   *
+   * Traversals track visited nodes to prevent infinite loops when trace data
+   * contains circular references (for example, a parent_span_id chain that
+   * loops back to an ancestor). When a cycle is detected, the node is skipped
+   * so the UI can render the remaining subtree safely.
+   *
+   * Traverses all children using depth-first search with cycle detection.
+   * @param callback - Called for each node. Return `true` to stop traversal early.
+   */
+  private traverseChildren(callback: (node: BaseNode) => boolean | void): void {
     const queue: BaseNode[] = [...this.getNextTraversalNodes()];
+    const visited = new Set<BaseNode>();
+    visited.add(this);
 
     while (queue.length > 0) {
       const next = queue.pop()!;
 
-      if (predicate(next)) {
-        return next as ChildType;
+      if (visited.has(next)) {
+        continue;
+      }
+      visited.add(next);
+
+      if (callback(next) === true) {
+        return;
       }
 
       const children = next.getNextTraversalNodes();
@@ -414,52 +456,52 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
         queue.push(children[i]!);
       }
     }
+  }
 
-    return null;
+  findChild<ChildType extends BaseNode = BaseNode>(
+    predicate: (child: BaseNode) => boolean
+  ): ChildType | null {
+    let result: ChildType | null = null;
+    this.traverseChildren(node => {
+      if (predicate(node)) {
+        result = node as ChildType;
+        return true;
+      }
+      return undefined;
+    });
+    return result;
   }
 
   findAllChildren<ChildType extends BaseNode = BaseNode>(
     predicate: (child: BaseNode) => boolean
   ): ChildType[] {
-    const queue: BaseNode[] = [...this.getNextTraversalNodes()];
     const results: ChildType[] = [];
-
-    while (queue.length > 0) {
-      const next = queue.pop()!;
-
-      if (predicate(next)) {
-        results.push(next as ChildType);
+    this.traverseChildren(node => {
+      if (predicate(node)) {
+        results.push(node as ChildType);
       }
-
-      const children = next.getNextTraversalNodes();
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]!);
-      }
-    }
-
+    });
     return results;
   }
 
   forEachChild(callback: (child: BaseNode) => void) {
-    const queue: BaseNode[] = [...this.getNextTraversalNodes()];
-
-    while (queue.length > 0) {
-      const next = queue.pop()!;
-
-      callback(next);
-
-      const children = next.getNextTraversalNodes();
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]!);
-      }
-    }
+    this.traverseChildren(callback);
   }
 
   findParent<ChildType extends BaseNode = BaseNode>(
     predicate: (parent: BaseNode) => boolean
   ): ChildType | null {
+    const visited = new Set<BaseNode>();
+    visited.add(this);
+
     let current = this.parent;
     while (current) {
+      // Cycle detection: stop if we've seen this node before
+      if (visited.has(current)) {
+        break;
+      }
+      visited.add(current);
+
       if (predicate(current)) {
         return current as ChildType;
       }
@@ -516,7 +558,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   makeBarTextColor(inside: boolean, theme: Theme): string {
-    return inside ? 'white' : theme.subText;
+    return inside ? 'white' : theme.tokens.content.secondary;
   }
 
   /**

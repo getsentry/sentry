@@ -2,12 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Alert} from 'sentry/components/core/alert';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -83,7 +85,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         </div>
       </CheckIns>
       <SectionHeading>{t('Schedule')}</SectionHeading>
-      <Schedule>
+      <Flex wrap="wrap" marginBottom="xl" gap="md">
         <Text>
           {scheduleAsText(monitor.config)}{' '}
           {schedule_type === ScheduleType.CRONTAB && `(${timezone})`}
@@ -91,7 +93,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         {schedule_type === ScheduleType.CRONTAB && (
           <CrontabText>({schedule})</CrontabText>
         )}
-      </Schedule>
+      </Flex>
       <Legend>
         <SectionHeading>{t('Legend')}</SectionHeading>
         <DetailsTimelineLegend
@@ -182,20 +184,13 @@ const CheckIns = styled('div')`
   }
 `;
 
-const Schedule = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${p => p.theme.space.md};
-`;
-
 const Legend = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const CrontabText = styled(Text)`
-  font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.subText};
+  font-family: ${p => p.theme.font.family.mono};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MonitorSlug = styled('button')`

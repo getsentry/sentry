@@ -522,12 +522,19 @@ class Project(Model):
 
         self.organization = organization
 
-        try:
-            with transaction.atomic(router.db_for_write(Project)):
-                self.update(organization=organization)
-        except IntegrityError:
-            slugify_instance(self, self.name, organization=organization, max_length=50)
-            self.update(slug=self.slug, organization=organization)
+        # Wrap the org update and ProjectTeam cleanup in a single transaction so
+        # that a crash between the two doesn't leave the project with team
+        # associations from the old organization.
+        with transaction.atomic(router.db_for_write(Project)):
+            try:
+                with transaction.atomic(router.db_for_write(Project)):
+                    self.update(organization=organization)
+            except IntegrityError:
+                slugify_instance(self, self.name, organization=organization, max_length=50)
+                self.update(slug=self.slug, organization=organization)
+
+            if org_changed:
+                ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
 
         # Both environments and releases are bound at an organization level.
         # Due to this, when you transfer a project into another org, we have to
@@ -543,9 +550,6 @@ class Project(Model):
         if org_changed:
             for model in ReleaseProject, ReleaseProjectEnvironment, EnvironmentProject:
                 model.objects.filter(project_id=self.id).delete()
-            # this is getting really gross, but make sure there aren't lingering associations
-            # with old orgs or teams
-            ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
 
         rules_by_environment_id = defaultdict(set)
         for rule_id, environment_id in Rule.objects.filter(

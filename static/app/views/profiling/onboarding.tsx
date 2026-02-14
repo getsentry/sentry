@@ -2,11 +2,21 @@ import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
@@ -16,6 +26,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
@@ -34,7 +45,6 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 function useOnboardingProject() {
@@ -88,11 +98,13 @@ function WaitingIndicator({
 function StepRenderer({
   project,
   step,
+  stepIndex,
   isLastStep,
 }: {
   isLastStep: boolean;
   project: Project;
   step: OnboardingStep;
+  stepIndex: number;
 }) {
   const {type, title} = step;
   const api = useApi();
@@ -100,7 +112,9 @@ function StepRenderer({
 
   return (
     <GuidedSteps.Step stepKey={type || title} title={title || (type && StepTitles[type])}>
-      <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      <StepIndexProvider index={stepIndex}>
+        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
@@ -134,48 +148,50 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Find Slow Code')}</Title>
-                <SubTitle>
-                  {t(
-                    'Use aggregated profiling data to find the slowest code paths in your app and to identify functions that have regressed in performance.'
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Find Slow Code')}</Title>
+                  <SubTitle>
                     {t(
-                      'Find and optimize resource-intensive code paths that cause excessive infrastructure cost for running your backend services'
+                      'Use aggregated profiling data to find the slowest code paths in your app and to identify functions that have regressed in performance.'
                     )}
-                  </li>
-                  <li>
-                    {t(
-                      'Debug unresponsive interactions and janky scrolling in your mobile and browser apps'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Augment traces & spans with function-level visibility into the code that is causing increased latency'
-                    )}
-                  </li>
-                </BulletList>
-              </HeaderText>
-              <Image src={emptyTraceImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body>
-              <Setup>{children}</Setup>
-              <Preview>
-                <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/BSKubAMPPaF4N5hujNbi?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+                  </SubTitle>
+                  <BulletList>
+                    <li>
+                      {t(
+                        'Find and optimize resource-intensive code paths that cause excessive infrastructure cost for running your backend services'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Debug unresponsive interactions and janky scrolling in your mobile and browser apps'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Augment traces & spans with function-level visibility into the code that is causing increased latency'
+                      )}
+                    </li>
+                  </BulletList>
+                </HeaderText>
+                <Image src={emptyTraceImg} />
+              </HeaderWrapper>
+              <Divider />
+              <Body>
+                <Setup>{children}</Setup>
+                <Preview>
+                  <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/BSKubAMPPaF4N5hujNbi?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>
@@ -286,25 +302,28 @@ export function Onboarding() {
     ...profilingDocs.install(docParams),
     ...profilingDocs.configure(docParams),
     ...profilingDocs.verify(docParams),
-  ];
+  ].filter(s => !s.collapsible);
 
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <ContinuousProfilingBillingRequirementBanner project={project} />
+      <CopySetupInstructionsGate>
+        <Container paddingBottom="md">
+          <OnboardingCopyMarkdownButton steps={steps} source="profiling_onboarding" />
+        </Container>
+      </CopySetupInstructionsGate>
       <GuidedSteps>
-        {steps
-          // Only show non-optional steps
-          .filter(step => !step.collapsible)
-          .map((step, index) => (
-            <StepRenderer
-              key={index}
-              project={project}
-              step={step}
-              isLastStep={index === steps.length - 1}
-            />
-          ))}
+        {steps.map((step, index) => (
+          <StepRenderer
+            key={index}
+            project={project}
+            step={step}
+            stepIndex={index}
+            isLastStep={index === steps.length - 1}
+          />
+        ))}
       </GuidedSteps>
     </OnboardingPanel>
   );
@@ -323,7 +342,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   z-index: 10;
   gap: ${space(1)};
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
   padding-right: ${space(4)};
 `;
@@ -343,7 +362,7 @@ const SubTitle = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BulletList = styled('ul')`
@@ -381,7 +400,7 @@ const Setup = styled('div')`
     right: 50%;
     top: 2.5%;
     height: 95%;
-    border-right: 1px ${p => p.theme.border} solid;
+    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
   }
 `;
 
@@ -414,7 +433,8 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.border};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;
@@ -442,8 +462,8 @@ const DescriptionWrapper = styled('div')`
   && > h4,
   && > h5,
   && > h6 {
-    font-size: ${p => p.theme.fontSize.xl};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-size: ${p => p.theme.font.size.xl};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     line-height: 34px;
   }
 

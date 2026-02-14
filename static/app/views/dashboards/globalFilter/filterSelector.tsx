@@ -1,13 +1,19 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {
+  HybridFilter,
+  type HybridFilterRef,
+} from 'sentry/components/pageFilters/hybridFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   modifyFilterOperatorQuery,
   modifyFilterValue,
@@ -32,7 +38,6 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import FilterSelectorTrigger, {
@@ -43,7 +48,12 @@ import {
   getFilterToken,
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
-import type {GlobalFilter} from 'sentry/views/dashboards/types';
+import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {
+  SpanFields,
+  subregionCodeToName,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 type FilterSelectorProps = {
   globalFilter: GlobalFilter;
@@ -61,6 +71,7 @@ function FilterSelector({
   disableRemoveFilter,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
+  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
 
   const {fieldDefinition, filterToken} = useMemo(() => {
     const fieldDef = getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset);
@@ -179,7 +190,7 @@ function FilterSelector({
 
   const {data: fetchedFilterValues, isFetching} = queryResult;
 
-  const options = useMemo(() => {
+  const options = useMemo((): Array<SelectOption<string>> => {
     if (predefinedValues && !canSelectMultipleValues) {
       return predefinedValues.flatMap(section =>
         section.suggestions.map(suggestion => ({
@@ -191,11 +202,27 @@ function FilterSelector({
 
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
-    const addOption = (value: string, map: Map<string, SelectOption<string>>) =>
-      map.set(value, {
+    const addOption = (value: string, map: Map<string, SelectOption<string>>) => {
+      const option: SelectOption<string> = {
         label: middleEllipsis(value, 70, /[\s-_:]/),
         value,
-      });
+      };
+
+      // Only add checkboxes for multi-select mode
+      if (canSelectMultipleValues) {
+        option.leadingItems = ({isSelected}: {isSelected: boolean}) => (
+          <Checkbox
+            size="sm"
+            checked={isSelected}
+            onChange={() => hybridFilterRef.current?.toggleOption?.(value)}
+            aria-label={t('Select %s', value)}
+            tabIndex={-1}
+          />
+        );
+      }
+
+      return map.set(value, option);
+    };
 
     // Filter values in the global filter
     activeFilterValues.forEach(value => addOption(value, optionMap));
@@ -228,6 +255,8 @@ function FilterSelector({
     searchQuery,
     canSelectMultipleValues,
   ]);
+
+  const translatedOptions = translateKnownFilterOptions(options, globalFilter);
 
   const handleChange = (opts: string[]) => {
     if (isEqual(opts, activeFilterValues) && stagedOperator === initialOperator) {
@@ -276,7 +305,7 @@ function FilterSelector({
         <StyledButton
           aria-label={t('Clear Selections')}
           size="zero"
-          borderless
+          priority="transparent"
           onClick={() => {
             setSearchQuery('');
             handleChange([]);
@@ -303,7 +332,7 @@ function FilterSelector({
       globalFilter={globalFilter}
       activeFilterValues={filterValues}
       operator={stagedOperator}
-      options={options}
+      options={translatedOptions}
       queryResult={queryResult}
     />
   );
@@ -313,7 +342,7 @@ function FilterSelector({
       <CompactSelect
         multiple={false}
         disabled={false}
-        options={options}
+        options={translatedOptions}
         value={activeFilterValues.length > 0 ? activeFilterValues[0] : undefined}
         onChange={option => {
           const newValue = option?.value;
@@ -328,19 +357,21 @@ function FilterSelector({
           </MenuTitleWrapper>
         }
         menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
-        triggerProps={{
-          children: renderFilterSelectorTrigger(activeFilterValues),
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps}>
+            {renderFilterSelectorTrigger(activeFilterValues)}
+          </OverlayTrigger.Button>
+        )}
       />
     );
   }
 
   return (
     <HybridFilter
-      checkboxPosition="leading"
+      ref={hybridFilterRef}
       searchable
       disabled={false}
-      options={options}
+      options={translatedOptions}
       value={activeFilterValues}
       searchPlaceholder={t('Search or enter a custom value...')}
       onSearch={setSearchQuery}
@@ -370,7 +401,7 @@ function FilterSelector({
                   <FilterValueTruncated>
                     {prettifyTagKey(globalFilter.tag.key)}
                   </FilterValueTruncated>
-                  <Button {...triggerProps} size="zero" borderless>
+                  <Button {...triggerProps} size="zero" priority="transparent">
                     <Flex gap="xs" align="center">
                       <SubText>{OP_LABELS[stagedOperator]}</SubText>
                       <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
@@ -384,19 +415,37 @@ function FilterSelector({
         </MenuTitleWrapper>
       }
       menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
-      triggerProps={{
-        children: renderFilterSelectorTrigger(stagedFilterValues),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>
+          {renderFilterSelectorTrigger(stagedFilterValues)}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }
+
+const translateKnownFilterOptions = (
+  options: Array<SelectOption<string>>,
+  globalFilter: GlobalFilter
+) => {
+  const key = globalFilter.tag.key;
+  const dataset = globalFilter.dataset;
+
+  if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
+    return options.map(option => ({
+      ...option,
+      label: subregionCodeToName[option.value as SubregionCode] || option.label,
+    }));
+  }
+  return options;
+};
 
 export default FilterSelector;
 
 const StyledButton = styled(Button)`
   font-size: inherit;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};
   margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
 `;
@@ -416,6 +465,6 @@ const WildcardButton = styled(Flex)`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;

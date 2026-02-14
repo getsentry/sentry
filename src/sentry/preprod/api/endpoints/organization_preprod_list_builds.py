@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.utils import get_date_range_from_params
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
@@ -23,6 +24,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
 )
 from sentry.preprod.api.validators import PreprodListBuildsValidator
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.quotas import get_size_retention_cutoff
 from sentry.preprod.utils import parse_release_version
 
 logger = logging.getLogger(__name__)
@@ -84,12 +86,14 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
         except InvalidParams:
             raise ParseError(detail="Invalid date range")
 
+        cutoff = get_size_retention_cutoff(organization)
+
         queryset = (
             PreprodArtifact.objects.select_related(
-                "project", "build_configuration", "commit_comparison"
+                "project", "build_configuration", "commit_comparison", "mobile_app_info"
             )
             .prefetch_related("preprodartifactsizemetrics_set")
-            .filter(project_id__in=project_ids)
+            .filter(project_id__in=project_ids, date_added__gte=cutoff)
         )
 
         if start and end:
@@ -102,7 +106,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
             if parsed_version:
                 queryset = queryset.filter(
                     app_id__icontains=parsed_version.app_id,
-                    build_version__icontains=parsed_version.build_version,
+                    mobile_app_info__build_version__icontains=parsed_version.build_version,
                 )
                 release_version_parsed = True
 
@@ -113,16 +117,16 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
 
             build_version = params.get("build_version")
             if build_version:
-                queryset = queryset.filter(build_version__icontains=build_version)
+                queryset = queryset.filter(mobile_app_info__build_version__icontains=build_version)
 
         query = params.get("query")
         if query and query.strip():
             search_term = query.strip()
 
             search_query = (
-                Q(app_name__icontains=search_term)
+                Q(mobile_app_info__app_name__icontains=search_term)
                 | Q(app_id__icontains=search_term)
-                | Q(build_version__icontains=search_term)
+                | Q(mobile_app_info__build_version__icontains=search_term)
                 | Q(
                     commit_comparison__head_sha__icontains=search_term,
                     commit_comparison__organization_id=organization.id,
@@ -134,10 +138,14 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
             )
 
             if search_term.isdigit():
-                search_query |= Q(
-                    commit_comparison__pr_number=int(search_term),
-                    commit_comparison__organization_id=organization.id,
-                )
+                search_id = int(search_term)
+                # Skip if value exceeds max for BoundedBigIntegerField
+                if search_id <= I64_MAX:
+                    search_query |= Q(id=search_id)
+                    search_query |= Q(
+                        commit_comparison__pr_number=search_id,
+                        commit_comparison__organization_id=organization.id,
+                    )
             queryset = queryset.filter(search_query)
 
         state = params.get("state")

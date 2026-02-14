@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -16,8 +17,12 @@ function usePollReplayRecord({
   replayId,
   pollInterval = 30_000, // Default to every 30 seconds
 }: Props): ReplayRecord | undefined {
-  // we use {} to avoid colliding with the queryKey used by useReplayData
-  const queryKey: ApiQueryKey = [`/organizations/${orgSlug}/replays/${replayId}/`, {}];
+  const queryKey: ApiQueryKey = [
+    getApiUrl('/organizations/$organizationIdOrSlug/replays/$replayId/', {
+      path: {organizationIdOrSlug: orgSlug, replayId},
+    }),
+    {}, // we use {} to avoid colliding with the queryKey used by useReplayData
+  ];
 
   const {data} = useApiQuery<{data: ReplayRecord}>(queryKey, {
     refetchInterval: pollInterval,

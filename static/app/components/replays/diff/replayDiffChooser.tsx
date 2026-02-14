@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {TabList, TabPanels, TabStateProvider} from 'sentry/components/core/tabs';
+import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
+
 import {ReplayMutationTree} from 'sentry/components/replays/diff/replayMutationTree';
 import {ReplaySideBySideImageDiff} from 'sentry/components/replays/diff/replaySideBySideImageDiff';
 import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';

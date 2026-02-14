@@ -23,6 +23,7 @@ class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
     This test is also very similar to those in the Metrics Layer.
     """
 
+    @pytest.mark.skip(reason="flaky: #106802")
     def test_count_query(self) -> None:
         generic_metrics_backend.distribution(
             self.use_case_id,

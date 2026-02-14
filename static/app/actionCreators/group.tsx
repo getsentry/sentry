@@ -6,6 +6,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import type {Actor} from 'sentry/types/core';
 import type {Group, Tag as GroupTag, TagValue} from 'sentry/types/group';
 import {buildTeamId, buildUserId} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -100,7 +101,7 @@ export function assignToActor({
       return data;
     })
     .catch(data => {
-      GroupStore.onAssignToSuccess(guid, id, data);
+      GroupStore.onAssignToError(guid, id, data);
       throw data;
     });
 }
@@ -318,7 +319,13 @@ const makeFetchIssueTagValuesQueryKey = ({
   sort,
   cursor,
 }: FetchIssueTagValuesParameters): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/values/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/values/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      issueId: groupId,
+      key: tagKey,
+    },
+  }),
   {query: {environment, sort, cursor}},
 ];
 
@@ -346,7 +353,13 @@ const makeFetchIssueTagQueryKey = ({
   environment,
   sort,
 }: FetchIssueTagValuesParameters): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      issueId: groupId,
+      key: tagKey,
+    },
+  }),
   {query: {environment, sort}},
 ];
 

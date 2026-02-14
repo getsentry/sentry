@@ -2,7 +2,8 @@ import type React from 'react';
 import {createContext, useContext} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import {
   DataConditionType,
@@ -63,6 +64,11 @@ import {
 } from 'sentry/views/automations/components/actionFilters/issuePriority';
 import {IssuePriorityDeescalating} from 'sentry/views/automations/components/actionFilters/issuePriorityDeescalating';
 import {
+  IssueTypeDetails,
+  IssueTypeNode,
+  validateIssueTypeCondition,
+} from 'sentry/views/automations/components/actionFilters/issueType';
+import {
   LatestAdoptedReleaseDetails,
   LatestAdoptedReleaseNode,
   validateLatestAdoptedReleaseCondition,
@@ -120,6 +126,13 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     DataConditionType.FIRST_SEEN_EVENT,
     {
       label: t('A new issue is created'),
+      validate: undefined,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_RESOLVED_TRIGGER,
+    {
+      label: t('An issue is resolved'),
       validate: undefined,
     },
   ],
@@ -192,6 +205,15 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       dataCondition: IssueCategoryNode,
       details: IssueCategoryDetails,
       validate: validateIssueCategoryCondition,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_TYPE,
+    {
+      label: t('Issue type'),
+      dataCondition: IssueTypeNode,
+      details: IssueTypeDetails,
+      validate: validateIssueTypeCondition,
     },
   ],
   [

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -59,11 +60,13 @@ const Wrapper = styled('div')`
 `;
 
 const Period = styled(Link)<{selected: boolean}>`
-  color: ${p => (p.selected ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.selected ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 
   &:hover,
   &:focus {
-    color: ${p => (p.selected ? p.theme.tokens.content.primary : p.theme.subText)};
+    color: ${p =>
+      p.selected ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   }
 `;
 

@@ -42,7 +42,7 @@ describe('groupEvents', () => {
     requests.discover = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       headers: {
-        Link: `<https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"`,
+        Link: `<https://sentry.io/api/0/organizations/org-slug/issues/1/events/?limit=50&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/organizations/org-slug/issues/1/events/?limit=50&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"`,
       },
       body: {
         data: [
@@ -88,7 +88,7 @@ describe('groupEvents', () => {
     });
 
     requests.attachments = MockApiClient.addMockResponse({
-      url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+      url: '/api/0/organizations/org-slug/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
       body: [],
     });
 
@@ -100,7 +100,7 @@ describe('groupEvents', () => {
 
     requests.latestEvent = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/issues/1/events/latest/',
+      url: '/organizations/org-slug/issues/1/events/latest/',
       body: {},
     });
 
@@ -272,7 +272,7 @@ describe('groupEvents', () => {
 
   it('displays minidumps', async () => {
     requests.attachments = MockApiClient.addMockResponse({
-      url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+      url: '/api/0/organizations/org-slug/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
       body: [
         {
           id: 'id123',
@@ -300,7 +300,7 @@ describe('groupEvents', () => {
 
   it('does not display attachments but displays minidump', async () => {
     requests.attachments = MockApiClient.addMockResponse({
-      url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+      url: '/api/0/organizations/org-slug/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
       body: [
         {
           id: 'id123',

@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+from django.db import IntegrityError
 from django.db.models import Q
 
 import sentry.hybridcloud.rpc.caching as caching_module
@@ -182,6 +184,11 @@ class UserDetailsTest(TestCase):
         assert user.email == "b@example.com"
         assert user.get_salutation_name() == "Hello"
 
+    def test_email_unique(self) -> None:
+        self.create_user(email="a@example.com", username="123456", is_test_user=False)
+        with pytest.raises(IntegrityError):
+            self.create_user(email="a@example.com", username="789", is_test_user=False)
+
 
 ORG_MEMBER_MERGE_TESTED: set[NormalizedModelName] = set()
 
@@ -202,9 +209,9 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
                         args = {}
                         args[f"{ref}"] = present_user.id
                         q |= Q(**args)
-                    assert (
-                        model.objects.filter(q).count() > 0
-                    ), "There seems to be an issue with merging objects from one user to another. This can be fixed by adding the model to the model_list in merge_users() in src/sentry/organizations/services/organization/impl.py, which then takes care of merging objects that have a foreign key on the user_id. "
+                    assert model.objects.filter(q).count() > 0, (
+                        "There seems to be an issue with merging objects from one user to another. This can be fixed by adding the model to the model_list in merge_users() in src/sentry/organizations/services/organization/impl.py, which then takes care of merging objects that have a foreign key on the user_id. "
+                    )
                 for absent_user in absent:
                     q = Q()
                     for ref in user_refs:

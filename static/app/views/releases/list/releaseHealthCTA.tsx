@@ -1,8 +1,9 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,6 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -30,10 +32,20 @@ export default function ReleaseHealthCTA({
     data: project,
     isPending,
     isError,
-  } = useApiQuery<Project>([`/projects/${organization.slug}/${selectedProject?.slug}/`], {
-    enabled: Boolean(selectedProject) && releases.length > 0,
-    staleTime: 1_000, // 1 second
-  });
+  } = useApiQuery<Project>(
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: selectedProject?.slug!,
+        },
+      }),
+    ],
+    {
+      enabled: Boolean(selectedProject) && releases.length > 0,
+      staleTime: 1_000, // 1 second
+    }
+  );
 
   const trackAddReleaseHealth = useCallback(() => {
     if (organization.id && selection.projects[0]) {

@@ -1,10 +1,11 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
@@ -51,28 +52,26 @@ export function DateSelector() {
           : t('Invalid Period');
 
         return (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             icon={<IconCalendar />}
             data-test-id="prevent-time-selector"
             {...triggerProps}
           >
-            <TriggerLabelWrap>
+            <Container as="span" minWidth="0" position="relative">
               <TriggerLabel>{defaultLabel}</TriggerLabel>
-            </TriggerLabelWrap>
-          </SelectTrigger.Button>
+            </Container>
+          </OverlayTrigger.Button>
         );
       }}
     />
   );
 }
 
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-`;
-
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 

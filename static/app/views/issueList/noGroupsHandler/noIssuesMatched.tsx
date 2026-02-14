@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 
 import campingImg from 'sentry-images/spot/onboarding-preview.svg';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -96,7 +97,7 @@ export default NoIssuesMatched;
 const Wrapper = styled('div')`
   display: flex;
   justify-content: center;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   border-radius: 0 0 3px 3px;
   padding: 40px ${space(3)};
   min-height: 260px;

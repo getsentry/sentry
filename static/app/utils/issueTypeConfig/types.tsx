@@ -89,6 +89,10 @@ export type IssueTypeConfig = {
     tagDistribution: DisabledWithReasonConfig;
   };
   /**
+   * Should show the "Fix with Seer" section for this issue type
+   */
+  instrumentationFixSection: DisabledWithReasonConfig;
+  /**
    * Is the Issue Summary available for this issue
    */
   issueSummary: DisabledWithReasonConfig;
@@ -199,8 +203,9 @@ export type IssueTypeConfig = {
   usesIssuePlatform: boolean;
 };
 
-export interface IssueCategoryConfigMapping
-  extends Partial<Record<IssueType, Partial<IssueTypeConfig>>> {
+export interface IssueCategoryConfigMapping extends Partial<
+  Record<IssueType, Partial<IssueTypeConfig>>
+> {
   /**
    * Config options that apply to the entire issue category.
    * These options can be overridden by specific issue type configs.

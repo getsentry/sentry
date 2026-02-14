@@ -1,7 +1,9 @@
+from typing import override
+
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
 
 
 @action_handler_registry.register(Action.Type.PLUGIN)
@@ -32,9 +34,6 @@ class PluginActionHandler(ActionHandler):
         return None
 
     @staticmethod
-    def execute(
-        job: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
-        execute_via_group_type_registry(job, action, detector)
+    @override
+    def execute(invocation: ActionInvocation) -> None:
+        execute_via_group_type_registry(invocation)

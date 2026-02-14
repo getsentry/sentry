@@ -4,6 +4,7 @@ import logging
 
 from django.http import HttpResponse
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -28,7 +29,6 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         project: Project,
         image_id: str,
     ) -> HttpResponse:
-
         organization_id = project.organization_id
         project_id = project.id
 
@@ -52,4 +52,4 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                     "image_id": image_id,
                 },
             )
-            return HttpResponse({"error": "Internal server error"}, status=500)
+            return Response({"detail": "Internal server error"}, status=500)

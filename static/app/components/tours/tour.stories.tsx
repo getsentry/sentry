@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Input} from 'sentry/components/core/input';
-import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   TourContextProvider,
@@ -20,7 +21,6 @@ import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
-import type {Color} from 'sentry/utils/theme';
 
 const enum MyTour {
   NAME = 'my-tour-name',
@@ -58,7 +58,7 @@ export default Storybook.story('Tours', story => {
           description="This is the description of the name tour step."
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 1: Name" />
+          {props => <Input placeholder="Step 1: Name" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.EMAIL}
@@ -66,7 +66,7 @@ export default Storybook.story('Tours', story => {
           description="This is the description of the email tour step."
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 2: Email" type="email" />
+          {props => <Input placeholder="Step 2: Email" type="email" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.PASSWORD}
@@ -74,7 +74,7 @@ export default Storybook.story('Tours', story => {
           description="This is the description of the password tour step."
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 3: Password" type="password" />
+          {props => <Input placeholder="Step 3: Password" type="password" {...props} />}
         </TourElement>
       </TourProvider>
     </Fragment>
@@ -159,7 +159,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
   title={'Name Time!'}
   description={'We need this to make your account :)'}
 >
-  <Input placeholder="Name" />
+  {(props) => <Input placeholder="Name" {...props} />}
 </TourElement>
 `}
       </CodeBlock>
@@ -197,7 +197,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           title="Name Time!"
           description="This is the description of the name tour step."
         >
-          <Input placeholder="Step 1: Name" />
+          {props => <Input placeholder="Step 1: Name" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           tourContext={MyTourContext}
@@ -205,53 +205,11 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           title="Email Time!"
           description="This is the description of the email tour step."
         >
-          <Input placeholder="Step 2: Email" type="email" />
+          {props => <Input placeholder="Step 2: Email" type="email" {...props} />}
         </TourElement>
         <div style={{height: '30px'}}>
           <LoadingIndicator mini />
         </div>
-      </TourProvider>
-    </Fragment>
-  ));
-
-  story('Customization', () => (
-    <Fragment>
-      <ul>
-        <li>
-          The default behavior is to blur the entire page, and only show the focused
-          element and the tour step. You can avoid this with the <code>omitBlur</code>
-          prop.
-        </li>
-        <li>You can also customize the look of the wrapper for the focused elements.</li>
-      </ul>
-      <TourProvider tourProviderProps={{omitBlur: true}}>
-        <CustomTourElement
-          tourContext={MyTourContext}
-          id={MyTour.NAME}
-          title="Name Time!"
-          description="This is the description of the name tour step."
-          color="blue400"
-        >
-          <Input placeholder="Step 1: Name" />
-        </CustomTourElement>
-        <CustomTourElement
-          tourContext={MyTourContext}
-          id={MyTour.EMAIL}
-          title="Email Time!"
-          description="This is the description of the email tour step."
-          color="red400"
-        >
-          <Input placeholder="Step 2: Email" type="email" />
-        </CustomTourElement>
-        <CustomTourElement
-          tourContext={MyTourContext}
-          id={MyTour.PASSWORD}
-          title="Password Time!"
-          description="This is the description of the password tour step."
-          color="green400"
-        >
-          <Input placeholder="Step 3: Password" type="password" />
-        </CustomTourElement>
       </TourProvider>
     </Fragment>
   ));
@@ -271,7 +229,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           description={null}
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 1: First Name" />
+          {props => <Input placeholder="Step 1: First Name" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.NAME}
@@ -280,7 +238,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           tourContext={MyTourContext}
           position="right"
         >
-          <Input placeholder="Step 1: Middle Name" />
+          {props => <Input placeholder="Step 1: Middle Name" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.NAME}
@@ -288,7 +246,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           description={null}
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 1: Last Name" />
+          {props => <Input placeholder="Step 1: Last Name" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.EMAIL}
@@ -296,7 +254,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           description="This is the description of the email tour step."
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 2: Email" type="email" />
+          {props => <Input placeholder="Step 2: Email" type="email" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.PASSWORD}
@@ -304,7 +262,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           description="This is the description of the password tour step."
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 3: Password" type="password" />
+          {props => <Input placeholder="Step 3: Password" type="password" {...props} />}
         </TourElement>
       </TourProvider>
     </Fragment>
@@ -396,7 +354,7 @@ function TourProvider({
 
 const BlurBoundary = styled('div')`
   position: relative;
-  border: 1px dashed ${p => p.theme.colors.blue500};
+  border: 1px dashed ${p => p.theme.tokens.border.accent.vibrant};
   padding: ${space(2)};
   margin: ${space(1)} ${space(2)};
 `;
@@ -405,10 +363,4 @@ const Image = styled('img')`
   aspect-ratio: 1/1;
   height: 100%;
   object-fit: contain;
-`;
-
-const CustomTourElement = styled(TourElement<MyTour>)<{color: Color}>`
-  &[aria-expanded='true']:after {
-    box-shadow: 0 0 0 2px ${p => p.theme[p.color]};
-  }
 `;

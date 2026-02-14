@@ -122,4 +122,35 @@ describe('GithubInstallationSelect', () => {
       })
     ).toBeInTheDocument();
   });
+  it('does not render upsell if installation has 0 installs', async () => {
+    const installationInfoWithNoInstalls = installation_info.map(i => ({
+      ...i,
+      count: 0,
+    }));
+    render(
+      <GithubInstallationSelect
+        installation_info={installationInfoWithNoInstalls}
+        organization={OrganizationFixture()}
+      />
+    );
+
+    expect(
+      screen.getByText('Install on an Existing GitHub Organization')
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
+
+    // Click the select dropdown
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Integrate with a new GitHub organization',
+      })
+    );
+    // Select an installation
+    await userEvent.click(screen.getByText('bufo-bot'));
+
+    // Install button should be enabled
+    expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
+  });
 });

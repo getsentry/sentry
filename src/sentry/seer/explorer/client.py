@@ -9,21 +9,24 @@ import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
+from rest_framework.request import Request
 
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
 from sentry.seer.explorer.client_utils import (
     collect_user_org_context,
     fetch_run_status,
-    has_seer_explorer_access_with_detail,
     poll_until_done,
 )
+from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
 from sentry.seer.explorer.custom_tool_utils import ExplorerTool, extract_tool_schema
 from sentry.seer.explorer.on_completion_hook import (
     ExplorerOnCompletionHook,
     extract_hook_definition,
 )
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User
 
@@ -140,24 +143,43 @@ class SeerExplorerClient:
                 pr_state = state.get_pr_state(repo_name)
                 if pr_state and pr_state.pr_url:
                     print(f"PR created: {pr_state.pr_url}")
+
+        # WITH EXTERNAL CODING AGENTS (e.g., Cursor)
+        client = SeerExplorerClient(organization, user)
+        run_id = client.start_run("Analyze the authentication bug")
+        state = client.get_run(run_id, blocking=True)
+
+        result = client.launch_coding_agents(
+            run_id=run_id,
+            integration_id=cursor_integration_id,
+            prompt="Fix the null pointer exception in auth.py. Focus on error handling.",
+            repos=["getsentry/sentry"],
+            branch_name_base="fix-auth-bug",
+        )
+
+        for success in result["successes"]:
+            agent_url = success["coding_agent_state"].get("agent_url")
+            print(f"Coding agent launched: {agent_url}")
     ```
 
         Args:
             organization: Sentry organization
             user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
+            project: Optional project for project-scoped runs (e.g. autofix for an issue)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
             custom_tools: Optional list of `ExplorerTool` classes to make available as tools to the agent. Each tool must inherit from ExplorerTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
             on_completion_hook: Optional `ExplorerOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
-            enable_coding: Enable code editing tools. When disabled, the agent cannot make code changes. Default is False.
+            enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
     """
 
     def __init__(
         self,
         organization: Organization,
         user: User | AnonymousUser | None = None,
+        project: Project | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
         custom_tools: list[type[ExplorerTool[Any]]] | None = None,
@@ -168,12 +190,17 @@ class SeerExplorerClient:
     ):
         self.organization = organization
         self.user = user
+        self.project = project
         self.custom_tools = custom_tools or []
         self.on_completion_hook = on_completion_hook
         self.intelligence_level = intelligence_level
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+
+        if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
+            raise SeerPermissionError("Seer coding is not enabled for this organization")
+
         self.enable_coding = enable_coding
 
         # Validate that category_key and category_value are provided together
@@ -182,20 +209,22 @@ class SeerExplorerClient:
         if bool(category_key) != bool(category_value):
             raise ValueError("category_key and category_value must be provided together")
 
-        # Validate access on init
-        has_access, error = has_seer_explorer_access_with_detail(organization, user)
+        # Validate base Seer access on init (Explorer-specific flag checks are done at the endpoint level)
+        has_access, error = has_seer_access_with_detail(organization, user)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
 
     def start_run(
         self,
         prompt: str,
+        prompt_metadata: dict[str, str] | None = None,
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
         conduit_channel_id: str | None = None,
         conduit_url: str | None = None,
+        request: Request | None = None,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -208,6 +237,7 @@ class SeerExplorerClient:
             metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
             conduit_channel_id: Optional Conduit channel ID for streaming
             conduit_url: Optional Conduit URL for streaming
+            request: Optional rest_framework Request object from endpoints.
 
         Returns:
             int: The run ID that can be used to fetch results or continue the conversation
@@ -227,11 +257,19 @@ class SeerExplorerClient:
             "run_id": None,
             "insert_index": None,
             "on_page_context": on_page_context,
-            "user_org_context": collect_user_org_context(self.user, self.organization),
+            "user_org_context": collect_user_org_context(
+                self.user, self.organization, request=request
+            ),
             "intelligence_level": self.intelligence_level,
             "is_interactive": self.is_interactive,
             "enable_coding": self.enable_coding,
         }
+
+        if self.project:
+            payload["project_id"] = self.project.id
+
+        if prompt_metadata:
+            payload["query_metadata"] = prompt_metadata
 
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
@@ -279,6 +317,7 @@ class SeerExplorerClient:
         self,
         run_id: int,
         prompt: str,
+        prompt_metadata: dict[str, str] | None = None,
         insert_index: int | None = None,
         on_page_context: str | None = None,
         artifact_key: str | None = None,
@@ -321,10 +360,17 @@ class SeerExplorerClient:
             "enable_coding": self.enable_coding,
         }
 
+        if prompt_metadata:
+            payload["query_metadata"] = prompt_metadata
+
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
+
+        if self.category_key and self.category_value:
+            payload["category_key"] = self.category_key
+            payload["category_value"] = self.category_value
 
         # Add conduit params for streaming if provided
         if conduit_channel_id and conduit_url:
@@ -466,6 +512,7 @@ class SeerExplorerClient:
         path = "/v1/automation/explorer/update"
         payload = {
             "run_id": run_id,
+            "organization_id": self.organization.id,
             "payload": {
                 "type": "create_pr",
                 "repo_name": repo_name,
@@ -500,3 +547,45 @@ class SeerExplorerClient:
                 raise TimeoutError(f"PR creation timed out after {poll_timeout}s")
 
             time.sleep(poll_interval)
+
+    def launch_coding_agents(
+        self,
+        run_id: int,
+        integration_id: int | None,
+        prompt: str,
+        repos: list[str],
+        branch_name_base: str = "seer",
+        auto_create_pr: bool = False,
+        provider: str | None = None,
+        user_id: int | None = None,
+    ) -> dict[str, list]:
+        """
+        Launch coding agents for an Explorer run.
+
+        This triggers coding agents (e.g., Cursor) to work on code changes.
+        The caller provides the prompt and target repos.
+
+        Args:
+            run_id: The Explorer run ID (used to store coding agent state)
+            integration_id: The coding agent integration ID (for org-installed integrations)
+            prompt: The instruction/prompt for the coding agent
+            repos: List of repo names to target (format: "owner/name")
+            branch_name_base: Base name for the branch (random suffix will be added)
+            auto_create_pr: Whether to automatically create a PR when agent finishes
+            provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
+            user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
+
+        Returns:
+            Dictionary with 'successes' and 'failures' lists
+        """
+        return launch_coding_agents(
+            organization=self.organization,
+            integration_id=integration_id,
+            run_id=run_id,
+            prompt=prompt,
+            repos=repos,
+            branch_name_base=branch_name_base,
+            auto_create_pr=auto_create_pr,
+            provider=provider,
+            user_id=user_id,
+        )

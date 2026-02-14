@@ -23,9 +23,7 @@ class IncidentSerializer(serializers.Serializer):
             value = IncidentStatus(value)
         except Exception:
             raise serializers.ValidationError(
-                "Invalid value for status. Valid values: {}".format(
-                    [e.value for e in IncidentStatus]
-                )
+                f"Invalid value for status. Valid values: {[e.value for e in IncidentStatus]}"
             )
         return value
 

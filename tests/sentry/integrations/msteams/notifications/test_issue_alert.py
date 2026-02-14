@@ -2,7 +2,6 @@ import uuid
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.plugins.base import Notification
@@ -29,13 +28,9 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             "targetType": "Member",
             "targetIdentifier": str(self.user.id),
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
 
         notification_uuid = str(uuid.uuid4())
@@ -80,13 +75,10 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             "targetType": "IssueOwners",
             "targetIdentifier": "",
         }
-        rule = Rule.objects.create(
+        rule = self.create_project_rule(
             project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+            name="ja rule",
+            action_data=[action_data],
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 

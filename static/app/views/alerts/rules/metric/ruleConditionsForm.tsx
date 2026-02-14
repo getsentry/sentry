@@ -3,6 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
@@ -10,10 +16,6 @@ import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
@@ -27,7 +29,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -122,6 +124,7 @@ type Props = {
   isOnDemandLimitReached?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
+  onMetricLoadingChange?: (isLoading: boolean) => void;
 };
 
 type State = {
@@ -523,6 +526,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 ? this.transactionAlertDisabledMessage
                 : undefined
             }
+            onMetricLoadingChange={this.props.onMetricLoadingChange}
           />
           <Tooltip
             title={this.transactionAlertDisabledMessage}
@@ -732,7 +736,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         traceItemType={traceItemType ?? TraceItemDataset.SPANS}
                       />
                     ) : (
-                      <SearchContainer>
+                      <Flex align="center" gap="md">
                         <SearchQueryBuilder
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
@@ -775,7 +779,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           isOnDemandQueryString(value) &&
                           (isOnDemandLimitReached ? (
                             <OnDemandWarningIcon
-                              color="red400"
+                              variant="danger"
                               msg={tct(
                                 'We don’t routinely collect metrics from [fields] and you’ve already reached the limit of [docLink:alerts with advanced filters] for your organization.',
                                 {
@@ -795,7 +799,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                             />
                           ) : (
                             <OnDemandWarningIcon
-                              color="gray500"
+                              variant="primary"
                               msg={tct(
                                 'We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]',
                                 {
@@ -811,7 +815,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                               )}
                             />
                           ))}
-                      </SearchContainer>
+                      </Flex>
                     );
                   }}
                 </FormField>
@@ -868,6 +872,8 @@ function EAPSearchQueryBuilderWithContext({
     useTraceItemAttributes('number');
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceItemAttributes('string');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributes('boolean');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery,
@@ -875,10 +881,12 @@ function EAPSearchQueryBuilderWithContext({
     onSearch,
     numberAttributes,
     stringAttributes,
+    booleanAttributes,
     itemType: traceItemType,
     projects: [parseInt(project.id, 10)],
     numberSecondaryAliases,
     stringSecondaryAliases,
+    booleanSecondaryAliases,
   };
 
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
@@ -916,15 +924,9 @@ const StyledPanelBody = styled(PanelBody)`
   }
 `;
 
-const SearchContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   line-height: 1.3;
 `;
 

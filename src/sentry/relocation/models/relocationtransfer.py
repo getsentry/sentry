@@ -13,8 +13,8 @@ from sentry.db.models.fields.uuid import UUIDField
 RETRY_BACKOFF = timedelta(minutes=5)
 """After each failed attempt we wait 5 minutes between retries."""
 
-MAX_AGE = timedelta(hours=1)
-"""Give up on retries after 1 hour."""
+MAX_AGE = timedelta(minutes=80)
+"""Give up on retries after 80 minutes."""
 
 
 class RelocationTransferState(models.TextChoices):

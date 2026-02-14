@@ -1,4 +1,5 @@
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import useHasLinkedIssues from 'sentry/components/feedback/list/useHasLinkedIssues';
 import type {
   IntegrationComponent,

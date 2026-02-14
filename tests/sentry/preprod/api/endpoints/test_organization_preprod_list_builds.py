@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import APITestCase
 
 
@@ -43,12 +43,15 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.APK,
             app_id="com.example.app",
-            app_name="TestApp",
-            build_version="1.0.0",
-            build_number=42,
             build_configuration=None,
             installable_app_file_id=1234,
             commit_comparison=commit_comparison,
+        )
+        self.mobile_app_info1 = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.artifact1,
+            build_version="1.0.0",
+            build_number=42,
+            app_name="TestApp",
         )
 
         self.artifact2 = self.create_preprod_artifact(
@@ -57,12 +60,15 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.AAB,
             app_id="com.example.app2",
-            app_name="TestApp2",
-            build_version="2.0.0",
-            build_number=43,
             build_configuration=None,
             installable_app_file_id=1235,
             commit_comparison=commit_comparison,
+        )
+        self.mobile_app_info2 = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.artifact2,
+            build_version="2.0.0",
+            build_number=43,
+            app_name="TestApp2",
         )
 
         self.artifact3 = self.create_preprod_artifact(
@@ -71,12 +77,15 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             state=PreprodArtifact.ArtifactState.UPLOADED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             app_id="com.example.app3",
-            app_name="TestApp3",
-            build_version="3.0.0",
-            build_number=44,
             build_configuration=None,
             installable_app_file_id=1236,
             commit_comparison=commit_comparison,
+        )
+        self.mobile_app_info3 = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.artifact3,
+            build_version="3.0.0",
+            build_number=44,
+            app_name="TestApp3",
         )
 
         self.artifact4 = self.create_preprod_artifact(
@@ -85,12 +94,15 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.APK,
             app_id="com.example.app4",
-            app_name="TestApp4",
-            build_version="4.0.0",
-            build_number=45,
             build_configuration=None,
             installable_app_file_id=1237,
             commit_comparison=commit_comparison,
+        )
+        self.mobile_app_info4 = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.artifact4,
+            build_version="4.0.0",
+            build_number=45,
+            app_name="TestApp4",
         )
 
         self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
@@ -343,6 +355,17 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         assert len(response.json()["builds"]) == 4
+
+    def test_list_builds_search_by_build_id(self) -> None:
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query={self.artifact2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["id"] == str(self.artifact2.id)
 
     def test_list_builds_search_too_long(self) -> None:
         response = self.client.get(
@@ -719,3 +742,51 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         builds = response.json()["builds"]
         assert len(builds) == 1
         assert builds[0]["app_info"]["app_id"] == "com.example.app4"
+
+    def test_list_builds_does_not_filter_by_size_state(self) -> None:
+        self.create_preprod_artifact_size_metrics(
+            self.artifact1,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+            error_code=PreprodArtifactSizeMetrics.ErrorCode.SKIPPED,
+            error_message="Size analysis was not requested",
+        )
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 4
+        app_ids = {b["app_info"]["app_id"] for b in builds}
+        assert "com.example.app" in app_ids
+
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_list_builds.get_size_retention_cutoff"
+    )
+    def test_list_builds_excludes_expired_artifacts(self, mock_cutoff) -> None:
+        now = timezone.now()
+        mock_cutoff.return_value = now - timedelta(days=30)
+
+        self.artifact1.date_added = now - timedelta(days=10)
+        self.artifact1.save()
+        self.artifact2.date_added = now - timedelta(days=60)
+        self.artifact2.save()
+        self.artifact3.date_added = now - timedelta(days=5)
+        self.artifact3.save()
+        self.artifact4.date_added = now - timedelta(days=40)
+        self.artifact4.save()
+
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        returned_ids = {b["id"] for b in builds}
+        assert str(self.artifact1.id) in returned_ids
+        assert str(self.artifact3.id) in returned_ids
+        assert str(self.artifact2.id) not in returned_ids
+        assert str(self.artifact4.id) not in returned_ids

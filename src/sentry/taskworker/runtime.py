@@ -4,7 +4,7 @@ from django.core.cache import cache
 from sentry.taskworker.app import TaskworkerApp
 from sentry.taskworker.registry import taskregistry
 
-app = TaskworkerApp(taskregistry=taskregistry)
+app = TaskworkerApp(name="sentry", taskregistry=taskregistry)
 app.set_config(
     {
         "rpc_secret": settings.TASKWORKER_SHARED_SECRET,

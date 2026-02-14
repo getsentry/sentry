@@ -137,7 +137,7 @@ def update_workflow_action_group_statuses(
         sql = f"""
             INSERT INTO workflow_engine_workflowactiongroupstatus
             (workflow_id, action_id, group_id, date_added, date_updated)
-            VALUES {', '.join(values_placeholders)}
+            VALUES {", ".join(values_placeholders)}
             ON CONFLICT (workflow_id, action_id, group_id) DO NOTHING
             RETURNING workflow_id, action_id
         """
@@ -189,11 +189,15 @@ def get_unique_active_actions(
 
 
 @scopedstats.timer()
-def fire_actions(actions: BaseQuerySet[Action], event_data: WorkflowEventData) -> None:
+def fire_actions(
+    actions: BaseQuerySet[Action],
+    event_data: WorkflowEventData,
+    workflow_uuid_map: dict[int, str],
+) -> None:
     deduped_actions = get_unique_active_actions(actions)
 
     for action in deduped_actions:
-        task_params = build_trigger_action_task_params(action, event_data)
+        task_params = build_trigger_action_task_params(action, event_data, workflow_uuid_map)
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 

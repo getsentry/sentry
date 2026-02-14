@@ -3,6 +3,7 @@ import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Environment} from 'sentry/types/project';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -104,7 +105,9 @@ function useOrganizationEnvironments() {
   const organization = useOrganization();
   const {data: environments = [], isLoading} = useApiQuery<Environment[]>(
     [
-      `/organizations/${organization.slug}/environments/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/environments/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {visibility: 'visible'}},
     ],
     {

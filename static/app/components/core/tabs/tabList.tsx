@@ -1,5 +1,5 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -7,23 +7,59 @@ import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
-import type {Node} from '@react-types/shared';
+import type {Node, Orientation} from '@react-types/shared';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
-import type {BaseTabProps} from './tab.chonk';
-import {ChonkStyledTabListOverflowWrap, ChonkStyledTabListWrap} from './tabList.chonk';
+import type {TabProps} from './tab';
 import {TabsContext} from './tabs';
+import {tabsShouldForwardProp} from './utils';
+
+const StyledTabListWrap = styled('ul', {
+  shouldForwardProp: tabsShouldForwardProp,
+})<{
+  orientation: Orientation;
+  variant: TabProps['variant'];
+}>`
+  position: relative;
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  flex-shrink: 0;
+  gap: ${p => p.theme.space.xs};
+
+  ${p =>
+    p.orientation === 'horizontal'
+      ? css`
+          grid-auto-flow: column;
+          justify-content: start;
+        `
+      : css`
+          height: 100%;
+          grid-auto-flow: row;
+          align-content: start;
+          padding-right: ${p.theme.space.xs};
+        `};
+`;
+
+const StyledTabListOverflowWrap = styled('div')`
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: ${p => p.theme.zIndex.dropdown};
+`;
 
 /**
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
@@ -54,7 +90,7 @@ function useOverflowTabs({
     const options = {
       root: tabListRef.current,
       // Negative right margin to account for overflow menu's trigger button
-      rootMargin: `0px -42px 1px ${space(1)}`,
+      rootMargin: `0px -42px 1px ${theme.space.md}`,
       // Use 0.95 rather than 1 because of a bug in Edge (Windows) where the intersection
       // ratio may unexpectedly drop to slightly below 1 (0.999…) on page scroll.
       threshold: 0.95,
@@ -115,7 +151,7 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
         trigger={triggerProps => (
           <OverflowMenuTrigger
             {...triggerProps}
-            borderless
+            priority="transparent"
             icon={<IconEllipsis />}
             aria-label={t('More tabs')}
           />
@@ -125,15 +161,15 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
   );
 }
 
-export interface TabListProps {
+interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
   outerWrapStyles?: React.CSSProperties;
-  variant?: BaseTabProps['variant'];
+  variant?: TabProps['variant'];
 }
 
 interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabListProps {
   items: TabListItemProps[];
-  variant?: BaseTabProps['variant'];
+  variant?: TabProps['variant'];
 }
 
 function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
@@ -213,7 +249,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   }, [state.collection, overflowTabs]);
 
   return (
-    <TabListOuterWrap style={outerWrapStyles}>
+    <Container position="relative" style={outerWrapStyles}>
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
@@ -244,7 +280,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
           disabled={disabled}
         />
       )}
-    </TabListOuterWrap>
+    </Container>
   );
 }
 
@@ -289,16 +325,12 @@ export function TabList({variant, ...props}: TabListProps) {
 
 TabList.Item = TabListItem;
 
-const TabListOuterWrap = styled('div')`
-  position: relative;
-`;
+const TabListWrap = StyledTabListWrap;
 
-const TabListWrap = ChonkStyledTabListWrap;
+const TabListOverflowWrap = StyledTabListOverflowWrap;
 
-const TabListOverflowWrap = ChonkStyledTabListOverflowWrap;
-
-const OverflowMenuTrigger = styled(SelectTrigger.IconButton)`
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
-  color: ${p => p.theme.tokens.component.link.muted.default};
+const OverflowMenuTrigger = styled(OverlayTrigger.IconButton)`
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 `;

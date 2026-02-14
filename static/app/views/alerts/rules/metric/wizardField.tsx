@@ -1,7 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
@@ -11,6 +12,7 @@ import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
+import EAPMetricsField from 'sentry/views/alerts/rules/metric/eapMetricsField';
 import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
@@ -19,7 +21,7 @@ import {
   AlertWizardRuleTemplates,
   DEPRECATED_TRANSACTION_ALERTS,
 } from 'sentry/views/alerts/wizard/options';
-import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
+import {hasLogAlerts, hasTraceMetricsAlerts} from 'sentry/views/alerts/wizard/utils';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -44,14 +46,17 @@ type Props = Omit<FormFieldProps, 'children'> & {
   eventTypes?: EventTypes[];
   inFieldLabels?: boolean;
   isEditing?: boolean;
+  onMetricLoadingChange?: (isLoading: boolean) => void;
 };
 
 export default function WizardField({
   organization,
+  project,
   columnWidth,
   inFieldLabels,
   alertType,
   eventTypes,
+  onMetricLoadingChange,
   ...fieldProps
 }: Props) {
   const isDeprecatedTransactionAlertType =
@@ -180,6 +185,19 @@ export default function WizardField({
           },
         ]
       : []),
+    ...(hasTraceMetricsAlerts(organization)
+      ? [
+          {
+            label: t('METRICS'),
+            options: [
+              {
+                label: AlertWizardAlertNames.trace_item_metrics,
+                value: 'trace_item_metrics' as const,
+              },
+            ],
+          },
+        ]
+      : []),
     ...((deprecateTransactionAlerts(organization)
       ? []
       : [
@@ -248,7 +266,17 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {isEapAlertType(alertType) ? (
+            {alertType === 'trace_item_metrics' ? (
+              <EAPMetricsField
+                aggregate={aggregate}
+                projectId={project.id}
+                environment={model.getValue('environment')}
+                onChange={newAggregate => {
+                  return onChange(newAggregate, {});
+                }}
+                onLoadingChange={onMetricLoadingChange}
+              />
+            ) : isEapAlertType(alertType) ? (
               <EAPField
                 aggregate={aggregate}
                 eventTypes={eventTypes ?? []}

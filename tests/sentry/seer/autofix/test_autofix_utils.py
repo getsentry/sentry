@@ -178,6 +178,58 @@ class TestGetCodingAgentPrompt(TestCase):
         assert result == expected
         mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
 
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt includes Fixes line when short_id is provided."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(
+            12345, AutofixTriggerSource.SOLUTION, None, short_id="AIML-2301"
+        )
+
+        assert "Fixes AIML-2301" in result
+        assert "Include 'Fixes AIML-2301' in the pull request description" in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_without_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt does not include Fixes line when short_id is None."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id=None)
+
+        assert "Fixes" not in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_short_id_and_instruction(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt includes both Fixes line and instruction."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(
+            12345,
+            AutofixTriggerSource.SOLUTION,
+            "Be careful with backwards compatibility",
+            short_id="PROJ-1234",
+        )
+
+        assert "Fixes PROJ-1234" in result
+        assert "Be careful with backwards compatibility" in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_empty_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt does not include Fixes line when short_id is empty string."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id="")
+
+        assert "Fixes" not in result
+        assert "Please fix the following issue" in result
+
 
 class TestAutofixStateParsing(TestCase):
     def test_autofix_state_validate_parses_nested_structures(self):
@@ -255,18 +307,14 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
     def test_returns_true_for_supported_issue_categories(self):
         """Test returns True for supported issue categories when all conditions are met."""
         with self.feature("organizations:gen-ai-features"):
-            with patch(
-                "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner"
-            ) as mock_ack:
-                with patch("sentry.quotas.backend.check_seer_quota") as mock_budget:
-                    mock_ack.return_value = True
-                    mock_budget.return_value = True
-                    self.project.update_option("sentry:seer_scanner_automation", True)
+            with patch("sentry.quotas.backend.check_seer_quota") as mock_budget:
+                mock_budget.return_value = True
+                self.project.update_option("sentry:seer_scanner_automation", True)
 
-                    # Test supported categories - using default error group
-                    result = is_issue_eligible_for_seer_automation(self.group)
+                # Test supported categories - using default error group
+                result = is_issue_eligible_for_seer_automation(self.group)
 
-                    assert result is True
+                assert result is True
 
     def test_returns_false_when_gen_ai_features_not_enabled(self):
         """Test returns False when organizations:gen-ai-features feature flag is not enabled."""
@@ -287,27 +335,11 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
             result = is_issue_eligible_for_seer_automation(self.group)
             assert result is False
 
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
-    def test_returns_false_when_org_not_acknowledged(self, mock_get_acknowledgement):
-        """Test returns False when organization has not acknowledged Seer for scanner."""
-        with self.feature("organizations:gen-ai-features"):
-            self.project.update_option("sentry:seer_scanner_automation", True)
-            mock_get_acknowledgement.return_value = False
-
-            result = is_issue_eligible_for_seer_automation(self.group)
-
-            assert result is False
-            mock_get_acknowledgement.assert_called_once_with(self.organization)
-
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
     @patch("sentry.quotas.backend.check_seer_quota")
-    def test_returns_false_when_no_budget_available(
-        self, mock_has_budget, mock_get_acknowledgement
-    ):
+    def test_returns_false_when_no_budget_available(self, mock_has_budget):
         """Test returns False when organization has no available budget for scanner."""
         with self.feature("organizations:gen-ai-features"):
             self.project.update_option("sentry:seer_scanner_automation", True)
-            mock_get_acknowledgement.return_value = True
             mock_has_budget.return_value = False
 
             result = is_issue_eligible_for_seer_automation(self.group)
@@ -317,33 +349,31 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
                 org_id=self.organization.id, data_category=DataCategory.SEER_SCANNER
             )
 
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
     @patch("sentry.quotas.backend.check_seer_quota")
-    def test_returns_true_when_all_conditions_met(self, mock_has_budget, mock_get_acknowledgement):
+    def test_returns_true_when_all_conditions_met(self, mock_has_budget):
         """Test returns True when all eligibility conditions are met."""
         with self.feature("organizations:gen-ai-features"):
             self.project.update_option("sentry:seer_scanner_automation", True)
-            mock_get_acknowledgement.return_value = True
+
             mock_has_budget.return_value = True
 
             result = is_issue_eligible_for_seer_automation(self.group)
 
             assert result is True
-            mock_get_acknowledgement.assert_called_once_with(self.organization)
             mock_has_budget.assert_called_once_with(
                 org_id=self.organization.id, data_category=DataCategory.SEER_SCANNER
             )
 
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_returns_true_when_issue_type_always_triggers(
-        self, mock_has_budget, mock_get_acknowledgement
+        self,
+        mock_has_budget,
     ):
         """Test returns True when issue type has always_trigger_seer_automation even if scanner automation is disabled."""
         with self.feature("organizations:gen-ai-features"):
             # Disable scanner automation
             self.project.update_option("sentry:seer_scanner_automation", False)
-            mock_get_acknowledgement.return_value = True
+
             mock_has_budget.return_value = True
 
             # Mock the group's issue_type to always trigger
@@ -363,12 +393,6 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
     def tearDown(self):
         super().tearDown()
         cache.delete(f"seer:seat-based-tier:{self.organization.id}")
-
-    def test_returns_true_when_triage_signals_enabled(self):
-        """Test returns True when triage-signals-v0-org feature flag is enabled."""
-        with self.feature("organizations:triage-signals-v0-org"):
-            result = is_seer_seat_based_tier_enabled(self.organization)
-            assert result is True
 
     @patch("sentry.seer.autofix.utils.features.has")
     def test_returns_true_when_seat_based_seer_enabled(self, mock_features_has):

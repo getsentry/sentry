@@ -425,6 +425,36 @@ describe('autogrouping', () => {
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
+    it('does not autogroup gen_ai spans', async () => {
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      mockSpansResponse(
+        [
+          makeSpan({op: 'gen_ai.chat', description: 'openai', span_id: '0000'}),
+          makeSpan({
+            op: 'gen_ai.chat',
+            description: 'openai',
+            span_id: '0001',
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'gen_ai.chat',
+            description: 'openai',
+            span_id: '0002',
+            parent_span_id: '0001',
+          }),
+        ],
+        'project',
+        'event-id'
+      );
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+        api: new MockApiClient(),
+        organization,
+        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      });
+
+      expect(tree.root.findChild(c => isParentAutogroupedNode(c))).toBeNull();
+    });
+
     describe('eap traces', () => {
       it('groups parent chain with same op', () => {
         const tree = TraceTree.FromTrace(
@@ -638,6 +668,55 @@ describe('autogrouping', () => {
       'collects errors, performance issues and profiles from sibling autogroup chain'
     );
 
+    it('does not autogroup gen_ai sibling spans', async () => {
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      mockSpansResponse(
+        [
+          makeSpan({
+            op: 'gen_ai.completion',
+            description: 'anthropic',
+            start_timestamp: start,
+            timestamp: start + 1,
+          }),
+          makeSpan({
+            op: 'gen_ai.completion',
+            description: 'anthropic',
+            start_timestamp: start,
+            timestamp: start + 1,
+          }),
+          makeSpan({
+            op: 'gen_ai.completion',
+            description: 'anthropic',
+            start_timestamp: start,
+            timestamp: start + 1,
+          }),
+          makeSpan({
+            op: 'gen_ai.completion',
+            description: 'anthropic',
+            start_timestamp: start,
+            timestamp: start + 1,
+          }),
+          makeSpan({
+            op: 'gen_ai.completion',
+            description: 'anthropic',
+            start_timestamp: start,
+            timestamp: start + 1,
+          }),
+        ],
+        'project',
+        'event-id'
+      );
+      await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+        api: new MockApiClient(),
+        organization,
+        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+      });
+
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
+
+      expect(tree.root.findChild(c => isSiblingAutogroupedNode(c))).toBeNull();
+    });
+
     describe('eap traces', () => {
       it('groups spans with the same op and description', () => {
         const tree = TraceTree.FromTrace(
@@ -687,7 +766,7 @@ describe('autogrouping', () => {
                   parent_span_id: '0000',
                 }),
                 makeEAPSpan({
-                  event_id: '0003',
+                  event_id: '0004',
                   op: 'db',
                   name: 'GET',
                   start_timestamp: start,
@@ -695,7 +774,7 @@ describe('autogrouping', () => {
                   parent_span_id: '0000',
                 }),
                 makeEAPSpan({
-                  event_id: '0003',
+                  event_id: '0005',
                   op: 'db',
                   name: 'GET',
                   start_timestamp: start,

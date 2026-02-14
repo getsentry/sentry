@@ -465,11 +465,11 @@ const timezones: Array<[group: TimezoneGroup, value: string, label: string]> = [
 ];
 
 const OffsetLabel = styled('div')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   width: max-content;
 `;
 

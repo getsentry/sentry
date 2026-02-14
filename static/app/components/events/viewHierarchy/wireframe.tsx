@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
@@ -29,10 +30,17 @@ type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
   onNodeSelect: (node?: ViewHierarchyWindow) => void;
   platform?: string;
+  positioning?: 'absolute' | 'relative';
   selectedNode?: ViewHierarchyWindow;
 };
 
-function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeProps) {
+function Wireframe({
+  hierarchy,
+  selectedNode,
+  onNodeSelect,
+  positioning,
+  platform,
+}: WireframeProps) {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
@@ -49,9 +57,10 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
     () =>
       getHierarchyDimensions(
         hierarchy,
-        ['flutter', 'dart-flutter'].includes(platform ?? '')
+        positioning === 'absolute' ||
+          (!positioning && ['flutter', 'dart-flutter'].includes(platform ?? ''))
       ),
-    [hierarchy, platform]
+    [hierarchy, platform, positioning]
   );
   const nodeLookupMap = useMemo(() => {
     const map = new Map<ViewHierarchyWindow, ViewNode>();
@@ -113,7 +122,8 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
       const overlay = overlayRef?.getContext('2d');
       if (overlay) {
         setupCanvasContext(overlay, modelToView);
-        overlay.fillStyle = theme.colors.blue200;
+        overlay.fillStyle =
+          theme.tokens.interactive.transparent.accent.selected.background.rest;
 
         if (selectedRect) {
           overlay.fillRect(
@@ -125,12 +135,18 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
         }
 
         if (hoverRect) {
-          overlay.fillStyle = theme.colors.blue100;
+          overlay.fillStyle =
+            theme.tokens.interactive.transparent.accent.selected.background.hover;
           overlay.fillRect(hoverRect.x, hoverRect.y, hoverRect.width, hoverRect.height);
         }
       }
     },
-    [overlayRef, setupCanvasContext, theme.colors.blue100, theme.colors.blue200]
+    [
+      overlayRef,
+      setupCanvasContext,
+      theme.tokens.interactive.transparent.accent.selected.background.rest,
+      theme.tokens.interactive.transparent.accent.selected.background.hover,
+    ]
   );
 
   const drawViewHierarchy = useCallback(

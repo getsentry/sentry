@@ -1,9 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any
-
-from django.db.models import Max
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
@@ -12,14 +10,54 @@ from sentry.workflow_engine.models import (
     DetectorWorkflow,
     Workflow,
     WorkflowDataConditionGroup,
-    WorkflowFireHistory,
 )
+from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
+
+
+class ActionSerializerResponse(TypedDict, total=False):
+    id: str
+    type: str
+    integrationId: str | None
+    data: dict[str, str]
+    config: dict[str, Any]
+    status: str
+
+
+class ConditionSerializerResponse(TypedDict):
+    id: str
+    type: str
+    comparison: bool | int
+    conditionResult: bool
+
+
+class TriggerSerializerResponse(TypedDict, total=False):
+    id: str
+    organizationId: str
+    logicType: str
+    conditions: list[ConditionSerializerResponse] | list[Any]
+    actions: list[ActionSerializerResponse] | list[Any]
+
+
+class WorkflowSerializerResponse(TypedDict):
+    id: str
+    name: str
+    organizationId: str
+    createdBy: str | None
+    dateCreated: datetime
+    dateUpdated: datetime
+    triggers: TriggerSerializerResponse | None
+    actionFilters: list[TriggerSerializerResponse] | None
+    environment: str | None
+    config: dict[str, Any]
+    detectorIds: list[str] | None
+    enabled: bool
+    lastTriggered: datetime | None
 
 
 @register(Workflow)
 class WorkflowSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[Workflow], user, **kwargs
+        self, item_list: Sequence[Workflow], user: Any, **kwargs: Any
     ) -> MutableMapping[Workflow, dict[str, Any]]:
         attrs: MutableMapping[Workflow, dict[str, Any]] = defaultdict(dict)
         trigger_conditions = list(
@@ -33,15 +71,7 @@ class WorkflowSerializer(Serializer):
                 trigger_conditions, serialize(trigger_conditions, user=user)
             )
         }
-
-        last_triggered_map: dict[int, datetime] = dict(
-            WorkflowFireHistory.objects.filter(
-                workflow__in=item_list,
-            )
-            .values("workflow_id")
-            .annotate(last_triggered=Max("date_added"))
-            .values_list("workflow_id", "last_triggered")
-        )
+        last_triggered_map = get_last_fired_dates([w.id for w in item_list])
 
         wdcg_list = list(WorkflowDataConditionGroup.objects.filter(workflow__in=item_list))
         condition_groups = {wdcg.condition_group for wdcg in wdcg_list}
@@ -72,7 +102,9 @@ class WorkflowSerializer(Serializer):
             attrs[item]["lastTriggered"] = last_triggered_map.get(item.id)
         return attrs
 
-    def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+    def serialize(
+        self, obj: Workflow, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> WorkflowSerializerResponse:
         return {
             "id": str(obj.id),
             "name": str(obj.name),

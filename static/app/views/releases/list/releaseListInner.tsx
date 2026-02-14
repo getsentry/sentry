@@ -3,11 +3,11 @@ import type {Location} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';

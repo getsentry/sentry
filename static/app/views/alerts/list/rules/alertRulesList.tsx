@@ -2,16 +2,18 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Link} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -20,6 +22,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Projects from 'sentry/utils/projects';
@@ -51,7 +54,12 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
     queryParams.sort = defaultSort;
   }
 
-  return [`/organizations/${orgSlug}/combined-rules/`, {query: queryParams}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/combined-rules/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: queryParams},
+  ];
 }
 
 const DataConsentBanner = HookOrDefault({
@@ -171,8 +179,12 @@ export default function AlertRulesList() {
   };
 
   const hasEditAccess = organization.access.includes('alerts:write');
+  const hasMetricAlertsFeature = organization.features.includes('incidents');
 
   const ruleList = ruleListResponse.filter(defined);
+  const hasAnyMetricAlerts = ruleList.some(
+    rule => rule.type === CombinedAlertType.METRIC
+  );
   const projectsFromResults = uniq(
     ruleList.flatMap(rule =>
       rule.type === CombinedAlertType.UPTIME
@@ -192,7 +204,7 @@ export default function AlertRulesList() {
   const isAlertRuleSort =
     sort.field.includes('incident_status') || sort.field.includes('date_triggered');
   const sortArrow = (
-    <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
+    <IconArrow variant="muted" size="xs" direction={sort.asc ? 'up' : 'down'} />
   );
 
   return (
@@ -204,6 +216,14 @@ export default function AlertRulesList() {
         <Layout.Body>
           <Layout.Main width="full">
             <DataConsentBanner source="alerts" />
+            {!hasMetricAlertsFeature && hasAnyMetricAlerts && (
+              <Alert.Container>
+                <Alert variant="danger">
+                  Your metric alerts have been disabled. Upgrade your plan to re-enable
+                  them.
+                </Alert>
+              </Alert.Container>
+            )}
             <FilterBar
               location={location}
               onChangeFilter={handleChangeFilter}
@@ -291,6 +311,7 @@ export default function AlertRulesList() {
                           onOwnerChange={handleOwnerChange}
                           onDelete={handleDeleteRule}
                           hasEditAccess={hasEditAccess}
+                          hasMetricAlerts={hasMetricAlertsFeature}
                         />
                       );
                     })
@@ -345,5 +366,5 @@ const StyledPanelTable = styled(PanelTable)`
 
   grid-template-columns: minmax(250px, 4fr) auto auto 60px auto;
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

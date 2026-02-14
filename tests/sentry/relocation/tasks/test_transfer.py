@@ -85,7 +85,7 @@ class FindRelocationTransferControlTest(TestCase):
             organization=self.organization,
             scheduled_for=timezone.now() - timedelta(minutes=2),
         )
-        transfer.date_added = timezone.now() - timedelta(hours=1, minutes=2)
+        transfer.date_added = timezone.now() - timedelta(hours=1, minutes=22)
         transfer.save()
         find_relocation_transfer_control()
         assert not mock_process.delay.called
@@ -122,7 +122,7 @@ class FindRelocationTransferRegionTest(TestCase):
             organization=self.organization,
             scheduled_for=timezone.now() - timedelta(minutes=2),
         )
-        transfer.date_added = timezone.now() - timedelta(hours=1, minutes=2)
+        transfer.date_added = timezone.now() - timedelta(hours=1, minutes=22)
         transfer.save()
 
         find_relocation_transfer_region()

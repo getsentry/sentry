@@ -7,6 +7,7 @@ import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -25,9 +26,9 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -247,7 +248,7 @@ function WidgetCard(props: Props) {
       });
 
       navigate(
-        {
+        normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
           query: {
             ...location.query,
@@ -256,7 +257,7 @@ function WidgetCard(props: Props) {
                 ? widget.queries[0]?.orderby
                 : location.query.sort,
           },
-        },
+        }),
         {preventScrollReset: true}
       );
     }
@@ -331,6 +332,7 @@ function WidgetCard(props: Props) {
             error={widgetQueryError}
             actionsMessage={actionsMessage}
             actions={actions}
+            noVisualizationPadding={canUseTimeseriesVisualization}
             onFullScreenViewClick={
               disableFullscreen
                 ? undefined
@@ -488,7 +490,7 @@ function useTimeRangeWarning({widget}: {widget: Widget}) {
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
   ) {
     return tct(
-      `You've selected a time range longer than the retention period for this dataset. Data older than [numDays] days may be unavailable.`,
+      `You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.`,
       {
         numDays: retentionLimitDays,
       }
@@ -541,14 +543,18 @@ const ErrorCard = styled(Placeholder)`
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: ${p => p.theme.alert.danger.backgroundLight};
-  border: 1px solid ${p => p.theme.alert.danger.border};
-  color: ${p => p.theme.alert.danger.textLight};
+  background-color: ${p => p.theme.colors.red100};
+  border: 1px solid ${p => p.theme.colors.red200};
+  color: ${p => p.theme.colors.red200};
   border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 `;
 
 export const WidgetDescription = styled('small')`
-  ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.subText};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.secondary};
 `;

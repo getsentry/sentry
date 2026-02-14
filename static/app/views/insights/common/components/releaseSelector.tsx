@@ -2,10 +2,14 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {DateTime} from 'sentry/components/dateTime';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons/iconReleases';
@@ -18,7 +22,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   ReleasesSort,
   SORT_BY_OPTIONS,
@@ -36,10 +39,10 @@ type Props = {
   allOptionTitle: string;
   onChange: (selectedOption: SelectOption<SelectKey>) => void;
   sortBy: ReleasesSortByOption;
+  triggerLabel: string;
+  triggerLabelPrefix: string;
   selectorName?: string;
   selectorValue?: string;
-  triggerLabel?: string;
-  triggerLabelPrefix?: string;
 };
 
 function SingleReleaseSelector({
@@ -103,13 +106,17 @@ function SingleReleaseSelector({
 
   return (
     <StyledCompactSelect
-      triggerProps={{
-        icon: <IconReleases />,
-        title: selectorValue,
-        prefix: triggerLabelPrefix,
-        children: triggerLabel,
-        'aria-label': t('Filter Release'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconReleases />}
+          tooltipProps={{title: selectorValue}}
+          prefix={triggerLabelPrefix}
+          aria-label={t('Filter Release')}
+        >
+          {triggerLabel}
+        </OverlayTrigger.Button>
+      )}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
@@ -153,7 +160,7 @@ type LabelDetailsProps = {
 
 function LabelDetails(props: LabelDetailsProps) {
   return (
-    <DetailsContainer>
+    <Flex justify="between" gap="md" minWidth="200px">
       <div>
         {defined(props.screenCount)
           ? tn('%s event', '%s events', props.screenCount)
@@ -164,7 +171,7 @@ function LabelDetails(props: LabelDetailsProps) {
           <DateTime dateOnly year date={props.dateCreated} />
         )}
       </div>
-    </DetailsContainer>
+    </Flex>
   );
 }
 
@@ -309,12 +316,4 @@ const StyledPageSelector = styled(PageFilterBar)`
       }
     }
   }
-`;
-
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(1)};
-  min-width: 200px;
 `;

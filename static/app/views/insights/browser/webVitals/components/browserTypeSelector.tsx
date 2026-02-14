@@ -1,9 +1,9 @@
-import styled from '@emotion/styled';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -12,18 +12,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const LabelContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  width: max-content;
-`;
-
 function optionToLabel(iconName: string, labelValue: string): React.ReactNode {
   return (
-    <LabelContainer>
+    <Flex gap="md" width="max-content">
       <ContextIcon name={iconName} size="md" />
       <div>{labelValue}</div>
-    </LabelContainer>
+    </Flex>
   );
 }
 
@@ -81,10 +75,11 @@ export default function BrowserTypeSelector() {
 
   return (
     <CompactSelect
-      triggerProps={{
-        prefix: t('Browser Type'),
-        children: value.length === 0 ? 'All' : undefined,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Browser Type')}>
+          {value.length === 0 ? t('All') : triggerProps.children}
+        </OverlayTrigger.Button>
+      )}
       multiple
       clearable
       value={value}

@@ -3,9 +3,8 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import type {AlertProps} from '@sentry/scraps/alert';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -93,25 +92,6 @@ function ConsoleLogRow({
 
 export default ConsoleLogRow;
 
-function levelToAlertVariant(level: string | undefined): AlertProps['variant'] {
-  switch (level) {
-    case 'error':
-    case 'fatal':
-      return 'danger';
-
-    case 'warning':
-      return 'warning';
-
-    case 'info':
-    case 'debug':
-    case 'log':
-    case 'undefined':
-    case undefined:
-    default:
-      return 'info';
-  }
-}
-
 const ConsoleLog = styled('div')<{
   hasOccurred: boolean;
   level: undefined | string;
@@ -121,12 +101,14 @@ const ConsoleLog = styled('div')<{
   gap: ${space(0.75)};
   align-items: baseline;
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   background-color: ${p =>
-    p.level === 'warning' || p.level === 'error'
-      ? p.theme.alert[levelToAlertVariant(p.level)].backgroundLight
-      : 'inherit'};
+    p.level === 'warning'
+      ? p.theme.colors.yellow100
+      : p.level === 'error'
+        ? p.theme.colors.red100
+        : 'inherit'};
 
   color: ${p => p.theme.colors.gray500};
 
@@ -143,23 +125,23 @@ const ConsoleLog = styled('div')<{
 const ICONS = {
   [BreadcrumbLevelType.ERROR]: (
     <Tooltip title={BreadcrumbLevelType.ERROR}>
-      <IconClose size="xs" color="red400" />
+      <IconClose size="xs" variant="danger" />
     </Tooltip>
   ),
   [BreadcrumbLevelType.WARNING]: (
     <Tooltip title={BreadcrumbLevelType.WARNING}>
-      <IconWarning color="yellow400" size="xs" />
+      <IconWarning variant="warning" size="xs" />
     </Tooltip>
   ),
   [BreadcrumbLevelType.INFO]: (
     <Tooltip title={BreadcrumbLevelType.INFO}>
-      <IconInfo color="gray400" size="xs" />
+      <IconInfo variant="primary" size="xs" />
     </Tooltip>
   ),
 };
 
 const MediumFontSize = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 function ConsoleLevelIcon({level}: {level: string | undefined}) {
@@ -172,7 +154,7 @@ function ConsoleLevelIcon({level}: {level: string | undefined}) {
 }
 
 const Message = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 
   white-space: pre-wrap;
   word-break: break-word;

@@ -232,9 +232,9 @@ class AlertRuleSerializer(Serializer):
                 type=AlertRuleActivityType.SNAPSHOT.value,
             )
             for activity in snapshot_activities:
-                result[alert_rules[activity.alert_rule_id]][
-                    "originalAlertRuleId"
-                ] = activity.previous_alert_rule_id
+                result[alert_rules[activity.alert_rule_id]]["originalAlertRuleId"] = (
+                    activity.previous_alert_rule_id
+                )
 
         if "latestIncident" in self.expand:
             incident_map = {}
@@ -268,13 +268,24 @@ class AlertRuleSerializer(Serializer):
             obj.organization,
             actor=user,
         )
-        # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
-        aggregate = translate_aggregate_field(
-            obj.snuba_query.aggregate,
-            reverse=True,
-            allow_mri=allow_mri,
-            allow_eap=obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value,
+
+        # Trace metrics have complicated aggregated validation that require EAP SearchResolver and do NOT need translation as they do not have tags in the old format (eg. tags[sentry:user))
+        is_trace_metric = (
+            obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+            and obj.snuba_query.event_types
+            and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in obj.snuba_query.event_types
         )
+
+        # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
+        if not is_trace_metric:
+            aggregate = translate_aggregate_field(
+                obj.snuba_query.aggregate,
+                reverse=True,
+                allow_mri=allow_mri,
+                allow_eap=obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value,
+            )
+        else:
+            aggregate = obj.snuba_query.aggregate
 
         # Apply transparency: Convert upsampled_count() back to count() for user-facing responses
         # This hides the internal upsampling implementation from users
@@ -447,8 +458,7 @@ class CombinedRuleSerializer(Serializer):
                 results[item] = serialized_uptime_detector_map_by_id[item_id]
             elif (
                 # XXX(epurkhiser): Monitors use their GUID as their IDs
-                isinstance(item, Monitor)
-                and str(item.guid) in serialized_cron_monitor_map_by_guid
+                isinstance(item, Monitor) and str(item.guid) in serialized_cron_monitor_map_by_guid
             ):
                 # This is a cron monitor
                 results[item] = serialized_cron_monitor_map_by_guid[str(item.guid)]
@@ -482,6 +492,8 @@ class CombinedRuleSerializer(Serializer):
             report_used_legacy_models()
             updated_attrs["type"] = "alert_rule"
         elif isinstance(obj, Rule):
+            # Mark that we're using legacy Rule models
+            report_used_legacy_models()
             updated_attrs["type"] = "rule"
         elif isinstance(obj, Detector) and obj.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE:
             updated_attrs["type"] = "uptime"

@@ -5,42 +5,38 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 import AlertRuleDetails from './ruleDetails';
 
 describe('AlertRuleDetails', () => {
-  const context = initializeOrg();
-  const organization = context.organization;
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const rule = ProjectAlertRuleFixture({
     lastTriggered: moment().subtract(2, 'day').format(),
   });
   const member = MemberFixture();
 
-  const createWrapper = (props: any = {}, newContext?: any, org = organization) => {
-    const router = newContext ? newContext.router : context.router;
+  const createWrapper = (
+    options: {
+      organization?: typeof organization;
+      query?: Record<string, string>;
+    } = {}
+  ) => {
+    const org = options.organization ?? organization;
 
-    return render(
-      <AlertRuleDetails
-        params={{
-          orgId: org.slug,
-          projectId: project.slug,
-          ruleId: rule.id,
-        }}
-        location={{...router.location, query: {}}}
-        router={router}
-        {...props}
-      />,
-      {
-        router,
-        organization: org,
-        deprecatedRouterMocks: true,
-      }
-    );
+    return render(<AlertRuleDetails />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${org.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
+          query: options.query ?? {},
+        },
+        route: '/organizations/:orgId/alerts/rules/:projectId/:ruleId/details/',
+      },
+    });
   };
 
   beforeEach(() => {
@@ -108,38 +104,35 @@ describe('AlertRuleDetails', () => {
   });
 
   it('should allow paginating results', async () => {
-    createWrapper();
+    const {router} = createWrapper();
 
     expect(await screen.findByLabelText('Next')).toBeEnabled();
     await userEvent.click(screen.getByLabelText('Next'));
 
-    expect(context.router.push).toHaveBeenCalledWith({
-      pathname: '/mock-pathname/',
-      query: {
-        cursor: '0:100:0',
-      },
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          cursor: '0:100:0',
+        })
+      );
     });
   });
 
   it('should reset pagination cursor on date change', async () => {
-    createWrapper();
+    const {router} = createWrapper();
 
     const dateSelector = await screen.findByText('7D');
     expect(dateSelector).toBeInTheDocument();
     await userEvent.click(dateSelector);
     await userEvent.click(screen.getByRole('option', {name: 'Last 24 hours'}));
 
-    expect(context.router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          pageStatsPeriod: '24h',
-          cursor: undefined,
-          pageEnd: undefined,
-          pageStart: undefined,
-          pageUtc: undefined,
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(router.location.query.pageStatsPeriod).toBe('24h');
+    });
+    expect(router.location.query).not.toHaveProperty('cursor');
+    expect(router.location.query).not.toHaveProperty('pageStart');
+    expect(router.location.query).not.toHaveProperty('pageEnd');
+    expect(router.location.query).not.toHaveProperty('pageUtc');
   });
 
   it('should show the time since last triggered in sidebar', async () => {
@@ -323,13 +316,8 @@ describe('AlertRuleDetails', () => {
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
       method: 'POST',
     });
-    const contextWithQueryParam = initializeOrg({
-      router: {
-        location: {query: {mute: '1'}},
-      },
-    });
 
-    createWrapper({}, contextWithQueryParam);
+    createWrapper({query: {mute: '1'}});
 
     expect(await screen.findByText('Unmute')).toBeInTheDocument();
     expect(request).toHaveBeenCalledWith(
@@ -345,11 +333,7 @@ describe('AlertRuleDetails', () => {
       access: [],
     });
 
-    const contextWithoutAccess = initializeOrg({
-      organization: orgWithoutAccess,
-    });
-
-    createWrapper({}, contextWithoutAccess, orgWithoutAccess);
+    createWrapper({organization: orgWithoutAccess});
 
     expect(await screen.findByRole('button', {name: 'Mute for everyone'})).toBeDisabled();
   });

@@ -13,7 +13,7 @@ import {
   isEquationAlias,
   parseFunction,
 } from 'sentry/utils/discover/fields';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {AggregationKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeBoolean, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -26,10 +26,12 @@ import {
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreMultiQueryUrl, getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {SpanFields} from 'sentry/views/insights/types';
 
 function getTraceItemDatasetFromWidgetType(widgetType?: WidgetType): TraceItemDataset {
   switch (widgetType) {
@@ -37,6 +39,8 @@ function getTraceItemDatasetFromWidgetType(widgetType?: WidgetType): TraceItemDa
       return TraceItemDataset.LOGS;
     case WidgetType.SPANS:
       return TraceItemDataset.SPANS;
+    case WidgetType.PREPROD_APP_SIZE:
+      return TraceItemDataset.PREPROD;
     default:
       return TraceItemDataset.SPANS; // Default to spans for backwards compatibility
   }
@@ -82,6 +86,8 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.TRACEMETRICS]: getWidgetExploreUrlWithDataset(
     TraceItemDataset.TRACEMETRICS
   ),
+  [TraceItemDataset.PREPROD]: undefined,
+  [TraceItemDataset.REPLAYS]: undefined,
 };
 
 export function getWidgetExploreUrl(
@@ -137,7 +143,7 @@ export function getWidgetExploreUrl(
   );
 }
 
-function getChartType(displayType: DisplayType) {
+export function getChartType(displayType: DisplayType) {
   let chartType: ChartType = ChartType.LINE;
   switch (displayType) {
     case DisplayType.BAR:
@@ -157,6 +163,21 @@ function getChartType(displayType: DisplayType) {
   }
 
   return chartType;
+}
+
+/**
+ * Transforms yAxis values for logs context.
+ * In logs, `count()` without an argument is invalid - it must be `count(message)`.
+ *
+ * This function defensively handles the case where the widget only uses count() without
+ * an argument. We should remove this when we convert the dashboard widgets to use
+ * count(message) instead.
+ */
+function transformLogsYAxis(yAxis: string): string {
+  if (yAxis === `${AggregationKey.COUNT}()`) {
+    return `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`;
+  }
+  return yAxis;
 }
 
 function getAggregateArguments(yAxis: string): string[] {
@@ -195,7 +216,7 @@ function _getWidgetExploreUrl(
         : widget.queries[0]!.aggregates
       )?.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
-  ].slice(0, 3);
+  ];
 
   const chartType = getChartType(widget.displayType);
   let exploreMode: Mode | undefined = preferMode;
@@ -235,9 +256,12 @@ function _getWidgetExploreUrl(
   let groupBy: string[] =
     defined(query.fields) && widget.displayType === DisplayType.TABLE
       ? query.fields.filter(
-          field => !isAggregateFieldOrEquation(field) && field !== 'timestamp'
+          field =>
+            !isAggregateFieldOrEquation(field) &&
+            field !== 'timestamp' &&
+            field !== SpanFields.IS_STARRED_TRANSACTION // starred transactions are not supported in explore
         )
-      : [...query.columns];
+      : query.columns.filter(column => column !== SpanFields.IS_STARRED_TRANSACTION);
   if (groupBy && groupBy.length === 0) {
     // Force the groupBy to be an array with a single empty string
     // so that qs.stringify appends the key to the URL. If the key
@@ -253,7 +277,10 @@ function _getWidgetExploreUrl(
   const sortColumn = trimStart(widget.queries[0]?.orderby ?? '', '-');
 
   let sort: string | undefined = undefined;
-  if (isAggregateField(sortColumn)) {
+  if (sortColumn === SpanFields.IS_STARRED_TRANSACTION) {
+    // is_starred_transaction is not supported in explore
+    sort = undefined;
+  } else if (isAggregateField(sortColumn)) {
     if (exploreMode === Mode.SAMPLES) {
       // if the current sort is on an aggregation, then we should extract its argument
       // and try to sort on that in samples mode
@@ -314,13 +341,18 @@ function _getWidgetExploreUrl(
   };
 
   if (traceItemDataset === TraceItemDataset.LOGS) {
+    const logsVisualize = queryParams.visualize.map(v => ({
+      ...v,
+      yAxes: v.yAxes.map(transformLogsYAxis),
+    }));
+
     return getLogsUrl({
       organization: queryParams.organization,
       selection: queryParams.selection,
       query: queryParams.query,
       field: queryParams.field,
       groupBy: queryParams.groupBy,
-      aggregateFields: queryParams.visualize,
+      aggregateFields: logsVisualize,
       interval: queryParams.interval,
       mode: queryParams.mode,
       referrer: queryParams.referrer,
@@ -364,10 +396,14 @@ function _getWidgetExploreUrlForMultipleQueries(
     queries: widget.queries.map(query => ({
       chartType: getChartType(widget.displayType),
       query: applyDashboardFilters(query.conditions, dashboardFilters) ?? '',
-      sortBys: decodeSorts(query.orderby),
+      sortBys: decodeSorts(query.orderby).filter(
+        s => s.field !== SpanFields.IS_STARRED_TRANSACTION
+      ),
       yAxes: query.aggregates,
       fields: [],
-      groupBys: query.columns,
+      groupBys: query.columns.filter(
+        column => column !== SpanFields.IS_STARRED_TRANSACTION
+      ),
     })),
     interval: getWidgetInterval(widget, currentSelection.datetime),
     referrer,
@@ -385,7 +421,9 @@ export function getWidgetTableRowExploreUrlFunction(
     let fields: string[] = [];
     if (widget.queries[selectedQueryIndex]?.fields) {
       fields = widget.queries[selectedQueryIndex].fields.filter(
-        (field: string) => !isAggregateFieldOrEquation(field)
+        (field: string) =>
+          !isAggregateFieldOrEquation(field) &&
+          field !== SpanFields.IS_STARRED_TRANSACTION
       );
     }
 

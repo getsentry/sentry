@@ -1,5 +1,6 @@
+import {Button} from '@sentry/scraps/button';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 
 import {AddToOrgModal, RemoveFromOrgModal} from 'admin/components/addOrRemoveOrgModal';
 import CustomerGrid from 'admin/components/customerGrid';
@@ -22,6 +23,7 @@ function UserCustomers({userId}: Props) {
       panelTitle="Organization Membership"
       path={`/_admin/users/${userId}/`}
       endpoint={`/users/${userId}/customers/`}
+      isCellScoped
       hasSearch={false}
       sortOptions={undefined}
       filters={undefined}

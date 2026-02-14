@@ -295,12 +295,12 @@ function OpsBreakdown({
 }
 
 const StyledBreakdown = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(4)};
 `;
 
 const StyledBreakdownNoHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: ${space(2)} ${space(3)};
 `;
 
@@ -340,7 +340,7 @@ const OpsName = styled('div')`
 `;
 
 const Dur = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-variant-numeric: tabular-nums;
 `;
 

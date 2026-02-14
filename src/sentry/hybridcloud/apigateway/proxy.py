@@ -5,7 +5,7 @@ Utilities related to proxying a request to a region silo
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator, Iterator
+from collections.abc import Generator
 from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
@@ -18,10 +18,9 @@ from requests.exceptions import Timeout
 
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
-from sentry.models.organizationmapping import OrganizationMapping
-from sentry.sentry_apps.models.sentry_app import SentryApp
-from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.silo.util import (
+    PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
     clean_outbound_headers,
     clean_proxy_headers,
@@ -33,6 +32,7 @@ from sentry.types.region import (
     get_region_for_organization,
 )
 from sentry.utils import metrics
+from sentry.utils.http import BodyWithLength
 
 logger = logging.getLogger(__name__)
 
@@ -76,22 +76,6 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
     return streamed_response
 
 
-class _body_with_length:
-    """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
-
-    def __init__(self, request: HttpRequest):
-        self.request = request
-
-    def __iter__(self) -> Iterator[bytes]:
-        return iter(self.request)
-
-    def __len__(self) -> int:
-        return int(self.request.headers.get("Content-Length", "0"))
-
-    def read(self, size: int | None = None) -> bytes:
-        return self.request.read(size)
-
-
 def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a remote location given an org_id_or_slug"""
 
@@ -99,56 +83,6 @@ def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> H
         region = get_region_for_organization(org_id_or_slug)
     except RegionResolutionError as e:
         logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
-        return HttpResponse(status=404)
-
-    return proxy_region_request(request, region, url_name)
-
-
-def proxy_sentryappinstallation_request(
-    request: HttpRequest, installation_uuid: str, url_name: str
-) -> HttpResponseBase:
-    """Take a django request object and proxy it to a remote location given a sentryapp installation uuid"""
-    try:
-        installation = SentryAppInstallation.objects.get(uuid=installation_uuid)
-    except SentryAppInstallation.DoesNotExist as e:
-        logger.info(
-            "region_resolution_error",
-            extra={"installation_uuid": installation_uuid, "error": str(e)},
-        )
-        return HttpResponse(status=404)
-
-    try:
-        organization_mapping = OrganizationMapping.objects.get(
-            organization_id=installation.organization_id
-        )
-        region = get_region_by_name(organization_mapping.region_name)
-    except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
-        logger.info(
-            "region_resolution_error", extra={"installation_id": installation_uuid, "error": str(e)}
-        )
-        return HttpResponse(status=404)
-
-    return proxy_region_request(request, region, url_name)
-
-
-def proxy_sentryapp_request(
-    request: HttpRequest, app_id_or_slug: str, url_name: str
-) -> HttpResponseBase:
-    """Take a django request object and proxy it to the region of the organization that owns a sentryapp"""
-    try:
-        if app_id_or_slug.isdecimal():
-            sentry_app = SentryApp.objects.get(id=app_id_or_slug)
-        else:
-            sentry_app = SentryApp.objects.get(slug=app_id_or_slug)
-    except SentryApp.DoesNotExist as e:
-        logger.info("region_resolution_error", extra={"app_slug": app_id_or_slug, "error": str(e)})
-        return HttpResponse(status=404)
-
-    try:
-        organization_mapping = OrganizationMapping.objects.get(organization_id=sentry_app.owner_id)
-        region = get_region_by_name(organization_mapping.region_name)
-    except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
-        logger.info("region_resolution_error", extra={"app_slug": app_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
     return proxy_region_request(request, region, url_name)
@@ -190,7 +124,10 @@ def proxy_region_request(
 ) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a region silo"""
     target_url = urljoin(region.address, request.path)
+
+    content_encoding = request.headers.get("Content-Encoding")
     header_dict = clean_proxy_headers(request.headers)
+    header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
     # TODO: use requests session for connection pooling capabilities
     assert request.method is not None
@@ -203,6 +140,14 @@ def proxy_region_request(
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
+    data: bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
+    if url_name == "sentry-api-0-organization-objectstore":
+        if content_encoding:
+            header_dict["Content-Encoding"] = content_encoding
+        data = get_raw_body(request)
+    else:
+        data = BodyWithLength(request)
+
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
             resp = external_request(
@@ -210,7 +155,7 @@ def proxy_region_request(
                 url=target_url,
                 headers=header_dict,
                 params=dict(query_params) if query_params is not None else None,
-                data=_body_with_length(request),
+                data=data,
                 stream=True,
                 timeout=timeout,
                 # By default, external_request will resolve any redirects for any verb except for HEAD.

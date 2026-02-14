@@ -18,16 +18,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         self.ten_mins_ago = before_now(minutes=10)
 
     @contextmanager
-    def mock_seer_ack(self):
-        with (
-            patch(
-                "sentry.tasks.web_vitals_issue_detection.get_seer_org_acknowledgement"
-            ) as mock_ack,
-        ):
-            mock_ack.return_value = True
-            yield {"mock_ack": mock_ack}
-
-    @contextmanager
     def mock_code_mapping(self):
         with (
             patch(
@@ -48,7 +38,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         project = self.create_project()
 
         with (
-            self.mock_seer_ack(),
             self.mock_code_mapping(),
             self.options(
                 {
@@ -64,29 +53,10 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         assert mock_delay.call_args[0][0] == project.id
 
     @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
-    def test_run_detection_skips_when_seer_not_acknowledged(self, mock_delay):
-        project = self.create_project()
-
-        with (
-            self.mock_code_mapping(),
-            self.options(
-                {
-                    "issue-detection.web-vitals-detection.enabled": True,
-                    "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
-                }
-            ),
-            self.feature("organizations:gen-ai-features"),
-        ):
-            run_web_vitals_issue_detection()
-
-        assert not mock_delay.called
-
-    @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
     def test_run_detection_skips_when_no_github_code_mappings(self, mock_delay):
         project = self.create_project()
 
         with (
-            self.mock_seer_ack(),
             self.options(
                 {
                     "issue-detection.web-vitals-detection.enabled": True,
@@ -102,7 +72,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
     @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
     def test_run_detection_skips_when_not_allowlisted(self, mock_delay):
         with (
-            self.mock_seer_ack(),
             self.mock_code_mapping(),
             self.options(
                 {
@@ -192,10 +161,9 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                 ]
             )
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         with (
-            self.mock_seer_ack(),
             self.mock_code_mapping(),
             self.options(
                 {
@@ -311,10 +279,9 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                 ]
             )
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         with (
-            self.mock_seer_ack(),
             self.mock_code_mapping(),
             self.options(
                 {
@@ -388,7 +355,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             for _ in range(10)
         ]  # web vital issue detection requires at least 10 samples to create an issue
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Create an existing issue group so that the web vital issue detection does not produce a new occurrence
         group = self.create_group(project=project)
@@ -401,7 +368,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         with (
-            self.mock_seer_ack(),
             self.mock_code_mapping(),
             self.options(
                 {
@@ -443,10 +409,9 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             for _ in range(9)
         ]
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         with (
-            self.mock_seer_ack(),
             self.mock_code_mapping(),
             self.options(
                 {
@@ -525,10 +490,9 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         with (
-            self.mock_seer_ack(),
             self.mock_code_mapping(),
             self.options(
                 {
@@ -635,10 +599,9 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                 ]
             )
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         with (
-            self.mock_seer_ack(),
             self.mock_code_mapping(),
             self.options(
                 {
@@ -672,7 +635,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         project = self.create_project()
 
         with (
-            self.mock_seer_ack(),
             self.mock_code_mapping(),
             self.options(
                 {

@@ -1,7 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -440,14 +441,14 @@ function FlamegraphSearch({
             </StyledTrailingText>
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron size="xs" />}
               aria-label={t('Next')}
               onClick={onPreviousSearchClick}
             />
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron size="xs" direction="down" />}
               aria-label={t('Previous')}
               onClick={onNextSearchClick}
@@ -455,7 +456,7 @@ function FlamegraphSearch({
           </Fragment>
         ) : (
           <Tooltip title={t(`Also supports regular expressions, e.g. /^functionName/i`)}>
-            <StyledIconInfo size="xs" color="gray300" />
+            <StyledIconInfo size="xs" variant="muted" />
           </Tooltip>
         )
       }
@@ -472,8 +473,8 @@ const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
 `;
 
 const StyledTrailingText = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

@@ -2,8 +2,9 @@ import {useEffect} from 'react';
 import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InputGroup} from '@sentry/scraps/input';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -37,7 +38,7 @@ function DeprecatedCommandPalette({Body, closeModal}: ModalRenderProps) {
                 border-top-right-radius: 0;
                 position: initial;
                 box-shadow: none;
-                border-top: 1px solid ${theme.border};
+                border-top: 1px solid ${theme.tokens.border.primary};
               `}
             renderInput={({getInputProps}) => (
               <InputWithoutFocusStyles

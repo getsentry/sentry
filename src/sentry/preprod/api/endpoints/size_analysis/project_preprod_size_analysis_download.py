@@ -13,6 +13,7 @@ from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisDownloadEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.quotas import get_size_retention_cutoff
 from sentry.preprod.size_analysis.download import (
     SizeAnalysisError,
     get_size_analysis_error_response,
@@ -60,7 +61,11 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
+
+        cutoff = get_size_retention_cutoff(project.organization)
+        if head_artifact.date_added < cutoff:
+            return Response({"detail": "This build's size data has expired."}, status=404)
 
         all_size_metrics = list(head_artifact.get_size_metrics())
 

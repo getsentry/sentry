@@ -75,7 +75,7 @@ class DashboardWidgetTypes(TypesClass):
     """
     Mobile app size metrics from preprod item type on the EAP dataset.
     """
-    MOBILE_APP_SIZE = 105
+    PREPROD_APP_SIZE = 105
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -89,7 +89,7 @@ class DashboardWidgetTypes(TypesClass):
         (SPANS, "spans"),
         (LOGS, "logs"),
         (TRACEMETRICS, "tracemetrics"),
-        (MOBILE_APP_SIZE, "mobile-app-size"),
+        (PREPROD_APP_SIZE, "preprod-app-size"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -174,6 +174,10 @@ class DashboardWidgetDisplayTypes(TypesClass):
     BIG_NUMBER = 6
     TOP_N = 7
     DETAILS = 8
+    CATEGORICAL_BAR_CHART = 9
+    WHEEL = 10
+    RAGE_AND_DEAD_CLICKS = 11
+    SERVER_TREE = 12
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -183,6 +187,10 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (BIG_NUMBER, "big_number"),
         (TOP_N, "top_n"),
         (DETAILS, "details"),
+        (CATEGORICAL_BAR_CHART, "categorical_bar"),
+        (WHEEL, "wheel"),
+        (RAGE_AND_DEAD_CLICKS, "rage_and_dead_clicks"),
+        (SERVER_TREE, "server_tree"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -267,8 +275,9 @@ class DashboardWidgetQueryOnDemand(Model):
         """ The widget was manually disabled by a user """
         DISABLED_SPEC_LIMIT = "disabled:spec-limit", gettext_lazy("disabled:spec-limit")
         """ This widget query was disabled during rollout due to the organization reaching it's spec limit. """
-        DISABLED_HIGH_CARDINALITY = "disabled:high-cardinality", gettext_lazy(
-            "disabled:high-cardinality"
+        DISABLED_HIGH_CARDINALITY = (
+            "disabled:high-cardinality",
+            gettext_lazy("disabled:high-cardinality"),
         )
         """ This widget query was disabled by the cardinality cron due to one of the columns having high cardinality """
         ENABLED_ENROLLED = "enabled:enrolled", gettext_lazy("enabled:enrolled")

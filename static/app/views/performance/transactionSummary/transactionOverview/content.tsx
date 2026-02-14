@@ -4,14 +4,15 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {IconWarning} from 'sentry/icons';
@@ -269,7 +270,6 @@ function OTelSummaryContentInner({
             handleDropdownChange={handleTransactionsListSortChange}
             totalValues={totalValues}
             transactionName={transactionName}
-            supportsInvestigationRule
             showViewSampledEventsButton
           />
         </PerformanceAtScaleContextProvider>
@@ -619,7 +619,6 @@ function SummaryContent({
             domainViewFilters={domainViewFilters}
             forceLoading={isLoading}
             referrer="performance.transactions_summary"
-            supportsInvestigationRule
           />
         </PerformanceAtScaleContextProvider>
         <TagExplorer
@@ -770,7 +769,7 @@ function MetricsWarningIcon() {
       <StyledIconWarning
         data-test-id="search-metrics-fallback-warning"
         size="sm"
-        color="warningText"
+        variant="warning"
       />
     </Tooltip>
   );

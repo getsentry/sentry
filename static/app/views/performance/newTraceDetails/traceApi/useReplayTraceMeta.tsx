@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
 
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -52,7 +53,9 @@ export function useReplayTraceMeta(
     data: TableDataRow[];
   }>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: eventView
           ? {

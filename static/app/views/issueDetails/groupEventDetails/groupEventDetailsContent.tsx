@@ -2,11 +2,12 @@ import {Fragment, useMemo, useRef} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {CommitRow} from 'sentry/components/commitRow';
-import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -29,6 +30,7 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
+import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
@@ -49,6 +51,7 @@ import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
+import {UptimeAssertionsSection} from 'sentry/components/events/interfaces/uptime/uptimeAssertionsSection';
 import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
@@ -68,13 +71,15 @@ import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {isJavascriptPlatform} from 'sentry/utils/platform';
+import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
+import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
+import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
@@ -148,6 +153,9 @@ export function EventDetailsContent({
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       )}
+      {isMobilePlatform(project.platform) && (
+        <ProfilePreviewSection event={event} project={project} />
+      )}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
@@ -170,11 +178,11 @@ export function EventDetailsContent({
                   size="xs"
                   icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
                   onClick={showFeedback ? dismissPrompt : showPrompt}
-                  title={
-                    showFeedback
+                  tooltipProps={{
+                    title: showFeedback
                       ? t('Hide feedback on all issue details')
-                      : t('Unhide feedback on all issue details')
-                  }
+                      : t('Unhide feedback on all issue details'),
+                  }}
                   disabled={promptError}
                   busy={promptLoading}
                 >
@@ -215,6 +223,14 @@ export function EventDetailsContent({
         />
       )}
       <EventEvidence event={event} group={group} project={project} />
+      {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
+        <UptimeAssertionsSection event={event} />
+      )}
+      {hasStreamlinedUI && issueTypeConfig.instrumentationFixSection.enabled && (
+        <ErrorBoundary mini>
+          <InstrumentationFixSection event={event} group={group} />
+        </ErrorBoundary>
+      )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
@@ -333,7 +349,7 @@ export function EventDetailsContent({
         </Fragment>
       )}
       <ErrorBoundary customComponent={() => null}>
-        <MetricDetectorTriggeredSection event={event} />
+        <MetricDetectorTriggeredSection group={group} event={event} />
       </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
@@ -414,6 +430,7 @@ export function EventDetailsContent({
       </ErrorBoundary>
       <EventExtraData event={event} />
       <EventViewHierarchy event={event} project={project} />
+      <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
       <EventAttachments event={event} project={project} group={group} />

@@ -115,3 +115,18 @@ class ProjectPreprodArtifactImageTest(APITestCase):
             url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
         assert response.status_code == 403
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_error_handling_returns_json(self, mock_get_session):
+        mock_session = MagicMock()
+        mock_session.get.side_effect = Exception("Storage error")
+        mock_get_session.return_value = mock_session
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 500
+        assert response["Content-Type"] == "application/json"
+        assert response.json() == {"detail": "Internal server error"}

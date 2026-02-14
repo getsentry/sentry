@@ -3,13 +3,12 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
-import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -22,7 +21,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
@@ -38,6 +36,7 @@ import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
+  ABYTE_UNITS,
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
@@ -46,10 +45,10 @@ import {
   parseFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
-import {FieldKind} from 'sentry/utils/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
@@ -59,12 +58,11 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
 import {
-  DashboardFilterKeys,
-  type DashboardFilters,
-  type GlobalFilter,
-  type Widget,
-} from 'sentry/views/dashboards/types';
+  findLinkedDashboardForField,
+  getLinkedDashboardUrl,
+} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -118,6 +116,7 @@ export type RenderFunctionBaggage = {
   disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
+  projects?: Project[];
   /**
    * The trace item meta data for the trace item, which includes information needed to render annotated tooltip (eg. scrubbing reasons)
    */
@@ -162,7 +161,7 @@ type FieldFormatters = {
 };
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 export const emptyStringValue = (
@@ -208,16 +207,6 @@ export const SIZE_UNITS = {
   petabyte: 1000 ** 5,
   exabyte: 1000 ** 6,
 };
-
-export const ABYTE_UNITS = [
-  'byte',
-  'kilobyte',
-  'megabyte',
-  'gigabyte',
-  'terabyte',
-  'petabyte',
-  'exabyte',
-];
 
 // TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
 export const DURATION_UNITS = {
@@ -470,7 +459,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               showChevron: false,
               icon: (
                 <Fragment>
-                  <IconDownload color="gray500" size="sm" />
+                  <IconDownload variant="primary" size="sm" />
                   <DownloadCount>{items.length}</DownloadCount>
                 </Fragment>
               ),
@@ -505,7 +494,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
                 : undefined
             }
           >
-            <IconDownload color="gray500" size="sm" />
+            <IconDownload variant="primary" size="sm" />
             <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
         </RightAlignedContainer>
@@ -1349,7 +1338,11 @@ const StyledProjectBadge = styled(ProjectBadge)`
 `;
 
 const StyledTooltip = styled(Tooltip)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export function getFieldRenderer(
@@ -1381,6 +1374,16 @@ function getFieldRendererBase(
     return SPECIAL_FIELDS[field].renderFunc;
   }
 
+  if (isEquation(field)) {
+    const strippedField = stripEquationPrefix(field);
+    if (SPECIAL_FIELDS.hasOwnProperty(strippedField)) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      const specialRenderer = SPECIAL_FIELDS[strippedField].renderFunc;
+      return (data: EventData, baggage: RenderFunctionBaggage) =>
+        specialRenderer({...data, [strippedField]: data[field]}, baggage);
+    }
+  }
+
   if (isRelativeSpanOperationBreakdownField(field)) {
     return spanOperationRelativeBreakdownRenderer;
   }
@@ -1410,16 +1413,7 @@ function wrapFieldRendererInDashboardLink(
   dashboardFilters: DashboardFilters | undefined = undefined
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
-    const {organization, location} = baggage;
-    const value = data[field];
-    const dashboardUrl = getDashboardUrl(
-      field,
-      value,
-      organization,
-      location,
-      widget,
-      dashboardFilters
-    );
+    const dashboardUrl = getDashboardUrl(data, field, baggage, widget, dashboardFilters);
     if (dashboardUrl) {
       return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
     }
@@ -1428,58 +1422,39 @@ function wrapFieldRendererInDashboardLink(
 }
 
 function getDashboardUrl(
+  data: EventData,
   field: string,
-  value: any,
-  organization: Organization,
-  location: Location,
+  baggage: RenderFunctionBaggage,
   widget: Widget | undefined = undefined,
   dashboardFilters: DashboardFilters | undefined = undefined
 ) {
-  if (widget?.widgetType && dashboardFilters) {
-    // Table widget only has one query
-    const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
-      linkedDashboard => linkedDashboard.field === field
-    );
-    if (dashboardLink && dashboardLink.dashboardId !== '-1') {
-      const newTemporaryFilters: GlobalFilter[] = [
-        ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
-      ].filter(
-        filter =>
-          Boolean(filter.value) &&
-          !(filter.tag.key === field && filter.dataset === widget.widgetType)
-      );
+  const {organization, location, projects} = baggage;
+  if (!widget?.widgetType || !dashboardFilters) {
+    return undefined;
+  }
 
-      // Format the value as a proper filter condition string
-      const mutableSearch = new MutableSearch('');
-      const formattedValue = mutableSearch.addFilterValueList(field, [value]).toString();
+  const linkedDashboard = findLinkedDashboardForField(widget.queries[0], field);
+  if (!linkedDashboard) {
+    return undefined;
+  }
 
-      newTemporaryFilters.push({
-        dataset: widget.widgetType,
-        tag: {key: field, name: field, kind: FieldKind.TAG},
-        value: formattedValue,
-        isTemporary: true,
-      });
-
-      // Preserve project, environment, and time range query params
-      const filterParams = pick(location.query, [
-        'release',
-        'environment',
-        'project',
-        'statsPeriod',
-        'start',
-        'end',
-      ]);
-
-      const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
-        {
-          ...filterParams,
-          [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
-            JSON.stringify(filter)
-          ),
-        }
-      )}`;
-      return url;
+  // Get project ID override from data if available
+  let projectIdOverride: string | number | undefined;
+  if ('project' in data) {
+    const projectId = projects?.find(project => project.slug === data.project)?.id;
+    if (projectId) {
+      projectIdOverride = projectId;
     }
   }
-  return undefined;
+
+  return getLinkedDashboardUrl({
+    linkedDashboard,
+    organizationSlug: organization.slug,
+    field,
+    value: data[field],
+    widgetType: widget.widgetType,
+    dashboardFilters,
+    locationQuery: location.query,
+    projectIdOverride,
+  });
 }

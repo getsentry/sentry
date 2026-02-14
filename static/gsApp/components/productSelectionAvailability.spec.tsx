@@ -350,7 +350,7 @@ describe('ProductSelectionAvailability', () => {
         reservedSeerAutofix: undefined,
         reservedSeerScanner: undefined,
         reservedSeerUsers: undefined,
-        reservedPreventUsers: undefined,
+        reservedSizeAnalyses: 0,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});

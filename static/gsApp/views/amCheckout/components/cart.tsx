@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
@@ -61,7 +62,11 @@ interface CartProps {
     invoice,
     nextQueryParams,
     isSubmitted,
-  }: Pick<CheckoutState, 'invoice' | 'nextQueryParams' | 'isSubmitted'>) => void;
+    previewData,
+  }: Pick<
+    CheckoutState,
+    'invoice' | 'nextQueryParams' | 'isSubmitted' | 'previewData'
+  >) => void;
   organization: Organization;
   subscription: Subscription;
   referrer?: string;
@@ -734,7 +739,7 @@ function TotalSummary({
               priority="danger"
               onClick={() => onSubmit(true)}
               disabled={buttonDisabled || previewDataLoading}
-              title={buttonDisabled ? buttonDisabledText : undefined}
+              tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
               icon={<IconLightning />}
             >
               {isSubmitting ? t('Checking out...') : t('Migrate Now')}
@@ -745,7 +750,7 @@ function TotalSummary({
             priority="primary"
             onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
-            title={buttonDisabled ? buttonDisabledText : undefined}
+            tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
             icon={<IconLock locked />}
           >
             {isSubmitting ? t('Checking out...') : buttonText}
@@ -939,7 +944,7 @@ function Cart({
             <Button
               aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
               onClick={() => setSummaryIsOpen(!summaryIsOpen)}
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
             />

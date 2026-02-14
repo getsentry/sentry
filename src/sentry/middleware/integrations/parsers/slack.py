@@ -178,7 +178,7 @@ class SlackRequestParser(BaseRequestParser):
             if self.action_option in CONTROL_RESPONSE_ACTIONS:
                 CONTROL_RESPONSE_ACTIONS[self.action_option](self.request, self.action_option)
         except ValueError:
-            logger.exception(
+            logger.warning(
                 "slack.control.response.error",
                 extra={
                     "integration_id": integration and integration.id,

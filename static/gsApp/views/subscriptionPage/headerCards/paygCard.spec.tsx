@@ -17,7 +17,6 @@ import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
 
 describe('PaygCard', () => {
   const organization = OrganizationFixture({
-    features: ['subscriptions-v3'],
     access: ['org:billing'],
   });
 

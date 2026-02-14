@@ -1,8 +1,9 @@
 import moment from 'moment-timezone';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -28,7 +29,7 @@ import {InvoiceStatus} from 'getsentry/types';
 
 const ERR_MESSAGE = 'There was an internal error updating this invoice';
 
-function InvoiceDetails() {
+export default function InvoiceDetails() {
   const {invoiceId, orgId, region} = useParams<{
     invoiceId: string;
     orgId: string;
@@ -73,9 +74,10 @@ function InvoiceDetails() {
   const handleClose = async () => {
     try {
       const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/close/`,
+        `/_admin/cells/${region}/invoices/${invoiceId}/close/`,
         {
           method: 'PUT',
+          host: regionInfo ? regionInfo.url : '',
         }
       );
       updateCache(updatedInvoice);
@@ -332,5 +334,3 @@ function InvoiceDetails() {
     />
   );
 }
-
-export default InvoiceDetails;

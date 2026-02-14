@@ -1,5 +1,6 @@
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
@@ -38,7 +39,7 @@ function CountMessage({sentCount, errorCount, isRequest}: CountMessageProps) {
     <div>
       {sentCount > 0 && (
         <Flex gap="md" align="center">
-          <IconCheckmark size="sm" color="successText" />
+          <IconCheckmark size="sm" variant="success" />
           <span role="alert" aria-label={t('Sent Invites')}>
             {tct('[invites] sent.', tctComponents)}
           </span>
@@ -46,7 +47,7 @@ function CountMessage({sentCount, errorCount, isRequest}: CountMessageProps) {
       )}
       {errorCount > 0 && (
         <Flex gap="md" align="center">
-          <IconWarning size="sm" color="errorText" />
+          <IconWarning size="sm" variant="danger" />
           <span role="alert" aria-label={t('Failed Invites')}>
             {tct('[failedInvites] failed to send.', tctComponents)}
           </span>

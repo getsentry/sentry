@@ -160,12 +160,14 @@ class SiloModeTestDecorator:
     def __call__[T: (type[Any], Callable[..., Any])](self, decorated_obj: T) -> T: ...
 
     @overload
-    def __call__[T: (
-        type[Any],
-        Callable[..., Any],
-    )](self, *, regions: Sequence[Region] = (), include_monolith_run: bool = False) -> Callable[
-        [T], T
-    ]: ...
+    def __call__[
+        T: (
+            type[Any],
+            Callable[..., Any],
+        )
+    ](
+        self, *, regions: Sequence[Region] = (), include_monolith_run: bool = False
+    ) -> Callable[[T], T]: ...
 
     def __call__(
         self,
@@ -382,8 +384,6 @@ def assume_test_silo_mode(
 
 @contextmanager
 def assume_test_silo_mode_of(*models: type[BaseModel], can_be_monolith: bool = True) -> Any:
-    from sentry.db.models.base import ModelSiloLimit
-
     """Potentially swap to the silo mode to match the provided model classes.
 
     The argument should be one or more model classes that are scoped to exactly one
