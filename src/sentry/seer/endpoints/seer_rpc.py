@@ -75,7 +75,7 @@ from sentry.seer.assisted_query.traces_tools import (
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
@@ -127,6 +127,12 @@ class SortDict(TypedDict):
 class SpansResponse(TypedDict):
     data: list[dict[str, Any]]
     meta: dict[str, Any]
+
+
+class RepositoryIntegrationDict(TypedDict):
+    organization_id: int
+    external_id: str
+    provider: SeerSCMProvider
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
@@ -608,7 +614,7 @@ def trigger_coding_agent_launch(
 
 
 def has_repo_code_mappings(
-    *, organization_id: int, provider: str, external_id: str, owner: str, name: str
+    *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
 ) -> dict[str, bool]:
     """
     Validate that a repository exists and belongs to the given organization.
@@ -639,7 +645,7 @@ def has_repo_code_mappings(
 def validate_repo(
     *,
     organization_id: int,
-    provider: str,
+    provider: SeerSCMProvider,
     external_id: str,
     owner: str,
     name: str,
@@ -669,7 +675,9 @@ def validate_repo(
     return {"valid": True, "integration_id": repo.integration_id}
 
 
-def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:
+def check_repository_integrations_status(
+    *, repository_integrations: list[RepositoryIntegrationDict]
+) -> dict:
     """
     Check whether repository integrations exist and are active.
 
