@@ -352,11 +352,14 @@ export function ProjectPageFilter({
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
-    const listSort = (project: Project) => [
-      !lastSelected.includes(parseInt(project.id, 10)),
-      !bookmarkedSnapshotRef.current?.has(project.id),
-      project.slug,
-    ];
+    const listSort = (project: Project) =>
+      bookmarkedSnapshotRef.current
+        ? [
+            !lastSelected.includes(parseInt(project.id, 10)),
+            !bookmarkedSnapshotRef.current.has(project.id),
+            project.slug,
+          ]
+        : [!lastSelected.includes(parseInt(project.id, 10)), project.slug];
 
     return nonMemberProjects.length > 0
       ? [
