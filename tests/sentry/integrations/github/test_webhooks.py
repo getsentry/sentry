@@ -1474,3 +1474,104 @@ class IssuesEventWebhookTest(APITestCase):
             assert response.status_code == 204
             # Sync should be called for each org that has a linked issue
             assert mock_sync.call_count >= 1
+
+
+class TeamEventWebhookTest(APITestCase):
+    """Tests for GitHub team webhook events (RTC-851: team rename updates mappings)."""
+
+    def setUp(self) -> None:
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            self.integration.add_organization(self.project.organization.id, self.user)
+
+    def _send_team_event(self, event_data: dict):
+        body = json.dumps(event_data)
+        sig = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha256", body.encode(), self.secret
+        )
+        return self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="team",
+            HTTP_X_HUB_SIGNATURE_256=f"sha256={sig}",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+    def test_team_rename_updates_external_actor(self) -> None:
+        """RTC-851: When a GitHub team is renamed, ExternalActor.external_name should update."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        team = self.create_team(organization=self.organization)
+        external_actor = ExternalActor.objects.create(
+            team_id=team.id,
+            organization=self.organization,
+            integration_id=self.integration.id,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@myorg/old-team-name",
+            external_id="9876",
+        )
+
+        response = self._send_team_event(
+            {
+                "action": "edited",
+                "changes": {"name": {"from": "Old Team Name"}},
+                "team": {"name": "New Team Name", "id": 9876, "slug": "new-team-name"},
+                "organization": {"login": "myorg", "id": 5678},
+                "installation": {"id": 12345},
+            }
+        )
+
+        assert response.status_code == 204
+        external_actor.refresh_from_db()
+        assert external_actor.external_name == "@myorg/new-team-name"
+
+    def test_team_rename_no_matching_external_actor(self) -> None:
+        """Rename event for a team with no ExternalActor mapping should be a no-op."""
+        response = self._send_team_event(
+            {
+                "action": "edited",
+                "changes": {"name": {"from": "Old Name"}},
+                "team": {"name": "New Name", "id": 99999, "slug": "new-name"},
+                "organization": {"login": "myorg", "id": 5678},
+                "installation": {"id": 12345},
+            }
+        )
+        assert response.status_code == 204
+
+    def test_team_event_non_edit_action_ignored(self) -> None:
+        """Non-edit actions (e.g. created, deleted) should be ignored."""
+        response = self._send_team_event(
+            {
+                "action": "created",
+                "team": {"name": "New Team", "id": 1111, "slug": "new-team"},
+                "organization": {"login": "myorg", "id": 5678},
+                "installation": {"id": 12345},
+            }
+        )
+        assert response.status_code == 204
+
+    def test_team_edit_without_name_change_ignored(self) -> None:
+        """Edit action without name change (e.g. description change) should be ignored."""
+        response = self._send_team_event(
+            {
+                "action": "edited",
+                "changes": {"description": {"from": "Old description"}},
+                "team": {"name": "Same Name", "id": 2222, "slug": "same-name"},
+                "organization": {"login": "myorg", "id": 5678},
+                "installation": {"id": 12345},
+            }
+        )
+        assert response.status_code == 204

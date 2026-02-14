@@ -980,6 +980,90 @@ class IssueCommentEventWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = (code_review_handle_webhook_event,)
 
 
+class TeamEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub team webhook events, particularly team renames.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#team
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
+
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+        action = event.get("action")
+        if action != "edited":
+            return
+
+        changes = event.get("changes", {})
+        if "name" not in changes:
+            # Only handle renames
+            return
+
+        team = event.get("team", {})
+        new_slug = team.get("slug")
+        team_id = team.get("id")
+        org_login = event.get("organization", {}).get("login")
+
+        if not new_slug or not team_id or not org_login:
+            logger.warning(
+                "github.webhook.team.missing-data",
+                extra={
+                    "action": action,
+                    "team_id": team_id,
+                    "org_login": org_login,
+                    "new_slug": new_slug,
+                },
+            )
+            return
+
+        external_id = get_github_external_id(event=event, host=kwargs.get("host"))
+        result = integration_service.organization_contexts(
+            external_id=external_id, provider=self.provider
+        )
+        integration = result.integration
+
+        if integration is None:
+            logger.info(
+                "github.webhook.team.missing-integration",
+                extra={"external_id": str(external_id), "team_id": team_id},
+            )
+            return
+
+        new_external_name = f"@{org_login}/{new_slug}"
+
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        # Update ExternalActor records that reference this GitHub team.
+        # Match by external_id (the stable GitHub team ID) for reliability.
+        # Use .save() instead of .update() because ExternalActor is a
+        # ReplicatedRegionModel that needs outbox entries for cross-silo sync.
+        actors = list(
+            ExternalActor.objects.filter(
+                integration_id=integration.id,
+                provider=ExternalProviders.GITHUB.value,
+                external_id=str(team_id),
+                team__isnull=False,
+            ).exclude(external_name=new_external_name)
+        )
+        for actor in actors:
+            actor.external_name = new_external_name
+            actor.save(update_fields=["external_name"])
+
+        updated = len(actors)
+        if updated:
+            logger.info(
+                "github.webhook.team.renamed",
+                extra={
+                    "integration_id": integration.id,
+                    "team_id": team_id,
+                    "old_name": changes["name"].get("from"),
+                    "new_external_name": new_external_name,
+                    "updated_count": updated,
+                },
+            )
+            metrics.incr("github.webhook.team_renamed", amount=updated, sample_rate=1.0)
+
+
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
     """
@@ -1002,6 +1086,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
         GithubWebhookType.PUSH: PushEventWebhook,
+        GithubWebhookType.TEAM: TeamEventWebhook,
     }
 
     def get_handler(self, event_type: GithubWebhookType) -> type[GitHubWebhook] | None:
