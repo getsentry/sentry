@@ -22,7 +22,7 @@ function SelectIndicatorsContainer({
 }: React.ComponentProps<typeof components.IndicatorsContainer>) {
   const indicator = useFieldStateIndicator();
   return (
-    <Flex padding="sm" gap="sm" align="center">
+    <Flex padding="0 sm" gap="sm" align="center">
       {indicator}
       {children}
     </Flex>
