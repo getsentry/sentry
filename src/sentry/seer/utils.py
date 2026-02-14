@@ -2,12 +2,11 @@ from django.db.models import Q, QuerySet
 
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository
-from sentry.seer.constants import SeerSCMProvider
 
 
 def filter_repo_by_provider(
     organization_id: int,
-    provider: SeerSCMProvider,
+    provider: str,
     external_id: str,
     owner: str,
     name: str,

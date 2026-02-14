@@ -129,12 +129,6 @@ class SpansResponse(TypedDict):
     meta: dict[str, Any]
 
 
-class RepositoryIntegrationDict(TypedDict):
-    organization_id: int
-    external_id: str
-    provider: SeerSCMProvider
-
-
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
     """
     Compare request data + signature signed by one of the shared secrets.
@@ -645,7 +639,7 @@ def has_repo_code_mappings(
 def validate_repo(
     *,
     organization_id: int,
-    provider: SeerSCMProvider,
+    provider: str,
     external_id: str,
     owner: str,
     name: str,
@@ -675,9 +669,7 @@ def validate_repo(
     return {"valid": True, "integration_id": repo.integration_id}
 
 
-def check_repository_integrations_status(
-    *, repository_integrations: list[RepositoryIntegrationDict]
-) -> dict:
+def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:
     """
     Check whether repository integrations exist and are active.
 
