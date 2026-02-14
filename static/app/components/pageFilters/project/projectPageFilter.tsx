@@ -419,15 +419,10 @@ export function ProjectPageFilter({
 
   const hasProjectWrite = organization.access.includes('project:write');
 
-  const handleOpenChange = useCallback(
-    (isOpen: boolean) => {
-      if (isOpen) {
-        // Snapshot current bookmarked state when menu opens
-        bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
-      }
-    },
-    [optimisticallyBookmarkedProjects]
-  );
+  const handleOpenChange = useCallback(() => {
+    // Sync bookmarked projects whenever the menu opens or closes
+    bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+  }, [optimisticallyBookmarkedProjects]);
 
   return (
     <HybridFilter
