@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 
 import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -10,6 +12,9 @@ interface Props {
   query?: Record<string, string>;
 }
 
+/**
+ * @deprecated Use organizationRepositoriesInfiniteOptions instead.
+ */
 export function useOrganizationRepositories<T extends Repository = Repository>(
   {query = {}} = {} as Props
 ) {
@@ -59,9 +64,21 @@ export function useOrganizationRepositories<T extends Repository = Repository>(
   );
 }
 
-// TODO(ryan953): express this in typescript instead of having the extra function
-export function useOrganizationRepositoriesWithSettings() {
-  return useOrganizationRepositories<RepositoryWithSettings>({
-    query: {expand: 'settings'},
-  });
+export function organizationRepositoriesInfiniteOptions({
+  organization,
+  query,
+  staleTime,
+}: {
+  organization: Organization;
+  query?: {per_page: number};
+  staleTime?: number;
+}) {
+  return apiOptions.asInfinite<RepositoryWithSettings[]>()(
+    '/organizations/$organizationIdOrSlug/repos/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {expand: 'settings', per_page: 100, ...query},
+      staleTime: staleTime ?? 0,
+    }
+  );
 }

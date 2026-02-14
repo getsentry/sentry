@@ -1,6 +1,7 @@
 import type {QueryFunctionContext} from '@tanstack/react-query';
 
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 import {parseQueryKey, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
@@ -13,7 +14,7 @@ export type ApiResponse<TResponseData = unknown> = {
 };
 
 export default async function apiFetch<TQueryFnData = unknown>(
-  context: QueryFunctionContext<ApiQueryKey>
+  context: QueryFunctionContext<ApiQueryKey, never>
 ): Promise<ApiResponse<TQueryFnData>> {
   const {url, options} = parseQueryKey(context.queryKey);
 
@@ -26,13 +27,42 @@ export default async function apiFetch<TQueryFnData = unknown>(
     headers: options?.headers,
   });
 
-  const xhits = response!.getResponseHeader('X-Hits') ?? null;
-  const xmaxhits = response!.getResponseHeader('X-Max-Hits') ?? null;
+  const hits = response!.getResponseHeader('X-Hits') ?? null;
+  const maxHits = response!.getResponseHeader('X-Max-Hits') ?? null;
   return {
     headers: {
       Link: response!.getResponseHeader('Link') ?? undefined,
-      'X-Hits': xhits === null ? undefined : Number(xhits),
-      'X-Max-Hits': xmaxhits === null ? undefined : Number(xmaxhits),
+      'X-Hits': hits === null ? undefined : Number(hits),
+      'X-Max-Hits': maxHits === null ? undefined : Number(maxHits),
+    },
+    json: json as TQueryFnData,
+  };
+}
+
+export async function apiFetchInfinite<TQueryFnData = unknown>(
+  context: QueryFunctionContext<InfiniteApiQueryKey, null | undefined | ParsedHeader>
+): Promise<ApiResponse<TQueryFnData>> {
+  const {url, options} = parseQueryKey(context.queryKey);
+
+  const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
+    includeAllArgs: true,
+    host: options?.host,
+    method: options?.method ?? 'GET',
+    data: options?.data,
+    query: {
+      ...options?.query,
+      cursor: context.pageParam?.cursor ?? options?.query?.cursor,
+    },
+    headers: options?.headers,
+  });
+
+  const hits = response!.getResponseHeader('X-Hits') ?? null;
+  const maxHits = response!.getResponseHeader('X-Max-Hits') ?? null;
+  return {
+    headers: {
+      Link: response!.getResponseHeader('Link') ?? undefined,
+      'X-Hits': hits === null ? undefined : Number(hits),
+      'X-Max-Hits': maxHits === null ? undefined : Number(maxHits),
     },
     json: json as TQueryFnData,
   };
