@@ -131,34 +131,12 @@ class ThreadingService:
                     },
                 )
 
-                if created:
-                    logger.info(
-                        "notifications.threading.thread_created",
-                        extra={
-                            "thread_id": thread.id,
-                            "thread_key": thread_key,
-                            "provider_key": provider_key,
-                            "target_id": target_id,
-                            "key_type": key_type,
-                        },
-                    )
-
             # Create the record for this message
             record = NotificationRecord.objects.create(
                 thread=thread,
                 provider_key=provider_key,
                 target_id=target_id,
                 message_id=message_id,
-            )
-
-            logger.info(
-                "notifications.threading.record_created",
-                extra={
-                    "record_id": record.id,
-                    "thread_id": thread.id,
-                    "provider_key": provider_key,
-                    "message_id": message_id,
-                },
             )
 
             return thread, record

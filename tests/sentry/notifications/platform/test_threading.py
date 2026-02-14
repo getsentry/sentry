@@ -10,6 +10,18 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 
+class ThreadingServiceTestBase(TestCase):
+
+    def setUp(self) -> None:
+        self.key_type = NotificationSource.ERROR_ALERT
+        self.key_data = {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
+        self.provider_key = NotificationProviderKey.SLACK
+        self.target_id = "C1234567890"
+        self.message_id = "1234567890.123456"
+        self.thread_identifier = "1234567890.123456"
+        self.thread_key = ThreadingService.compute_thread_key(self.key_type, self.key_data)
+
+
 class ThreadingServiceComputeThreadKeyTest(TestCase):
     def test_compute_thread_key_is_deterministic(self) -> None:
         key_type = NotificationSource.ERROR_ALERT
@@ -60,164 +72,136 @@ class ThreadingServiceComputeThreadKeyTest(TestCase):
         assert result == expected_hash
 
 
-class ThreadingServiceResolveTest(TestCase):
-    def test_resolve_returns_thread_when_exists(self) -> None:
-        key_type = NotificationSource.ERROR_ALERT
-        key_data = {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
-        provider_key = NotificationProviderKey.SLACK
-        target_id = "C1234567890"
-        thread_identifier = "1234567890.123456"
+class ThreadingServiceResolveTest(ThreadingServiceTestBase):
 
-        thread_key = ThreadingService.compute_thread_key(key_type, key_data)
+    def test_resolve_returns_thread_when_exists(self) -> None:
         created_thread = NotificationThread.objects.create(
-            thread_key=thread_key,
-            provider_key=str(provider_key),
-            target_id=target_id,
-            thread_identifier=thread_identifier,
-            key_type=str(key_type),
-            key_data=key_data,
+            thread_key=self.thread_key,
+            provider_key=self.provider_key,
+            target_id=self.target_id,
+            thread_identifier=self.thread_identifier,
+            key_type=self.key_type,
+            key_data=self.key_data,
         )
 
         result = ThreadingService.resolve(
-            key_type=key_type,
-            key_data=key_data,
-            provider_key=provider_key,
-            target_id=target_id,
+            key_type=self.key_type,
+            key_data=self.key_data,
+            provider_key=self.provider_key,
+            target_id=self.target_id,
         )
 
         assert result is not None
         assert isinstance(result, NotificationThread)
         assert result.id == created_thread.id
-        assert result.thread_identifier == thread_identifier
+        assert result.thread_identifier == self.thread_identifier
 
     def test_resolve_returns_none_when_not_exists(self) -> None:
         result = ThreadingService.resolve(
-            key_type=NotificationSource.ERROR_ALERT,
+            key_type=self.key_type,
             key_data={"rule_fire_history_id": 999},
-            provider_key=NotificationProviderKey.SLACK,
-            target_id="C1234567890",
+            provider_key=self.provider_key,
+            target_id=self.target_id,
         )
 
         assert result is None
 
     def test_resolve_returns_none_for_different_target_id(self) -> None:
-        key_type = NotificationSource.ERROR_ALERT
-        key_data = {"rule_fire_history_id": 123}
-        provider_key = NotificationProviderKey.SLACK
-
-        thread_key = ThreadingService.compute_thread_key(key_type, key_data)
         NotificationThread.objects.create(
-            thread_key=thread_key,
-            provider_key=str(provider_key),
+            thread_key=self.thread_key,
+            provider_key=self.provider_key,
             target_id="C1111111111",
-            thread_identifier="1234567890.123456",
-            key_type=str(key_type),
-            key_data=key_data,
+            thread_identifier=self.thread_identifier,
+            key_type=self.key_type,
+            key_data=self.key_data,
         )
 
         result = ThreadingService.resolve(
-            key_type=key_type,
-            key_data=key_data,
-            provider_key=provider_key,
+            key_type=self.key_type,
+            key_data=self.key_data,
+            provider_key=self.provider_key,
             target_id="C2222222222",
         )
 
         assert result is None
 
     def test_resolve_returns_none_for_different_provider(self) -> None:
-        key_type = NotificationSource.ERROR_ALERT
-        key_data = {"rule_fire_history_id": 123}
-        target_id = "C1234567890"
-
-        thread_key = ThreadingService.compute_thread_key(key_type, key_data)
         NotificationThread.objects.create(
-            thread_key=thread_key,
-            provider_key=str(NotificationProviderKey.SLACK),
-            target_id=target_id,
-            thread_identifier="1234567890.123456",
-            key_type=str(key_type),
-            key_data=key_data,
+            thread_key=self.thread_key,
+            provider_key=NotificationProviderKey.SLACK,
+            target_id=self.target_id,
+            thread_identifier=self.thread_identifier,
+            key_type=self.key_type,
+            key_data=self.key_data,
         )
 
         result = ThreadingService.resolve(
-            key_type=key_type,
-            key_data=key_data,
+            key_type=self.key_type,
+            key_data=self.key_data,
             provider_key=NotificationProviderKey.DISCORD,
-            target_id=target_id,
+            target_id=self.target_id,
         )
 
         assert result is None
 
 
-class ThreadingServiceStoreTest(TestCase):
-    def test_store_creates_thread_and_record_when_no_thread(self) -> None:
-        key_type = NotificationSource.ERROR_ALERT
-        key_data = {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
-        provider_key = NotificationProviderKey.SLACK
-        target_id = "C1234567890"
-        message_id = "1234567890.123456"
-        thread_identifier = "1234567890.123456"
+class ThreadingServiceStoreTest(ThreadingServiceTestBase):
 
+    def test_store_creates_thread_and_record_when_no_thread(self) -> None:
         thread, record = ThreadingService.store(
-            key_type=key_type,
-            key_data=key_data,
-            provider_key=provider_key,
-            target_id=target_id,
-            message_id=message_id,
-            thread_identifier=thread_identifier,
+            key_type=self.key_type,
+            key_data=self.key_data,
+            provider_key=self.provider_key,
+            target_id=self.target_id,
+            message_id=self.message_id,
+            thread_identifier=self.thread_identifier,
         )
 
         # Returns NotificationThread
         assert isinstance(thread, NotificationThread)
-        assert thread.thread_identifier == thread_identifier
+        assert thread.thread_identifier == self.thread_identifier
         assert thread.id is not None
-        assert thread.thread_key == ThreadingService.compute_thread_key(key_type, key_data)
-        assert thread.provider_key == provider_key
-        assert thread.target_id == target_id
-        assert thread.key_type == key_type
-        assert thread.key_data == key_data
+        assert thread.thread_key == self.thread_key
+        assert thread.provider_key == self.provider_key
+        assert thread.target_id == self.target_id
+        assert thread.key_type == self.key_type
+        assert thread.key_data == self.key_data
         assert thread.provider_data == {}
 
         # Returns NotificationRecord
         assert record.id is not None
         assert record.thread_id == thread.id
-        assert record.provider_key == provider_key
-        assert record.target_id == target_id
-        assert record.message_id == message_id
+        assert record.provider_key == self.provider_key
+        assert record.target_id == self.target_id
+        assert record.message_id == self.message_id
 
     def test_store_links_to_existing_thread_when_thread_provided(self) -> None:
-        key_type = NotificationSource.ERROR_ALERT
-        key_data = {"rule_fire_history_id": 123}
-        provider_key = NotificationProviderKey.SLACK
-        target_id = "C1234567890"
-
         # First message creates the thread
         first_message_id = "1234567890.111111"
-        thread_identifier = "1234567890.111111"
         first_thread, first_record = ThreadingService.store(
-            key_type=key_type,
-            key_data=key_data,
-            provider_key=provider_key,
-            target_id=target_id,
+            key_type=self.key_type,
+            key_data=self.key_data,
+            provider_key=self.provider_key,
+            target_id=self.target_id,
             message_id=first_message_id,
-            thread_identifier=thread_identifier,
+            thread_identifier=first_message_id,
         )
 
         # Second message uses thread from first
         second_message_id = "1234567890.222222"
         second_thread, second_record = ThreadingService.store(
-            key_type=key_type,
-            key_data=key_data,
-            provider_key=provider_key,
-            target_id=target_id,
+            key_type=self.key_type,
+            key_data=self.key_data,
+            provider_key=self.provider_key,
+            target_id=self.target_id,
             message_id=second_message_id,
-            thread_identifier=thread_identifier,
+            thread_identifier=first_message_id,
             thread=first_thread,
         )
 
         # Same thread
         assert first_thread.id == second_thread.id
-        assert second_thread.thread_identifier == thread_identifier  # Still the original
+        assert second_thread.thread_identifier == first_message_id
 
         # Different records
         assert first_record.id != second_record.id
@@ -232,21 +216,21 @@ class ThreadingServiceStoreTest(TestCase):
     def test_store_raises_error_when_thread_mismatches_provider_key(self) -> None:
         # Create a thread with Slack
         thread, _ = ThreadingService.store(
-            key_type=NotificationSource.ERROR_ALERT,
-            key_data={"rule_fire_history_id": 123},
-            provider_key=NotificationProviderKey.SLACK,
-            target_id="C1234567890",
-            message_id="1234567890.123456",
-            thread_identifier="1234567890.123456",
+            key_type=self.key_type,
+            key_data=self.key_data,
+            provider_key=self.provider_key,
+            target_id=self.target_id,
+            message_id=self.message_id,
+            thread_identifier=self.thread_identifier,
         )
 
         # Try to use that thread with Discord - should fail
         with pytest.raises(ValueError, match="does not match parameters"):
             ThreadingService.store(
-                key_type=NotificationSource.ERROR_ALERT,
-                key_data={"rule_fire_history_id": 123},
+                key_type=self.key_type,
+                key_data=self.key_data,
                 provider_key=NotificationProviderKey.DISCORD,
-                target_id="C1234567890",
+                target_id=self.target_id,
                 message_id="discord-msg-123",
                 thread_identifier="discord-thread-123",
                 thread=thread,
@@ -255,20 +239,20 @@ class ThreadingServiceStoreTest(TestCase):
     def test_store_raises_error_when_thread_mismatches_target_id(self) -> None:
         # Create a thread for channel A
         thread, _ = ThreadingService.store(
-            key_type=NotificationSource.ERROR_ALERT,
-            key_data={"rule_fire_history_id": 123},
-            provider_key=NotificationProviderKey.SLACK,
+            key_type=self.key_type,
+            key_data=self.key_data,
+            provider_key=self.provider_key,
             target_id="C1111111111",
-            message_id="1234567890.123456",
-            thread_identifier="1234567890.123456",
+            message_id=self.message_id,
+            thread_identifier=self.thread_identifier,
         )
 
         # Try to use that thread for channel B - should fail
         with pytest.raises(ValueError, match="does not match parameters"):
             ThreadingService.store(
-                key_type=NotificationSource.ERROR_ALERT,
-                key_data={"rule_fire_history_id": 123},
-                provider_key=NotificationProviderKey.SLACK,
+                key_type=self.key_type,
+                key_data=self.key_data,
+                provider_key=self.provider_key,
                 target_id="C2222222222",
                 message_id="1234567890.222222",
                 thread_identifier="1234567890.222222",
