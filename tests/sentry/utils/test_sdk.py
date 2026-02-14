@@ -239,9 +239,11 @@ class CheckScopeTransactionTest(TestCase):
 
     @patch("sentry.utils.sdk.LEGACY_RESOLVER.resolve", return_value="/dogs/{name}/")
     def test_custom_transaction_name(self, mock_resolve: MagicMock) -> None:
-        with patch_isolation_scope() as mock_scope:
-            mock_scope._transaction = "/tricks/{trick_name}/"
-            mock_scope._transaction_info["source"] = "custom"
+        mock_scope = Scope()
+        mock_scope._transaction = "/tricks/{trick_name}/"
+        mock_scope._transaction_info["source"] = "custom"
+
+        with patch("sentry.utils.sdk.sentry_sdk.get_current_scope", return_value=mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             # custom transaction names shouldn't be flagged even if they don't match
             assert mismatch is None

@@ -1023,7 +1023,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         data = {
             **self.valid_workflow,
             "triggers": {
-                "logicType": "any",
+                "logicType": "any-short",
                 "conditions": [
                     {
                         "conditionGroupId": other_dcg.id,
@@ -1063,7 +1063,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             **self.valid_workflow,
             "actionFilters": [
                 {
-                    "logicType": "any",
+                    "logicType": "any-short",
                     "conditions": [
                         {
                             "conditionGroupId": other_dcg.id,

@@ -3381,6 +3381,7 @@ register(
 )
 
 # Controls the rate of using the sentry api shared secret for communicating to sentry.
+# DEPRECATED: will be removed after the shared secret is confirmed to always be set.
 register(
     "seer.api.use-shared-secret",
     default=0.0,
