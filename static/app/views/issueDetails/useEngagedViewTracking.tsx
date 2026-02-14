@@ -16,8 +16,9 @@ interface UseEngagedViewTrackingParams {
  * Tracks an "engaged view" analytics event when a user spends at least 10 seconds
  * viewing an issue. This helps measure issue triage engagement.
  *
- * The event is only tracked once per group per component instance. If the user
- * navigates away before 10 seconds, no event is recorded.
+ * Each 10+ second viewing session is tracked separately. If the user navigates
+ * away before 10 seconds, no event is recorded. If they return later and view
+ * the same issue for another 10+ seconds, a new event is recorded.
  */
 export function useEngagedViewTracking({group, project}: UseEngagedViewTrackingParams) {
   const organization = useOrganization();
