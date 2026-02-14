@@ -122,22 +122,31 @@ export function WebAuthnAssert({
     }
   }, [shouldSubmitForm]);
 
-  // Trigger the webAuthn flow immediately
+  // Trigger the webAuthn flow after a short delay. The delay gives password
+  // managers (e.g. 1Password) time to detect the page context after redirects
+  // such as OAuth/IdP login, preventing them from showing a "save item" prompt
+  // instead of offering passkey sign-in.
   useEffect(() => {
     if (!isSupported) {
       return noop;
     }
 
-    // Trigger immedialtey if the browser has focus
-    if (document.hasFocus()) {
-      triggerWebAuthn();
-      return noop;
-    }
+    const trigger = () => {
+      // Browsers like Safari do not like it if the navigator.credentials
+      // APIs are used without focus.
+      if (document.hasFocus()) {
+        triggerWebAuthn();
+      } else {
+        window.addEventListener('focus', triggerWebAuthn, {once: true});
+      }
+    };
 
-    // Trigger webauthn once the browser is focused. Browsers like safari do
-    // not like it if the navigator.credentials APIs are used without focus.
-    window.addEventListener('focus', triggerWebAuthn, {once: true});
-    return () => window.removeEventListener('focus', triggerWebAuthn);
+    const timeoutId = setTimeout(trigger, 300);
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('focus', triggerWebAuthn);
+    };
   }, [isSupported, triggerWebAuthn]);
 
   if (!isSupported && mode === 'sudo') {
