@@ -310,4 +310,29 @@ describe('AcceptOrganizationInvite', () => {
 
     await screen.findByRole('button', {name: 'Configure Two-Factor Auth'});
   });
+
+  it('2fa link navigates via SPA routing to account security', async () => {
+    addMock({
+      orgSlug: organization.slug,
+      needsAuthentication: false,
+      needs2fa: true,
+      hasAuthProvider: false,
+      requireSso: false,
+      existingMember: false,
+    });
+
+    const {router} = render(<AcceptOrganizationInvite />, {
+      initialRouterConfig: defaultRouterConfig,
+    });
+
+    const link = await screen.findByRole('button', {
+      name: 'Configure Two-Factor Auth',
+    });
+
+    // Should be an internal SPA link (no target="_blank")
+    expect(link).not.toHaveAttribute('target', '_blank');
+
+    await userEvent.click(link);
+    expect(router.location.pathname).toBe('/settings/account/security/');
+  });
 });

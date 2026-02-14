@@ -109,7 +109,6 @@ function ExistingMemberAlert() {
 }
 
 function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
-  const sentryUrl = ConfigStore.get('links').sentryUrl;
   return (
     <Fragment>
       <p data-test-id="2fa-warning">
@@ -119,11 +118,7 @@ function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
         )}
       </p>
       <Flex justify="between" align="center" marginBottom="2xl">
-        <LinkButton
-          external
-          priority="primary"
-          href={`${sentryUrl}/settings/account/security/`}
-        >
+        <LinkButton priority="primary" to="/settings/account/security/">
           {t('Configure Two-Factor Auth')}
         </LinkButton>
       </Flex>
@@ -229,7 +224,7 @@ function AcceptOrganizationInvite() {
           }),
         ],
     {
-      staleTime: Infinity,
+      staleTime: 0,
       retry: false,
     }
   );
