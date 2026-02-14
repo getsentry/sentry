@@ -6,6 +6,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
+from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.build_distribution_utils import (
     get_download_count_for_artifact,
     is_installable_artifact,
@@ -324,7 +325,9 @@ def transform_preprod_artifact_to_build_details(
         pr_number=(artifact.commit_comparison.pr_number if artifact.commit_comparison else None),
     )
 
-    posted_status_checks = _parse_posted_status_checks(artifact)
+    posted_status_checks = _parse_posted_status_checks(
+        artifact.commit_comparison
+    ) or _parse_posted_status_checks_legacy(artifact)
 
     return BuildDetailsApiResponse(
         id=artifact.id,
@@ -341,8 +344,35 @@ def transform_preprod_artifact_to_build_details(
     )
 
 
-def _parse_posted_status_checks(artifact: PreprodArtifact) -> PostedStatusChecks | None:
-    """Parse posted status checks from artifact extras, returning None for invalid data."""
+def _parse_posted_status_checks(
+    commit_comparison: CommitComparison | None,
+) -> PostedStatusChecks | None:
+    """Parse posted status checks from CommitComparison extras, returning None for invalid data."""
+    if not commit_comparison or not commit_comparison.extras:
+        return None
+
+    raw_checks = commit_comparison.extras.get("status_checks")
+    if not isinstance(raw_checks, dict):
+        return None
+
+    raw_size = raw_checks.get("size")
+    if not isinstance(raw_size, dict):
+        return None
+
+    size_check: StatusCheckResult
+    if raw_size.get("success") is True:
+        size_check = _parse_success_check(raw_size, commit_comparison.id)
+    else:
+        size_check = _parse_failure_check(raw_size, commit_comparison.id)
+
+    return PostedStatusChecks(size=size_check)
+
+
+def _parse_posted_status_checks_legacy(
+    artifact: PreprodArtifact,
+) -> PostedStatusChecks | None:
+    """Fallback: read from PreprodArtifact.extras for builds created before the migration
+    to CommitComparison.extras. Safe to remove once all old data has expired."""
     if not artifact.extras:
         return None
 
@@ -363,14 +393,16 @@ def _parse_posted_status_checks(artifact: PreprodArtifact) -> PostedStatusChecks
     return PostedStatusChecks(size=size_check)
 
 
-def _parse_success_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCheckResultSuccess:
+def _parse_success_check(
+    raw_size: dict[str, Any], commit_comparison_id: int
+) -> StatusCheckResultSuccess:
     """Parse a successful status check result."""
     check_id = raw_size.get("check_id")
     if check_id is not None and not isinstance(check_id, str):
         logger.warning(
             "preprod.build_details.invalid_check_id",
             extra={
-                "artifact_id": artifact_id,
+                "commit_comparison_id": commit_comparison_id,
                 "check_id_type": type(check_id).__name__,
             },
         )
@@ -378,7 +410,9 @@ def _parse_success_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCh
     return StatusCheckResultSuccess(check_id=check_id)
 
 
-def _parse_failure_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCheckResultFailure:
+def _parse_failure_check(
+    raw_size: dict[str, Any], commit_comparison_id: int
+) -> StatusCheckResultFailure:
     """Parse a failed status check result."""
     error_type: StatusCheckErrorType | None = None
     error_type_str = raw_size.get("error_type")
@@ -389,7 +423,7 @@ def _parse_failure_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCh
             logger.warning(
                 "preprod.build_details.invalid_error_type",
                 extra={
-                    "artifact_id": artifact_id,
+                    "commit_comparison_id": commit_comparison_id,
                     "error_type": error_type_str,
                 },
             )

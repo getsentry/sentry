@@ -356,10 +356,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_posted_status_checks_success(self) -> None:
         """Test that successfully posted status checks are returned."""
-        self.preprod_artifact.extras = {
-            "posted_status_checks": {"size": {"success": True, "check_id": "12345"}}
-        }
-        self.preprod_artifact.save()
+        cc = self.preprod_artifact.commit_comparison
+        cc.extras = {"status_checks": {"size": {"success": True, "check_id": "12345"}}}
+        cc.save()
 
         url = self._get_url()
         response = self.client.get(
@@ -374,10 +373,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_posted_status_checks_failure(self) -> None:
         """Test that failed status check posts are returned."""
-        self.preprod_artifact.extras = {
-            "posted_status_checks": {"size": {"success": False, "error_type": "api_error"}}
-        }
-        self.preprod_artifact.save()
+        cc = self.preprod_artifact.commit_comparison
+        cc.extras = {"status_checks": {"size": {"success": False, "error_type": "api_error"}}}
+        cc.save()
 
         url = self._get_url()
         response = self.client.get(
@@ -403,8 +401,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_posted_status_checks_success_without_check_id(self) -> None:
         """Test that successful status checks without check_id are still exposed."""
-        self.preprod_artifact.extras = {"posted_status_checks": {"size": {"success": True}}}
-        self.preprod_artifact.save()
+        cc = self.preprod_artifact.commit_comparison
+        cc.extras = {"status_checks": {"size": {"success": True}}}
+        cc.save()
 
         url = self._get_url()
         response = self.client.get(
@@ -418,9 +417,10 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["posted_status_checks"]["size"]["check_id"] is None
 
     def test_posted_status_checks_with_corrupted_checks_structure(self) -> None:
-        """Test that corrupted posted_status_checks structure doesn't crash."""
-        self.preprod_artifact.extras = {"posted_status_checks": "not_a_dict"}
-        self.preprod_artifact.save()
+        """Test that corrupted status_checks structure doesn't crash."""
+        cc = self.preprod_artifact.commit_comparison
+        cc.extras = {"status_checks": "not_a_dict"}
+        cc.save()
 
         url = self._get_url()
         response = self.client.get(
@@ -433,8 +433,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_posted_status_checks_with_corrupted_size_structure(self) -> None:
         """Test that corrupted size check structure doesn't crash."""
-        self.preprod_artifact.extras = {"posted_status_checks": {"size": "not_a_dict"}}
-        self.preprod_artifact.save()
+        cc = self.preprod_artifact.commit_comparison
+        cc.extras = {"status_checks": {"size": "not_a_dict"}}
+        cc.save()
 
         url = self._get_url()
         response = self.client.get(
@@ -448,8 +449,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_posted_status_checks_failure_without_error_type(self) -> None:
         """Test that failed status checks without error_type are still exposed."""
-        self.preprod_artifact.extras = {"posted_status_checks": {"size": {"success": False}}}
-        self.preprod_artifact.save()
+        cc = self.preprod_artifact.commit_comparison
+        cc.extras = {"status_checks": {"size": {"success": False}}}
+        cc.save()
 
         url = self._get_url()
         response = self.client.get(
@@ -464,10 +466,9 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
 
     def test_posted_status_checks_failure_with_invalid_error_type(self) -> None:
         """Test that failed status checks with invalid error_type are still exposed."""
-        self.preprod_artifact.extras = {
-            "posted_status_checks": {"size": {"success": False, "error_type": "not_valid"}}
-        }
-        self.preprod_artifact.save()
+        cc = self.preprod_artifact.commit_comparison
+        cc.extras = {"status_checks": {"size": {"success": False, "error_type": "not_valid"}}}
+        cc.save()
 
         url = self._get_url()
         response = self.client.get(

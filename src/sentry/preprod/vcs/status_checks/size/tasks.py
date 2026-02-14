@@ -271,14 +271,10 @@ def create_preprod_status_check_task(
         )
         try:
             with lock.blocking_acquire(initial_delay=0.1, timeout=5):
-                extras_by_artifact_id = dict(
-                    PreprodArtifact.objects.filter(
-                        id__in=[a.id for a in all_artifacts]
-                    ).values_list("id", "extras")
-                )
+                commit_comparison.refresh_from_db(fields=["extras"])
                 is_terminal = _all_artifacts_terminal(all_artifacts, size_metrics_map)
                 if _should_skip_status_check(
-                    extras_by_artifact_id,
+                    commit_comparison.extras,
                     status,
                     is_terminal,
                 ):
@@ -292,7 +288,7 @@ def create_preprod_status_check_task(
                     )
                     return
 
-                _update_posted_status_claim(preprod_artifact, status.value, is_terminal)
+                _update_posted_status_claim(commit_comparison, status.value, is_terminal)
         except UnableToAcquireLock:
             logger.warning(
                 "preprod.status_checks.create.lock_timeout",
@@ -319,7 +315,7 @@ def create_preprod_status_check_task(
         )
     except Exception as e:
         if post_policy == StatusCheckPostPolicy.TRY_TO_DEDUPLICATE:
-            _update_posted_status_claim(preprod_artifact)
+            _update_posted_status_claim(commit_comparison)
         extra: dict[str, Any] = {
             "artifact_id": preprod_artifact.id,
             "organization_id": preprod_artifact.project.organization_id,
@@ -332,12 +328,12 @@ def create_preprod_status_check_task(
             "preprod.status_checks.create.failed",
             extra=extra,
         )
-        _update_posted_status_check(preprod_artifact, check_type="size", success=False, error=e)
+        _update_posted_status_check(commit_comparison, check_type="size", success=False, error=e)
         raise
 
     if check_id is None:
         if post_policy == StatusCheckPostPolicy.TRY_TO_DEDUPLICATE:
-            _update_posted_status_claim(preprod_artifact)
+            _update_posted_status_claim(commit_comparison)
         logger.error(
             "preprod.status_checks.create.failed",
             extra={
@@ -347,11 +343,11 @@ def create_preprod_status_check_task(
                 "error_type": "null_check_id",
             },
         )
-        _update_posted_status_check(preprod_artifact, check_type="size", success=False)
+        _update_posted_status_check(commit_comparison, check_type="size", success=False)
         return
 
     _update_posted_status_check(
-        preprod_artifact,
+        commit_comparison,
         check_type="size",
         success=True,
         check_id=check_id,
@@ -372,7 +368,7 @@ def create_preprod_status_check_task(
 
 
 def _update_posted_status_check(
-    preprod_artifact: PreprodArtifact,
+    commit_comparison: CommitComparison,
     check_type: str,
     success: bool,
     check_id: str | None = None,
@@ -380,12 +376,12 @@ def _update_posted_status_check(
     posted_status: str | None = None,
     is_terminal: bool = False,
 ) -> None:
-    """Update the posted_status_checks field in the artifact's extras."""
-    with transaction.atomic(router.db_for_write(PreprodArtifact)):
-        artifact = PreprodArtifact.objects.select_for_update().get(id=preprod_artifact.id)
-        extras = artifact.extras or {}
+    """Update the status_checks field in the CommitComparison's extras."""
+    with transaction.atomic(router.db_for_write(CommitComparison)):
+        cc = CommitComparison.objects.select_for_update().get(id=commit_comparison.id)
+        extras = cc.extras or {}
 
-        posted_status_checks = extras.get("posted_status_checks", {})
+        status_checks = extras.get("status_checks", {})
 
         check_result: dict[str, Any] = {"success": success}
         if success and check_id:
@@ -396,10 +392,10 @@ def _update_posted_status_check(
         if not success:
             check_result["error_type"] = _get_error_type(error).value
 
-        posted_status_checks[check_type] = check_result
-        extras["posted_status_checks"] = posted_status_checks
-        artifact.extras = extras
-        artifact.save(update_fields=["extras"])
+        status_checks[check_type] = check_result
+        extras["status_checks"] = status_checks
+        cc.extras = extras
+        cc.save(update_fields=["extras"])
 
 
 def _get_error_type(error: Exception | None) -> StatusCheckErrorType:
@@ -554,7 +550,7 @@ def _all_artifacts_terminal(
 
 
 def _should_skip_status_check(
-    extras_by_artifact_id: dict[int, dict[str, Any] | None],
+    cc_extras: dict[str, Any] | None,
     status: StatusCheckStatus,
     is_terminal: bool,
 ) -> bool:
@@ -563,22 +559,11 @@ def _should_skip_status_check(
     Returns True to skip, False to post. On any error, returns False (post).
     """
     try:
-        any_posted = False
-        posted_statuses: set[str] = set()
-        any_terminal_posted = False
-        for artifact_id, extras in extras_by_artifact_id.items():
-            if not extras:
-                continue
-            posted_checks = extras.get("posted_status_checks", {})
-            size_check = posted_checks.get("size", {})
-            posted = size_check.get("posted_status")
-            if posted:
-                any_posted = True
-                posted_statuses.add(posted)
-                if size_check.get("is_terminal"):
-                    any_terminal_posted = True
-
-        if not any_posted:
+        if not cc_extras:
+            return False
+        size_check = cc_extras.get("status_checks", {}).get("size", {})
+        posted = size_check.get("posted_status")
+        if not posted:
             return False
 
         if not is_terminal:
@@ -587,7 +572,7 @@ def _should_skip_status_check(
         # We need is_terminal to distinguish "posted NEUTRAL while still processing" from
         # "posted NEUTRAL with final results". Without it, no-rules customers (always NEUTRAL)
         # would have their terminal post skipped because the status string matches.
-        if any_terminal_posted and status.value in posted_statuses:
+        if size_check.get("is_terminal") and status.value == posted:
             return True
 
         return False
@@ -597,29 +582,29 @@ def _should_skip_status_check(
 
 
 def _update_posted_status_claim(
-    preprod_artifact: PreprodArtifact,
+    commit_comparison: CommitComparison,
     posted_status: str | None = None,
     is_terminal: bool = False,
 ) -> None:
-    """Write or clear the posted_status claim in artifact extras.
+    """Write or clear the posted_status claim in CommitComparison extras.
 
     When posted_status is provided, writes the claim. When None, clears it.
     """
-    with transaction.atomic(router.db_for_write(PreprodArtifact)):
-        artifact = PreprodArtifact.objects.select_for_update().get(id=preprod_artifact.id)
-        extras = artifact.extras or {}
-        posted_status_checks = extras.get("posted_status_checks", {})
-        size_check = posted_status_checks.get("size", {})
+    with transaction.atomic(router.db_for_write(CommitComparison)):
+        cc = CommitComparison.objects.select_for_update().get(id=commit_comparison.id)
+        extras = cc.extras or {}
+        status_checks = extras.get("status_checks", {})
+        size_check = status_checks.get("size", {})
         if posted_status is None:
             size_check.pop("posted_status", None)
             size_check.pop("is_terminal", None)
         else:
             size_check["posted_status"] = posted_status
             size_check["is_terminal"] = is_terminal
-        posted_status_checks["size"] = size_check
-        extras["posted_status_checks"] = posted_status_checks
-        artifact.extras = extras
-        artifact.save(update_fields=["extras"])
+        status_checks["size"] = size_check
+        extras["status_checks"] = status_checks
+        cc.extras = extras
+        cc.save(update_fields=["extras"])
 
 
 def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:

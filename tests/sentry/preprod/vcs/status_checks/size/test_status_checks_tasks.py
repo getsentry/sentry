@@ -1114,12 +1114,13 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             with self.tasks():
                 create_preprod_status_check_task(preprod_artifact.id)
 
-        preprod_artifact.refresh_from_db()
-        assert preprod_artifact.extras is not None
-        assert "posted_status_checks" in preprod_artifact.extras
-        assert "size" in preprod_artifact.extras["posted_status_checks"]
-        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is True
-        assert preprod_artifact.extras["posted_status_checks"]["size"]["check_id"] == "check_12345"
+        commit_comparison = preprod_artifact.commit_comparison
+        commit_comparison.refresh_from_db()
+        assert commit_comparison.extras is not None
+        assert "status_checks" in commit_comparison.extras
+        assert "size" in commit_comparison.extras["status_checks"]
+        assert commit_comparison.extras["status_checks"]["size"]["success"] is True
+        assert commit_comparison.extras["status_checks"]["size"]["check_id"] == "check_12345"
 
     def test_posted_status_check_failure_null_check_id(self):
         """Test that failed status check posts (null check_id) are recorded in artifact extras."""
@@ -1146,13 +1147,14 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             with self.tasks():
                 create_preprod_status_check_task(preprod_artifact.id)
 
-        preprod_artifact.refresh_from_db()
-        assert preprod_artifact.extras is not None
-        assert "posted_status_checks" in preprod_artifact.extras
-        assert "size" in preprod_artifact.extras["posted_status_checks"]
-        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is False
+        commit_comparison = preprod_artifact.commit_comparison
+        commit_comparison.refresh_from_db()
+        assert commit_comparison.extras is not None
+        assert "status_checks" in commit_comparison.extras
+        assert "size" in commit_comparison.extras["status_checks"]
+        assert commit_comparison.extras["status_checks"]["size"]["success"] is False
         assert (
-            preprod_artifact.extras["posted_status_checks"]["size"]["error_type"]
+            commit_comparison.extras["status_checks"]["size"]["error_type"]
             == StatusCheckErrorType.UNKNOWN.value
         )
 
@@ -1203,13 +1205,14 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             except IntegrationConfigurationError:
                 pass  # Expected
 
-        preprod_artifact.refresh_from_db()
-        assert preprod_artifact.extras is not None
-        assert "posted_status_checks" in preprod_artifact.extras
-        assert "size" in preprod_artifact.extras["posted_status_checks"]
-        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is False
+        commit_comparison = preprod_artifact.commit_comparison
+        commit_comparison.refresh_from_db()
+        assert commit_comparison.extras is not None
+        assert "status_checks" in commit_comparison.extras
+        assert "size" in commit_comparison.extras["status_checks"]
+        assert commit_comparison.extras["status_checks"]["size"]["success"] is False
         assert (
-            preprod_artifact.extras["posted_status_checks"]["size"]["error_type"]
+            commit_comparison.extras["status_checks"]["size"]["error_type"]
             == StatusCheckErrorType.INTEGRATION_ERROR.value
         )
 
@@ -1242,14 +1245,17 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         preprod_artifact.refresh_from_db()
         assert preprod_artifact.extras is not None
-        # Verify existing fields are preserved
+        # Verify existing fields on artifact are preserved
         assert preprod_artifact.extras["existing_field"] == "existing_value"
         assert preprod_artifact.extras["another_field"] == 123
-        # Verify new field is added
-        assert "posted_status_checks" in preprod_artifact.extras
-        assert "size" in preprod_artifact.extras["posted_status_checks"]
-        assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is True
-        assert preprod_artifact.extras["posted_status_checks"]["size"]["check_id"] == "check_67890"
+        # Status check data is now on CommitComparison
+        commit_comparison = preprod_artifact.commit_comparison
+        commit_comparison.refresh_from_db()
+        assert commit_comparison.extras is not None
+        assert "status_checks" in commit_comparison.extras
+        assert "size" in commit_comparison.extras["status_checks"]
+        assert commit_comparison.extras["status_checks"]["size"]["success"] is True
+        assert commit_comparison.extras["status_checks"]["size"]["check_id"] == "check_67890"
 
     def test_with_rules_configured_preserves_actual_status(self):
         """Test that actual status is preserved when rules are configured.
@@ -1818,8 +1824,9 @@ class StatusCheckDeduplicationTest(TestCase):
                 except Exception:
                     pass
 
-        artifacts[0].refresh_from_db()
-        size_check = artifacts[0].extras.get("posted_status_checks", {}).get("size", {})
+        commit_comparison = artifacts[0].commit_comparison
+        commit_comparison.refresh_from_db()
+        size_check = (commit_comparison.extras or {}).get("status_checks", {}).get("size", {})
         # posted_status should be cleared so a retry can post
         assert "posted_status" not in size_check
         # The failure should still be recorded
