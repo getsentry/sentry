@@ -11,7 +11,6 @@ from sentry.utils import json
 
 
 class ThreadingServiceTestBase(TestCase):
-
     def setUp(self) -> None:
         self.key_type = NotificationSource.ERROR_ALERT
         self.key_data = {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
@@ -73,7 +72,6 @@ class ThreadingServiceComputeThreadKeyTest(TestCase):
 
 
 class ThreadingServiceResolveTest(ThreadingServiceTestBase):
-
     def test_resolve_returns_thread_when_exists(self) -> None:
         created_thread = NotificationThread.objects.create(
             thread_key=self.thread_key,
@@ -146,7 +144,6 @@ class ThreadingServiceResolveTest(ThreadingServiceTestBase):
 
 
 class ThreadingServiceStoreTest(ThreadingServiceTestBase):
-
     def test_store_creates_thread_and_record_when_no_thread(self) -> None:
         thread, record = ThreadingService.store(
             key_type=self.key_type,
