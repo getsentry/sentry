@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from types import TracebackType
 from typing import Any
 
@@ -9,6 +10,8 @@ from requests.exceptions import RequestException
 from sentry import http
 
 from .constants import API_DOMAIN
+
+MAX_PAGES = 10
 
 
 class GitHubApiError(Exception):
@@ -44,11 +47,40 @@ class GitHubClient:
             raise GitHubApiError(req.content, status=req.status_code)
         return orjson.loads(req.content)
 
+    def _get_next_url(self, link_header: str) -> str | None:
+        """Extract the 'next' URL from a GitHub Link header."""
+        match = re.search(r'<([^>]+)>;\s*rel="next"', link_header)
+        return match.group(1) if match else None
+
+    def _request_paginated(self, path: str) -> list[dict[str, Any]]:
+        """Fetch all pages of a paginated GitHub API endpoint."""
+        headers = {"Authorization": f"token {self.access_token}"}
+        url = f"https://{API_DOMAIN}/{path.lstrip('/')}"
+
+        results: list[dict[str, Any]] = []
+        for _ in range(MAX_PAGES):
+            try:
+                req = self.http.get(url, headers=headers)
+            except RequestException as e:
+                raise GitHubApiError(f"{e}", status=getattr(e, "status_code", 0))
+            if req.status_code < 200 or req.status_code >= 300:
+                raise GitHubApiError(req.content, status=req.status_code)
+
+            page_data = orjson.loads(req.content)
+            if isinstance(page_data, list):
+                results.extend(page_data)
+            else:
+                results.append(page_data)
+
+            next_url = self._get_next_url(req.headers.get("Link", ""))
+            if not next_url:
+                break
+            url = next_url
+
+        return results
+
     def get_org_list(self) -> list[dict[str, Any]]:
-        res = self._request("/user/orgs")
-        if not isinstance(res, list):
-            return [res]
-        return res
+        return self._request_paginated("/user/orgs?per_page=100")
 
     def get_user(self) -> dict[str, Any] | list[dict[str, Any]]:
         return self._request("/user")

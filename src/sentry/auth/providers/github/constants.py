@@ -8,6 +8,13 @@ REQUIRE_VERIFIED_EMAIL = settings.GITHUB_REQUIRE_VERIFIED_EMAIL
 
 ERR_NO_ORG_ACCESS = "Your GitHub account must be a member of the linked organization to access this Sentry organization. Contact your admin to request access."
 
+ERR_NO_ORGS = (
+    "We were unable to find any GitHub organizations for your account. "
+    "Ensure you are a member of at least one GitHub organization and that the "
+    "Sentry OAuth application has been granted access. You can manage third-party "
+    "access in your GitHub organization's settings under Third-party Access."
+)
+
 ERR_NO_PRIMARY_EMAIL = (
     "We were unable to find a primary email address associated with your GitHub account."
 )

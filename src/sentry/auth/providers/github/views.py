@@ -14,9 +14,10 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
 from sentry.utils.forms import set_field_choices
 
-from .client import GitHubClient
+from .client import GitHubApiError, GitHubClient
 from .constants import (
     ERR_NO_ORG_ACCESS,
+    ERR_NO_ORGS,
     ERR_NO_PRIMARY_EMAIL,
     ERR_NO_SINGLE_PRIMARY_EMAIL,
     ERR_NO_SINGLE_VERIFIED_PRIMARY_EMAIL,
@@ -137,8 +138,14 @@ class SelectOrganization(AuthView):
     def handle(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         data: dict[str, Any] | None = pipeline.fetch_state("data")
         assert data is not None
-        with GitHubClient(data["access_token"]) as client:
-            org_list = client.get_org_list()
+        try:
+            with GitHubClient(data["access_token"]) as client:
+                org_list = client.get_org_list()
+        except GitHubApiError:
+            return pipeline.error(ERR_NO_ORGS)
+
+        if not org_list:
+            return pipeline.error(ERR_NO_ORGS)
 
         form = SelectOrganizationForm(org_list, request.POST or None)
         if form.is_valid():
