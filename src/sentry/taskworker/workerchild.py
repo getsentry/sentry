@@ -9,7 +9,7 @@ import time
 from collections.abc import Callable, Generator
 from multiprocessing.synchronize import Event
 from types import FrameType
-from typing import Any
+from typing import Any, Dict
 
 # XXX: Don't import any modules that will import django here, do those within child_process
 import orjson
@@ -95,7 +95,7 @@ def status_name(status: TaskActivationStatus.ValueType) -> str:
 def child_process(
     app_module: str,
     child_tasks: queue.Queue[InflightTaskActivation],
-    processed_tasks: queue.Queue[ProcessingResult],
+    processed_tasks: Dict[str, queue.Queue[ProcessingResult]],
     shutdown_event: Event,
     max_task_count: int | None,
     processing_pool_name: str,
@@ -140,7 +140,7 @@ def child_process(
 
     def run_worker(
         child_tasks: queue.Queue[InflightTaskActivation],
-        processed_tasks: queue.Queue[ProcessingResult],
+        processed_tasks: Dict[str, queue.Queue[ProcessingResult]],
         shutdown_event: Event,
         max_task_count: int | None,
         processing_pool_name: str,
@@ -205,7 +205,7 @@ def child_process(
                         f"Unregistered task {inflight.activation.taskname} was not executed"
                     )
 
-                processed_tasks.put(
+                processed_tasks[inflight.host].put(
                     ProcessingResult(
                         task_id=inflight.activation.id,
                         status=TASK_ACTIVATION_STATUS_FAILURE,
@@ -307,7 +307,7 @@ def child_process(
                     "processing_pool": processing_pool_name,
                 },
             ):
-                processed_tasks.put(
+                processed_tasks[inflight.host].put(
                     ProcessingResult(
                         task_id=inflight.activation.id,
                         status=next_state,

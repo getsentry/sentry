@@ -342,9 +342,7 @@ def run_taskworker(
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
             app_module="sentry.taskworker.runtime:app",
-            broker_hosts=make_broker_hosts(
-                host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
-            ),
+            broker_hosts=[f"taskbroker-{i}" for i in range(num_brokers)],
             max_child_task_count=max_child_task_count,
             namespace=namespace,
             concurrency=concurrency,

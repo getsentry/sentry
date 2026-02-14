@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkContext, SpawnContext
 from multiprocessing.process import BaseProcess
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
 import grpc
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
@@ -52,17 +52,29 @@ class WorkerServicer(taskworker_pb2_grpc.WorkerServiceServicer):
         context: grpc.ServicerContext,
     ) -> taskworker_pb2.PushTaskResponse:
         """Handle incoming task activation."""
-        # Create `InflightTaskActivation` from the pushed task
-        inflight = InflightTaskActivation(
-            activation=request.task,
-            host=request.callback_url,
-            receive_timestamp=time.monotonic(),
-        )
+        if request.task:
+            # Create `InflightTaskActivation` from the pushed task
+            inflight = InflightTaskActivation(
+                activation=request.task,
+                host=request.broker,
+                receive_timestamp=time.monotonic(),
+            )
 
-        # Push the task to the worker queue
-        self.worker._push_task(inflight)
+            # Push the task to the worker queue
+            self.worker._push_task(inflight)
 
-        return taskworker_pb2.PushTaskResponse()
+        # Get a result if there is one
+        if request.broker not in self.worker._processed_tasks:
+            # TODO - Randomly select result if broker is "ANY"
+            return taskworker_pb2.PushTaskResponse(id=None, status=None)
+
+        try:
+            result = self.worker._processed_tasks[request.broker].get(block=False)
+            return taskworker_pb2.PushTaskResponse(id=result.task_id, status=result.status)
+        except queue.Empty:
+            return taskworker_pb2.PushTaskResponse(id=None, status=None)
+        except:
+            raise
 
 
 def get_host() -> str:
@@ -103,6 +115,7 @@ class TaskWorker:
         self.options = kwargs
         self._app_module = app_module
         self._max_child_task_count = max_child_task_count
+        self._result_queue_maxsize = result_queue_maxsize
         self._namespace = namespace
         self._concurrency = concurrency
         app = import_app(app_module)
@@ -130,12 +143,11 @@ class TaskWorker:
         self._child_tasks: multiprocessing.Queue[InflightTaskActivation] = self.mp_context.Queue(
             maxsize=child_tasks_queue_maxsize
         )
-        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = self.mp_context.Queue(
-            maxsize=result_queue_maxsize
-        )
+        self._processed_tasks: Dict[str, multiprocessing.Queue[ProcessingResult]] = {
+            host: self.mp_context.Queue(maxsize=result_queue_maxsize) for host in broker_hosts
+        }
         self._children: list[BaseProcess] = []
         self._shutdown_event = self.mp_context.Event()
-        self._result_thread: threading.Thread | None = None
         self._spawn_children_thread: threading.Thread | None = None
 
         self._gettask_backoff_seconds = 0
@@ -151,7 +163,6 @@ class TaskWorker:
         Once started a Worker will run a gRPC server that receives task activations
         until it is killed or shuts down.
         """
-        self.start_result_thread()
         self.start_spawn_children_thread()
 
         # Convert signals into KeyboardInterrupt.
@@ -203,21 +214,18 @@ class TaskWorker:
             child.join()
 
         logger.info("taskworker.worker.shutdown.result")
-        if self._result_thread:
-            # Use a timeout as sometimes this thread can deadlock on the Event.
-            self._result_thread.join(timeout=5)
 
         # Drain any remaining results synchronously
-        while True:
-            try:
-                result = self._processed_tasks.get_nowait()
-                self._send_result(result, fetch=False)
-            except queue.Empty:
-                break
+        # while True:
+        #     try:
+        #         result = self._processed_tasks.get_nowait()
+        #         self._send_result(result, fetch=False)
+        #     except queue.Empty:
+        #         break
 
         logger.info("taskworker.worker.shutdown.complete")
 
-    def _push_task(self, inflight: InflightTaskActivation):
+    def _push_task(self, inflight: InflightTaskActivation) -> None:
         """
         Push a task to child tasks queue. Returns False if the task could not be added.
         """
@@ -274,41 +282,6 @@ class TaskWorker:
             return True
         else:
             return False
-
-    def start_result_thread(self) -> None:
-        """
-        Start a thread that delivers results and fetches new tasks.
-        We need to ship results in a thread because the RPC calls block for 20-50ms,
-        and many tasks execute more quickly than that.
-
-        Without additional threads, we end up publishing results too slowly
-        and tasks accumulate in the `processed_tasks` queues and can cross
-        their processing deadline.
-        """
-
-        def result_thread() -> None:
-            logger.debug("taskworker.worker.result_thread.started")
-            iopool = ThreadPoolExecutor(max_workers=self._concurrency)
-            with iopool as executor:
-                while not self._shutdown_event.is_set():
-                    fetch_next = self._processing_pool_name not in options.get(
-                        "taskworker.fetch_next.disabled_pools"
-                    )
-
-                    try:
-                        result = self._processed_tasks.get(timeout=1.0)
-                        executor.submit(self._send_result, result, fetch_next)
-                    except queue.Empty:
-                        metrics.incr(
-                            "taskworker.worker.result_thread.queue_empty",
-                            tags={"processing_pool": self._processing_pool_name},
-                        )
-                        continue
-
-        self._result_thread = threading.Thread(
-            name="send-result", target=result_thread, daemon=True
-        )
-        self._result_thread.start()
 
     def _send_result(self, result: ProcessingResult, fetch: bool = True) -> bool:
         """
@@ -375,7 +348,7 @@ class TaskWorker:
         except grpc.RpcError as e:
             self._setstatus_backoff_seconds = min(self._setstatus_backoff_seconds + 1, 10)
             if e.code() == grpc.StatusCode.UNAVAILABLE:
-                self._processed_tasks.put(result)
+                self._processed_tasks[result.host].put(result)
             logger.warning(
                 "taskworker.send_update_task.failed",
                 extra={"task_id": result.task_id, "error": e},
@@ -389,7 +362,7 @@ class TaskWorker:
                 "taskworker.send_update_task.temporarily_unavailable",
                 extra={"task_id": result.task_id, "error": str(e)},
             )
-            self._processed_tasks.put(result)
+            self._processed_tasks[result.host].put(result)
             return None
 
     def start_spawn_children_thread(self) -> None:
