@@ -52,7 +52,7 @@ jobs:
           # avoid doing any webpack stuff
           rm tests/acceptance/conftest.py
 
-          SENTRY_SHUFFLE_TESTS=1 \
+          SENTRY_SHUFFLE_TESTS_ACROSS_SHARDS=1 \
           SENTRY_SHUFFLE_TESTS_SEED=$SENTRY_SHUFFLE_TESTS_SEED \
           TEST_GROUP=$TEST_GROUP \
           TOTAL_TEST_GROUPS=$TOTAL_TEST_GROUPS \
