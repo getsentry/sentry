@@ -451,6 +451,18 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     current_group = int(os.environ.get("TEST_GROUP", 0))
     grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
 
+    # When shuffling across shards, include the seed in the hash so that
+    # shard assignment is randomized while tests in the same scope still
+    # land in the same shard.
+    shuffle_across_shards = os.environ.get("SENTRY_SHUFFLE_TESTS_ACROSS_SHARDS")
+    if shuffle_across_shards:
+        seed_env = os.environ.get("SENTRY_SHUFFLE_TESTS_SEED")
+        across_seed = str(int(seed_env) if seed_env else int(time.time()))
+        across_seed_bytes = across_seed.encode()
+        config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_ACROSS_SHARDS seed: {across_seed}")
+    else:
+        across_seed_bytes = None
+
     # Reset keep/discard for sharding logic
     keep, discard = [], []
 
@@ -462,6 +474,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             if grouping_strategy == "scope"
             else item.nodeid.encode()
         )
+        if across_seed_bytes is not None:
+            to_hash = to_hash + across_seed_bytes
         item_to_group = int(sha256(to_hash).hexdigest(), 16)
 
         # Split tests in different groups
@@ -474,7 +488,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     items[:] = keep
 
-    if os.environ.get("SENTRY_SHUFFLE_TESTS"):
+    if os.environ.get("SENTRY_SHUFFLE_TESTS") or shuffle_across_shards:
         seed_env = os.environ.get("SENTRY_SHUFFLE_TESTS_SEED")
         seed = int(seed_env) if seed_env else int(time.time())
         config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_SEED: {seed}")
