@@ -34,7 +34,7 @@ class CommitComparison(DefaultFieldsModel):
     # Pull request information
     pr_number = models.PositiveIntegerField(null=True)
 
-    extras = models.JSONField(default=dict, db_default=dict)
+    extras = models.JSONField(default=dict, db_default={})
 
     # Sentry data, can be hydrated separately
     head_commit = FlexibleForeignKey(
