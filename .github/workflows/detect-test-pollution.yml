@@ -47,6 +47,7 @@ jobs:
           SENTRY_SHUFFLE_TESTS_SEED: ${{ steps.extract.outputs.SENTRY_SHUFFLE_TESTS_SEED }}
           TEST_GROUP: ${{ steps.extract.outputs.TEST_GROUP }}
           TOTAL_TEST_GROUPS: ${{ steps.extract.outputs.TOTAL_TEST_GROUPS }}
+          FLAKY_TEST: ${{ steps.extract.outputs.FLAKY_TEST }}
         run: |
           # avoid doing any webpack stuff
           rm tests/acceptance/conftest.py
@@ -64,7 +65,10 @@ jobs:
             --ignore tests/tools \
             --ignore tests/relay_integration \
             --ignore tests/symbolicator \
-            | grep '^tests/.*\.py::' > testids
+            | grep '^tests/.*\.py::' > testids-full
+
+          # Truncate after the failing test — tests that run after it can't be polluting it
+          head -n "$(grep -nF "$FLAKY_TEST" testids-full | head -1 | cut -d: -f1)" testids-full > testids
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
