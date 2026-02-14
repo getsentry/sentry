@@ -454,7 +454,6 @@ export function ProjectPageFilter({
                 icon={<IconAdd />}
                 to={makeProjectsPathname({path: '/new/', organization})}
                 onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
-                disabled={stagedSelect.disableCommit}
               >
                 {t('Create Project')}
               </HybridFilterComponents.LinkButton>
