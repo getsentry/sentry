@@ -1,7 +1,6 @@
 name: detect-test-pollution
 
 on:
-  pull_request:
   workflow_dispatch:
     inputs:
       job-url:
@@ -19,7 +18,7 @@ jobs:
         id: extract
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 .github/workflows/scripts/extract-test-pollution-info.py "${{ inputs.job-url || 'https://github.com/getsentry/sentry/actions/runs/21654747518/job/62427093320'}}"
+        run: python3 .github/workflows/scripts/extract-test-pollution-info.py '${{ inputs.job-url }}'
 
       - name: Checkout SENTRY_REVISION
         run: git fetch origin ${{ steps.extract.outputs.SENTRY_REVISION }} && git checkout ${{ steps.extract.outputs.SENTRY_REVISION }}
@@ -44,6 +43,7 @@ jobs:
 
       - name: Detect test pollution
         env:
+          PYTHONUNBUFFERED: 1
           SENTRY_SHUFFLE_TESTS_SEED: ${{ steps.extract.outputs.SENTRY_SHUFFLE_TESTS_SEED }}
           TEST_GROUP: ${{ steps.extract.outputs.TEST_GROUP }}
           TOTAL_TEST_GROUPS: ${{ steps.extract.outputs.TOTAL_TEST_GROUPS }}
