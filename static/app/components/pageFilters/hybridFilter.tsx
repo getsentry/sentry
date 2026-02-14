@@ -211,7 +211,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
       setUncommittedStagedValue(sortedValue);
       onToggle?.(sortedValue);
-      window.getSelection()?.removeAllRanges();
       lastSelectedRef.current = clickedValue;
     },
     [stagedValue, onToggle, getFlatOptions, options, performSingleToggle]
