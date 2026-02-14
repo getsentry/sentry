@@ -5,8 +5,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
-import {SelectField} from './selectField';
-
 const OPTIONS = [
   {value: 'apple', label: 'Apple'},
   {value: 'banana', label: 'Banana'},
@@ -97,61 +95,115 @@ function AutoSaveTestForm({
 describe('SelectField', () => {
   describe('types', () => {
     it('should enforce correct types for single select', () => {
-      void (
-        <SelectField
-          value="opt_one"
-          onChange={val => {
-            expectTypeOf(val).toEqualTypeOf<string>();
-          }}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
-        />
-      );
+      function TypeTestSingleSelect() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {fruit: ''},
+        });
+
+        return (
+          <form.AppForm>
+            <form.AppField name="fruit">
+              {field => (
+                <field.Select
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<string>();
+                    field.handleChange(val);
+                  }}
+                  options={[
+                    {value: 'opt_one', label: 'Option One'},
+                    {value: 'opt_two', label: 'Option Two'},
+                  ]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestSingleSelect;
     });
 
     it('should enforce array types for multiple select', () => {
-      void (
-        <SelectField
-          multiple
-          value={['opt_one']}
-          onChange={val => {
-            expectTypeOf(val).toEqualTypeOf<string[]>();
-          }}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
-        />
-      );
+      function TypeTestMultipleSelect() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {tags: [] as string[]},
+        });
+
+        return (
+          <form.AppForm>
+            <form.AppField name="tags">
+              {field => (
+                <field.Select
+                  multiple
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<string[]>();
+                    field.handleChange(val);
+                  }}
+                  options={[
+                    {value: 'opt_one', label: 'Option One'},
+                    {value: 'opt_two', label: 'Option Two'},
+                  ]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestMultipleSelect;
     });
 
     it('should not allow string value with multiple=true', () => {
-      void (
-        (
-          // @ts-expect-error value should be string[] when multiple is true
-          <SelectField
-            multiple
-            value="opt_one"
-            onChange={() => {}}
-            options={[{value: 'opt_one', label: 'Option One'}]}
-          />
-        )
-      );
+      function TypeTestInvalidMultiple() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {tags: [] as string[]},
+        });
+
+        return (
+          <form.AppForm>
+            <form.AppField name="tags">
+              {field => (
+                // @ts-expect-error value should be string[] when multiple is true
+                <field.Select
+                  multiple
+                  value="opt_one"
+                  onChange={field.handleChange}
+                  options={[{value: 'opt_one', label: 'Option One'}]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestInvalidMultiple;
     });
 
     it('should not allow array value with multiple=false', () => {
-      void (
-        (
-          // @ts-expect-error value should be string when multiple is false
-          <SelectField
-            value={['opt_one']}
-            onChange={() => {}}
-            options={[{value: 'opt_one', label: 'Option One'}]}
-          />
-        )
-      );
+      function TypeTestInvalidSingle() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {fruit: ''},
+        });
+
+        return (
+          <form.AppForm>
+            <form.AppField name="fruit">
+              {field => (
+                // @ts-expect-error value should be string when multiple is false
+                <field.Select
+                  value={['opt_one']}
+                  onChange={field.handleChange}
+                  options={[{value: 'opt_one', label: 'Option One'}]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestInvalidSingle;
     });
   });
 
