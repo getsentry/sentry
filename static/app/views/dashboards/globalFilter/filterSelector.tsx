@@ -454,7 +454,10 @@ function FilterSelector({
               size="zero"
               priority="transparent"
               aria-label={t('Remove Filter')}
-              onClick={() => onRemoveFilter(globalFilter)}
+              onClick={() => {
+                onRemoveFilter(globalFilter);
+                closeOverlay();
+              }}
             >
               {t('Remove Filter')}
             </StyledButton>
