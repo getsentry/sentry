@@ -308,6 +308,7 @@ describe('ProjectPageFilter', () => {
 
     // Verify sort order DOES NOT change while menu is still open (stable sorting)
     projectRows = screen.getAllByRole('row');
+
     expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
     expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
