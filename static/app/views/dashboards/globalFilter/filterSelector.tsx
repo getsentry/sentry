@@ -361,7 +361,10 @@ function FilterSelector({
                 aria-label={t('Remove Filter')}
                 size="zero"
                 priority="transparent"
-                onClick={() => onRemoveFilter(globalFilter)}
+                onClick={() => {
+                  onRemoveFilter(globalFilter);
+                  closeOverlay();
+                }}
               >
                 {t('Remove Filter')}
               </StyledButton>
@@ -398,8 +401,12 @@ function FilterSelector({
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton />
-            <HybridFilterComponents.ApplyButton />
+            <HybridFilterComponents.CancelButton
+              onClick={() => stagedSelect.removeStagedChanges()}
+            />
+            <HybridFilterComponents.ApplyButton
+              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            />
           </Flex>
         ) : null
       }

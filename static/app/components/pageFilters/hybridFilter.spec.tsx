@@ -7,6 +7,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import type {HybridFilterRef} from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
+  HybridFilterComponents,
   useStagedCompactSelect,
 } from 'sentry/components/pageFilters/hybridFilter';
 
@@ -68,7 +69,31 @@ describe('HybridFilter', () => {
       });
 
       return (
-        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
+        <HybridFilter
+          searchable
+          ref={hybridFilterRef}
+          stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
+        />
       );
     }
 
@@ -97,7 +122,31 @@ describe('HybridFilter', () => {
       });
 
       return (
-        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
+        <HybridFilter
+          searchable
+          ref={hybridFilterRef}
+          stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
+        />
       );
     }
 
@@ -118,7 +167,6 @@ describe('HybridFilter', () => {
     await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
     expect(onChange).toHaveBeenCalledWith(['two']);
   });
-
   it('handles multiple selection', async () => {
     const onChange = jest.fn();
     function ControlledHybridFilter() {
@@ -137,7 +185,31 @@ describe('HybridFilter', () => {
       });
 
       return (
-        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
+        <HybridFilter
+          searchable
+          ref={hybridFilterRef}
+          stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
+        />
       );
     }
 
@@ -155,10 +227,9 @@ describe('HybridFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
     expect(onChange).toHaveBeenCalledWith(expect.arrayContaining(['one', 'two']));
 
-    await userEvent.click(screen.getByRole('button', {expanded: false}));
-
     // Ctrl-clicking on Option One & Option Two _removes_ them from the current selection
     // state (multiple selection mode)
+    await userEvent.click(screen.getByRole('button', {expanded: false}));
     await userEvent.keyboard('{Control>}');
     await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
     await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
@@ -186,7 +257,31 @@ describe('HybridFilter', () => {
       });
 
       return (
-        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
+        <HybridFilter
+          searchable
+          ref={hybridFilterRef}
+          stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
+        />
       );
     }
 
@@ -211,19 +306,47 @@ describe('HybridFilter', () => {
     const onReset = jest.fn();
 
     function TestComponent() {
+      const [value, setValue] = useState<string[]>(['one']);
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
       const stagedSelect = useStagedCompactSelect({
-        value: ['one'] as string[],
+        value,
         defaultValue: ['one'] as string[],
-        onChange,
+        onChange: newValue => {
+          onChange(newValue);
+          setValue(newValue);
+        },
         onReset,
         options,
         multiple: true,
       });
 
       return (
-        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
+        <HybridFilter
+          searchable
+          ref={hybridFilterRef}
+          stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
+        />
       );
     }
 
@@ -264,7 +387,31 @@ describe('HybridFilter', () => {
       });
 
       return (
-        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
+        <HybridFilter
+          searchable
+          ref={hybridFilterRef}
+          stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
+        />
       );
     }
 
