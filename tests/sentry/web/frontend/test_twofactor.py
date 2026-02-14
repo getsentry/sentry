@@ -126,3 +126,25 @@ class TwoFactorTest(TestCase):
 
             resp = self.client.post("/auth/2fa/", data={"otp": "123456"}, follow=False)
             assert resp.status_code != 429
+
+    @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
+    @mock.patch("sentry.web.frontend.twofactor.rotate_token")
+    def test_csrf_token_rotated_after_2fa_login(self, mock_rotate_token, mock_validate):
+        """RTC-1305: When a user completes 2FA, the CSRF token must be rotated
+        because auth.login() internally calls session.cycle_key()."""
+        user = self.create_user()
+        interface = TotpInterface()
+        interface.enroll(user)
+
+        self.login_as(user)
+        self.session["_pending_2fa"] = [user.id, time() - 2]
+        self.save_session()
+
+        resp = self.client.post("/auth/2fa/", data={"otp": "123456"}, follow=False)
+        assert mock_validate.called
+        assert resp.status_code == 302  # redirect after successful 2FA
+
+        assert mock_rotate_token.called, (
+            "rotate_token() must be called after auth.login() "
+            "to keep the CSRF token in sync with the new session"
+        )

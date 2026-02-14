@@ -9,6 +9,7 @@ from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
+from django.middleware.csrf import rotate_token
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
@@ -341,6 +342,7 @@ class OAuthAuthorizeView(AuthLoginView):
         if request.user.is_authenticated:
             # Regenerate session to prevent session fixation attacks
             request.session.cycle_key()
+            rotate_token(request)
 
             # Update OAuth payload with authenticated user ID for validation in post()
             request.session["oa2"]["uid"] = request.user.id

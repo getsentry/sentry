@@ -4,6 +4,7 @@ from base64 import b64encode
 from urllib.parse import urlencode
 
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.middleware.csrf import rotate_token
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -64,6 +65,7 @@ class TwoFactorAuthView(BaseView):
 
     def perform_signin(self, request: HttpRequest, user, interface=None):
         assert auth.login(request, user, passed_2fa=True)
+        rotate_token(request)
         rv = HttpResponseRedirect(auth.get_login_redirect(request))
         if interface is not None:
             interface.authenticator.mark_used()

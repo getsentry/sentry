@@ -1,5 +1,6 @@
 from datetime import timedelta
 from functools import cached_property
+from unittest import mock
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -217,3 +218,49 @@ class OAuthDeviceVerificationOrgLevelTest(TestCase):
         resp = self.client.post(self.path, {"user_code": device_code.user_code})
         assert resp.status_code == 200
         assert b"member of an organization" in resp.content
+
+
+@control_silo_test
+class OAuthDeviceCsrfRotationTest(TestCase):
+    """RTC-1305: CSRF token must be rotated after session.cycle_key()."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/device/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com", name="Test App"
+        )
+        self.device_code = ApiDeviceCode.objects.create(
+            application=self.application,
+            scope_list=["project:read"],
+        )
+
+    @mock.patch("sentry.web.frontend.oauth_device.rotate_token")
+    def test_csrf_token_rotated_after_login_via_device_flow(self, mock_rotate_token):
+        """When a user logs in through the device verification page, the CSRF
+        token must be rotated after session.cycle_key()."""
+        user = self.create_user("test@example.com")
+        user.set_password("test-password")
+        user.save()
+
+        # Start device flow (unauthenticated) — stores user_code in session
+        resp = self.client.get(f"{self.path}?user_code={self.device_code.user_code}")
+        assert resp.status_code == 200
+
+        # POST login credentials (triggers _logged_out_post → cycle_key)
+        resp = self.client.post(
+            self.path,
+            {
+                "username": "test@example.com",
+                "password": "test-password",
+                "op": "login",
+            },
+        )
+
+        assert mock_rotate_token.called, (
+            "rotate_token() must be called after session.cycle_key() "
+            "to keep the CSRF token in sync with the new session"
+        )

@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
+from django.middleware.csrf import rotate_token
 
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
@@ -366,6 +367,7 @@ class OAuthDeviceView(AuthLoginView):
         if request.user.is_authenticated:
             # Regenerate session to prevent session fixation
             request.session.cycle_key()
+            rotate_token(request)
         return response
 
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:

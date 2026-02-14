@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
 from sentry.models.apiapplication import ApiApplication
@@ -1789,3 +1790,48 @@ class OAuthAuthorizeReplayDebuggerCustomSchemeTest(TestCase):
         assert resp.status_code == 302
         assert resp["Location"].startswith("sentry-replay-debugger://")
         assert "access_token=" in resp["Location"]
+
+
+@control_silo_test
+class OAuthAuthorizeCsrfRotationTest(TestCase):
+    """RTC-1305: CSRF token must be rotated after session.cycle_key()."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/authorize/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com"
+        )
+
+    @mock.patch("sentry.web.frontend.oauth_authorize.rotate_token")
+    def test_csrf_token_rotated_after_login_via_oauth(self, mock_rotate_token):
+        """When a user logs in through the OAuth authorize page, the CSRF token
+        must be rotated after session.cycle_key() to prevent CSRF validation
+        errors on subsequent POST requests."""
+        user = self.create_user("test@example.com")
+        user.set_password("test-password")
+        user.save()
+
+        # Start the OAuth flow (unauthenticated) -- sets up session with oa2 payload
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+        assert resp.status_code == 200
+
+        # POST login credentials (triggers _logged_out_post -> cycle_key)
+        resp = self.client.post(
+            self.path,
+            {
+                "username": "test@example.com",
+                "password": "test-password",
+                "op": "login",
+            },
+        )
+
+        assert mock_rotate_token.called, (
+            "rotate_token() must be called after session.cycle_key() "
+            "to keep the CSRF token in sync with the new session"
+        )
