@@ -6,6 +6,7 @@ from typing import Any, Literal, NotRequired, TypedDict, overload
 
 import sentry_sdk
 from django.core.cache import cache
+from django.db.models import Q
 from django.http.request import HttpRequest
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.permissions import BasePermission
@@ -398,7 +399,14 @@ class OrganizationEndpoint(Endpoint):
         slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
         ids = project_ids or self.get_requested_project_ids_unchecked(request)
 
-        if project_ids is None and slugs:
+        # Also support slugs passed via ?project= (non-numeric values)
+        if not project_slugs and not project_ids:
+            slugs = slugs | self._get_requested_project_slugs_from_params(request)
+
+        if project_ids is None and slugs and ids:
+            # Mixed: both IDs and slugs from ?project= parameter
+            qs = qs.filter(Q(id__in=ids) | Q(slug__in=slugs))
+        elif project_ids is None and slugs:
             # If we're querying for project slugs specifically
             if ALL_ACCESS_PROJECTS_SLUG in slugs:
                 # All projects I have access to
@@ -474,14 +482,31 @@ class OrganizationEndpoint(Endpoint):
     def get_requested_project_ids_unchecked(self, request: HttpRequest) -> set[int]:
         """
         Returns the project ids that were requested by the request.
+        Non-numeric values (project slugs) are silently ignored here
+        and handled separately by ``get_projects``.
 
         To determine the projects to filter this endpoint by with full
         permission checking, use ``get_projects``, instead.
         """
-        try:
-            return set(map(int, request.GET.getlist("project")))
-        except ValueError:
-            raise ParseError(detail="Invalid project parameter. Values must be numbers.")
+        result = set()
+        for val in request.GET.getlist("project"):
+            try:
+                result.add(int(val))
+            except ValueError:
+                pass
+        return result
+
+    def _get_requested_project_slugs_from_params(self, request: HttpRequest) -> set[str]:
+        """Extract non-numeric values from the ``project`` query parameter as slugs."""
+        slugs = set()
+        for val in request.GET.getlist("project"):
+            if not val:
+                continue
+            try:
+                int(val)
+            except ValueError:
+                slugs.add(val)
+        return slugs
 
     def get_environments(
         self, request: Request, organization: Organization | RpcOrganization

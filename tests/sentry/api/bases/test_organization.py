@@ -603,6 +603,25 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         with pytest.raises(PermissionDenied):
             self.endpoint.get_projects(request, self.org)
 
+    def test_get_projects_by_slug_in_project_param(self) -> None:
+        """RTC-1301: ?project=slug should work, not just ?project=id."""
+        self.create_team_membership(user=self.user, team=self.team_1)
+        request = self.build_request(project=[self.project_1.slug])
+        result = self.endpoint.get_projects(request, self.org)
+        assert {p.id for p in result} == {self.project_1.id}
+
+    def test_get_projects_by_slug_in_project_param_no_match(self) -> None:
+        """RTC-1301: ?project=nonexistent-slug should raise PermissionDenied."""
+        request = self.build_request(project=["nonexistent-slug"])
+        with pytest.raises(PermissionDenied):
+            self.endpoint.get_projects(request, self.org)
+
+    def test_get_requested_project_ids_unchecked_ignores_slugs(self) -> None:
+        """RTC-1301: Non-numeric values in ?project= should be ignored by get_requested_project_ids_unchecked."""
+        request = self.build_request(project=["my-slug", "123"])
+        result = self.endpoint.get_requested_project_ids_unchecked(request)
+        assert result == {123}
+
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
     def setUp(self) -> None:
