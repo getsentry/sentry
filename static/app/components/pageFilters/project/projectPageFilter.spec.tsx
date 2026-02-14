@@ -238,10 +238,10 @@ describe('ProjectPageFilter', () => {
     // 2. Bookmarked project (bookmarked-project)
     // 3. Regular projects (alphabetically)
     expect(projectRows).toHaveLength(4);
-    expect(within(projectRows[0]).getByText('selected-project')).toBeInTheDocument();
-    expect(within(projectRows[1]).getByText('bookmarked-project')).toBeInTheDocument();
-    expect(within(projectRows[2]).getByText('regular-project-a')).toBeInTheDocument();
-    expect(within(projectRows[3]).getByText('regular-project-b')).toBeInTheDocument();
+    expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
+    expect(within(projectRows[1]!).getByText('bookmarked-project')).toBeInTheDocument();
+    expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
+    expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
   });
 
   it('maintains stable sort when bookmarking, then applies new sort on menu reopen', async () => {
@@ -285,10 +285,10 @@ describe('ProjectPageFilter', () => {
     // Verify initial sort order
     let projectRows = screen.getAllByRole('row');
     expect(projectRows).toHaveLength(4);
-    expect(within(projectRows[0]).getByText('selected-project')).toBeInTheDocument();
-    expect(within(projectRows[1]).getByText('already-bookmarked')).toBeInTheDocument();
-    expect(within(projectRows[2]).getByText('regular-project-a')).toBeInTheDocument();
-    expect(within(projectRows[3]).getByText('regular-project-b')).toBeInTheDocument();
+    expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
+    expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
+    expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
+    expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
 
     // Bookmark regular-project-a while menu is open
     const regularProjectARow = screen.getByRole('row', {name: 'regular-project-a'});
@@ -308,10 +308,10 @@ describe('ProjectPageFilter', () => {
 
     // Verify sort order DOES NOT change while menu is still open (stable sorting)
     projectRows = screen.getAllByRole('row');
-    expect(within(projectRows[0]).getByText('selected-project')).toBeInTheDocument();
-    expect(within(projectRows[1]).getByText('already-bookmarked')).toBeInTheDocument();
-    expect(within(projectRows[2]).getByText('regular-project-a')).toBeInTheDocument();
-    expect(within(projectRows[3]).getByText('regular-project-b')).toBeInTheDocument();
+    expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
+    expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
+    expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
+    expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
 
     // Close menu by clicking outside
     await userEvent.click(document.body);
@@ -341,10 +341,10 @@ describe('ProjectPageFilter', () => {
 
     // Verify new sort order with bookmarked projects grouped together
     projectRows = screen.getAllByRole('row');
-    expect(within(projectRows[0]).getByText('selected-project')).toBeInTheDocument();
-    expect(within(projectRows[1]).getByText('already-bookmarked')).toBeInTheDocument();
-    expect(within(projectRows[2]).getByText('regular-project-a')).toBeInTheDocument();
-    expect(within(projectRows[3]).getByText('regular-project-b')).toBeInTheDocument();
+    expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
+    expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
+    expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
+    expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
 
     MockApiClient.clearMockResponses();
   });
