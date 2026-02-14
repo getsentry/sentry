@@ -3381,6 +3381,7 @@ register(
 )
 
 # Controls the rate of using the sentry api shared secret for communicating to sentry.
+# DEPRECATED: will be removed after the shared secret is confirmed to always be set.
 register(
     "seer.api.use-shared-secret",
     default=0.0,
@@ -4011,4 +4012,12 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TODO(telkins): Remove once we no longer need integration_id on SLO metrics
+register(
+    "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

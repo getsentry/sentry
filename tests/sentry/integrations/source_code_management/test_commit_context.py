@@ -22,6 +22,7 @@ class MockCommitContextIntegration(CommitContextIntegration):
     """Mock implementation for testing"""
 
     integration_name = "mock_integration"
+    integration_id = 1
 
     def __init__(self) -> None:
         self.client = Mock()

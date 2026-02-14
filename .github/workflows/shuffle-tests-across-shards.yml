@@ -1,0 +1,59 @@
+name: shuffle-tests-across-shards
+
+on:
+  # gh api repos/getsentry/sentry/actions/workflows/shuffle-tests-across-shards.yml/dispatches -f ref=shuffle-tests-across-shards
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: The seed for the test ordering (all shards must share the same seed)
+        required: false
+
+  # run every 30 minutes between 6PM-9AM PST
+  schedule:
+    - cron: '*/30 2-17 * * *'
+
+jobs:
+  backend-test:
+    name: run backend tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    env:
+      # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
+      MATRIX_INSTANCE_TOTAL: 11
+      SENTRY_SHUFFLE_TESTS_ACROSS_SHARDS: true
+      # All shards must share the same seed. github.run_id is consistent
+      # across matrix instances. Manual seed input takes precedence.
+      SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed || github.run_id }}
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        run: |
+          python3 -b -m pytest \
+          --exitfirst \
+          tests \
+          --reuse-db \
+          --ignore tests/acceptance \
+          --ignore tests/apidocs \
+          --ignore tests/js \
+          --ignore tests/tools \
+          --ignore tests/relay_integration \
+          --ignore tests/symbolicator
