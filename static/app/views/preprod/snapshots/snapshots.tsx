@@ -50,7 +50,7 @@ export default function SnapshotsPage() {
   );
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedGroupName, setSelectedGroupName] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
 
   const groupedImages = useMemo(() => {
@@ -59,7 +59,7 @@ export default function SnapshotsPage() {
     }
     const groups = new Map<string, SnapshotImage[]>();
     for (const image of data.images) {
-      const name = image.file_name ?? 'Untitled';
+      const name = image.display_name ?? image.file_name;
       const existing = groups.get(name);
       if (existing) {
         existing.push(image);
@@ -85,15 +85,16 @@ export default function SnapshotsPage() {
   }, [groupedImages, searchQuery]);
 
   // Default to first group if nothing selected or selection no longer in filtered results
-  const activeName =
-    selectedName && filteredGroups.has(selectedName)
-      ? selectedName
+  const currentGroupName =
+    selectedGroupName && filteredGroups.has(selectedGroupName)
+      ? selectedGroupName
       : (filteredGroups.keys().next().value ?? null);
-  const activeImages = activeName ? (filteredGroups.get(activeName) ?? []) : [];
-  const activeImage = activeImages[variantIndex] ?? null;
+  const currentGroupImages = currentGroupName
+    ? (filteredGroups.get(currentGroupName) ?? [])
+    : [];
 
-  const handleSelectName = (name: string) => {
-    setSelectedName(name);
+  const handleSelectGroupName = (name: string) => {
+    setSelectedGroupName(name);
     setVariantIndex(0);
   };
 
@@ -130,16 +131,15 @@ export default function SnapshotsPage() {
         <Flex direction="row" gap="0" height="100%" width="100%">
           <SnapshotSidebarContent
             filteredGroups={filteredGroups}
-            activeName={activeName}
+            currentGroupName={currentGroupName}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            onSelectName={handleSelectName}
+            onSelectGroupName={handleSelectGroupName}
           />
           <Separator orientation="vertical" />
           <SnapshotMainContent
-            activeName={activeName}
-            activeImage={activeImage}
-            activeImages={activeImages}
+            currentGroupName={currentGroupName}
+            currentGroupImages={currentGroupImages}
             variantIndex={variantIndex}
             onVariantChange={setVariantIndex}
             organizationSlug={organization.slug}

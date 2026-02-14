@@ -10,19 +10,19 @@ import {t} from 'sentry/locale';
 import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SnapshotSidebarContentProps {
-  activeName: string | null;
+  currentGroupName: string | null;
   filteredGroups: Map<string, SnapshotImage[]>;
   onSearchChange: (query: string) => void;
-  onSelectName: (name: string) => void;
+  onSelectGroupName: (name: string) => void;
   searchQuery: string;
 }
 
 export function SnapshotSidebarContent({
   filteredGroups,
-  activeName,
+  currentGroupName,
   searchQuery,
   onSearchChange,
-  onSelectName,
+  onSelectGroupName,
 }: SnapshotSidebarContentProps) {
   return (
     <Flex direction="column" gap="md" minWidth="300px">
@@ -41,12 +41,12 @@ export function SnapshotSidebarContent({
       </Container>
       <Stack overflow="auto" flex="1">
         {[...filteredGroups.entries()].map(([name, images]) => {
-          const isSelected = name === activeName;
+          const isSelected = name === currentGroupName;
           return (
             <SidebarItem
               key={name}
               isSelected={isSelected}
-              onClick={() => onSelectName(name)}
+              onClick={() => onSelectGroupName(name)}
             >
               <Text
                 size="md"
