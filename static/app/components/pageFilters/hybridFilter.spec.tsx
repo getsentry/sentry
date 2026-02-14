@@ -496,18 +496,15 @@ describe('HybridFilter', () => {
       // Open the menu
       await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-      // Click checkbox for Option One to set anchor (keeps menu open)
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+      // Ctrl-click row for Option One to set anchor (works with modifier keys)
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Control}');
 
-      // Shift-click Option Three to select range
+      // Shift-click row for Option Three to select range
       await userEvent.keyboard('{Shift>}');
       await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
       await userEvent.keyboard('{/Shift}');
-
-      // Wait for Apply button to be available
-      await waitFor(() => {
-        expect(screen.getByRole('button', {name: 'Apply'})).toBeInTheDocument();
-      });
 
       // Apply the changes
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -558,10 +555,12 @@ describe('HybridFilter', () => {
       // Open the menu
       await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-      // Click checkbox for Option Three to set anchor (keeps menu open)
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option Three'}));
+      // Ctrl-click row for Option Three to set anchor (works with modifier keys)
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
+      await userEvent.keyboard('{/Control}');
 
-      // Shift-click Option One to select range backward
+      // Shift-click row for Option One to select range backward
       await userEvent.keyboard('{Shift>}');
       await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
       await userEvent.keyboard('{/Shift}');
@@ -615,7 +614,7 @@ describe('HybridFilter', () => {
       // Open the menu
       await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-      // Shift-click Option Two (no previous selection)
+      // Shift-click row for Option Two (no previous selection)
       await userEvent.keyboard('{Shift>}');
       await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
       await userEvent.keyboard('{/Shift}');
@@ -669,10 +668,12 @@ describe('HybridFilter', () => {
       // Open the menu
       await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-      // Click Option One to deselect and set anchor
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+      // Ctrl-click row for Option One to deselect and set anchor
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Control}');
 
-      // Shift-click Option Three to deselect range
+      // Shift-click row for Option Three to deselect range
       await userEvent.keyboard('{Shift>}');
       await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
       await userEvent.keyboard('{/Shift}');
@@ -721,10 +722,12 @@ describe('HybridFilter', () => {
       // Open the menu
       await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-      // Click checkbox for Option One (keeps menu open)
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+      // Ctrl-click row for Option One (works with modifier keys)
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Control}');
 
-      // Shift-click Option Two
+      // Shift-click row for Option Two
       await userEvent.keyboard('{Shift>}');
       await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
       await userEvent.keyboard('{/Shift}');
@@ -735,7 +738,7 @@ describe('HybridFilter', () => {
       expect(screen.getByRole('button', {name: 'Apply'})).toBeInTheDocument();
     });
 
-    it('works with checkboxes', async () => {
+    it('works with rows and modifier keys', async () => {
       const onChange = jest.fn();
 
       function TestComponent() {
@@ -777,12 +780,14 @@ describe('HybridFilter', () => {
       // Open the menu
       await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-      // Click checkbox for Option One to set anchor
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+      // Ctrl-click row for Option One to set anchor
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Control}');
 
-      // Shift-click checkbox for Option Three
+      // Shift-click row for Option Three to select range
       await userEvent.keyboard('{Shift>}');
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option Three'}));
+      await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
       await userEvent.keyboard('{/Shift}');
 
       // Apply the changes
@@ -834,14 +839,14 @@ describe('HybridFilter', () => {
       // Open the menu
       await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-      // Ctrl-click Option One
+      // Ctrl-click checkbox for Option One
       await userEvent.keyboard('{Control>}');
-      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
       await userEvent.keyboard('{/Control}');
 
-      // Ctrl-click Option Three (should not select two)
+      // Ctrl-click checkbox for Option Three (should not select two)
       await userEvent.keyboard('{Control>}');
-      await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option Three'}));
       await userEvent.keyboard('{/Control}');
 
       // Apply the changes

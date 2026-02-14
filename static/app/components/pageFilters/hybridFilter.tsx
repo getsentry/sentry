@@ -203,8 +203,15 @@ export function useStagedCompactSelect<Value extends SelectKey>({
         targetState ? newValueSet.add(val) : newValueSet.delete(val);
       });
 
-      setUncommittedStagedValue([...newValueSet]);
-      onToggle?.([...newValueSet]);
+      // Sort by original option order
+      const sortedValue = [...newValueSet].sort((a, b) => {
+        const aIdx = flatOptions.findIndex(opt => opt.value === a);
+        const bIdx = flatOptions.findIndex(opt => opt.value === b);
+        return aIdx - bIdx;
+      });
+
+      setUncommittedStagedValue(sortedValue);
+      onToggle?.(sortedValue);
       window.getSelection()?.removeAllRanges();
       lastSelectedRef.current = clickedValue;
     },
