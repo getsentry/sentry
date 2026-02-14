@@ -51,7 +51,6 @@ export interface ProjectPageFilterProps extends Partial<
     | 'onToggle'
     | 'menuBody'
     | 'menuFooter'
-    | 'menuFooterMessage'
     | 'shouldCloseOnInteractOutside'
     | 'sizeLimitMessage'
     | 'stagedSelect'
