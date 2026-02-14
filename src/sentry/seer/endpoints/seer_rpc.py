@@ -556,10 +556,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         )
 
     if not features.has("organizations:seer-webhooks", organization):
-        return {
-            "success": False,
-            "error": "Seer webhooks are not enabled for this organization",
-        }
+        return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
 
     broadcast_webhooks_for_organization.delay(
         resource_name="seer",
@@ -611,12 +608,7 @@ def trigger_coding_agent_launch(
 
 
 def has_repo_code_mappings(
-    *,
-    organization_id: int,
-    provider: SeerSCMProvider,
-    external_id: str,
-    owner: str,
-    name: str,
+    *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
 ) -> dict[str, bool]:
     """
     Validate that a repository exists and belongs to the given organization.
