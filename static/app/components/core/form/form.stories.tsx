@@ -28,6 +28,13 @@ const COUNTRY_OPTIONS = [
   {value: 'AT', label: 'Austria'},
 ];
 
+const TAG_OPTIONS = [
+  {value: 'bug', label: 'Bug'},
+  {value: 'feature', label: 'Feature'},
+  {value: 'enhancement', label: 'Enhancement'},
+  {value: 'docs', label: 'Documentation'},
+];
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const baseUserSchema = z.object({
@@ -38,6 +45,7 @@ const baseUserSchema = z.object({
   notifications: z.boolean().optional(),
   volume: z.number().min(0).max(100).optional(),
   bio: z.string().optional(),
+  tags: z.array(z.string()).optional(),
   address: z.object({
     street: z.string().min(1, 'Street is required'),
     city: z.string().min(1, 'City is required'),
@@ -174,6 +182,24 @@ function AutoSaveExample() {
               value={field.state.value}
               onChange={field.handleChange}
               options={COUNTRY_OPTIONS}
+            />
+          </field.Layout.Stack>
+        )}
+      </AutoSaveField>
+
+      <AutoSaveField
+        name="tags"
+        schema={baseUserSchema}
+        initialValue={user.data?.tags ?? []}
+        mutationOptions={userMutationOptions(client)}
+      >
+        {field => (
+          <field.Layout.Stack label="Tags" hintText="Select multiple tags">
+            <field.Select
+              multiple
+              value={field.state.value ?? []}
+              onChange={field.handleChange}
+              options={TAG_OPTIONS}
             />
           </field.Layout.Stack>
         )}
@@ -319,6 +345,18 @@ function BasicForm() {
                   min={0}
                   max={100}
                   step={10}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="tags">
+            {field => (
+              <field.Layout.Row label="Tags:" hintText="Select multiple tags">
+                <field.Select
+                  multiple
+                  value={field.state.value ?? []}
+                  onChange={field.handleChange}
+                  options={TAG_OPTIONS}
                 />
               </field.Layout.Row>
             )}

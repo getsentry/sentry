@@ -29,19 +29,38 @@ function SelectIndicatorsContainer({
   );
 }
 
+// Base props shared by both single and multiple select
+type BaseSelectFieldProps = BaseFieldProps &
+  Omit<
+    React.ComponentProps<typeof Select>,
+    'value' | 'onChange' | 'onBlur' | 'disabled' | 'multiple' | 'multi'
+  > & {
+    disabled?: boolean | string;
+  };
+
+// Single select (default)
+interface SingleSelectFieldProps extends BaseSelectFieldProps {
+  onChange: (value: string) => void;
+  value: string;
+  multiple?: false;
+}
+
+// Multiple select
+interface MultipleSelectFieldProps extends BaseSelectFieldProps {
+  multiple: true;
+  onChange: (value: string[]) => void;
+  value: string[];
+}
+
+export type SelectFieldProps = SingleSelectFieldProps | MultipleSelectFieldProps;
+
 export function SelectField({
   onChange,
   disabled,
+  multiple,
+  value,
   ...props
-}: BaseFieldProps &
-  Omit<
-    React.ComponentProps<typeof Select>,
-    'value' | 'onChange' | 'onBlur' | 'disabled'
-  > & {
-    onChange: (value: string) => void;
-    value: string;
-    disabled?: boolean | string;
-  }) {
+}: SelectFieldProps) {
   const autoSaveContext = useAutoSaveContext();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
   const disabledReason = typeof disabled === 'string' ? disabled : undefined;
@@ -55,12 +74,26 @@ export function SelectField({
             {...props}
             inputId={id}
             disabled={isDisabled}
+            multiple={multiple}
+            value={value}
             components={{
               ...props.components,
               Input: SelectInput,
               IndicatorsContainer: SelectIndicatorsContainer,
             }}
-            onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
+            onChange={(option: SelectValue<string> | Array<SelectValue<string>>) => {
+              if (multiple) {
+                // For multi-select, option is an array
+                const values = Array.isArray(option)
+                  ? option.map(o => o?.value ?? '').filter(Boolean)
+                  : [];
+                (onChange as (value: string[]) => void)(values);
+              } else {
+                // For single-select, option is a single value
+                const val = (option as SelectValue<string>)?.value ?? '';
+                (onChange as (value: string) => void)(val);
+              }
+            }}
           />
         );
 
