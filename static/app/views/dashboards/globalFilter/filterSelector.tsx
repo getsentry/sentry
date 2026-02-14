@@ -349,6 +349,7 @@ function FilterSelector({
                 onClick={() => {
                   setSearchQuery('');
                   handleChange([]);
+                  closeOverlay();
                 }}
               >
                 {t('Clear')}
@@ -359,7 +360,10 @@ function FilterSelector({
                 aria-label={t('Remove Filter')}
                 size="zero"
                 priority="transparent"
-                onClick={() => onRemoveFilter(globalFilter)}
+                onClick={() => {
+                  onRemoveFilter(globalFilter);
+                  closeOverlay();
+                }}
               >
                 {t('Remove Filter')}
               </StyledButton>

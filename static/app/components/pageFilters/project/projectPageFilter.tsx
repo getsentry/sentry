@@ -465,6 +465,7 @@ export function ProjectPageFilter({
                   onClick={() => stagedSelect.removeStagedChanges()}
                 />
                 <HybridFilterComponents.ApplyButton
+                  disabled={stagedSelect.disableCommit}
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 />
               </Flex>
