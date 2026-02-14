@@ -41,13 +41,12 @@ jobs:
       - name: Install detect-test-pollution
         run: uv pip install --index-url='https://pypi.org/simple' detect-test-pollution
 
-      - name: Detect test pollution
+      - name: Collect test IDs
         env:
           PYTHONUNBUFFERED: 1
           SENTRY_SHUFFLE_TESTS_SEED: ${{ steps.extract.outputs.SENTRY_SHUFFLE_TESTS_SEED }}
           TEST_GROUP: ${{ steps.extract.outputs.TEST_GROUP }}
           TOTAL_TEST_GROUPS: ${{ steps.extract.outputs.TOTAL_TEST_GROUPS }}
-          FLAKY_TEST: ${{ steps.extract.outputs.FLAKY_TEST }}
         run: |
           # avoid doing any webpack stuff
           rm tests/acceptance/conftest.py
@@ -63,8 +62,18 @@ jobs:
             --ignore tests/apidocs \
             --ignore tests/js \
             --ignore tests/tools \
-            | grep '^tests/.*\.py::' | grep -v tests/relay_integration | grep -v tests/symbolicator > testids
+            | grep '^tests/.*\.py::' > testids
 
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: testids
+          path: testids
+
+      - name: Detect test pollution
+        env:
+          PYTHONUNBUFFERED: 1
+          FLAKY_TEST: ${{ steps.extract.outputs.FLAKY_TEST }}
+        run: |
           detect-test-pollution \
             --failing-test "$FLAKY_TEST" \
             --testids-file ./testids
