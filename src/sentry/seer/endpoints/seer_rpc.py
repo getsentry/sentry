@@ -26,29 +26,47 @@ from rest_framework.exceptions import (
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
-from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
+from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import (
+    TraceItemDetailsRequest,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
     StatsType,
     TraceItemStatsRequest,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeKey,
+    AttributeValue,
+    StrArray,
+)
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    TraceItemFilter,
+)
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_region_silo_endpoint
-from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
+from sentry.api.endpoints.project_trace_item_details import (
+    convert_rpc_attribute_to_json,
+)
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
-from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
+from sentry.hybridcloud.rpc.service import (
+    RpcAuthenticationSetupException,
+    RpcResolutionException,
+)
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
-from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.github_enterprise.integration import (
+    GitHubEnterpriseIntegration,
+)
+from sentry.integrations.models.repository_project_path_config import (
+    RepositoryProjectPathConfig,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
@@ -72,7 +90,10 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
 )
-from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.autofix.autofix_tools import (
+    get_error_event_details,
+    get_profile_details,
+)
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
@@ -100,7 +121,12 @@ from sentry.seer.explorer.tools import (
     rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
 )
-from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
+from sentry.seer.fetch_issues import (
+    by_error_type,
+    by_function_name,
+    by_text_query,
+    utils,
+)
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -556,7 +582,10 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         )
 
     if not features.has("organizations:seer-webhooks", organization):
-        return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
+        return {
+            "success": False,
+            "error": "Seer webhooks are not enabled for this organization",
+        }
 
     broadcast_webhooks_for_organization.delay(
         resource_name="seer",
@@ -608,14 +637,19 @@ def trigger_coding_agent_launch(
 
 
 def has_repo_code_mappings(
-    *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
+    *,
+    organization_id: int,
+    provider: SeerSCMProvider,
+    external_id: str,
+    owner: str,
+    name: str,
 ) -> dict[str, bool]:
     """
     Validate that a repository exists and belongs to the given organization.
 
     Args:
         organization_id: The Sentry organization ID
-        provider: The SCM provider (e.g., "github", "github_enterprise")
+        provider: The SCM provider (e.g., "github", "github_enterprise", w/ or w/o "integrations:" prefix)
         external_id: The repository's external ID in the provider's system
         owner: The repository owner (e.g., "getsentry")
         name: The repository name (e.g., "sentry")
