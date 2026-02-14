@@ -257,7 +257,9 @@ class AcceptOrganizationInvite(Endpoint):
                 data={"details": "unable to accept organization invite"},
             )
         elif helper.member_already_exists:
-            response = Response(
+            helper.accept_invite(request.user)
+            remove_invite_details_from_session(request)
+            return Response(
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "member already exists"}
             )
         elif not request.user.is_authenticated or not helper.valid_request:
@@ -265,10 +267,14 @@ class AcceptOrganizationInvite(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
                 data={"details": "unable to accept organization invite"},
             )
-        else:
-            response = Response(status=status.HTTP_204_NO_CONTENT)
 
-        helper.accept_invite(request.user)
+        result = helper.accept_invite(request.user)
         remove_invite_details_from_session(request)
 
-        return response
+        if result is None:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={"details": "unable to accept organization invite"},
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

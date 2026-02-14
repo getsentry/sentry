@@ -121,6 +121,63 @@ class ApiInviteHelperTest(TestCase):
         assert om.email is None
         assert om.user_id == self.user.id
 
+    def _create_member_with_token(self):
+        """Create a pending member with a valid token for testing valid_request."""
+        om = OrganizationMember.objects.get(id=self.member.id)
+        om.token = om.generate_token()
+        om.save()
+        return om
+
+    def test_valid_request_false_when_sso_required_no_identity(self) -> None:
+        """RTC-1210: valid_request should be False when SSO is required and user has no AuthIdentity."""
+        self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
+
+        om = self._create_member_with_token()
+        invite_context = organization_service.get_invite_by_id(
+            organization_member_id=om.id, organization_id=om.organization_id
+        )
+        assert invite_context is not None
+
+        helper = ApiInviteHelper(self.request, invite_context, om.token)
+        assert helper.member_pending
+        assert helper.invite_approved
+        assert helper.valid_token
+        assert helper.user_authenticated
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not helper.valid_request
+
+    def test_valid_request_true_when_sso_required_with_identity(self) -> None:
+        """RTC-1210: valid_request should be True when SSO is required and user has AuthIdentity."""
+        ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
+        self.create_auth_identity(auth_provider=ap, user=self.user)
+
+        om = self._create_member_with_token()
+        invite_context = organization_service.get_invite_by_id(
+            organization_member_id=om.id, organization_id=om.organization_id
+        )
+        assert invite_context is not None
+
+        helper = ApiInviteHelper(self.request, invite_context, om.token)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert helper.valid_request
+
+    def test_valid_request_true_when_sso_optional(self) -> None:
+        """RTC-1210: valid_request should be True when SSO is optional (allow_unlinked)."""
+        ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            ap.flags.allow_unlinked = True
+            ap.save()
+
+        om = self._create_member_with_token()
+        invite_context = organization_service.get_invite_by_id(
+            organization_member_id=om.id, organization_id=om.organization_id
+        )
+        assert invite_context is not None
+
+        helper = ApiInviteHelper(self.request, invite_context, om.token)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert helper.valid_request
+
     def test_invite_already_accepted_with_required_SSO(self) -> None:
         ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
         assert not ap.flags.allow_unlinked  # SSO is required

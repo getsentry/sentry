@@ -209,6 +209,20 @@ class ApiInviteHelper:
             return False
         return self.invite_context.user_id is not None
 
+    def _needs_sso(self) -> bool:
+        """Check if the user still needs to complete SSO for this organization."""
+        try:
+            provider = AuthProvider.objects.get(organization_id=self.invite_context.organization.id)
+        except AuthProvider.DoesNotExist:
+            return False
+        if provider.flags.allow_unlinked:
+            return False
+        if not self.request.user.is_authenticated:
+            return True
+        return not AuthIdentity.objects.filter(
+            auth_provider=provider, user=self.request.user.id
+        ).exists()
+
     @property
     def valid_request(self) -> bool:
         return (
@@ -217,6 +231,7 @@ class ApiInviteHelper:
             and self.valid_token
             and self.user_authenticated
             and not any(self.get_onboarding_steps().values())
+            and not self._needs_sso()
         )
 
     def accept_invite(self, user: User | AnonymousUser) -> RpcOrganizationMember | None:

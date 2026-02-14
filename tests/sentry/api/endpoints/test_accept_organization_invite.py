@@ -400,6 +400,53 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
+    def test_cannot_accept_when_sso_required_no_identity(self) -> None:
+        """RTC-1210: POST should return 400 when SSO is required and user has no AuthIdentity."""
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="google")
+
+        self.login_as(self.user)
+
+        om = Factories.create_member(
+            email="newuser@example.com", role="member", token="abc", organization=self.organization
+        )
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.post(path)
+            assert resp.status_code == 400
+
+            with assume_test_silo_mode_of(OrganizationMember):
+                om_check = OrganizationMember.objects.get(id=om.id)
+            assert om_check.is_pending, "should not have been accepted"
+
+    def test_can_accept_when_sso_required_with_identity(self) -> None:
+        """RTC-1210: POST should succeed when SSO is required and user has a valid AuthIdentity."""
+        from sentry.models.authidentity import AuthIdentity
+
+        ap = AuthProvider.objects.create(organization_id=self.organization.id, provider="google")
+        with assume_test_silo_mode_of(AuthIdentity):
+            AuthIdentity.objects.create(auth_provider=ap, user=self.user, ident="12345")
+
+        urls = self._get_urls()
+        for i, url in enumerate(urls):
+            user = self.create_user(f"sso{i}@example.com")
+            with assume_test_silo_mode_of(AuthIdentity):
+                AuthIdentity.objects.create(auth_provider=ap, user=user, ident=f"sso{i}")
+            self.login_as(user)
+
+            om = Factories.create_member(
+                email=user.email,
+                role="member",
+                token="abc",
+                organization=self.organization,
+            )
+            path = self._get_path(url, [om.id, om.token])
+            resp = self.client.post(path)
+            assert resp.status_code == 204
+
+            with assume_test_silo_mode_of(OrganizationMember):
+                om = OrganizationMember.objects.get(id=om.id)
+            assert om.email is None
+            assert om.user_id == user.id
+
     # TODO(hybrid-cloud): Split this test per URL in the future, as the
     #  slug-less variant will not work in Control-Silo mode since we won't
     #  know which region the org resides in and will return a 400 level error.
