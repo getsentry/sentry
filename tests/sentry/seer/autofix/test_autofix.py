@@ -1030,7 +1030,10 @@ class TestCallAutofix(TestCase):
     def test_call_autofix(self, mock_request, mock_get_username) -> None:
         """Tests the _call_autofix function makes the correct API call."""
         # Setup mocks
-        mock_request.return_value.json.return_value = {"run_id": "test-run-id"}
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": "test-run-id"}
+        mock_request.return_value = mock_response
         mock_get_username.return_value = None  # No GitHub username
 
         # Mock objects
@@ -1077,11 +1080,12 @@ class TestCallAutofix(TestCase):
 
         # Verify the API call
         mock_request.assert_called_once()
-        url = mock_request.call_args[0][0]
-        assert "/v1/automation/autofix/start" in url
+        # Verify path (second positional argument)
+        path = mock_request.call_args[0][1]
+        assert path == "/v1/automation/autofix/start"
 
-        # Verify the request body
-        body = orjson.loads(mock_request.call_args[1]["data"])
+        # Verify the request body (third positional argument)
+        body = orjson.loads(mock_request.call_args[0][2])
         assert body["organization_id"] == 456
         assert body["project_id"] == 789
         assert body["repos"] == repos
@@ -1104,11 +1108,6 @@ class TestCallAutofix(TestCase):
             == "https://github.com/getsentry/sentry/pull/123"
         )
         assert body["options"]["disable_coding_step"] is False
-
-        # Verify headers
-        headers = mock_request.call_args[1]["headers"]
-        assert headers["content-type"] == "application/json;charset=utf-8"
-        assert headers["Authorization"] == "Bearer test"
 
 
 class TestGetGithubUsernameForUser(TestCase):
@@ -1478,6 +1477,7 @@ class UpdateAutofixTest(TestCase):
         from sentry.seer.autofix.autofix import update_autofix
 
         mock_response = Mock()
+        mock_response.status = 500
         mock_request.return_value = mock_response
 
         response = update_autofix(

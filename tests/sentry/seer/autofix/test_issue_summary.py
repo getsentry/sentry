@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, Mock, call, patch
 
 import orjson
 import pytest
-from django.conf import settings
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.issues.grouptype import WebVitalsGroup
@@ -167,7 +166,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert status_code == 200
         assert summary_data == convert_dict_key_case(expected_response_summary, snake_to_camel_case)
         mock_request.assert_called_once()
-        payload = orjson.loads(mock_request.call_args_list[0].kwargs["data"])
+        # Body is the third positional argument
+        payload = orjson.loads(mock_request.call_args_list[0][0][2])
         assert payload["trace_tree"] is None
 
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") == expected_response_summary
@@ -310,8 +310,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_generate_summary.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    def test_call_seer_routes_to_summarization_url(self, post: MagicMock, _sign: MagicMock) -> None:
+    def test_call_seer_routes_to_summarization_url(self, mock_request: MagicMock) -> None:
         resp = Mock()
+        resp.status = 200
         resp.json.return_value = {
             "group_id": str(self.group.id),
             "whats_wrong": "w",
@@ -320,28 +321,24 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             "headline": "h",
             "scores": {},
         }
-        resp.raise_for_status = Mock()
-        post.return_value = resp
+        mock_request.return_value = resp
 
         result = _call_seer(self.group, {"event_id": "e1"}, {"trace": "tree"})
 
         assert result.group_id == str(self.group.id)
-        assert post.call_count == 1
-        assert (
-            post.call_args_list[0]
-            .args[0]
-            .startswith(f"{settings.SEER_SUMMARIZATION_URL}/v1/automation/summarize/issue")
-        )
-        payload = orjson.loads(post.call_args_list[0].kwargs["data"])
+        assert mock_request.call_count == 1
+        # Verify path argument (second argument)
+        call_path = mock_request.call_args_list[0][0][1]
+        assert call_path == "/v1/automation/summarize/issue"
+        # Verify body payload (third argument)
+        payload = orjson.loads(mock_request.call_args_list[0][0][2])
         assert payload["trace_tree"] == {"trace": "tree"}
-        resp.raise_for_status.assert_called_once()
 
     @patch(
-        "sentry.seer.autofix.issue_summary.requests.post", side_effect=Exception("primary error")
+        "sentry.seer.autofix.issue_summary.make_signed_seer_api_request",
+        side_effect=Exception("primary error"),
     )
-    def test_call_seer_raises_exception_when_endpoint_fails(
-        self, post: MagicMock, sign: MagicMock
-    ) -> None:
+    def test_call_seer_raises_exception_when_endpoint_fails(self, mock_request: MagicMock) -> None:
         with pytest.raises(Exception):
             _call_seer(self.group, {"event_id": "e1"}, None)
 
