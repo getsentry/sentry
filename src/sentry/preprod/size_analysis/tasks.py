@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=120,
     silo_mode=SiloMode.REGION,
 )
 def compare_preprod_artifact_size_analysis(
@@ -105,7 +105,6 @@ def compare_preprod_artifact_size_analysis(
 
         validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
         if validation_result.can_compare:
-
             base_metrics_map = build_size_metrics_map(base_size_metrics)
             head_metrics_map = build_size_metrics_map(head_size_metrics)
 
@@ -249,7 +248,7 @@ def compare_preprod_artifact_size_analysis(
 @instrumented_task(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
     namespace=preprod_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=120,
     silo_mode=SiloMode.REGION,
 )
 def manual_size_analysis_comparison(
@@ -332,7 +331,6 @@ def manual_size_analysis_comparison(
 
     validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
     if validation_result.can_compare:
-
         base_metrics_map = build_size_metrics_map(base_size_metrics)
         head_metrics_map = build_size_metrics_map(head_size_metrics)
 

@@ -1858,6 +1858,23 @@ class SnoozeTestMixin(BasePostProcessGroupMixin):
             )
             assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
+            mock_process_workflows_event.apply_async.assert_called_with(
+                kwargs=ProcessWorkflowsKwargsMatcher(
+                    event=event_2,
+                    group=group,
+                    has_reappeared=True,
+                    has_escalated=True,
+                    is_new=False,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                ),
+                headers=ANY,
+            )
+
+            group.refresh_from_db()
+            assert group.status == GroupStatus.UNRESOLVED
+            assert group.substatus == GroupSubStatus.ESCALATING
+
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     def test_maintains_valid_snooze(self, mock_process_workflows_event: MagicMock) -> None:
         event = self.create_event(data={}, project_id=self.project.id)

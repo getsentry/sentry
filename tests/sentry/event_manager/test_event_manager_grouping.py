@@ -876,7 +876,6 @@ class EventManagerGroupingMetricsTest(TestCase):
             transition_expiry,
             expected_in_transition,
         ) in in_transition_cases:
-
             mock_metrics_incr.reset_mock()
 
             project.update_option("sentry:grouping_config", primary_config)

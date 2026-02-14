@@ -190,7 +190,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
                     group.get_absolute_url(params={"referrer": "trello_plugin"})
                 ),
                 "type": "textarea",
-                "help": ("Leave blank if you don't want to " "add a comment to the Trello card."),
+                "help": ("Leave blank if you don't want to add a comment to the Trello card."),
                 "required": False,
             },
         ]

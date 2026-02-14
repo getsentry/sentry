@@ -89,9 +89,7 @@ def handle_trigger_action(
     # We should only fire using the legacy registry if we are not using the workflow engine
     if not should_fire_workflow_actions(incident.organization, MetricIssue.type_id):
         metrics.incr(
-            "incidents.alert_rules.action.{}.{}".format(
-                AlertRuleTriggerAction.Type(action.type).name.lower(), method
-            )
+            f"incidents.alert_rules.action.{AlertRuleTriggerAction.Type(action.type).name.lower()}.{method}"
         )
 
         getattr(action, method)(

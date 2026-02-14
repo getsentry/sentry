@@ -112,9 +112,7 @@ SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, Callable] = {
     NotificationContextField.FIRST_SEEN: lambda group, rules: time_since(group.first_seen),
     NotificationContextField.APPROX_START_TIME: lambda group, rules: datetime.fromtimestamp(
         get_approx_start_time(group=group)
-    ).strftime(
-        "%Y-%m-%d %H:%M:%S"
-    ),  # format moment into YYYY-mm-dd h:m:s
+    ).strftime("%Y-%m-%d %H:%M:%S"),  # format moment into YYYY-mm-dd h:m:s
 }
 
 

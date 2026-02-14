@@ -393,7 +393,6 @@ class FetchProjectTransactionTotals:
         return self._get_from_cache()
 
     def _get_from_cache(self) -> ProjectTransactionsTotals:
-
         if self._cache_empty():
             raise StopIteration()
 

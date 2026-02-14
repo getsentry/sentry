@@ -30,7 +30,6 @@ describe('useMultiQueryTable', () => {
 
     jest.mocked(usePageFilters).mockReturnValue({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       shouldPersist: true,
       selection: {

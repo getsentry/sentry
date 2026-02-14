@@ -264,7 +264,8 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         env_name = resolved_strings.get(row[env_key])
                         release_name = resolved_strings.get(row[release_key])
                         row_totals = totals[row["project_id"]].setdefault(
-                            env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore[arg-type]
+                            env_name,  # type: ignore[arg-type]
+                            {"total_sessions": 0, "releases": defaultdict(int)},
                         )
                         row_totals["total_sessions"] += row["sessions"]
                         row_totals["releases"][release_name] += row["sessions"]  # type: ignore[index]

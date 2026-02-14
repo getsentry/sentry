@@ -39,7 +39,6 @@ def diff_to_occurrence(
     head_metric: PreprodArtifactSizeMetrics,
     base_metric: PreprodArtifactSizeMetrics,
 ) -> tuple[IssueOccurrence, dict[str, Any]]:
-
     head_artifact = head_metric.preprod_artifact
     base_artifact = base_metric.preprod_artifact
     project_id = head_artifact.project_id

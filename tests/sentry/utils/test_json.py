@@ -49,6 +49,10 @@ class JSONSerializationTest(TestCase):
     def test_translation(self) -> None:
         self.assertEqual(json.dumps(_("word")), '"word"')
 
+    def test_sort_keys(self) -> None:
+        res = {"z": 1, "a": 2, "m": 3}
+        self.assertEqual(json.dumps(res, sort_keys=True), '{"a":2,"m":3,"z":1}')
+
 
 class JSONHelpersTest(TestCase):
     def test_prune_empty_keys_simple(self) -> None:

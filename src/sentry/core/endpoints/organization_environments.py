@@ -45,9 +45,7 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
         if visibility not in environment_visibility_filter_options:
             return Response(
                 {
-                    "detail": "Invalid value for 'visibility', valid values are: {!r}".format(
-                        sorted(environment_visibility_filter_options.keys())
-                    )
+                    "detail": f"Invalid value for 'visibility', valid values are: {sorted(environment_visibility_filter_options.keys())!r}"
                 },
                 status=400,
             )

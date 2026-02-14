@@ -118,5 +118,5 @@ def assert_webhook_payloads_for_mailbox(
             for destination_type, count in destination_types.items()
         ]
         raise Exception(
-            f"Not enough WebhookPayloads found for some destination_types:\n{"\n".join(exc_strs)}"
+            f"Not enough WebhookPayloads found for some destination_types:\n{'\n'.join(exc_strs)}"
         )

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, DefaultDict, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.db.models import F, Q
 from django.http import HttpResponse
@@ -206,8 +206,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         # ========================================================================
         # Step 3: flatten thresholds and compile projects/release-thresholds by type
         # ========================================================================
-        thresholds_by_type: DefaultDict[int, dict[str, list[Any]]] = defaultdict()
-        query_windows_by_type: DefaultDict[int, dict[str, datetime]] = defaultdict()
+        thresholds_by_type: defaultdict[int, dict[str, list[Any]]] = defaultdict()
+        query_windows_by_type: defaultdict[int, dict[str, datetime]] = defaultdict()
         for release in queryset:
             # TODO:
             # We should update release model to preserve threshold states.

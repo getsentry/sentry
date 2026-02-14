@@ -818,8 +818,7 @@ class SetRefsTest(SetRefsTestCase):
     # @staticmethod
     def test_invalid_chars_in_version(self) -> None:
         version = (
-            "\n> rfrontend@0.1.0 release:version\n> echo "
-            "'dev-19be1b7e-dirty'\n\ndev-19be1b7e-dirty"
+            "\n> rfrontend@0.1.0 release:version\n> echo 'dev-19be1b7e-dirty'\n\ndev-19be1b7e-dirty"
         )
         assert not Release.is_valid_version(version)
 

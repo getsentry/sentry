@@ -5,7 +5,6 @@ from sentry.uptime.subscriptions.subscriptions import delete_uptime_subscription
 
 class UptimeSubscriptionDeletionTask(ModelDeletionTask[UptimeSubscription]):
     def delete_instance(self, instance: UptimeSubscription) -> None:
-
         detector = get_detector(instance)
 
         # XXX: Typically quota updates would be handled by the

@@ -83,6 +83,10 @@ interface ListBoxProps<T extends ObjectLike>
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
   /**
+   * Whether the select has a search input field.
+   */
+  searchable?: boolean;
+  /**
    * When false, hides option details.
    */
   showDetails?: boolean;
@@ -129,7 +133,7 @@ export function ListBox<T extends ObjectLike>({
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
-  hasSearch,
+  searchable,
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
@@ -234,7 +238,7 @@ export function ListBox<T extends ObjectLike>({
                 );
               })}
 
-            {!hasSearch && hiddenOptions.size > 0 && (
+            {!searchable && hiddenOptions.size > 0 && (
               <SizeLimitMessage>
                 {sizeLimitMessage ?? t('Use search to find more options…')}
               </SizeLimitMessage>

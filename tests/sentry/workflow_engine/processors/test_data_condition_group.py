@@ -483,7 +483,6 @@ ERR = ConditionError(msg="test error")
 
 
 class TestTriggerResult(unittest.TestCase):
-
     def test_any_all_untainted_true_returns_untainted_true(self) -> None:
         assert TriggerResult.any([FALSE, TRUE, FALSE]) == TRUE
 

@@ -88,7 +88,6 @@ class LinkAllReposTestCase(IntegrationTestCase):
     def test_link_all_repos_api_response_keyerror(
         self, mock_record: MagicMock, _: MagicMock
     ) -> None:
-
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -132,7 +131,6 @@ class LinkAllReposTestCase(IntegrationTestCase):
     def test_link_all_repos_api_response_keyerror_single_repo(
         self, mock_record: MagicMock, _: MagicMock
     ) -> None:
-
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -187,7 +185,6 @@ class LinkAllReposTestCase(IntegrationTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
     def test_link_all_repos_api_error(self, mock_record: MagicMock, _: MagicMock) -> None:
-
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -208,7 +205,6 @@ class LinkAllReposTestCase(IntegrationTestCase):
     def test_link_all_repos_api_error_rate_limited(
         self, mock_record: MagicMock, _: MagicMock
     ) -> None:
-
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",

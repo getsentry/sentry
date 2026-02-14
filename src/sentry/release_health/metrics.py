@@ -147,7 +147,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         rollup: int,
     ) -> dict[int, float | None]:
-
         project_ids = [p.id for p in projects]
 
         select = [
@@ -184,7 +183,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rollup: int,
         org_id: int | None = None,
     ) -> CurrentAndPreviousCrashFreeRates:
-
         projects, proj_org_id = self._get_projects_and_org_id(project_ids)
 
         if org_id is None:
@@ -426,7 +424,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         org_id: OrganizationId,
         environments: Iterable[str] | None = None,
     ) -> ReleaseSessionsTimeBounds:
-
         projects, org_id = self._get_projects_and_org_id([project_id])
 
         select = [
@@ -843,7 +840,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         end: datetime,
     ) -> Mapping[tuple[int, str, str], int]:
-
         project_ids = [p.id for p in projects]
 
         select = [
@@ -902,7 +898,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         buckets: int,
     ) -> Mapping[ProjectRelease, list[list[int]]]:
-
         project_ids = [p.id for p in projects]
 
         metric_field = {
@@ -1121,7 +1116,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         environments: Sequence[EnvironmentName] | None = None,
     ) -> Callable[[datetime], CrashFreeBreakdown]:
-
         projects = self._get_projects([project_id])
 
         where = [
@@ -1201,7 +1195,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Sequence[EnvironmentName] | None = None,
         now: datetime | None = None,
     ) -> Sequence[CrashFreeBreakdown]:
-
         projects, org_id = self._get_projects_and_org_id([project_id])
 
         if now is None:
@@ -1239,7 +1232,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_ids: Iterable[int],
         now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
-
         if now is None:
             now = datetime.now(timezone.utc)
 
@@ -1348,7 +1340,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         stats_period: str | None = None,
         environments: Sequence[EnvironmentName] | None = None,
     ) -> int:
-
         projects = self._get_projects(project_ids)
 
         now = datetime.now(timezone.utc)
@@ -1615,7 +1606,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime | None,
         environment_ids: Sequence[int] | None = None,
     ) -> Sequence[ProjectWithCount]:
-
         projects, org_id = self._get_projects_and_org_id(project_ids)
 
         select = [MetricField(metric_mri=SessionMRI.ALL.value, alias="value", op=None)]
@@ -1673,7 +1663,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Sequence[str] | None = None,
         now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
-
         if len(project_ids) == 0:
             return []
 

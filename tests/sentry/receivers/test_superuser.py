@@ -53,7 +53,6 @@ class SuperuserReceiverTest(TestCase):
             assert not is_active_superuser(self.non_superuser_request)
 
     def test_enable_superuser_when_session_has_prefill_key_superuser(self) -> None:
-
         self.superuser_request.session[PREFILLED_SU_MODAL_KEY] = {
             "superuserAccessCategory": "for_unit_test",
             "superuserReason": "Edit organization settings",
@@ -64,7 +63,6 @@ class SuperuserReceiverTest(TestCase):
         assert is_active_superuser(self.superuser_request)
 
     def test_enable_superuser_when_session_has_prefill_key_non_superuser(self) -> None:
-
         self.superuser_request.session[PREFILLED_SU_MODAL_KEY] = {
             "superuserAccessCategory": "for_unit_test",
             "superuserReason": "Edit organization settings",
