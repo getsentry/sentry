@@ -448,7 +448,7 @@ export function ProjectPageFilter({
                 </Text>
               </CondensedAlert>
             )}
-            <Flex gap="md" align="center" justify="between">
+            <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
               {hasProjectWrite ? (
                 <HybridFilterComponents.LinkButton
                   icon={<IconAdd />}
