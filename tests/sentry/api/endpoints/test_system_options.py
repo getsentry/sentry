@@ -70,15 +70,15 @@ class SystemOptionsTest(APITestCase):
         with override_settings(SENTRY_SELF_HOSTED=True):
             self.login_as(user=self.user, superuser=True)
             response = self.client.put(self.url, {"auth.allow-registration": 1})
-            assert response.status_code == 200
             options.delete("auth.allow-registration")
+            assert response.status_code == 200
 
     def test_put_int_for_boolean(self) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
         response = self.client.put(self.url, {"auth.allow-registration": 1})
-        assert response.status_code == 200
         options.delete("auth.allow-registration")
+        assert response.status_code == 200
 
     def test_put_unknown_option(self) -> None:
         self.login_as(user=self.user, superuser=True)
@@ -114,9 +114,9 @@ class SystemOptionsTest(APITestCase):
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
         response = self.client.put(self.url, {"auth.allow-registration": 1})
-        assert response.status_code == 200
         assert (
             options.get_last_update_channel("auth.allow-registration")
             == options.UpdateChannel.APPLICATION
         )
         options.delete("auth.allow-registration")
+        assert response.status_code == 200
