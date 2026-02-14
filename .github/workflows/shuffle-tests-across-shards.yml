@@ -1,42 +1,22 @@
 name: shuffle-tests-across-shards
 
 on:
-  # Allow manually running
+  pull_request:
   workflow_dispatch:
     inputs:
       seed:
         description: The seed for the test ordering (all shards must share the same seed)
         required: false
 
-  # Run once a week
+  # run every 15 minutes
   schedule:
-    - cron: '0 3 * * 1'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
+    - cron: '*/15 * * * *'
 
 jobs:
-  generate-seed:
-    name: generate shared seed
-    runs-on: ubuntu-24.04
-    outputs:
-      seed: ${{ steps.seed.outputs.seed }}
-    steps:
-      - name: Generate seed
-        id: seed
-        run: |
-          if [ -n "${{ inputs.seed }}" ]; then
-            echo "seed=${{ inputs.seed }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "seed=$(date +%s)" >> "$GITHUB_OUTPUT"
-          fi
-
   backend-test:
     name: run backend tests
-    needs: generate-seed
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 30
     permissions:
       contents: read
       id-token: write
@@ -52,7 +32,9 @@ jobs:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       MATRIX_INSTANCE_TOTAL: 11
       SENTRY_SHUFFLE_TESTS_ACROSS_SHARDS: true
-      SENTRY_SHUFFLE_TESTS_SEED: ${{ needs.generate-seed.outputs.seed }}
+      # All shards must share the same seed. github.run_id is consistent
+      # across matrix instances. Manual seed input takes precedence.
+      SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed || github.run_id }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -66,21 +48,3 @@ jobs:
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           make test-python-ci
-
-      - name: Inspect failure
-        if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        with:
-          artifact_path: .artifacts/pytest.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
