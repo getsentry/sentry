@@ -95,7 +95,7 @@ def status_name(status: TaskActivationStatus.ValueType) -> str:
 def child_process(
     app_module: str,
     child_tasks: queue.Queue[InflightTaskActivation],
-    processed_tasks: Dict[str, queue.Queue[ProcessingResult]],
+    processed_tasks: dict[str, queue.Queue[ProcessingResult]],
     shutdown_event: Event,
     max_task_count: int | None,
     processing_pool_name: str,
@@ -140,7 +140,7 @@ def child_process(
 
     def run_worker(
         child_tasks: queue.Queue[InflightTaskActivation],
-        processed_tasks: Dict[str, queue.Queue[ProcessingResult]],
+        processed_tasks: dict[str, queue.Queue[ProcessingResult]],
         shutdown_event: Event,
         max_task_count: int | None,
         processing_pool_name: str,

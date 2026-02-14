@@ -143,7 +143,7 @@ class TaskWorker:
         self._child_tasks: multiprocessing.Queue[InflightTaskActivation] = self.mp_context.Queue(
             maxsize=child_tasks_queue_maxsize
         )
-        self._processed_tasks: Dict[str, multiprocessing.Queue[ProcessingResult]] = {
+        self._processed_tasks: dict[str, multiprocessing.Queue[ProcessingResult]] = {
             host: self.mp_context.Queue(maxsize=result_queue_maxsize) for host in broker_hosts
         }
         self._children: list[BaseProcess] = []
