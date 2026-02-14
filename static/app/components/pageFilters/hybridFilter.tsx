@@ -1,5 +1,4 @@
 import {
-  createContext,
   useCallback,
   useContext,
   useEffect,
@@ -335,20 +334,9 @@ export function HybridFilter<Value extends SelectKey>({
   ]);
 
   return (
-    <HybridFilterContext.Provider value={stagedSelect as any}>
-      <CompactSelect
-        grid
-        multiple
-        {...stagedSelect.compactSelectProps}
-        {...selectProps}
-      />
-    </HybridFilterContext.Provider>
+    <CompactSelect grid multiple {...stagedSelect.compactSelectProps} {...selectProps} />
   );
 }
-
-const HybridFilterContext = createContext<UseStagedCompactSelectReturn<SelectKey> | null>(
-  null
-);
 
 export const HybridFilterComponents = {
   LinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {

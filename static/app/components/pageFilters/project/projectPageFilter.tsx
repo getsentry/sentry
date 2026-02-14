@@ -434,44 +434,45 @@ export function ProjectPageFilter({
         ) : null
       }
       menuFooter={
-        <Stack gap="md" direction="column">
-          {selectionLimitExceeded && (
-            <CondensedAlert variant="warning" showIcon={false}>
-              <Text size="sm">
-                {tct(
-                  `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
-                  {
-                    limit: SELECTION_COUNT_LIMIT,
-                    count: stagedValue.length,
-                  }
-                )}
-              </Text>
-            </CondensedAlert>
-          )}
-          <Flex gap="md" align="center" justify="between">
-            {hasProjectWrite ? (
-              <HybridFilterComponents.LinkButton
-                icon={<IconAdd />}
-                to={makeProjectsPathname({path: '/new/', organization})}
-                onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
-                disabled={stagedSelect.disableCommit}
-              >
-                {t('Create Project')}
-              </HybridFilterComponents.LinkButton>
-            ) : undefined}
-            {stagedSelect.hasStagedChanges ? (
-              <Flex gap="md" align="center" justify="end">
-                <HybridFilterComponents.CancelButton
-                  onClick={() => stagedSelect.removeStagedChanges()}
-                />
-                <HybridFilterComponents.ApplyButton
-                  disabled={stagedSelect.disableCommit}
+        selectionLimitExceeded || hasProjectWrite || stagedSelect.hasStagedChanges ? (
+          <Stack gap="md" direction="column">
+            {selectionLimitExceeded && (
+              <CondensedAlert variant="warning" showIcon={false}>
+                <Text size="sm">
+                  {tct(
+                    `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
+                    {
+                      limit: SELECTION_COUNT_LIMIT,
+                      count: stagedValue.length,
+                    }
+                  )}
+                </Text>
+              </CondensedAlert>
+            )}
+            <Flex gap="md" align="center" justify="between">
+              {hasProjectWrite ? (
+                <HybridFilterComponents.LinkButton
+                  icon={<IconAdd />}
+                  to={makeProjectsPathname({path: '/new/', organization})}
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
-                />
-              </Flex>
-            ) : null}
-          </Flex>
-        </Stack>
+                >
+                  {t('Create Project')}
+                </HybridFilterComponents.LinkButton>
+              ) : undefined}
+              {stagedSelect.hasStagedChanges ? (
+                <Flex gap="md" align="center" justify="end">
+                  <HybridFilterComponents.CancelButton
+                    onClick={() => stagedSelect.removeStagedChanges()}
+                  />
+                  <HybridFilterComponents.ApplyButton
+                    disabled={stagedSelect.disableCommit}
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </Flex>
+              ) : null}
+            </Flex>
+          </Stack>
+        ) : null
       }
       trigger={
         trigger ??
