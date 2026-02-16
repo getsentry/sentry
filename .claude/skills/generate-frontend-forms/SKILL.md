@@ -522,8 +522,8 @@ function MyForm() {
     ...defaultFormOptions,
     defaultValues: {...},
     validators: {onDynamic: schema},
-    onSubmit: async ({value}) => {
-      await mutation.mutateAsync(value);
+    onSubmit: ({value}) => {
+      return mutation.mutateAsync(value).catch(() => {});
     },
   });
 
@@ -586,13 +586,21 @@ onSubmit: async ({value}) => {
   await api.post('/users', value);
 };
 
-// ✅ Use mutations with fetchMutation
+// ❌ Don't use mutateAsync without .catch() - causes unhandled rejection
+onSubmit: ({value}) => {
+  return mutation.mutateAsync(value);
+};
+
+// ✅ Use mutations with fetchMutation and .catch(() => {})
 const mutation = useMutation({
   mutationFn: data => fetchMutation({url: '/users/', method: 'POST', data}),
 });
 
-onSubmit: async ({value}) => {
-  await mutation.mutateAsync(value);
+onSubmit: ({value}) => {
+  // Return the promise to keep form.isSubmitting working
+  // Add .catch(() => {}) to avoid unhandled rejection - error handling
+  // is done by TanStack Query (onError callback, mutation.isError state)
+  return mutation.mutateAsync(value).catch(() => {});
 };
 ```
 
