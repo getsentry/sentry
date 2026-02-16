@@ -569,3 +569,161 @@ describe('SelectField multiple', () => {
     });
   });
 });
+
+const multiTestSchema = z.object({
+  tags: z.array(z.string()),
+});
+
+interface MultiAutoSaveTestFormProps {
+  mutationFn: (data: {tags: string[]}) => Promise<{tags: string[]}>;
+  initialValue?: string[];
+  label?: string;
+}
+
+function MultiAutoSaveTestForm({
+  mutationFn,
+  initialValue = [],
+  label = 'Tags',
+}: MultiAutoSaveTestFormProps) {
+  return (
+    <AutoSaveField
+      name="tags"
+      schema={multiTestSchema}
+      initialValue={initialValue}
+      mutationOptions={{mutationFn}}
+    >
+      {field => (
+        <field.Layout.Row label={label}>
+          <field.Select
+            multiple
+            value={field.state.value}
+            onChange={field.handleChange}
+            options={MULTI_OPTIONS}
+            clearable
+          />
+        </field.Layout.Row>
+      )}
+    </AutoSaveField>
+  );
+}
+
+describe('SelectField multiple auto-save', () => {
+  it('triggers save when clicking X on a tag while menu is closed', async () => {
+    const mutationFn = jest.fn((data: {tags: string[]}) => Promise.resolve(data));
+
+    render(
+      <MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={['tag1', 'tag2']} />
+    );
+
+    // Click the remove button on tag1 (menu is closed)
+    const removeButtons = screen.getAllByLabelText('Remove item');
+    await userEvent.click(removeButtons[0]!);
+
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({tags: ['tag2']});
+    });
+  });
+
+  it('triggers save when clicking clear all while menu is closed', async () => {
+    const mutationFn = jest.fn((data: {tags: string[]}) => Promise.resolve(data));
+
+    render(
+      <MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={['tag1', 'tag2']} />
+    );
+
+    // Click clear all button (menu is closed)
+    await userEvent.click(screen.getByLabelText('Clear choices'));
+
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({tags: []});
+    });
+  });
+
+  it('does not trigger save while selecting options with menu open', async () => {
+    const mutationFn = jest.fn((data: {tags: string[]}) => Promise.resolve(data));
+
+    render(<MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={[]} />);
+
+    // Open menu and select options
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 1'}));
+
+    // Should not have triggered save yet (menu is still open)
+    expect(mutationFn).not.toHaveBeenCalled();
+
+    // Select another option
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 2'}));
+
+    // Still should not have triggered save
+    expect(mutationFn).not.toHaveBeenCalled();
+  });
+
+  it('triggers save when menu closes after selecting options', async () => {
+    const mutationFn = jest.fn((data: {tags: string[]}) => Promise.resolve(data));
+
+    render(<MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={[]} />);
+
+    // Open menu and select options
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 1'}));
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 2'}));
+
+    // Close menu
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({tags: ['tag1', 'tag2']});
+    });
+  });
+
+  it('does not trigger multiple saves when removing item while menu is closed', async () => {
+    const mutationFn = jest.fn((data: {tags: string[]}) => Promise.resolve(data));
+
+    render(
+      <MultiAutoSaveTestForm
+        mutationFn={mutationFn}
+        initialValue={['tag1', 'tag2', 'tag3']}
+      />
+    );
+
+    // Remove first item
+    const removeButtons = screen.getAllByLabelText('Remove item');
+    await userEvent.click(removeButtons[0]!);
+
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mutationFn).toHaveBeenCalledWith({tags: ['tag2', 'tag3']});
+  });
+
+  it('shows spinner when auto-save is pending for multi-select', async () => {
+    const mutationFn = jest.fn(() => new Promise<{tags: string[]}>(() => {}));
+
+    render(
+      <MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={['tag1', 'tag2']} />
+    );
+
+    // Remove an item to trigger save
+    const removeButtons = screen.getAllByLabelText('Remove item');
+    await userEvent.click(removeButtons[0]!);
+
+    expect(await screen.findByRole('status', {name: 'Saving tags'})).toBeInTheDocument();
+  });
+
+  it('disables multi-select while auto-save is pending', async () => {
+    const mutationFn = jest.fn(() => new Promise<{tags: string[]}>(() => {}));
+
+    render(
+      <MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={['tag1', 'tag2']} />
+    );
+
+    // Remove an item to trigger save
+    const removeButtons = screen.getAllByLabelText('Remove item');
+    await userEvent.click(removeButtons[0]!);
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeDisabled();
+    });
+  });
+});
