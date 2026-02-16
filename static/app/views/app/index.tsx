@@ -24,6 +24,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
+import {LLMContextRoot} from 'sentry/utils/seer/llmContext';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
@@ -245,12 +246,14 @@ function App() {
                 <GlobalFeedbackForm>
                   <MainContainer tabIndex={-1} ref={mainContainerRef}>
                     <DemoToursProvider>
-                      <ExplorerPanelProvider>
-                        <GlobalModal onClose={handleModalClose} />
-                        <ExplorerPanel />
-                        <Indicators className="indicators-container" />
-                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                      </ExplorerPanelProvider>
+                      <LLMContextRoot>
+                        <ExplorerPanelProvider>
+                          <GlobalModal onClose={handleModalClose} />
+                          <ExplorerPanel />
+                          <Indicators className="indicators-container" />
+                          <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                        </ExplorerPanelProvider>
+                      </LLMContextRoot>
                     </DemoToursProvider>
                   </MainContainer>
                 </GlobalFeedbackForm>

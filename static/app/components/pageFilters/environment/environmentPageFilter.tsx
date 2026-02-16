@@ -23,6 +23,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {useLLMContext, type LLMAction} from 'sentry/utils/seer/llmContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -222,6 +223,108 @@ export function EnvironmentPageFilter({
     onReplace,
     onReset,
     multiple: true,
+  });
+
+  // ---- LLM Context ----
+  const llmData = useMemo(
+    () => ({selected: value, available: environments}),
+    [value, environments]
+  );
+
+  const llmActions = useMemo<LLMAction[]>(
+    () => [
+      {
+        type: 'setEnvironments',
+        description: 'Replace the currently selected environments with the given list',
+        schema: {
+          type: 'object',
+          properties: {
+            environments: {
+              type: 'array',
+              items: {type: 'string'},
+              description: 'List of environment names to select',
+            },
+          },
+          required: ['environments'],
+        },
+      },
+      {
+        type: 'addEnvironment',
+        description: 'Add a single environment to the current selection',
+        schema: {
+          type: 'object',
+          properties: {
+            environment: {
+              type: 'string',
+              description: 'Environment name to add',
+            },
+          },
+          required: ['environment'],
+        },
+      },
+      {
+        type: 'removeEnvironment',
+        description: 'Remove a single environment from the current selection',
+        schema: {
+          type: 'object',
+          properties: {
+            environment: {
+              type: 'string',
+              description: 'Environment name to remove',
+            },
+          },
+          required: ['environment'],
+        },
+      },
+      {
+        type: 'reset',
+        description: 'Clear all selected environments (select all)',
+        schema: {type: 'object', properties: {}},
+      },
+    ],
+    []
+  );
+
+  const llmHandlers = useMemo(
+    () => ({
+      setEnvironments: (payload: any) => {
+        if (Array.isArray(payload?.environments)) {
+          const valid = payload.environments.filter((e: string) =>
+            environments.includes(e)
+          );
+          handleChange(valid);
+        }
+      },
+      addEnvironment: (payload: any) => {
+        if (
+          typeof payload?.environment === 'string' &&
+          environments.includes(payload.environment)
+        ) {
+          if (!value.includes(payload.environment)) {
+            handleChange([...value, payload.environment]);
+          }
+        }
+      },
+      removeEnvironment: (payload: any) => {
+        if (typeof payload?.environment === 'string') {
+          handleChange(value.filter(e => e !== payload.environment));
+        }
+      },
+      reset: () => {
+        handleChange([]);
+      },
+    }),
+    [environments, value, handleChange]
+  );
+
+  useLLMContext({
+    name: 'environment-filter',
+    entity: 'filter',
+    description:
+      'Controls which environments the page data is filtered by. When no environments are selected, all environments are shown.',
+    data: llmData,
+    actions: llmActions,
+    onAction: llmHandlers,
   });
 
   return (
