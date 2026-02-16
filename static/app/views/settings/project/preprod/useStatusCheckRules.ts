@@ -10,7 +10,13 @@ import type {Project} from 'sentry/types/project';
 import {uniqueId} from 'sentry/utils/guid';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
-import {MEASUREMENT_OPTIONS, METRIC_OPTIONS, type StatusCheckRule} from './types';
+import {
+  ARTIFACT_TYPE_OPTIONS,
+  MEASUREMENT_OPTIONS,
+  METRIC_OPTIONS,
+  type ArtifactType,
+  type StatusCheckRule,
+} from './types';
 
 const ENABLED_KEY = 'sentry:preprod_size_status_checks_enabled';
 const RULES_KEY = 'sentry:preprod_size_status_checks_rules';
@@ -20,6 +26,7 @@ const DEFAULT_MEASUREMENT = MEASUREMENT_OPTIONS[0]!.value;
 
 const VALID_METRICS: string[] = METRIC_OPTIONS.map(o => o.value);
 const VALID_MEASUREMENTS: string[] = MEASUREMENT_OPTIONS.map(o => o.value);
+const VALID_ARTIFACT_TYPES: string[] = ARTIFACT_TYPE_OPTIONS.map(o => o.value);
 
 function parseRules(raw: unknown): StatusCheckRule[] {
   if (!Array.isArray(raw)) {
@@ -34,12 +41,16 @@ function parseRules(raw: unknown): StatusCheckRule[] {
       const measurement = VALID_MEASUREMENTS.includes(r.measurement as string)
         ? (r.measurement as StatusCheckRule['measurement'])
         : DEFAULT_MEASUREMENT;
+      const artifactType = VALID_ARTIFACT_TYPES.includes(r.artifactType as string)
+        ? (r.artifactType as ArtifactType)
+        : 'main_artifact';
       return {
         id: r.id as string,
         metric,
         measurement,
         value: typeof r.value === 'number' ? r.value : 0,
         filterQuery: typeof r.filterQuery === 'string' ? r.filterQuery : '',
+        artifactType,
       };
     });
 }
@@ -138,6 +149,7 @@ export function useStatusCheckRules(project: Project) {
       measurement: DEFAULT_MEASUREMENT,
       value: 0,
       filterQuery: '',
+      artifactType: 'all_artifacts',
     };
   }, []);
 

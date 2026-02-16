@@ -13,8 +13,9 @@ import {t} from 'sentry/locale';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {SectionLabel} from './statusCheckSharedComponents';
-import type {StatusCheckRule} from './types';
+import type {ArtifactType, StatusCheckRule} from './types';
 import {
+  ARTIFACT_TYPE_OPTIONS,
   bytesToMB,
   getDisplayUnit,
   getMeasurementLabel,
@@ -38,6 +39,9 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
   const initialDisplayValue = displayUnit === '%' ? rule.value : bytesToMB(rule.value);
   const [displayValue, setDisplayValue] = useState(initialDisplayValue);
   const [filterQuery, setFilterQuery] = useState(rule.filterQuery ?? '');
+  const [artifactType, setArtifactType] = useState<ArtifactType>(
+    rule.artifactType ?? 'main_artifact'
+  );
 
   const currentValueInBytes =
     displayUnit === '%' ? displayValue : mbToBytes(displayValue);
@@ -45,7 +49,8 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
     metric !== rule.metric ||
     measurement !== rule.measurement ||
     currentValueInBytes !== rule.value ||
-    filterQuery !== (rule.filterQuery ?? '');
+    filterQuery !== (rule.filterQuery ?? '') ||
+    artifactType !== (rule.artifactType ?? 'main_artifact');
 
   const handleSave = () => {
     onSave({
@@ -54,6 +59,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
       measurement,
       metric,
       value: currentValueInBytes,
+      artifactType,
     });
   };
 
@@ -111,6 +117,15 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
           <Text variant="muted">{displayUnit}</Text>
         </Flex>
       </Flex>
+
+      <Stack gap="sm">
+        <SectionLabel>{t('Artifact Type')}</SectionLabel>
+        <CompactSelect
+          value={artifactType}
+          options={ARTIFACT_TYPE_OPTIONS}
+          onChange={opt => setArtifactType(opt.value)}
+        />
+      </Stack>
 
       <Stack gap="sm">
         <SectionLabel>{t('For')}</SectionLabel>
