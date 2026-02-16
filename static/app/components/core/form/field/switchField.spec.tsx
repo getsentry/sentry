@@ -377,6 +377,52 @@ describe('SwitchField with confirm', () => {
     });
   });
 
+  it('does not hang when mutation fails after confirm', async () => {
+    renderGlobalModal();
+    const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
+    const onError = jest.fn();
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn, onError}}
+        confirm="Are you sure?"
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // Modal should be shown
+    await screen.findByText('Are you sure?');
+
+    // Click confirm button - mutation will fail
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    // Mutation should be called
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+    });
+
+    // Error handler should be invoked by TanStack Query
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalled();
+    });
+
+    // Form should not hang - checkbox should become enabled again after mutation fails
+    await waitFor(() => {
+      expect(checkbox).toBeEnabled();
+    });
+  });
+
   it('does not apply change when user cancels', async () => {
     renderGlobalModal();
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));

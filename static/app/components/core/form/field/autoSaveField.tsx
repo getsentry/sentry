@@ -194,13 +194,19 @@ export function AutoSaveField<
             isDangerous: true,
             onConfirm: () => {
               pendingConfirmRef.current = false;
-              mutation.mutateAsync(value).then(() => resolve());
+              // Resolve on both success and failure - error handling is done by
+              // TanStack Query (onError callback, mutation.isError state)
+              mutation.mutateAsync(value).then(() => resolve(), resolve);
             },
-            onCancel: () => {
+            onClose: () => {
+              // onClose is always called, even after confirming,
+              // so we check pendingConfirmRef to avoid resetting the form
+              // after a successful confirm
+              if (pendingConfirmRef.current) {
+                form.reset();
+                resolve();
+              }
               pendingConfirmRef.current = false;
-              // Reset form to initial value on cancel
-              form.reset();
-              resolve();
             },
           });
         });
