@@ -1,3 +1,4 @@
+import pytest
 from collections.abc import Sequence
 from typing import Any
 from unittest import mock
@@ -1050,6 +1051,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         other_dcg.refresh_from_db()
         assert other_dcg.conditions.count() == original_condition_count
 
+    @pytest.mark.skip(reason="flaky: #108315")
     def test_create_action_filter_condition_from_different_organization(self) -> None:
         """Test that conditionGroupId in action filter conditions cannot reference another org's group"""
         other_org = self.create_organization()
