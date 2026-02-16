@@ -1,6 +1,12 @@
 import {z} from 'zod';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
@@ -234,5 +240,270 @@ describe('SwitchField a11y', () => {
     render(<TestForm label="Enable Feature" />);
 
     expect(screen.getByRole('checkbox')).toHaveAttribute('aria-invalid', 'false');
+  });
+});
+
+describe('SwitchField with confirm', () => {
+  it('shows confirmation modal with string confirm', async () => {
+    renderGlobalModal();
+    const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+        confirm="Are you sure you want to change this?"
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // Modal should be shown
+    expect(
+      await screen.findByText('Are you sure you want to change this?')
+    ).toBeInTheDocument();
+
+    // Mutation should not be called yet
+    expect(mutationFn).not.toHaveBeenCalled();
+  });
+
+  it('shows confirmation modal with function confirm', async () => {
+    renderGlobalModal();
+    const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+        confirm={value => (value ? 'Are you sure you want to enable this?' : undefined)}
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // Modal should be shown
+    expect(
+      await screen.findByText('Are you sure you want to enable this?')
+    ).toBeInTheDocument();
+
+    // Mutation should not be called yet
+    expect(mutationFn).not.toHaveBeenCalled();
+  });
+
+  it('does not show modal when function returns undefined', async () => {
+    renderGlobalModal();
+    const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue
+        mutationOptions={{mutationFn}}
+        confirm={value => (value ? 'Are you sure you want to enable this?' : undefined)}
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // No modal should be shown (toggling to false returns undefined)
+    expect(
+      screen.queryByText('Are you sure you want to enable this?')
+    ).not.toBeInTheDocument();
+
+    // Mutation should be called immediately
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({enabled: false});
+    });
+  });
+
+  it('applies change and triggers save when user confirms', async () => {
+    renderGlobalModal();
+    const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+        confirm="Are you sure?"
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // Modal should be shown
+    await screen.findByText('Are you sure?');
+
+    // Click confirm button
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    // Mutation should be called after confirmation
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+    });
+  });
+
+  it('does not apply change when user cancels', async () => {
+    renderGlobalModal();
+    const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+        confirm="Are you sure?"
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // Modal should be shown
+    await screen.findByText('Are you sure?');
+
+    // Click cancel button
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    // Wait a bit to ensure mutation is not called
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Mutation should not be called
+    expect(mutationFn).not.toHaveBeenCalled();
+
+    // Checkbox should still be unchecked
+    expect(checkbox).not.toBeChecked();
+  });
+
+  it('always focuses cancel button for safety', async () => {
+    renderGlobalModal();
+    const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+        confirm="This is a dangerous operation!"
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // Modal should be shown
+    await screen.findByText('This is a dangerous operation!');
+
+    // Cancel button should have autofocus (always dangerous)
+    expect(screen.getByRole('button', {name: 'Cancel'})).toHaveFocus();
+  });
+
+  it('supports different messages for each direction with function', async () => {
+    renderGlobalModal();
+    const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
+
+    // Test enabling: start with false, toggle to true
+    const {unmount} = render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+        confirm={value =>
+          value ? 'Are you sure you want to ENABLE?' : 'Are you sure you want to DISABLE?'
+        }
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    await userEvent.click(screen.getByRole('checkbox'));
+
+    // Should show enable message
+    expect(
+      await screen.findByText('Are you sure you want to ENABLE?')
+    ).toBeInTheDocument();
+
+    // Cancel and unmount
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    unmount();
+
+    // Test disabling: start with true, toggle to false
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue
+        mutationOptions={{mutationFn}}
+        confirm={value =>
+          value ? 'Are you sure you want to ENABLE?' : 'Are you sure you want to DISABLE?'
+        }
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    await userEvent.click(screen.getByRole('checkbox'));
+
+    // Should show disable message
+    expect(
+      await screen.findByText('Are you sure you want to DISABLE?')
+    ).toBeInTheDocument();
   });
 });
