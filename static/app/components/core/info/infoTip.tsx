@@ -4,6 +4,7 @@ import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import {IconQuestion} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {t} from 'sentry/locale';
 
 interface InfoTooltipProps extends SVGIconProps {
   title: React.ReactNode;
@@ -17,7 +18,7 @@ export function InfoTip({title, position, ...props}: InfoTooltipProps) {
         {...props}
         tabIndex={0}
         role="img"
-        aria-label="More information"
+        aria-label={t('More information')}
       />
     </Tooltip>
   );
