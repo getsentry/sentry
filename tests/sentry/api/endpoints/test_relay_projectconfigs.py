@@ -187,7 +187,6 @@ def test_parse_retentions(call_endpoint, default_project):
         get_event_retention=lambda x: 45,
         get_downsampled_event_retention=lambda x: 90,
     ):
-
         result, status_code = call_endpoint()
         assert status_code < 400
         assert_no_snakecase_key(result)
@@ -259,17 +258,20 @@ def test_relays_dyamic_sampling(call_endpoint, default_project) -> None:
         dynamic_sampling = safe.get_path(
             result, "configs", str(default_project.id), "config", "sampling"
         )
-        assert dynamic_sampling == {
-            "version": 2,
-            "rules": [
-                {
-                    "samplingValue": {"type": "sampleRate", "value": 1.0},
-                    "type": "trace",
-                    "condition": {"op": "and", "inner": []},
-                    "id": 1000,  # this is reserved id for RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE which is being created
-                }
-            ],
-        }
+        assert (
+            dynamic_sampling
+            == {
+                "version": 2,
+                "rules": [
+                    {
+                        "samplingValue": {"type": "sampleRate", "value": 1.0},
+                        "type": "trace",
+                        "condition": {"op": "and", "inner": []},
+                        "id": 1000,  # this is reserved id for RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE which is being created
+                    }
+                ],
+            }
+        )
 
 
 @django_db_all
