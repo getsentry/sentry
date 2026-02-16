@@ -244,6 +244,99 @@ def drain_mailbox(payload_id: int) -> None:
             return
 
 
+def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
+    """
+    Remove payloads in this mailbox that are older than MAX_DELIVERY_AGE.
+    Once payloads are this old they are low value, and we're better off prioritizing new work.
+    """
+    with sentry_sdk.start_span(
+        op="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads"
+    ) as span:
+        span.set_tag("mailbox_name", payload.mailbox_name)
+        max_age = timezone.now() - MAX_DELIVERY_AGE
+        if payload.date_added >= max_age:
+            return
+        stale_query = WebhookPayload.objects.filter(
+            id__gte=payload.id,
+            mailbox_name=payload.mailbox_name,
+            date_added__lte=timezone.now() - MAX_DELIVERY_AGE,
+        ).values("id")[:10000]
+        deleted, _ = WebhookPayload.objects.filter(id__in=stale_query).delete()
+        if deleted:
+            logger.info(
+                "deliver_webhook_parallel.max_age_discard",
+                extra={
+                    "mailbox_name": payload.mailbox_name,
+                    "deleted": deleted,
+                },
+            )
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.delivery", amount=deleted, tags={"outcome": "max_age"}
+            )
+
+
+def _handle_parallel_delivery_result(
+    payload_record: WebhookPayload, err: Exception | None
+) -> tuple[bool, bool]:
+    """
+    Process one result from the parallel delivery threadpool.
+    Returns (request_failed, should_reraise).
+    """
+    if err:
+        if payload_record.attempts >= MAX_ATTEMPTS:
+            payload_record.delete()
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.delivery",
+                tags={"outcome": "attempts_exceed"},
+            )
+            logger.info(
+                "deliver_webhook_parallel.discard",
+                extra={"id": payload_record.id, "attempts": payload_record.attempts},
+            )
+            request_failed = False
+        else:
+            metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
+            payload_record.schedule_next_attempt()
+            request_failed = True
+        return (request_failed, not isinstance(err, DeliveryFailed))
+    payload_record.delete()
+    duration = timezone.now() - payload_record.date_added
+    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
+    metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
+    return (False, False)
+
+
+def _run_parallel_delivery_batch(
+    payload: WebhookPayload, worker_threads: int
+) -> tuple[int, bool, bool]:
+    """
+    Run one batch of parallel deliveries for the mailbox.
+    Returns (delivered_count, request_failed, no_more_messages).
+    """
+    query = WebhookPayload.objects.filter(
+        id__gte=payload.id, mailbox_name=payload.mailbox_name
+    ).order_by("id")
+
+    with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
+        futures = {
+            threadpool.submit(deliver_message_parallel, record) for record in query[:worker_threads]
+        }
+        delivered = 0
+        request_failed = False
+        for future in as_completed(futures):
+            payload_record, err = future.result()
+            batch_request_failed, should_reraise = _handle_parallel_delivery_result(
+                payload_record, err
+            )
+            request_failed = request_failed or batch_request_failed
+            if should_reraise and err is not None:
+                raise err
+            if err is None:
+                delivered += 1
+        no_more_messages = len(futures) < 1
+    return (delivered, request_failed, no_more_messages)
+
+
 @instrumented_task(
     name="sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel",
     namespace=hybridcloud_control_tasks,
@@ -279,120 +372,32 @@ def drain_mailbox_parallel(payload_id: int) -> None:
         return
 
     _set_webhook_delivery_sentry_context(payload)
-
-    # Remove batches payloads that have been backlogged for MAX_DELIVERY_AGE.
-    # Once payloads are this old they are low value, and we're better off prioritizing new work.
-    max_age = timezone.now() - MAX_DELIVERY_AGE
-    if payload.date_added < max_age:
-        # We delete chunks of stale messages using a subquery
-        # because postgres cannot do delete with limit
-        stale_query = WebhookPayload.objects.filter(
-            id__gte=payload.id,
-            mailbox_name=payload.mailbox_name,
-            date_added__lte=timezone.now() - MAX_DELIVERY_AGE,
-        ).values("id")[:10000]
-        deleted, _ = WebhookPayload.objects.filter(id__in=stale_query).delete()
-        if deleted:
-            logger.info(
-                "deliver_webhook_parallel.max_age_discard",
-                extra={
-                    "mailbox_name": payload.mailbox_name,
-                    "deleted": deleted,
-                },
-            )
-            metrics.incr(
-                "hybridcloud.deliver_webhooks.delivery", amount=deleted, tags={"outcome": "max_age"}
-            )
+    _discard_stale_mailbox_payloads(payload)
 
     worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
-    request_failed = False
     delivered = 0
+    extra = {"mailbox_name": payload.mailbox_name, "delivered": delivered}
     while True:
-        current_time = timezone.now()
-        # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
-        # task.
-        if current_time >= deadline:
-            logger.info(
-                "deliver_webhook_parallel.delivery_deadline",
-                extra={
-                    "mailbox_name": payload.mailbox_name,
-                    "delivered": delivered,
-                },
-            )
+        if timezone.now() >= deadline:
+            logger.info("deliver_webhook_parallel.delivery_deadline", extra=extra)
             metrics.incr(
                 "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "delivery_deadline"}
             )
             break
 
-        # Fetch records from the batch in batch_size blocks. This avoids reading
-        # redundant data should we hit an error and should help keep query duration low.
-        query = WebhookPayload.objects.filter(
-            id__gte=payload.id, mailbox_name=payload.mailbox_name
-        ).order_by("id")
+        delivered_batch, request_failed, no_more_messages = _run_parallel_delivery_batch(
+            payload, worker_threads
+        )
+        delivered += delivered_batch
+        extra["delivered"] = delivered
 
-        # Use a threadpool to send requests concurrently
-        with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
-            futures = {
-                threadpool.submit(deliver_message_parallel, record)
-                for record in query[:worker_threads]
-            }
-            for future in as_completed(futures):
-                payload_record, err = future.result()
+        if no_more_messages:
+            logger.info("deliver_webhook_parallel.task_complete", extra=extra)
+            break
 
-                if err:
-                    # Was this the final attempt? Failing on a final attempt shouldn't stop
-                    # deliveries as we won't retry
-                    if payload_record.attempts >= MAX_ATTEMPTS:
-                        payload_record.delete()
-
-                        metrics.incr(
-                            "hybridcloud.deliver_webhooks.delivery",
-                            tags={"outcome": "attempts_exceed"},
-                        )
-                        logger.info(
-                            "deliver_webhook_parallel.discard",
-                            extra={"id": payload_record.id, "attempts": payload_record.attempts},
-                        )
-                    else:
-                        metrics.incr(
-                            "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"}
-                        )
-                        payload_record.schedule_next_attempt()
-                        request_failed = True
-                    if not isinstance(err, DeliveryFailed):
-                        raise err
-                else:
-                    # Delivery was successful
-                    payload_record.delete()
-                    delivered += 1
-                    duration = timezone.now() - payload_record.date_added
-                    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
-                    metrics.timing(
-                        "hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds()
-                    )
-
-            # We didn't have any more messages to deliver.
-            # Break out of this task so we can get a new one.
-            if len(futures) < 1:
-                logger.info(
-                    "deliver_webhook_parallel.task_complete",
-                    extra={
-                        "mailbox_name": payload.mailbox_name,
-                        "delivered": delivered,
-                    },
-                )
-                break
-
-        # If a delivery failed we should stop processing this mailbox and try again later.
         if request_failed:
-            logger.info(
-                "deliver_webhook_parallel.delivery_request_failed",
-                extra={
-                    "mailbox_name": payload.mailbox_name,
-                    "delivered": delivered,
-                },
-            )
+            logger.info("deliver_webhook_parallel.delivery_request_failed", extra=extra)
             return
 
 

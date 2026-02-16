@@ -3,7 +3,7 @@ import {type InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {BaseField, type BaseFieldProps} from './baseField';
+import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseField';
 
 export function InputField({
   onChange,
@@ -16,12 +16,13 @@ export function InputField({
     disabled?: boolean | string;
   }) {
   const autoSaveContext = useAutoSaveContext();
+  const indicator = useFieldStateIndicator();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
   const disabledReason = typeof disabled === 'string' ? disabled : undefined;
 
   return (
     <BaseField>
-      {(fieldProps, {indicator}) => {
+      {fieldProps => {
         const input = (
           <InputGroup>
             <InputGroup.Input
