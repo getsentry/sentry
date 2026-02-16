@@ -265,7 +265,7 @@ export function tryParseJson(value: unknown): unknown {
  * Attempts to parse a JSON string, with fallback to fix invalid JSON.
  * Returns the parsed result and whether the JSON needed fixing.
  */
-export function tryParseJsonWithInvalidJsonFix(value: string): {
+export function parseJsonWithFix(value: string): {
   fixedInvalidJson: boolean;
   parsed: any;
 } {

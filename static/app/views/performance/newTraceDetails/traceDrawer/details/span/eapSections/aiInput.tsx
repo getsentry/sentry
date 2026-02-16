@@ -21,8 +21,8 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
+  parseJsonWithFix,
   tryParseJson,
-  tryParseJsonWithInvalidJsonFix,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
@@ -136,8 +136,7 @@ function transformInputMessages(inputMessages: string): {
   result: string | undefined;
 } {
   try {
-    const {parsed: json, fixedInvalidJson} =
-      tryParseJsonWithInvalidJsonFix(inputMessages);
+    const {parsed: json, fixedInvalidJson} = parseJsonWithFix(inputMessages);
     const result = [];
     const {system, prompt} = json;
     if (system) {
@@ -176,7 +175,7 @@ function transformPrompt(prompt: string): {
   result: string | undefined;
 } {
   try {
-    const {parsed: json, fixedInvalidJson} = tryParseJsonWithInvalidJsonFix(prompt);
+    const {parsed: json, fixedInvalidJson} = parseJsonWithFix(prompt);
     const result = [];
     const {system, messages} = json;
     if (system) {
@@ -215,7 +214,7 @@ function transformPartsMessages(messages: string): {
   result: string | undefined;
 } {
   try {
-    const {parsed, fixedInvalidJson} = tryParseJsonWithInvalidJsonFix(messages);
+    const {parsed, fixedInvalidJson} = parseJsonWithFix(messages);
 
     if (!Array.isArray(parsed)) {
       return {
