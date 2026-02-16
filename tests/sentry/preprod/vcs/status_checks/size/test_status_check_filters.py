@@ -15,7 +15,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
     _get_status_check_rules,
     _rule_matches_artifact,
 )
-from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
+from sentry.preprod.vcs.status_checks.size.types import RuleArtifactType, StatusCheckRule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -836,7 +836,7 @@ class StatusCheckFiltersTest(TestCase):
             measurement="absolute",
             value=100 * 1024 * 1024,
             filter_query="",
-            artifact_type="watch_artifact",
+            artifact_type=RuleArtifactType.WATCH_ARTIFACT,
         )
 
         status, triggered_rules = _compute_overall_status(
@@ -874,7 +874,7 @@ class StatusCheckFiltersTest(TestCase):
             measurement="absolute",
             value=100 * 1024 * 1024,
             filter_query="",
-            artifact_type="watch_artifact",
+            artifact_type=RuleArtifactType.WATCH_ARTIFACT,
         )
 
         status, triggered_rules = _compute_overall_status(
@@ -916,7 +916,7 @@ class StatusCheckFiltersTest(TestCase):
             measurement="absolute",
             value=100 * 1024 * 1024,
             filter_query="",
-            artifact_type="all_artifacts",
+            artifact_type=RuleArtifactType.ALL_ARTIFACTS,
         )
 
         status, triggered_rules = _compute_overall_status(
@@ -963,7 +963,7 @@ class StatusCheckFiltersTest(TestCase):
             measurement="absolute",
             value=100 * 1024 * 1024,
             filter_query="",
-            artifact_type="android_dynamic_feature_artifact",
+            artifact_type=RuleArtifactType.ANDROID_DYNAMIC_FEATURE_ARTIFACT,
         )
 
         status, triggered_rules = _compute_overall_status(
