@@ -212,7 +212,9 @@ export function AutoSaveField<
         });
       }
 
-      return mutation.mutateAsync(value);
+      // Resolve on both success and failure - error handling is done by
+      // TanStack Query (onError callback, mutation.isError state)
+      return mutation.mutateAsync(value).catch(() => {});
     },
   });
 

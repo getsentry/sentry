@@ -60,19 +60,21 @@ interface AutoSaveTestFormProps {
   mutationFn: (data: {enabled: boolean}) => Promise<{enabled: boolean}>;
   initialValue?: boolean;
   label?: string;
+  onError?: (error: Error) => void;
 }
 
 function AutoSaveTestForm({
   mutationFn,
   initialValue = false,
   label = 'Enable Feature',
+  onError,
 }: AutoSaveTestFormProps) {
   return (
     <AutoSaveField
       name="enabled"
       schema={testSchema}
       initialValue={initialValue}
-      mutationOptions={{mutationFn}}
+      mutationOptions={{mutationFn, onError}}
     >
       {field => (
         <field.Layout.Row label={label}>
@@ -198,6 +200,33 @@ describe('SwitchField auto-save', () => {
 
     // Second click back to initial value should not trigger mutation
     expect(mutationFn).not.toHaveBeenCalled();
+  });
+
+  it('does not hang when mutation fails', async () => {
+    const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
+    const onError = jest.fn();
+
+    render(
+      <AutoSaveTestForm mutationFn={mutationFn} onError={onError} initialValue={false} />
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // Mutation should be called
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+    });
+
+    // Error handler should be invoked by TanStack Query
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalled();
+    });
+
+    // Form should not hang - checkbox should become enabled again after mutation fails
+    await waitFor(() => {
+      expect(checkbox).toBeEnabled();
+    });
   });
 });
 
