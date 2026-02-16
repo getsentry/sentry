@@ -1,8 +1,8 @@
-import pytest
 from collections.abc import Sequence
 from typing import Any
 from unittest import mock
 
+import pytest
 import responses
 
 from sentry import audit_log
