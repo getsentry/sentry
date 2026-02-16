@@ -348,8 +348,7 @@ class StatusCheckFiltersTest(TestCase):
     def test_parse_rules_defaults_missing_artifact_type_to_main(self):
         self.project.update_option(
             "sentry:preprod_size_status_checks_rules",
-            '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", '
-            '"value": 100}]',
+            '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100}]',
         )
 
         rules = _get_status_check_rules(self.project)
