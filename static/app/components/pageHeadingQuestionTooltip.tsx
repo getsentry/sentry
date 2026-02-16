@@ -26,7 +26,7 @@ export function PageHeadingQuestionTooltip({
   linkLabel,
 }: PageHeadingQuestionTooltipProps) {
   const contents = (
-    <Flex direction="column" align="start" gap="sm">
+    <Flex direction="column" align="start" gap="md">
       <Text align="left">{title}</Text>
       <ExternalLink href={docsUrl}>{linkLabel ?? t('Read the Docs')}</ExternalLink>
     </Flex>
