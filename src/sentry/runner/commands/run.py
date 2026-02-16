@@ -250,19 +250,6 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 
 @run.command()
 @click.option(
-    "--rpc-host",
-    help="The hostname and port for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
-    default="127.0.0.1:50051",
-)
-@click.option(
-    "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
-)
-@click.option(
-    "--rpc-host-list",
-    help="Provide a comma separated list of broker RPC host:ports. Use when your broker host names are not compatible with `rpc-host`",
-    default=None,
-)
-@click.option(
     "--max-child-task-count",
     help="Number of tasks child processes execute before being restart",
     default=taskworker_constants.DEFAULT_CHILD_TASK_COUNT,
@@ -283,7 +270,7 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 )
 @click.option(
     "--rebalance-after",
-    help="The number of tasks to process before choosing a new broker instance. Requires num-brokers > 1",
+    help="The number of tasks to process before choosing a new broker instance",
     default=taskworker_constants.DEFAULT_REBALANCE_AFTER,
 )
 @click.option(
@@ -318,9 +305,6 @@ def taskworker(**options: Any) -> None:
 
 
 def run_taskworker(
-    rpc_host: str,
-    num_brokers: int | None,
-    rpc_host_list: str | None,
     max_child_task_count: int,
     namespace: str | None,
     concurrency: int,
@@ -336,15 +320,12 @@ def run_taskworker(
     """
     taskworker factory that can be reloaded
     """
-    from sentry.taskworker.client.client import make_broker_hosts
     from sentry.taskworker.worker import TaskWorker
 
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
             app_module="sentry.taskworker.runtime:app",
-            broker_hosts=make_broker_hosts(
-                host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
-            ),
+            broker_hosts=[],
             max_child_task_count=max_child_task_count,
             namespace=namespace,
             concurrency=concurrency,

@@ -21,7 +21,6 @@ from sentry import options
 from sentry.taskworker.app import import_app
 from sentry.taskworker.client.client import (
     HealthCheckSettings,
-    HostTemporarilyUnavailable,
     TaskworkerClient,
 )
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
@@ -109,7 +108,6 @@ class TaskWorker:
 
         self.client = TaskworkerClient(
             hosts=broker_hosts,
-            max_tasks_before_rebalance=rebalance_after,
             health_check_settings=(
                 None
                 if health_check_file_path is None
@@ -380,16 +378,6 @@ class TaskWorker:
                 "taskworker.send_update_task.failed",
                 extra={"task_id": result.task_id, "error": e},
             )
-            return None
-        except HostTemporarilyUnavailable as e:
-            self._setstatus_backoff_seconds = min(
-                self._setstatus_backoff_seconds + 4, MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE
-            )
-            logger.info(
-                "taskworker.send_update_task.temporarily_unavailable",
-                extra={"task_id": result.task_id, "error": str(e)},
-            )
-            self._processed_tasks.put(result)
             return None
 
     def start_spawn_children_thread(self) -> None:
