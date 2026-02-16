@@ -564,7 +564,7 @@ function TruncationAlert({
               {link}
             )
           : tct('Due to [link:size limitations], the content was truncated.', {link})}
-        {fixedInvalidJson ? t(' Truncated parts are marked with `~~`.') : null}
+        {fixedInvalidJson ? ` ${t('Truncated parts are marked with (~~).')}` : null}
       </Alert>
     </Container>
   );
