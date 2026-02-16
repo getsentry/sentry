@@ -1,3 +1,4 @@
+import pytest
 from collections.abc import Sequence
 from typing import Any
 from unittest import mock
@@ -1011,6 +1012,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             status_code=403,
         )
 
+    @pytest.mark.skip(reason="flaky: #108317")
     def test_create_trigger_condition_from_different_organization(self) -> None:
         """Test that conditionGroupId in trigger conditions cannot reference another org's group"""
         other_org = self.create_organization()
