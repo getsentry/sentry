@@ -5,6 +5,12 @@ import type {
 } from 'sentry/utils/seer/llmContext';
 
 /**
+ * Tool call function name used by the LLM to dispatch UI actions.
+ * This must match the constant in useSeerExplorer.tsx.
+ */
+export const UI_ACTION_TOOL_NAME = 'update_ui';
+
+/**
  * Serialized representation of a context node for inclusion in an LLM prompt.
  */
 interface SerializedNode {
@@ -98,6 +104,56 @@ export function collectActions(
 
   walk(tree);
   return result;
+}
+
+/**
+ * Builds the full prompt section that describes the interactive UI context
+ * and how to use the update_ui tool call to control UI components.
+ *
+ * Returns null if there are no UI components registered.
+ */
+export function buildUIContextPrompt(tree: LLMContextNode[]): string | null {
+  const context = serializeLLMContext(tree);
+  if (context.ui_context.length === 0) {
+    return null;
+  }
+
+  const actions = collectActions(tree);
+
+  const lines = [
+    '=== INTERACTIVE UI CONTEXT ===',
+    '',
+    'The user is viewing a page with interactive UI components that you can control.',
+    `To modify a UI component, emit a tool call with function name "${UI_ACTION_TOOL_NAME}".`,
+    '',
+    '--- Tool Schema ---',
+    `Function: ${UI_ACTION_TOOL_NAME}`,
+    'Arguments (JSON):',
+    '  {',
+    '    "context": "<component name>",   // Which component to target',
+    '    "type": "<action type>",          // Which action to perform',
+    '    "payload": { ... }                // Action-specific parameters',
+    '  }',
+    '',
+  ];
+
+  if (actions.length > 0) {
+    lines.push('--- Available Actions ---');
+    for (const action of actions) {
+      lines.push(`  Component: "${action.context}"`);
+      lines.push(`    Action: "${action.type}"`);
+      lines.push(`    Description: ${action.description}`);
+      if (Object.keys(action.schema).length > 0) {
+        lines.push(`    Payload schema: ${JSON.stringify(action.schema)}`);
+      }
+      lines.push('');
+    }
+  }
+
+  lines.push('--- Current UI State ---');
+  lines.push(JSON.stringify(context, null, 2));
+
+  return lines.join('\n');
 }
 
 /**
