@@ -379,29 +379,29 @@ export function LLMContext({children, ...options}: LLMContextProps) {
 
 // ---- Consumer Hooks ----
 
-function useRegistry(): LLMContextRegistry {
-  const registry = useContext(RegistryContext);
-  if (!registry) {
-    throw new Error('useLLMContextTree must be used inside <LLMContextRoot>');
-  }
-  return registry;
-}
+const EMPTY_TREE: LLMContextNode[] = [];
+const NOOP_SUBSCRIBE = () => () => {};
+const NOOP_SNAPSHOT = () => 0;
 
 /**
  * Returns the current LLM context tree.
  * Re-renders when any context node registers, unregisters, or updates.
+ * Returns an empty array if used outside LLMContextRoot.
  */
 export function useLLMContextTree(): LLMContextNode[] {
-  const registry = useRegistry();
+  const registry = useContext(RegistryContext);
 
-  // Subscribe to version changes so we re-render when the tree changes
-  useSyncExternalStore(registry.subscribe, registry.getSnapshot);
+  useSyncExternalStore(
+    registry?.subscribe ?? NOOP_SUBSCRIBE,
+    registry?.getSnapshot ?? NOOP_SNAPSHOT
+  );
 
-  return registry.getTree();
+  return registry?.getTree() ?? EMPTY_TREE;
 }
 
 /**
  * Returns a dispatch function that sends actions to named context nodes.
+ * Returns a no-op if used outside LLMContextRoot.
  *
  * @example
  * ```ts
@@ -414,11 +414,11 @@ export function useLLMDispatch(): (
   actionType: string,
   payload: unknown
 ) => boolean {
-  const registry = useRegistry();
+  const registry = useContext(RegistryContext);
 
   return useCallback(
     (contextName: string, actionType: string, payload: unknown) => {
-      return registry.dispatch(contextName, actionType, payload);
+      return registry?.dispatch(contextName, actionType, payload) ?? false;
     },
     [registry]
   );

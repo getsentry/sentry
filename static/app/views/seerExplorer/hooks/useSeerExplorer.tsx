@@ -9,6 +9,11 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useLLMContextTree, useLLMDispatch} from 'sentry/utils/seer/llmContext';
+import {
+  buildUIContextPrompt,
+  UI_ACTION_TOOL_NAME,
+} from 'sentry/utils/seer/llmContextSerializer';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -114,6 +119,10 @@ export const useSeerExplorer = () => {
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
 
+  // LLM context tree for UI-driven actions
+  const llmContextTree = useLLMContextTree();
+  const llmDispatch = useLLMDispatch();
+
   const [runId, setRunId] = useSessionStorage<number | null>(
     'seer-explorer-run-id',
     null
@@ -192,6 +201,12 @@ export const useSeerExplorer = () => {
       // Capture a coarse ASCII screenshot of the user's screen for extra context
       const screenshot = captureAsciiSnapshot?.();
 
+      // Serialize the LLM context tree and append to on_page_context
+      const uiContextPrompt = buildUIContextPrompt(llmContextTree);
+      const onPageContext = uiContextPrompt
+        ? `${screenshot ?? ''}\n\n${uiContextPrompt}`
+        : screenshot;
+
       setWaitingForResponse(true);
       setWasJustInterrupted(false);
 
@@ -258,7 +273,7 @@ export const useSeerExplorer = () => {
             data: {
               query,
               insert_index: calculatedInsertIndex,
-              on_page_context: screenshot,
+              on_page_context: onPageContext,
             },
           }
         )) as SeerExplorerChatResponse;
@@ -290,6 +305,7 @@ export const useSeerExplorer = () => {
       apiData,
       deletedFromIndex,
       captureAsciiSnapshot,
+      llmContextTree,
       setRunId,
       getPageReferrer,
       organization,
@@ -398,6 +414,50 @@ export const useSeerExplorer = () => {
     },
     [api, orgSlug, runId, queryClient]
   );
+
+  // ---- UI Action Dispatch ----
+  // Track which tool_call IDs we've already dispatched to avoid re-dispatching
+  const dispatchedToolCallIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    const blocks = apiData?.session?.blocks;
+    if (!blocks) {
+      return;
+    }
+
+    for (const block of blocks) {
+      // Skip loading blocks — wait until the tool call is complete
+      if (block.loading) {
+        continue;
+      }
+
+      const toolCalls = block.message.tool_calls;
+      if (!toolCalls) {
+        continue;
+      }
+
+      for (const toolCall of toolCalls) {
+        if (toolCall.function !== UI_ACTION_TOOL_NAME) {
+          continue;
+        }
+
+        if (dispatchedToolCallIds.current.has(toolCall.id)) {
+          continue;
+        }
+
+        dispatchedToolCallIds.current.add(toolCall.id);
+
+        try {
+          const parsed = JSON.parse(toolCall.args);
+          if (typeof parsed?.context === 'string' && typeof parsed?.type === 'string') {
+            llmDispatch(parsed.context, parsed.type, parsed.payload ?? {});
+          }
+        } catch {
+          // Malformed args — skip
+        }
+      }
+    }
+  }, [apiData?.session?.blocks, llmDispatch]);
 
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;
