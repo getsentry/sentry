@@ -310,3 +310,25 @@ The baseline continued iterating beyond the 11m29s configuration:
 2. **Three-tier split** saves tier2 startup time by skipping heavy images for the majority of tier2 shards.
 3. **Reclassification** (runtime-only Snuba detection) can move ~1,800 more tests to tier1, reducing T2 load.
 4. **Shard count tuning** (6T1/16T2 or 7T1/15T2) better matches the actual workload distribution.
+
+---
+
+## Experiment: scope sharding (`TEST_GROUP_STRATEGY: scope`)
+
+**Hypothesis:** Per-test hash sharding (`roundrobin`) scatters tests from the same class across shards, causing redundant module imports and class fixture setup. Switching to `scope` sharding (hash by `nodeid.rsplit("::", 1)[0]`, i.e. class-level) keeps entire classes on one shard, aligning with `--dist=loadscope` within shards.
+
+**Config:** `TEST_GROUP_STRATEGY: scope` + `--dist=loadscope`, tested with class and test tier granularity.
+
+**Results** (runs `22116057082`, `22116065056`, both passed):
+
+| Metric | scope+class | scope+test | Previous best (roundrobin+loadscope+file) |
+|---|---|---|---|
+| Wall clock | **21.0m** | **19.5m** | **11.9m** |
+| T1 avg / max | 10.5m / 11.5m | 11.3m / 11.7m | 9.8m / 10.8m |
+| T2 avg / max | 10.1m / **20.4m** | 9.9m / **18.9m** | 9.9m / 10.7m |
+| T2 spread | **838s** | **704s** | 133s |
+| Runner-min | 224m | 225m | 217m |
+
+**Root cause:** Scope sharding keeps entire classes on one shard. A few enormous classes (likely relay_integration, symbolicator, objectstore tests) create massive T2 hotspots — one shard took 20+ minutes while others finished in 6-7 minutes.
+
+**Next experiment:** Three-tier split to isolate heavy tests (symbolicator/objectstore/bigtable/relay) into tier3 (1 shard, `-n 2`). This should make tier2 uniform enough for scope sharding to work. Results TBD.
