@@ -26,6 +26,7 @@ export function SwitchField({
         const switchElement = (
           <Flex gap="sm" align="center" justify="between">
             <Switch
+              size="lg"
               {...fieldProps}
               {...props}
               disabled={isDisabled}
