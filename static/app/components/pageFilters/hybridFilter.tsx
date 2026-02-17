@@ -178,7 +178,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   const shiftToggleRange = useCallback(
     (clickedValue: Value) => {
-      if (!lastSelectedRef.current) {
+      if (lastSelectedRef.current === null) {
         performSingleToggle(clickedValue);
         return;
       }
