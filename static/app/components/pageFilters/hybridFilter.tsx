@@ -121,7 +121,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   const commit = useCallback(
     (val: Value[]) => {
-      setUncommittedStagedValue(val); // set to committed value to prevent visual revert
+      setUncommittedStagedValue(null);
       onChange?.(val);
     },
     [onChange]
