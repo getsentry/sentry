@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
@@ -23,6 +24,8 @@ type ThresholdsStepProps = {
   dataType?: string;
   dataUnit?: string;
   errors?: ThresholdErrors;
+  onPolarityChange?: (polarity: Polarity) => void;
+  preferredPolarity?: Polarity;
 };
 
 type ThresholdRowProp = {
@@ -92,6 +95,8 @@ export function Thresholds({
   errors,
   dataType = '',
   dataUnit = '',
+  preferredPolarity = '-',
+  onPolarityChange,
 }: ThresholdsStepProps) {
   const theme = useTheme();
   const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
@@ -100,6 +105,15 @@ export function Thresholds({
   const unitOptions = ['duration', 'rate'].includes(dataType)
     ? getThresholdUnitSelectOptions(dataType)
     : [];
+
+  const isHigherBetter = preferredPolarity === '+';
+
+  // Row colors: for '-' (lower is better): green, yellow, red top-to-bottom
+  // For '+' (higher is better): red, yellow, green top-to-bottom
+  const rowColors = isHigherBetter
+    ? [theme.colors.red400, theme.colors.yellow400, theme.colors.green400]
+    : [theme.colors.green400, theme.colors.yellow400, theme.colors.red400];
+
   const thresholdRowProps: ThresholdRowProp[] = [
     {
       maxKey: ThresholdMaxKeys.MAX_1,
@@ -114,7 +128,7 @@ export function Thresholds({
         'aria-label': 'First Maximum',
         error: errors?.max1,
       },
-      color: theme.colors.green400,
+      color: rowColors[0]!,
       unitOptions,
       unitSelectProps: {
         name: 'First unit select',
@@ -134,7 +148,7 @@ export function Thresholds({
         'aria-label': 'Second Maximum',
         error: errors?.max2,
       },
-      color: theme.colors.yellow400,
+      color: rowColors[1]!,
       unitOptions,
       unitSelectProps: {
         name: 'Second unit select',
@@ -154,7 +168,7 @@ export function Thresholds({
         placeholder: t('No max'),
         'aria-label': 'Third Maximum',
       },
-      color: theme.colors.red400,
+      color: rowColors[2]!,
       unitOptions,
       unitSelectProps: {
         name: 'Third unit select',
@@ -166,6 +180,14 @@ export function Thresholds({
 
   return (
     <ThresholdsContainer>
+      <SegmentedControl
+        value={preferredPolarity || '-'}
+        onChange={value => onPolarityChange?.(value as Polarity)}
+        size="sm"
+      >
+        <SegmentedControl.Item key="-">{t('Lower is better')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="+">{t('Higher is better')}</SegmentedControl.Item>
+      </SegmentedControl>
       {thresholdRowProps.map((props, index) => (
         <ThresholdRow
           {...props}

@@ -363,7 +363,7 @@ function VisualizationWidgetContent({
       new Thresholds({
         thresholds: {
           ...widget.thresholds,
-          preferredPolarity: '-',
+          preferredPolarity: widget.thresholds?.preferredPolarity ?? '-',
         },
       })
     );

@@ -56,10 +56,17 @@ export class Thresholds implements Plottable {
 
   toMarkAreas(theme: Theme) {
     const {max1, max2} = this.thresholds.max_values;
+    const isHigherBetter = this.thresholds.preferredPolarity === '+';
+
+    // For '-' (lower is better): green, yellow, red bottom-to-top
+    // For '+' (higher is better): red, yellow, green bottom-to-top
+    const [bottomColor, middleColor, topColor] = isHigherBetter
+      ? [theme.colors.red400, theme.colors.yellow400, theme.colors.green400]
+      : [theme.colors.green400, theme.colors.yellow400, theme.colors.red400];
 
     const markAreas = [
       this.toMarkArea([0, max1 ?? Infinity], {
-        color: theme.colors.green400,
+        color: bottomColor,
         opacity: 0.1,
       }),
     ];
@@ -67,7 +74,7 @@ export class Thresholds implements Plottable {
     if (max1) {
       markAreas.push(
         this.toMarkArea([max1, max2 ?? Infinity], {
-          color: theme.colors.yellow400,
+          color: middleColor,
           opacity: 0.1,
         })
       );
@@ -76,7 +83,7 @@ export class Thresholds implements Plottable {
     if (max2) {
       markAreas.push(
         this.toMarkArea([max2, Infinity], {
-          color: theme.colors.red400,
+          color: topColor,
           opacity: 0.1,
         })
       );
@@ -108,25 +115,35 @@ export class Thresholds implements Plottable {
 
   toMarkLines(theme: Theme) {
     const {max1, max2} = this.thresholds.max_values;
+    const isHigherBetter = this.thresholds.preferredPolarity === '+';
+
+    // For '-' (lower is better): Good (green), Meh (yellow), Poor (red) bottom-to-top
+    // For '+' (higher is better): Poor (red), Meh (yellow), Good (green) bottom-to-top
+    const [bottomColor, middleColor, topColor] = isHigherBetter
+      ? [theme.colors.red400, theme.colors.yellow400, theme.colors.green400]
+      : [theme.colors.green400, theme.colors.yellow400, theme.colors.red400];
+    const [bottomLabel, middleLabel, topLabel] = isHigherBetter
+      ? [t('Poor'), t('Meh'), t('Good')]
+      : [t('Good'), t('Meh'), t('Poor')];
 
     const markLines = [
-      this.toMarkLine(max1 ?? Infinity, t('Good'), {
-        color: theme.colors.green400,
+      this.toMarkLine(max1 ?? Infinity, bottomLabel, {
+        color: bottomColor,
       }),
     ];
 
     if (max1) {
       markLines.push(
-        this.toMarkLine(max2 ?? Infinity, t('Meh'), {
-          color: theme.colors.yellow400,
+        this.toMarkLine(max2 ?? Infinity, middleLabel, {
+          color: middleColor,
         })
       );
     }
 
     if (max2) {
       markLines.push(
-        this.toMarkLine(Infinity, t('Poor'), {
-          color: theme.colors.red400,
+        this.toMarkLine(Infinity, topLabel, {
+          color: topColor,
         })
       );
     }
