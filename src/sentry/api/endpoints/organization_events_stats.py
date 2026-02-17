@@ -378,7 +378,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 zerofill_results: bool,
                 comparison_delta: timedelta | None,
             ) -> SnubaTSResult | dict[str, SnubaTSResult]:
-
                 if not (metrics_enhanced and dashboard_widget_id):
                     return _get_event_stats(
                         scoped_dataset,

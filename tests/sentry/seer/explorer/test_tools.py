@@ -466,12 +466,12 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         # Each group should have the metric wrapped in normalized format
         # Format: {"group_value": {"count()": {"data": [...]}}}
         for group_value, metrics in result.items():
-            assert isinstance(
-                metrics, dict
-            ), f"Expected dict for {group_value}, got {type(metrics)}"
-            assert (
-                "count()" in metrics
-            ), f"Missing count() in metrics for {group_value}: {metrics.keys()}"
+            assert isinstance(metrics, dict), (
+                f"Expected dict for {group_value}, got {type(metrics)}"
+            )
+            assert "count()" in metrics, (
+                f"Missing count() in metrics for {group_value}: {metrics.keys()}"
+            )
             assert "data" in metrics["count()"], f"Missing data in count() for {group_value}"
 
             # Verify we can get actual count data
@@ -990,9 +990,9 @@ def _validate_event_timeseries(timeseries: dict, expected_total: int | None = No
         assert isinstance(item[1][0]["count"], int)
         total_count += item[1][0]["count"]
     if expected_total is not None:
-        assert (
-            total_count == expected_total
-        ), f"Expected total count {expected_total}, got {total_count}"
+        assert total_count == expected_total, (
+            f"Expected total count {expected_total}, got {total_count}"
+        )
 
 
 class TestGetIssueAndEventDetailsV2(

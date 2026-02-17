@@ -435,7 +435,9 @@ def get_grouping_variants_for_event(
         fingerprint_source = (
             "custom client"
             if not matched_rule
-            else "built-in" if is_built_in_fingerprint else "custom server"
+            else "built-in"
+            if is_built_in_fingerprint
+            else "custom server"
         )
         hint = f"ignored because {fingerprint_source} fingerprint takes precedence"
 

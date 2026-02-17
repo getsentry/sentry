@@ -32,7 +32,6 @@ import {
   isUsingPerformanceScore,
   isWidgetEditable,
   performanceScoreTooltip,
-  widgetHasMenuOptions,
 } from 'sentry/views/dashboards/utils';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
@@ -294,10 +293,7 @@ export function getMenuOptions(
     });
   }
 
-  if (
-    organization.features.includes('dashboards-edit') &&
-    widgetHasMenuOptions(widget.displayType)
-  ) {
+  if (organization.features.includes('dashboards-edit')) {
     menuOptions.push({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),

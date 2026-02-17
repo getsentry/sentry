@@ -264,7 +264,6 @@ class SnubaQueryValidatorTest(TestCase):
 
     @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
     def test_group_by_multiple_valid_fields(self) -> None:
-
         self.valid_data["group_by"] = ["project", "environment", "release", "user"]
 
         validator = SnubaQueryValidator(data=self.valid_data, context=self.context)

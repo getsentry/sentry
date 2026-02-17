@@ -1,13 +1,15 @@
+from collections.abc import Collection
 from typing import ClassVar
 
 from django.db import models
-from django.db.models import CheckConstraint, Q, UniqueConstraint
+from django.db.models import CheckConstraint, Exists, OuterRef, Q, UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.workflow_engine.models import AlertRuleDetector
 
 __all__ = ("RuleSnooze",)
 
@@ -22,6 +24,24 @@ class RuleSnoozeManager(BaseManager["RuleSnooze"]):
     def is_snoozed_for_user(self, user_id, rule=None, alert_rule=None):
         """Check whether the given rule is snoozed for the given user"""
         return RuleSnooze.objects.filter(user_id=user_id, rule=rule, alert_rule=alert_rule).exists()
+
+    def get_snoozed_for_all_detector_ids(self, detector_ids: Collection[int]) -> set[int]:
+        """Return the subset of detector_ids whose linked AlertRule is snoozed for everyone."""
+        return set(
+            AlertRuleDetector.objects.filter(
+                detector_id__in=detector_ids,
+                alert_rule_id__isnull=False,
+            )
+            .filter(
+                Exists(
+                    RuleSnooze.objects.filter(
+                        alert_rule_id=OuterRef("alert_rule_id"),
+                        user_id__isnull=True,
+                    )
+                )
+            )
+            .values_list("detector_id", flat=True)
+        )
 
 
 @region_silo_model

@@ -159,15 +159,15 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             response["secret"] = interface.secret
 
         if interface_id == "totp":
-            assert isinstance(
-                interface, TotpInterface
-            ), "Interface must be a TotpInterface to get provision URL"
+            assert isinstance(interface, TotpInterface), (
+                "Interface must be a TotpInterface to get provision URL"
+            )
             response["qrcode"] = interface.get_provision_url(user.email)
 
         if interface_id == "u2f":
-            assert isinstance(
-                interface, U2fInterface
-            ), "Interface must be a U2fInterface to start enrollement"
+            assert isinstance(interface, U2fInterface), (
+                "Interface must be a U2fInterface to start enrollement"
+            )
             publicKeyCredentialCreate, state = interface.start_enrollment(user)
             response["challenge"] = {}
             response["challenge"]["webAuthnRegisterData"] = b64encode(publicKeyCredentialCreate)
@@ -241,9 +241,9 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         context = {}
         # Need to update interface with phone number before validating OTP
         if "phone" in request.data:
-            assert isinstance(
-                interface, SmsInterface
-            ), "Interface must be a SmsInterface to get phone number"
+            assert isinstance(interface, SmsInterface), (
+                "Interface must be a SmsInterface to get phone number"
+            )
             interface.phone_number = serializer.data["phone"]
 
             # Disregarding value of 'otp', if no OTP was provided,

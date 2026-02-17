@@ -1125,7 +1125,9 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         super().setUp()
         self.custom_uri = "sentry-apple://sentry.io/auth"
         self.application = ApiApplication.objects.create(
-            owner=self.user, redirect_uris=self.custom_uri, version=1  # Strict mode
+            owner=self.user,
+            redirect_uris=self.custom_uri,
+            version=1,  # Strict mode
         )
 
     def test_exact_match_succeeds_code_flow(self) -> None:

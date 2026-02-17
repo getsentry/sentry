@@ -2,16 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {initializeUrlState, updateProjects} from 'sentry/components/pageFilters/actions';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -76,11 +69,11 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
     // Deselect project-1 & project-2 by clicking on their checkboxes
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
 
     // Select project-3 by clicking on its checkbox
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
 
     // Click "Apply"
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -114,8 +107,9 @@ describe('ProjectPageFilter', () => {
 
     // Move focus to Option One's "Project Details" link
     await userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{ArrowRight}');
     expect(
-      within(optionOne).getByRole('button', {name: 'Project Details'})
+      within(optionOne).getByRole('button', {name: 'Open Project Details'})
     ).toHaveFocus();
 
     // Activating the link triggers a route change
@@ -129,7 +123,7 @@ describe('ProjectPageFilter', () => {
     // Move focus to "Project Settings" link
     await userEvent.keyboard('{ArrowRight}');
     expect(
-      within(optionOne).getByRole('button', {name: 'Project Settings'})
+      within(optionOne).getByRole('button', {name: 'Open Project Settings'})
     ).toHaveFocus();
 
     // Activating the link triggers a route change
@@ -201,42 +195,5 @@ describe('ProjectPageFilter', () => {
     // <ProjectPageFilter /> is updated
 
     expect(await screen.findByRole('button', {name: 'project-2'})).toBeInTheDocument();
-  });
-
-  it('displays a desynced state message', async () => {
-    const desyncOrganization = OrganizationFixture({features: ['open-membership']});
-    // the project parameter needs to be non-null for desync detection to work
-    const desyncLocation = {
-      pathname: '/organizations/org-slug/issues/',
-      query: {project: '1'},
-    };
-
-    PageFiltersStore.reset();
-    initializeUrlState({
-      memberProjects: projects.filter(p => p.isMember),
-      nonMemberProjects: projects.filter(p => !p.isMember),
-      organization: desyncOrganization,
-      queryParams: {project: ['2']},
-      router: RouterFixture({
-        location: desyncLocation,
-      }),
-    });
-
-    render(<ProjectPageFilter />, {
-      organization: desyncOrganization,
-      initialRouterConfig: {
-        location: desyncLocation,
-      },
-    });
-
-    // Open menu
-    await userEvent.click(screen.getByRole('button', {name: 'project-2'}));
-
-    // Desync message is inside the menu
-    expect(screen.getByText('Filters Updated')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Restore Previous Values'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Got It'})).toBeInTheDocument();
   });
 });

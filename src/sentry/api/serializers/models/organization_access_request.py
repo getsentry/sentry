@@ -6,7 +6,6 @@ from sentry.users.services.user.service import user_service
 @register(OrganizationAccessRequest)
 class OrganizationAccessRequestSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-
         serialized_requesters = user_service.serialize_many(
             filter=dict(user_ids=[item.requester_id for item in item_list if item.requester_id])
         )

@@ -13,7 +13,6 @@ class MockSpan(NamedTuple):
 
 
 class TestDebugTraceLogger:
-
     @mock.patch("sentry.spans.debug_trace_logger.logger")
     def test_logs_subsegment_info_with_no_span_keys(self, mock_logger):
         """Test logging when parent_span_id matches the only span's span_id."""

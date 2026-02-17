@@ -1,4 +1,5 @@
-Seems like your team could use some new tools. {{ requester_name }} from {{ organization_name }} requested the installation of {{ integration_name }}.
+{% load sentry_helpers %}
+Seems like your team could use some new tools. {{ requester_name|sanitize_periods }} from {{ organization_name }} requested the installation of {{ integration_name }}.
 {% if message %}
 They’ve included some additional context:
     {{ message }}
@@ -7,7 +8,7 @@ Install {{ provider_name }} by clicking the link below:
 
     {{ provider_link }}
 
-If you’re not up for installation, you can change {{ requester_name }}’s role to organization owner, manager, or admin here: {{ requester_link }}.
+If you're not up for installation, you can change {{ requester_name|sanitize_periods }}'s role to organization owner, manager, or admin here: {{ requester_link }}.
 You can learn more about the wonderful world of permissions in our docs: https://docs.sentry.io/accounts/membership/.
 
 Let’s get integrated.

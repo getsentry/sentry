@@ -57,7 +57,6 @@ class GroupIntegrationDetailsTest(APITestCase):
     def assert_metric_recorded(
         self, mock_metric_method: Any, expected_exc: type[Exception], exc_args: Any | None = None
     ) -> None:
-
         assert mock_metric_method.call_count == 1
         mock_metric_method.assert_called_with(mock.ANY)
         call_arg = mock_metric_method.call_args_list[0][0][0]

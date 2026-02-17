@@ -275,7 +275,6 @@ function getUptimeTraceLink({
   return {
     pathname: `/organizations/${organization.slug}/performance/trace/${traceId}/`,
     query: {
-      includeUptime: '1',
       timestamp: new Date(timestamp).getTime() / 1000,
       ...(targetId ? {node: `uptime-check-${targetId}`} : {}),
     },

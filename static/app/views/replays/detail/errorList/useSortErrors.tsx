@@ -1,8 +1,8 @@
 import {useCallback, useMemo} from 'react';
+import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import type {SortConfig} from 'sentry/components/replays/virtualizedGrid/headerCell';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
   id: row => row.data.eventId,
@@ -12,28 +12,24 @@ const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
   timestamp: row => row.timestamp,
 };
 
-const DEFAULT_ASC = 'true';
-const DEFAULT_BY = 'timestamp';
-
 type Opts = {items: ErrorFrame[]};
 
-function useSortErrors({items}: Opts) {
-  const {getParamValue: getSortAsc, setParamValue: setSortAsc} = useUrlParams(
+export default function useSortErrors({items}: Opts) {
+  const [sortAsc, setSortAsc] = useQueryState(
     's_e_asc',
-    DEFAULT_ASC
+    parseAsBoolean.withDefault(true).withOptions({history: 'push', throttleMs: 0})
   );
-  const {getParamValue: getSortBy, setParamValue: setSortBy} = useUrlParams(
+  const [sortBy, setSortBy] = useQueryState(
     's_e_by',
-    DEFAULT_BY
+    parseAsStringLiteral(Object.keys(SortStrategies))
+      .withDefault('timestamp')
+      .withOptions({history: 'push', throttleMs: 0})
   );
-
-  const sortAsc = getSortAsc();
-  const sortBy = getSortBy();
 
   const sortConfig = useMemo(
     () =>
       ({
-        asc: sortAsc === 'true',
+        asc: sortAsc === true,
         by: sortBy,
         getValue: SortStrategies[sortBy]!,
       }) satisfies SortConfig<ErrorFrame>,
@@ -45,9 +41,9 @@ function useSortErrors({items}: Opts) {
   const handleSort = useCallback(
     (fieldName: keyof typeof SortStrategies) => {
       if (sortConfig.by === fieldName) {
-        setSortAsc(sortConfig.asc ? 'false' : 'true');
+        setSortAsc(sortConfig.asc ? false : true);
       } else {
-        setSortAsc('true');
+        setSortAsc(true);
         setSortBy(fieldName);
       }
     },
@@ -92,5 +88,3 @@ function sortErrors(
     return valueB > valueA ? 1 : -1;
   });
 }
-
-export default useSortErrors;

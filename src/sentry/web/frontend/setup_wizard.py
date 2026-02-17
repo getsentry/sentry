@@ -47,7 +47,6 @@ from sentry.web.helpers import render_to_response
 class SetupWizardView(BaseView):
     def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.GET.get("signup") == "1" and settings.SENTRY_SIGNUP_URL:
-
             uri_components = list(urlparse(absolute_uri(request.get_full_path())))
 
             # get the params from the url and apply it to the signup url

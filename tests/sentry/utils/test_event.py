@@ -73,9 +73,9 @@ class HasStacktraceTest(TestCase):
                     ],
                 },
             }
-            assert (
-                has_stacktrace(event_data) is False
-            ), f"Mistakenly detected stacktrace in `{container}`"
+            assert has_stacktrace(event_data) is False, (
+                f"Mistakenly detected stacktrace in `{container}`"
+            )
 
     def test_exception_or_threads_empty_frames_ignored(self) -> None:
         for container in ["exception", "threads"]:
@@ -92,9 +92,9 @@ class HasStacktraceTest(TestCase):
                     ],
                 },
             }
-            assert (
-                has_stacktrace(event_data) is False
-            ), f"Mistakenly detected stacktrace in `{container}`"
+            assert has_stacktrace(event_data) is False, (
+                f"Mistakenly detected stacktrace in `{container}`"
+            )
 
     def test_exception_or_threads_no_stacktrace(self) -> None:
         for container in ["exception", "threads"]:
@@ -108,9 +108,9 @@ class HasStacktraceTest(TestCase):
                     ],
                 },
             }
-            assert (
-                has_stacktrace(event_data) is False
-            ), f"Mistakenly detected stacktrace in `{container}`"
+            assert has_stacktrace(event_data) is False, (
+                f"Mistakenly detected stacktrace in `{container}`"
+            )
 
     def test_no_stacktrace_anywhere(self) -> None:
         event_data = {"event_id": 11212012123120120415201309082013}

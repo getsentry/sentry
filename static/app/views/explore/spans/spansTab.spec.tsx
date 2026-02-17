@@ -78,7 +78,7 @@ describe('SpansTabContent', () => {
       datetime: {period: '7d', start: null, end: null, utc: null},
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
