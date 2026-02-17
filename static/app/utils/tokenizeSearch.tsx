@@ -395,7 +395,10 @@ export class MutableSearch {
 
     const reducer = (acc: Filters, token: Token) => ({
       ...acc,
-      [token.key!]: [...(acc[token.key!] ?? []), token.value],
+      [token.key!]: [
+        ...(Object.hasOwn(acc, token.key!) ? acc[token.key!]! : []),
+        token.value,
+      ],
     });
 
     return this.tokens
