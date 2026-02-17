@@ -315,9 +315,9 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             organization_id=test_org_slug_reservation.organization_id
         )
 
-        assert (
-            len(slug_reservations) == 1
-        ), f"Expected only a single slug reservation, received: {slug_reservations}"
+        assert len(slug_reservations) == 1, (
+            f"Expected only a single slug reservation, received: {slug_reservations}"
+        )
         assert slug_reservations[0].slug == original_slug
         assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
 
@@ -349,9 +349,9 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             organization_id=unregistered_org.id
         )
 
-        assert (
-            len(slug_reservations) == 1
-        ), f"Expected only a single slug reservation, received: {slug_reservations}"
+        assert len(slug_reservations) == 1, (
+            f"Expected only a single slug reservation, received: {slug_reservations}"
+        )
         assert slug_reservations[0].slug == desired_primary_slug
         assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
 
@@ -367,9 +367,9 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
 
         slug_reservations = self.get_slug_reservations_for_organization(organization_id=org.id)
 
-        assert (
-            len(slug_reservations) == 1
-        ), f"Expected only a single slug reservation, received: {slug_reservations}"
+        assert len(slug_reservations) == 1, (
+            f"Expected only a single slug reservation, received: {slug_reservations}"
+        )
         assert slug_reservations[0].slug == desired_slug
         assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
 

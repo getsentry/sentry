@@ -1181,6 +1181,11 @@ def _get_project_config(
         if retentions_config:
             config["retentions"] = retentions_config
 
+    with sentry_sdk.start_span(op="get_trimming_configs"):
+        trimming_configs = quotas.backend.get_trimming_configs(project.organization)
+        if trimming_configs:
+            config["trimming"] = trimming_configs
+
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config
@@ -1277,7 +1282,7 @@ class _ConfigBase:
 
     def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore[arg-type]
+            return utils.json.dumps(self.to_dict(), sort_keys=True)
         except Exception as e:
             return f"Content Error:{e}"
 
@@ -1322,8 +1327,8 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
     """
     if setting is None:
         raise ValueError(
-            "Could not find filter state for filter {}."
-            " You need to register default filter state in projectoptions.defaults.".format(flt.id)
+            f"Could not find filter state for filter {flt.id}."
+            " You need to register default filter state in projectoptions.defaults."
         )
 
     is_enabled = setting != "0"

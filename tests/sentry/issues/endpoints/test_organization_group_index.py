@@ -2671,7 +2671,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 0
 
     def test_lookup_by_release_build(self) -> None:
-
         for i in range(3):
             j = 119 + i
             self.create_release(version=f"steve@1.2.{i}+{j}")

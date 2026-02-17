@@ -280,7 +280,8 @@ class TestRedisHashSortedSetBuffer:
 
         # Try to delete both existing and non-existing members
         result = self.buf.conditional_delete_from_sorted_sets(
-            [key], [(111, later), (999, later)]  # 999 doesn't exist
+            [key],
+            [(111, later), (999, later)],  # 999 doesn't exist
         )
 
         # Should only remove the existing member

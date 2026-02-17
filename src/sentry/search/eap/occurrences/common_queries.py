@@ -7,7 +7,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +20,7 @@ def count_occurrences(
     referrer: str,
     group_id: int | None = None,
     environments: Sequence[Environment] | None = None,
+    occurrence_category: OccurrenceCategory | None = None,
 ) -> int:
     """
     Count the number of occurrences in EAP matching the given filters.
@@ -32,6 +33,7 @@ def count_occurrences(
         referrer: Referrer string for the query
         group_id: Optional group ID to filter by
         environments: Optional list of environments to filter by
+        occurrence_category: Optional occurrence category filter
 
     Returns:
         The count of matching occurrences, or 0 if the query fails
@@ -56,6 +58,7 @@ def count_occurrences(
             limit=1,
             referrer=referrer,
             config=SearchResolverConfig(),
+            occurrence_category=occurrence_category,
         )
 
         if result["data"]:

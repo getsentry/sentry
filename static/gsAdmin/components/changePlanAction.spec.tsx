@@ -91,7 +91,7 @@ describe('ChangePlanAction', () => {
 
     // Set up default subscription response
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
+      url: `/customers/${mockOrg.slug}/`,
       body: subscription,
     });
 
@@ -184,7 +184,7 @@ describe('ChangePlanAction', () => {
     });
     SubscriptionStore.set(mockOrg.slug, ntSubscription);
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
+      url: `/customers/${mockOrg.slug}/`,
       body: ntSubscription,
     });
 
@@ -413,7 +413,7 @@ describe('ChangePlanAction', () => {
 
       // Set up default subscription response
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${mockOrg.slug}/`,
+        url: `/customers/${mockOrg.slug}/`,
         body: subscription,
       });
 
@@ -475,7 +475,7 @@ describe('ChangePlanAction', () => {
 
       SubscriptionStore.set(mockOrg.slug, subscriptionWithSeer);
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${mockOrg.slug}/`,
+        url: `/customers/${mockOrg.slug}/`,
         body: subscriptionWithSeer,
       });
 

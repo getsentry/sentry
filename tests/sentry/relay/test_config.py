@@ -7,6 +7,7 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 from sentry_relay.processing import normalize_project_config
 
+from sentry import quotas
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
@@ -1635,3 +1636,24 @@ def test_project_config_trusted_relay_settings(
         else:
             # trustedRelaySettings should not be present
             assert trusted_relay_settings is None
+
+
+@django_db_all
+@region_silo_test
+@pytest.mark.parametrize("trimming_configs", [{}, {"span": {"maxSize": 17}}])
+def test_project_config_trimming(default_project, trimming_configs):
+    with patch.object(
+        quotas.backend,
+        "get_trimming_configs",
+        return_value=trimming_configs,
+    ):
+        project_cfg = get_project_config(default_project)
+
+        cfg = project_cfg.to_dict()["config"]
+
+        if trimming_configs:
+            assert cfg["trimming"] == {"span": {"maxSize": 17}}
+        else:
+            assert "trimming" not in cfg
+
+        _validate_project_config(cfg)

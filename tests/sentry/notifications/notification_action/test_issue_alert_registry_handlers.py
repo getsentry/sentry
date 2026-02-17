@@ -237,7 +237,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(
-            mock.ANY, self.event_data.event, "12345678-1234-5678-1234-567812345678"  # Rule instance
+            mock.ANY,
+            self.event_data.event,
+            "12345678-1234-5678-1234-567812345678",  # Rule instance
         )
 
         # Verify callback execution

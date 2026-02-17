@@ -34,15 +34,18 @@ import typing
 from collections import defaultdict
 from enum import Enum
 from types import UnionType
-from typing import Any, Literal, Union
+from typing import Any, Literal, Union, is_typeddict
 from typing import get_type_hints as _get_type_hints
-from typing import is_typeddict
 
 import drf_spectacular
 from drf_spectacular.drainage import get_override
-from drf_spectacular.plumbing import UnableToProceedError
+from drf_spectacular.plumbing import (
+    UnableToProceedError,
+    build_basic_type,
+    build_object_type,
+    is_basic_type,
+)
 from drf_spectacular.plumbing import build_array_type as drf_build_array_type
-from drf_spectacular.plumbing import build_basic_type, build_object_type, is_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import _SchemaType
 

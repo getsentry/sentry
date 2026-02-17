@@ -212,12 +212,7 @@ class ProjectKey(Model):
         if not urlparts.netloc or not urlparts.scheme:
             return ""
 
-        return "{}://{}@{}/{}".format(
-            urlparts.scheme,
-            key,
-            urlparts.netloc + urlparts.path,
-            self.project_id,
-        )
+        return f"{urlparts.scheme}://{key}@{urlparts.netloc + urlparts.path}/{self.project_id}"
 
     @property
     def organization_id(self):

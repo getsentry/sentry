@@ -20,7 +20,7 @@ describe('ExploreContent', () => {
     PageFiltersStore.init();
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });

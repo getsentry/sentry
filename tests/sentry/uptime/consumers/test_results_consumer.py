@@ -410,7 +410,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         disable_uptime_detector(self.detector)
         enable_uptime_detector(self.detector)
 
-        with (self.feature("organizations:uptime"),):
+        with (
+            self.feature("organizations:uptime"),
+        ):
             self.send_result(result)
 
             assert mock_produce.call_count == 1

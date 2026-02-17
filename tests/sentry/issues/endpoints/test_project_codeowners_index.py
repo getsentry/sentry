@@ -359,9 +359,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         external_team_name = self.external_team.external_name
         capitalized_external_team_name = external_team_name.swapcase()
 
-        self.data[
-            "raw"
-        ] = f"""
+        self.data["raw"] = f"""
         src/frontend/* {external_team_name}
         src/frontend2/* {capitalized_external_team_name}
         """
@@ -398,9 +396,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
         assert self.external_team.external_name != external_team_2.external_name
 
-        self.data[
-            "raw"
-        ] = f"""
+        self.data["raw"] = f"""
         src/frontend/* {self.external_team.external_name}
         src/frontend2/* {external_team_2.external_name}
         """

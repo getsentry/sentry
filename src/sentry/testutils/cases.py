@@ -29,10 +29,9 @@ from django.core.cache import cache
 from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
-from django.test import override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -1096,9 +1095,9 @@ class SnubaTestCase(BaseTestCase):
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert (
-                False
-            ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
+            assert False, (
+                f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
+            )
 
     def build_session(self, **kwargs):
         session = {
@@ -2070,9 +2069,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             time.sleep(0.05)
 
         if attempt == attempts:
-            assert (
-                False
-            ), f"Could not ensure that {total} metric(s) were persisted within {attempt} attempt(s)."
+            assert False, (
+                f"Could not ensure that {total} metric(s) were persisted within {attempt} attempt(s)."
+            )
 
 
 class BaseIncidentsTest(SnubaTestCase):
@@ -2388,9 +2387,9 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
 
     def store_replays(self, replays):
-        assert (
-            len(replays) >= 2
-        ), "You need to store at least 2 replay events for the replay to be considered valid"
+        assert len(replays) >= 2, (
+            "You need to store at least 2 replay events for the replay to be considered valid"
+        )
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=replays
         )

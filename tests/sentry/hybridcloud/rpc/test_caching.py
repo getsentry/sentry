@@ -132,9 +132,9 @@ def test_cache_versioning() -> None:
             results = yield from CacheBackend.get_cache([shared_key], SiloMode.REGION)
             value = next(iter(results.values()))
             if isinstance(value, str):
-                assert (
-                    len(value) >= last_length
-                ), "Read after write broken -- never read a more stale value than has been observed written"
+                assert len(value) >= last_length, (
+                    "Read after write broken -- never read a more stale value than has been observed written"
+                )
                 assert all(c == "a" for c in value)
             else:
                 version = value

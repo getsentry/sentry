@@ -28,8 +28,6 @@ export type CoreUIEventParameters = {
     path: string;
   };
   'number_drag_control.clicked': Record<string, unknown>;
-  'page_filters.desynced_filter.acknowledge': Record<string, unknown>;
-  'page_filters.desynced_filter.restore_previous_values': Record<string, unknown>;
   'page_filters.pin_click': {
     filter: PinnedPageFilter;
     pin: boolean;
@@ -53,10 +51,6 @@ type CoreUIAnalyticsKey = keyof CoreUIEventParameters;
 export const coreUIEventMap: Record<CoreUIAnalyticsKey, string | null> = {
   'number_drag_control.clicked': 'Number Drag Control: Clicked',
   'page_filters.pin_click': 'Page Filters: Pin Button Clicked',
-  'page_filters.desynced_filter.acknowledge':
-    'Page Filters: Desynced Filter Acknowledged',
-  'page_filters.desynced_filter.restore_previous_values':
-    'Page Filters: Desynced Filter Restored',
   'user_feedback.docs_clicked': 'User Feedback Docs Clicked',
   'user_feedback.dialog_opened': 'User Feedback Dialog Opened',
   'user_feedback.viewed': null, // volume high

@@ -698,7 +698,9 @@ def dual_update_alert_rule(alert_rule: AlertRule) -> None:
         dual_update_resolve_condition(alert_rule)
 
 
-def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
+def dual_update_migrated_alert_rule(
+    alert_rule: AlertRule,
+) -> (
     tuple[
         DetectorState,
         Detector,

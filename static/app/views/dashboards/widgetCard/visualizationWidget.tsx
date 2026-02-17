@@ -6,6 +6,7 @@ import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -16,15 +17,21 @@ import {
   SERIES_NAME_PART_DELIMITER,
   transformLegacySeriesToTimeSeries,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {
+  WidgetType,
+  type DashboardFilters,
+  type Widget,
+} from 'sentry/views/dashboards/types';
+import {applyDashboardFilters, usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
+import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularColumn,
@@ -35,6 +42,7 @@ import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget
 import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {
@@ -150,6 +158,7 @@ function VisualizationWidgetContent({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
+  const {selection} = usePageFilters();
 
   const firstWidgetQuery = widget.queries[0];
   const aggregates = firstWidgetQuery?.aggregates ?? []; // All widget queries have the same aggregates
@@ -259,27 +268,53 @@ function VisualizationWidgetContent({
         const dataType = timeSeries.meta.valueType;
         const dataUnit = timeSeries.meta.valueUnit ?? undefined;
         const label = plottable?.label ?? timeSeries.yAxis;
-        const linkedUrl =
+
+        let labelContent = <Text>{label}</Text>;
+
+        // TODO: to simplify things, we only support one widget query for explore urls right now
+        // Otherwise we have to map the correct widget query to the timeseries result
+        if (
+          firstColumn &&
+          typeof firstColumnGroupByValue === 'string' &&
+          widget.queries.length === 1 &&
+          widget.widgetType === WidgetType.SPANS
+        ) {
+          const exploreQuery = new MutableSearch(widget.queries[0]?.conditions ?? '');
+          exploreQuery.addFilterValue(firstColumn, firstColumnGroupByValue);
+          const exploreUrl = getExploreUrl({
+            organization,
+            selection,
+            aggregateField: [
+              {chartType: getChartType(widget.displayType), yAxes: [yAxis]},
+            ],
+            query: applyDashboardFilters(
+              exploreQuery.formatString(),
+              dashboardFilters,
+              widget.widgetType
+            ),
+          });
+          labelContent = <Link to={exploreUrl}>{label}</Link>;
+        }
+
+        if (
           linkedDashboard &&
           firstColumn &&
           widget.widgetType &&
           typeof firstColumnGroupByValue === 'string'
-            ? getLinkedDashboardUrl({
-                linkedDashboard,
-                organizationSlug: organization.slug,
-                field: firstColumn,
-                value: firstColumnGroupByValue,
-                widgetType: widget.widgetType,
-                dashboardFilters,
-                locationQuery: location.query,
-              })
-            : undefined;
-
-        const labelContent = linkedUrl ? (
-          <Link to={linkedUrl}>{label}</Link>
-        ) : (
-          <Text>{label}</Text>
-        );
+        ) {
+          const linkedDashbordUrl = getLinkedDashboardUrl({
+            linkedDashboard,
+            organizationSlug: organization.slug,
+            field: firstColumn,
+            value: firstColumnGroupByValue,
+            widgetType: widget.widgetType,
+            dashboardFilters,
+            locationQuery: location.query,
+          });
+          if (linkedDashbordUrl) {
+            labelContent = <Link to={linkedDashbordUrl}>{label}</Link>;
+          }
+        }
 
         return (
           <Fragment key={plottable.name}>

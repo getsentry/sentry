@@ -1,8 +1,8 @@
+from collections import defaultdict
 from collections.abc import Collection, Sequence
 from dataclasses import asdict, replace
 from datetime import datetime
 from enum import StrEnum
-from typing import DefaultDict
 
 import sentry_sdk
 from django.db.models import Q
@@ -47,7 +47,7 @@ def enqueue_workflows(
     client: DelayedWorkflowClient,
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
-    items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
+    items_by_project_id = defaultdict[int, list[DelayedWorkflowItem]](list)
     for queue_item in items_by_workflow.values():
         if not queue_item.delayed_if_group_ids and not queue_item.passing_if_group_ids:
             # Skip because there are no IF groups we could possibly fire actions for if
