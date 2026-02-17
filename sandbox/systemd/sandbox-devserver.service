@@ -1,0 +1,18 @@
+[Unit]
+Description=Sentry devserver
+After=sandbox-startup.service
+Requires=sandbox-startup.service
+
+[Service]
+Environment=SENTRY_CONF=/home/sentry/.sentry/
+ExecStartPre=/bin/bash -c 'until [ -f /tmp/sandbox-ready ]; do sleep 1; done'
+ExecStart=/opt/sentry/.venv/bin/devservices serve
+Restart=on-failure
+RestartSec=5
+StartLimitBurst=3
+TimeoutStartSec=120
+WorkingDirectory=/opt/sentry
+User=sentry
+
+[Install]
+WantedBy=multi-user.target

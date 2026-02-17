@@ -1,0 +1,14 @@
+[Unit]
+Description=Sandbox environment startup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/sentry/sandbox/startup.sh
+StandardOutput=append:/var/log/sandbox-startup.log
+StandardError=append:/var/log/sandbox-startup.log
+
+[Install]
+WantedBy=multi-user.target
