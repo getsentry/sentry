@@ -146,14 +146,13 @@ export function SimilarStackTraceItem(props: Props) {
 
           return (
             <Column key={interfaceName}>
-              {!hasSimilarityEmbeddingsFeature && (
-                <Hovercard
-                  body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}
-                >
+              {hasSimilarityEmbeddingsFeature ? (
+                <ScoreBar vertical score={scoreValue} />
+              ) : (
+                <Hovercard body={<SimilarScoreCard scoreList={scoreList} />}>
                   <ScoreBar vertical score={Math.round(scoreValue * 5)} />
                 </Hovercard>
               )}
-              {hasSimilarityEmbeddingsFeature && <ScoreBar vertical score={scoreValue} />}
             </Column>
           );
         })}
