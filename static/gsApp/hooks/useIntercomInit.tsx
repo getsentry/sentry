@@ -1,7 +1,12 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {bootIntercom, hasIntercom, shutdownIntercom} from 'sentry/utils/intercom';
+import {
+  bootIntercom,
+  hasIntercom,
+  shutdownIntercom,
+  updateIntercom,
+} from 'sentry/utils/intercom';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useIntercomJwt} from 'getsentry/hooks/useIntercomJwt';
@@ -21,21 +26,35 @@ export function useIntercomInit(): void {
   const organization = useOrganization({allowNull: true});
   const useIntercom = organization?.features.includes('intercom-support') ?? false;
   const intercomAppId = ConfigStore.get('intercomAppId');
+  const hasBootedRef = useRef(false);
 
   const {data: jwtData} = useIntercomJwt(organization?.slug ?? '', {
     enabled: useIntercom && !!organization && !!intercomAppId,
   });
 
+  // Boot or update Intercom when JWT data is available
   useEffect(() => {
-    if (useIntercom && jwtData && hasIntercom() && intercomAppId) {
-      bootIntercom(intercomAppId, jwtData.jwt, jwtData.userData);
+    if (!useIntercom || !jwtData || !hasIntercom() || !intercomAppId) {
+      return;
     }
 
-    // Cleanup: shutdown Intercom when the hook unmounts
+    if (hasBootedRef.current) {
+      // Subsequent JWT refreshes: update with new hash without disrupting session
+      updateIntercom(jwtData.userData, jwtData.jwt);
+    } else {
+      // First time: boot Intercom with full user data
+      bootIntercom(intercomAppId, jwtData.jwt, jwtData.userData);
+      hasBootedRef.current = true;
+    }
+  }, [useIntercom, jwtData, intercomAppId]);
+
+  // Separate cleanup effect that only runs on unmount
+  useEffect(() => {
     return () => {
-      if (useIntercom && hasIntercom()) {
+      if (hasBootedRef.current && hasIntercom()) {
         shutdownIntercom();
+        hasBootedRef.current = false;
       }
     };
-  }, [useIntercom, jwtData, intercomAppId]);
+  }, []);
 }
