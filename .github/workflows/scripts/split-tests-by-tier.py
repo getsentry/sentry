@@ -32,8 +32,6 @@ FORCE_TIER3_FILES: set[str] = {
     # Uploads to objectstore (GCS) but lacks requires_objectstore marker;
     # classifier misses the dependency, causing 500s in lighter tiers.
     "tests/sentry/preprod/api/endpoints/test_preprod_artifact_snapshot.py",
-    # Heaviest snuba test file moved to tier3 to use headroom and reduce T2 max.
-    "tests/snuba/api/endpoints/test_organization_events.py",
 }
 
 FORCE_TIER2_FILES: set[str] = {
