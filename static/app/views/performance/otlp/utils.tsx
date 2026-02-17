@@ -27,30 +27,30 @@ function getOTelFilterOptions(spanCategory?: string): DropdownOption[] {
       sort: {kind: 'asc', field: 'span.duration'},
       value: TransactionFilterOptions.FASTEST,
       label: spanCategory
-        ? t('Fastest %s Service Entry Spans', spanCategory)
-        : t('Fastest Service Entry Spans'),
+        ? t('Fastest %s Transactions', spanCategory)
+        : t('Fastest Transactions'),
     },
     {
       sort: {kind: 'desc', field: 'span.duration'},
       value: TransactionFilterOptions.SLOW,
       label: spanCategory
-        ? t('Slow %s Service Entry Spans (p95)', spanCategory)
-        : t('Slow Service Entry Spans (p95)'),
+        ? t('Slow %s Transactions (p95)', spanCategory)
+        : t('Slow Transactions (p95)'),
     },
     {
       sort: {kind: 'desc', field: 'span.duration'},
       value: TransactionFilterOptions.OUTLIER,
       label: spanCategory
-        ? t('Outlier %s Service Entry Spans (p100)', spanCategory)
-        : t('Outlier Service Entry Spans (p100)'),
+        ? t('Outlier %s Transactions (p100)', spanCategory)
+        : t('Outlier Transactions (p100)'),
     },
     {
       sort: {kind: 'desc', field: 'timestamp'},
       value: TransactionFilterOptions.RECENT,
       // The category does not apply to this option
-      label: t('Recent Service Entry Spans'),
+      label: t('Recent Transactions'),
     },
   ];
 }
 
-export const SERVICE_ENTRY_SPANS_CURSOR = 'serviceEntrySpansCursor';
+export const SEGMENT_SPANS_CURSOR = 'segmentSpansCursor';
