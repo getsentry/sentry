@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
@@ -29,23 +28,26 @@ declare global {
   }
 }
 
+const scrollToFieldRef = (node: HTMLLabelElement | null) => {
+  if (!node) {
+    return;
+  }
+  let hash: string;
+  try {
+    hash = decodeURIComponent(window.location.hash.slice(1));
+  } catch {
+    return;
+  }
+  if (hash === node.dataset.field) {
+    node.scrollIntoView({block: 'center', behavior: 'smooth'});
+    node.control?.focus({focusVisible: true});
+  }
+};
+
 function Label(props: {children: string; description?: string; required?: boolean}) {
-  const field = useFieldContext();
+  const {name: fieldName} = useFieldContext();
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
-
-  const scrollToFieldRef = useCallback(
-    (instance: HTMLLabelElement | null) => {
-      if (!instance) {
-        return;
-      }
-      if (decodeURIComponent(window.location.hash.slice(1)) === field.name) {
-        instance.scrollIntoView({block: 'center', behavior: 'smooth'});
-        instance.control?.focus({focusVisible: true});
-      }
-    },
-    [field.name]
-  );
 
   const labelContent = props.description ? (
     <InfoText title={props.description}>{props.children}</InfoText>
@@ -60,6 +62,7 @@ function Label(props: {children: string; description?: string; required?: boolea
           <Text
             {...containerProps}
             as="label"
+            data-field={fieldName}
             htmlFor={fieldId}
             bold={false}
             ref={scrollToFieldRef}
