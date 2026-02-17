@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import pytest
 
 from sentry.utils.hashlib import fnv1a_32, hash_values, md5_text, sha1_text
@@ -26,14 +24,14 @@ def test_hash_values(seed: str, value: object, hash: str) -> None:
     assert hash_values([value], seed=seed) == hash
 
 
-class HashlibTest(TestCase):
-    def test_simple(self) -> None:
-        assert md5_text("x").hexdigest() == "9dd4e461268c8034f5c8564e155c67a6"
-        assert sha1_text("x").hexdigest() == "11f6ad8ec52a2984abaafd7c3b516503785c2072"
+def test_md5_sha1_simple() -> None:
+    assert md5_text("x").hexdigest() == "9dd4e461268c8034f5c8564e155c67a6"
+    assert sha1_text("x").hexdigest() == "11f6ad8ec52a2984abaafd7c3b516503785c2072"
 
-    def test_unicode(self) -> None:
-        assert md5_text("ü").hexdigest() == "c03410a5204b21cd8229ff754688d743"
-        assert sha1_text("ü").hexdigest() == "94a759fd37735430753c7b6b80684306d80ea16e"
+
+def test_md5_sha1_unicode() -> None:
+    assert md5_text("ü").hexdigest() == "c03410a5204b21cd8229ff754688d743"
+    assert sha1_text("ü").hexdigest() == "94a759fd37735430753c7b6b80684306d80ea16e"
 
 
 @pytest.mark.parametrize(
