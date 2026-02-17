@@ -22,6 +22,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {hasIntercom, showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
@@ -31,6 +32,53 @@ import {
 } from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+function getContactSupportItem(organization: Organization): MenuItemProps | null {
+  const supportEmail = ConfigStore.get('supportEmail');
+
+  if (!supportEmail) {
+    return null;
+  }
+
+  const useIntercom = organization.features.includes('intercom-support');
+
+  // Use Intercom if feature flag is enabled and Intercom is available
+  if (useIntercom && hasIntercom()) {
+    return {
+      key: 'support',
+      label: t('Contact Support'),
+      onAction() {
+        showIntercom();
+        trackAnalytics('intercom_link.clicked', {
+          organization,
+          source: 'sidebar',
+        });
+      },
+    };
+  }
+
+  // Fall back to Zendesk if available
+  if (hasZendesk()) {
+    return {
+      key: 'support',
+      label: t('Contact Support'),
+      onAction() {
+        activateZendesk();
+        trackAnalytics('zendesk_link.clicked', {
+          organization,
+          source: 'sidebar',
+        });
+      },
+    };
+  }
+
+  // Fall back to mailto
+  return {
+    key: 'support',
+    label: t('Contact Support'),
+    externalHref: `mailto:${supportEmail}`,
+  };
+}
 
 export function PrimaryNavigationHelpMenu() {
   const organization = useOrganization();
@@ -308,32 +356,4 @@ function getLegacyItems({
       ],
     },
   ];
-}
-
-function getContactSupportItem(organization: Organization): MenuItemProps | null {
-  const supportEmail = ConfigStore.get('supportEmail');
-
-  if (!supportEmail) {
-    return null;
-  }
-
-  if (hasZendesk()) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      onAction() {
-        activateZendesk();
-        trackAnalytics('zendesk_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-      },
-    };
-  }
-
-  return {
-    key: 'support',
-    label: t('Contact Support'),
-    externalHref: `mailto:${supportEmail}`,
-  };
 }
