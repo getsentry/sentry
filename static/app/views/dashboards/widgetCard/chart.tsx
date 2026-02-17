@@ -518,7 +518,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                               ...(series?.length > 0
                                 ? (modifiedReleaseSeriesResults ?? [])
                                 : []),
-                              ...(defined(widget.thresholds?.max_values.max1) &&
+                              ...(defined(widget.thresholds?.max_values.max1) ||
                               defined(widget.thresholds?.max_values.max2)
                                 ? new ThresholdsPlottable({
                                     thresholds: {

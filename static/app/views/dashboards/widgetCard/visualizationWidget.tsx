@@ -356,7 +356,7 @@ function VisualizationWidgetContent({
   );
 
   if (
-    defined(widget.thresholds?.max_values.max1) &&
+    defined(widget.thresholds?.max_values.max1) ||
     defined(widget.thresholds?.max_values.max2)
   ) {
     plottables.push(
