@@ -19,6 +19,7 @@ import type {
 
 type ThresholdPlottableOptions = {
   thresholds: ThresholdsConfig;
+  showLabels?: boolean;
 };
 
 type ThresholdPlottablePlottingOptions = {
@@ -28,6 +29,7 @@ type ThresholdPlottablePlottingOptions = {
 export class Thresholds implements Plottable {
   maxOffset = 5; // The offset from the top of the chart (in pixels), of the max threshold
   thresholds: ThresholdsConfig;
+  showLabels: boolean;
 
   /** State variables required for Plottable interface */
   dataType: PlottableTimeSeriesValueType = 'duration';
@@ -40,6 +42,7 @@ export class Thresholds implements Plottable {
 
   constructor(options: ThresholdPlottableOptions) {
     this.thresholds = options.thresholds;
+    this.showLabels = options.showLabels ?? false;
     this.isEmpty = !this.thresholds.max_values.max1 && !this.thresholds.max_values.max2;
   }
 
@@ -127,14 +130,14 @@ export class Thresholds implements Plottable {
       : [t('Good'), t('Meh'), t('Poor')];
 
     const markLines = [
-      this.toMarkLine(max1 ?? Infinity, bottomLabel, {
+      this.toMarkLine(max1 ?? Infinity, this.showLabels ? bottomLabel : '', {
         color: bottomColor,
       }),
     ];
 
     if (max1) {
       markLines.push(
-        this.toMarkLine(max2 ?? Infinity, middleLabel, {
+        this.toMarkLine(max2 ?? Infinity, this.showLabels ? middleLabel : '', {
           color: middleColor,
         })
       );
@@ -142,7 +145,7 @@ export class Thresholds implements Plottable {
 
     if (max2) {
       markLines.push(
-        this.toMarkLine(Infinity, topLabel, {
+        this.toMarkLine(Infinity, this.showLabels ? topLabel : '', {
           color: topColor,
         })
       );
