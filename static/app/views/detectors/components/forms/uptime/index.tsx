@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -13,6 +14,7 @@ import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/commo
 import type {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
+import {ConnectedAssertionSuggestionsButton} from 'sentry/views/detectors/components/forms/uptime/connectedAssertionSuggestionsButton';
 import {ConnectedTestUptimeMonitorButton} from 'sentry/views/detectors/components/forms/uptime/connectedTestUptimeMonitorButton';
 import {UptimeDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/uptime/detect';
 import {
@@ -64,7 +66,13 @@ function UptimeDetectorForm() {
 
 export function NewUptimeDetectorForm() {
   const organization = useOrganization();
-  const showTestButton = organization.features.includes('uptime-runtime-assertions');
+  const hasRuntimeAssertions = organization.features.includes(
+    'uptime-runtime-assertions'
+  );
+  const hasAiAssertionSuggestions =
+    organization.features.includes('uptime-ai-assertion-suggestions') &&
+    organization.features.includes('gen-ai-features') &&
+    !organization.hideAiFeatures;
 
   return (
     <NewDetectorLayout
@@ -73,7 +81,12 @@ export function NewUptimeDetectorForm() {
       initialFormData={{}}
       environment={ENVIRONMENT_CONFIG}
       extraFooterButton={
-        showTestButton ? <ConnectedTestUptimeMonitorButton /> : undefined
+        hasRuntimeAssertions ? (
+          <Fragment>
+            {hasAiAssertionSuggestions && <ConnectedAssertionSuggestionsButton />}
+            <ConnectedTestUptimeMonitorButton />
+          </Fragment>
+        ) : undefined
       }
       mapFormErrors={mapAssertionFormErrors}
     >
@@ -84,7 +97,13 @@ export function NewUptimeDetectorForm() {
 
 export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDetector}) {
   const organization = useOrganization();
-  const showTestButton = organization.features.includes('uptime-runtime-assertions');
+  const hasRuntimeAssertions = organization.features.includes(
+    'uptime-runtime-assertions'
+  );
+  const hasAiAssertionSuggestions =
+    organization.features.includes('uptime-ai-assertion-suggestions') &&
+    organization.features.includes('gen-ai-features') &&
+    !organization.hideAiFeatures;
 
   return (
     <EditDetectorLayout
@@ -93,7 +112,14 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
       savedDetectorToFormData={uptimeSavedDetectorToFormData}
       environment={ENVIRONMENT_CONFIG}
       extraFooterButton={
-        showTestButton ? <ConnectedTestUptimeMonitorButton size="sm" /> : undefined
+        hasRuntimeAssertions ? (
+          <Fragment>
+            {hasAiAssertionSuggestions && (
+              <ConnectedAssertionSuggestionsButton size="sm" />
+            )}
+            <ConnectedTestUptimeMonitorButton size="sm" />
+          </Fragment>
+        ) : undefined
       }
       mapFormErrors={mapAssertionFormErrors}
     >

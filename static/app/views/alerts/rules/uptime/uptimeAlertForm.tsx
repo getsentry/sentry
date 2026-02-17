@@ -41,6 +41,7 @@ import type {Assertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {mapAssertionFormErrors} from './assertionFormErrors';
+import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
 import {HTTPSnippet} from './httpSnippet';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
@@ -104,6 +105,10 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
   const hasRuntimeAssertions = organization.features.includes(
     'uptime-runtime-assertions'
   );
+  const hasAiAssertionSuggestions =
+    organization.features.includes('uptime-ai-assertion-suggestions') &&
+    organization.features.includes('gen-ai-features') &&
+    !organization.hideAiFeatures;
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -238,6 +243,27 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             >
               <Button priority="danger">{t('Delete Rule')}</Button>
             </Confirm>
+          )}
+          {hasRuntimeAssertions && hasAiAssertionSuggestions && (
+            <AssertionSuggestionsButton
+              getFormData={() => {
+                const data = formModel.getTransformedData();
+                return {
+                  url: data.url,
+                  method: data.method ?? DEFAULT_METHOD,
+                  headers: data.headers ?? [],
+                  body: methodHasBody(formModel) ? data.body : null,
+                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                };
+              }}
+              getCurrentAssertion={() =>
+                formModel.getValue<Assertion | null>('assertion')
+              }
+              onApplySuggestion={newAssertion => {
+                // Cast to any to satisfy FormModel's FieldValue type
+                formModel.setValue('assertion', newAssertion as any);
+              }}
+            />
           )}
           {hasRuntimeAssertions && (
             <TestUptimeMonitorButton
