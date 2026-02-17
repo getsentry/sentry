@@ -83,12 +83,12 @@ describe('ExtendProductTrialAction', () => {
     expect(defaultProps.disableConfirmButton).toHaveBeenCalledWith(true);
   });
 
-  it('disables confirm button for values greater than 90', async () => {
+  it('disables confirm button for values greater than 180', async () => {
     render(<ExtendProductTrialAction {...defaultProps} />);
 
     const input = screen.getByDisplayValue('14');
     await userEvent.clear(input);
-    await userEvent.type(input, '91');
+    await userEvent.type(input, '181');
 
     expect(defaultProps.disableConfirmButton).toHaveBeenCalledWith(true);
   });
