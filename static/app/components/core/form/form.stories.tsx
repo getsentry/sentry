@@ -28,6 +28,12 @@ const COUNTRY_OPTIONS = [
   {value: 'AT', label: 'Austria'},
 ];
 
+const PRIORITY_OPTIONS = [
+  {value: 'low', label: 'Low', description: 'Non-urgent issues'},
+  {value: 'medium', label: 'Medium', description: 'Normal priority'},
+  {value: 'high', label: 'High', description: 'Urgent issues'},
+];
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const baseUserSchema = z.object({
@@ -38,6 +44,7 @@ const baseUserSchema = z.object({
   notifications: z.boolean().optional(),
   volume: z.number().min(0).max(100).optional(),
   bio: z.string().optional(),
+  priority: z.string().optional(),
   address: z.object({
     street: z.string().min(1, 'Street is required'),
     city: z.string().min(1, 'City is required'),
@@ -66,6 +73,7 @@ const userQuery = queryOptions({
       firstName: 'John',
       lastName: 'Doe',
       age: 23,
+      priority: 'medium',
       address: {
         street: '123 Main St',
         city: 'Anytown',
@@ -113,6 +121,7 @@ const userMutationOptions = (client: QueryClient) =>
         firstName: 'John',
         lastName: 'Doe',
         age: 23,
+        priority: 'medium',
         address: {
           street: '123 Main St',
           city: 'Anytown',
@@ -234,6 +243,24 @@ function AutoSaveExample() {
           </field.Layout.Stack>
         )}
       </AutoSaveField>
+
+      <AutoSaveField
+        name="priority"
+        schema={baseUserSchema}
+        initialValue={user.data?.priority ?? 'medium'}
+        mutationOptions={userMutationOptions(client)}
+      >
+        {field => (
+          <field.Layout.Stack label="Priority:" hintText="Select issue priority">
+            <field.Radio
+              value={field.state.value ?? 'medium'}
+              onChange={field.handleChange}
+              options={PRIORITY_OPTIONS}
+              orientation="vertical"
+            />
+          </field.Layout.Stack>
+        )}
+      </AutoSaveField>
     </FieldGroup>
   );
 }
@@ -324,6 +351,17 @@ function BasicForm() {
                   min={0}
                   max={100}
                   step={10}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="priority">
+            {field => (
+              <field.Layout.Row label="Priority:" hintText="Select issue priority">
+                <field.Radio
+                  value={field.state.value ?? 'medium'}
+                  onChange={field.handleChange}
+                  options={PRIORITY_OPTIONS}
                 />
               </field.Layout.Row>
             )}

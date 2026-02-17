@@ -224,6 +224,42 @@ All fields are accessed via the `field` render prop and follow consistent patter
 </form.AppField>
 ```
 
+### Radio Field
+
+```tsx
+<form.AppField name="priority">
+  {field => (
+    <field.Layout.Stack label="Priority">
+      <field.Radio
+        value={field.state.value}
+        onChange={field.handleChange}
+        options={[
+          {value: 'low', label: 'Low'},
+          {value: 'medium', label: 'Medium'},
+          {
+            value: 'high',
+            label: 'High',
+            description: 'Urgent issues requiring immediate attention',
+          },
+        ]}
+      />
+    </field.Layout.Stack>
+  )}
+</form.AppField>
+```
+
+Radio fields support an optional `orientation` prop:
+
+```tsx
+// Horizontal layout (options side by side)
+<field.Radio
+  value={field.state.value}
+  onChange={field.handleChange}
+  options={options}
+  orientation="horizontal"
+/>
+```
+
 ---
 
 ## Layouts
@@ -481,6 +517,7 @@ function SettingsForm() {
 | Select (single)   | Immediately when selection changes                          |
 | Select (multiple) | When menu closes, or when X/clear clicked while menu closed |
 | Switch            | Immediately when toggled                                    |
+| Radio             | Immediately when selection changes                          |
 | Range             | When user releases the slider, or immediately with keyboard |
 
 ### Auto-Save Status Indicators
