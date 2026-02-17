@@ -1,24 +1,25 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import {css} from '@emotion/react';
+import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
-import {SelectAsync} from '@sentry/scraps/select';
-import {Text} from '@sentry/scraps/text';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types/core';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   onSelected: (x: ResolvedStatusDetails) => void;
   orgSlug: string;
-  projectSlug?: string;
+  projectSlug: string;
 }
 
 function CustomCommitsResolutionModal({
@@ -30,76 +31,99 @@ function CustomCommitsResolutionModal({
   Body,
   Footer,
 }: CustomCommitsResolutionModalProps) {
-  const [commit, setCommit] = useState<Commit | undefined>();
-  const [commits, setCommits] = useState<Commit[] | undefined>();
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebouncedValue(searchQuery);
 
-  const onChange = (option: SelectValue<string> | null) => {
-    setCommit(commits?.find(result => result.id === option?.value));
-  };
-
-  const onAsyncFieldResults = (results: Commit[]) => {
-    setCommits(results);
-    return results.map(c => ({
-      value: c.id,
-      label: <Version version={c.id} anchor={false} />,
-      details: (
-        <span>
-          {t('Created')} <TimeSince date={c.dateCreated} />
-        </span>
-      ),
-      c,
-    }));
-  };
-
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSelected({
-      inCommit: {
-        commit: commit?.id,
-        repository: commit?.repository?.name,
+  const {data: commits = [], isPending} = useApiQuery<Commit[]>(
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/commits/', {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug,
+        },
+      }),
+      {
+        query: {
+          query: debouncedSearch,
+        },
       },
-    });
-    closeModal();
-  };
+    ],
+    {
+      staleTime: 30_000,
+    }
+  );
+
+  const options = useMemo(
+    () =>
+      commits.map(c => ({
+        value: c.id,
+        label: <Version version={c.id} anchor={false} />,
+        details: (
+          <span>
+            {t('Created')} <TimeSince date={c.dateCreated} />
+          </span>
+        ),
+      })),
+    [commits]
+  );
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      commit: '',
+    },
+    validators: {
+      onDynamic: z.object({
+        commit: z.string().min(1, t('Please select a commit')),
+      }),
+    },
+    onSubmit: ({value}) => {
+      const selectedCommit = commits.find(c => c.id === value.commit);
+      onSelected({
+        inCommit: {
+          commit: selectedCommit?.id,
+          repository: selectedCommit?.repository?.name,
+        },
+      });
+      closeModal();
+    },
+  });
 
   return (
-    <form onSubmit={onSubmit}>
-      <Header>
-        <h4>{t('Resolved In')}</h4>
-      </Header>
-      <Body>
-        <Stack gap="sm">
-          <Text as="label" htmlFor="commit">
-            {t('Commit')}
-          </Text>
-          <SelectAsync
-            id="commit"
-            name="commit"
-            onChange={onChange}
-            placeholder={t('e.g. d86b832')}
-            url={`/projects/${orgSlug}/${projectSlug}/commits/`}
-            onResults={onAsyncFieldResults}
-            onQuery={(query: string | undefined) => ({
-              query,
-            })}
-            value={commit?.id ?? ''}
-          />
-        </Stack>
-      </Body>
-      <Footer>
-        <Button
-          css={css`
-            margin-right: ${space(1.5)};
-          `}
-          onClick={closeModal}
-        >
-          {t('Cancel')}
-        </Button>
-        <Button type="submit" priority="primary">
-          {t('Resolve')}
-        </Button>
-      </Footer>
-    </form>
+    <form.AppForm>
+      <form.FormWrapper>
+        <Header>
+          <h4>{t('Resolved In')}</h4>
+        </Header>
+        <Body>
+          <form.AppField name="commit">
+            {field => (
+              <field.Layout.Stack label={t('Commit')} required>
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={options}
+                  onInputChange={setSearchQuery}
+                  isLoading={isPending}
+                  placeholder={t('e.g. d86b832')}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Body>
+        <Footer>
+          <Button
+            css={css`
+              margin-right: ${space(1.5)};
+            `}
+            onClick={closeModal}
+          >
+            {t('Cancel')}
+          </Button>
+          <form.SubmitButton priority="primary">{t('Resolve')}</form.SubmitButton>
+        </Footer>
+      </form.FormWrapper>
+    </form.AppForm>
   );
 }
 
