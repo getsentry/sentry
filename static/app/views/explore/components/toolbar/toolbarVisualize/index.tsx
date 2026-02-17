@@ -35,12 +35,16 @@ export function ToolbarVisualizeHeader() {
 
 interface ToolbarVisualizeDropdownProps {
   aggregateOptions: Array<SelectOption<SelectKey>>;
+  aggregateValue: string | string[];
   canDelete: boolean;
   fieldOptions: Array<SelectOption<SelectKey>>;
-  onChangeAggregate: (option: SelectOption<SelectKey>) => void;
+  onChangeAggregate: (
+    option: SelectOption<SelectKey> | Array<SelectOption<SelectKey>>
+  ) => void;
   onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
   onDelete: () => void;
   parsedFunction: ParsedFunction | null;
+  aggregateMultiple?: boolean;
   label?: ReactNode;
   loading?: boolean;
   onClose?: () => void;
@@ -48,7 +52,9 @@ interface ToolbarVisualizeDropdownProps {
 }
 
 export function ToolbarVisualizeDropdown({
+  aggregateMultiple = false,
   aggregateOptions,
+  aggregateValue,
   canDelete,
   fieldOptions,
   onChangeAggregate,
@@ -65,15 +71,34 @@ export function ToolbarVisualizeDropdown({
     ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
 
+  const singleAggregateValue = Array.isArray(aggregateValue)
+    ? (aggregateValue[0] ?? '')
+    : aggregateValue;
+  const multiAggregateValue = Array.isArray(aggregateValue)
+    ? aggregateValue
+    : aggregateValue
+      ? [aggregateValue]
+      : [];
+
   return (
     <ToolbarRow>
       {label}
-      <AggregateCompactSelect
-        searchable
-        options={aggregateOptions}
-        value={parsedFunction?.name ?? ''}
-        onChange={onChangeAggregate}
-      />
+      {aggregateMultiple ? (
+        <AggregateCompactSelect
+          multiple
+          searchable
+          options={aggregateOptions}
+          value={multiAggregateValue}
+          onChange={options => onChangeAggregate(options)}
+        />
+      ) : (
+        <AggregateCompactSelect
+          searchable
+          options={aggregateOptions}
+          value={singleAggregateValue}
+          onChange={option => onChangeAggregate(option)}
+        />
+      )}
       {aggregateDefinition?.parameters?.map((param, index) => {
         return (
           <FieldCompactSelect
