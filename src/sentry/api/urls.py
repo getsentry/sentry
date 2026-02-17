@@ -2156,6 +2156,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationSearchesEndpoint.as_view(),
         name="sentry-api-0-organization-searches",
     ),
+    # DSN Lookup
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dsn-lookup/$",
+        DsnLookupEndpoint.as_view(),
+        name="sentry-api-0-organization-dsn-lookup",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sessions/$",
         OrganizationSessionsEndpoint.as_view(),
@@ -3802,12 +3808,6 @@ urlpatterns = [
         r"^secret-scanning/github/$",
         SecretScanningGitHubEndpoint.as_view(),
         name="sentry-api-0-secret-scanning-github",
-    ),
-    # DSN Lookup
-    re_path(
-        r"^dsn-lookup/$",
-        DsnLookupEndpoint.as_view(),
-        name="sentry-api-0-dsn-lookup",
     ),
     # Catch all
     re_path(

@@ -6,21 +6,27 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.permissions import SentryIsAuthenticated
-from sentry.models.organizationmember import OrganizationMember
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.models.organization import Organization
 from sentry.models.projectkey import ProjectKey
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @region_silo_endpoint
-class DsnLookupEndpoint(Endpoint):
+class DsnLookupEndpoint(OrganizationEndpoint):
+    """Resolve a DSN to its project and key metadata within an organization.
+
+    Used by the command palette to let users paste a DSN and quickly navigate
+    to the corresponding project. Gated behind the organizations:cmd-k-dsn-lookup
+    feature flag.
+    """
+
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (SentryIsAuthenticated,)
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -30,7 +36,10 @@ class DsnLookupEndpoint(Endpoint):
         }
     )
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not features.has("organizations:cmd-k-dsn-lookup", organization):
+            return Response(status=404)
+
         dsn = request.GET.get("dsn")
         if not dsn:
             return Response({"detail": "Missing required parameter: dsn"}, status=400)
@@ -45,22 +54,11 @@ class DsnLookupEndpoint(Endpoint):
             return Response({"detail": "Invalid DSN"}, status=404)
 
         try:
-            project_key = ProjectKey.objects.select_related("project__organization").get(
+            project_key = ProjectKey.objects.select_related("project").get(
                 public_key=public_key,
+                project__organization_id=organization.id,
             )
         except ProjectKey.DoesNotExist:
-            return Response({"detail": "DSN not found"}, status=404)
-
-        organization = project_key.project.organization
-
-        if not features.has("organizations:cmd-k-dsn-lookup", organization):
-            return Response({"detail": "DSN not found"}, status=404)
-
-        is_member = OrganizationMember.objects.filter(
-            organization_id=organization.id,
-            user_id=request.user.id,
-        ).exists()
-        if not is_member:
             return Response({"detail": "DSN not found"}, status=404)
 
         return Response(
