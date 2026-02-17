@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
-      id-token: write
+      issues: write
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -86,3 +86,12 @@ jobs:
             | tee /tmp/detect-test-pollution-output
           read -r POLLUTING_TESTID < <(tail -1 /tmp/detect-test-pollution-output)
           echo "detected test pollution: \`pytest $POLLUTING_TESTID $FAILING_TESTID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "sentry sha: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create GitHub issue
+        if: steps.run-tests.outcome == 'failure' && hashFiles('/tmp/failing-testid') != ''
+        run: |
+          gh issue create \
+            --title "Test pollution: $FAILING_TESTID" \
+            --label test-pollution \
+            --body "$(cat "$GITHUB_STEP_SUMMARY")"
