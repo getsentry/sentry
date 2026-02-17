@@ -79,8 +79,10 @@ jobs:
           # just so we get realtime output since detect-test-pollution doesn't print much
           PYTHONUNBUFFERED: 1
         run: |
-          uv pip install --index-url='https://pypi.org/simple' detect-test-pollution
           read -r FAILING_TESTID < /tmp/failing-testid
-          detect-test-pollution \
+          python .github/workflows/scripts/detect-test-pollution.py \
             --failing-test "$FAILING_TESTID" \
-            --testids-file /tmp/testids
+            --testids-file /tmp/testids \
+            | tee /tmp/detect-test-pollution-output
+          read -r POLLUTING_TESTID < <(tail -1 /tmp/detect-test-pollution-output)
+          echo "detected test pollution: \`pytest $POLLUTING_TESTID $FAILING_TESTID\`" >> "$GITHUB_STEP_SUMMARY"
