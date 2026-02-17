@@ -311,7 +311,7 @@ describe('ExploreToolbar', () => {
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
   });
 
-  it('supports multi-aggregate overlays in a single visualize when feature is enabled', async () => {
+  it('supports multi-aggregate overlays within the same group when feature is enabled', async () => {
     let visualizes: any;
     function Component() {
       visualizes = useQueryParamsVisualizes();
@@ -329,23 +329,67 @@ describe('ExploreToolbar', () => {
     expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
 
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'count'}));
-
-    expect(visualizes).toHaveLength(1);
-    expect(visualizes[0]!.yAxes).toEqual(['avg(span.duration)']);
-
+    await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
     await userEvent.click(within(section).getByRole('option', {name: 'p95'}));
+
     expect(visualizes).toHaveLength(1);
     expect(visualizes[0]!.yAxes).toEqual(
-      expect.arrayContaining(['avg(span.duration)', 'p95(span.duration)'])
+      expect.arrayContaining(['p50(span.duration)', 'p95(span.duration)'])
     );
 
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(visualizes[0]!.yAxes).toEqual(
-      expect.arrayContaining(['avg(span.self_time)', 'p95(span.self_time)'])
+      expect.arrayContaining(['p50(span.self_time)', 'p95(span.self_time)'])
     );
+  });
+
+  it('clears selected aggregates from other groups in multi-select mode', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        features: ['dashboards-edit', 'traces-overlay-charts-ui'],
+      }),
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+    expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+    expect(visualizes[0]!.yAxes).toEqual(
+      expect.arrayContaining(['count(span.duration)', 'count_unique(span.op)'])
+    );
+
+    await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
+    expect(visualizes[0]!.yAxes).toEqual(['p50(span.duration)']);
+  });
+
+  it('shows count as the default aggregate option', async () => {
+    function Component() {
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        features: ['dashboards-edit', 'traces-overlay-charts-ui'],
+      }),
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    expect(screen.getByText('Default')).toBeInTheDocument();
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    expect(screen.queryByText('Default')).not.toBeInTheDocument();
   });
 
   it('resets to default visualize when all aggregates are deselected in multi-select mode', async () => {
