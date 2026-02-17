@@ -184,7 +184,13 @@ export function ListBox<T extends ObjectLike>({
     listState.selectionManager.setFocusedKey(null);
   };
 
-  const virtualizer = useVirtualizedItems({listItems, virtualized, size});
+  const virtualizer = useVirtualizedItems({
+    listItems,
+    virtualized,
+    size,
+    hiddenOptions,
+    showSectionHeaders,
+  });
 
   return (
     <Fragment>
@@ -222,6 +228,7 @@ export function ListBox<T extends ObjectLike>({
                       size={size}
                       showSectionHeaders={showSectionHeaders}
                       showDetails={showDetails}
+                      isFirst={row.index === 0}
                     />
                   );
                 }
@@ -256,14 +263,34 @@ const heightEstimations = {
   xs: {regular: 25, large: 42},
 } as const satisfies Record<FormSize, {large: number; regular: number}>;
 
+/**
+ * Approximate height of section header in pixels per size.
+ * SectionHeader: height 1.5em + padding 2xs top/bottom (content-box) ≈ 28px at md.
+ */
+const sectionHeaderHeights = {
+  xs: 22,
+  sm: 26,
+  md: 28,
+} as const satisfies Record<FormSize, number>;
+
+/**
+ * Approximate height of section separator in pixels.
+ * SectionSeparator: 1px border-top + xs margin top/bottom ≈ 9px.
+ */
+const SECTION_SEPARATOR_HEIGHT = 9;
+
 function useVirtualizedItems<T extends ObjectLike>({
   listItems,
   virtualized = false,
   size,
+  hiddenOptions,
+  showSectionHeaders,
 }: {
   listItems: Array<Node<T>>;
   size: FormSize;
   virtualized: boolean | undefined;
+  hiddenOptions?: Set<SelectKey>;
+  showSectionHeaders?: boolean;
 }) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const heightEstimation = heightEstimations[size];
@@ -273,6 +300,16 @@ function useVirtualizedItems<T extends ObjectLike>({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
+      if (item?.type === 'section') {
+        const visibleChildren = hiddenOptions
+          ? [...item.childNodes].filter(c => !hiddenOptions.has(c.key)).length
+          : [...item.childNodes].length;
+        const headerHeight = showSectionHeaders ? sectionHeaderHeights[size] : 0;
+        const separatorHeight = index > 0 ? SECTION_SEPARATOR_HEIGHT : 0;
+        return (
+          separatorHeight + headerHeight + visibleChildren * heightEstimation.regular
+        );
+      }
       if (item?.value && 'details' in item.value) {
         return heightEstimation.large;
       }

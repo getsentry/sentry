@@ -29,7 +29,6 @@ interface BaseSelectProps<Value extends SelectKey> extends Omit<
   options: Array<SelectOptionOrSection<Value>>;
   /**
    * Number of options above which virtualization will be enabled.
-   * Note that virtualization is always disabled if there are sections in the options.
    * @default 150
    */
   virtualizeThreshold?: number;
@@ -144,7 +143,8 @@ export function CompactSelect<Value extends SelectKey>({
     if (needsMeasuring) {
       const longestOption = maxBy(options, option => {
         if ('options' in option) {
-          return 0;
+          // Consider section header label length for width measurement
+          return typeof option.label === 'string' ? option.label.length : 0;
         }
         if (option.textValue) {
           return option.textValue.length;
@@ -154,7 +154,20 @@ export function CompactSelect<Value extends SelectKey>({
         }
         return 0;
       });
-      return longestOption ? getItemsWithKeys([longestOption]) : [];
+      if (!longestOption) {
+        return [];
+      }
+      // If the longest item is a section, pick its longest child option for measurement
+      if ('options' in longestOption && longestOption.options.length > 0) {
+        const longestChild = maxBy(longestOption.options, opt => {
+          if (opt.textValue) {
+            return opt.textValue.length;
+          }
+          return typeof opt.label === 'string' ? opt.label.length : 0;
+        });
+        return longestChild ? getItemsWithKeys([longestChild]) : [];
+      }
+      return getItemsWithKeys([longestOption]);
     }
     return [];
   }, [needsMeasuring, options]);
@@ -243,12 +256,11 @@ function shouldVirtualize<Value extends SelectKey>(
   items: Array<SelectOptionOrSection<Value>>,
   virtualizeThreshold = 150
 ) {
-  const hasSections = items.some(item => 'options' in item);
-  if (hasSections) {
-    return false;
-  }
-
-  return items.length > virtualizeThreshold;
+  const totalCount = items.reduce(
+    (sum, item) => sum + ('options' in item ? item.options.length : 1),
+    0
+  );
+  return totalCount > virtualizeThreshold;
 }
 
 function trackVirtualizationMetrics<Value extends SelectKey>(

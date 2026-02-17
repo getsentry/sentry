@@ -1,4 +1,5 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
+import styled from '@emotion/styled';
 import type {AriaListBoxSectionProps} from '@react-aria/listbox';
 import {useListBoxSection} from '@react-aria/listbox';
 import {useSeparator} from '@react-aria/separator';
@@ -8,7 +9,6 @@ import type {Node} from '@react-types/shared';
 import {
   SectionGroup,
   SectionHeader,
-  SectionSeparator,
   SectionTitle,
   SectionToggle,
   SectionWrap,
@@ -24,6 +24,7 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
   showSectionHeaders: boolean;
   size: ListBoxOptionProps['size'];
   'data-index'?: number;
+  isFirst?: boolean;
   onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
@@ -43,6 +44,7 @@ export function ListBoxSection({
   showDetails = true,
   ref,
   'data-index': dataIndex,
+  isFirst = false,
 }: ListBoxSectionProps) {
   const {itemProps, headingProps, groupProps} = useListBoxSection({
     heading: item.rendered,
@@ -61,31 +63,34 @@ export function ListBoxSection({
   );
 
   return (
-    <Fragment>
-      {showSectionHeaders && <SectionSeparator {...separatorProps} />}
-      <SectionWrap {...itemProps} data-index={dataIndex} ref={ref}>
-        {(item.rendered || showToggleAllButton) && showSectionHeaders && (
-          <SectionHeader>
-            {item.rendered && (
-              <SectionTitle {...headingProps}>{item.rendered}</SectionTitle>
-            )}
-            {showToggleAllButton && (
-              <SectionToggle item={item} listState={listState} onToggle={onToggle} />
-            )}
-          </SectionHeader>
-        )}
-        <SectionGroup {...groupProps}>
-          {childItems.map(child => (
-            <ListBoxOption
-              key={child.key}
-              item={child}
-              listState={listState}
-              size={size}
-              showDetails={showDetails}
-            />
-          ))}
-        </SectionGroup>
-      </SectionWrap>
-    </Fragment>
+    <SectionWrap {...itemProps} data-index={dataIndex} ref={ref}>
+      {showSectionHeaders && !isFirst && <SectionSeparatorInner {...separatorProps} />}
+      {(item.rendered || showToggleAllButton) && showSectionHeaders && (
+        <SectionHeader>
+          {item.rendered && (
+            <SectionTitle {...headingProps}>{item.rendered}</SectionTitle>
+          )}
+          {showToggleAllButton && (
+            <SectionToggle item={item} listState={listState} onToggle={onToggle} />
+          )}
+        </SectionHeader>
+      )}
+      <SectionGroup {...groupProps}>
+        {childItems.map(child => (
+          <ListBoxOption
+            key={child.key}
+            item={child}
+            listState={listState}
+            size={size}
+            showDetails={showDetails}
+          />
+        ))}
+      </SectionGroup>
+    </SectionWrap>
   );
 }
+
+const SectionSeparatorInner = styled('div')`
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
+  margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+`;
