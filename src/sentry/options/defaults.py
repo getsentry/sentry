@@ -3248,7 +3248,7 @@ register(
 )
 register(
     "spans.buffer.payload-cutoff-size",
-    default=1024,
+    default=-1,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

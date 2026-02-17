@@ -297,7 +297,7 @@ class SpansBuffer:
                             compressed = next(
                                 iter(prepared.keys())
                             )  # Compressed payloads only have one key
-                            if payload_cutoff_size > 0 and len(compressed) > payload_cutoff_size:
+                            if payload_cutoff_size >= 0 and len(compressed) > payload_cutoff_size:
                                 # Payloads can be chunked, but they share an ID. Make the payload key a set to store all the chunks.
                                 p.sadd(payload_key, compressed)
                                 p.sadd(payload_set_key, payload_key)
@@ -758,6 +758,8 @@ class SpansBuffer:
 
                     del payloads[key]
                     del cursors[key]
+                    if payload_keys:  # Clean up payloads that won't be returned.
+                        self.client.unlink(*payload_keys)
                     continue
 
                 payloads[key].extend(decompressed_spans)
