@@ -41,7 +41,18 @@ function SettingsSecondaryNavigation({
   primaryNavGroup,
   ...otherProps
 }: Props) {
-  const navWithHooks = navigationObjects.concat(hookConfigs);
+  // Insert hook configs (e.g. Usage & Billing) before the Account section
+  const accountIndex = navigationObjects.findIndex(
+    config => config.id === 'settings-account'
+  );
+  const navWithHooks =
+    accountIndex >= 0
+      ? [
+          ...navigationObjects.slice(0, accountIndex),
+          ...hookConfigs,
+          ...navigationObjects.slice(accountIndex),
+        ]
+      : navigationObjects.concat(hookConfigs);
 
   return (
     <Fragment>
