@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PasswordForm from 'sentry/views/settings/account/passwordForm';
+import {PasswordForm} from 'sentry/views/settings/account/passwordForm';
 
 const ENDPOINT = '/users/me/password/';
 

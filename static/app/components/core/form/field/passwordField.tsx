@@ -1,6 +1,6 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {type InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
@@ -22,7 +22,7 @@ export function PasswordField({
     value: string;
     disabled?: boolean | string;
   }) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isFieldVisible, setisFieldVisible] = useState(false);
   const autoSaveContext = useAutoSaveContext();
   const indicator = useFieldStateIndicator();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
@@ -36,19 +36,20 @@ export function PasswordField({
             <InputGroup.Input
               {...fieldProps}
               {...props}
-              type={isVisible ? 'text' : 'password'}
+              type={isFieldVisible ? 'text' : 'password'}
               aria-disabled={isDisabled}
               readOnly={isDisabled}
               onChange={e => onChange(e.target.value)}
             />
             <InputGroup.TrailingItems>
-              <ToggleButton
-                type="button"
-                aria-label={isVisible ? t('Hide password') : t('Show password')}
-                onClick={() => setIsVisible(v => !v)}
+              <Button
+                size="sm"
+                priority="transparent"
+                aria-label={isFieldVisible ? t('Hide password') : t('Show password')}
+                onClick={() => setisFieldVisible(v => !v)}
               >
-                {isVisible ? <IconHide size="xs" /> : <IconShow size="xs" />}
-              </ToggleButton>
+                {isFieldVisible ? <IconShow size="xs" /> : <IconHide size="xs" />}
+              </Button>
               {indicator}
             </InputGroup.TrailingItems>
           </InputGroup>
@@ -67,17 +68,3 @@ export function PasswordField({
     </BaseField>
   );
 }
-
-const ToggleButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: ${p => p.theme.tokens.content.muted};
-  display: flex;
-  align-items: center;
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.primary};
-  }
-`;

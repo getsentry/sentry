@@ -1,11 +1,11 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useUser} from 'sentry/utils/useUser';
@@ -21,7 +21,7 @@ const schema = z
     path: ['passwordVerify'],
   });
 
-function PasswordForm() {
+export function PasswordForm() {
   const user = useUser();
 
   const mutation = useMutation({
@@ -65,9 +65,9 @@ function PasswordForm() {
     <form.AppForm>
       <form.FormWrapper>
         <form.FieldGroup title={t('Password')}>
-          <PanelAlert variant="info">
+          <Alert variant="info" system>
             {t('Changing your password will invalidate all logged in sessions.')}
-          </PanelAlert>
+          </Alert>
           <form.AppField name="password">
             {field => (
               <field.Layout.Row label={t('Current Password')} required>
@@ -108,13 +108,11 @@ function PasswordForm() {
               </field.Layout.Row>
             )}
           </form.AppField>
+          <Flex justify="end">
+            <form.SubmitButton>{t('Change password')}</form.SubmitButton>
+          </Flex>
         </form.FieldGroup>
-        <Flex justify="end">
-          <form.SubmitButton>{t('Change password')}</form.SubmitButton>
-        </Flex>
       </form.FormWrapper>
     </form.AppForm>
   );
 }
-
-export default PasswordForm;
