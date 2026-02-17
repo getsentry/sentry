@@ -239,15 +239,15 @@ describe('VirtualizedViewManger', () => {
           cancelable: true,
         });
 
-        let dispatchedView: {width?: number, x?: number;} | null = null;
-        scheduler.on('set trace view', view => {
+        let dispatchedView: {width?: number; x?: number} | null = null;
+        scheduler.on('set trace view', (view: {width?: number; x?: number}) => {
           dispatchedView = view;
         });
 
         manager.onWheel(wheelEvent);
 
         expect(dispatchedView).not.toBeNull();
-        expect(dispatchedView?.x).toBeGreaterThan(initialX);
+        expect(dispatchedView!.x).toBeGreaterThan(initialX);
       });
 
       it('scrolls horizontally with trackpad horizontal swipe', () => {
@@ -276,15 +276,15 @@ describe('VirtualizedViewManger', () => {
           cancelable: true,
         });
 
-        let dispatchedView: {width?: number, x?: number;} | null = null;
-        scheduler.on('set trace view', view => {
+        let dispatchedView: {width?: number; x?: number} | null = null;
+        scheduler.on('set trace view', (view: {width?: number; x?: number}) => {
           dispatchedView = view;
         });
 
         manager.onWheel(wheelEvent);
 
         expect(dispatchedView).not.toBeNull();
-        expect(dispatchedView?.x).toBeGreaterThan(initialX);
+        expect(dispatchedView!.x).toBeGreaterThan(initialX);
       });
 
       it('does not scroll horizontally with vertical wheel (no shift)', () => {
@@ -311,15 +311,16 @@ describe('VirtualizedViewManger', () => {
           cancelable: true,
         });
 
-        let dispatchedView: {width?: number, x?: number;} = null;
-        scheduler.on('set trace view', view => {
+        let dispatchedView: {width?: number; x?: number} | null = null;
+        scheduler.on('set trace view', (view: {width?: number; x?: number}) => {
           dispatchedView = view;
         });
 
         manager.onWheel(wheelEvent);
 
+        // Should not dispatch for vertical-only scroll without shift
         expect(dispatchedView).not.toBeNull();
-        expect(dispatchedView?.x).toBe(0);
+        expect(dispatchedView!.x).toBe(0);
       });
     });
 
@@ -339,10 +340,7 @@ describe('VirtualizedViewManger', () => {
         manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
 
         // Set up scrollable content (span names wider than container)
-        manager.row_measurer.cache.set({id: 'test-node'} as any, {
-          width: 800,
-          height: 24,
-        });
+        manager.row_measurer.cache.set({id: 'test-node'} as any, 800);
         manager.row_measurer.max = 800;
 
         const initialTranslate = manager.columns.list.translate[0];
@@ -377,10 +375,7 @@ describe('VirtualizedViewManger', () => {
         manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
 
         // Set up scrollable content
-        manager.row_measurer.cache.set({id: 'test-node'} as any, {
-          width: 800,
-          height: 24,
-        });
+        manager.row_measurer.cache.set({id: 'test-node'} as any, 800);
         manager.row_measurer.max = 800;
 
         const initialTranslate = manager.columns.list.translate[0];
@@ -414,10 +409,7 @@ describe('VirtualizedViewManger', () => {
         manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
 
         // Content fits within container (no overflow)
-        manager.row_measurer.cache.set({id: 'test-node'} as any, {
-          width: 200,
-          height: 24,
-        });
+        manager.row_measurer.cache.set({id: 'test-node'} as any, 200);
         manager.row_measurer.max = 200;
 
         const initialTranslate = manager.columns.list.translate[0];
