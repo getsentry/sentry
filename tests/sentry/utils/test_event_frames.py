@@ -356,99 +356,102 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
         )
 
 
-class ReactNativeFilenameMungingTestCase(TestCase):
-    def test_not_munged(self) -> None:
-        frames = [
-            {
-                "function": "callFunctionReturnFlushedQueue",
-                "module": "react-native/Libraries/BatchedBridge/MessageQueue",
-                "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
-                "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
-                "lineno": 115,
-                "colno": 5,
-                "in_app": False,
-                "data": {"sourcemap": "app:///main.jsbundle.map"},
-            },
-            {"function": "apply", "filename": "native", "abs_path": "native", "in_app": True},
-            {
-                "function": "onPress",
-                "module": "src/screens/EndToEndTestsScreen",
-                "filename": "src/screens/EndToEndTestsScreen.tsx",
-                "abs_path": "app:///src/screens/EndToEndTestsScreen.tsx",
-                "lineno": 57,
-                "colno": 11,
-                "in_app": True,
-                "data": {"sourcemap": "app:///main.jsbundle.map"},
-            },
-        ]
+def test_react_native_not_munged() -> None:
+    frames = [
+        {
+            "function": "callFunctionReturnFlushedQueue",
+            "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+            "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+            "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+            "lineno": 115,
+            "colno": 5,
+            "in_app": False,
+            "data": {"sourcemap": "app:///main.jsbundle.map"},
+        },
+        {"function": "apply", "filename": "native", "abs_path": "native", "in_app": True},
+        {
+            "function": "onPress",
+            "module": "src/screens/EndToEndTestsScreen",
+            "filename": "src/screens/EndToEndTestsScreen.tsx",
+            "abs_path": "app:///src/screens/EndToEndTestsScreen.tsx",
+            "lineno": 57,
+            "colno": 11,
+            "in_app": True,
+            "data": {"sourcemap": "app:///main.jsbundle.map"},
+        },
+    ]
 
-        munged_frames = munged_filename_and_frames(
-            "javascript", frames, "munged_filename", "sentry.javascript.react-native"
+    munged_frames = munged_filename_and_frames(
+        "javascript", frames, "munged_filename", "sentry.javascript.react-native"
+    )
+    assert not munged_frames
+
+
+def test_flutter_not_munged() -> None:
+    frames = [
+        {
+            "package": "my_package",
+            "filename": "service.dart",
+            "abs_path": "package:my_package/a/b/service.dart",
+            "in_app": True,
+        }
+    ]
+    munged_frames = munged_filename_and_frames("other", frames, "doesnt_matter", "sentry.sdk")
+    assert not munged_frames
+
+
+def test_flutter_munger_supported() -> None:
+    frames = [
+        {
+            "function": "tryCatchModule",
+            "package": "sentry_flutter_example",
+            "filename": "test.dart",
+            "abs_path": "package:sentry_flutter_example/a/b/test.dart",
+            "lineno": 8,
+            "colno": 5,
+            "in_app": True,
+        }
+    ]
+    munged_frames = munged_filename_and_frames(
+        "other", frames, "munged_filename", "sentry.dart.flutter"
+    )
+    assert munged_frames is not None
+    munged_first_frame = munged_frames[1][0]
+    assert munged_first_frame.items() > frames[0].items()
+    assert munged_first_frame["munged_filename"] == "a/b/test.dart"
+
+
+def test_flutter_dart_prefix_not_munged() -> None:
+    assert not flutter_frame_munger(
+        EventFrame(abs_path="dart:ui/a/b/test.dart"),
+    )
+
+
+def test_flutter_abs_path_not_present_not_munged() -> None:
+    assert not flutter_frame_munger(
+        EventFrame(
+            function="tryCatchModule",
+            package="sentry_flutter_example",
+            filename="test.dart",
         )
-        assert not munged_frames
+    )
 
 
-class FlutterFilenameMungingTestCase(TestCase):
-    def test_not_munged(self) -> None:
-        frames = [
-            {
-                "package": "my_package",
-                "filename": "service.dart",
-                "abs_path": "package:my_package/a/b/service.dart",
-                "in_app": True,
-            }
-        ]
-        munged_frames = munged_filename_and_frames("other", frames, "doesnt_matter", "sentry.sdk")
-        assert not munged_frames
-
-    def test_flutter_munger_supported(self) -> None:
-        frames = [
-            {
-                "function": "tryCatchModule",
-                "package": "sentry_flutter_example",
-                "filename": "test.dart",
-                "abs_path": "package:sentry_flutter_example/a/b/test.dart",
-                "lineno": 8,
-                "colno": 5,
-                "in_app": True,
-            }
-        ]
-        munged_frames = munged_filename_and_frames(
-            "other", frames, "munged_filename", "sentry.dart.flutter"
+def test_flutter_different_package_not_munged() -> None:
+    assert not flutter_frame_munger(
+        EventFrame(
+            package="sentry_flutter_example",
+            abs_path="package:different_package/a/b/test.dart",
         )
-        assert munged_frames is not None
-        munged_first_frame = munged_frames[1][0]
-        assert munged_first_frame.items() > frames[0].items()
-        assert munged_first_frame["munged_filename"] == "a/b/test.dart"
+    )
 
-    def test_dart_prefix_not_munged(self) -> None:
-        assert not flutter_frame_munger(
-            EventFrame(abs_path="dart:ui/a/b/test.dart"),
-        )
 
-    def test_abs_path_not_present_not_munged(self) -> None:
-        assert not flutter_frame_munger(
-            EventFrame(
-                function="tryCatchModule",
-                package="sentry_flutter_example",
-                filename="test.dart",
-            )
+def test_flutter_no_package_not_munged() -> None:
+    assert not flutter_frame_munger(
+        EventFrame(
+            abs_path="package:different_package/a/b/test.dart",
         )
-
-    def test_different_package_not_munged(self) -> None:
-        assert not flutter_frame_munger(
-            EventFrame(
-                package="sentry_flutter_example",
-                abs_path="package:different_package/a/b/test.dart",
-            )
-        )
-
-    def test_no_package_not_munged(self) -> None:
-        assert not flutter_frame_munger(
-            EventFrame(
-                abs_path="package:different_package/a/b/test.dart",
-            )
-        )
+    )
 
 
 class CocoaWaterFallTestCase(TestCase):
