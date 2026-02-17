@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -51,6 +52,9 @@ class DsnLookupEndpoint(Endpoint):
             return Response({"detail": "DSN not found"}, status=404)
 
         organization = project_key.project.organization
+
+        if not features.has("organizations:cmd-k-dsn-lookup", organization):
+            return Response({"detail": "DSN not found"}, status=404)
 
         is_member = OrganizationMember.objects.filter(
             organization_id=organization.id,
