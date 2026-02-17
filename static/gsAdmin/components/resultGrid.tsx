@@ -619,7 +619,4 @@ const ErrorAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};
 `;
 
-export default withApi(
-  // TODO(TS): Type cast added as part of react 18 upgrade, can remove after?
-  withSentryRouter(ResultGrid)
-);
+export default withApi(withSentryRouter(ResultGrid));

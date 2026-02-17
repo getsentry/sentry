@@ -28,6 +28,13 @@ const COUNTRY_OPTIONS = [
   {value: 'AT', label: 'Austria'},
 ];
 
+const TAG_OPTIONS = [
+  {value: 'bug', label: 'Bug'},
+  {value: 'feature', label: 'Feature'},
+  {value: 'enhancement', label: 'Enhancement'},
+  {value: 'docs', label: 'Documentation'},
+];
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const baseUserSchema = z.object({
@@ -38,6 +45,7 @@ const baseUserSchema = z.object({
   notifications: z.boolean().optional(),
   volume: z.number().min(0).max(100).optional(),
   bio: z.string().optional(),
+  tags: z.array(z.string()).optional(),
   address: z.object({
     street: z.string().min(1, 'Street is required'),
     city: z.string().min(1, 'City is required'),
@@ -180,10 +188,33 @@ function AutoSaveExample() {
       </AutoSaveField>
 
       <AutoSaveField
+        name="tags"
+        schema={baseUserSchema}
+        initialValue={user.data?.tags ?? []}
+        mutationOptions={userMutationOptions(client)}
+      >
+        {field => (
+          <field.Layout.Stack label="Tags" hintText="Select multiple tags">
+            <field.Select
+              multiple
+              value={field.state.value ?? []}
+              onChange={field.handleChange}
+              options={TAG_OPTIONS}
+            />
+          </field.Layout.Stack>
+        )}
+      </AutoSaveField>
+
+      <AutoSaveField
         name="notifications"
         schema={baseUserSchema}
         initialValue={user.data?.notifications ?? false}
         mutationOptions={userMutationOptions(client)}
+        confirm={value =>
+          value
+            ? 'Are you sure you want to enable email notifications?'
+            : 'Disabling notifications means you may miss important updates.'
+        }
       >
         {field => (
           <field.Layout.Stack label="Email Notifications:">
@@ -323,6 +354,18 @@ function BasicForm() {
               </field.Layout.Row>
             )}
           </form.AppField>
+          <form.AppField name="tags">
+            {field => (
+              <field.Layout.Row label="Tags:" hintText="Select multiple tags">
+                <field.Select
+                  multiple
+                  value={field.state.value ?? []}
+                  onChange={field.handleChange}
+                  options={TAG_OPTIONS}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
           <form.Subscribe selector={state => state.values.age === 42}>
             {showSecret =>
               showSecret ? (
@@ -389,6 +432,72 @@ function BasicForm() {
   );
 }
 
+function CompactExample() {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      field1: '',
+      field2: '',
+      field3: '',
+      field4: '',
+    },
+  });
+
+  return (
+    <form.AppForm>
+      <form.FormWrapper>
+        <FieldGroup title="Row Layout">
+          <form.AppField name="field1">
+            {field => (
+              <field.Layout.Row
+                label="Default Variant"
+                hintText="This hint text appears below the label"
+              >
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="field2">
+            {field => (
+              <field.Layout.Row
+                label="Compact Variant"
+                hintText="This hint text appears in a tooltip when hovering the label"
+                variant="compact"
+              >
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+        </FieldGroup>
+
+        <FieldGroup title="Stack Layout">
+          <form.AppField name="field3">
+            {field => (
+              <field.Layout.Stack
+                label="Default Variant"
+                hintText="This hint text appears below the input"
+              >
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="field4">
+            {field => (
+              <field.Layout.Stack
+                label="Compact Variant"
+                hintText="This hint text appears in a tooltip when hovering the label"
+                variant="compact"
+              >
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </FieldGroup>
+      </form.FormWrapper>
+    </form.AppForm>
+  );
+}
+
 export default Storybook.story('Form', story => {
   story('Basic', () => {
     return (
@@ -405,5 +514,9 @@ export default Storybook.story('Form', story => {
         <AutoSaveExample />
       </Fragment>
     );
+  });
+
+  story('Compact Variant', () => {
+    return <CompactExample />;
   });
 });
