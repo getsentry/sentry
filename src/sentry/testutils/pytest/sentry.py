@@ -1,7 +1,16 @@
 from __future__ import annotations
 
-import collections
 import os
+
+# Per-worker Snuba routing for pytest-xdist. Each worker gets its own Snuba
+# instance on port 1230+N, pointing to ClickHouse database default_gwN.
+# Must be set before Django settings load (SENTRY_SNUBA reads os.environ["SNUBA"]).
+_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
+if _xdist_worker and os.environ.get("XDIST_PER_WORKER_SNUBA"):
+    _worker_num = int(_xdist_worker.replace("gw", ""))
+    os.environ["SNUBA"] = f"http://127.0.0.1:{1230 + _worker_num}"
+
+import collections
 import random
 import shutil
 import string
@@ -33,6 +42,22 @@ TEST_ROOT = os.path.normpath(
 )
 
 TEST_REDIS_DB = 9
+
+
+def _get_xdist_redis_db() -> int:
+    """Per-worker Redis DB to prevent flushdb() cross-contamination under xdist."""
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        return TEST_REDIS_DB + int(worker_id.replace("gw", ""))
+    return TEST_REDIS_DB
+
+
+def _get_xdist_kafka_topic(base_name: str) -> str:
+    """Per-worker Kafka topic to prevent event cross-contamination under xdist."""
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        return f"{base_name}-{worker_id}"
+    return base_name
 
 
 def _use_monolith_dbs() -> bool:
@@ -69,10 +94,22 @@ def _configure_test_env_regions() -> None:
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
     # depends on region attributes, use `override_regions` in your test case.
-    region_name = "testregion" + "".join(random.choices(string.digits, k=6))
+    # Under xdist, seed deterministically so all workers generate the same name
+    # (divergent names break xdist's requirement for identical test collection).
+    xdist_uid = os.environ.get("PYTEST_XDIST_TESTRUNUID")
+    r = random.Random(xdist_uid) if xdist_uid else random
+    region_name = "testregion" + "".join(r.choices(string.digits, k=6))
+
+    # Under xdist, each worker gets a unique snowflake_id so that snowflake-based
+    # model IDs (Project, Organization, Team) don't collide across workers.
+    xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
+    region_snowflake_id = int(xdist_worker.replace("gw", "")) + 1 if xdist_worker else 0
 
     default_region = Region(
-        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+        region_name,
+        region_snowflake_id,
+        settings.SENTRY_OPTIONS["system.url-prefix"],
+        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_REGION = region_name
@@ -203,7 +240,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": _get_xdist_redis_db()}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
@@ -483,6 +520,34 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _xdist_per_worker_snuba():
+    """Patch Snuba connection pool to use per-worker Snuba instance.
+
+    Belt-and-suspenders with the module-level os.environ["SNUBA"] set above:
+    the env var covers settings load, this fixture patches _snuba_pool in case
+    it was already created before the env var took effect.
+    """
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if not worker_id or not os.environ.get("XDIST_PER_WORKER_SNUBA"):
+        return
+
+    worker_num = int(worker_id.replace("gw", ""))
+    worker_snuba_url = f"http://127.0.0.1:{1230 + worker_num}"
+
+    settings.SENTRY_SNUBA = worker_snuba_url
+
+    from sentry.net.http import connection_from_url
+    from sentry.utils import snuba as _snuba_mod
+
+    _snuba_mod._snuba_pool = connection_from_url(
+        worker_snuba_url,
+        retries=False,
+        timeout=settings.SENTRY_SNUBA_TIMEOUT,
+        maxsize=10,
+    )
 
 
 def pytest_xdist_setupnodes() -> None:
