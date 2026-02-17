@@ -301,7 +301,8 @@ def _cleanup(
     partition_total: int | None = None,
     partition_key: str = "id",
 ) -> None:
-    # Validate partition flags before modifying environment
+    # Validate partition flags before setting up environment to avoid
+    # leaking env vars (like _SENTRY_CLEANUP) when validation fails early.
     parsed_partition: tuple[int, int, str] | None = None
     if partition_bucket is not None or partition_total is not None:
         if partition_bucket is None or partition_total is None:
@@ -324,6 +325,7 @@ def _cleanup(
 
     start_time = time.time()
     _validate_and_setup_environment(concurrency, silent)
+
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
     pool, task_queue = _start_pool(concurrency)
