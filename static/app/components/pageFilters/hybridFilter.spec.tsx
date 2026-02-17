@@ -1,17 +1,14 @@
 import {useRef, useState} from 'react';
 
-import {
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
 import type {HybridFilterRef} from 'sentry/components/pageFilters/hybridFilter';
-import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {
+  HybridFilter,
+  useStagedCompactSelect,
+} from 'sentry/components/pageFilters/hybridFilter';
 
 function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<string>>) {
   return [
@@ -57,25 +54,24 @@ function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<string>
   ];
 }
 
-const props = {
-  searchable: true,
-  multiple: true,
-};
-
-describe('ProjectPageFilter', () => {
+describe('HybridFilter', () => {
   it('renders', async () => {
     function TestComponent() {
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const stagedSelect = useStagedCompactSelect({
+        value: [] as string[],
+        defaultValue: [],
+        onChange: () => {},
+        multiple: true,
+      });
 
       return (
         <HybridFilter
-          {...props}
+          searchable
           ref={hybridFilterRef}
           options={options}
-          value={[]}
-          defaultValue={[]}
-          onChange={() => {}}
+          stagedSelect={stagedSelect}
         />
       );
     }
@@ -96,15 +92,19 @@ describe('ProjectPageFilter', () => {
     function TestComponent({value}: {value: string[]}) {
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const stagedSelect = useStagedCompactSelect({
+        value,
+        defaultValue: [],
+        onChange,
+        multiple: true,
+      });
 
       return (
         <HybridFilter
-          {...props}
+          searchable
           ref={hybridFilterRef}
           options={options}
-          value={value}
-          defaultValue={[]}
-          onChange={onChange}
+          stagedSelect={stagedSelect}
         />
       );
     }
@@ -126,25 +126,28 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
     expect(onChange).toHaveBeenCalledWith(['two']);
   });
-
   it('handles multiple selection', async () => {
     const onChange = jest.fn();
     function ControlledHybridFilter() {
       const [value, setValue] = useState<string[]>([]);
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const stagedSelect = useStagedCompactSelect({
+        value,
+        defaultValue: [],
+        onChange: newValue => {
+          onChange(newValue);
+          setValue(newValue);
+        },
+        multiple: true,
+      });
 
       return (
         <HybridFilter
-          {...props}
+          searchable
           ref={hybridFilterRef}
           options={options}
-          defaultValue={[]}
-          value={value}
-          onChange={newValue => {
-            onChange(newValue);
-            setValue(newValue);
-          }}
+          stagedSelect={stagedSelect}
         />
       );
     }
@@ -154,8 +157,8 @@ describe('ProjectPageFilter', () => {
     // Clicking on the checkboxes in Option One & Option Two _adds_ the options to the
     // current selection state (multiple selection mode)
     await userEvent.click(screen.getByRole('button', {expanded: false}));
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option Two'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option Two'}));
     expect(screen.getByRole('checkbox', {name: 'Select Option One'})).toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Select Option Two'})).toBeChecked();
 
@@ -163,21 +166,13 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
     expect(onChange).toHaveBeenCalledWith(expect.arrayContaining(['one', 'two']));
 
-    await userEvent.click(screen.getByRole('button', {expanded: false}));
-
-    // Ctrl-clicking on Option One & Option Two _removes_ them to the current selection
+    // Ctrl-clicking on Option One & Option Two _removes_ them from the current selection
     // state (multiple selection mode)
-    const ctrlKeyOpts = {
-      key: 'Control',
-      code: 'ControlLeft',
-      keyCode: 17,
-      which: 17,
-      ctrlKey: true,
-    };
-    fireEvent.keyDown(screen.getByRole('grid'), ctrlKeyOpts); // Press & hold Ctrl
+    await userEvent.click(screen.getByRole('button', {expanded: false}));
+    await userEvent.keyboard('{Control>}');
     await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
-    fireEvent.click(screen.getByRole('row', {name: 'Option Two'}));
-    fireEvent.keyUp(screen.getByRole('grid'), ctrlKeyOpts); // Release Ctrl
+    await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
+    await userEvent.keyboard('{/Control}');
     expect(screen.getByRole('checkbox', {name: 'Select Option One'})).not.toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Select Option Two'})).not.toBeChecked();
 
@@ -192,15 +187,19 @@ describe('ProjectPageFilter', () => {
     function TestComponent() {
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const stagedSelect = useStagedCompactSelect({
+        value: [] as string[],
+        defaultValue: [],
+        onChange,
+        multiple: true,
+      });
 
       return (
         <HybridFilter
-          {...props}
+          searchable
           ref={hybridFilterRef}
           options={options}
-          value={[]}
-          defaultValue={[]}
-          onChange={onChange}
+          stagedSelect={stagedSelect}
         />
       );
     }
@@ -209,7 +208,7 @@ describe('ProjectPageFilter', () => {
 
     // Open the menu, select Option One
     await userEvent.click(screen.getByRole('button', {expanded: false}));
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
 
     // Press Cancel
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
@@ -226,18 +225,26 @@ describe('ProjectPageFilter', () => {
     const onReset = jest.fn();
 
     function TestComponent() {
+      const [value, setValue] = useState<string[]>(['one']);
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const stagedSelect = useStagedCompactSelect({
+        value,
+        defaultValue: ['one'] as string[],
+        onChange: newValue => {
+          onChange(newValue);
+          setValue(newValue);
+        },
+        onReset,
+        multiple: true,
+      });
 
       return (
         <HybridFilter
-          {...props}
+          searchable
           ref={hybridFilterRef}
           options={options}
-          value={['one']}
-          defaultValue={['one']}
-          onChange={onChange}
-          onReset={onReset}
+          stagedSelect={stagedSelect}
         />
       );
     }
@@ -249,7 +256,7 @@ describe('ProjectPageFilter', () => {
     expect(screen.queryByRole('button', {name: 'Reset'})).not.toBeInTheDocument();
 
     // Select Option Two, Reset button shows up
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option Two'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option Two'}));
     expect(screen.getByRole('checkbox', {name: 'Select Option Two'})).toBeChecked();
     expect(screen.getByRole('button', {name: 'Reset'})).toBeInTheDocument();
 
@@ -270,15 +277,19 @@ describe('ProjectPageFilter', () => {
     function TestComponent() {
       const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
+      const stagedSelect = useStagedCompactSelect({
+        value: [] as string[],
+        defaultValue: [],
+        onChange,
+        multiple: true,
+      });
 
       return (
         <HybridFilter
-          {...props}
+          searchable
           ref={hybridFilterRef}
           options={options}
-          value={[]}
-          defaultValue={[]}
-          onChange={onChange}
+          stagedSelect={stagedSelect}
         />
       );
     }
@@ -303,11 +314,8 @@ describe('ProjectPageFilter', () => {
       expect(screen.getByRole('checkbox', {name: 'Select Option One'})).toHaveFocus();
     });
 
-    // Activate the checkbox. In browsers, users can press Space when the checkbox is
-    // focused to activate it. With RTL, however, onChange events aren't fired on Space
-    // key press (https://github.com/testing-library/react-testing-library/issues/122),
-    // so we'll have to simulate a click event instead.
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+    // Activate the checkbox by clicking it
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
     expect(screen.getByRole('checkbox', {name: 'Select Option One'})).toBeChecked();
 
     // Click "Apply" button, onChange is called

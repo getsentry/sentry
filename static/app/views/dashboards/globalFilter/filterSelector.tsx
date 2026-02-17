@@ -11,6 +11,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   HybridFilter,
+  useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
@@ -299,6 +300,15 @@ function FilterSelector({
   const hasOperatorChanges =
     stagedFilterValues.length > 0 && stagedOperator !== initialOperator;
 
+  const stagedSelect = useStagedCompactSelect({
+    value: activeFilterValues,
+    defaultValue: [],
+    onChange: handleChange,
+    onStagedValueChange: setStagedFilterValues,
+    multiple: true,
+    hasExternalChanges: hasOperatorChanges,
+  });
+
   const renderMenuHeaderTrailingItems = ({closeOverlay}: any) => (
     <Flex gap="lg">
       {activeFilterValues.length > 0 && (
@@ -369,18 +379,12 @@ function FilterSelector({
   return (
     <HybridFilter
       ref={hybridFilterRef}
+      stagedSelect={stagedSelect}
       searchable
       disabled={false}
       options={translatedOptions}
-      value={activeFilterValues}
       searchPlaceholder={t('Search or enter a custom value...')}
       onSearch={setSearchQuery}
-      defaultValue={[]}
-      hasExternalChanges={hasOperatorChanges}
-      onChange={handleChange}
-      onStagedValueChange={value => {
-        setStagedFilterValues(value);
-      }}
       sizeLimit={30}
       onClose={() => {
         setSearchQuery('');

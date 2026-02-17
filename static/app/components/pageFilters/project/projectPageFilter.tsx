@@ -16,7 +16,10 @@ import type {
   HybridFilterProps,
   HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
-import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {
+  HybridFilter,
+  useStagedCompactSelect,
+} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
@@ -41,14 +44,24 @@ export interface ProjectPageFilterProps extends Partial<
     | 'value'
     | 'defaultValue'
     | 'onReplace'
+    | 'onReset'
     | 'onToggle'
     | 'menuBody'
     | 'menuFooter'
     | 'menuFooterMessage'
     | 'shouldCloseOnInteractOutside'
     | 'sizeLimitMessage'
+    | 'stagedSelect'
   >
 > {
+  /**
+   * Called when the selection changes
+   */
+  onChange?: (selected: number[]) => void;
+  /**
+   * Called when the reset button is clicked
+   */
+  onReset?: () => void;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -252,25 +265,29 @@ export function ProjectPageFilter({
         value: parseInt(project.id, 10),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
-          <Checkbox
-            size="sm"
-            checked={isSelected}
-            onChange={() =>
-              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
-            }
-            aria-label={t('Select %s', project.slug)}
-            tabIndex={-1}
-          />
+          <Flex align="center" gap="sm" flex="1 1 100%">
+            <Checkbox
+              size="sm"
+              checked={isSelected}
+              onChange={() =>
+                hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+              }
+              aria-label={t('Select %s', project.slug)}
+              tabIndex={-1}
+            />
+          </Flex>
         ),
         label: (
-          <Flex align="center" gap="sm">
+          <Flex align="center" gap="sm" flex="1 1 100%">
             <ProjectBadge project={project} avatarSize={16} hideName disableLink />
             <Text ellipsis>{project.slug}</Text>
           </Flex>
         ),
         trailingItems: (props: {isFocused: boolean}) => {
           return (
-            <Flex align="center">
+            // This is nasty, but because CompactSelect's menuListItem has a padding around the entire item and a height
+            // that is smaller than the height of an xs button, they end up being misaligned and we need to manually adjust them.
+            <Flex align="center" style={{marginTop: '-4px'}}>
               {props.isFocused ? (
                 <Fragment>
                   <LinkButton
@@ -384,6 +401,18 @@ export function ProjectPageFilter({
     return mappedValue.length > SELECTION_COUNT_LIMIT;
   }, [stagedValue, mapNormalValueToURLValue]);
 
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    defaultValue,
+    onChange: handleChange,
+    onStagedValueChange: setStagedValue,
+    onToggle,
+    onReplace,
+    onReset: handleReset,
+    multiple: true,
+    disableCommit: selectionLimitExceeded,
+  });
+
   const menuFooterMessage = useMemo(() => {
     if (selectionLimitExceeded) {
       return (hasStagedChanges: any) =>
@@ -404,18 +433,10 @@ export function ProjectPageFilter({
     <HybridFilter
       ref={hybridFilterRef}
       {...selectProps}
+      stagedSelect={stagedSelect}
       searchable
-      multiple
       options={options}
-      value={value}
-      defaultValue={defaultValue}
-      onChange={handleChange}
-      onStagedValueChange={setStagedValue}
-      onReset={handleReset}
-      onReplace={onReplace}
-      onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
-      disableCommit={selectionLimitExceeded}
       sizeLimit={sizeLimit ?? 25}
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}

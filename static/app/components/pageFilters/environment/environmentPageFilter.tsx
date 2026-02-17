@@ -13,6 +13,7 @@ import {
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
+  useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
@@ -33,6 +34,7 @@ export interface EnvironmentPageFilterProps extends Partial<
     | 'value'
     | 'defaultValue'
     | 'onReplace'
+    | 'onReset'
     | 'onToggle'
     | 'menuTitle'
     | 'menuBody'
@@ -40,6 +42,7 @@ export interface EnvironmentPageFilterProps extends Partial<
     | 'menuFooterMessage'
     | 'shouldCloseOnInteractOutside'
     | 'triggerProps'
+    | 'stagedSelect'
   >
 > {
   /**
@@ -47,9 +50,21 @@ export interface EnvironmentPageFilterProps extends Partial<
    */
   footerMessage?: React.ReactNode;
   /**
+   * Called when the selection changes
+   */
+  onChange?: (selected: string[]) => void;
+  /**
+   * Called when the reset button is clicked
+   */
+  onReset?: () => void;
+  /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  /**
+   * Optional prefix for the storage key
+   */
+  storageNamespace?: string;
   triggerProps?: Partial<EnvironmentPageFilterTriggerProps>;
 }
 
@@ -204,19 +219,23 @@ export function EnvironmentPageFilter({
     return `${Math.max(16, Math.min(24, longestSlugLength * 0.6 + 6))}em`;
   }, [options]);
 
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    defaultValue: [],
+    onChange: handleChange,
+    onToggle,
+    onReplace,
+    onReset,
+    multiple: true,
+  });
+
   return (
     <HybridFilter
       {...selectProps}
       ref={hybridFilterRef}
+      stagedSelect={stagedSelect}
       searchable
-      multiple
       options={options}
-      value={value}
-      defaultValue={[]}
-      onChange={handleChange}
-      onReset={onReset}
-      onReplace={onReplace}
-      onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
