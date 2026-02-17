@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -20,6 +20,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -58,6 +59,7 @@ function AccountClose() {
   const [organizations, setOrganizations] = useState<OwnedOrg[]>([]);
   const [orgsToRemove, setOrgsToRemove] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const leaveRedirectTimeout = useRef<number | undefined>(undefined);
 
   // Load organizations from all regions.
   useEffect(() => {
@@ -73,13 +75,11 @@ function AccountClose() {
     });
   }, [api]);
 
-  let leaveRedirectTimeout: number | undefined = undefined;
   useEffect(() => {
-    // setup unmount callback
     return () => {
-      window.clearTimeout(leaveRedirectTimeout);
+      window.clearTimeout(leaveRedirectTimeout.current);
     };
-  }, [leaveRedirectTimeout]);
+  }, []);
 
   const handleChange = (
     organization: OrganizationSummary,
@@ -101,27 +101,33 @@ function AccountClose() {
     setOrgsToRemove(slugSet);
   };
 
-  const handleRemoveAccount = async () => {
-    addLoadingMessage('Closing account\u2026');
-
-    try {
-      await api.requestPromise('/users/me/', {
+  const {mutate: removeAccount} = useMutation({
+    mutationFn: (organizations: string[]) =>
+      fetchMutation({
         method: 'DELETE',
-        data: {organizations: Array.from(orgsToRemove)},
-      });
-
+        url: '/users/me/',
+        data: {organizations},
+      }),
+    onMutate: () => {
+      addLoadingMessage('Closing account\u2026');
+    },
+    onSuccess: () => {
       requestAnimationFrame(() => {
         openModal(GoodbyeModalContent, {
           onClose: leaveRedirect,
         });
       });
-
       // Redirect after 10 seconds
-      window.clearTimeout(leaveRedirectTimeout);
-      leaveRedirectTimeout = window.setTimeout(leaveRedirect, 10000);
-    } catch {
+      window.clearTimeout(leaveRedirectTimeout.current);
+      leaveRedirectTimeout.current = window.setTimeout(leaveRedirect, 10000);
+    },
+    onError: () => {
       addErrorMessage('Error closing account');
-    }
+    },
+  });
+
+  const handleRemoveAccount = () => {
+    removeAccount(Array.from(orgsToRemove));
   };
 
   const HookedCustomConfirmAccountClose = HookOrDefault({
