@@ -1,7 +1,6 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -28,8 +27,6 @@ describe('Broadcasts', () => {
   });
 
   it('renders', async () => {
-    const {router} = initializeOrg();
-
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: mockUser,
@@ -38,16 +35,7 @@ describe('Broadcasts', () => {
 
     renderMockRequests();
 
-    render(
-      <Broadcasts
-        location={router.location}
-        router={router}
-        params={router.params}
-        route={router.routes[0]!}
-        routeParams={router.params}
-        routes={router.routes}
-      />
-    );
+    render(<Broadcasts />);
 
     renderGlobalModal();
 

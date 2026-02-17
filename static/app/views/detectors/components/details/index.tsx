@@ -1,5 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {Alert} from '@sentry/scraps/alert';
+
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -42,7 +43,7 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
     case 'issue_stream':
       return (
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {t('Issue stream monitors do not support detail views.')}
           </Alert>
         </Alert.Container>

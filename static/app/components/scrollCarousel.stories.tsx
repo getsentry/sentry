@@ -58,11 +58,11 @@ const ExampleItem = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundTertiary};
+    background-color: ${p => p.theme.tokens.background.tertiary};
   }
 `;

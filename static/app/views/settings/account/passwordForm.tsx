@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -46,7 +47,7 @@ function PasswordForm() {
           </Actions>
         )}
         renderHeader={() => (
-          <PanelAlert type="info">
+          <PanelAlert variant="info">
             {t('Changing your password will invalidate all logged in sessions.')}
           </PanelAlert>
         )}

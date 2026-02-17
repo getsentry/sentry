@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
@@ -25,7 +26,7 @@ const getSdkSetupSnippet = (params: DocsParams) => `
 import * as Sentry from "@sentry/cloudflare";
 
 export default Sentry.withSentry(
-  env => ({
+  (env: Env) => ({
     dsn: "${params.dsn.public}",${
       params.isPerformanceSelected
         ? `

@@ -32,7 +32,7 @@ const pipelineMapper: Record<string, [React.ComponentType<any>, string]> = {
   awsLambdaFunctionSelect: [AwsLambdaFunctionSelect, 'AWS Lambda Select Lambdas'],
   awsLambdaCloudformation: [AwsLambdaCloudformation, 'AWS Lambda Create Cloudformation'],
   awsLambdaFailureDetails: [AwsLambdaFailureDetails, 'AWS Lambda View Failures'],
-  githubInstallationSelect: [GithubInstallationSelect, 'Github Select Installation'],
+  githubInstallationSelect: [GithubInstallationSelect, 'GitHub Select Installation'],
 };
 
 type Props = {
@@ -99,6 +99,7 @@ function PipelineView({pipelineName, ...props}: Props) {
     window.superUserCookieName = data.superUserCookieName;
     window.superUserCookieDomain = data.superUserCookieDomain ?? undefined;
 
+    // eslint-disable-next-line boundaries/element-types -- getsentry entrypoint
     const registerHooksImport = import('getsentry/registerHooks');
     const {default: registerHooks} = await registerHooksImport;
     registerHooks();

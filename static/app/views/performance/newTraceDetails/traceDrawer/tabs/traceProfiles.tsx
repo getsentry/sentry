@@ -2,7 +2,8 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
@@ -128,7 +129,7 @@ const ProfilesTable = styled('div')`
   grid-template-columns: 1fr min-content;
   grid-template-rows: auto;
   width: 100%;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   > div {
@@ -167,13 +168,13 @@ const ProfilesTableRow = styled('div')`
   }
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const ProfilesTableTitle = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding: 0 ${space(0.5)};
 `;

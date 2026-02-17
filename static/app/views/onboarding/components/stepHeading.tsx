@@ -33,9 +33,9 @@ const StepHeading = styled(
     justify-content: center;
     width: 30px;
     height: 30px;
-    background-color: ${p => p.theme.colors.chonk.yellow400};
+    background-color: ${p => p.theme.tokens.background.warning.vibrant};
     border-radius: 50%;
-    color: ${p => p.theme.colors.black};
+    color: ${p => p.theme.tokens.content.onVibrant.dark};
     font-size: 1rem;
   }
 `;

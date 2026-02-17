@@ -73,13 +73,12 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.8.2'
+          version: '0.9.28'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
-      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
+      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
-          python-version: 3.13.1
           cache-dependency-path: uv.lock
           install-cmd: uv sync --only-dev --frozen --active
       - uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
@@ -100,7 +99,7 @@ jobs:
 
       - name: Apply any pre-commit fixed files
         # note: this runs "always" or else it's skipped when pre-commit fails
-        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
+        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && !github.event.pull_request.draft && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}

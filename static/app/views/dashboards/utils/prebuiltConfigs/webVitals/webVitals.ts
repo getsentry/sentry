@@ -1,9 +1,21 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {SpanFields} from 'sentry/views/insights/types';
+
+export const ISSUE_TYPES = [
+  'web_vitals',
+  'performance_render_blocking_asset_span',
+  'performance_uncompressed_assets',
+  'performance_http_overhead',
+  'performance_consecutive_http',
+  'performance_n_plus_one_api_calls',
+  'performance_large_http_payload',
+  'performance_p95_endpoint_regression',
+];
 
 export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -14,8 +26,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.system',
-          name: 'span.system',
+          key: 'user.geo.subregion',
+          name: 'user.geo.subregion',
           kind: FieldKind.TAG,
         },
         value: '',
@@ -23,17 +35,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.action',
-          name: 'span.action',
-          kind: FieldKind.TAG,
-        },
-        value: '',
-      },
-      {
-        dataset: WidgetType.SPANS,
-        tag: {
-          key: 'span.domain',
-          name: 'span.domain',
+          key: 'browser.name',
+          name: 'browser.name',
           kind: FieldKind.TAG,
         },
         value: '',
@@ -42,47 +45,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   },
   widgets: [
     {
-      id: 'score-breakdown-wheel',
-      title: t('Performance Score'),
-      displayType: DisplayType.WHEEL,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
-            'performance_score(measurements.score.total)',
-            'count_scores(measurements.score.total)',
-            'count_scores(measurements.score.lcp)',
-            'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.inp)',
-            'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.ttfb)',
-          ],
-          aggregates: [],
-          columns: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
-            'performance_score(measurements.score.total)',
-            'count_scores(measurements.score.total)',
-            'count_scores(measurements.score.lcp)',
-            'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.inp)',
-            'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.ttfb)',
-          ],
-          orderby: '',
-        },
-      ],
+      ...SCORE_BREAKDOWN_WHEEL_WIDGET,
       layout: {
         y: 0,
         w: 2,
@@ -94,6 +57,9 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'score-breakdown-chart',
       title: t('Score Breakdown'),
+      description: t(
+        'Each Web Vital score contributes a different amount to the total score. Refer to the Performance Score wheel for total contribution.'
+      ),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -102,18 +68,18 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
           fields: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
+            'equation|performance_score(measurements.score.lcp)',
+            'equation|performance_score(measurements.score.fcp)',
+            'equation|performance_score(measurements.score.inp)',
+            'equation|performance_score(measurements.score.cls)',
+            'equation|performance_score(measurements.score.ttfb)',
           ],
           aggregates: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
+            'equation|performance_score(measurements.score.lcp)',
+            'equation|performance_score(measurements.score.fcp)',
+            'equation|performance_score(measurements.score.inp)',
+            'equation|performance_score(measurements.score.cls)',
+            'equation|performance_score(measurements.score.ttfb)',
           ],
           columns: [],
           orderby: '',
@@ -128,8 +94,11 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'lcp-score-meter',
-      title: t('Largest Contentful Paint'),
+      id: 'lcp-p75-meter',
+      title: t('P75 Largest Contentful Paint'),
+      description: t(
+        'Time to render the largest item in the viewport. Bad LCP frustrates users because the website feels slow to load.'
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -137,12 +106,20 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.lcp)', 'avg(measurements.score.ratio.lcp)'],
-          aggregates: ['p75(measurements.lcp)', 'avg(measurements.score.ratio.lcp)'],
+          fields: ['p75(measurements.lcp)'],
+          aggregates: ['p75(measurements.lcp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.LCP,
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 1200,
+          max2: 2400,
+        },
+        unit: null,
+      },
       layout: {
         y: 2,
         w: 1,
@@ -152,8 +129,11 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'fcp-score-meter',
-      title: t('First Contentful Paint'),
+      id: 'inp-p75-meter',
+      title: t('P75 Interaction to Next Paint'),
+      description: t(
+        'Latency between user input and visual response. Bad INP makes users feel like the site is laggy, outdated, and unresponsive.'
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -161,12 +141,20 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.fcp)', 'avg(measurements.score.ratio.fcp)'],
-          aggregates: ['p75(measurements.fcp)', 'avg(measurements.score.ratio.fcp)'],
+          fields: ['p75(measurements.inp)'],
+          aggregates: ['p75(measurements.inp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.INP,
         },
       ],
+      thresholds: {
+        max_values: {
+          max1: 200,
+          max2: 500,
+        },
+        unit: null,
+      },
       layout: {
         y: 2,
         w: 1,
@@ -176,8 +164,11 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'inp-score-meter',
-      title: t('Interaction to Next Paint'),
+      id: 'cls-p75-meter',
+      title: t('P75 Cumulative Layout Shift'),
+      description: t(
+        "Measures content 'shifting' during load. Bad CLS indicates a janky website, degrading UX and trust."
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -185,66 +176,86 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.inp)', 'avg(measurements.score.ratio.inp)'],
-          aggregates: ['p75(measurements.inp)', 'avg(measurements.score.ratio.inp)'],
+          fields: ['p75(measurements.cls)'],
+          aggregates: ['p75(measurements.cls)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.CLS,
+        },
+      ],
+      thresholds: {
+        max_values: {
+          max1: 0.1,
+          max2: 0.25,
+        },
+        unit: null,
+      },
+      layout: {
+        y: 3,
+        w: 1,
+        h: 1,
+        x: 0,
+        minH: 1,
+      },
+    },
+    {
+      id: 'ttfb-p75-meter',
+      title: t('P75 Time To First Byte'),
+      description: t(
+        'Time until first byte is delivered to the client. Bad TTFB makes the server feel unresponsive.'
+      ),
+      displayType: DisplayType.BIG_NUMBER,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: DEFAULT_QUERY_FILTER,
+          fields: ['p75(measurements.ttfb)'],
+          aggregates: ['p75(measurements.ttfb)'],
+          columns: [],
+          orderby: '',
+          slideOutId: SlideoutId.TTFB,
+        },
+      ],
+      thresholds: {
+        max_values: {
+          max1: 200,
+          max2: 400,
+        },
+        unit: 'millisecond',
+      },
+      layout: {
+        y: 3,
+        w: 1,
+        h: 1,
+        x: 1,
+        minH: 1,
+      },
+    },
+    {
+      id: 'issues-table',
+      title: t('Web Vital Issues'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.ISSUE,
+      interval: '5m',
+      tableWidths: [-1, 100, -1],
+      queries: [
+        {
+          name: '',
+          conditions: `issue.type:[${ISSUE_TYPES.join(',')}]`,
+          fields: ['issue', 'assignee', 'title'],
+          aggregates: [],
+          columns: ['issue', 'assignee', 'title'],
+          orderby: 'date',
         },
       ],
       layout: {
         y: 2,
-        w: 1,
-        h: 1,
+        w: 4,
+        h: 2,
         x: 2,
-        minH: 1,
-      },
-    },
-    {
-      id: 'cls-score-meter',
-      title: t('Cumulative Layout Shift'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.cls)', 'avg(measurements.score.ratio.cls)'],
-          aggregates: ['p75(measurements.cls)', 'avg(measurements.score.ratio.cls)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      layout: {
-        y: 2,
-        w: 1,
-        h: 1,
-        x: 3,
-        minH: 1,
-      },
-    },
-    {
-      id: 'ttfb-score-meter',
-      title: t('Time To First Byte'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.ttfb)', 'avg(measurements.score.ratio.ttfb)'],
-          aggregates: ['p75(measurements.ttfb)', 'avg(measurements.score.ratio.ttfb)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      layout: {
-        y: 2,
-        w: 1,
-        h: 1,
-        x: 4,
-        minH: 1,
+        minH: 2,
       },
     },
     {
@@ -301,12 +312,13 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
               dashboardId: '-1',
               field: SpanFields.TRANSACTION,
               staticDashboardId: 7,
+              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
             },
           ],
         },
       ],
       layout: {
-        y: 3,
+        y: 4,
         w: 6,
         h: 6,
         x: 0,

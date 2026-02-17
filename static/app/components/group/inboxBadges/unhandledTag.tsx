@@ -8,7 +8,7 @@ function UnhandledTag() {
   const hasStreamlinedUI = useHasStreamlinedUI();
   return (
     <UnhandledTagWrapper>
-      {!hasStreamlinedUI && <StyledIconFatal size="xs" color="errorText" />}
+      {!hasStreamlinedUI && <StyledIconFatal size="xs" variant="danger" />}
       {t('Unhandled')}
     </UnhandledTagWrapper>
   );
@@ -20,7 +20,7 @@ const UnhandledTagWrapper = styled('div')`
   display: flex;
   align-items: center;
   white-space: nowrap;
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const StyledIconFatal = styled(IconFatal)`

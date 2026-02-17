@@ -8,6 +8,10 @@ import type {Group} from 'sentry/types/group';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 
+function getTooltipMarker(color: string): string {
+  return `<span style="display:inline-block;margin-right:4px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+}
+
 interface UseEventMarklineSeriesProps {
   event: Event | undefined;
   /**
@@ -16,12 +20,27 @@ interface UseEventMarklineSeriesProps {
    */
   eventSeries: Array<{name: number; value: number}>;
   group: Group;
+  /**
+   * Which series type is currently visible (event or user)
+   */
+  seriesType: 'event' | 'user';
+  /**
+   * Whether the chart is showing filtered results (search query or environment filter)
+   */
+  isFiltered?: boolean;
+  /**
+   * The unfiltered event series, used to show total events in the tooltip
+   */
+  unfilteredEventSeries?: Array<{name: number; value: number}>;
 }
 
 export function useCurrentEventMarklineSeries({
   event,
   group,
   eventSeries,
+  isFiltered,
+  unfilteredEventSeries,
+  seriesType,
 }: UseEventMarklineSeriesProps) {
   const theme = useTheme();
   const eventView = useIssueDetailsEventView({group});
@@ -48,10 +67,37 @@ export function useCurrentEventMarklineSeries({
       return undefined;
     }
 
+    // Labels and colors based on series type, matching eventGraph.tsx bar chart series
+    const isUserSeries = seriesType === 'user';
+    const labels = isUserSeries
+      ? {
+          total: t('Total users'),
+          matching: t('Matching users'),
+          default: t('Users'),
+        }
+      : {
+          total: t('Total events'),
+          matching: t('Matching events'),
+          default: t('Events'),
+        };
+
+    // Colors match eventGraph.tsx series colors
+    const colors = isUserSeries
+      ? {
+          total: theme.tokens.dataviz.semantic.neutral,
+          matching: theme.tokens.dataviz.semantic.accent,
+          default: theme.tokens.dataviz.semantic.other,
+        }
+      : {
+          total: theme.tokens.dataviz.semantic.other,
+          matching: theme.tokens.dataviz.semantic.accent,
+          default: theme.tokens.dataviz.semantic.neutral,
+        };
+
     const markLine = MarkLine({
       animation: false,
       lineStyle: {
-        color: theme.tokens.graphics.promotion,
+        color: theme.tokens.graphics.promotion.vibrant,
         type: 'solid',
       },
       label: {
@@ -74,9 +120,33 @@ export function useCurrentEventMarklineSeries({
               local: !eventView.utc,
             }
           );
+
+          const matchingCount = closestEventSeries.value.toLocaleString();
+          const totalCount = unfilteredEventSeries
+            ?.find(s => s.name === closestEventSeries.name)
+            ?.value?.toLocaleString();
+
+          // Use inline style for bold since CSS overrides <strong> to normal weight
+          const seriesRows = [
+            `<div><span class="tooltip-label" style="font-weight:bold;">${t('Current Event')}</span></div>`,
+          ];
+
+          if (isFiltered && totalCount) {
+            seriesRows.push(
+              `<div><span class="tooltip-label">${getTooltipMarker(colors.total)}<strong>${labels.total}</strong></span> ${totalCount}</div>`
+            );
+            seriesRows.push(
+              `<div><span class="tooltip-label">${getTooltipMarker(colors.matching)}<strong>${labels.matching}</strong></span> ${matchingCount}</div>`
+            );
+          } else {
+            seriesRows.push(
+              `<div><span class="tooltip-label">${getTooltipMarker(colors.default)}<strong>${labels.default}</strong></span> ${matchingCount}</div>`
+            );
+          }
+
           return [
             '<div class="tooltip-series">',
-            `<div><span class="tooltip-label"><strong>${t('Current Event')}</strong></span></div>`,
+            ...seriesRows,
             '</div>',
             `<div class="tooltip-footer">${time}</div>`,
             '<div class="tooltip-arrow"></div>',
@@ -91,5 +161,13 @@ export function useCurrentEventMarklineSeries({
       markLine,
       type: 'line',
     };
-  }, [event, theme, eventView.utc, eventSeries]);
+  }, [
+    event,
+    theme,
+    eventView.utc,
+    eventSeries,
+    isFiltered,
+    unfilteredEventSeries,
+    seriesType,
+  ]);
 }

@@ -1,26 +1,30 @@
 ---
 title: Avatar
 description: Avatars display an image of users, teams, organizations, and other Sentry-specific items.
-source: 'sentry/components/core/avatar'
+category: display
+source: '@sentry/scraps/avatar'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/alert/index.tsx
 ---
 
 import {Fragment, useEffect} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import Placeholder from 'sentry/components/placeholder';
 import * as Storybook from 'sentry/stories';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
-import AvatarList from './avatarList';
-import {DocIntegrationAvatar} from './docIntegrationAvatar';
-import {OrganizationAvatar} from './organizationAvatar';
-import {ProjectAvatar} from './projectAvatar';
-import {SentryAppAvatar} from './sentryAppAvatar';
-import {TeamAvatar} from './teamAvatar';
-import {UserAvatar} from './userAvatar';
+import {
+  AvatarList,
+  DocIntegrationAvatar,
+  OrganizationAvatar,
+  ProjectAvatar,
+  SentryAppAvatar,
+  TeamAvatar,
+  UserAvatar,
+} from '@sentry/scraps/avatar';
 
 import AvatarDocumentation from '!!type-loader!@sentry/scraps/avatar';
 
@@ -125,17 +129,6 @@ There are multiple avatar components which represent users, teams, organizations
   <SentryAppAvatar size={PREVIEW_SIZE} sentryApp={SENTRY_APP} />
   <DocIntegrationAvatar size={PREVIEW_SIZE} docIntegration={DOC_INTEGRATION} />
 </Storybook.Demo>
-
-## Props
-
-All avatar components accept common props, to customize `size` and render tooltips with `hasTooltip`, `tooltip`, and `tooltipOptions`.
-
-<Storybook.Demo>
-  <UserAvatar user={USER} size={64} hasTooltip tooltip="This avatar has a tooltip" />
-</Storybook.Demo>
-```jsx
-<UserAvatar user={user} size={64} hasTooltip tooltip="This avatar has a tooltip" />
-```
 
 ## Types
 

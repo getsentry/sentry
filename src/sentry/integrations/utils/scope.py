@@ -94,7 +94,7 @@ def bind_org_context_from_integration(
         if org is not None:
             bind_organization_context(org.organization)
         else:
-            logger.error(
+            logger.warning(
                 "Unable to call organization_service.get_organization_by_id with organization id=%s.",
                 org_integration.organization_id,
                 extra=extra,

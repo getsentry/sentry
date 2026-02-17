@@ -2,13 +2,14 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
 import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
@@ -209,7 +210,7 @@ function SolutionDescription({
 }
 
 const Description = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-bottom: ${space(2)};
   margin-bottom: ${space(2)};
 `;
@@ -324,7 +325,7 @@ function CopySolutionButton({
   return (
     <Button
       size="sm"
-      title="Copy plan as Markdown / LLM prompt"
+      tooltipProps={{title: 'Copy plan as Markdown / LLM prompt'}}
       onClick={() => copy(text, {successMessage: t('Solution copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
@@ -389,8 +390,7 @@ function AutofixSolutionDisplay({
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
-  const codingDisabled =
-    organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
+  const enableSeerCoding = organization.enableSeerCoding !== false;
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -505,9 +505,7 @@ function AutofixSolutionDisplay({
   if (!solution || solution.length === 0) {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon={false}>
-          {t('No solution available.')}
-        </Alert>
+        <Alert variant="danger">{t('No solution available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -516,19 +514,19 @@ function AutofixSolutionDisplay({
     return (
       <SolutionContainer>
         <CustomSolutionPadding>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
-              <HeaderIconWrapper ref={iconFixRef}>
-                <IconFix size="sm" color="green400" />
-              </HeaderIconWrapper>
+              <Flex justify="center" align="center" ref={iconFixRef}>
+                <IconFix size="sm" variant="success" />
+              </Flex>
               {t('Custom Solution')}
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <Content>
             <SolutionDescriptionWrapper>{customSolution}</SolutionDescriptionWrapper>
           </Content>
           <BottomDivider />
-          <BottomFooter>
+          <Flex justify="end" align="center" padding="xl 0 0 0" gap="lg">
             <div style={{flex: 1}} />
             <CopySolutionButton
               solution={solution}
@@ -536,7 +534,7 @@ function AutofixSolutionDisplay({
               event={event}
               rootCause={rootCause}
             />
-          </BottomFooter>
+          </Flex>
         </CustomSolutionPadding>
       </SolutionContainer>
     );
@@ -544,16 +542,16 @@ function AutofixSolutionDisplay({
 
   return (
     <SolutionContainer ref={containerRef}>
-      <HeaderWrapper>
+      <Flex justify="between" align="center" wrap="wrap" gap="md">
         <HeaderText>
-          <HeaderIconWrapper ref={iconFixRef}>
-            <IconFix size="md" color="green400" />
-          </HeaderIconWrapper>
+          <Flex justify="center" align="center" ref={iconFixRef}>
+            <IconFix size="md" variant="success" />
+          </Flex>
           {t('Solution')}
           <Button
             size="zero"
-            borderless
-            title={t('Chat with Seer')}
+            priority="transparent"
+            tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Solution Chat"
             analyticsEventKey="autofix.solution.chat"
@@ -561,7 +559,7 @@ function AutofixSolutionDisplay({
             <IconChat />
           </Button>
         </HeaderText>
-      </HeaderWrapper>
+      </Flex>
       <AnimatePresence>
         {agentCommentThread && iconFixRef.current && (
           <AutofixHighlightPopup
@@ -594,7 +592,7 @@ function AutofixSolutionDisplay({
         />
       </Content>
       <BottomDivider />
-      <BottomFooter>
+      <Flex justify="end" align="center" padding="xl 0 0 0" gap="lg">
         <AddInstructionWrapper>
           <InstructionsInputWrapper onSubmit={handleFormSubmit}>
             <InstructionsInput
@@ -610,7 +608,7 @@ function AutofixSolutionDisplay({
             <SubmitButton
               size="zero"
               type="submit"
-              borderless
+              priority="transparent"
               disabled={!instructions.trim()}
               aria-label={t('Add to solution')}
             >
@@ -618,16 +616,13 @@ function AutofixSolutionDisplay({
             </SubmitButton>
           </InstructionsInputWrapper>
         </AddInstructionWrapper>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <CopySolutionButton solution={solution} event={event} rootCause={rootCause} />
           <Tooltip
             isHoverable
             title={
-              codingDisabled
-                ? t(
-                    'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
-                  )
-                : hasNoRepos
+              enableSeerCoding
+                ? hasNoRepos
                   ? tct(
                       'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
                       {
@@ -643,6 +638,16 @@ function AutofixSolutionDisplay({
                         "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
                       )
                     : undefined
+                : tct(
+                    '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+                    {
+                      settings: (
+                        <Link
+                          to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                        />
+                      ),
+                    }
+                  )
             }
           >
             <Button
@@ -653,23 +658,23 @@ function AutofixSolutionDisplay({
                   : 'default'
               }
               busy={isPending}
-              disabled={hasNoRepos || cantReadRepos || codingDisabled}
+              disabled={hasNoRepos || cantReadRepos || !enableSeerCoding}
               onClick={handleCodeItUp}
               analyticsEventName="Autofix: Code It Up"
               analyticsEventKey="autofix.solution.code"
               analyticsParams={{
                 instruction_provided: hasInstructions,
               }}
-              title={t('Implement this solution in code with Seer')}
+              tooltipProps={{title: t('Implement this solution in code with Seer')}}
             >
               {t('Code It Up')}
             </Button>
           </Tooltip>
-        </ButtonBar>
+        </Grid>
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
         )}
-      </BottomFooter>
+      </Flex>
     </SolutionContainer>
   );
 }
@@ -680,9 +685,7 @@ export function AutofixSolution(props: AutofixSolutionProps) {
       <AnimatePresence initial={props.isSolutionFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
-            <Alert type="warning" showIcon={false}>
-              {t('No solution found.')}
-            </Alert>
+            <Alert variant="warning">{t('No solution found.')}</Alert>
           </NoSolutionPadding>
         </AnimationWrapper>
       </AnimatePresence>
@@ -703,7 +706,7 @@ const NoSolutionPadding = styled('div')`
 `;
 
 const SolutionContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -715,24 +718,16 @@ const Content = styled('div')`
   padding: ${space(1)} 0 0;
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;
-
 const HeaderText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
 `;
 
 const SolutionDescriptionWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-top: ${space(0.5)};
 `;
 
@@ -742,12 +737,6 @@ const AnimationWrapper = styled(motion.div)`
 
 const CustomSolutionPadding = styled('div')`
   padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
-`;
-
-const HeaderIconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const InstructionsInputWrapper = styled('form')`
@@ -763,7 +752,7 @@ const InstructionsInput = styled(Input)`
   padding-right: ${space(4)};
 
   &::placeholder {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -778,16 +767,8 @@ const SubmitButton = styled(Button)`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-top: ${p => p.theme.space.lg};
-`;
-
-const BottomFooter = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.lg};
-  padding: ${p => p.theme.space.xl} 0 0 0;
-  justify-content: flex-end;
 `;
 
 const AddInstructionWrapper = styled('div')`

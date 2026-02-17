@@ -2,11 +2,11 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {Alert} from 'sentry/components/core/alert';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -32,7 +32,7 @@ import {
   isOnDemandBudgetsEqual,
   parseOnDemandBudgets,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 type Props = {
   organization: Organization;
@@ -378,9 +378,9 @@ function PendingChanges({organization, subscription}: Props) {
 
   return (
     <StyledAlert
-      type="info"
+      variant="info"
       trailingItems={
-        <LinkButton to="/settings/billing/activity-logs">
+        <LinkButton to={`/settings/${organization.slug}/billing/activity-logs`}>
           {t('View all activity')}
         </LinkButton>
       }

@@ -53,11 +53,12 @@ export function ThresholdsIndicator({
       max1: max1 ?? null,
       max2: max2 ?? null,
     },
+    preferredPolarity,
   };
 
   return (
     <ThresholdsHoverWrapper thresholds={thresholdsConfig} type={type}>
-      <Circle role="status" aria-label={state} color={theme[colorName]} />
+      <Circle role="status" aria-label={state} color={theme.colors[colorName]} />
     </ThresholdsHoverWrapper>
   );
 }
@@ -78,9 +79,9 @@ const Circle = styled('div')<{color: string}>`
 type ThresholdState = 'poor' | 'meh' | 'good';
 
 const COLOR_NAME_FOR_STATE = {
-  poor: 'red300',
-  meh: 'yellow300',
-  good: 'green300',
+  poor: 'red400',
+  meh: 'yellow400',
+  good: 'green400',
 } as const satisfies Record<ThresholdState, string>;
 
 function getThresholdState(

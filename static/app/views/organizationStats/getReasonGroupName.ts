@@ -83,6 +83,7 @@ export enum ClientDiscardReason {
   INTERNAL_SDK_ERROR = 'internal_sdk_error',
   INSUFFICIENT_DATA = 'insufficient_data',
   BACKPRESSURE = 'backpressure',
+  IGNORED = 'ignored',
 }
 
 enum RateLimitedReason {
@@ -236,6 +237,7 @@ function getClientDiscardReasonGroupName(reason: ClientDiscardReason): string {
     case ClientDiscardReason.INTERNAL_SDK_ERROR:
     case ClientDiscardReason.INSUFFICIENT_DATA:
     case ClientDiscardReason.BACKPRESSURE:
+    case ClientDiscardReason.IGNORED:
       return reason;
     default:
       return 'other';

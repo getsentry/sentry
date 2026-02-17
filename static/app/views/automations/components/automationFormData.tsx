@@ -69,11 +69,14 @@ const stripDataConditionGroupId = (group: any) => {
   };
 };
 
-export function getNewAutomationData(
-  data: AutomationFormData,
-  state: AutomationBuilderState
-): NewAutomation {
-  const result = {
+export function getNewAutomationData({
+  data,
+  state,
+}: {
+  data: AutomationFormData;
+  state: AutomationBuilderState;
+}): NewAutomation {
+  return {
     name: data.name || 'New Alert',
     triggers: stripDataConditionGroupId(state.triggers),
     environment: data.environment,
@@ -84,7 +87,6 @@ export function getNewAutomationData(
     detectorIds: data.detectorIds,
     enabled: data.enabled,
   };
-  return result;
 }
 
 export function getAutomationFormData(
@@ -93,7 +95,7 @@ export function getAutomationFormData(
   return {
     detectorIds: automation.detectorIds,
     environment: automation.environment,
-    frequency: automation.config.frequency || null,
+    frequency: automation.config.frequency ?? 0,
     name: automation.name,
     enabled: automation.enabled,
     projectIds: [],

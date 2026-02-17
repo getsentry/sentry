@@ -3,21 +3,22 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -37,8 +38,6 @@ function RelatedIssues({
   end,
   statsPeriod,
 }: Props) {
-  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
-
   const getIssuesEndpointQueryParams = () => {
     const queryParams = {
       start,
@@ -80,10 +79,7 @@ function RelatedIssues({
         <PanelBody>
           <EmptyStateWarning>
             <p>
-              {tct('No new issues for this [identifier] for the [timePeriod].', {
-                identifier: shouldUseOTelFriendlyUI
-                  ? 'service entry span'
-                  : 'transaction',
+              {tct('No new issues for this transaction for the [timePeriod].', {
                 timePeriod: displayedPeriod,
               })}
             </p>
@@ -101,7 +97,7 @@ function RelatedIssues({
 
   return (
     <Fragment>
-      <ControlsWrapper>
+      <Flex justify="between" align="center" marginBottom="md">
         <SectionHeading>{t('Related Issues')}</SectionHeading>
         <LinkButton
           data-test-id="issues-open"
@@ -111,7 +107,7 @@ function RelatedIssues({
         >
           {t('Open in Issues')}
         </LinkButton>
-      </ControlsWrapper>
+      </Flex>
 
       <TableWrapper>
         <GroupList
@@ -127,13 +123,6 @@ function RelatedIssues({
     </Fragment>
   );
 }
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;
 
 const TableWrapper = styled('div')`
   margin-bottom: ${space(4)};

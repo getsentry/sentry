@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import IdBadge from 'sentry/components/idBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TeamRoleSelect from 'sentry/components/teamRoleSelect';
@@ -38,7 +39,7 @@ function TeamMembersRow({
     <TeamRolesPanelItem key={member.id}>
       <Flex gap="md">
         <IdBadge avatarSize={36} member={member} />
-        {member.pending ? <Tag>{t('Pending')}</Tag> : null}
+        {member.pending ? <Tag variant="muted">{t('Pending')}</Tag> : null}
       </Flex>
       <RoleSelectWrapper>
         <TeamRoleSelect
@@ -79,7 +80,9 @@ function RemoveButton(props: {
         disabled
         icon={<IconSubtract />}
         aria-label={t('Remove')}
-        title={t('You do not have permission to remove a member from this team.')}
+        tooltipProps={{
+          title: t('You do not have permission to remove a member from this team.'),
+        }}
       >
         {t('Remove')}
       </Button>
@@ -98,7 +101,7 @@ function RemoveButton(props: {
       icon={<IconSubtract />}
       onClick={onClick}
       aria-label={buttonRemoveText}
-      title={buttonHelpText}
+      tooltipProps={{title: buttonHelpText}}
     >
       {buttonRemoveText}
     </Button>

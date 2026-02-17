@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,7 +18,7 @@ type Props = React.PropsWithChildren<{
 function PerformanceNewProjectPrompt({organization}: Props) {
   return (
     <Alert.Container>
-      <StyledAlert type="info">
+      <StyledAlert variant="info">
         <Container>
           {t(
             `Performance is available for your platform, but your organization's plan does not include performance monitoring.`
@@ -66,8 +67,9 @@ const StyledAlert = styled(Alert)`
   align-items: center;
   margin-top: ${space(3)};
 
-  ${StyledButton} svg {
-    color: ${p => p.theme.button.primary.color};
+  button svg,
+  a svg {
+    color: ${p => p.theme.colors.white};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {

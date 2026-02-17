@@ -86,7 +86,7 @@ def log_snuba_info(content):
         with open(SNUBA_INFO_FILE, "a") as file:
             file.writelines(content)
     else:
-        print(content)  # NOQA: only prints when an env variable is set
+        print(content)  # noqa: S002, T201 -- only prints when an env variable is set
 
 
 SNUBA_INFO = (
@@ -614,7 +614,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
         if dataset == Dataset.Events:
             return name
         else:
-            return f"tags[{name.replace("[", "").replace("]", "").replace('"', "")}]"
+            return f"tags[{name.replace('[', '').replace(']', '').replace('"', '')}]"
 
     measurement_name = get_measurement_name(name)
     span_op_breakdown_name = get_span_op_breakdown_name(name)
@@ -652,9 +652,9 @@ def get_function_index(column_expr, depth=0):
             # The assumption here is that a list that follows a string means
             # the string is a function name
             if isinstance(column_expr[i], str) and isinstance(column_expr[i + 1], (tuple, list)):
-                assert column_expr[i] in SAFE_FUNCTIONS or SAFE_FUNCTION_RE.match(
+                assert column_expr[i] in SAFE_FUNCTIONS or SAFE_FUNCTION_RE.match(column_expr[i]), (
                     column_expr[i]
-                ), column_expr[i]
+                )
                 index = i
                 break
             else:
@@ -940,7 +940,7 @@ class SnubaQueryParams:
         out_groups: set[int | str] = set()
         if "group_id" in self.filter_keys:
             self.filter_keys = self.filter_keys.copy()
-            in_groups = get_all_merged_group_ids(self.filter_keys["group_id"])
+            in_groups = set(self.filter_keys["group_id"])
             del self.filter_keys["group_id"]
 
         new_conditions = []
@@ -953,12 +953,12 @@ class SnubaQueryParams:
             op = triple[1]
             # IN statements need to intersect
             if op == "IN":
-                new_in_groups = get_all_merged_group_ids(triple[2])
+                new_in_groups = set(triple[2])
                 if in_groups is not None:
                     new_in_groups = in_groups.intersection(new_in_groups)
                 in_groups = new_in_groups
             elif op == "=":
-                new_in_groups = get_all_merged_group_ids([triple[2]])
+                new_in_groups = {triple[2]}
                 if in_groups is not None:
                     new_in_groups = in_groups.intersection(new_in_groups)
                 in_groups = new_in_groups
@@ -968,13 +968,13 @@ class SnubaQueryParams:
             elif op == "!=":
                 out_groups.add(triple[2])
 
-        out_groups = get_all_merged_group_ids(list(out_groups))
+        out_groups = get_all_merged_group_ids(out_groups)
         triple = None
         # If there is an "IN" statement, we don't need a "NOT IN" statement. We can
         # just subtract the NOT IN groups from the IN groups.
         if in_groups is not None:
             in_groups.difference_update(out_groups)
-            triple = ["group_id", "IN", in_groups]
+            triple = ["group_id", "IN", get_all_merged_group_ids(in_groups)]
         elif len(out_groups) > 0:
             triple = ["group_id", "NOT IN", out_groups]
 
@@ -1646,7 +1646,7 @@ def resolve_column(dataset) -> Callable:
             if dataset == Dataset.Events:
                 return col
             else:
-                return f"tags[{col.replace("[", "").replace("]", "").replace('"', "")}]"
+                return f"tags[{col.replace('[', '').replace(']', '').replace('"', '')}]"
 
         return f"tags[{col}]"
 

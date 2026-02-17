@@ -1,6 +1,9 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
@@ -9,8 +12,6 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -217,8 +218,8 @@ const TimelineLegend = styled('div')`
 `;
 
 const TimelineLegendText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TimelineContainer = styled('div')`
@@ -233,9 +234,9 @@ const EnvironmentLabel = styled(Tooltip)`
   position: absolute;
   user-select: none;
   left: 0;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 

@@ -192,6 +192,8 @@ def parse_replay_events(message: Event, use_new_recording_parser: bool):
         else:
             events = json.loads(message["payload"])
 
+        user_info = extract_user_info(message["replay_event"])
+
         return parse_events(
             {
                 "organization_id": message["context"]["org_id"],
@@ -201,6 +203,14 @@ def parse_replay_events(message: Event, use_new_recording_parser: bool):
                 "retention_days": message["context"]["retention_days"],
                 "segment_id": message["context"]["segment_id"],
                 "trace_id": extract_trace_id(message["replay_event"]),
+                "user_id": user_info["user_id"],
+                "user_email": user_info["user_email"],
+                "user_name": user_info["user_name"],
+                "user_ip": user_info["user_ip"],
+                "user_geo_city": user_info["user_geo_city"],
+                "user_geo_country_code": user_info["user_geo_country_code"],
+                "user_geo_region": user_info["user_geo_region"],
+                "user_geo_subdivision": user_info["user_geo_subdivision"],
             },
             events,
         )
@@ -225,6 +235,50 @@ def extract_trace_id(replay_event: dict[str, Any] | None) -> str | None:
         pass
 
     return None
+
+
+def extract_user_info(replay_event: dict[str, Any] | None) -> dict[str, str | None]:
+    """Extract user information from the replay_event"""
+    result: dict[str, str | None] = {
+        "user_id": None,
+        "user_email": None,
+        "user_name": None,
+        "user_ip": None,
+        "user_geo_city": None,
+        "user_geo_country_code": None,
+        "user_geo_region": None,
+        "user_geo_subdivision": None,
+    }
+
+    if not replay_event:
+        return result
+
+    try:
+        user = replay_event.get("user", {})
+        if user:
+            if user.get("id"):
+                result["user_id"] = str(user["id"])
+            if user.get("email"):
+                result["user_email"] = str(user["email"])
+            if user.get("username"):
+                result["user_name"] = str(user["username"])
+            if user.get("ip_address"):
+                result["user_ip"] = str(user["ip_address"])
+
+            geo = user.get("geo", {})
+            if geo:
+                if geo.get("city"):
+                    result["user_geo_city"] = str(geo["city"])
+                if geo.get("country_code"):
+                    result["user_geo_country_code"] = str(geo["country_code"])
+                if geo.get("region"):
+                    result["user_geo_region"] = str(geo["region"])
+                if geo.get("subdivision"):
+                    result["user_geo_subdivision"] = str(geo["subdivision"])
+    except Exception:
+        pass
+
+    return result
 
 
 @sentry_sdk.trace

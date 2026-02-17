@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -107,7 +109,7 @@ function AddGiftBudgetModal({
               isSelected={selectedBudgetId === budget.id}
               onClick={() => setSelectedBudgetId(budget.id)}
             >
-              <BudgetHeader>
+              <Flex justify="between" marginBottom="md">
                 <div>
                   <strong>Reserved Budget:</strong> $
                   {(budget.reservedBudget / 100).toLocaleString()}
@@ -116,7 +118,7 @@ function AddGiftBudgetModal({
                   <strong>Existing Free Budget:</strong> $
                   {(budget.freeBudget / 100).toLocaleString()}
                 </div>
-              </BudgetHeader>
+              </Flex>
               <BudgetCategories>
                 <strong>Categories:</strong>{' '}
                 {Object.keys(budget.categories)
@@ -201,16 +203,10 @@ export default addGiftBudgetAction;
 const BudgetCard = styled('div')<{isSelected: boolean}>`
   padding: ${space(2)};
   margin: ${space(1)} 0;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => (p.isSelected ? p.theme.surface100 : 'transparent')};
+  background-color: ${p => (p.isSelected ? p.theme.colors.surface200 : 'transparent')};
   cursor: pointer;
-`;
-
-const BudgetHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
 `;
 
 const BudgetCategories = styled('div')`

@@ -1,6 +1,6 @@
 # Backend Development Guide
 
-> For critical commands and security guidelines, see `/AGENTS.md` in the repository root.
+> For critical commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## Overview
 
@@ -47,45 +47,60 @@ sentry/
 └── config/               # Configuration files
 ```
 
-## Development Commands
+## Security Guidelines
 
-### Setup
+### Preventing Indirect Object References (IDOR)
 
-```bash
-# Install dependencies and setup development environment
-make develop
+**Indirect Object Reference** vulnerabilities occur when an attacker can access resources they shouldn't by manipulating IDs passed in requests. This is one of the most critical security issues in multi-tenant applications like Sentry.
 
-# Or use the newer devenv command
-devenv sync
+**Core Principle: Always Scope Queries by Organization/Project**
 
-# Activate the Python virtual environment (required for running tests and Python commands)
-direnv allow
+When querying resources, ALWAYS include `organization_id` and/or `project_id` in your query filters. Never trust user-supplied IDs alone.
 
-# Start dev dependencies
-devservices up
+```python
+# WRONG: Vulnerable to IDOR - user can access any resource by guessing IDs
+resource = Resource.objects.get(id=request.data["resource_id"])
 
-# Start the development server
-devservices serve
+# RIGHT: Properly scoped to organization
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    organization_id=organization.id
+)
+
+# RIGHT: Properly scoped to project
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    project_id=project.id
+)
 ```
 
-**Note**: Always run `direnv allow` to activate the Python virtual environment before running tests or Python commands. This ensures you're using the correct Python interpreter and dependencies.
+**Project ID Handling: Use `self.get_projects()`**
 
-### Database Operations
+When project IDs are passed in the request (query string or body), NEVER directly access or trust `request.data["project_id"]` or `request.GET["project_id"]`. Instead, use the endpoint's `self.get_projects()` method which performs proper permission checks.
 
-```bash
-# Run migrations
-sentry django migrate
+```python
+# WRONG: Direct access bypasses permission checks
+project_ids = request.data.get("project_id")
+projects = Project.objects.filter(id__in=project_ids)
 
-# Create new migration
-sentry django makemigrations
-
-# Update migration after rebase conflict (handles renaming, dependencies, lockfile)
-./bin/update-migration <migration_name_or_number> <app_label>
-# Example: ./bin/update-migration 0101_workflow_when_condition_group_unique workflow_engine
-
-# Reset database
-make reset-db
+# RIGHT: Use self.get_projects() which validates permissions
+projects = self.get_projects(
+    request=request,
+    organization=organization,
+    project_ids=request.data.get("project_id")
+)
 ```
+
+## Exception Handling
+
+- Avoid blanket exception handling (`except Exception:` or bare `except:`)
+- Only catch specific exceptions when you have a meaningful way to handle them
+- We have global exception handlers in tasks and endpoints that automatically log errors and report them to Sentry
+- Let exceptions bubble up unless you need to:
+  - Add context to the error
+  - Perform cleanup operations
+  - Convert one exception type to another with additional information
+  - Recover from expected error conditions
 
 ## Development Services
 
@@ -157,6 +172,44 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 # path('organizations/<slug:organization_slug>/', OrganizationDetailsEndpoint.as_view()),
 ```
 
+### Serializers: Avoiding N+1 Queries
+
+**Rule**: NEVER query the database in `serialize()` for bulk requests, always use `get_attrs()`.
+
+The `serialize()` function in `base.py` calls `get_attrs()` once with all objects, then `serialize()` once per object:
+
+```python
+# ❌ WRONG: Query runs once per object (N+1)
+class MySerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        data = RelatedModel.objects.filter(obj=obj).first()  # NO!
+        return {"id": obj.id, "data": data}
+
+# ✅ CORRECT: Bulk query in get_attrs
+class MySerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        # Query once for all items
+        data_by_id = {
+            d.object_id: d.value
+            for d in RelatedModel.objects.filter(object__in=item_list)
+        }
+        return {item: {"data": data_by_id.get(item.id)} for item in item_list}
+
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {"id": obj.id, "data": attrs.get("data")}
+
+# Extending serializers
+class DetailedSerializer(MySerializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        attrs = super().get_attrs(item_list, user)  # Call parent first
+
+        # Add more bulk queries
+        extra_by_id = {e.id: e for e in Extra.objects.filter(item__in=item_list)}
+        for item in item_list:
+            attrs[item]["extra"] = extra_by_id.get(item.id)
+        return attrs
+```
+
 ### Celery Task Pattern
 
 ```python
@@ -202,6 +255,29 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 4. Return strings for numeric IDs
 5. Implement pagination with `cursor`
 6. Use `GET` for read, `POST` for create, `PUT` for update
+7. **Error responses MUST use `"detail"` key** (Django REST Framework convention)
+
+### Error Response Convention
+
+Following Django REST Framework standards, all error responses must use `"detail"` as the key for error messages.
+
+```python
+from rest_framework.response import Response
+
+# ✅ CORRECT: Use "detail" for error messages
+return Response({"detail": "Internal server error"}, status=500)
+return Response({"detail": "Invalid input"}, status=400)
+
+# ❌ WRONG: Don't use "error" or other keys
+return Response({"error": "Internal server error"}, status=500)
+return Response({"message": "Invalid input"}, status=400)
+```
+
+**Why `detail`?**
+
+- Standard Django REST Framework convention
+- Consistent with existing Sentry codebase
+- Expected by API clients and error handlers
 
 ## Common Patterns
 
@@ -517,7 +593,6 @@ print(silo_mode_delegation.get_current_mode())
 - `.github/`: CI/CD workflows
 - `devservices/config.yml`: Local service configuration
 - `.pre-commit-config.yaml`: Pre-commit hooks configuration
-- `codecov.yml`: Code coverage configuration
 
 ## File Location Map
 

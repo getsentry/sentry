@@ -11,7 +11,7 @@ const Breadcrumbs = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 
   & > *:not(:first-child) {
     display: flex;
@@ -25,7 +25,7 @@ const Breadcrumbs = styled('div')`
 `;
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   text-transform: uppercase;
   margin: 0;
 `;

@@ -3,8 +3,10 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {StylesConfig} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
+import {Stack} from '@sentry/scraps/layout';
+import type {StylesConfig} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+
 import type {MultiValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
@@ -110,7 +112,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   }, [isOverMemberLimit, setRole, setTeams]);
 
   return (
-    <RowWrapper>
+    <Stack gap="lg">
       <div>
         <Heading htmlFor="email-addresses">{t('Email addresses')}</Heading>
         <Select
@@ -174,7 +176,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           />
         </div>
       </RoleTeamWrapper>
-    </RowWrapper>
+    </Stack>
   );
 }
 
@@ -225,15 +227,9 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
 
 const Heading = styled('label')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const RowWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const RoleTeamWrapper = styled('div')`

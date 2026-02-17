@@ -1,5 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
+
 import {tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
@@ -20,7 +21,7 @@ function EventAttachmentsCrashReportsNotice({orgSlug, projectSlug, groupId}: Pro
 
   return (
     <Alert.Container>
-      <Alert type="info">
+      <Alert variant="info">
         {tct(
           'Your limit of stored crash reports has been reached for this issue. [attachmentsLink: View crashes] or [settingsLink: configure limit].',
           {

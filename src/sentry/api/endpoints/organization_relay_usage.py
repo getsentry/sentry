@@ -7,7 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.relay import OrganizationRelayResponse
+from sentry.api.serializers.models.relayusage import OrganizationRelayResponse
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams

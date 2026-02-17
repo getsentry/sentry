@@ -1,13 +1,21 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {
+  HybridFilter,
+  HybridFilterComponents,
+  useStagedCompactSelect,
+  type HybridFilterRef,
+} from 'sentry/components/pageFilters/hybridFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   modifyFilterOperatorQuery,
   modifyFilterValue,
@@ -32,7 +40,6 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import FilterSelectorTrigger, {
@@ -43,7 +50,12 @@ import {
   getFilterToken,
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
-import type {GlobalFilter} from 'sentry/views/dashboards/types';
+import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {
+  SpanFields,
+  subregionCodeToName,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 type FilterSelectorProps = {
   globalFilter: GlobalFilter;
@@ -61,6 +73,7 @@ function FilterSelector({
   disableRemoveFilter,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
+  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
 
   const {fieldDefinition, filterToken} = useMemo(() => {
     const fieldDef = getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset);
@@ -179,7 +192,7 @@ function FilterSelector({
 
   const {data: fetchedFilterValues, isFetching} = queryResult;
 
-  const options = useMemo(() => {
+  const options = useMemo((): Array<SelectOption<string>> => {
     if (predefinedValues && !canSelectMultipleValues) {
       return predefinedValues.flatMap(section =>
         section.suggestions.map(suggestion => ({
@@ -191,11 +204,27 @@ function FilterSelector({
 
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
-    const addOption = (value: string, map: Map<string, SelectOption<string>>) =>
-      map.set(value, {
+    const addOption = (value: string, map: Map<string, SelectOption<string>>) => {
+      const option: SelectOption<string> = {
         label: middleEllipsis(value, 70, /[\s-_:]/),
         value,
-      });
+      };
+
+      // Only add checkboxes for multi-select mode
+      if (canSelectMultipleValues) {
+        option.leadingItems = ({isSelected}: {isSelected: boolean}) => (
+          <Checkbox
+            size="sm"
+            checked={isSelected}
+            onChange={() => hybridFilterRef.current?.toggleOption?.(value)}
+            aria-label={t('Select %s', value)}
+            tabIndex={-1}
+          />
+        );
+      }
+
+      return map.set(value, option);
+    };
 
     // Filter values in the global filter
     activeFilterValues.forEach(value => addOption(value, optionMap));
@@ -228,6 +257,8 @@ function FilterSelector({
     searchQuery,
     canSelectMultipleValues,
   ]);
+
+  const translatedOptions = translateKnownFilterOptions(options, globalFilter);
 
   const handleChange = (opts: string[]) => {
     if (isEqual(opts, activeFilterValues) && stagedOperator === initialOperator) {
@@ -270,40 +301,21 @@ function FilterSelector({
   const hasOperatorChanges =
     stagedFilterValues.length > 0 && stagedOperator !== initialOperator;
 
-  const renderMenuHeaderTrailingItems = ({closeOverlay}: any) => (
-    <Flex gap="lg">
-      {activeFilterValues.length > 0 && (
-        <StyledButton
-          aria-label={t('Clear Selections')}
-          size="zero"
-          borderless
-          onClick={() => {
-            setSearchQuery('');
-            handleChange([]);
-            closeOverlay();
-          }}
-        >
-          {t('Clear')}
-        </StyledButton>
-      )}
-      {!disableRemoveFilter && (
-        <StyledButton
-          aria-label={t('Remove Filter')}
-          size="zero"
-          onClick={() => onRemoveFilter(globalFilter)}
-        >
-          {t('Remove Filter')}
-        </StyledButton>
-      )}
-    </Flex>
-  );
+  const stagedSelect = useStagedCompactSelect({
+    value: activeFilterValues,
+    defaultValue: [],
+    onChange: handleChange,
+    onStagedValueChange: setStagedFilterValues,
+    multiple: true,
+    hasExternalChanges: hasOperatorChanges,
+  });
 
   const renderFilterSelectorTrigger = (filterValues: string[]) => (
     <FilterSelectorTrigger
       globalFilter={globalFilter}
       activeFilterValues={filterValues}
       operator={stagedOperator}
-      options={options}
+      options={translatedOptions}
       queryResult={queryResult}
     />
   );
@@ -313,7 +325,7 @@ function FilterSelector({
       <CompactSelect
         multiple={false}
         disabled={false}
-        options={options}
+        options={translatedOptions}
         value={activeFilterValues.length > 0 ? activeFilterValues[0] : undefined}
         onChange={option => {
           const newValue = option?.value;
@@ -327,29 +339,55 @@ function FilterSelector({
             {t('%s Filter', getDatasetLabel(globalFilter.dataset))}
           </MenuTitleWrapper>
         }
-        menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
-        triggerProps={{
-          children: renderFilterSelectorTrigger(activeFilterValues),
-        }}
+        menuHeaderTrailingItems={({closeOverlay}) => (
+          <Flex gap="lg">
+            {activeFilterValues.length > 0 && (
+              <StyledButton
+                size="xs"
+                aria-label={t('Clear Selections')}
+                priority="transparent"
+                onClick={() => {
+                  setSearchQuery('');
+                  handleChange([]);
+                  closeOverlay();
+                }}
+              >
+                {t('Clear')}
+              </StyledButton>
+            )}
+            {!disableRemoveFilter && (
+              <StyledButton
+                size="xs"
+                aria-label={t('Remove Filter')}
+                priority="transparent"
+                onClick={() => {
+                  onRemoveFilter(globalFilter);
+                  closeOverlay();
+                }}
+              >
+                {t('Remove Filter')}
+              </StyledButton>
+            )}
+          </Flex>
+        )}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps}>
+            {renderFilterSelectorTrigger(activeFilterValues)}
+          </OverlayTrigger.Button>
+        )}
       />
     );
   }
 
   return (
     <HybridFilter
-      checkboxPosition="leading"
+      ref={hybridFilterRef}
+      stagedSelect={stagedSelect}
       searchable
       disabled={false}
-      options={options}
-      value={activeFilterValues}
+      options={translatedOptions}
       searchPlaceholder={t('Search or enter a custom value...')}
       onSearch={setSearchQuery}
-      defaultValue={[]}
-      hasExternalChanges={hasOperatorChanges}
-      onChange={handleChange}
-      onStagedValueChange={value => {
-        setStagedFilterValues(value);
-      }}
       sizeLimit={30}
       onClose={() => {
         setSearchQuery('');
@@ -359,6 +397,18 @@ function FilterSelector({
       sizeLimitMessage={t('Use search to find more filter values…')}
       emptyMessage={
         isFetching ? t('Loading filter values...') : t('No filter values found')
+      }
+      menuFooter={
+        stagedSelect.hasStagedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <HybridFilterComponents.CancelButton
+              onClick={() => stagedSelect.removeStagedChanges()}
+            />
+            <HybridFilterComponents.ApplyButton
+              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            />
+          </Flex>
+        ) : null
       }
       menuTitle={
         <MenuTitleWrapper>
@@ -370,7 +420,7 @@ function FilterSelector({
                   <FilterValueTruncated>
                     {prettifyTagKey(globalFilter.tag.key)}
                   </FilterValueTruncated>
-                  <Button {...triggerProps} size="zero" borderless>
+                  <Button {...triggerProps} size="zero" priority="transparent">
                     <Flex gap="xs" align="center">
                       <SubText>{OP_LABELS[stagedOperator]}</SubText>
                       <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
@@ -383,20 +433,68 @@ function FilterSelector({
           </OperatorFlex>
         </MenuTitleWrapper>
       }
-      menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
-      triggerProps={{
-        children: renderFilterSelectorTrigger(stagedFilterValues),
-      }}
+      menuHeaderTrailingItems={({closeOverlay}) => (
+        <Flex gap="lg">
+          {activeFilterValues.length > 0 && (
+            <StyledButton
+              size="xs"
+              aria-label={t('Clear Selections')}
+              priority="transparent"
+              onClick={() => {
+                setSearchQuery('');
+                handleChange([]);
+                closeOverlay();
+              }}
+            >
+              {t('Clear')}
+            </StyledButton>
+          )}
+          {!disableRemoveFilter && (
+            <StyledButton
+              size="xs"
+              priority="transparent"
+              aria-label={t('Remove Filter')}
+              onClick={() => {
+                onRemoveFilter(globalFilter);
+                closeOverlay();
+              }}
+            >
+              {t('Remove Filter')}
+            </StyledButton>
+          )}
+        </Flex>
+      )}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>
+          {renderFilterSelectorTrigger(stagedFilterValues)}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }
 
+const translateKnownFilterOptions = (
+  options: Array<SelectOption<string>>,
+  globalFilter: GlobalFilter
+) => {
+  const key = globalFilter.tag.key;
+  const dataset = globalFilter.dataset;
+
+  if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
+    return options.map(option => ({
+      ...option,
+      label: subregionCodeToName[option.value as SubregionCode] || option.label,
+    }));
+  }
+  return options;
+};
+
 export default FilterSelector;
 
 const StyledButton = styled(Button)`
-  font-size: inherit;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};
   margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
 `;
@@ -416,6 +514,6 @@ const WildcardButton = styled(Flex)`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;

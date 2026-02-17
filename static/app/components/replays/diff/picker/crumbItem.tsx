@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,7 +26,7 @@ export default function CrumbItem({
   });
 
   return (
-    <CenterRelative>
+    <Container justifySelf="center" position="relative">
       <ErrorLine />
       <ErrorLabel>
         <Tooltip
@@ -50,22 +51,17 @@ export default function CrumbItem({
           </Flex>
         </Tooltip>
       </ErrorLabel>
-    </CenterRelative>
+    </Container>
   );
 }
 
-const CenterRelative = styled('div')`
-  position: relative;
-  justify-self: center;
-`;
-
 const ErrorLine = styled('div')`
-  border: 1px solid ${p => p.theme.colors.blue500};
+  border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
   height: 100%;
 `;
 
 const ErrorLabel = styled('div')`
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   position: absolute;
   top: 0;
   transform: translate(-50%, -100%);

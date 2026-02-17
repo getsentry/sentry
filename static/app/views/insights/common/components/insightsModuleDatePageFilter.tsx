@@ -1,11 +1,13 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   DatePageFilter,
   type DatePageFilterProps,
-} from 'sentry/components/organizations/datePageFilter';
+} from 'sentry/components/pageFilters/date/datePageFilter';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -18,6 +20,10 @@ const DISABLED_OPTIONS = ['90d'];
 
 export function InsightsModuleDatePageFilter() {
   const organization = useOrganization();
+
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
 
   const legacyDateFilterProps: DatePageFilterProps = useMemo(() => {
     const dateFilterProps: DatePageFilterProps = {};
@@ -47,14 +53,13 @@ export function InsightsModuleDatePageFilter() {
         return true;
       };
       dateFilterProps.menuFooter = <UpsellFooterHook />;
+    } else {
+      dateFilterProps.maxPickableDays = maxPickableDays.maxPickableDays;
     }
 
     return dateFilterProps;
-  }, [organization]);
+  }, [organization, maxPickableDays.maxPickableDays]);
 
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const props = organization.features.includes('downsampled-page-filter')
@@ -66,17 +71,12 @@ export function InsightsModuleDatePageFilter() {
 
 function DisabledDateOption({value}: {value: string}) {
   return (
-    <DisabledDateOptionContainer>
+    <Flex align="center">
       {value}
       <StyledIconBuisness />
-    </DisabledDateOptionContainer>
+    </Flex>
   );
 }
-
-const DisabledDateOptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;

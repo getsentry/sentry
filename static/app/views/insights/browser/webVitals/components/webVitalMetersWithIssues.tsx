@@ -3,11 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import {LinkButton} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconIssues} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -16,7 +18,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {WebVital} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -166,23 +167,25 @@ function VitalMeter({
               event.stopPropagation();
             }}
             disabled={!hasIssues}
-            title={
-              issues &&
-              issues.length > 0 &&
-              (issues.length === 1
-                ? tct('There is 1 performance issue potentially affecting [webVital].', {
-                    webVital: webVital.toUpperCase(),
-                  })
-                : tct(
-                    'There are [count] performance issues potentially affecting [webVital].',
-                    {
-                      count: issues.length > 5 ? '5+' : issues.length,
-                      webVital: webVital.toUpperCase(),
-                    }
-                  ))
-            }
             tooltipProps={{
               isHoverable: true,
+              title:
+                issues &&
+                issues.length > 0 &&
+                (issues.length === 1
+                  ? tct(
+                      'There is 1 performance issue potentially affecting [webVital].',
+                      {
+                        webVital: webVital.toUpperCase(),
+                      }
+                    )
+                  : tct(
+                      'There are [count] performance issues potentially affecting [webVital].',
+                      {
+                        count: issues.length > 5 ? '5+' : issues.length,
+                        webVital: webVital.toUpperCase(),
+                      }
+                    )),
             }}
           >
             {hasIssues ? (issues.length > 5 ? '5+' : issues.length) : '—'}
@@ -306,14 +309,14 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 `;
 
 const MeterBarBody = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)} 0 ${space(0.5)} 0;
 `;
 
 const MeterHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   width: 100%;
@@ -325,8 +328,8 @@ const MeterHeader = styled('div')`
 const MeterValueText = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.primary};
   flex: 1;
   text-align: center;
@@ -335,13 +338,13 @@ const MeterValueText = styled('div')`
   height: 30px;
 
   @media (max-width: 1500px) {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
   }
 `;
 
 const NoValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xl};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 function NoValue() {

@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -99,7 +100,9 @@ export default function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProp
         plottables: timeSeries.map(
           (ts, index) =>
             new Line(ts, {
-              color: ts.meta.isOther ? theme.tokens.content.muted : colorPalette[index],
+              color: ts.meta.isOther
+                ? theme.tokens.content.secondary
+                : colorPalette[index],
             })
         ),
       }}

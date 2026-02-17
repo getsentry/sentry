@@ -16,6 +16,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
 )
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.quotas import get_size_retention_cutoff
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,10 @@ class ProjectPreprodBuildDetailsEndpoint(PreprodArtifactEndpoint):
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
             return Response({"error": "Feature not enabled"}, status=403)
+
+        cutoff = get_size_retention_cutoff(project.organization)
+        if head_artifact.date_added < cutoff:
+            return Response({"detail": "This build's size data has expired."}, status=404)
 
         if head_artifact.state == PreprodArtifact.ArtifactState.FAILED:
             return Response({"error": head_artifact.error_message}, status=400)

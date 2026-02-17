@@ -27,6 +27,7 @@ class BaseMetricIssueTest(TestCase):
             workflow_condition_group=self.create_data_condition_group(),
             type=MetricIssue.slug,
             created_by_id=self.user.id,
+            owner_user_id=self.user.id,
         )
         self.critical_detector_trigger = self.create_data_condition(
             type=Condition.GREATER,

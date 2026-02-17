@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
+
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
@@ -98,7 +99,7 @@ const PlayerContainer = styled(FluidHeight)`
 `;
 
 const StaticPanel = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 

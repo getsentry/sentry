@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -61,7 +61,9 @@ function Cta({
         {icon && <Flex align="center">{icon}</Flex>}
         {image && (
           <Flex align="center">
-            <Image src={image} alt={imageAlt} />
+            <Container maxWidth="200px">
+              <Image src={image} alt={imageAlt} />
+            </Container>
           </Flex>
         )}
         <Text bold align={isBanner ? 'left' : 'center'} size="lg" textWrap="balance">
@@ -359,7 +361,6 @@ function SetupCta({
   organization: Organization;
   selectedProduct: DataCategory | AddOnCategory;
 }) {
-  // TODO(isabella): refactor this whole file to be more reusable
   if (selectedProduct !== AddOnCategory.SEER) {
     return null;
   }
@@ -371,7 +372,7 @@ function SetupCta({
       imageAlt=""
       title={t('Get started with Seer')}
       subtitle={t(
-        'Finish connecting to Github, configure your repositories and projects, and start getting the most out of Seer.'
+        'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
       )}
       heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
       buttons={

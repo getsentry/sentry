@@ -1,4 +1,5 @@
-import {TabList} from 'sentry/components/core/tabs';
+import {TabList} from '@sentry/scraps/tabs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
@@ -168,7 +169,7 @@ export function DatasetSelectorTabs(props: Props) {
         });
       }}
     >
-      <TabList hideBorder>
+      <TabList>
         {options.map(option => (
           <TabList.Item key={option.value} tooltip={option.tooltip}>
             {option.label}

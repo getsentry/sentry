@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Disclosure} from 'sentry/components/core/disclosure';
-import {Heading} from 'sentry/components/core/text';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Heading} from '@sentry/scraps/text';
 
 export function DebugNotificationsPreview({
   title,
@@ -34,7 +34,7 @@ const PreviewDisclosure = styled(Disclosure)`
 `;
 
 const Divider = styled('hr')`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   width: 100%;
   &:last-child {
     display: none;

@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
@@ -34,7 +35,9 @@ function CardHeader({
       icon={<IconDelete />}
       aria-label={t('Delete Key')}
       disabled={disabled}
-      title={disabled ? t('You do not have permission to delete keys') : undefined}
+      tooltipProps={{
+        title: disabled ? t('You do not have permission to delete keys') : undefined,
+      }}
     />
   );
   return (
@@ -60,7 +63,9 @@ function CardHeader({
           icon={<IconEdit />}
           aria-label={t('Edit Key')}
           disabled={disabled}
-          title={disabled ? t('You do not have permission to edit keys') : undefined}
+          tooltipProps={{
+            title: disabled ? t('You do not have permission to edit keys') : undefined,
+          }}
         />
         {disabled ? (
           deleteButton
@@ -92,11 +97,13 @@ const KeyName = styled('div')`
 
 const DateCreated = styled('div')`
   grid-row: 2/3;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-row: 1/3;
   }

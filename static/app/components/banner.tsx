@@ -2,7 +2,9 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -61,7 +63,6 @@ function Banner({
       {isDismissable ? (
         <CloseButton
           type="button"
-          borderless
           size="xs"
           priority="link"
           icon={<IconClose />}
@@ -101,7 +102,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   box-shadow: ${p => p.theme.dropShadowMedium};
   border-radius: ${p => p.theme.radius.md};
   height: 180px;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     height: 220px;
@@ -129,11 +130,13 @@ const BannerSubtitle = styled('div')`
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-top: ${space(2)};
   width: fit-content;
 `;
@@ -143,7 +146,7 @@ const CloseButton = styled(Button)`
   display: block;
   top: ${space(2)};
   right: ${space(2)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;

@@ -1,5 +1,6 @@
 import {Fragment, useContext} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -10,7 +11,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -76,12 +76,12 @@ function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
           )}
         />
         {releaseRepos.length > 1 && (
-          <Actions>
+          <Container marginBottom="xl">
             <RepositorySwitcher
               repositories={releaseRepos}
               activeRepository={activeReleaseRepo}
             />
-          </Actions>
+          </Container>
         )}
         {commitListError && <LoadingError onRetry={refetch} />}
         {isLoadingCommitList ? (
@@ -172,9 +172,5 @@ function Commits() {
     />
   );
 }
-
-const Actions = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 export default Commits;

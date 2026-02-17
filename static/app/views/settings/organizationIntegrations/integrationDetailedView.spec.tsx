@@ -157,6 +157,46 @@ describe('IntegrationDetailedView', () => {
     );
   });
 
+  it('disables uninstall button when integration is pending deletion', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'bitbucket', includeConfig: 0})],
+      body: [
+        {
+          accountType: null,
+          configData: {},
+          configOrganization: [],
+          domainName: 'bitbucket.org/%7Bfb715533-bbd7-4666-aa57-01dc93dd9cc0%7D',
+          icon: 'https://secure.gravatar.com/avatar/8b4cb68e40b74c90427d8262256bd1c8?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FNN-0.png',
+          id: '4',
+          name: '{fb715533-bbd7-4666-aa57-01dc93dd9cc0}',
+          provider: {
+            aspects: {},
+            canAdd: true,
+            canDisable: false,
+            features: ['commits', 'issue-basic'],
+            key: 'bitbucket',
+            name: 'Bitbucket',
+            slug: 'bitbucket',
+          },
+          status: 'active',
+          organizationIntegrationStatus: 'pending_deletion',
+        },
+      ],
+    });
+
+    render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('bitbucket', {tab: 'configurations'}),
+      organization,
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Uninstall'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+  });
+
   it('allows members to configure github/gitlab', async () => {
     const lowerAccessOrganization = OrganizationFixture({access: ['org:read']});
     render(<IntegrationDetailedView />, {
@@ -269,5 +309,51 @@ describe('IntegrationDetailedView', () => {
         })
       );
     });
+  });
+
+  it('renders alerts without crashing when variant is not provided', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      match: [],
+      body: {
+        providers: [
+          {
+            canAdd: true,
+            canDisable: false,
+            features: [],
+            key: 'test-integration',
+            metadata: {
+              aspects: {
+                alerts: [
+                  {text: 'Alert without variant'},
+                  {text: 'Alert with explicit variant', variant: 'warning'},
+                ],
+              },
+              author: 'Test Author',
+              description: 'Test integration',
+              features: [],
+              noun: 'Installation',
+            },
+            name: 'Test Integration',
+            slug: 'test-integration',
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      match: [
+        MockApiClient.matchQuery({provider_key: 'test-integration', includeConfig: 0}),
+      ],
+      body: [],
+    });
+
+    render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('test-integration'),
+      organization,
+    });
+
+    expect(await screen.findByText('Alert without variant')).toBeInTheDocument();
+    expect(await screen.findByText('Alert with explicit variant')).toBeInTheDocument();
   });
 });

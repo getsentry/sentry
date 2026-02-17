@@ -1,8 +1,8 @@
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {FieldObject} from 'sentry/components/forms/types';
 import {IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -29,6 +29,7 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
         {isDisabled && (
           <Tooltip title={disabledReason} position="top">
             <Tag
+              variant="muted"
               role="status"
               icon={<IconLock locked />}
               data-test-id="prevent-ai-disabled-tag"

@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {Flex} from '@sentry/scraps/layout';
+
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {space} from 'sentry/styles/space';
 import IssueListSortOptions from 'sentry/views/issueList/actions/sortOptions';
 import {IssueSearch} from 'sentry/views/issueList/issueSearch';
@@ -30,7 +32,7 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
 
       <Search {...{query, onSearch}} />
 
-      <SortSaveContainer>
+      <Flex justifySelf="end" gap="md" area="sort-save" align="start">
         <IssueListSortOptions
           query={query}
           sort={sort}
@@ -40,7 +42,7 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
         />
 
         <IssueViewSaveButton query={query} sort={sort} />
-      </SortSaveContainer>
+      </Flex>
     </FiltersContainer>
   );
 }
@@ -85,15 +87,6 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   > div > button {
     width: 100%;
   }
-`;
-
-const SortSaveContainer = styled('div')`
-  display: flex;
-  align-items: start;
-  gap: ${space(1)};
-  grid-area: sort-save;
-
-  justify-self: end;
 `;
 
 export default IssueListFilters;

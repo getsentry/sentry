@@ -1,14 +1,16 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Alert} from '@sentry/scraps/alert/alert';
+import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -17,7 +19,6 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -77,7 +78,9 @@ export function AttributeDistribution() {
     refetch: refetchCohortCount,
   } = useApiQuery<{data: Array<{'count()': number}>}>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...cohortCountEventView.getEventsAPIPayload(location),
@@ -225,7 +228,7 @@ function ChartSelectionAlert() {
   }
 
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Flex align="center" justify="between">
         {t(
           'Drag to select a region in the chart above and see how its breakdowns differ from the baseline.'

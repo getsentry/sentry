@@ -1,6 +1,7 @@
+import type {TextProps} from '@sentry/scraps/text';
+
 import type {Actor, ObjectStatus} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 
 /**
  * Some old monitor configurations do NOT have a schedule_type
@@ -206,8 +207,8 @@ export type MonitorBucket = [timestamp: number, envData: MonitorBucketEnvMapping
  * timeline view
  */
 export interface StatusNotice {
-  color: ColorOrAlias;
   icon: React.ReactNode;
+  variant: TextProps<any>['variant'];
   label?: React.ReactNode;
 }
 

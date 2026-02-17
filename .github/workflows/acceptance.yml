@@ -57,11 +57,11 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3, 4]
+        # XXX: Use 5 runners when backend changes are present, 10 runners for frontend-only changes
+        instance: ${{ needs.files-changed.outputs.backend_all == 'true' && fromJSON('[0, 1, 2, 3, 4]') || fromJSON('[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]') }}
     env:
-      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 5
+      # XXX: MATRIX_INSTANCE_TOTAL must match the matrix size (5 for backend changes, 10 for frontend-only)
+      MATRIX_INSTANCE_TOTAL: ${{ needs.files-changed.outputs.backend_all == 'true' && '5' || '10' }}
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
@@ -137,20 +137,6 @@ jobs:
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
-
-      # This job runs when FE or BE changes happen, however, we only upload coverage data for
-      # BE changes since it conflicts with codecov's carry forward functionality
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
-        if: ${{ !cancelled() && needs.files-changed.outputs.backend_all == 'true' }}
-        continue-on-error: true
-        timeout-minutes: 5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-          type: acceptance
 
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.

@@ -5,8 +5,8 @@ import type {Moment} from 'moment-timezone';
 import moment from 'moment-timezone';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {
@@ -184,7 +184,7 @@ function generateReleaseMarkLine(
         formatter: hideLabel ? '' : title,
         fontFamily: 'Rubik',
         fontSize: 14,
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         backgroundColor: theme.tokens.background.secondary,
       },
       data: [

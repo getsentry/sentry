@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 describe('ListBox', () => {
   it('hides details overlay when mouse leaves the list', async () => {

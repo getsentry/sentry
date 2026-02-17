@@ -11,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
-import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {ReleaseSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
@@ -100,7 +100,7 @@ export function ScreenSummaryContentPage() {
       <HeaderContainer>
         <ToolRibbon>
           <ModulePageFilterBar moduleName={ModuleName.APP_START} disableProjectFilter />
-          <ReleaseComparisonSelector moduleName={ModuleName.APP_START} />
+          <ReleaseSelector moduleName={ModuleName.APP_START} />
           <StartTypeSelector />
         </ToolRibbon>
         <MobileMetricsRibbon

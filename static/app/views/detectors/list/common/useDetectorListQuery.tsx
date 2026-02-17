@@ -1,7 +1,7 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
 import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';

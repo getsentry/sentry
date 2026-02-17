@@ -2,10 +2,10 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -22,7 +22,9 @@ import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/fil
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import useHasDashboardsPlatformizedMobileSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedMobileSessionHealth';
 import useHasDashboardsPlatformizedSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedSessionHealth';
+import {PlatformizedMobileSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedMobileOverview';
 import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -130,10 +132,18 @@ function ViewSpecificCharts({
 }
 
 function PageWithProviders() {
+  const {view = ''} = useDomainViewFilters();
   const hasDashboardsPlatformizedSessionHealth =
     useHasDashboardsPlatformizedSessionHealth();
-  if (hasDashboardsPlatformizedSessionHealth) {
+  const hasDashboardsPlatformizedMobileSessionHealth =
+    useHasDashboardsPlatformizedMobileSessionHealth();
+
+  if (hasDashboardsPlatformizedSessionHealth && view === FRONTEND_LANDING_SUB_PATH) {
     return <PlatformizedSessionsOverview />;
+  }
+
+  if (hasDashboardsPlatformizedMobileSessionHealth && view === MOBILE_LANDING_SUB_PATH) {
+    return <PlatformizedMobileSessionsOverview />;
   }
   return (
     <ModulePageProviders moduleName="sessions">

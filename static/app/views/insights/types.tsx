@@ -15,7 +15,6 @@ export enum ModuleName {
   RESOURCE = 'resource',
   AGENT_MODELS = 'agent-models',
   AGENT_TOOLS = 'agent-tools',
-  AI_GENERATIONS = 'ai-generations',
   MCP_TOOLS = 'mcp-tools',
   MCP_RESOURCES = 'mcp-resources',
   MCP_PROMPTS = 'mcp-prompts',
@@ -81,6 +80,7 @@ export enum SpanFields {
   THREAD_ID = 'thread.id',
   COMMAND = 'command',
   REQUEST_METHOD = 'request.method',
+  SENTRY_ORIGIN = 'sentry.origin',
 
   // Cache fields
   CACHE_HIT = 'cache.hit',
@@ -103,6 +103,7 @@ export enum SpanFields {
   GEN_AI_RESPONSE_TEXT = 'gen_ai.response.text',
   GEN_AI_RESPONSE_OBJECT = 'gen_ai.response.object',
   GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
+  GEN_AI_RESPONSE_TOOL_CALLS = 'gen_ai.response.tool_calls',
   GEN_AI_TOOL_NAME = 'gen_ai.tool.name',
   GEN_AI_COST_INPUT_TOKENS = 'gen_ai.cost.input_tokens',
   GEN_AI_COST_OUTPUT_TOKENS = 'gen_ai.cost.output_tokens',
@@ -115,6 +116,10 @@ export enum SpanFields {
   GEN_AI_OPERATION_TYPE = 'gen_ai.operation.type',
   GEN_AI_OPERATION_NAME = 'gen_ai.operation.name',
   GEN_AI_CONVERSATION_ID = 'gen_ai.conversation.id',
+  GEN_AI_INPUT_MESSAGES = 'gen_ai.input.messages',
+  GEN_AI_OUTPUT_MESSAGES = 'gen_ai.output.messages',
+  GEN_AI_SYSTEM_INSTRUCTIONS = 'gen_ai.system_instructions',
+  GEN_AI_TOOL_DEFINITIONS = 'gen_ai.tool.definitions',
   MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
@@ -129,7 +134,7 @@ export enum SpanFields {
 
   // Mobile fields
   MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
-  MEASUREMENTS_TIME_TO_FILL_DISPLAY = 'measurements.time_to_full_display',
+  MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
   MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
@@ -207,7 +212,7 @@ export type SpanNumberFields =
   | SpanFields.SLOW_FRAMES_RATE
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
-  | SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY
+  | SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY
   | SpanFields.GEN_AI_COST_INPUT_TOKENS
   | SpanFields.GEN_AI_COST_OUTPUT_TOKENS
   | SpanFields.GEN_AI_COST_TOTAL_TOKENS
@@ -262,6 +267,10 @@ export type SpanStringFields =
   | SpanFields.GEN_AI_AGENT_NAME
   | SpanFields.GEN_AI_REQUEST_MODEL
   | SpanFields.GEN_AI_REQUEST_MESSAGES
+  | SpanFields.GEN_AI_INPUT_MESSAGES
+  | SpanFields.GEN_AI_OUTPUT_MESSAGES
+  | SpanFields.GEN_AI_SYSTEM_INSTRUCTIONS
+  | SpanFields.GEN_AI_TOOL_DEFINITIONS
   | SpanFields.GEN_AI_RESPONSE_TEXT
   | SpanFields.GEN_AI_RESPONSE_OBJECT
   | SpanFields.GEN_AI_RESPONSE_MODEL
@@ -315,7 +324,8 @@ export type SpanStringFields =
   | SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME
   | SpanFields.USER
   | SpanFields.PROFILER_ID
-  | SpanFields.USER_DISPLAY;
+  | SpanFields.USER_DISPLAY
+  | SpanFields.SENTRY_ORIGIN;
 
 type WebVitalsMeasurements =
   | SpanFields.CLS_SCORE
@@ -466,6 +476,14 @@ type CustomResponseFields = {
   [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
 };
 
+// Fields that are used as arguments to division() queries.
+// Kept narrow to avoid a cartesian product explosion in SpanResponseRaw.
+// See the comment on the division() line below for details.
+type DivisibleSpanFields =
+  | SpanFields.MOBILE_FROZEN_FRAMES
+  | SpanFields.MOBILE_TOTAL_FRAMES
+  | SpanFields.MOBILE_SLOW_FRAMES;
+
 type SpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
@@ -486,7 +504,12 @@ type SpanResponseRaw = {
       | `${Property}(${string},${string},${string})`
       | `${Property}(${string},${string},${string},${string})`]: number;
     // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
-  } & Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
+    // Subset of SpanNumberFields that are actually used in division() queries.
+    // Previously this was Record<`division(${SpanNumberFields},${SpanNumberFields})`, number>
+    // which produced a 56×56 = 3,136 key cartesian product. In practice only
+    // mobile frame rate fields are divided, so we restrict the domain here.
+    // If you need to divide a new field, add it to DivisibleSpanFields below.
+  } & Record<`division(${DivisibleSpanFields},${DivisibleSpanFields})`, number> & {
     // TODO: This should include all valid HTTP codes or just all integers
     [Property in HttpResponseFunctions as `${Property}(${number})`]: number;
   } & {

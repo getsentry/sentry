@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useWindowVirtualizer, type Virtualizer} from '@tanstack/react-virtual';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {ColorBar} from 'sentry/components/prevent/virtualRenderers/colorBar';
 import {
   LINE_HEIGHT,
@@ -364,8 +365,8 @@ const TextArea = styled('textarea')`
   color: transparent;
   outline: 0px solid transparent;
   outline-offset: 0px;
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   padding-top: 0;
   padding-bottom: 0;
   padding-right: 0;

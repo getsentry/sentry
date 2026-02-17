@@ -172,6 +172,10 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
     integration_name = "perforce"
 
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
+
     def __init__(
         self,
         model: Integration,
@@ -524,6 +528,9 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
         # Invalidate cached client so it gets recreated with new credentials
         self._client = None
+
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["p4port", "user", "auth_type", "web_url"]
 
 
 class PerforceIntegrationProvider(IntegrationProvider):

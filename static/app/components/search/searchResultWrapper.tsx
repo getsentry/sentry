@@ -11,12 +11,20 @@ const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
   ${p =>
     p.highlighted &&
     css`
-      color: ${p.theme.activeText};
-      background: ${p.theme.backgroundSecondary};
+      color: ${p.theme.tokens.interactive.link.accent.rest};
+      background: ${p.theme.tokens.background.secondary};
+
+      &:hover {
+        background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
+      }
+
+      &:active {
+        background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      }
     `};
 
   &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 

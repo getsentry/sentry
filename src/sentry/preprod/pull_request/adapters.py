@@ -138,7 +138,9 @@ class PullRequestDataAdapter:
             PreprodArtifact.objects.filter(
                 commit_comparison__head_sha=head_sha,
                 commit_comparison__organization_id=organization_id,
-            ).select_related("commit_comparison", "build_configuration")
+            )
+            .select_related("commit_comparison", "build_configuration")
+            .annotate_download_count()  # type: ignore[attr-defined]  # mypy doesn't know about PreprodArtifactQuerySet
         )
 
         if not artifacts:

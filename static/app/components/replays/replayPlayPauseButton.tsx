@@ -1,5 +1,6 @@
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import NewReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPauseButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
@@ -25,7 +26,7 @@ function OriginalReplayPlayPauseButton(
 
   return isFinished ? (
     <Button
-      title={t('Restart Replay')}
+      tooltipProps={{title: t('Restart Replay')}}
       icon={<IconRefresh />}
       onClick={restart}
       aria-label={t('Restart Replay')}
@@ -34,7 +35,7 @@ function OriginalReplayPlayPauseButton(
     />
   ) : (
     <Button
-      title={isPlaying ? t('Pause') : t('Play')}
+      tooltipProps={{title: isPlaying ? t('Pause') : t('Play')}}
       icon={isPlaying ? <IconPause /> : <IconPlay />}
       onClick={() => togglePlayPause(!isPlaying)}
       aria-label={isPlaying ? t('Pause') : t('Play')}

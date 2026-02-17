@@ -162,7 +162,7 @@ function useTimelineCursor<E extends HTMLElement>({
 
 const Cursor = styled(motion.div)`
   pointer-events: none;
-  background: ${p => p.theme.translucentBorder};
+  background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   width: 2px;
   height: 100%;
   position: absolute;
@@ -181,7 +181,7 @@ const CursorLabel = styled(Overlay)<{
   width: max-content;
   padding: ${space(0.75)} ${space(1)};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.2;
   position: absolute;
   ${p =>

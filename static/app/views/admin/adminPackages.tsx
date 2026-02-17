@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Data = {
@@ -11,9 +12,12 @@ type Data = {
 };
 
 export default function AdminPackages() {
-  const {data, isPending, isError} = useApiQuery<Data>(['/internal/packages/'], {
-    staleTime: 0,
-  });
+  const {data, isPending, isError} = useApiQuery<Data>(
+    [getApiUrl('/internal/packages/')],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isError) {
     return <LoadingError />;

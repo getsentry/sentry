@@ -3,17 +3,15 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ReleaseIssues from 'sentry/views/releases/detail/overview/releaseIssues';
 import {getReleaseBounds} from 'sentry/views/releases/utils';
 
 describe('ReleaseIssues', () => {
-  let newIssuesEndpoint: jest.Mock;
+  let issuesEndpoint: jest.Mock;
   let resolvedIssuesEndpoint: jest.Mock;
-  let unhandledIssuesEndpoint: jest.Mock;
-  let allIssuesEndpoint: jest.Mock;
 
   const props = {
     orgId: 'org',
@@ -41,28 +39,12 @@ describe('ReleaseIssues', () => {
       url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
     });
 
-    newIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0%20is%3Aunresolved&sort=freq&statsPeriod=24h`,
+    issuesEndpoint = MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/issues/`,
       body: [],
     });
     resolvedIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
-      body: [],
-    });
-    unhandledIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0%20is%3Aunresolved&sort=freq&statsPeriod=24h`,
-      body: [],
-    });
-    allIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
+      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
       body: [],
     });
   });
@@ -121,7 +103,21 @@ describe('ReleaseIssues', () => {
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=firstRelease%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
-    expect(newIssuesEndpoint).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(issuesEndpoint).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: '2020-03-23T01:02:00Z',
+            end: '2020-03-24T02:04:59Z',
+            groupStatsPeriod: 'auto',
+            sort: 'freq',
+            limit: 10,
+            query: 'first-release:1.0.0 is:unresolved',
+          }),
+        })
+      );
+    });
 
     // Resolved
     await userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
@@ -136,7 +132,21 @@ describe('ReleaseIssues', () => {
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
-    expect(resolvedIssuesEndpoint).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(resolvedIssuesEndpoint).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: '2020-03-23T01:02:00Z',
+            end: '2020-03-24T02:04:59Z',
+            groupStatsPeriod: 'auto',
+            sort: 'freq',
+            limit: 10,
+            query: '',
+          }),
+        })
+      );
+    });
 
     // Unhandled
     await userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
@@ -150,7 +160,21 @@ describe('ReleaseIssues', () => {
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0%20error.handled%3A0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
-    expect(unhandledIssuesEndpoint).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(issuesEndpoint).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: '2020-03-23T01:02:00Z',
+            end: '2020-03-24T02:04:59Z',
+            groupStatsPeriod: 'auto',
+            sort: 'freq',
+            limit: 10,
+            query: 'release:1.0.0 error.handled:0 is:unresolved',
+          }),
+        })
+      );
+    });
 
     // All
     await userEvent.click(screen.getByRole('radio', {name: 'All Issues 0'}));
@@ -164,12 +188,26 @@ describe('ReleaseIssues', () => {
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
-    expect(allIssuesEndpoint).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(issuesEndpoint).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: '2020-03-23T01:02:00Z',
+            end: '2020-03-24T02:04:59Z',
+            groupStatsPeriod: 'auto',
+            sort: 'freq',
+            limit: 10,
+            query: 'release:1.0.0 is:unresolved',
+          }),
+        })
+      );
+    });
   });
 
   it('includes release context when linking to issue', async () => {
-    newIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/issues/`,
       body: [GroupFixture({id: '123'})],
     });
 

@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import AssigneeSelectorDropdown, {
   type AssignableEntity,
@@ -62,9 +61,8 @@ export function useHandleAssigneeChange({
       }
       onSuccess?.(updatedGroup.assignedTo);
     },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
-    },
+    // Error is already handled by GroupStore.onAssignToError which shows an alert
+    onError: () => {},
   });
 
   return {handleAssigneeChange, assigneeLoading};
@@ -118,8 +116,8 @@ export function AssigneeSelector({
   );
 }
 
-const StyledTrigger = styled(SelectTrigger.Button)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+const StyledTrigger = styled(OverlayTrigger.Button)`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   border: none;
   padding: 0;
   height: unset;

@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -37,7 +38,7 @@ const DOCUMENTATION_URL = 'https://www.notion.so/sentry/aae9a918b5814fe0918d8e7a
 function SuperuserAccessCategory() {
   return (
     <Fragment>
-      <Alert type="muted" showIcon={false}>
+      <Alert variant="muted" showIcon={false}>
         For more information on these categories, please{' '}
         <ExternalLink href={DOCUMENTATION_URL}>see this Notion document</ExternalLink>.
       </Alert>

@@ -1,6 +1,9 @@
+from datetime import timedelta
 from io import BytesIO
+from unittest.mock import patch
 
 from django.test import override_settings
+from django.utils import timezone
 
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import APITestCase
@@ -30,7 +33,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
         """When no size metrics exist, should return 404"""
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
         assert response.status_code == 404
-        assert response.data["error"] == "Size analysis results not available for this artifact"
+        assert response.data["detail"] == "Size analysis results not available for this artifact"
 
     def test_pending_state_returns_200(self):
         """When size metrics exist but are in PENDING state, should return 200 with state info"""
@@ -86,7 +89,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
 
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
         assert response.status_code == 500
-        assert response.data["error"] == "Size analysis completed but results are unavailable"
+        assert response.data["detail"] == "Size analysis completed but results are unavailable"
 
     def test_completed_with_missing_file_returns_404(self):
         """When size metrics is COMPLETED but the File object was deleted, should return 404"""
@@ -101,7 +104,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
 
         response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
         assert response.status_code == 404
-        assert response.data["error"] == "Analysis file not found"
+        assert response.data["detail"] == "Analysis file not found"
 
     def test_completed_with_file_returns_200(self):
         """When size metrics is COMPLETED with a file, should return 200 with file content"""
@@ -125,3 +128,15 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
             if hasattr(response, "streaming_content")
             else response.content
         )
+
+    @patch(
+        "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_download.get_size_retention_cutoff"
+    )
+    def test_returns_404_for_expired_artifact(self, mock_cutoff):
+        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
+        self.artifact.date_added = timezone.now() - timedelta(days=60)
+        self.artifact.save()
+
+        response = self.get_response(self.organization.slug, self.project.slug, self.artifact.id)
+        assert response.status_code == 404
+        assert response.data["detail"] == "This build's size data has expired."

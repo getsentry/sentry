@@ -3,13 +3,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import {IconChevron} from 'sentry/icons';
@@ -258,7 +258,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
         <SourceGroup>
           {dataset === AllowedDataScrubbingDatasets.DEFAULT ? (
             <Fragment>
-              <ToggleWrapper>
+              <Flex justify="end">
                 {displayEventId ? (
                   <Toggle priority="link" onClick={this.handleToggleEventId}>
                     {t('Hide event ID field')}
@@ -270,7 +270,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                     <IconChevron direction="down" size="xs" />
                   </Toggle>
                 )}
-              </ToggleWrapper>
+              </Flex>
               <SourceGroup isExpanded={displayEventId}>
                 {displayEventId && (
                   <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
@@ -284,7 +284,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                   suggestions={sourceSuggestions}
                 />
                 {containsRootDeepWildcard && (
-                  <Alert type="warning" style={{marginTop: space(1)}}>
+                  <Alert variant="warning" style={{marginTop: space(1)}}>
                     {t(
                       `Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)`
                     )}
@@ -423,7 +423,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
             </FieldGroup>
           )}
         </FieldContainer>
-        <ToggleWrapper>
+        <Flex justify="end">
           {displayEventId ? (
             <Toggle priority="link" onClick={this.handleToggleEventId}>
               {t('Hide event ID field')}
@@ -435,7 +435,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               <IconChevron direction="down" size="xs" />
             </Toggle>
           )}
-        </ToggleWrapper>
+        </Flex>
         <SourceGroup isExpanded={displayEventId}>
           {displayEventId && (
             <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
@@ -473,7 +473,7 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
     p.isExpanded &&
     css`
       border-radius: ${p.theme.radius.md};
-      border: 1px solid ${p.theme.border};
+      border: 1px solid ${p.theme.tokens.border.primary};
       box-shadow: ${p.theme.dropShadowMedium};
       margin: ${space(2)} 0 ${space(3)} 0;
       padding: ${space(2)};
@@ -481,7 +481,7 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
 `;
 
 const RegularExpression = styled(Input)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   margin-bottom: ${p => p.theme.space.md};
 `;
 
@@ -492,14 +492,9 @@ const DatasetRadioField = styled(RadioField)`
   }
 `;
 
-const ToggleWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
 const Toggle = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
   &:hover,
   &:focus {
     color: ${p => p.theme.tokens.content.primary};
@@ -519,6 +514,6 @@ const ReplaceCapturedLabel = styled('label')<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.disabled};
+      color: ${p.theme.tokens.content.disabled};
     `}
 `;

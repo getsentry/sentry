@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -99,7 +100,9 @@ export default function GroupedTrafficWidget(props: GroupedTrafficWidgetProps) {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(ts, {
-              color: ts.meta.isOther ? theme.chart.neutral : colorPalette[index],
+              color: ts.meta.isOther
+                ? theme.tokens.dataviz.semantic.neutral
+                : colorPalette[index],
               stack: 'stack',
             })
         ),

@@ -10,8 +10,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
@@ -61,12 +61,7 @@ const datePageFilterProps: DatePageFilterProps = {
 describe('SpansTabContent', () => {
   const {organization, project} = initializeOrg({
     organization: {
-      features: [
-        'gen-ai-features',
-        'gen-ai-explore-traces',
-        'gen-ai-explore-traces-consent-ui',
-        'traces-page-cross-event-querying',
-      ],
+      features: ['gen-ai-features', 'traces-page-cross-event-querying'],
     },
   });
 
@@ -83,7 +78,7 @@ describe('SpansTabContent', () => {
       datetime: {period: '7d', start: null, end: null, utc: null},
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -116,12 +111,7 @@ describe('SpansTabContent', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
-      }),
+      body: AutofixSetupFixture({}),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -411,18 +401,6 @@ describe('SpansTabContent', () => {
   });
 
   describe('Ask Seer', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
-        }),
-      });
-    });
-
     describe('when the AI features are disabled', () => {
       it('does not display the Ask Seer combobox', async () => {
         render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
@@ -524,7 +502,6 @@ describe('SpansTabContent', () => {
 
       expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
-      expect(screen.getByRole('menuitemradio', {name: 'Metrics'})).toBeInTheDocument();
     });
 
     it('adds a cross event query', async () => {
@@ -544,6 +521,11 @@ describe('SpansTabContent', () => {
         expect(router.location.query.crossEvents).toEqual(
           JSON.stringify([{query: '', type: 'spans'}])
         )
+      );
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'trace.explorer.cross_event_added',
+        expect.objectContaining({type: 'spans'})
       );
     });
 
@@ -611,6 +593,11 @@ describe('SpansTabContent', () => {
       expect(
         screen.queryByPlaceholderText('Search for logs, users, tags, and more')
       ).not.toBeInTheDocument();
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'trace.explorer.cross_event_removed',
+        expect.objectContaining({type: 'logs'})
+      );
     });
 
     it('changes the cross event search bar when dataset changed', async () => {
@@ -620,17 +607,22 @@ describe('SpansTabContent', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {crossEvents: JSON.stringify([{query: '', type: 'logs'}])},
+            query: {crossEvents: JSON.stringify([{query: '', type: 'spans'}])},
           },
         },
       });
 
-      await userEvent.click(screen.getByRole('button', {name: /Logs/}));
-      await userEvent.click(screen.getByRole('option', {name: 'Metrics'}));
+      await userEvent.click(screen.getByRole('button', {name: /Spans/}));
+      await userEvent.click(screen.getByRole('option', {name: 'Logs'}));
 
       expect(
-        screen.getByPlaceholderText('Search for metrics, users, tags, and more')
+        screen.getByPlaceholderText('Search for logs, users, tags, and more')
       ).toBeInTheDocument();
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'trace.explorer.cross_event_changed',
+        expect.objectContaining({new_type: 'logs', old_type: 'spans'})
+      );
     });
 
     it('renders disabled cross event search bar when the limit is reached', () => {
@@ -644,7 +636,7 @@ describe('SpansTabContent', () => {
               crossEvents: JSON.stringify([
                 {query: '', type: 'spans'},
                 {query: '', type: 'logs'},
-                {query: '', type: 'metrics'},
+                {query: '', type: 'logs'},
               ]),
             },
           },
@@ -655,6 +647,63 @@ describe('SpansTabContent', () => {
         'aria-disabled',
         'true'
       );
+    });
+
+    it('disables Attribute Breakdowns tab when cross events are present', () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'performance-spans-suspect-attributes'],
+        },
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {crossEvents: JSON.stringify([{query: '', type: 'logs'}])},
+          },
+        },
+      });
+
+      const attributeBreakdownsTab = screen.getByRole('tab', {
+        name: /Attribute Breakdowns/,
+      });
+      expect(attributeBreakdownsTab).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('switches from Attribute Breakdowns to Span tab when cross event is added', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'performance-spans-suspect-attributes'],
+        },
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {table: 'attribute_breakdowns'},
+          },
+        },
+      });
+
+      // Initially on Attribute Breakdowns tab
+      expect(screen.getByRole('tab', {name: /Attribute Breakdowns/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // Add a cross event
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
+
+      // Should switch to Span tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'Span Samples'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
     });
   });
 });

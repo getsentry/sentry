@@ -42,7 +42,7 @@ function renderMockRequests({
   act(() => SubscriptionStore.set(organization.slug, subscription));
 
   MockApiClient.addMockResponse({
-    url: `/subscriptions/org-slug/`,
+    url: `/customers/org-slug/`,
     body: {
       planTier,
       canSelfServe,
@@ -350,7 +350,7 @@ describe('ProductSelectionAvailability', () => {
         reservedSeerAutofix: undefined,
         reservedSeerScanner: undefined,
         reservedSeerUsers: undefined,
-        reservedPreventUsers: undefined,
+        reservedSizeAnalyses: 0,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});

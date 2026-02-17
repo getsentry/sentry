@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import type {Key} from '@react-types/shared';
 import * as Sentry from '@sentry/react';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -212,11 +213,11 @@ const ButtonContent = styled('div')`
 `;
 
 const ButtonTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const ButtonSubtitle = styled('div')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
 `;

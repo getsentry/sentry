@@ -76,6 +76,12 @@ class GroupCategory(IntEnum):
     """
     PREPROD = 17
 
+    """
+    Issues detected by autopilot instrumentation analysis suggesting
+    improvements to product usage and observability coverage.
+    """
+    INSTRUMENTATION = 18
+
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
     GroupCategory.ERROR,
@@ -118,20 +124,24 @@ class GroupTypeRegistry:
     ) -> list[type[GroupType]]:
         with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
             released = [gt for gt in self.all() if gt.released]
-            feature_to_grouptype = {
-                gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
-            }
+            feature_to_grouptype: dict[str, type[GroupType]] = {}
+            for gt in self.all():
+                if not gt.released:
+                    for fname in gt.build_visible_feature_name():
+                        feature_to_grouptype[fname] = gt
             batch_features = features.batch_has(
                 list(feature_to_grouptype.keys()), actor=actor, organization=organization
             )
-            enabled = []
+            enabled: list[type[GroupType]] = []
             if batch_features:
                 feature_results = batch_features.get(f"organization:{organization.id}", {})
-                enabled = [
-                    feature_to_grouptype[feature]
-                    for feature, active in feature_results.items()
-                    if active
-                ]
+                seen: set[int] = set()
+                for feature, active in feature_results.items():
+                    if active:
+                        gt = feature_to_grouptype[feature]
+                        if gt.type_id not in seen:
+                            seen.add(gt.type_id)
+                            enabled.append(gt)
             span.set_tag("organization_id", organization.id)
             span.set_tag("has_batch_features", batch_features is not None)
             span.set_tag("released", released)
@@ -261,9 +271,8 @@ class GroupType:
         registry.add(cls)
 
         if not cls.released:
-            features.add(
-                cls.build_visible_feature_name(), OrganizationFeature, True, api_expose=True
-            )
+            for fname in cls.build_visible_feature_name():
+                features.add(fname, OrganizationFeature, True, api_expose=True)
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
 
@@ -302,8 +311,8 @@ class GroupType:
         return f"organizations:issue-{cls.build_feature_name_slug()}"
 
     @classmethod
-    def build_visible_feature_name(cls) -> str:
-        return f"{cls.build_base_feature_name()}-visible"
+    def build_visible_feature_name(cls) -> list[str]:
+        return [f"{cls.build_base_feature_name()}-visible"]
 
     @classmethod
     def build_ingest_feature_name(cls) -> str:
@@ -716,49 +725,6 @@ class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     # Web Vital issues are always triggered for the purpose of using autofix
     always_trigger_seer_automation = True
     released = True
-
-
-@dataclass(frozen=True)
-class PreprodStaticGroupType(GroupType):
-    """
-    Issues detected in a single uploaded artifact. For example an
-    Android app not being 16kb page size ready.
-    Typically these end up grouped across multiple builds e.g. if CI
-    uploads a build of an app for each commit to main each of those
-    uploads could result in an occurrence of some issue like the 16kb
-    page size.
-    """
-
-    type_id = 11001
-    slug = "preprod_static"
-    description = "Static Analysis"
-    category = GroupCategory.PREPROD.value
-    category_v2 = GroupCategory.PREPROD.value
-    default_priority = PriorityLevel.LOW
-    released = False
-    enable_auto_resolve = True
-    enable_escalation_detection = False
-
-
-@dataclass(frozen=True)
-class PreprodDeltaGroupType(GroupType):
-    """
-    Issues detected examining the delta between two uploaded artifacts.
-    For example a binary size regression. These are typically *not*
-    grouped. A size regression between v1 and v2 likely does not have
-    the same root cause (and hence resolution) as another regression
-    between v2 and v3.
-    """
-
-    type_id = 11002
-    slug = "preprod_delta"
-    description = "Static Analysis Delta"
-    category = GroupCategory.PREPROD.value
-    category_v2 = GroupCategory.PREPROD.value
-    default_priority = PriorityLevel.LOW
-    released = False
-    enable_auto_resolve = True
-    enable_escalation_detection = False
 
 
 def should_create_group(

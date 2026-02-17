@@ -12,14 +12,14 @@ import * as qs from 'query-string';
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -43,7 +43,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
@@ -575,7 +574,6 @@ function IssueListOverview({
   useEffect(() => {
     return () => {
       pollerRef.current?.disable();
-      SelectedGroupStore.reset();
       GroupStore.reset();
     };
   }, []);

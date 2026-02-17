@@ -2,8 +2,10 @@ import React, {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -158,12 +160,12 @@ function PageOverview() {
       <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
           <Layout.Main>
-            <TopMenuContainer>
+            <Flex marginBottom="md" gap="xl">
               <ModulePageFilterBar moduleName={ModuleName.VITAL} />
               <BrowserTypeSelector />
               <SubregionSelector />
-            </TopMenuContainer>
-            <Flex>
+            </Flex>
+            <Flex justify="between" gap="md" width="100%">
               <ChartContainer>
                 <PerformanceScoreBreakdownChartWidget />
               </ChartContainer>
@@ -228,20 +230,6 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const TopMenuContainer = styled('div')`
-  margin-bottom: ${space(1)};
-  display: flex;
-  gap: ${space(2)};
-`;
-
-const Flex = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  width: 100%;
-  gap: ${space(1)};
-`;
 
 const ChartContainer = styled('div')`
   flex: 1 1 0%;

@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -47,7 +48,7 @@ function SpikeProtectionRoot({organization, subscription}: Props) {
   );
 
   return (
-    <SubscriptionPageContainer background="secondary" organization={organization}>
+    <SubscriptionPageContainer background="secondary">
       <SentryDocumentTitle
         title={t('Spike Protection Settings')}
         orgSlug={organization.slug}

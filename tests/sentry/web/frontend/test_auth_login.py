@@ -138,6 +138,17 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             (f"/organizations/{org.slug}/issues/", 302),
         ]
 
+    def test_login_invalid_op(self) -> None:
+        # load it once for test cookie
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "alert('hackerman')"},
+            follow=True,
+        )
+        assert resp.status_code == 400
+
     def test_login_valid_credentials_2fa_redirect(self) -> None:
         user = self.create_user("bar@example.com")
         RecoveryCodeInterface().enroll(user)

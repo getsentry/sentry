@@ -1,11 +1,11 @@
 import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -219,7 +219,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
   }
 
   const actions = alertButton && (
-    <ButtonBar gap="lg">
+    <Grid flow="column" align="center" gap="lg">
       {alertButton}
       <Button
         icon={<IconClose size="sm" />}
@@ -234,20 +234,20 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
           onDismiss?.();
         }}
         size="zero"
-        borderless
-        title={t('Dismiss')}
+        priority="transparent"
+        tooltipProps={{title: t('Dismiss')}}
         aria-label={t('Dismiss trial notice')}
       />
-    </ButtonBar>
+    </Grid>
   );
 
   return (
-    <TrialAlert system type="muted" trailingItems={actions}>
+    <TrialAlert system variant="muted" trailingItems={actions}>
       <React.Fragment>
         {alertHeader && (
           <Heading>
             <h4>{alertHeader}</h4>
-            <ProductTrialTag trial={trial} type="default" showTrialEnded />
+            <ProductTrialTag trial={trial} variant="muted" showTrialEnded />
           </Heading>
         )}
         {alertText && <div>{alertText}</div>}

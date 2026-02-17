@@ -14,14 +14,14 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
+from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 from sentry.testutils.silo import control_silo_test
@@ -505,7 +505,7 @@ class SlackIntegrationConfigTest(TestCase):
 
 
 @control_silo_test
-class SlackIntegrationSendNotificationTest(TestCase):
+class SlackIntegrationNotificationPlatformTest(TestCase):
     def setUp(self) -> None:
         self.integration = self.create_provider_integration(
             provider="slack",
@@ -517,28 +517,30 @@ class SlackIntegrationSendNotificationTest(TestCase):
             },
         )
         self.installation = SlackIntegration(self.integration, self.organization.id)
+        self.channel_id = "C1234567890"
+        self.thread_ts = "1712345678.987654"
+        self.slack_user_id = "U9876543210"
         self.target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.SLACK,
             resource_type=NotificationTargetResourceType.CHANNEL,
-            resource_id="C1234567890",
+            resource_id=self.channel_id,
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
-
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_send_notification_success(self, mock_chat_post: MagicMock) -> None:
         data = MockNotification(message="test")
-        template = MockNotificationTemplate()
-        rendered_template = template.render(data)
+        rendered_template = MockNotificationTemplate().render(data)
         renderer = SlackNotificationProvider.get_renderer(
             data=data, category=NotificationCategory.DEBUG
         )
-        payload = renderer.render(data=data, rendered_template=rendered_template)
-        self.installation.send_notification(target=self.target, payload=payload)
+        self.slack_renderable = renderer.render(data=data, rendered_template=rendered_template)
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_send_notification_success(self, mock_chat_post: MagicMock) -> None:
+        self.installation.send_notification(target=self.target, payload=self.slack_renderable)
 
         mock_chat_post.assert_called_once_with(
             channel="C1234567890",
-            blocks=payload.get("blocks", []),
+            blocks=self.slack_renderable.get("blocks", []),
             text="Mock Notification",
         )
 
@@ -550,7 +552,62 @@ class SlackIntegrationSendNotificationTest(TestCase):
         mock_response.api_url = "https://slack.com/api/chat.postMessage"
 
         mock_chat_post.side_effect = SlackApiError("channel_not_found", mock_response)
-        payload: SlackRenderable = {"blocks": [], "text": "Test"}
 
         with pytest.raises(IntegrationConfigurationError):
-            self.installation.send_notification(target=self.target, payload=payload)
+            self.installation.send_notification(target=self.target, payload=self.slack_renderable)
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_send_threaded_message_success(self, mock_chat_post: MagicMock) -> None:
+        self.installation.send_threaded_message(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            renderable=self.slack_renderable,
+        )
+        mock_chat_post.assert_called_once_with(
+            channel=self.channel_id,
+            thread_ts=self.thread_ts,
+            blocks=self.slack_renderable.get("blocks", []),
+            text=self.slack_renderable.get("text", ""),
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_send_threaded_message_error(self, mock_chat_post: MagicMock) -> None:
+        error_message = "thread_not_found"
+        mock_chat_post.side_effect = SlackApiError(error_message, MagicMock())
+
+        with pytest.raises(IntegrationError, match=error_message):
+            self.installation.send_threaded_message(
+                channel_id=self.channel_id,
+                thread_ts=self.thread_ts,
+                renderable=self.slack_renderable,
+            )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postEphemeral")
+    def test_send_threaded_ephemeral_message_success(self, mock_chat_ephemeral: MagicMock) -> None:
+        self.installation.send_threaded_ephemeral_message(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            renderable=self.slack_renderable,
+            slack_user_id=self.slack_user_id,
+        )
+
+        mock_chat_ephemeral.assert_called_once_with(
+            channel=self.channel_id,
+            thread_ts=self.thread_ts,
+            user=self.slack_user_id,
+            blocks=self.slack_renderable.get("blocks", []),
+            text=self.slack_renderable.get("text", ""),
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postEphemeral")
+    def test_send_threaded_ephemeral_message_error(self, mock_chat_ephemeral: MagicMock) -> None:
+        error_message = "user_not_in_channel"
+        mock_chat_ephemeral.side_effect = SlackApiError(error_message, MagicMock())
+
+        with pytest.raises(IntegrationError, match=error_message):
+            self.installation.send_threaded_ephemeral_message(
+                channel_id=self.channel_id,
+                thread_ts=self.thread_ts,
+                renderable=self.slack_renderable,
+                slack_user_id=self.slack_user_id,
+            )

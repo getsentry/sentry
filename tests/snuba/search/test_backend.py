@@ -6,7 +6,6 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry import options
 from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -27,7 +26,7 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend, SnubaSearchBackendBase
-from sentry.search.snuba.executors import TrendsSortWeights
+from sentry.search.snuba.executors import PostgresSnubaQueryExecutor, TrendsSortWeights
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -1903,9 +1902,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert bulk_raw_query_mock.called
 
     def test_pre_and_post_filtering(self) -> None:
-        prev_max_pre = options.get("snuba.search.max-pre-snuba-candidates")
-        options.set("snuba.search.max-pre-snuba-candidates", 1)
-        try:
+        with self.options({"snuba.search.max-pre-snuba-candidates": 1}):
             # normal queries work as expected
             results = self.make_query(search_filter_query="foo")
             assert set(results) == {self.group1}
@@ -1919,21 +1916,59 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             # too many candidates, skip pre-filter, requires >1 postfilter queries
             results = self.make_query()
             assert set(results) == {self.group1, self.group2}
-        finally:
-            options.set("snuba.search.max-pre-snuba-candidates", prev_max_pre)
+
+    def test_too_many_candidates_with_selective_postgres_filter(self) -> None:
+        """
+        Test that selective postgres-only filters (like assigned:) return results
+        even when there are too many candidates and sampling returns 0 hits.
+
+        We mock calculate_hits to return 0 to simulate the production scenario where
+        sampling from millions of groups is unlikely to hit the few assigned ones.
+        """
+        assigned_group = self.store_event(
+            data={
+                "fingerprint": ["assigned-group"],
+                "event_id": "d" * 32,
+                "timestamp": before_now(seconds=50).isoformat(),
+            },
+            project_id=self.project.id,
+        ).group
+        GroupAssignee.objects.create(
+            user_id=self.user.id, group=assigned_group, project=self.project
+        )
+
+        # Set max_candidates=1 to trigger too_many_candidates with 2 assigned groups
+        with self.options(
+            {
+                "snuba.search.max-pre-snuba-candidates": 1,
+            }
+        ):
+            # Mock calculate_hits to return 0, simulating failed sampling
+            with mock.patch.object(
+                PostgresSnubaQueryExecutor, "calculate_hits", return_value=0
+            ) as mock_calculate_hits:
+                # Search with assigned: filter (selective postgres-only filter)
+                # calculate_hits returns 0 (mocked to simulate production)
+                # Before the fix: hits=0 causes early return with empty results
+                # After the fix: falls back to truncation, returns assigned groups
+                results = self.make_query(
+                    search_filter_query=f"assigned:{self.user.username}",
+                    sort_by="freq",
+                    count_hits=True,
+                )
+
+                assert mock_calculate_hits.called, "calculate_hits was not called"
+
+                assert len(results.results) == 1, f"Expected results but got {len(results.results)}"
+                assert all(g in {self.group2, assigned_group} for g in results.results)
 
     def test_optimizer_enabled(self) -> None:
-        prev_optimizer_enabled = options.get("snuba.search.pre-snuba-candidates-optimizer")
-        options.set("snuba.search.pre-snuba-candidates-optimizer", True)
-
-        try:
+        with self.options({"snuba.search.pre-snuba-candidates-optimizer": True}):
             results = self.make_query(
                 search_filter_query="server:example.com",
                 environments=[self.environments["production"]],
             )
             assert set(results) == {self.group1}
-        finally:
-            options.set("snuba.search.pre-snuba-candidates-optimizer", prev_optimizer_enabled)
 
     def test_search_out_of_range(self) -> None:
         the_date = datetime(2000, 1, 1, 0, 0, 0, tzinfo=UTC)
@@ -3095,11 +3130,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         self.error_group_2 = error_event_2.group
 
     def test_performance_query(self) -> None:
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
@@ -3112,11 +3143,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         # Regression test to catch an issue we had with performance issues showing duplicated in the
         # issue stream. This was  caused by us dual writing perf issues to transactions and to the
         # issue platform. We'd end up reading the same issue twice and duplicate it in the response.
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="!issue.category:error my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
@@ -3124,20 +3151,12 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         with Feature({"organizations:performance-issues-search": False}):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == []
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_error_performance_query(self) -> None:
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="my_tag:1")
             assert list(results) == [
                 self.perf_group_1,
@@ -3166,11 +3185,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             ]
 
     def test_cursor_performance_issues(self) -> None:
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(
                 projects=[self.project],
                 search_filter_query="issue.category:performance my_tag:1",
@@ -3246,11 +3261,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         ).first()
 
         assert created_group == find_group
-        with self.feature(
-            [
-                created_group.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(created_group.issue_type.build_visible_feature_name()):
             result = snuba.raw_query(
                 dataset=Dataset.IssuePlatform,
                 start=self.base_datetime - timedelta(hours=1),
@@ -3322,11 +3333,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
         assert error_issue != perf_issue
 
-        with self.feature(
-            [
-                perf_issue.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(perf_issue.issue_type.build_visible_feature_name()):
             assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
                 perf_issue,
                 error_issue,
@@ -3520,7 +3527,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
             with self.feature(
                 [
-                    group_type.build_visible_feature_name(),
+                    *group_type.build_visible_feature_name(),
                     "organizations:performance-issues-search",
                 ]
             ):
@@ -3653,7 +3660,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         )
 
     def test_feedback_category_hidden_default(self) -> None:
-        with self.feature([FeedbackGroup.build_visible_feature_name()]):
+        with self.feature(FeedbackGroup.build_visible_feature_name()):
             event_id_1 = uuid.uuid4().hex
             self.process_occurrence(
                 **{
@@ -3682,7 +3689,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
     def test_feedback_category_show_when_filtered_on(self) -> None:
         with self.feature(
             [
-                FeedbackGroup.build_visible_feature_name(),
+                *FeedbackGroup.build_visible_feature_name(),
                 FeedbackGroup.build_ingest_feature_name(),
             ]
         ):

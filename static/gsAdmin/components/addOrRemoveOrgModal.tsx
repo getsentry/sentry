@@ -1,7 +1,8 @@
 import {Fragment, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
 import TextField from 'sentry/components/forms/fields/inputField';
 import SentryOrganizationRoleSelectorField from 'sentry/components/forms/fields/sentryOrganizationRoleSelectorField';
 import Form from 'sentry/components/forms/form';
@@ -54,7 +55,7 @@ function AddToOrgModal({Header, Body, userId, closeModal}: AddOrRemoveOrgModalPr
           </Fragment>
           {error && (
             <Alert.Container>
-              <Alert type="error" showIcon={false}>
+              <Alert variant="danger" showIcon={false}>
                 {error}
               </Alert>
             </Alert.Container>
@@ -109,7 +110,7 @@ function RemoveFromOrgModal({
           </Fragment>
           {error && (
             <Alert.Container>
-              <Alert type="error">{error}</Alert>
+              <Alert variant="danger">{error}</Alert>
             </Alert.Container>
           )}
         </Form>

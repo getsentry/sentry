@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import base64
 import hashlib
+import logging
+import re
 import secrets
 from collections.abc import Collection, Mapping
 from datetime import timedelta
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeGuard
 
 from django.db import models, router, transaction
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.dependencies import ImportKind, NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
@@ -17,17 +22,81 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apiscopes import HasApiScopes
+from sentry.silo.safety import unguarded_write
 from sentry.types.region import find_all_region_names
 from sentry.types.token import AuthTokenType
+from sentry.utils.locking import UnableToAcquireLock
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 TOKEN_REDACTED = "***REDACTED***"
+
+logger = logging.getLogger("sentry.apitoken")
+
+
+# RFC 7636 §4.1: code_verifier is 43-128 unreserved characters
+# ABNF: code-verifier = 43*128unreserved
+# unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+CODE_VERIFIER_REGEX = re.compile(r"^[A-Za-z0-9\-._~]{43,128}$")
+
+
+def validate_pkce_challenge(
+    code_challenge: str | None,
+    code_challenge_method: str | None,
+    code_verifier: str | None,
+) -> tuple[bool, str | None]:
+    """Validate PKCE code_verifier against the stored challenge.
+
+    RFC 7636 §4.6: The authorization server MUST verify the code_verifier as follows:
+    - If code_challenge_method is S256, compute BASE64URL(SHA256(code_verifier))
+      and compare to code_challenge
+    - If code_challenge_method is plain, compare code_verifier directly to code_challenge
+
+    Args:
+        code_challenge: The challenge stored in the grant
+        code_challenge_method: The method used (S256 or plain)
+        code_verifier: The verifier string provided by the client
+
+    Returns:
+        (is_valid, error_reason) tuple where:
+        - is_valid: True if validation passes, False otherwise
+        - error_reason: None if valid, descriptive error string if invalid
+
+    Reference:
+        https://datatracker.ietf.org/doc/html/rfc7636#section-4.6
+    """
+    if code_challenge is None:
+        # No PKCE challenge was provided during authorization, so no verification needed
+        return True, None
+
+    # If a challenge exists, verifier is required
+    if not code_verifier:
+        return False, "PKCE verifier required"
+
+    # Require S256 method explicitly (plain method not supported for security)
+    if code_challenge_method != "S256":
+        return False, f"unsupported challenge method: {code_challenge_method}"
+
+    # Validate verifier format per RFC 7636 §4.1
+    if not CODE_VERIFIER_REGEX.match(code_verifier):
+        return False, "invalid code_verifier format"
+
+    # RFC 7636 §4.6: BASE64URL(SHA256(ASCII(code_verifier)))
+    verifier_hash = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    # Base64url encoding without padding
+    computed_challenge = base64.urlsafe_b64encode(verifier_hash).decode("ascii").rstrip("=")
+
+    # Use constant-time comparison to prevent timing attacks (RFC 7636 security considerations)
+    if not constant_time_compare(computed_challenge, code_challenge):
+        return False, "PKCE verification failed"
+
+    return True, None
 
 
 def default_expiration():
@@ -108,6 +177,10 @@ class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
 class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
     category = OutboxCategory.API_TOKEN_UPDATE
+
+    # Outbox settings
+    enqueue_after_flush = True
+    _default_flush: bool | None = None
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
@@ -277,36 +350,109 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         )
 
     @classmethod
-    def from_grant(cls, grant: ApiGrant):
-        if grant.application.status != ApiApplicationStatus.active:
-            raise InvalidGrantError()
+    def from_grant(
+        cls,
+        grant: ApiGrant,
+        redirect_uri: str | None = None,
+        code_verifier: str | None = None,
+    ):
+        """Create an ApiToken from an ApiGrant with full OAuth2 validation.
 
-        if grant.is_expired():
-            raise ExpiredGrantError()
+        This method performs comprehensive validation including:
+        - Application status verification
+        - Grant expiry checks
+        - redirect_uri binding (RFC 6749 §4.1.3)
+        - PKCE verification (RFC 7636 §4.6)
 
+        All validations occur inside a lock to prevent TOCTOU race conditions.
+        Failed validation attempts invalidate the grant per RFC 6749 §10.5.
+
+        Args:
+            grant: The authorization grant to exchange for a token
+            redirect_uri: Must match grant.redirect_uri if grant has one bound
+            code_verifier: Required if grant.code_challenge exists (PKCE)
+
+        Returns:
+            The created ApiToken
+
+        Raises:
+            InvalidGrantError: If validation fails for any reason
+            ExpiredGrantError: If the grant has expired
+        """
         lock = locks.get(
             ApiGrant.get_lock_key(grant.id),
             duration=10,
             name="api_grant",
         )
 
-        # we use a lock to prevent race conditions when creating the ApiToken
-        # an attacker could send two requests to create an access/refresh token pair
-        # at the same time, using the same grant, and get two different tokens
-        with lock.acquire():
-            with transaction.atomic(router.db_for_write(cls)):
-                api_token = cls.objects.create(
-                    application=grant.application,
-                    user=grant.user,
-                    scope_list=grant.get_scopes(),
-                    scoping_organization_id=grant.organization_id,
+        try:
+            with lock.acquire():
+                # Re-fetch grant inside lock to prevent TOCTOU race condition
+                # Another request may have already deleted the grant before we acquired the lock
+                try:
+                    grant = ApiGrant.objects.select_related("application").get(id=grant.id)
+                except ApiGrant.DoesNotExist:
+                    raise InvalidGrantError("grant no longer exists")
+
+                # Re-validate inside lock to prevent race conditions
+                if grant.application.status != ApiApplicationStatus.active:
+                    with unguarded_write(using=router.db_for_write(ApiGrant)):
+                        grant.delete()
+                    raise InvalidGrantError("application not active")
+
+                if grant.is_expired():
+                    with unguarded_write(using=router.db_for_write(ApiGrant)):
+                        grant.delete()
+                    raise ExpiredGrantError("grant expired")
+
+                # Validate redirect_uri binding (RFC 6749 §4.1.3)
+                # Only validate if redirect_uri was provided in the token request (not None)
+                # This maintains backward compatibility with direct from_grant() calls
+                if (
+                    redirect_uri is not None
+                    and grant.redirect_uri
+                    and grant.redirect_uri != redirect_uri
+                ):
+                    # RFC 6749 §10.5: Authorization codes are single-use and must be invalidated
+                    # on failed exchange attempts to prevent authorization code replay attacks
+                    with unguarded_write(using=router.db_for_write(ApiGrant)):
+                        grant.delete()
+                    raise InvalidGrantError("invalid redirect URI")
+
+                # Validate PKCE (RFC 7636 §4.6)
+                is_valid, error_reason = validate_pkce_challenge(
+                    grant.code_challenge,
+                    grant.code_challenge_method,
+                    code_verifier,
                 )
+                if not is_valid:
+                    # RFC 6749 §10.5: Authorization codes are single-use and must be invalidated
+                    # on failed exchange attempts to prevent brute-force attacks on PKCE verifiers
+                    with unguarded_write(using=router.db_for_write(ApiGrant)):
+                        grant.delete()
+                    raise InvalidGrantError(error_reason)
 
-                # remove the ApiGrant from the database to prevent reuse of the same
-                # authorization code
-                grant.delete()
+                # Create token and delete grant atomically
+                with transaction.atomic(router.db_for_write(cls)):
+                    api_token = cls.objects.create(
+                        application=grant.application,
+                        user=grant.user,
+                        scope_list=grant.get_scopes(),
+                        scoping_organization_id=grant.organization_id,
+                    )
 
-            return api_token
+                    # Remove the ApiGrant from the database to prevent reuse of the same
+                    # authorization code (RFC 6749 §10.5: single-use requirement)
+                    with unguarded_write(using=router.db_for_write(ApiGrant)):
+                        grant.delete()
+
+                return api_token
+
+        except UnableToAcquireLock:
+            # If we can't acquire the lock, another request is currently processing this grant.
+            # That request will handle deletion (RFC 6749 §10.5 single-use requirement).
+            # We should not delete here as it could interfere with the lock holder.
+            raise InvalidGrantError("grant already in use")
 
     def is_expired(self):
         if not self.expires_at:
@@ -418,8 +564,23 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         return installation.organization_id
 
+    @property
+    def default_flush(self) -> bool:
+        from sentry import options
 
-def is_api_token_auth(auth: object) -> bool:
+        has_async_flush = options.get("api-token-async-flush")
+
+        if self._default_flush is not None:
+            return self._default_flush
+
+        return not has_async_flush
+
+    @default_flush.setter
+    def default_flush(self, value: bool) -> None:
+        self._default_flush = value
+
+
+def is_api_token_auth(auth: object) -> TypeGuard[AuthenticatedToken | ApiToken | ApiTokenReplica]:
     """:returns True when an API token is hitting the API."""
     from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica

@@ -5,6 +5,7 @@ on:
       - '.pre-commit-config.yaml'
       - 'Makefile'
       - '.github/workflows/development-environment.yml'
+      - '.github/workflows/scripts/**'
       - 'requirements-*.txt'
       - 'pyproject.toml'
       - 'uv.lock'
@@ -36,23 +37,17 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.8.2'
+          version: '0.9.28'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
-      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
+      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
-          python-version: 3.13.1
           cache-dependency-path: uv.lock
           install-cmd: uv sync --only-dev --frozen --active
 
       - name: test-tools
         run: make test-tools
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
 
   devenv:
     runs-on: ubuntu-24.04
@@ -62,13 +57,12 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.8.2'
+          version: '0.9.28'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
-      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
+      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
-          python-version: 3.13.1
           cache-dependency-path: uv.lock
           # technically we can just use --only-dev but more cache is nice
           install-cmd: uv sync --frozen --active

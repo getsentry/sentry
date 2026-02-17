@@ -3,7 +3,8 @@ import {Fragment} from 'react';
 import BadStackTraceExample from 'sentry-images/issue_details/bad-stack-trace-example.png';
 import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-example.png';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as Storybook from 'sentry/stories';
 

@@ -55,6 +55,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -99,7 +100,7 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
@@ -644,7 +645,7 @@ class ExhaustiveFixtures(Fixtures):
         repo.external_id = "https://git.example.com:1234"
         repo.save()
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
             code_review_triggers=[
@@ -871,6 +872,10 @@ class ExhaustiveFixtures(Fixtures):
             expires_at="2022-01-01 11:11+00:00",
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
+        )
+        ApiDeviceCode.objects.create(
+            application=app.application,
+            scope_list=["openid", "profile"],
         )
 
         # ServiceHook

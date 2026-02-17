@@ -1,11 +1,11 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading} from '@sentry/scraps/text';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
 import FormContext from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
@@ -26,6 +26,7 @@ const DATASET_LABELS: Record<DetectorDataset, string> = {
   [DetectorDataset.LOGS]: t('Logs'),
   [DetectorDataset.RELEASES]: t('Releases'),
   [DetectorDataset.TRANSACTIONS]: t('Transactions'),
+  [DetectorDataset.METRICS]: t('Metrics'),
 };
 
 /**
@@ -166,6 +167,6 @@ export function TemplateSection() {
   );
 }
 
-const StyledTriggerButton = styled(SelectTrigger.Button)`
+const StyledTriggerButton = styled(OverlayTrigger.Button)`
   min-width: 425px;
 `;

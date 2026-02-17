@@ -1,5 +1,7 @@
-import type {AlertProps} from 'sentry/components/core/alert';
+import type {AlertProps} from '@sentry/scraps/alert';
+
 import type {Field} from 'sentry/components/forms/types';
+import type {CodeReviewTrigger} from 'sentry/types/seer';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
@@ -86,8 +88,6 @@ export type Repository = {
   url: string;
 };
 
-type CodeReviewTrigger = 'on_command_phrase' | 'on_new_commit' | 'on_ready_for_review';
-
 /**
  * Available only when calling API with `expand=settings` query parameter
  */
@@ -99,7 +99,6 @@ export interface RepositoryWithSettings extends Repository {
 }
 
 export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = [
-  'on_command_phrase',
   'on_ready_for_review',
   'on_new_commit',
 ];
@@ -365,7 +364,14 @@ export type DocIntegration = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<AlertProps & {text: string; icon?: string | React.ReactNode}>;
+  // This was previously passed to us
+  alerts?: Array<
+    unknown & {
+      text: string;
+      icon?: string | React.ReactNode;
+      variant?: AlertProps['variant'];
+    }
+  >;
   configure_integration?: {
     title: string;
   };
@@ -637,8 +643,7 @@ export interface RepositoryProjectPathConfig extends BaseRepositoryProjectPathCo
   provider: BaseIntegrationProvider | null;
 }
 
-interface RepositoryProjectPathConfigWithIntegration
-  extends BaseRepositoryProjectPathConfig {
+interface RepositoryProjectPathConfigWithIntegration extends BaseRepositoryProjectPathConfig {
   integrationId: string;
   provider: BaseIntegrationProvider;
 }

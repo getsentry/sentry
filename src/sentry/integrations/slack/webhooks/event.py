@@ -110,7 +110,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         client = SlackSdkClient(integration_id=slack_request.integration.id)
         if slack_request.user_id is None:
-            _logger.error("prompt_link.post-ephemeral-error", extra=logger_params)
+            _logger.warning("prompt_link.post-ephemeral-error", extra=logger_params)
         else:
             try:
                 client.chat_postEphemeral(
@@ -120,7 +120,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
                 )
             except SlackApiError:
-                _logger.exception("prompt_link.post-ephemeral-error", extra=logger_params)
+                _logger.warning("prompt_link.post-ephemeral-error", extra=logger_params)
 
     def on_message(self, request: Request, slack_request: SlackDMRequest) -> Response:
         command = request.data.get("event", {}).get("text", "").lower()
@@ -145,7 +145,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         client = SlackSdkClient(integration_id=slack_request.integration.id)
         if slack_request.channel_id is None:
-            _logger.error("on_message.post-message-error", extra=logger_params)
+            _logger.warning("on_message.post-message-error", extra=logger_params)
         else:
             try:
                 client.chat_postMessage(
@@ -156,7 +156,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     ).as_payload(),
                 )
             except SlackApiError:
-                _logger.exception("on_message.post-message-error", extra=logger_params)
+                _logger.warning("on_message.post-message-error", extra=logger_params)
 
         return self.respond()
 

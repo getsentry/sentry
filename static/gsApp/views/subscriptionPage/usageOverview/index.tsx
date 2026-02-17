@@ -2,8 +2,9 @@ import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -99,7 +100,7 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
 
   return (
     <Grid
-      columns={{xs: '1fr', [SIDE_PANEL_MIN_SCREEN_BREAKPOINT]: '50% 50%'}}
+      columns={{xs: '1fr', [SIDE_PANEL_MIN_SCREEN_BREAKPOINT]: 'repeat(2, 1fr)'}}
       gap="lg"
       align="start"
     >

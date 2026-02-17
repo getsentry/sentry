@@ -89,7 +89,7 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('formats basic issue information correctly', () => {
-      const result = issueAndEventToMarkdown(group, event, null, null);
+      const result = issueAndEventToMarkdown(group, event, null, null, undefined);
 
       expect(result).toContain(`# ${group.title}`);
       expect(result).toContain(`**Issue ID:** ${group.id}`);
@@ -97,7 +97,13 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('includes group summary data when provided', () => {
-      const result = issueAndEventToMarkdown(group, event, mockGroupSummaryData, null);
+      const result = issueAndEventToMarkdown(
+        group,
+        event,
+        mockGroupSummaryData,
+        null,
+        undefined
+      );
 
       expect(result).toContain('## Issue Summary');
       expect(result).toContain(mockGroupSummaryData.headline);
@@ -109,7 +115,13 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('includes autofix data when provided', () => {
-      const result = issueAndEventToMarkdown(group, event, null, mockAutofixData);
+      const result = issueAndEventToMarkdown(
+        group,
+        event,
+        null,
+        mockAutofixData,
+        undefined
+      );
 
       expect(result).toContain('## Root Cause');
       expect(result).toContain('## Solution');
@@ -124,7 +136,7 @@ describe('useCopyIssueDetails', () => {
         ],
       };
 
-      const result = issueAndEventToMarkdown(group, eventWithTags, null, null);
+      const result = issueAndEventToMarkdown(group, eventWithTags, null, null, undefined);
 
       expect(result).toContain('## Tags');
       expect(result).toContain('**browser:** Chrome');
@@ -162,7 +174,13 @@ describe('useCopyIssueDetails', () => {
         ],
       });
 
-      const result = issueAndEventToMarkdown(group, eventWithException, null, null);
+      const result = issueAndEventToMarkdown(
+        group,
+        eventWithException,
+        null,
+        null,
+        undefined
+      );
 
       expect(result).toContain('## Exception');
       expect(result).toContain('**Type:** TypeError');
@@ -170,12 +188,171 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('#### Stacktrace');
     });
 
+    it('includes thread stacktrace when activeThreadId matches', () => {
+      const eventWithThreads = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.THREADS,
+            data: {
+              values: [
+                {
+                  id: 1,
+                  name: 'Main Thread',
+                  crashed: true,
+                  current: true,
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'mainFunction',
+                        filename: 'main.py',
+                        lineNo: 10,
+                        inApp: true,
+                      },
+                    ],
+                  },
+                },
+                {
+                  id: 2,
+                  name: 'Worker Thread',
+                  crashed: false,
+                  current: false,
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'workerFunction',
+                        filename: 'worker.py',
+                        lineNo: 25,
+                        inApp: true,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      // Pass activeThreadId = 1 to select Main Thread
+      const result = issueAndEventToMarkdown(group, eventWithThreads, null, null, 1);
+
+      expect(result).toContain('## Thread: Main Thread');
+      expect(result).toContain('(crashed)');
+      expect(result).toContain('(current)');
+      expect(result).toContain('mainFunction');
+      expect(result).toContain('main.py');
+      expect(result).not.toContain('Worker Thread');
+      expect(result).not.toContain('workerFunction');
+    });
+
+    it('includes different thread when activeThreadId changes', () => {
+      const eventWithThreads = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.THREADS,
+            data: {
+              values: [
+                {
+                  id: 1,
+                  name: 'Main Thread',
+                  crashed: true,
+                  current: true,
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'mainFunction',
+                        filename: 'main.py',
+                        lineNo: 10,
+                        inApp: true,
+                      },
+                    ],
+                  },
+                },
+                {
+                  id: 2,
+                  name: 'Worker Thread',
+                  crashed: false,
+                  current: false,
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'workerFunction',
+                        filename: 'worker.py',
+                        lineNo: 25,
+                        inApp: true,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      // Pass activeThreadId = 2 to select Worker Thread
+      const result = issueAndEventToMarkdown(group, eventWithThreads, null, null, 2);
+
+      expect(result).toContain('## Thread: Worker Thread');
+      expect(result).not.toContain('(crashed)');
+      expect(result).not.toContain('(current)');
+      expect(result).toContain('workerFunction');
+      expect(result).toContain('worker.py');
+      expect(result).not.toContain('Main Thread');
+      expect(result).not.toContain('mainFunction');
+    });
+
+    it('does not include thread stacktrace when activeThreadId is undefined', () => {
+      const eventWithThreads = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.THREADS,
+            data: {
+              values: [
+                {
+                  id: 1,
+                  name: 'Main Thread',
+                  crashed: true,
+                  current: true,
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'mainFunction',
+                        filename: 'main.py',
+                        lineNo: 10,
+                        inApp: true,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown(
+        group,
+        eventWithThreads,
+        null,
+        null,
+        undefined
+      );
+
+      expect(result).not.toContain('## Thread');
+      expect(result).not.toContain('mainFunction');
+    });
+
     it('prefers autofix rootCause over groupSummary possibleCause', () => {
       const result = issueAndEventToMarkdown(
         group,
         event,
         mockGroupSummaryData,
-        mockAutofixData
+        mockAutofixData,
+        undefined
       );
 
       expect(result).toContain('## Root Cause');

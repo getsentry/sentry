@@ -1,5 +1,6 @@
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
@@ -32,7 +33,7 @@ export function StatusToggleButton({
     <Button
       icon={<Icon />}
       aria-label={label}
-      title={label}
+      tooltipProps={{title: label}}
       onClick={async () => {
         await onToggleStatus(isDisabled ? 'active' : 'disabled');
         // TODO(epurkhiser): This hook is probably too specialized and could

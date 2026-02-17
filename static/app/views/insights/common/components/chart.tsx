@@ -33,6 +33,7 @@ import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -51,7 +52,6 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
@@ -210,7 +210,7 @@ function Chart({
       max: dataMax,
       type: 'value',
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         formatter(value: number) {
           return axisLabelFormatter(value, 'number', true);
         },
@@ -278,7 +278,7 @@ function Chart({
       max: dataMax,
       type: log ? 'log' : 'value',
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         formatter(value: number) {
           return axisLabelFormatter(
             value,
@@ -393,7 +393,7 @@ function Chart({
     if (error) {
       return (
         <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </ErrorPanel>
       );
     }
@@ -472,7 +472,7 @@ function Chart({
             splitNumber: definedAxisTicks,
             max: dataMax,
             axisLabel: {
-              color: theme.tokens.content.muted,
+              color: theme.tokens.content.secondary,
               formatter(value: number) {
                 return axisLabelFormatter(
                   value,
@@ -523,7 +523,7 @@ function Chart({
     if (error) {
       return (
         <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </ErrorPanel>
       );
     }
@@ -604,7 +604,7 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   }
 
   const power = Math.log10(maxValue);
-  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
+  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]);
 
   let scale: number;
   if (magnitude <= 2.5) {

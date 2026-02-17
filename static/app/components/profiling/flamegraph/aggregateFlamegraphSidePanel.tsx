@@ -1,8 +1,9 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t, tct} from 'sentry/locale';
@@ -232,8 +233,8 @@ const AggregateFlamegraphSidePanelContainer = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding: ${space(1)};
 `;
 
@@ -241,9 +242,9 @@ const RowContainer = styled('div')`
   border-radius: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};
   :nth-child(even) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px transparent;
 `;
@@ -261,7 +262,11 @@ const FunctionRowContainer = styled(RowContainer)`
 `;
 
 const DetailsContainer = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ReferenceRowContainer = styled(RowContainer)`

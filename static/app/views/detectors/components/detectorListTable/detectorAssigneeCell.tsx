@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+
 import type {Actor} from 'sentry/types/core';
 
 type DetectorAssigneeCellProps = {
@@ -26,5 +27,5 @@ export function DetectorAssigneeCell({assignee, className}: DetectorAssigneeCell
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

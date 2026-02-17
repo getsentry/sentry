@@ -969,7 +969,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
             'count_scores(measurements.score.total)',
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] avg(measurements.score.total):>=0',
         }),
       })
     );

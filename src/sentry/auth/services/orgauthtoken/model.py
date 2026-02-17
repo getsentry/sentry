@@ -8,7 +8,7 @@ from sentry.hybridcloud.rpc import RpcModel
 class RpcOrgAuthToken(RpcModel):
     organization_id: int = -1
     id: int = -1
-    token_hashed: str = ""
+    token_hashed: str = Field(repr=False, default="")
     name: str = ""
     scope_list: list[str] = Field(default_factory=list)
     created_by_id: int | None = None

@@ -81,13 +81,14 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
       ? (query.referrer as ReplayListQueryReferrer)
       : 'replayList',
   });
-  const {data, isLoading} = useApiQuery<{
+  const {data, isLoading, getResponseHeader} = useApiQuery<{
     data: ReplayListRecord[];
     enabled: boolean;
   }>(queryKey, {
     staleTime: 0,
     enabled: Boolean(playlistStart && playlistEnd),
   });
+  const pageLinks = getResponseHeader?.('Link') ?? null;
 
   const replays = useMemo(() => data?.data?.map(mapResponseToReplayRecord) ?? [], [data]);
 
@@ -109,6 +110,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
                   <ReplayPlaylistProvider
                     currentReplay={replayRecord}
                     isLoading={isLoading}
+                    pageLinks={pageLinks}
                     replays={replays}
                   >
                     {children}

@@ -88,10 +88,6 @@ describe('GroupSidebar', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -179,7 +175,7 @@ describe('GroupSidebar', () => {
       group = GroupFixture();
 
       MockApiClient.addMockResponse({
-        url: '/organization/org-slug/issues/1/',
+        url: '/organizations/org-slug/issues/1/',
         body: group,
       });
       MockApiClient.addMockResponse({
@@ -261,7 +257,7 @@ describe('GroupSidebar', () => {
       group = GroupFixture();
 
       MockApiClient.addMockResponse({
-        url: '/issues/1/',
+        url: '/organizations/org-slug/issues/1/',
         body: group,
       });
     });

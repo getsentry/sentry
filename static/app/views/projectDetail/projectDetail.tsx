@@ -2,13 +2,14 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -16,21 +17,23 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -79,6 +82,28 @@ export default function ProjectDetail() {
     }
     return ['chart1'];
   }, [hasTransactions, hasSessions]);
+
+  const {setPageInfo, pageAlert} = usePageAlert();
+  const {orgId, projectId: projectSlug} = params;
+  const msg = useMemo(
+    () =>
+      tctCode(
+        'Project Details will be removed soon. Find this project’s settings under [settingsLink:Settings]. Similar charts are available on the [sessionHealth:Session Health] and [backendOverview:Backend Overview] dashboards.',
+        {
+          settingsLink: <Link to={`/settings/${orgId}/projects/${projectSlug}/`} />,
+          sessionHealth: (
+            <Link to={`/organizations/${orgId}/insights/mobile/sessions/`} />
+          ),
+          backendOverview: <Link to={`/organizations/${orgId}/insights/backend/`} />,
+        }
+      ),
+    [orgId, projectSlug]
+  );
+  useEffect(() => {
+    if (pageAlert?.message !== msg) {
+      setPageInfo(msg);
+    }
+  }, [msg, pageAlert, setPageInfo]);
 
   const onRetryProjects = useCallback(() => {
     fetchOrganizationDetails(api, params.orgId);
@@ -178,7 +203,7 @@ export default function ProjectDetail() {
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
-                <ButtonBar>
+                <Grid flow="column" align="center" gap="md">
                   <FeedbackButton />
                   <LinkButton
                     size="sm"
@@ -203,12 +228,13 @@ export default function ProjectDetail() {
                     aria-label={t('Settings')}
                     to={`/settings/${params.orgId}/projects/${params.projectId}/`}
                   />
-                </ButtonBar>
+                </Grid>
               </Layout.HeaderActions>
             </Layout.Header>
 
             <Layout.Body noRowGap>
               <Layout.Main>
+                <PageAlert />
                 <ProjectFiltersWrapper>
                   <ProjectFilters
                     query={query}
@@ -277,11 +303,7 @@ export default function ProjectDetail() {
                   isProjectStabilized={isProjectStabilized}
                   project={project}
                 />
-                <ProjectQuickLinks
-                  organization={organization}
-                  project={project}
-                  location={location}
-                />
+                <ProjectQuickLinks organization={organization} project={project} />
               </Layout.Side>
             </Layout.Body>
           </NoProjectMessage>

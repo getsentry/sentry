@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -95,7 +95,7 @@ export default function PlayStationSettings({organization, project}: Props) {
     <Fragment>
       {credentialErrors && credentialErrors?.length > 0 && (
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {t('There was a problem with following credentials:')}
             <List symbol="bullet">
               {credentialErrors.map(credential => (
@@ -114,7 +114,7 @@ export default function PlayStationSettings({organization, project}: Props) {
         <LoadingIndicator />
       ) : (
         <Flex direction="column" gap="md" align="end">
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {hasCredentials && (
               <Button
                 size="sm"
@@ -134,7 +134,7 @@ export default function PlayStationSettings({organization, project}: Props) {
               </Button>
             )}
             <AddCredentialsButton project={project} origin="project-settings" />
-          </ButtonBar>
+          </Grid>
           {showEmptyState ? (
             <FullWidthPanel>
               <EmptyState

@@ -21,7 +21,7 @@ from sentry.taskworker.retry import Retry
     processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
 )
-@retry(on=(Commit.DoesNotExist,))
+@retry(on=(), on_silent=(Commit.DoesNotExist,))
 def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
     from django.db.models import BooleanField, Case, Exists, OuterRef, Subquery, When
 
@@ -77,7 +77,8 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
 
         # If we fail to fetch the codeowners file, the user can manually sync. We'll send them an email on failure.
         if not codeowner_contents:
-            return AutoSyncNotification(code_mapping.project).send()
+            AutoSyncNotification(code_mapping.project).send()
+            return
 
         codeowners: ProjectCodeOwners = ProjectCodeOwners.objects.get(
             repository_project_path_config=code_mapping

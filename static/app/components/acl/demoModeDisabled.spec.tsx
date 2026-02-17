@@ -10,6 +10,7 @@ jest.mock('sentry/utils/demoMode', () => ({
 
 jest.mock('sentry/locale', () => ({
   t: jest.fn(key => key), // Mock translation function
+  td: jest.fn(key => key), // Mock translation description function
 }));
 
 describe('DisableInDemoMode', () => {

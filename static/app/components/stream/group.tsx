@@ -3,21 +3,23 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
@@ -27,7 +29,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {TimeseriesValue} from 'sentry/types/core';
@@ -51,11 +52,14 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
+import {
+  useOptionalIssueSelectionActions,
+  useOptionalIssueSelectionSummary,
+} from 'sentry/views/issueList/issueSelectionContext';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
@@ -77,8 +81,14 @@ type Props = {
   canSelect?: boolean;
   customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
+  /**
+   * If you have access to the group data, it is preferred to pass it in as a prop here.
+   * Otherwise, the group data will come from the deprecated GroupStore.
+   */
+  group?: Group;
   hasGuideAnchor?: boolean;
   memberList?: User[];
+  onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
   query?: string;
   queryFilterDescription?: string;
@@ -98,18 +108,19 @@ function GroupCheckbox({
   group: Group;
   displayReprocessingLayout?: boolean;
 }) {
-  const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
-  const isSelected = selectedGroupMap.get(group.id) ?? false;
+  const issueSelectionSummary = useOptionalIssueSelectionSummary();
+  const issueSelectionActions = useOptionalIssueSelectionActions();
+  const isSelected = issueSelectionSummary?.records.get(group.id);
 
   const handleToggle = useCallback(
     (isShiftClick: boolean) => {
       if (isShiftClick) {
-        SelectedGroupStore.shiftToggleItems(group.id);
+        issueSelectionActions?.shiftToggleSelect(group.id);
       } else {
-        SelectedGroupStore.toggleSelect(group.id);
+        issueSelectionActions?.toggleSelect(group.id);
       }
     },
-    [group.id]
+    [group.id, issueSelectionActions]
   );
 
   const onChange = useCallback(
@@ -265,6 +276,7 @@ export function LoadingStreamGroup({
 
 function StreamGroup({
   id,
+  group: incomingGroup,
   customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
@@ -280,15 +292,24 @@ function StreamGroup({
   useTintRow = true,
   showLastTriggered = false,
   onPriorityChange,
+  onAssigneeChange,
 }: Props) {
+  const issueSelectionSummary = useOptionalIssueSelectionSummary();
+  const issueSelectionActions = useOptionalIssueSelectionActions();
+  const groups = useLegacyStore(GroupStore);
+  const group = useMemo(() => {
+    if (incomingGroup) {
+      return incomingGroup;
+    }
+    return groups.find(item => item.id === id) as Group | undefined;
+  }, [incomingGroup, groups, id]);
+  const groupId = group?.id ?? id;
+
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const groups = useLegacyStore(GroupStore);
-  const group = useMemo(
-    () => groups.find(item => item.id === id) as Group | undefined,
-    [groups, id]
-  );
+  const selectionEnabled =
+    canSelect && !!issueSelectionSummary && !!issueSelectionActions;
   const originalInboxState = useRef(group?.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
 
@@ -321,7 +342,7 @@ function StreamGroup({
     ): Promise<AssignableEntity | null> => {
       if (newAssignee) {
         await assignToActor({
-          id: group!.id,
+          id: groupId,
           orgSlug: organization.slug,
           actor: {id: newAssignee.id, type: newAssignee.type},
           assignedBy: 'assignee_selector',
@@ -329,7 +350,7 @@ function StreamGroup({
         return Promise.resolve(newAssignee);
       }
 
-      await clearAssignment(group!.id, organization.slug, 'assignee_selector');
+      await clearAssignment(groupId, organization.slug, 'assignee_selector');
       return Promise.resolve(null);
     },
     onSuccess: (newAssignee: AssignableEntity | null) => {
@@ -341,10 +362,10 @@ function StreamGroup({
           assigned_type: newAssignee.type,
         });
       }
+      onAssigneeChange?.(newAssignee);
     },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
-    },
+    // Error is already handled by GroupStore.onAssignToError which shows an alert
+    onError: () => {},
   });
 
   const clickHasBeenHandled = useCallback(
@@ -545,12 +566,12 @@ function StreamGroup({
           </CountTooltipContent>
         }
       >
-        <CountsWrapper>
+        <Stack position="relative">
           <PrimaryCount value={primaryCount} />
           {secondaryCount !== undefined && useFilteredStats && (
             <SecondaryCount value={secondaryCount} />
           )}
-        </CountsWrapper>
+        </Stack>
       </Tooltip>
     </GuideAnchor>
   );
@@ -585,12 +606,12 @@ function StreamGroup({
         </CountTooltipContent>
       }
     >
-      <CountsWrapper>
+      <Stack position="relative">
         <PrimaryCount value={primaryUserCount} />
         {secondaryUserCount !== undefined && useFilteredStats && (
           <SecondaryCount value={secondaryUserCount} />
         )}
-      </CountsWrapper>
+      </Stack>
     </Tooltip>
   );
 
@@ -616,14 +637,14 @@ function StreamGroup({
       return;
     }
 
-    if (canSelect && e.shiftKey) {
-      SelectedGroupStore.shiftToggleItems(group.id);
+    if (selectionEnabled && e.shiftKey) {
+      issueSelectionActions?.shiftToggleSelect(group.id);
       window.getSelection()?.removeAllRanges();
       return;
     }
 
-    if (canSelect && isCtrlKeyPressed(e)) {
-      SelectedGroupStore.toggleSelect(group.id);
+    if (selectionEnabled && isCtrlKeyPressed(e)) {
+      issueSelectionActions?.toggleSelect(group.id);
       return;
     }
 
@@ -650,13 +671,13 @@ function StreamGroup({
     >
       <InteractionStateLayer />
       <Fragment>
-        {canSelect && (
+        {selectionEnabled && (
           <GroupCheckbox
             group={group}
             displayReprocessingLayout={displayReprocessingLayout}
           />
         )}
-        <GroupSummary canSelect={canSelect}>
+        <GroupSummary canSelect={selectionEnabled}>
           <EventOrGroupHeader data={group} query={query} source={referrer} />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupSummary>
@@ -758,7 +779,7 @@ const CheckboxLabel = styled('label')`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.colors.blue500};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   border-radius: 50%;
   margin-top: 1px;
   margin-left: ${space(2)};
@@ -828,7 +849,7 @@ const Wrapper = styled(PanelItem)<{
           background-color: ${p.theme.tokens.background.secondary};
         }
         100% {
-          background-color: ${p.theme.backgroundSecondary};
+          background-color: ${p.theme.tokens.background.secondary};
         }
       }
     `};
@@ -842,7 +863,7 @@ export const GroupSummary = styled('div')<{canSelect: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: auto;
 `;
 
@@ -861,14 +882,8 @@ const CheckboxWithBackground = styled(Checkbox)`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
-const CountsWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-`;
-
 const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   justify-content: right;
   margin-bottom: ${space(0.25)};
@@ -876,17 +891,17 @@ const PrimaryCount = styled(Count)`
 `;
 
 const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: flex;
   justify-content: right;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -895,12 +910,12 @@ const CountTooltipContent = styled('div')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)} ${space(3)};
   text-align: left;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   align-items: center;
 
   h4 {
-    color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSize.xs};
+    color: ${p => p.theme.tokens.content.secondary};
+    font-size: ${p => p.theme.font.size.xs};
     text-transform: uppercase;
     grid-column: 1 / -1;
     margin-bottom: ${space(0.25)};
@@ -999,7 +1014,10 @@ const StartedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.colors.gray800};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 85px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -1012,7 +1030,10 @@ const EventsReprocessedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.colors.gray800};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 75px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {

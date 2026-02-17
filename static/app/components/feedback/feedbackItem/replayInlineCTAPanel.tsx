@@ -2,9 +2,10 @@ import styled from '@emotion/styled';
 
 import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backend.svg';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import PageBanner from 'sentry/components/alerts/pageBanner';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t} from 'sentry/locale';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -15,7 +16,7 @@ export default function ReplayInlineCTAPanel() {
   return (
     <PageBanner
       button={
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             type="button"
             priority="primary"
@@ -25,13 +26,13 @@ export default function ReplayInlineCTAPanel() {
           >
             {t('Set Up Now')}
           </Button>
-        </ButtonBar>
+        </Grid>
       }
       description={t(
         "Don't fully understand the feedback message? Install Session Replay to see what the user was doing leading up to the feedback submission."
       )}
       heading={t('Set Up Session Replay')}
-      icon={<IconBroadcast size="sm" color="purple300" />}
+      icon={<IconBroadcast size="sm" variant="accent" />}
       image={replaysInlineOnboarding}
       title={<PurpleText>{t('Session Replay')}</PurpleText>}
     />
@@ -39,6 +40,6 @@ export default function ReplayInlineCTAPanel() {
 }
 
 const PurpleText = styled('span')`
-  color: ${p => p.theme.colors.blue400};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.accent};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

@@ -1,4 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
@@ -65,7 +66,7 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
     case 'issue_stream':
       return (
         <Alert.Container>
-          <Alert type="error">{t('Issue stream monitors can not be edited.')}</Alert>
+          <Alert variant="danger">{t('Issue stream monitors can not be edited.')}</Alert>
         </Alert.Container>
       );
     default:

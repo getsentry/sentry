@@ -1,5 +1,9 @@
+from datetime import timedelta
+from unittest.mock import patch
+
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -95,7 +99,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         response = self.client.get(url)
 
         assert response.status_code == 404
-        assert response.json()["error"] == "Comparison not found."
+        assert response.json()["detail"] == "Comparison not found."
 
     def test_download_size_analysis_comparison_no_file_id(self) -> None:
         # Create a comparison without a file_id
@@ -111,7 +115,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         response = self.client.get(url)
 
         assert response.status_code == 404
-        assert response.json()["error"] == "Comparison not found."
+        assert response.json()["detail"] == "Comparison not found."
 
     def test_download_size_analysis_comparison_file_not_found(self) -> None:
         # Create a comparison with a non-existent file_id
@@ -127,7 +131,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         response = self.client.get(url)
 
         assert response.status_code == 404
-        assert response.json()["error"] == "Comparison not found."
+        assert response.json()["detail"] == "Comparison not found."
 
     def test_download_size_analysis_comparison_file_retrieval_failure(self) -> None:
         failing_file = self.create_file(
@@ -148,7 +152,49 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         response = self.client.get(url)
 
         assert response.status_code == 404
-        assert response.json()["error"] == "Comparison not found."
+        assert response.json()["detail"] == "Comparison not found."
+
+    @patch(
+        "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_download.get_size_retention_cutoff"
+    )
+    def test_returns_404_for_expired_head_artifact(self, mock_cutoff) -> None:
+        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
+        self.head_artifact.date_added = timezone.now() - timedelta(days=60)
+        self.head_artifact.save()
+
+        self.create_preprod_artifact_size_comparison(
+            organization=self.organization,
+            head_size_analysis=self.head_size_metrics,
+            base_size_analysis=self.base_size_metrics,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+            file_id=self.comparison_file.id,
+        )
+
+        url = self._get_url()
+        response = self.client.get(url)
+        assert response.status_code == 404
+        assert response.json()["detail"] == "This build's size data has expired."
+
+    @patch(
+        "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_download.get_size_retention_cutoff"
+    )
+    def test_returns_404_for_expired_base_artifact(self, mock_cutoff) -> None:
+        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
+        self.base_artifact.date_added = timezone.now() - timedelta(days=60)
+        self.base_artifact.save()
+
+        self.create_preprod_artifact_size_comparison(
+            organization=self.organization,
+            head_size_analysis=self.head_size_metrics,
+            base_size_analysis=self.base_size_metrics,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+            file_id=self.comparison_file.id,
+        )
+
+        url = self._get_url()
+        response = self.client.get(url)
+        assert response.status_code == 404
+        assert response.json()["detail"] == "This build's size data has expired."
 
     def test_download_size_analysis_comparison_different_organization(self) -> None:
         other_user = self.create_user()
@@ -163,4 +209,4 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
 
         # Should still return 404 because the comparison doesn't exist for this organization
         assert response.status_code == 404
-        assert response.json()["error"] == "Comparison not found."
+        assert response.json()["detail"] == "Comparison not found."

@@ -240,6 +240,7 @@ TIMESTAMP_FIELDS = {
     "timestamp",
     "timestamp.to_hour",
     "timestamp.to_day",
+    "error.received",
 }
 NON_FAILURE_STATUS = {"ok", "cancelled", "unknown"}
 HTTP_SERVER_ERROR_STATUS = {

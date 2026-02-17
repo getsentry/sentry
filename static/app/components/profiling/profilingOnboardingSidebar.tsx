@@ -2,12 +2,20 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
@@ -16,7 +24,8 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -32,7 +41,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatformSDKForPlatform} from 'sentry/utils/profiling/platforms';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 function splitProjectsByProfilingSupport(projects: Project[]): {
@@ -202,7 +210,7 @@ function SidebarContent() {
 
   return (
     <Fragment>
-      <Content>
+      <Stack padding="xl" gap="md">
         <Heading>{t('Profile Code')}</Heading>
         <div
           onClick={e => {
@@ -216,19 +224,20 @@ function SidebarContent() {
           <CompactSelect
             value={currentProject?.id}
             onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
-            triggerProps={{
-              'aria-label': currentProject?.slug,
-              children: currentProject ? (
-                <StyledIdBadge
-                  project={currentProject}
-                  avatarSize={16}
-                  hideOverflow
-                  disableLink
-                />
-              ) : (
-                t('Select a project')
-              ),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} aria-label={currentProject?.slug}>
+                {currentProject ? (
+                  <StyledIdBadge
+                    project={currentProject}
+                    avatarSize={16}
+                    hideOverflow
+                    disableLink
+                  />
+                ) : (
+                  t('Select a project')
+                )}
+              </OverlayTrigger.Button>
+            )}
             options={projectSelectOptions}
             position="bottom-end"
           />
@@ -241,7 +250,7 @@ function SidebarContent() {
             project={currentProject}
           />
         ) : null}
-      </Content>
+      </Stack>
     </Fragment>
   );
 }
@@ -355,14 +364,24 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   const steps = [...doc.install(docParams), ...doc.configure(docParams)];
 
   return (
-    <Wrapper>
-      {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
-      <Steps>
-        {steps.map(step => {
-          return <Step key={step.title ?? step.type} {...step} />;
-        })}
-      </Steps>
-    </Wrapper>
+    <TabSelectionScope>
+      <Wrapper>
+        {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
+        <CopySetupInstructionsGate>
+          <Container paddingBottom="md">
+            <OnboardingCopyMarkdownButton
+              steps={steps}
+              source="profiling_sidebar_onboarding"
+            />
+          </Container>
+        </CopySetupInstructionsGate>
+        <Steps>
+          {steps.map((step, index) => {
+            return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
+          })}
+        </Steps>
+      </Wrapper>
+    </TabSelectionScope>
   );
 }
 
@@ -382,19 +401,12 @@ const Introduction = styled('div')`
   }
 `;
 
-const Content = styled('div')`
-  padding: ${space(2)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-size: ${p => p.theme.font.size.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   margin-top: ${space(3)};
 `;

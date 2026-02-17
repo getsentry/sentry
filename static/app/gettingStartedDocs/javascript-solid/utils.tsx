@@ -62,12 +62,9 @@ const getDynamicParts = (params: DocsParams): string[] => {
 
   if (params.isProfilingSelected) {
     dynamicParts.push(`
-        // Set profilesSampleRate to 1.0 to profile every transaction.
-        // Since profilesSampleRate is relative to tracesSampleRate,
-        // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
-        // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
-        // results in 25% of transactions being profiled (0.5*0.5=0.25)
-        profilesSampleRate: 1.0`);
+        // Set profileSessionSampleRate to 1.0 to profile during every session.
+        // The decision, whether to profile or not, is made once per session (when the SDK is initialized).
+        profileSessionSampleRate: 1.0`);
   }
 
   return dynamicParts;

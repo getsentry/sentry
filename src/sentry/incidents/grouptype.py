@@ -170,7 +170,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         data_packet: DataPacket[MetricUpdate],
         priority: DetectorPriorityLevel,
     ) -> dict[str, Any]:
-
         try:
             alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
             return {"alert_id": alert_rule_detector.alert_rule_id}
@@ -214,10 +213,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             )
 
         try:
-            assignee = parse_and_validate_actor(
-                str(self.detector.created_by_id), self.detector.project.organization_id
-            )
+            owner = self.detector.owner.identifier if self.detector.owner else None
+            assignee = parse_and_validate_actor(owner, self.detector.project.organization_id)
         except Exception:
+            logger.exception("Failed to parse assignee for detector id %s", self.detector.id)
             assignee = None
 
         return (
@@ -362,5 +361,8 @@ class MetricIssue(GroupType):
         return True
 
     @classmethod
-    def build_visible_feature_name(cls) -> str:
-        return "organizations:workflow-engine-ui"
+    def build_visible_feature_name(cls) -> list[str]:
+        return [
+            "organizations:workflow-engine-ui",
+            "organizations:workflow-engine-metric-issue-ui",
+        ]

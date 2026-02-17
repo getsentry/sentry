@@ -1,12 +1,13 @@
 import {Fragment, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -19,6 +20,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import type {ServiceHook} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -42,7 +44,13 @@ function HookStats() {
     refetch,
   } = useApiQuery<Array<{total: number; ts: number}>>(
     [
-      `/projects/${organization.slug}/${projectId}/hooks/${hookId}/stats/`,
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/stats/`, {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectId,
+          hookId,
+        },
+      }),
       {
         query: {
           since,
@@ -114,7 +122,15 @@ export default function ProjectServiceHookDetails() {
     isError,
     refetch,
   } = useApiQuery<ServiceHook>(
-    [`/projects/${organization.slug}/${projectId}/hooks/${hookId}/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/`, {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectId,
+          hookId,
+        },
+      }),
+    ],
     {staleTime: 0}
   );
 
@@ -173,7 +189,7 @@ export default function ProjectServiceHookDetails() {
       <Panel>
         <PanelHeader>{t('Event Validation')}</PanelHeader>
         <PanelBody>
-          <PanelAlert type="info">
+          <PanelAlert variant="info">
             Sentry will send the <code>X-ServiceHook-Signature</code> header built using{' '}
             <code>HMAC(SHA256, [secret], [payload])</code>. You should always verify this
             signature before trusting the information provided in the webhook.

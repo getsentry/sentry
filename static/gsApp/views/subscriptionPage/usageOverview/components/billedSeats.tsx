@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
@@ -40,7 +41,10 @@ function BilledSeats({
   const shouldShowBilledSeats =
     selectedProduct === AddOnCategory.SEER && defined(billedCategory) && isEnabled;
   const billedSeatsQueryKey = [
-    `/customers/${organization.slug}/billing-seats/current/?billingMetric=${billedCategory}`,
+    getApiUrl(`/customers/$organizationIdOrSlug/billing-seats/current/`, {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+    {query: {billingMetric: billedCategory}},
   ] as const;
   const {
     data: billedSeats,
@@ -123,5 +127,6 @@ const Table = styled(SimpleTable)<{hasBorderTop: boolean}>`
   grid-template-columns: 1fr 1fr;
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   border: none;
-  border-top: ${p => (p.hasBorderTop ? `1px solid ${p.theme.border}` : 'none')};
+  border-top: ${p =>
+    p.hasBorderTop ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
 `;

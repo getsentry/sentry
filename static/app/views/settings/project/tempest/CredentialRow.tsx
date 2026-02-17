@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Confirm from 'sentry/components/confirm';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
@@ -72,8 +73,8 @@ type StatusTagProps = {
 };
 
 const STATUS_CONFIG = {
-  error: {label: 'Error', type: 'error'},
-  success: {label: 'Active', type: 'default'},
+  error: {label: 'Error', type: 'danger'},
+  success: {label: 'Active', type: 'muted'},
   pending: {label: 'Pending', type: 'info'},
   warning: {label: 'Active', type: 'warning'},
 } as const;
@@ -82,7 +83,7 @@ function StatusTag({statusType, message}: StatusTagProps) {
   const config = STATUS_CONFIG[statusType];
   return (
     <Tooltip title={message} skipWrapper>
-      <Tag type={config.type}>{config.label}</Tag>
+      <Tag variant={config.type}>{config.label}</Tag>
     </Tooltip>
   );
 }

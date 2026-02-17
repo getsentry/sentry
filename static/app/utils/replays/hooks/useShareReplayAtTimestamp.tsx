@@ -1,8 +1,10 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Input} from 'sentry/components/core/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -43,7 +45,7 @@ function ShareModal({currentTimeSec, Header, Body}: any) {
           {url.toString()}
         </StyledTextCopyInput>
 
-        <ShareAtRadioGroup>
+        <Stack marginTop="xl" maxWidth="fit-content">
           <RadioGroup
             value={shareMode}
             choices={[
@@ -66,7 +68,7 @@ function ShareModal({currentTimeSec, Header, Body}: any) {
             label="share at"
             onChange={id => setShareMode(id)}
           />
-        </ShareAtRadioGroup>
+        </Stack>
       </Body>
     </div>
   );
@@ -102,11 +104,4 @@ const InputRow = styled('div')`
   & > input {
     width: 100px;
   }
-`;
-
-const ShareAtRadioGroup = styled('div')`
-  margin-top: ${space(2)};
-  display: flex;
-  flex-direction: column;
-  max-width: fit-content;
 `;

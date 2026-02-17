@@ -2,9 +2,10 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -114,8 +115,8 @@ export function IssueDetailsEventNavigation({
   const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
   const grayText = css`
-    color: ${theme.subText};
-    font-weight: ${theme.fontWeight.normal};
+    color: ${theme.tokens.content.secondary};
+    font-weight: ${theme.font.weight.sans.regular};
   `;
 
   return (
@@ -123,8 +124,8 @@ export function IssueDetailsEventNavigation({
       <Navigation>
         <LinkButton
           aria-label={t('Previous Event')}
-          title={t('Previous Event')}
-          borderless
+          tooltipProps={{title: t('Previous Event')}}
+          priority="transparent"
           size="xs"
           icon={<IconChevron direction="left" />}
           disabled={!defined(event?.previousEventID)}
@@ -147,8 +148,8 @@ export function IssueDetailsEventNavigation({
         />
         <LinkButton
           aria-label={t('Next Event')}
-          title={t('Next Event')}
-          borderless
+          tooltipProps={{title: t('Next Event')}}
+          priority="transparent"
           size="xs"
           icon={<IconChevron direction="right" />}
           disabled={!defined(event?.nextEventID)}
@@ -168,7 +169,7 @@ export function IssueDetailsEventNavigation({
         />
       </Navigation>
       <Tabs value={selectedOption} disableOverflow onChange={onTabChange} size="xs">
-        <TabList hideBorder variant="floating">
+        <TabList variant="floating">
           {EventNavOrder.map(label => {
             const eventPath =
               label === selectedOption

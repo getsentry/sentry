@@ -1,5 +1,6 @@
 import type {EventsStats} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {
@@ -124,7 +125,9 @@ export function useMetricEventStats(
   );
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/events-stats/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {query: queryObject},
   ];
 

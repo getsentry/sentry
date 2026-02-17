@@ -1,4 +1,5 @@
 import type {EventTransaction} from 'sentry/types/event';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,7 +42,16 @@ export function useTraceRootEvent({
   const projectSlug = rep?.event?.projectSlug;
   const legacyRootEvent = useApiQuery<EventTransaction>(
     [
-      `/organizations/${organization.slug}/events/${projectSlug}:${rep?.event?.id}/`,
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug!,
+            eventId: rep?.event?.id!,
+          },
+        }
+      ),
       {
         query: {
           referrer: 'trace-details-summary',

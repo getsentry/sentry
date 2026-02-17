@@ -25,7 +25,6 @@ const MIN_RIGHT_WIDTH = SAMPLES_PANEL_MIN_WIDTH + PADDING_SIZE;
 
 export function SideBySideOrientation({
   timeseriesResult,
-  queryIndex,
   traceMetric,
   orientation,
   setOrientation,
@@ -36,7 +35,6 @@ export function SideBySideOrientation({
   infoContentHidden: boolean;
   isMetricOptionsEmpty: boolean;
   orientation: TableOrientation;
-  queryIndex: number;
   setInfoContentHidden: (hidden: boolean) => void;
   setOrientation: (orientation: TableOrientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
@@ -73,7 +71,6 @@ export function SideBySideOrientation({
       <div ref={measureRef}>
         <MetricsGraph
           timeseriesResult={timeseriesResult}
-          queryIndex={queryIndex}
           orientation={orientation}
           additionalActions={additionalActions}
           infoContentHidden={infoContentHidden}
@@ -92,7 +89,6 @@ export function SideBySideOrientation({
             content: (
               <MetricsGraph
                 timeseriesResult={timeseriesResult}
-                queryIndex={queryIndex}
                 orientation={orientation}
                 isMetricOptionsEmpty={isMetricOptionsEmpty}
               />

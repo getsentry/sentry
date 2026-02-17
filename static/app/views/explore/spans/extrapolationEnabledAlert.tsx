@@ -1,6 +1,7 @@
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t, tct} from 'sentry/locale';
 import {
   useQueryParamsExtrapolate,
@@ -17,7 +18,7 @@ export function ExtrapolationEnabledAlert() {
 
   return (
     <Alert.Container>
-      <Alert type="warning">
+      <Alert variant="warning">
         {tct('You have disabled [extrapolation]. [toggle]', {
           extrapolation: (
             <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer">

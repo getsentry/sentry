@@ -1,4 +1,5 @@
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+
 import {
   scoreToStatus,
   STATUS_TEXT,
@@ -11,7 +12,9 @@ type Props = {
 export function PerformanceBadge({score}: Props) {
   const status = scoreToStatus(score);
   return (
-    <Tag type={status === 'good' ? 'success' : status === 'bad' ? 'error' : 'warning'}>
+    <Tag
+      variant={status === 'good' ? 'success' : status === 'bad' ? 'danger' : 'warning'}
+    >
       {STATUS_TEXT[status]} {score}
     </Tag>
   );

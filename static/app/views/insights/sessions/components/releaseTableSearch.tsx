@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
@@ -10,8 +12,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 
 export default function ReleaseTableSearch() {
   const location = useLocation();

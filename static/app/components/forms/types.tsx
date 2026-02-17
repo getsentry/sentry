@@ -1,4 +1,5 @@
-import type {AlertProps} from 'sentry/components/core/alert';
+import type {AlertProps} from '@sentry/scraps/alert';
+
 import type {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
@@ -80,7 +81,7 @@ interface BaseField {
   resetsForm?: boolean;
   rows?: number;
   saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
-  saveMessageAlertType?: AlertProps['type'];
+  saveMessageAlertVariant?: AlertProps['variant'];
   /**
    * If false, disable saveOnBlur for field, instead show a save/cancel button
    */
@@ -162,7 +163,7 @@ export interface TableType {
   columnLabels: Record<PropertyKey, React.ReactNode>;
   type: 'table';
   /**
-   * The confirmation message before a a row is deleted
+   * The confirmation message before a row is deleted
    */
   confirmDeleteMessage?: string;
   // TODO(TS): Should we have addButtonText and allowEmpty here as well?

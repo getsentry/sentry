@@ -14,11 +14,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
-interface PlatformInsightsTableProps<DataRow extends Record<string, any>>
-  extends Omit<
-    React.ComponentProps<typeof GridEditable<DataRow>>,
-    'columnOrder' | 'columnSortBy'
-  > {
+interface PlatformInsightsTableProps<DataRow extends Record<string, any>> extends Omit<
+  React.ComponentProps<typeof GridEditable<DataRow>>,
+  'columnOrder' | 'columnSortBy'
+> {
   initialColumnOrder:
     | Array<GridColumnOrder<keyof DataRow>>
     | (() => Array<GridColumnOrder<keyof DataRow>>);

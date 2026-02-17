@@ -9,10 +9,8 @@ import OrganizationSubscriptionContext from 'getsentry/components/organizationSu
 const rootRoutes = (): SentryRouteObject => ({
   children: [
     {
-      // TODO(checkout v3): rename this to /checkout/ when the legacy checkout route is removed
       path: '/checkout/',
       component: withDomainRequired(errorHandler(OrganizationSubscriptionContext)),
-      deprecatedRouteProps: true,
       customerDomainOnlyRoute: true,
       children: [
         {
@@ -24,7 +22,6 @@ const rootRoutes = (): SentryRouteObject => ({
     {
       path: '/checkout/:orgId/',
       component: withDomainRedirect(errorHandler(OrganizationSubscriptionContext)),
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,

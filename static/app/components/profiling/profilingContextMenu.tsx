@@ -1,11 +1,14 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-interface MenuProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface MenuProps extends React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> {
   children: React.ReactNode;
   ref?: React.Ref<HTMLDivElement>;
 }
@@ -14,10 +17,10 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
   return <div ref={ref} role="menu" {...props} />;
 })`
   position: absolute;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   width: auto;
@@ -32,15 +35,18 @@ const MenuContentContainer = styled('div')`
   cursor: pointer;
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   padding: 0 ${space(1)};
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
-  background: ${p => (p.tabIndex === 0 ? p.theme.hover : undefined)};
+  background: ${p =>
+    p.tabIndex === 0
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : undefined};
 
   &:focus {
     color: ${p => p.theme.tokens.content.primary};
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
     outline: none;
   }
 `;
@@ -48,14 +54,16 @@ const MenuContentContainer = styled('div')`
 const MenuItemCheckboxLabel = styled('label')`
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
   cursor: pointer;
   flex: 1 1 100%;
 `;
 
-interface MenuItemCheckboxProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface MenuItemCheckboxProps extends React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> {
   checked?: boolean;
   ref?: React.Ref<HTMLDivElement>;
 }
@@ -80,11 +88,10 @@ function MenuItemCheckbox({ref, ...props}: MenuItemCheckboxProps) {
 
 export {MenuItemCheckbox as ProfilingContextMenuItemCheckbox};
 
-interface MenuItemButtonProps
-  extends React.DetailedHTMLProps<
-    React.HTMLAttributes<HTMLButtonElement>,
-    HTMLButtonElement
-  > {
+interface MenuItemButtonProps extends React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLButtonElement>,
+  HTMLButtonElement
+> {
   disabled?: boolean;
   icon?: React.ReactNode;
   ref?: React.Ref<HTMLButtonElement>;
@@ -115,13 +122,16 @@ const MenuButton = styled('button')`
   padding: ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
-  background: ${p => (p.tabIndex === 0 ? p.theme.hover : 'transparent')} !important;
+  background: ${p =>
+    p.tabIndex === 0
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : 'transparent'} !important;
   pointer-events: ${p => (p.disabled ? 'none' : undefined)};
   opacity: ${p => (p.disabled ? 0.7 : undefined)};
 
   &:focus {
     color: ${p => p.theme.tokens.content.primary};
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
     outline: none;
   }
 
@@ -179,8 +189,10 @@ const Input = styled('input')`
   }
 `;
 
-interface MenuItemProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface MenuItemProps extends React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> {
   children: React.ReactNode;
   ref?: React.Ref<HTMLDivElement>;
 }
@@ -237,8 +249,10 @@ const MenuGroup = styled('div')`
 
 export {MenuGroup as ProfilingContextMenuGroup};
 
-interface MenuHeadingProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface MenuHeadingProps extends React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> {
   children: React.ReactNode;
 }
 
@@ -248,8 +262,8 @@ const MenuHeading = styled((props: MenuHeadingProps) => {
 })`
   text-transform: uppercase;
   line-height: 1.5;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
   cursor: default;
   font-size: 75%;

@@ -10,6 +10,8 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {isWidgetEditable} from 'sentry/views/dashboards/utils';
+import {useWidgetSlideout} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
@@ -91,9 +93,13 @@ function SortableWidget(props: Props) {
       dashboardCreator
     ) && !isPrebuiltDashboard;
 
+  const {hasSlideout, onWidgetClick} = useWidgetSlideout(widget, dashboardFilters);
+
   const disableTransactionWidget =
     organization.features.includes('discover-saved-queries-deprecation') &&
     widget.widgetType === WidgetType.TRANSACTIONS;
+
+  const disableEdit = !isWidgetEditable(widget.displayType);
 
   useEffect(() => {
     const isMatchingWidget = isEditingDashboard
@@ -135,20 +141,25 @@ function SortableWidget(props: Props) {
     renderErrorMessage: errorMessage => {
       return (
         typeof errorMessage === 'string' && (
-          <PanelAlert type="error">{errorMessage}</PanelAlert>
+          <PanelAlert variant="danger">{errorMessage}</PanelAlert>
         )
       );
     },
     isMobile,
     windowWidth,
-    tableItemLimit: TABLE_ITEM_LIMIT,
+    tableItemLimit: widget.limit ?? TABLE_ITEM_LIMIT,
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     useTimeseriesVisualization,
   };
 
   return (
-    <GridWidgetWrapper ref={widgetRef}>
+    <GridWidgetWrapper
+      ref={widgetRef}
+      onClick={onWidgetClick}
+      isClickable={hasSlideout}
+      data-test-id="sortable-widget"
+    >
       <DashboardsMEPProvider>
         <LazyRender containerHeight={200} withoutContainer>
           <WidgetCard {...widgetProps} />
@@ -158,11 +169,15 @@ function SortableWidget(props: Props) {
               onDelete={props.onDelete}
               onDuplicate={props.onDuplicate}
               isMobile={props.isMobile}
-              disableEdit={disableTransactionWidget}
+              disableEdit={disableTransactionWidget || disableEdit}
               disableDuplicate={disableTransactionWidget}
-              disabledReason={t(
-                'You may have limited functionality due to the ongoing migration of transactions to spans.'
-              )}
+              disabledReason={
+                disableEdit
+                  ? t('Static widgets from the widget library cannot be edited.')
+                  : t(
+                      'You may have limited functionality due to the ongoing migration of transactions to spans.'
+                    )
+              }
             />
           )}
         </LazyRender>
@@ -173,6 +188,7 @@ function SortableWidget(props: Props) {
 
 export default SortableWidget;
 
-const GridWidgetWrapper = styled('div')`
+const GridWidgetWrapper = styled('div')<{isClickable: boolean}>`
   height: 100%;
+  cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 `;

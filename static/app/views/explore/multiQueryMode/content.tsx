@@ -2,21 +2,24 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,7 +32,6 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -115,7 +117,7 @@ function Content({datePageFilterProps}: ContentProps) {
   return (
     <Layout.Body>
       <Layout.Main width="full">
-        <Flex>
+        <Flex justify="between" align="center">
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
@@ -148,7 +150,7 @@ function Content({datePageFilterProps}: ContentProps) {
                 : []),
               {
                 key: 'save-query',
-                label: t('A New Query'),
+                label: t('New Query'),
                 onAction: () => {
                   trackAnalytics('trace_explorer.save_query_modal', {
                     action: 'open',
@@ -228,10 +230,4 @@ export function MultiQueryModeContent() {
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(1)};
-`;
-
-const Flex = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 `;

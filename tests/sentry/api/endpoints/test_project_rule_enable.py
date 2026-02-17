@@ -75,11 +75,19 @@ class ProjectRuleEnableTestCase(APITestCase):
             }
         ]
         rule = self.create_project_rule(
-            project=self.project, action_data=actions, condition_data=conditions
+            project=self.project,
+            action_data=actions,
+            condition_data=conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
         rule2 = self.create_project_rule(
-            project=self.project, action_data=actions, condition_data=conditions
+            project=self.project,
+            action_data=actions,
+            condition_data=conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         rule2.status = ObjectStatus.DISABLED
         rule2.save()
@@ -184,10 +192,10 @@ class ProjectRuleEnableTestCase(APITestCase):
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
             }
         ]
-        rule = Rule.objects.create(
-            project=self.project,
-            data={"conditions": conditions, "action_match": "all"},
+        rule = self.create_project_rule(
+            project=self.project, condition_data=conditions, action_data=[{}]
         )
+        rule.data["actions"] = []
         rule.status = ObjectStatus.DISABLED
         rule.save()
 

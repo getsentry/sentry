@@ -1,9 +1,12 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -40,6 +43,12 @@ public class LambdaEntryPoint : Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFu
               // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
               // We recommend adjusting this value in production.
               o.TracesSampleRate = 1.0;`
+                  : ''
+              }${
+                params.isLogsSelected
+                  ? `
+              // Enable logs to be sent to Sentry
+              o.EnableLogs = true;`
                   : ''
               }
             })
@@ -126,7 +135,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       content: [
@@ -148,6 +157,8 @@ export const onboarding: OnboardingConfig = {
           language: 'shell',
           code: 'curl -X GET -I https://url.of.server.aws/api/bad',
         },
+        logsVerify(params),
+        metricsVerify(params),
         {
           type: 'text',
           text: tct(

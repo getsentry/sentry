@@ -23,7 +23,7 @@ from sentry.seer.anomaly_detection.types import (
     SeerDetectorDataResponse,
     TimeSeriesPoint,
 )
-from sentry.seer.anomaly_detection.utils import translate_direction
+from sentry.seer.anomaly_detection.utils import get_aggregate_type, translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.utils import json
@@ -55,7 +55,12 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
-SEER_RETRIES = Retry(total=2, backoff_factor=0.5)
+SEER_RETRIES = Retry(
+    total=2,
+    backoff_factor=0.5,
+    status_forcelist=[408, 429, 502, 503, 504],
+    allowed_methods=["GET", "POST"],
+)
 
 
 def get_anomaly_data_from_seer(
@@ -92,6 +97,8 @@ def get_anomaly_data_from_seer(
         direction=translate_direction(threshold_type),
         expected_seasonality=seasonality,
     )
+    if aggregate_type := get_aggregate_type(snuba_query.aggregate):
+        anomaly_detection_config["aggregate"] = aggregate_type
     context = AlertInSeer(
         id=None,
         source_id=source_id,
@@ -204,14 +211,15 @@ def get_anomaly_threshold_data_from_seer(
             connection_pool=SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             path=SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
             body=json.dumps(payload).encode("utf-8"),
+            retries=SEER_RETRIES,
         )
     except (TimeoutError, MaxRetryError):
-        logger.warning("Timeout error when hitting anomaly detection detector data endpoint")
+        logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")
         return None
 
     if response.status >= 400:
         logger.error(
-            "Error when hitting Seer detector data endpoint",
+            "anomaly_threshold.seer_http_error",
             extra={
                 "response_data": response.data,
                 "payload": payload,
@@ -224,7 +232,7 @@ def get_anomaly_threshold_data_from_seer(
         results: SeerDetectorDataResponse = json.loads(response.data.decode("utf-8"))
     except JSONDecodeError:
         logger.exception(
-            "Failed to parse Seer detector data response",
+            "anomaly_threshold.failed_to_parse_seer_detector_data_response",
             extra={
                 "response_data": response.data,
                 "payload": payload,
@@ -234,9 +242,10 @@ def get_anomaly_threshold_data_from_seer(
 
     if not results.get("success"):
         detailed_error_message = results.get("message", "<unknown>")
-        # We want Sentry to group them by error message.
-        msg = f"Error when hitting Seer detector data endpoint: {detailed_error_message}"
-        logger.warning(msg)
+        logger.warning(
+            "anomaly_threshold.seer_returned_failure",
+            extra={"error_message": detailed_error_message},
+        )
         return None
 
     data = results.get("data")
@@ -247,5 +256,13 @@ def get_anomaly_threshold_data_from_seer(
             data_points=data,
             time_window_seconds=snuba_query.time_window,
             detector_created_at=subscription.date_added.timestamp(),
+        )
+        logger.info(
+            "anomaly_threshold.success",
+            extra={
+                "source_id": source_id,
+                "source_type": source_type,
+                "data_points_count": len(data),
+            },
         )
     return data

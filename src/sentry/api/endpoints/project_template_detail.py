@@ -16,7 +16,6 @@ from sentry.api.serializers.models.project_template import (
     ProjectTemplateSerializer,
     ProjectTemplateWriteSerializer,
 )
-from sentry.models.organization import Organization
 from sentry.models.projecttemplate import ProjectTemplate
 
 
@@ -31,17 +30,22 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationPermission,)
 
+    def convert_args(self, request: Request, template_id: str, *args, **kwargs):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        organization = kwargs["organization"]
+        project_template = get_object_or_404(
+            ProjectTemplate, id=template_id, organization=organization
+        )
+        kwargs["project_template"] = project_template
+        return (args, kwargs)
+
     @ensure_rollout_enabled(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def get(self, request: Request, organization: Organization, template_id: str) -> Response:
+    def get(self, request: Request, project_template: ProjectTemplate, **kwargs) -> Response:
         """
         Retrieve a project template by its ID.
 
         Return details on an individual project template.
         """
-        project_template = get_object_or_404(
-            ProjectTemplate, id=template_id, organization=organization
-        )
-
         return Response(
             serialize(
                 project_template,
@@ -51,21 +55,17 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
         )
 
     @ensure_rollout_enabled(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def delete(self, request: Request, organization: Organization, template_id: str) -> Response:
+    def delete(self, request: Request, project_template: ProjectTemplate, **kwargs) -> Response:
         """
         Delete a project template by its ID.
         """
-        project_template = get_object_or_404(
-            ProjectTemplate, id=template_id, organization=organization
-        )
-
         project_template.delete()
 
         # think about how to handle there being no remaining templates for an org?
         return Response(status=204)
 
     @ensure_rollout_enabled(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def put(self, request: Request, organization: Organization, template_id: str) -> Response:
+    def put(self, request: Request, project_template: ProjectTemplate, **kwargs) -> Response:
         """
         Update the project template name or options.
 
@@ -76,10 +76,6 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
             return Response(status=400, data=serializer.errors)
 
         data = serializer.validated_data
-
-        project_template = get_object_or_404(
-            ProjectTemplate, id=template_id, organization=organization
-        )
 
         name = data.get("name")
         if name is not None:

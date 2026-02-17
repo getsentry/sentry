@@ -6,10 +6,11 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
+import {Button} from '@sentry/scraps/button';
+import {Radio} from '@sentry/scraps/radio';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
-import {Button} from 'sentry/components/core/button';
-import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -412,7 +413,7 @@ const TopFrameworkIcon = styled(PlatformIcon, {
   position: absolute;
   top: 50%;
   left: 50%;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TopFrameworksImageWrapper = styled('div')`
@@ -469,12 +470,12 @@ const PlatformListItem = styled(ListItem)`
   text-align: left;
   cursor: pointer;
   :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const PlatformListItemIcon = styled(PlatformIcon)`
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RadioLabel = styled(RadioLineItem)`

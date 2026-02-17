@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
 import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
 
@@ -12,7 +13,7 @@ export const SubscriptionBody = styled(PanelBody)`
 
   h3 {
     margin-bottom: ${space(1)};
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
     font-weight: 400;
   }
 
@@ -23,29 +24,31 @@ export const SubscriptionBody = styled(PanelBody)`
   }
 `;
 
-export const ButtonWrapper = styled(ButtonBar)`
+export const ButtonWrapper = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   align-self: center;
   justify-self: end;
 `;
 
 export const StripedTable = styled('table')`
   width: 100%;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
 
   tr:nth-child(2n + 1) td {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 export const AlertStripedTable = styled(StripedTable)`
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   th {
     text-transform: uppercase;
     text-align: center;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 
   td:first-child,
@@ -78,6 +81,6 @@ export const PanelBodyWithTable = styled(PanelBody)`
 
   h4 {
     font-weight: 400;
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
 `;

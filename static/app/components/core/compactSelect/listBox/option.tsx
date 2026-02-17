@@ -6,15 +6,15 @@ import {mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {CheckWrap} from 'sentry/components/core/compactSelect/styles';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {LeadWrap} from '@sentry/scraps/compactSelect';
 import {
   InnerWrap,
   MenuListItem,
   type MenuListItemProps,
-} from 'sentry/components/core/menuListItem';
+} from '@sentry/scraps/menuListItem';
+
 import {IconCheckmark} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
@@ -73,30 +73,33 @@ export function ListBoxOption({
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
-    if (hideCheck && !leadingItems) {
-      return null;
+    const leading =
+      typeof leadingItems === 'function'
+        ? leadingItems({disabled: isDisabled, isFocused, isSelected})
+        : leadingItems;
+
+    if (hideCheck) {
+      return leading;
     }
 
     return (
       <Fragment>
-        {!hideCheck && (
-          <CheckWrap multiple={multiple} isSelected={isSelected} aria-hidden="true">
-            {multiple ? (
-              <Checkbox
-                size={checkboxSize}
-                checked={isSelected}
-                disabled={isDisabled}
-                readOnly
-              />
-            ) : (
-              isSelected && <IconCheckmark size={checkboxSize} />
-            )}
-          </CheckWrap>
-        )}
-        {leadingItems}
+        <LeadWrap aria-hidden="true">
+          {multiple ? (
+            <Checkbox
+              size={checkboxSize}
+              checked={isSelected}
+              disabled={isDisabled}
+              readOnly
+            />
+          ) : (
+            isSelected && <IconCheckmark size={checkboxSize} />
+          )}
+        </LeadWrap>
+        {leading ? <LeadWrap aria-hidden="true">{leading}</LeadWrap> : null}
       </Fragment>
     );
-  }, [multiple, isSelected, isDisabled, size, leadingItems, hideCheck]);
+  }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
 
   return (
     <StyledMenuListItem
@@ -124,6 +127,6 @@ export function ListBoxOption({
 
 const StyledMenuListItem = styled(MenuListItem)`
   > ${InnerWrap} {
-    padding-left: ${space(1)};
+    padding-left: ${p => p.theme.space.md};
   }
 `;

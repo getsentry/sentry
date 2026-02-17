@@ -58,10 +58,6 @@ export default function getConfiguration({
           description: t('Manage ownership rules for a project'),
         },
         {
-          path: `${pathPrefix}/data-forwarding/`,
-          title: t('Data Forwarding'),
-        },
-        {
           path: `${pathPrefix}/seer/`,
           title: t('Seer'),
           show: () => !organization?.hideAiFeatures,
@@ -135,10 +131,10 @@ export default function getConfiguration({
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
         {
-          path: `${pathPrefix}/preprod/`,
-          title: t('Preprod'),
-          show: () => !!organization?.features?.includes('preprod-issues'),
-          badge: () => 'beta',
+          path: `${pathPrefix}/mobile-builds/`,
+          title: t('Mobile Builds'),
+          show: () => !!organization?.features?.includes('preprod-frontend-routes'),
+          badge: () => 'new',
           description: t('Size analysis and build distribution configuration.'),
         },
       ],

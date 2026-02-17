@@ -2,7 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -94,7 +95,7 @@ function SampleTable({
 
   const organization = useOrganization();
 
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
 
   const {
     data: spanSamplesData,
@@ -169,7 +170,7 @@ function SampleTable({
     (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {
-    setPageError(t('An error has occurred while loading the samples table'));
+    setPageDanger(t('An error has occurred while loading the samples table'));
   }
 
   return (

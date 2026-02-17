@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -57,7 +58,7 @@ export function LogsDownSamplingAlert({
   ) {
     return (
       <Alert.Container>
-        <Alert type="warning">
+        <Alert variant="warning">
           {t(
             'The volume of logs in this time range is too large for us to do a full scan for the chart. Try reducing the date range or number of projects to attempt scanning all logs.'
           )}

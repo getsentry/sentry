@@ -456,9 +456,9 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
         assert response.status_code == 400, response.content
-        assert response.data == {
-            "min_exclusive_time": ["A valid number is required."]
-        }, "failing for min_exclusive_time"
+        assert response.data == {"min_exclusive_time": ["A valid number is required."]}, (
+            "failing for min_exclusive_time"
+        )
 
     def test_bad_params_invalid_max_exclusive_time(self) -> None:
         response = self.client.get(
@@ -472,9 +472,9 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
         assert response.status_code == 400, response.content
-        assert response.data == {
-            "max_exclusive_time": ["A valid number is required."]
-        }, "failing for max_exclusive_time"
+        assert response.data == {"max_exclusive_time": ["A valid number is required."]}, (
+            "failing for max_exclusive_time"
+        )
 
     def test_bad_sort(self) -> None:
         response = self.client.get(
@@ -1125,7 +1125,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         assert response.data == {
             "span": [
                 ErrorDetail(
-                    "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)",
+                    "span must consist of a span op and a valid 16 character hex delimited by a colon (:)",
                     code="invalid",
                 )
             ]
@@ -1177,9 +1177,9 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         )
 
         assert response.status_code == 400, response.content
-        assert response.data == {
-            "min_exclusive_time": ["A valid number is required."]
-        }, "failing for min_exclusive_time"
+        assert response.data == {"min_exclusive_time": ["A valid number is required."]}, (
+            "failing for min_exclusive_time"
+        )
 
     def test_bad_params_invalid_max(self) -> None:
         response = self.client.get(
@@ -1194,9 +1194,9 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         )
 
         assert response.status_code == 400, response.content
-        assert response.data == {
-            "max_exclusive_time": ["A valid number is required."]
-        }, "failing for max_exclusive_time"
+        assert response.data == {"max_exclusive_time": ["A valid number is required."]}, (
+            "failing for max_exclusive_time"
+        )
 
     def test_span_filters(self) -> None:
         test_op = "django.middleware"
@@ -1736,7 +1736,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
         assert response.data == {
             "span": [
                 ErrorDetail(
-                    "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)",
+                    "span must consist of a span op and a valid 16 character hex delimited by a colon (:)",
                     code="invalid",
                 )
             ]

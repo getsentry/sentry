@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, DefaultDict, TypedDict
+from typing import Any, TypedDict
 from unittest import mock
 from uuid import uuid4
 
@@ -217,7 +217,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                 "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "dataset": "errors",
-                "query": f"environment:{environment.name.split(" ")[0]}*",
+                "query": f"environment:{environment.name.split(' ')[0]}*",
             },
         )
         assert response.status_code == 200, response.content
@@ -242,7 +242,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                 "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "dataset": "errors",
-                "query": f"environment:[{environment.name.split(" ")[0]}*,*{environment.name.split(" ")[-1]}]",
+                "query": f"environment:[{environment.name.split(' ')[0]}*,*{environment.name.split(' ')[-1]}]",
             },
         )
         assert response.status_code == 200, response.content
@@ -3128,7 +3128,7 @@ class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTe
         data = response.data
         assert response.status_code == 200, response.content
 
-        expected_message_counts_dict: DefaultDict[str, int] = defaultdict(int)
+        expected_message_counts_dict: defaultdict[str, int] = defaultdict(int)
         for log in self.logs:
             attr = log.attributes.get("sentry.body")
             if attr is not None:
@@ -3798,9 +3798,9 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
 
         # Check that meta has the expected field structure
         assert "count" in meta["fields"], f"Expected 'count' in meta fields, got: {meta['fields']}"
-        assert (
-            meta["fields"]["count"] == "integer"
-        ), f"Expected 'count' to be 'integer' type, got: {meta['fields']['count']}"
+        assert meta["fields"]["count"] == "integer", (
+            f"Expected 'count' to be 'integer' type, got: {meta['fields']['count']}"
+        )
 
     @mock.patch("sentry.api.helpers.error_upsampling.options")
     def test_error_upsampling_with_partial_allowlist(self, mock_options: mock.MagicMock) -> None:
@@ -3969,9 +3969,9 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         assert data[1][1][0]["count"] == 1  # Second bucket: 1 user (user2)
 
         # Check that meta has the expected field structure for count_unique(user)
-        assert (
-            "count_unique_user" in meta["fields"]
-        ), f"Expected 'count_unique_user' in meta fields, got: {meta['fields']}"
-        assert (
-            meta["fields"]["count_unique_user"] == "integer"
-        ), f"Expected 'count_unique_user' to be 'integer' type, got: {meta['fields']['count_unique_user']}"
+        assert "count_unique_user" in meta["fields"], (
+            f"Expected 'count_unique_user' in meta fields, got: {meta['fields']}"
+        )
+        assert meta["fields"]["count_unique_user"] == "integer", (
+            f"Expected 'count_unique_user' to be 'integer' type, got: {meta['fields']['count_unique_user']}"
+        )

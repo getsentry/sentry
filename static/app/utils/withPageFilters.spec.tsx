@@ -1,6 +1,6 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import type {PageFilters} from 'sentry/types/core';
 import withPageFilters from 'sentry/utils/withPageFilters';
 

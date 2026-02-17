@@ -13,7 +13,6 @@ from sentry.organizations.services.organization import RpcOrganization, RpcUserO
 def should_allow_superuser_access(
     organization_context: Organization | RpcUserOrganizationContext,
 ) -> bool:
-
     # If self hosted installation, allow superuser access
     if settings.SENTRY_SELF_HOSTED:
         return True
@@ -93,6 +92,12 @@ def data_access_grant_exists(organization_id: int) -> bool:
         effective_grant_status_cache.delete(organization_id)
 
     # We have a cache miss or the entry is expired
+    effective_grant_status = cache_effective_grant_status(organization_id)
+
+    return effective_grant_status.cache_status == GrantCacheStatus.VALID_WINDOW
+
+
+def cache_effective_grant_status(organization_id: int) -> EffectiveGrantStatus:
     current_time = datetime.now(timezone.utc)
 
     # Calculate fresh grant status
@@ -106,4 +111,4 @@ def data_access_grant_exists(organization_id: int) -> bool:
 
     effective_grant_status_cache.set(organization_id, effective_grant_status, current_time)
 
-    return effective_grant_status.cache_status == GrantCacheStatus.VALID_WINDOW
+    return effective_grant_status

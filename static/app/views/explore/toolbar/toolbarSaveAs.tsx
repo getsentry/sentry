@@ -2,6 +2,10 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -9,10 +13,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -23,7 +26,6 @@ import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/field
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
@@ -34,6 +36,7 @@ import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsCrossEvents,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsId,
@@ -68,6 +71,7 @@ export function ToolbarSaveAs() {
     () => dedupeArray(visualizes.filter(isVisualizeFunction).map(v => v.yAxis)),
     [visualizes]
   );
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
@@ -132,8 +136,8 @@ export function ToolbarSaveAs() {
   }
   items.push({
     key: 'save-query',
-    label: <span>{t('A New Query')}</span>,
-    textValue: t('A New Query'),
+    label: <span>{t('New Query')}</span>,
+    textValue: t('New Query'),
     onAction: () => {
       trackAnalytics('trace_explorer.save_query_modal', {
         action: 'open',
@@ -151,8 +155,8 @@ export function ToolbarSaveAs() {
   });
 
   const newAlertLabel = organization.features.includes('workflow-engine-ui')
-    ? t('A Monitor for')
-    : t('An Alert for');
+    ? t('Monitor for')
+    : t('Alert for');
 
   items.push({
     key: 'create-alert',
@@ -194,15 +198,15 @@ export function ToolbarSaveAs() {
 
   items.push({
     key: 'add-to-dashboard',
-    textValue: t('A Dashboard widget'),
+    textValue: t('Dashboard widget'),
     isSubmenu: chartOptions.length > 1 ? true : false,
     label: (
       <Feature
         hookName="feature-disabled:dashboards-edit"
         features="organizations:dashboards-edit"
-        renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
+        renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
       >
-        {t('A Dashboard widget')}
+        {t('Dashboard widget')}
       </Feature>
     ),
     disabled: disableAddToDashboard,
@@ -271,66 +275,82 @@ export function ToolbarSaveAs() {
     pageFilters.selection.environments,
   ]);
 
+  const crossEvents = useQueryParamsCrossEvents();
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+
   if (items.length === 0) {
     return null;
   }
 
   return (
     <StyledToolbarSection data-test-id="section-save-as">
-      <ButtonBar>
-        <DropdownMenu
-          items={items}
-          trigger={triggerProps => (
-            <SaveAsButton
-              {...triggerProps}
-              priority={shouldHighlightSaveButton ? 'primary' : 'default'}
-              aria-label={t('Save as')}
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-
-                triggerProps.onClick?.(e);
-              }}
-            >
-              {shouldHighlightSaveButton ? `${t('Save')}` : `${t('Save as')}\u2026`}
-            </SaveAsButton>
-          )}
-        />
-        <LinkButton
-          aria-label={t('Compare')}
-          onClick={() =>
-            trackAnalytics('trace_explorer.compare', {
-              organization,
-            })
-          }
-          to={generateExploreCompareRoute({
-            organization,
-            mode,
-            location,
-            queries: [
-              {
-                query,
-                groupBys,
-                sortBys,
-                yAxes: [visualizeYAxes[0]!],
-                chartType: visualizes[0]!.chartType,
-              },
-            ],
-          })}
+      <Grid flow="column" align="center" gap="md">
+        <Tooltip
+          disabled={!hasCrossEvents}
+          title={t('Saving cross event queries is not supported during early access.')}
         >
-          {`${t('Compare Queries')}`}
-        </LinkButton>
-      </ButtonBar>
+          <DropdownMenu
+            isDisabled={hasCrossEvents}
+            items={items}
+            trigger={triggerProps => (
+              <SaveAsButton
+                {...triggerProps}
+                priority={shouldHighlightSaveButton ? 'primary' : 'default'}
+                aria-label={t('Save as')}
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+
+                  triggerProps.onClick?.(e);
+                }}
+              >
+                {shouldHighlightSaveButton ? `${t('Save')}` : `${t('Save as')}\u2026`}
+              </SaveAsButton>
+            )}
+          />
+        </Tooltip>
+        <Tooltip
+          disabled={!hasCrossEvents}
+          title={t('Comparing cross event queries is not supported during early access.')}
+        >
+          <LinkButton
+            aria-label={t('Compare')}
+            disabled={hasCrossEvents}
+            onClick={() =>
+              trackAnalytics('trace_explorer.compare', {
+                organization,
+              })
+            }
+            to={generateExploreCompareRoute({
+              organization,
+              mode,
+              location,
+              queries: [
+                {
+                  query,
+                  groupBys,
+                  sortBys,
+                  yAxes: [visualizeYAxes[0]!],
+                  chartType: visualizes[0]!.chartType,
+                  caseInsensitive: caseInsensitive ? '1' : undefined,
+                },
+              ],
+            })}
+          >
+            {`${t('Compare Queries')}`}
+          </LinkButton>
+        </Tooltip>
+      </Grid>
     </StyledToolbarSection>
   );
 }
 
 const DisabledText = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;
 
 const StyledToolbarSection = styled(ToolbarSection)`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding-top: ${space(3)};
 `;
 

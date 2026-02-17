@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -20,6 +21,6 @@ const StyledCodeSnippet = styled(CodeBlock)`
     position: absolute;
     padding-top: ${space(1)};
     color: var(--prism-comment);
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 `;

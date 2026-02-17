@@ -1,14 +1,15 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Stack} from 'sentry/components/core/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
+
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -71,7 +72,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     }
 
     return (
-      <Tag key="failure-rate-value" type="error">
+      <Tag key="failure-rate-value" variant="danger">
         {formatPercentage(failureRateValue[0]?.['failure_rate()'] ?? 0)}
       </Tag>
     );
@@ -111,5 +112,5 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
 }
 
 const SideBarWidgetTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

@@ -3,6 +3,8 @@ import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react'
 import styled from '@emotion/styled';
 import {vec2, type mat3} from 'gl-matrix';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {useCanvasScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasZoomOrScroll';
@@ -238,7 +240,7 @@ export function FlamegraphPreview({
   });
 
   return (
-    <CanvasContainer>
+    <Stack height="100%" position="relative">
       <Canvas
         ref={setFlamegraphCanvasRef}
         onMouseMove={onCanvasMouseMove}
@@ -260,7 +262,7 @@ export function FlamegraphPreview({
           platform={undefined}
         />
       ) : null}
-    </CanvasContainer>
+    </Stack>
   );
 }
 
@@ -360,13 +362,6 @@ export function computePreviewConfigView(
     mode,
   };
 }
-
-const CanvasContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  position: relative;
-`;
 
 const Canvas = styled('canvas')<{
   cursor?: CSSProperties['cursor'];

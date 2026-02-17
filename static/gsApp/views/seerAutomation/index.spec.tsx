@@ -13,10 +13,6 @@ describe('SeerAutomation', () => {
       url: '/organizations/org-slug/seer/setup-check/',
       method: 'GET',
       body: {
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         billing: {
           hasAutofixQuota: true,
           hasScannerQuota: true,
@@ -58,6 +54,16 @@ describe('SeerAutomation', () => {
       body: {
         ...project,
         autofixAutomationTuning: 'off',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/onboarding-check/`,
+      method: 'GET',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
+        isCodeReviewEnabled: true,
+        isSeerConfigured: true,
       },
     });
 
@@ -112,6 +118,17 @@ describe('SeerAutomation', () => {
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
       body: {defaultSeerScannerAutomation: true},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/onboarding-check/`,
+      method: 'GET',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
+        isCodeReviewEnabled: true,
+        isSeerConfigured: true,
+      },
     });
 
     // Project details used to populate the project list

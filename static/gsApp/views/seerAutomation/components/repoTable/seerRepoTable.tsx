@@ -2,21 +2,23 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {LinkButton} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {useOrganizationRepositoriesWithSettings} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
-import {parseAsSort} from 'sentry/utils/queryString';
+import parseAsSort from 'sentry/utils/url/parseAsSort';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import SeerRepoTableHeader from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
@@ -74,7 +76,10 @@ export default function SeerRepoTable() {
     parseAsSort.withDefault({field: 'name', kind: 'asc'})
   );
 
-  const queryKey: ApiQueryKey = ['seer-repos', {query: {query: searchTerm, sort}}];
+  const queryKey: ApiQueryKey = [
+    'seer-repos',
+    {query: {query: searchTerm, sort}},
+  ] as unknown as ApiQueryKey;
 
   const sortedRepositories = useMemo(() => {
     return supportedRepositories.toSorted((a, b) => {
@@ -142,27 +147,6 @@ export default function SeerRepoTable() {
     );
   }
 
-  if (filteredRepositories.length === 0) {
-    return (
-      <RepoTable
-        mutateRepositorySettings={mutateRepositorySettings}
-        onSortClick={setSort}
-        repositories={filteredRepositories}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        sort={sort}
-      >
-        <SimpleTable.Empty>
-          {searchTerm
-            ? tct('No repositories found matching [searchTerm]', {
-                searchTerm: <code>{searchTerm}</code>,
-              })
-            : t('No repositories found')}
-        </SimpleTable.Empty>
-      </RepoTable>
-    );
-  }
-
   return (
     <ListItemCheckboxProvider
       hits={filteredRepositories.length}
@@ -177,14 +161,24 @@ export default function SeerRepoTable() {
         setSearchTerm={setSearchTerm}
         sort={sort}
       >
-        {filteredRepositories.map(repository => (
-          <SeerRepoTableRow
-            key={repository.id}
-            mutateRepositorySettings={mutateRepositorySettings}
-            mutationData={mutationData}
-            repository={repository}
-          />
-        ))}
+        {filteredRepositories.length === 0 ? (
+          <SimpleTable.Empty>
+            {searchTerm
+              ? tct('No repositories found matching [searchTerm]', {
+                  searchTerm: <code>{searchTerm}</code>,
+                })
+              : t('No repositories found')}
+          </SimpleTable.Empty>
+        ) : (
+          filteredRepositories.map(repository => (
+            <SeerRepoTableRow
+              key={repository.id}
+              mutateRepositorySettings={mutateRepositorySettings}
+              mutationData={mutationData}
+              repository={repository}
+            />
+          ))
+        )}
       </RepoTable>
     </ListItemCheckboxProvider>
   );
@@ -207,9 +201,10 @@ function RepoTable({
   setSearchTerm: ReturnType<typeof useQueryState<string>>[1];
   sort: Sort;
 }) {
+  const organization = useOrganization();
   return (
     <Stack gap="lg">
-      <FiltersContainer>
+      <Grid minWidth="0" gap="md" columns="1fr max-content">
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch />
@@ -223,7 +218,19 @@ function RepoTable({
             }
           />
         </InputGroup>
-      </FiltersContainer>
+        <LinkButton
+          priority="primary"
+          icon={<IconAdd />}
+          to={{
+            pathname: `/settings/${organization.slug}/integrations/`,
+            query: {
+              category: 'source code management',
+            },
+          }}
+        >
+          {t('Add Repository')}
+        </LinkButton>
+      </Grid>
 
       <SimpleTableWithColumns>
         <SeerRepoTableHeader
@@ -237,11 +244,6 @@ function RepoTable({
     </Stack>
   );
 }
-
-const FiltersContainer = styled('div')`
-  flex-grow: 1;
-  min-width: 0;
-`;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: max-content 1fr repeat(2, max-content);

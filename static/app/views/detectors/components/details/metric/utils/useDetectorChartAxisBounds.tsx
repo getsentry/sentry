@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
 
 import type {Series} from 'sentry/types/echarts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 interface UseChartAxisBoundsProps {
   series: Series[];
   thresholdMaxValue: number | undefined;
+  aggregate?: string;
 }
 
 interface ChartAxisBounds {
@@ -19,6 +21,7 @@ interface ChartAxisBounds {
 export function useDetectorChartAxisBounds({
   series,
   thresholdMaxValue,
+  aggregate,
 }: UseChartAxisBoundsProps): ChartAxisBounds {
   return useMemo(() => {
     if (series.length === 0) {
@@ -38,20 +41,30 @@ export function useDetectorChartAxisBounds({
     const seriesMax = Math.max(...allSeriesValues);
     const seriesMin = Math.min(...allSeriesValues);
 
-    // Combine with threshold max and round to nearest whole number
-    const combinedMax = thresholdMaxValue
-      ? Math.max(seriesMax, thresholdMaxValue)
-      : seriesMax;
+    // Determine the max value: use threshold if it's higher than data, otherwise add padding to data
+    let maxValue: number;
+    if (thresholdMaxValue && thresholdMaxValue >= seriesMax) {
+      // Threshold is the limiting factor - use it as-is without padding
+      maxValue = thresholdMaxValue;
+    } else {
+      // Data exceeds threshold - add padding to show data clearly above threshold
+      const maxPadding = seriesMax * 0.1;
+      maxValue = seriesMax + maxPadding;
+    }
 
-    const roundedMax = Math.round(combinedMax);
+    // Cap percentage metrics at 100% (1.0 in 0-1 scale)
+    const isPercentage = aggregate && aggregateOutputType(aggregate) === 'percentage';
+    if (isPercentage && maxValue > 1.0) {
+      maxValue = 1.0;
+    }
 
-    // Add padding to the bounds
-    const maxPadding = roundedMax * 0.1;
+    // Add padding to min value
     const minPadding = seriesMin * 0.1;
+    const minValue = Math.max(0, seriesMin - minPadding);
 
     return {
-      maxValue: roundedMax + maxPadding,
-      minValue: Math.max(0, seriesMin - minPadding),
+      maxValue,
+      minValue,
     };
-  }, [series, thresholdMaxValue]);
+  }, [series, thresholdMaxValue, aggregate]);
 }

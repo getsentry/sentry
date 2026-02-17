@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -204,7 +204,7 @@ export function GroupInsightItemDiffTable({
             <Fragment key={rowIndex}>
               <SimpleTable.Row key={rowIndex}>
                 <SimpleTable.RowCell>
-                  <Tag icon={groupDiffItemChange.icon} type={groupDiffItemChange.type}>
+                  <Tag icon={groupDiffItemChange.icon} variant={groupDiffItemChange.type}>
                     {groupDiffItemChange.label}
                   </Tag>
                 </SimpleTable.RowCell>
@@ -215,7 +215,7 @@ export function GroupInsightItemDiffTable({
                         <Flex align="start" gap="xs">
                           <Text monospace>{groupDiffItem.path}</Text>
                           <CopyToClipboardButton
-                            borderless
+                            priority="transparent"
                             size="zero"
                             text={groupDiffItem.path}
                             style={{flexShrink: 0}}
@@ -245,16 +245,14 @@ export function GroupInsightItemDiffTable({
                 return (
                   <SimpleTable.Row key={++rowIndex}>
                     <SimpleTable.RowCell>
-                      <Tag icon={diffItemChange.icon} type={diffItemChange.type}>
+                      <Tag icon={diffItemChange.icon} variant={diffItemChange.type}>
                         {diffItemChange.label}
                       </Tag>
                     </SimpleTable.RowCell>
                     <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
-                      <Text variant="muted">{diffItem.path ?? ''}</Text>
+                      <Text variant="muted">└ {diffItem.path ?? ''}</Text>
                     </SimpleTable.RowCell>
-                    <DiffTableChangeAmountCell changeType={diffItem.type}>
-                      {formattedSizeDiff(diffItem.size_diff)}
-                    </DiffTableChangeAmountCell>
+                    <SimpleTable.RowCell>{null}</SimpleTable.RowCell>
                   </SimpleTable.Row>
                 );
               })}
@@ -267,7 +265,7 @@ export function GroupInsightItemDiffTable({
           <Text size="sm" variant="muted">
             {t('Page %s of %s', safeCurrentPage + 1, totalPages)}
           </Text>
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               size="xs"
               icon={<IconChevron direction="left" />}

@@ -117,7 +117,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
         assert response["Content-Length"] == "10"
         assert (
             response["Content-Range"]
-            == f"bytes {len(test_content)-10}-{len(test_content)-1}/{len(test_content)}"
+            == f"bytes {len(test_content) - 10}-{len(test_content) - 1}/{len(test_content)}"
         )
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
@@ -170,7 +170,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
         assert response.status_code == 206
         assert response.content == test_content[990:]
         assert response["Content-Length"] == "10"
-        assert response["Content-Range"] == f"bytes 990-{len(test_content)-1}/{len(test_content)}"
+        assert response["Content-Range"] == f"bytes 990-{len(test_content) - 1}/{len(test_content)}"
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_download_preprod_artifact_with_invalid_range(self) -> None:

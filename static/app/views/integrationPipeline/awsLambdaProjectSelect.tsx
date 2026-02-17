@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
 import * as qs from 'query-string';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
@@ -59,7 +60,7 @@ export default class AwsLambdaProjectSelect extends Component<Props> {
                 stacked
               />
               <Alert.Container>
-                <Alert type="info" showIcon={false}>
+                <Alert variant="info" showIcon={false}>
                   {t('Currently only supports Node and Python Lambda functions')}
                 </Alert>
               </Alert.Container>

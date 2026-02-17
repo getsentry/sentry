@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 
 import {STATIC_SEMVER_TAGS} from 'sentry/components/events/searchBarFieldConstants';
+import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
@@ -33,10 +35,12 @@ export interface UseSpanSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: string;
   autoFocus?: boolean;
+  caseInsensitive?: CaseInsensitive;
   datetime?: PageFilters['datetime'];
   disableLoadingTags?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onBlur?: (query: string, state: CallbackSearchState) => void;
+  onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
@@ -46,6 +50,8 @@ export interface UseSpanSearchQueryBuilderProps {
   useEap?: boolean;
 }
 export interface SpanSearchQueryBuilderProps extends UseSpanSearchQueryBuilderProps {
+  booleanAttributes: TagCollection;
+  booleanSecondaryAliases: TagCollection;
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   numberSecondaryAliases: TagCollection;
@@ -65,6 +71,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     useTraceItemTags('number');
   const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceItemTags('string');
+  const {tags: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemTags('boolean');
 
   const stringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in stringAttributes) {
@@ -78,14 +86,19 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
 
   const spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = useMemo(
     () => ({
+      ...props,
       itemType: TraceItemDataset.SPANS,
+      booleanAttributes,
+      booleanSecondaryAliases,
       numberAttributes,
       stringAttributes: stringAttributesWithSemver,
       numberSecondaryAliases,
       stringSecondaryAliases,
-      ...props,
+      caseInsensitive: props.caseInsensitive ? true : undefined,
     }),
     [
+      booleanAttributes,
+      booleanSecondaryAliases,
       numberAttributes,
       numberSecondaryAliases,
       props,
@@ -95,12 +108,16 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
   );
 
   const spanSearchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps({
+    ...props,
     itemType: TraceItemDataset.SPANS,
+    booleanAttributes,
+    booleanSecondaryAliases,
     numberAttributes,
     stringAttributes: stringAttributesWithSemver,
     numberSecondaryAliases,
     stringSecondaryAliases,
-    ...props,
+    caseInsensitive: props.caseInsensitive ? true : undefined,
+    onCaseInsensitiveClick: props.onCaseInsensitiveClick,
   });
 
   return useMemo(

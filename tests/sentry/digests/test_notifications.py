@@ -32,7 +32,10 @@ class BindRecordsTestCase(TestCase):
 
     @cached_property
     def rule(self) -> Rule:
-        return self.event.project.rule_set.all()[0]
+        rule = self.event.project.rule_set.all()[0]
+        rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        rule.save()
+        return rule
 
     @cached_property
     def record(self) -> Record:
@@ -96,16 +99,13 @@ class SortDigestTestCase(TestCase):
         return self.create_project(fire_project_created=True)
 
     def test_success(self) -> None:
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.project,
-            label="Send a notification for regressions",
-            data={
-                "match": "all",
-                "conditions": [
-                    {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
-                ],
-                "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-            },
+            name="Send a notification for regressions",
+            condition_data=[
+                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
+            ],
+            action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
         )
 
         rules = list(self.project.rule_set.all())

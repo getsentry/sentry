@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Stack} from 'sentry/components/core/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
@@ -20,6 +21,8 @@ import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDe
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 
+import {PreviewSection} from './previewSection';
+
 function useIsShowingPlatformGuide() {
   const {platformKey, guideKey} = useCronsUpsertGuideState();
   return platformKey && guideKey !== 'manual';
@@ -33,12 +36,13 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
   const formSections = (
     <Fragment>
       {dataSource?.queryObj.isUpserting && (
-        <Alert type="warning">
+        <Alert variant="warning">
           {t(
             'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
           )}
         </Alert>
       )}
+      <PreviewSection />
       <CronDetectorFormDetectSection />
       <CronDetectorFormResolveSection />
       <AssignSection />
@@ -65,7 +69,7 @@ export function NewCronDetectorForm() {
       initialFormData={{
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
       }}
-      noEnvironment
+      environment={false}
       disabledCreate={
         showingPlatformGuide
           ? t(
@@ -85,7 +89,7 @@ export function EditExistingCronDetectorForm({detector}: {detector: CronDetector
       detector={detector}
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       savedDetectorToFormData={cronSavedDetectorToFormData}
-      noEnvironment
+      environment={false}
     >
       <CronDetectorForm detector={detector} />
     </EditDetectorLayout>

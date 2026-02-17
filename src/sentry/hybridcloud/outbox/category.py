@@ -63,6 +63,8 @@ class OutboxCategory(IntEnum):
     SERVICE_HOOK_UPDATE = 40
     SENTRY_APP_DELETE = 41
     SENTRY_APP_INSTALLATION_DELETE = 42
+    IDENTITY_UPDATE = 43
+    SENTRY_APP_NORMALIZE_ACTIONS = 44
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -194,12 +196,13 @@ class OutboxCategory(IntEnum):
     ) -> tuple[int, int]:
         from sentry.integrations.models.integration import Integration
         from sentry.models.apiapplication import ApiApplication
+        from sentry.models.apitoken import ApiToken
         from sentry.models.organization import Organization
         from sentry.users.models.user import User
 
-        assert (model is not None) ^ (
-            object_identifier is not None
-        ), "Either model or object_identifier must be specified"
+        assert (model is not None) ^ (object_identifier is not None), (
+            "Either model or object_identifier must be specified"
+        )
 
         if model is not None and hasattr(model, "id"):
             object_identifier = model.id
@@ -227,10 +230,15 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "integration_id"):
                     shard_identifier = model.integration_id
+            if scope == OutboxScope.API_TOKEN_SCOPE:
+                if isinstance(model, ApiToken):
+                    shard_identifier = model.id
+                elif hasattr(model, "api_token_id"):
+                    shard_identifier = model.api_token_id
 
-        assert (
-            model is not None
-        ) or shard_identifier is not None, "Either model or shard_identifier must be specified"
+        assert (model is not None) or shard_identifier is not None, (
+            "Either model or shard_identifier must be specified"
+        )
 
         assert object_identifier is not None
         assert shard_identifier is not None
@@ -277,11 +285,11 @@ class OutboxScope(IntEnum):
         1,
         {
             OutboxCategory.USER_UPDATE,
-            OutboxCategory.API_TOKEN_UPDATE,
             OutboxCategory.UNUSED_ONE,
             OutboxCategory.UNUSED_TWO,
             OutboxCategory.UNUSUED_THREE,
             OutboxCategory.AUTH_IDENTITY_UPDATE,
+            OutboxCategory.IDENTITY_UPDATE,
         },
     )
     # Webhook scope is no longer in use
@@ -321,6 +329,8 @@ class OutboxScope(IntEnum):
     RELOCATION_SCOPE = scope_categories(
         10, {OutboxCategory.RELOCATION_EXPORT_REQUEST, OutboxCategory.RELOCATION_EXPORT_REPLY}
     )
+    API_TOKEN_SCOPE = scope_categories(11, {OutboxCategory.API_TOKEN_UPDATE})
+    ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
 
     def __str__(self) -> str:
         return self.name
@@ -341,14 +351,16 @@ class OutboxScope(IntEnum):
             return "user_id"
         if scope == OutboxScope.APP_SCOPE:
             return "app_id"
+        if scope == OutboxScope.API_TOKEN_SCOPE:
+            return "api_token_id"
 
         return "shard_identifier"
 
 
 _missing_categories = set(OutboxCategory) - _used_categories
-assert (
-    not _missing_categories
-), f"OutboxCategories {_missing_categories} not registered to an OutboxScope"
+assert not _missing_categories, (
+    f"OutboxCategories {_missing_categories} not registered to an OutboxScope"
+)
 
 
 class WebhookProviderIdentifier(IntEnum):

@@ -70,7 +70,7 @@ describe('LogsPage', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -214,7 +214,7 @@ describe('LogsPage', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: 0,
+            caseInsensitive: undefined,
             dataset: 'ourlogs',
             disableAggregateExtrapolation: '0',
             environment: [],
@@ -223,7 +223,7 @@ describe('LogsPage', () => {
             interval: '5m',
             partial: 1,
             project: [],
-            query: 'timestamp_precise:<=1508208040000000000',
+            query: '',
             referrer: 'api.explore.ourlogs-timeseries',
             sampling: 'NORMAL',
             sort: '-count_message',
