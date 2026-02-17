@@ -73,7 +73,7 @@ function useExploreTimeseriesImpl({
   const topEvents = useTopEvents();
 
   const validYAxes = useMemo(() => {
-    return visualizes.map(visualize => visualize.yAxis);
+    return visualizes.flatMap(visualize => visualize.yAxes);
   }, [visualizes]);
 
   const fields: string[] = useMemo(() => {
@@ -130,7 +130,7 @@ export function shouldTriggerHighAccuracy(
   isTopN: boolean
 ) {
   const hasData = computeVisualizeSampleTotals(
-    visualizes.map(visualize => visualize.yAxis),
+    visualizes.flatMap(visualize => visualize.yAxes),
     data,
     isTopN
   ).some(total => total > 0);
@@ -143,7 +143,7 @@ function _checkCanQueryForMoreData(
   isTopN: boolean
 ) {
   return visualizes.some(visualize => {
-    const dedupedYAxes = [visualize.yAxis];
+    const dedupedYAxes = dedupeArray([...visualize.yAxes]);
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
     const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
     return dataScanned === 'partial';

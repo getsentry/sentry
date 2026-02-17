@@ -141,4 +141,132 @@ describe('useExploreTimeseries', () => {
       })
     );
   });
+
+  it('requests all yAxes when a visualize has multiple aggregates', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          {
+            ...TimeSeriesFixture(),
+            yAxis: 'avg(span.duration)',
+            meta: {
+              ...TimeSeriesFixture().meta,
+              dataScanned: 'full',
+            },
+          },
+        ],
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return (
+            Array.isArray(options.query.yAxis) &&
+            options.query.yAxis.includes('avg(span.duration)') &&
+            options.query.yAxis.includes('p95(span.duration)') &&
+            options.query.yAxis.includes('count(span.duration)')
+          );
+        },
+      ],
+    });
+
+    renderHookWithProviders(
+      () =>
+        useExploreTimeseries({
+          query: 'test value',
+          enabled: true,
+        }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              visualize: '{"yAxes":["avg(span.duration)","p95(span.duration)"]}',
+            },
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
+  });
+
+  it('triggers high accuracy for multi-yAxis visualizes with no data and partial scan', async () => {
+    const mockTimeSeries = TimeSeriesFixture();
+    const mockNormalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          {
+            ...mockTimeSeries,
+            yAxis: 'avg(span.duration)',
+            values: [
+              {
+                ...mockTimeSeries.values[0]!,
+                value: 0,
+              },
+            ],
+            meta: {
+              ...mockTimeSeries.meta,
+              dataScanned: 'partial',
+            },
+          },
+          {
+            ...mockTimeSeries,
+            yAxis: 'p95(span.duration)',
+            values: [
+              {
+                ...mockTimeSeries.values[0]!,
+                value: 0,
+              },
+            ],
+            meta: {
+              ...mockTimeSeries.meta,
+              dataScanned: 'partial',
+            },
+          },
+        ],
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.NORMAL;
+        },
+      ],
+    });
+    const mockHighAccuracyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY;
+        },
+      ],
+    });
+
+    renderHookWithProviders(
+      () =>
+        useExploreTimeseries({
+          query: 'test value',
+          enabled: true,
+        }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              visualize: '{"yAxes":["avg(span.duration)","p95(span.duration)"]}',
+            },
+          },
+        },
+      }
+    );
+
+    expect(mockNormalRequest).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1);
+    });
+  });
 });
