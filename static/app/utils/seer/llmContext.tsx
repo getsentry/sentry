@@ -125,16 +125,43 @@ class LLMContextRegistry {
    * Returns true if the action was handled.
    */
   dispatch(contextName: string, actionType: string, payload: unknown): boolean {
+    // eslint-disable-next-line no-console
+    console.log('[LLM Registry] dispatch called:', {
+      contextName,
+      actionType,
+      payload,
+      registeredEntries: [...this.entries.values()].map(e => e.name),
+      registeredHandlers: [...this.handlers.entries()].map(([id, h]) => ({
+        id,
+        actions: [...h.keys()],
+      })),
+    });
+
     for (const [id, entry] of this.entries) {
       if (entry.name === contextName) {
         const contextHandlers = this.handlers.get(id);
         const handler = contextHandlers?.get(actionType);
         if (handler) {
+          // eslint-disable-next-line no-console
+          console.log('[LLM Registry] Found handler, executing:', {
+            id,
+            contextName,
+            actionType,
+          });
           handler(payload);
           return true;
         }
+        // eslint-disable-next-line no-console
+        console.warn('[LLM Registry] Entry found but no handler for action:', {
+          id,
+          contextName,
+          actionType,
+          availableActions: contextHandlers ? [...contextHandlers.keys()] : [],
+        });
       }
     }
+    // eslint-disable-next-line no-console
+    console.warn('[LLM Registry] No entry found for context:', contextName);
     return false;
   }
 
