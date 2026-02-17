@@ -799,6 +799,7 @@ class Referrer(StrEnum):
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
     SEER_EXPLORER_INDEX = "seer.explorer_index"
+    SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
