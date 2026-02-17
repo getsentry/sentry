@@ -32,7 +32,7 @@ export function validateAggregateSort(
     }
 
     if (isVisualize(aggregateField)) {
-      return aggregateField.yAxis === sort.field;
+      return aggregateField.yAxes.includes(sort.field);
     }
 
     throw new Error('Unknown aggregate field');

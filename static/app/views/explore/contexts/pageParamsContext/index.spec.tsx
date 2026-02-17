@@ -400,10 +400,7 @@ describe('SpanQueryParamsProvider', () => {
         aggregateSortBys: [{field: 'max(span.duration)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new VisualizeFunction('min(span.self_time)', {
-            chartType: ChartType.AREA,
-          }),
-          new VisualizeFunction('max(span.duration)', {
+          new VisualizeFunction(['min(span.self_time)', 'max(span.duration)'], {
             chartType: ChartType.AREA,
           }),
         ],
@@ -434,10 +431,7 @@ describe('SpanQueryParamsProvider', () => {
         aggregateSortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new VisualizeFunction('min(span.self_time)', {
-            chartType: ChartType.AREA,
-          }),
-          new VisualizeFunction('max(span.duration)', {
+          new VisualizeFunction(['min(span.self_time)', 'max(span.duration)'], {
             chartType: ChartType.AREA,
           }),
         ],
@@ -555,10 +549,7 @@ describe('SpanQueryParamsProvider', () => {
           new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
-          new VisualizeFunction('avg(span.duration)', {
-            chartType: ChartType.LINE,
-          }),
-          new VisualizeFunction('avg(span.self_time)', {
+          new VisualizeFunction(['avg(span.duration)', 'avg(span.self_time)'], {
             chartType: ChartType.LINE,
           }),
         ],

@@ -218,21 +218,17 @@ describe('getReadableQueryParamsFromLocation', () => {
       visualize: JSON.stringify({yAxes: ['count(span.duration)', 'avg(span.self_time)']}),
     });
     const queryParams = getReadableQueryParamsFromLocation(location);
-    expect(queryParams.aggregateFields).toHaveLength(3);
+    expect(queryParams.aggregateFields).toHaveLength(2);
     expect(queryParams.aggregateFields[0]).toEqual({groupBy: ''});
     expect(queryParams.aggregateFields[1]).toEqual(
-      new VisualizeFunction('count(span.duration)')
-    );
-    expect(queryParams.aggregateFields[2]).toEqual(
-      new VisualizeFunction('avg(span.self_time)')
+      new VisualizeFunction(['count(span.duration)', 'avg(span.self_time)'])
     );
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
           aggregateFields: [
             {groupBy: ''},
-            new VisualizeFunction('count(span.duration)'),
-            new VisualizeFunction('avg(span.self_time)'),
+            new VisualizeFunction(['count(span.duration)', 'avg(span.self_time)']),
           ],
         })
       )
@@ -252,8 +248,9 @@ describe('getReadableQueryParamsFromLocation', () => {
         readableQueryParamOptions({
           aggregateFields: [
             {groupBy: ''},
-            new VisualizeFunction('count(span.duration)', {chartType: ChartType.LINE}),
-            new VisualizeFunction('avg(span.self_time)', {chartType: ChartType.LINE}),
+            new VisualizeFunction(['count(span.duration)', 'avg(span.self_time)'], {
+              chartType: ChartType.LINE,
+            }),
           ],
         })
       )
@@ -275,8 +272,7 @@ describe('getReadableQueryParamsFromLocation', () => {
           aggregateFields: [
             new VisualizeFunction('count(span.duration)', {chartType: ChartType.AREA}),
             {groupBy: 'span.op'},
-            new VisualizeFunction('p50(span.duration)'),
-            new VisualizeFunction('p75(span.duration)'),
+            new VisualizeFunction(['p50(span.duration)', 'p75(span.duration)']),
           ],
         })
       )
