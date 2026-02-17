@@ -10,7 +10,7 @@ describe('useDsnLookupActions', () => {
   it('returns actions for a valid DSN', async () => {
     const dsn = 'https://abc123def456abc123def456abc123de@o1.ingest.sentry.io/123';
     MockApiClient.addMockResponse({
-      url: '/dsn-lookup/',
+      url: '/organizations/org-slug/dsn-lookup/',
       body: {
         organizationSlug: 'test-org',
         projectSlug: 'test-project',
@@ -52,7 +52,7 @@ describe('useDsnLookupActions', () => {
 
   it('returns empty array for non-DSN query', () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: '/dsn-lookup/',
+      url: '/organizations/org-slug/dsn-lookup/',
       body: {},
     });
 
@@ -66,7 +66,7 @@ describe('useDsnLookupActions', () => {
 
   it('returns empty array for empty query', () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: '/dsn-lookup/',
+      url: '/organizations/org-slug/dsn-lookup/',
       body: {},
     });
 

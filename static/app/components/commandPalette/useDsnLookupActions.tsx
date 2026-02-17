@@ -1,29 +1,21 @@
 import {useMemo} from 'react';
 
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
+import {DSN_PATTERN} from 'sentry/components/search/sources/dsnLookupUtils';
+import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
 import {IconIssues, IconList, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-
-const DSN_PATTERN = /^https?:\/\/([a-f0-9]{32})(:[a-f0-9]{32})?@[^/]+\/\d+$/;
-
-interface DsnLookupResponse {
-  keyId: string;
-  keyLabel: string;
-  organizationSlug: string;
-  projectId: string;
-  projectName: string;
-  projectPlatform: string | null;
-  projectSlug: string;
-}
+import useOrganization from 'sentry/utils/useOrganization';
 
 export function useDsnLookupActions(query: string): CommandPaletteActionWithKey[] {
+  const organization = useOrganization();
   const debouncedQuery = useDebouncedValue(query, 300);
   const isDsn = DSN_PATTERN.test(debouncedQuery);
 
   const {data} = useApiQuery<DsnLookupResponse>(
-    [`/dsn-lookup/`, {query: {dsn: debouncedQuery}}],
+    [`/organizations/${organization.slug}/dsn-lookup/`, {query: {dsn: debouncedQuery}}],
     {
       staleTime: 30_000,
       enabled: isDsn,

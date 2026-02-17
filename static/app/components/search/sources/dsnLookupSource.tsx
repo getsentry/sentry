@@ -4,20 +4,10 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {DSN_PATTERN} from './dsnLookupUtils';
+import type {DsnLookupResponse} from './dsnLookupUtils';
 import type {ChildProps, ResultItem} from './types';
 import {makeResolvedTs} from './utils';
-
-const DSN_PATTERN = /^https?:\/\/([a-f0-9]{32})(:[a-f0-9]{32})?@[^/]+\/\d+$/;
-
-interface DsnLookupResponse {
-  keyId: string;
-  keyLabel: string;
-  organizationSlug: string;
-  projectId: string;
-  projectName: string;
-  projectPlatform: string | null;
-  projectSlug: string;
-}
 
 type Props = {
   children: (props: ChildProps) => React.ReactElement;
@@ -34,6 +24,7 @@ function DsnLookupSource({query, children}: Props) {
   useEffect(() => {
     if (!hasDsnLookup || !isDsn) {
       setData(null);
+      setIsLoading(false);
       return undefined;
     }
 
@@ -42,7 +33,9 @@ function DsnLookupSource({query, children}: Props) {
     let cancelled = false;
 
     api
-      .requestPromise('/dsn-lookup/', {query: {dsn: query}})
+      .requestPromise(`/organizations/${organization.slug}/dsn-lookup/`, {
+        query: {dsn: query},
+      })
       .then((response: DsnLookupResponse) => {
         if (!cancelled) {
           setData(response);
@@ -59,7 +52,7 @@ function DsnLookupSource({query, children}: Props) {
     return () => {
       cancelled = true;
     };
-  }, [hasDsnLookup, isDsn, query]);
+  }, [hasDsnLookup, isDsn, query, organization.slug]);
 
   const results = useMemo(() => {
     if (!data) {
