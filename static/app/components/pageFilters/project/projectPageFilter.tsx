@@ -1,12 +1,14 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
+import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -18,6 +20,7 @@ import type {
 } from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
+  HybridFilterComponents,
   useStagedCompactSelect,
 } from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
@@ -48,7 +51,6 @@ export interface ProjectPageFilterProps extends Partial<
     | 'onToggle'
     | 'menuBody'
     | 'menuFooter'
-    | 'menuFooterMessage'
     | 'shouldCloseOnInteractOutside'
     | 'sizeLimitMessage'
     | 'stagedSelect'
@@ -413,20 +415,6 @@ export function ProjectPageFilter({
     disableCommit: selectionLimitExceeded,
   });
 
-  const menuFooterMessage = useMemo(() => {
-    if (selectionLimitExceeded) {
-      return (hasStagedChanges: any) =>
-        hasStagedChanges
-          ? tct(
-              'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',
-              {limit: SELECTION_COUNT_LIMIT}
-            )
-          : undefined;
-    }
-
-    return undefined;
-  }, [selectionLimitExceeded]);
-
   const hasProjectWrite = organization.access.includes('project:write');
 
   return (
@@ -441,19 +429,54 @@ export function ProjectPageFilter({
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
-      menuFooter={
-        hasProjectWrite ? (
-          <LinkButton
-            size="xs"
-            aria-label={t('Create Project')}
-            to={makeProjectsPathname({path: '/new/', organization})}
-            icon={<IconAdd />}
-          >
-            {t('Create Project')}
-          </LinkButton>
-        ) : undefined
+      menuHeaderTrailingItems={
+        stagedSelect.shouldShowReset ? (
+          <HybridFilterComponents.ResetButton
+            onClick={() => stagedSelect.handleReset()}
+          />
+        ) : null
       }
-      menuFooterMessage={menuFooterMessage}
+      menuFooter={
+        selectionLimitExceeded || hasProjectWrite || stagedSelect.hasStagedChanges ? (
+          <Stack gap="md" direction="column">
+            {selectionLimitExceeded && (
+              <CondensedAlert variant="warning" showIcon={false}>
+                <Text size="sm">
+                  {tct(
+                    `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
+                    {
+                      limit: SELECTION_COUNT_LIMIT,
+                      count: stagedValue.length,
+                    }
+                  )}
+                </Text>
+              </CondensedAlert>
+            )}
+            <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
+              {hasProjectWrite ? (
+                <HybridFilterComponents.LinkButton
+                  icon={<IconAdd />}
+                  to={makeProjectsPathname({path: '/new/', organization})}
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                >
+                  {t('Create Project')}
+                </HybridFilterComponents.LinkButton>
+              ) : undefined}
+              {stagedSelect.hasStagedChanges ? (
+                <Flex gap="md" align="center" justify="end">
+                  <HybridFilterComponents.CancelButton
+                    onClick={() => stagedSelect.removeStagedChanges()}
+                  />
+                  <HybridFilterComponents.ApplyButton
+                    disabled={stagedSelect.disableCommit}
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </Flex>
+              ) : null}
+            </Flex>
+          </Stack>
+        ) : null
+      }
       trigger={
         trigger ??
         (triggerProps => (
@@ -470,6 +493,11 @@ export function ProjectPageFilter({
     />
   );
 }
+
+const CondensedAlert = styled(Alert)`
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+  text-wrap: balance;
+`;
 
 function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard

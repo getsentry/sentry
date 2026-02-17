@@ -7,6 +7,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import type {HybridFilterRef} from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
+  HybridFilterComponents,
   useStagedCompactSelect,
 } from 'sentry/components/pageFilters/hybridFilter';
 
@@ -72,6 +73,26 @@ describe('HybridFilter', () => {
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
         />
       );
     }
@@ -105,6 +126,26 @@ describe('HybridFilter', () => {
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
         />
       );
     }
@@ -148,6 +189,26 @@ describe('HybridFilter', () => {
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
         />
       );
     }
@@ -200,6 +261,26 @@ describe('HybridFilter', () => {
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
         />
       );
     }
@@ -245,6 +326,26 @@ describe('HybridFilter', () => {
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
         />
       );
     }
@@ -290,6 +391,26 @@ describe('HybridFilter', () => {
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
+          menuHeaderTrailingItems={
+            stagedSelect.shouldShowReset ? (
+              <HybridFilterComponents.ResetButton
+                onClick={() => stagedSelect.handleReset()}
+              />
+            ) : null
+          }
+          menuFooter={
+            stagedSelect.hasStagedChanges ? (
+              <div>
+                <HybridFilterComponents.CancelButton
+                  disabled={!stagedSelect.hasStagedChanges}
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </div>
+            ) : null
+          }
         />
       );
     }

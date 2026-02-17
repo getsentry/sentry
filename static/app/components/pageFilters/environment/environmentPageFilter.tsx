@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -13,6 +14,7 @@ import {
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
+  HybridFilterComponents,
   useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
@@ -38,17 +40,11 @@ export interface EnvironmentPageFilterProps extends Partial<
     | 'onToggle'
     | 'menuTitle'
     | 'menuBody'
-    | 'menuFooter'
-    | 'menuFooterMessage'
     | 'shouldCloseOnInteractOutside'
     | 'triggerProps'
     | 'stagedSelect'
   >
 > {
-  /**
-   * Message to show in the menu footer
-   */
-  footerMessage?: React.ReactNode;
   /**
    * Called when the selection changes
    */
@@ -78,7 +74,6 @@ export function EnvironmentPageFilter({
   menuWidth,
   trigger,
   resetParamsOnChange,
-  footerMessage,
   triggerProps = {},
   storageNamespace,
   ...selectProps
@@ -193,7 +188,7 @@ export function EnvironmentPageFilter({
           <Checkbox
             size="sm"
             checked={isSelected}
-            onChange={() => hybridFilterRef.current?.toggleOption?.(env)}
+            onChange={() => hybridFilterRef.current?.toggleOption(env)}
             aria-label={t('Select %s', env)}
             tabIndex={-1}
           />
@@ -242,7 +237,25 @@ export function EnvironmentPageFilter({
       emptyMessage={emptyMessage ?? t('No environments found')}
       menuTitle={t('Filter Environments')}
       menuWidth={menuWidth ?? defaultMenuWidth}
-      menuFooterMessage={footerMessage}
+      menuHeaderTrailingItems={
+        stagedSelect.shouldShowReset ? (
+          <HybridFilterComponents.ResetButton
+            onClick={() => stagedSelect.handleReset()}
+          />
+        ) : null
+      }
+      menuFooter={
+        stagedSelect.hasStagedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <HybridFilterComponents.CancelButton
+              onClick={() => stagedSelect.removeStagedChanges()}
+            />
+            <HybridFilterComponents.ApplyButton
+              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            />
+          </Flex>
+        ) : null
+      }
       trigger={
         trigger ??
         (tp => (

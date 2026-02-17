@@ -1,6 +1,6 @@
 import {
-  Fragment,
   useCallback,
+  useContext,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -9,8 +9,14 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 import xor from 'lodash/xor';
+import type {DistributedOmit} from 'type-fest';
 
-import {Button} from '@sentry/scraps/button';
+import {
+  Button,
+  LinkButton,
+  type ButtonProps,
+  type LinkButtonProps,
+} from '@sentry/scraps/button';
 import type {
   MultipleSelectProps,
   SelectKey,
@@ -18,11 +24,10 @@ import type {
   SelectOptionOrSection,
   SelectSection,
 } from '@sentry/scraps/compactSelect';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, ControlContext} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 
 export interface HybridFilterRef<Value extends SelectKey> {
@@ -121,7 +126,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   const commit = useCallback(
     (val: Value[]) => {
-      setUncommittedStagedValue(null);
+      setUncommittedStagedValue(null); // clear uncommitted changes
       onChange?.(val);
     },
     [onChange]
@@ -255,11 +260,6 @@ export interface HybridFilterProps<Value extends SelectKey> extends Omit<
    * This handles all the state management and provides props for CompactSelect.
    */
   stagedSelect: UseStagedCompactSelectReturn<Value>;
-  /**
-   * Message to show in the menu footer. Can be a function that receives
-   * whether there are staged changes.
-   */
-  menuFooterMessage?: ((hasStagedChanges: boolean) => React.ReactNode) | React.ReactNode;
   ref?: React.Ref<HybridFilterRef<Value>>;
 }
 
@@ -275,8 +275,6 @@ export interface HybridFilterProps<Value extends SelectKey> extends Omit<
 export function HybridFilter<Value extends SelectKey>({
   ref,
   options,
-  menuFooter,
-  menuFooterMessage,
   stagedSelect,
   ...selectProps
 }: HybridFilterProps<Value>) {
@@ -336,130 +334,82 @@ export function HybridFilter<Value extends SelectKey>({
     );
   }, [options]);
 
-  const renderFooter = useMemo(() => {
-    const footerMessage =
-      typeof menuFooterMessage === 'function'
-        ? menuFooterMessage(stagedSelect.hasStagedChanges)
-        : menuFooterMessage;
-
-    return menuFooter || footerMessage || stagedSelect.hasStagedChanges
-      ? ({closeOverlay}: any) => (
-          <Fragment>
-            {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
-            <FooterWrap>
-              <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
-              {stagedSelect.hasStagedChanges && (
-                <FooterInnerWrap>
-                  <Button
-                    priority="transparent"
-                    size="xs"
-                    onClick={() => {
-                      closeOverlay();
-                      stagedSelect.removeStagedChanges();
-                    }}
-                  >
-                    {t('Cancel')}
-                  </Button>
-                  <Button
-                    size="xs"
-                    priority="primary"
-                    disabled={stagedSelect.disableCommit}
-                    onClick={() => {
-                      closeOverlay();
-                      stagedSelect.commit(stagedSelect.stagedValue);
-                    }}
-                  >
-                    {t('Apply')}
-                  </Button>
-                </FooterInnerWrap>
-              )}
-            </FooterWrap>
-          </Fragment>
-        )
-      : null;
-  }, [stagedSelect, menuFooter, menuFooterMessage]);
-
-  const menuHeaderTrailingItems = useCallback(
-    ({closeOverlay}: any) => {
-      if (!stagedSelect.shouldShowReset) {
-        return null;
-      }
-
-      return (
-        <ResetButton
-          onClick={() => {
-            stagedSelect.handleReset();
-            closeOverlay();
-          }}
-          size="zero"
-          priority="transparent"
-        >
-          {t('Reset')}
-        </ResetButton>
-      );
-    },
-    [stagedSelect]
-  );
-
   return (
     <CompactSelect
       grid
       multiple
-      menuHeaderTrailingItems={menuHeaderTrailingItems}
       options={mappedOptions}
-      menuFooter={renderFooter}
       {...stagedSelect.compactSelectProps}
       {...selectProps}
     />
   );
 }
 
+export const HybridFilterComponents = {
+  LinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
+    return <LinkButton size="xs" {...props} />;
+  },
+
+  ResetButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
+    const controlContext = useContext(ControlContext);
+
+    return (
+      <ResetButton
+        {...props}
+        priority="transparent"
+        size="zero"
+        onClick={e => {
+          props.onClick?.(e);
+          controlContext.overlayState?.close();
+        }}
+      >
+        {t('Reset')}
+      </ResetButton>
+    );
+  },
+
+  ApplyButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
+    const controlContext = useContext(ControlContext);
+
+    return (
+      <Button
+        {...props}
+        size="xs"
+        priority="primary"
+        disabled={props.disabled}
+        onClick={e => {
+          props.onClick?.(e);
+          controlContext.overlayState?.close();
+        }}
+      >
+        {t('Apply')}
+      </Button>
+    );
+  },
+
+  CancelButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
+    const controlContext = useContext(ControlContext);
+
+    return (
+      <Button
+        {...props}
+        size="xs"
+        priority="transparent"
+        onClick={e => {
+          props.onClick?.(e);
+          controlContext.overlayState?.close();
+        }}
+      >
+        {t('Cancel')}
+      </Button>
+    );
+  },
+};
+
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${space(0.5)};
-  margin: -${space(0.5)} -${space(0.5)};
-`;
-
-const FooterWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(2)};
-
-  /* If there's FooterMessage above */
-  &:not(:first-child) {
-    margin-top: ${space(1)};
-  }
-`;
-
-const FooterMessage = styled('p')`
-  padding: ${space(0.75)} ${space(1)};
-  margin: ${space(0.5)} 0;
-  border-radius: ${p => p.theme.radius.md};
-  border: solid 1px ${p => p.theme.colors.yellow200};
-  background: ${p => p.theme.colors.yellow100};
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const FooterInnerWrap = styled('div')`
-  grid-row: -1;
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
-
-  &:empty {
-    display: none;
-  }
-
-  &:last-of-type {
-    justify-self: end;
-    justify-items: end;
-  }
-  &:first-of-type,
-  &:only-child {
-    justify-self: start;
-    justify-items: start;
-  }
+  padding: 0 ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
 `;
