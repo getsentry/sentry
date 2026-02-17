@@ -454,6 +454,123 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
     items[:] = new_items
 
 
+def _duration_based_split(
+    items: list[pytest.Item], total_groups: int, current_group: int
+) -> tuple[list[pytest.Item], list[pytest.Item]]:
+    """Split tests into shards using duration-based greedy bin packing (LPT).
+
+    Reads per-test durations from TEST_DURATIONS_FILE (JSON: {nodeid: seconds}).
+    Groups tests by scope (file::class), then assigns scopes to shards using
+    "longest processing time first" — the heaviest scope goes to the lightest
+    shard.
+
+    Key improvements over earlier attempts:
+    - merge-test-durations.py uses only ``call`` duration (not setup),
+      avoiding H1 Snuba-wait contamination that inflated certain scopes.
+    - Duration cap at 60s per test removes remaining outliers.
+    - Unknown scopes use average-of-known as fallback instead of 1s.
+    - Falls back to hash-based if no durations file is available.
+    """
+    import heapq
+    import json as _json
+
+    durations_file = os.environ.get("TEST_DURATIONS_FILE", "")
+    durations: dict[str, float] = {}
+    if durations_file:
+        p = Path(durations_file)
+        if p.exists():
+            with p.open() as f:
+                durations = _json.load(f)
+
+    if not durations:
+        # No duration data — fall back to per-test hash distribution
+        # (same as roundrobin strategy).
+        keep: list[pytest.Item] = []
+        discard: list[pytest.Item] = []
+        for item in items:
+            to_hash = item.nodeid.encode()
+            group_num = int(sha256(to_hash).hexdigest(), 16) % total_groups
+            if group_num == current_group:
+                keep.append(item)
+            else:
+                discard.append(item)
+        print(
+            f"[duration-split] no durations file — falling back to hash sharding",
+            file=sys.stderr,
+        )
+        return keep, discard
+
+    # Group items by scope (file::class for class methods, file for module funcs)
+    scope_items: dict[str, list[pytest.Item]] = {}
+    for item in items:
+        scope = item.nodeid.rsplit("::", 1)[0]
+        scope_items.setdefault(scope, []).append(item)
+
+    # Compute duration per scope using per-test data.
+    # For each test in a scope, look up its individual duration.
+    # Use average-of-known as fallback for unknown tests (not 1s).
+    known_durs = [d for d in durations.values() if d > 0]
+    fallback = sum(known_durs) / len(known_durs) if known_durs else 1.0
+
+    scope_durations: list[tuple[float, str]] = []
+    matched = 0
+    estimated = 0
+    for scope, scope_tests in scope_items.items():
+        total_dur = 0.0
+        for test_item in scope_tests:
+            dur = durations.get(test_item.nodeid, 0.0)
+            if dur > 0:
+                matched += 1
+                total_dur += dur
+            else:
+                estimated += 1
+                total_dur += fallback
+        scope_durations.append((total_dur, scope))
+
+    # Sort by duration descending (largest first — LPT)
+    scope_durations.sort(key=lambda x: -x[0])
+
+    # Greedy bin packing using a min-heap of (total_duration, group_index)
+    bins: list[list[str]] = [[] for _ in range(total_groups)]
+    bin_durations: list[float] = [0.0] * total_groups
+    heap: list[tuple[float, int]] = [(0.0, i) for i in range(total_groups)]
+    heapq.heapify(heap)
+
+    for dur, scope in scope_durations:
+        lightest_dur, lightest_idx = heapq.heappop(heap)
+        bins[lightest_idx].append(scope)
+        bin_durations[lightest_idx] = lightest_dur + dur
+        heapq.heappush(heap, (lightest_dur + dur, lightest_idx))
+
+    print(
+        f"[duration-split] {len(scope_durations)} scopes, "
+        f"{matched} tests with timing data, "
+        f"{estimated} estimated @ {fallback:.2f}s",
+        file=sys.stderr,
+    )
+    print(
+        f"[duration-split] shard {current_group}/{total_groups}: "
+        f"{len(bins[current_group])} scopes, "
+        f"predicted {bin_durations[current_group]:.0f}s "
+        f"(range: {min(bin_durations):.0f}s – {max(bin_durations):.0f}s, "
+        f"spread: {max(bin_durations) - min(bin_durations):.0f}s)",
+        file=sys.stderr,
+    )
+
+    # Collect items for current group
+    current_scopes = set(bins[current_group])
+    keep = []
+    discard = []
+    for item in items:
+        scope = item.nodeid.rsplit("::", 1)[0]
+        if scope in current_scopes:
+            keep.append(item)
+        else:
+            discard.append(item)
+
+    return keep, discard
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, select tests based on selective file filter and group strategy.
 
@@ -499,23 +616,26 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # Reset keep/discard for sharding logic
     keep, discard = [], []
 
-    for index, item in enumerate(items):
-        # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
-        # we want to only include items in `accepted` list
-        to_hash = (
-            item.nodeid.rsplit("::", 1)[0].encode()
-            if grouping_strategy == "scope"
-            else item.nodeid.encode()
-        )
-        item_to_group = int(sha256(to_hash).hexdigest(), 16)
+    if grouping_strategy == "duration":
+        keep, discard = _duration_based_split(items, total_groups, current_group)
+    else:
+        for index, item in enumerate(items):
+            # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
+            # we want to only include items in `accepted` list
+            to_hash = (
+                item.nodeid.rsplit("::", 1)[0].encode()
+                if grouping_strategy == "scope"
+                else item.nodeid.encode()
+            )
+            item_to_group = int(sha256(to_hash).hexdigest(), 16)
 
-        # Split tests in different groups
-        group_num = item_to_group % total_groups
+            # Split tests in different groups
+            group_num = item_to_group % total_groups
 
-        if group_num == current_group:
-            keep.append(item)
-        else:
-            discard.append(item)
+            if group_num == current_group:
+                keep.append(item)
+            else:
+                discard.append(item)
 
     items[:] = keep
 

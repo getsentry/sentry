@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - mchen/balanced-sharding
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -112,7 +113,7 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 5
-      TEST_GROUP_STRATEGY: roundrobin
+      TEST_GROUP_STRATEGY: duration
       PYTHONHASHSEED: '0'
 
     steps:
@@ -123,6 +124,13 @@ jobs:
           name: tier-file-lists
           path: /tmp/
 
+      - name: Restore test durations cache
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/test-durations.json
+          key: test-durations-v1-${{ github.sha }}
+          restore-keys: test-durations-v1-
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -132,6 +140,7 @@ jobs:
       - name: Run tier 1 tests
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
+          TEST_DURATIONS_FILE: /tmp/test-durations.json
         run: |
           echo "=== Tier 1: $(wc -l < /tmp/tier1-tests.txt) scopes, shard ${{ matrix.instance }}/5 ==="
           python3 -b -m pytest tests \
@@ -163,6 +172,14 @@ jobs:
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
+      - name: Upload pytest report for duration merging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
+        with:
+          name: pytest-report-tier1-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          retention-days: 1
+
   # ─── Tier 2: Snuba/Kafka only (backend-ci-light, no heavy images) ──
   tier2:
     needs: split-tiers
@@ -180,7 +197,7 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 16
-      TEST_GROUP_STRATEGY: roundrobin
+      TEST_GROUP_STRATEGY: duration
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '3'
@@ -192,6 +209,13 @@ jobs:
         with:
           name: tier-file-lists
           path: /tmp/
+
+      - name: Restore test durations cache
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/test-durations.json
+          key: test-durations-v1-${{ github.sha }}
+          restore-keys: test-durations-v1-
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -205,6 +229,7 @@ jobs:
           SNUBA_WAIT_TIMEOUT: '180'
           DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
+          TEST_DURATIONS_FILE: /tmp/test-durations.json
         run: |
           XDIST_N=${XDIST_WORKERS:-3}
           PHASE_START=$(date +%s)
@@ -299,6 +324,14 @@ jobs:
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
+      - name: Upload pytest report for duration merging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
+        with:
+          name: pytest-report-tier2-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          retention-days: 1
+
   # ─── Tier 3: Heavy services (symbolicator/objectstore/bigtable/relay) ─
   tier3:
     needs: split-tiers
@@ -316,7 +349,7 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 1
-      TEST_GROUP_STRATEGY: roundrobin
+      TEST_GROUP_STRATEGY: duration
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '2'
@@ -328,6 +361,13 @@ jobs:
         with:
           name: tier-file-lists
           path: /tmp/
+
+      - name: Restore test durations cache
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/test-durations.json
+          key: test-durations-v1-${{ github.sha }}
+          restore-keys: test-durations-v1-
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -341,6 +381,7 @@ jobs:
           SNUBA_WAIT_TIMEOUT: '180'
           DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
           SELECTED_TESTS_FILE: /tmp/tier3-tests.txt
+          TEST_DURATIONS_FILE: /tmp/test-durations.json
         run: |
           XDIST_N=${XDIST_WORKERS:-2}
           PHASE_START=$(date +%s)
@@ -432,3 +473,41 @@ jobs:
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
+
+      - name: Upload pytest report for duration merging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
+        with:
+          name: pytest-report-tier3-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          retention-days: 1
+
+  # ─── Post-run: merge durations and cache for next run ────────────────
+  merge-durations:
+    needs: [tier1, tier2, tier3]
+    if: ${{ !cancelled() }}
+    name: merge test durations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download all pytest reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: pytest-report-*
+          path: /tmp/pytest-reports/
+          merge-multiple: false
+
+      - name: Merge durations
+        run: |
+          python3 .github/workflows/scripts/merge-test-durations.py \
+            --input-dir /tmp/pytest-reports/ \
+            --output /tmp/test-durations.json \
+            --summary
+
+      - name: Cache merged durations
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/test-durations.json
+          key: test-durations-v1-${{ github.sha }}
