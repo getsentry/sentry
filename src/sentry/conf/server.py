@@ -893,6 +893,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.relocation.tasks.transfer",
     "sentry.replays.data_export",
     "sentry.replays.tasks",
+    "sentry.reports.tasks",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.seer.autofix.issue_summary",
@@ -1167,6 +1168,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "web-vitals-issue-detection": {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
         "schedule": task_crontab("0", "0", "*", "1,15", "*"),
+    },
+    "schedule-scheduled-reports": {
+        "task": "reports:sentry.reports.tasks.schedule_reports",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
     },
 }
 
