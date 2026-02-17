@@ -44,11 +44,7 @@ class DsnLookupEndpoint(OrganizationEndpoint):
         if not dsn:
             return Response({"detail": "Missing required parameter: dsn"}, status=400)
 
-        try:
-            parsed = urlparse(dsn)
-        except Exception:
-            return Response({"detail": "Invalid DSN"}, status=404)
-
+        parsed = urlparse(dsn)
         public_key = parsed.username
         if not public_key:
             return Response({"detail": "Invalid DSN"}, status=404)
