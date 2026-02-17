@@ -49,7 +49,7 @@ export function ToolbarSortBy() {
 
   const fieldOptions = useSortByFields({
     fields,
-    yAxes: visualizes.map(v => v.yAxis),
+    yAxes: visualizes.flatMap(v => v.yAxes),
     groupBys,
     mode,
   });

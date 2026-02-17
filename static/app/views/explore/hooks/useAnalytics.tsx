@@ -125,7 +125,7 @@ function useTrackAnalytics({
       : 'given';
 
     const dataScanned = aggregatesTableResult.result.meta?.dataScanned ?? '';
-    const yAxes = visualizes.map(visualize => visualize.yAxis);
+    const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -218,7 +218,7 @@ function useTrackAnalytics({
       : 'given';
 
     const dataScanned = spansTableResult.result.meta?.dataScanned ?? '';
-    const yAxes = visualizes.map(visualize => visualize.yAxis);
+    const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -307,7 +307,7 @@ function useTrackAnalytics({
       ? 'gen_ai_features_disabled'
       : 'given';
 
-    const yAxes = visualizes.map(visualize => visualize.yAxis);
+    const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -407,7 +407,7 @@ function useTrackAnalytics({
       ? 'gen_ai_features_disabled'
       : 'given';
 
-    const yAxes = visualizes.map(visualize => visualize.yAxis);
+    const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
