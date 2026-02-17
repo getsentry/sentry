@@ -21,9 +21,6 @@ class ExternalProviders(ValueEqualityEnum):
     JIRA_SERVER = 300
     PERFORCE = 400
 
-    # TODO: do migration to delete this from database
-    CUSTOM = 700
-
     @property
     def name(self) -> str:
         return EXTERNAL_PROVIDERS.get(ExternalProviders(self.value), "")
@@ -54,7 +51,6 @@ class DataForwarderProviderSlug(StrEnum):
 
 class ExternalProviderEnum(StrEnum):
     EMAIL = "email"
-    CUSTOM = "custom_scm"
     SLACK = IntegrationProviderSlug.SLACK
     MSTEAMS = IntegrationProviderSlug.MSTEAMS
     PAGERDUTY = IntegrationProviderSlug.PAGERDUTY
@@ -78,7 +74,6 @@ EXTERNAL_PROVIDERS_REVERSE = {
     ExternalProviderEnum.GITHUB_ENTERPRISE: ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviderEnum.GITLAB: ExternalProviders.GITLAB,
     ExternalProviderEnum.PERFORCE: ExternalProviders.PERFORCE,
-    ExternalProviderEnum.CUSTOM: ExternalProviders.CUSTOM,
 }
 
 EXTERNAL_PROVIDERS_REVERSE_VALUES = {k.value: v for k, v in EXTERNAL_PROVIDERS_REVERSE.items()}
@@ -95,7 +90,6 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.GITLAB: ExternalProviderEnum.GITLAB.value,
     ExternalProviders.JIRA_SERVER: ExternalProviderEnum.JIRA_SERVER.value,
     ExternalProviders.PERFORCE: ExternalProviderEnum.PERFORCE.value,
-    ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
 }
 
 PERSONAL_NOTIFICATION_PROVIDERS = [
