@@ -184,6 +184,11 @@ function AutoSaveExample() {
         schema={baseUserSchema}
         initialValue={user.data?.notifications ?? false}
         mutationOptions={userMutationOptions(client)}
+        confirm={value =>
+          value
+            ? 'Are you sure you want to enable email notifications?'
+            : 'Disabling notifications means you may miss important updates.'
+        }
       >
         {field => (
           <field.Layout.Stack label="Email Notifications:">
