@@ -2,8 +2,9 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
 import {RequiredIndicator} from '@sentry/scraps/form/icons';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {InfoText, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 function HintText(props: {children: string}) {
   const id = useHintTextId();
