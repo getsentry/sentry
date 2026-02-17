@@ -500,3 +500,4 @@ function SlugForm({project}: {project: Project}) {
 - [ ] Handle `mapFormErrors` with setFieldErrors in catch
 - [ ] Handle `saveMessage` in onSuccess callback
 - [ ] Convert `saveOnBlur: false` fields to regular forms with Save button
+- [ ] Verify `onSuccess` cache updates merge with existing data (use updater function) — some API endpoints may return partial objects

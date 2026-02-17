@@ -109,8 +109,19 @@ function AccountDetails() {
     // No components listen to the ConfigStore, they just access it directly
     updateUser(userData);
     // We need to update the state, because AvatarChooser is using it,
-    // otherwise it will flick
-    setApiQueryData(queryClient, USER_ENDPOINT_QUERY_KEY, userData);
+    // otherwise it will flick.
+    // Use an updater function to merge with existing data because the avatar
+    // endpoint returns a partial `User` without `options` and other fields.
+    setApiQueryData<User>(queryClient, USER_ENDPOINT_QUERY_KEY, previousData => {
+      if (!previousData) {
+        return userData as User;
+      }
+      return {
+        ...previousData,
+        ...userData,
+        options: {...previousData.options, ...userData.options},
+      };
+    });
   };
 
   const userMutationOptions = mutationOptions({
