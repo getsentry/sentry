@@ -8,6 +8,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -440,7 +441,18 @@ export function ProjectPageFilter({
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       emptyMessage={emptyMessage ?? t('No projects found')}
-      menuTitle={menuTitle ?? t('Filter Projects')}
+      menuTitle={
+        menuTitle ?? (
+          <Flex gap="xs" align="center">
+            <Text>{t('Filter Projects')}</Text>
+            <InfoTip
+              size="xs"
+              variant="muted"
+              title="Shift + click to select a range of projects or cmd + click to select multiple projects at once."
+            />
+          </Flex>
+        )
+      }
       menuWidth={menuWidth ?? defaultMenuWidth}
       onOpenChange={() => {
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);

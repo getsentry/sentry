@@ -62,6 +62,7 @@ export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
   };
   defaultValue: Value[];
   handleReset: () => void;
+  handleSearch: (value: string) => void;
   hasStagedChanges: boolean;
   modifierKeyPressed: boolean;
   removeStagedChanges: () => void;
@@ -104,6 +105,8 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   // Track anchor point for shift-click range selection (ref to avoid re-renders)
   const lastSelectedRef = useRef<Value | null>(null);
+  // Track current search value so range selection only spans visible (filtered) options
+  const currentSearchRef = useRef<string>('');
 
   /**
    * The actual staged value to display. This is derived from:
@@ -183,7 +186,15 @@ export function useStagedCompactSelect<Value extends SelectKey>({
         return;
       }
 
-      const flatOptions = getFlatOptions(options);
+      // Only include options visible in the current filtered state so that
+      // shift+click after a search doesn't select hidden items
+      const search = currentSearchRef.current;
+      const flatOptions = getFlatOptions(options).filter(opt => {
+        if (!search) return true;
+        const searchableText =
+          opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
+        return searchableText.toLowerCase().includes(search.toLowerCase());
+      });
       const lastIdx = flatOptions.findIndex(opt => opt.value === lastSelectedRef.current);
       const currentIdx = flatOptions.findIndex(opt => opt.value === clickedValue);
 
@@ -229,6 +240,15 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     },
     [shiftToggleRange, performSingleToggle]
   );
+
+  // When the search/filter changes, clear the shift-click anchor so the next
+  // shift+click starts a fresh range from the visible filtered list.
+  const handleSearch = useCallback((value: string) => {
+    if (value !== currentSearchRef.current) {
+      currentSearchRef.current = value;
+      lastSelectedRef.current = null;
+    }
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: any) => {
@@ -326,6 +346,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     },
     defaultValue,
     handleReset,
+    handleSearch,
     stagedValue,
     hasStagedChanges,
     modifierKeyPressed: modifierActive,
@@ -362,11 +383,20 @@ export function HybridFilter<Value extends SelectKey>({
   ref,
   options,
   stagedSelect,
+  onSearch: onSearchProp,
   ...selectProps
 }: HybridFilterProps<Value>) {
   useImperativeHandle(ref, () => ({toggleOption: stagedSelect.toggleOption}), [
     stagedSelect.toggleOption,
   ]);
+
+  const handleSearch = useCallback(
+    (value: string) => {
+      stagedSelect.handleSearch(value);
+      onSearchProp?.(value);
+    },
+    [stagedSelect, onSearchProp]
+  );
 
   const mappedOptions = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
@@ -427,6 +457,7 @@ export function HybridFilter<Value extends SelectKey>({
       options={mappedOptions}
       {...stagedSelect.compactSelectProps}
       {...selectProps}
+      onSearch={handleSearch}
     />
   );
 }

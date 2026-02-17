@@ -3,7 +3,9 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -236,7 +238,16 @@ export function EnvironmentPageFilter({
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
       emptyMessage={emptyMessage ?? t('No environments found')}
-      menuTitle={t('Filter Environments')}
+      menuTitle={
+        <Flex gap="xs" align="center">
+          <Text>{t('Filter Environments')}</Text>
+          <InfoTip
+            size="xs"
+            variant="muted"
+            title="Shift + click to select a range of environments or cmd + click to select multiple environments at once."
+          />
+        </Flex>
+      }
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
