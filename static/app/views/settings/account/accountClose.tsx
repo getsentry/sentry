@@ -1,10 +1,10 @@
 import {useEffect, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -102,11 +102,11 @@ function AccountClose() {
   };
 
   const {mutate: removeAccount} = useMutation({
-    mutationFn: (organizations: string[]) =>
+    mutationFn: (orgs: string[]) =>
       fetchMutation({
         method: 'DELETE',
         url: '/users/me/',
-        data: {organizations},
+        data: {organizations: orgs},
       }),
     onMutate: () => {
       addLoadingMessage('Closing account\u2026');
@@ -173,29 +173,36 @@ function AccountClose() {
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <Flex as="label" align="center">
-                <Checkbox
-                  css={css`
-                    margin-right: 6px;
-                  `}
-                  name="organizations"
+              <Grid
+                as="label"
+                align="center"
+                gap="lg"
+                columns="1fr auto"
+                width="100%"
+                htmlFor={`delete-organization-${organization.slug}`}
+              >
+                <Text size="sm" bold ellipsis>
+                  {organization.slug}
+                </Text>
+                <Switch
+                  size="sm"
+                  id={`delete-organization-${organization.slug}`}
                   checked={orgsToRemove.has(organization.slug)}
-                  disabled={singleOwner}
                   value={organization.slug}
                   onChange={evt => handleChange(organization, singleOwner, evt)}
-                  size="sm"
-                  role="checkbox"
+                  disabled={singleOwner}
                 />
-                {organization.slug}
-              </Flex>
+              </Grid>
             </PanelItem>
           ))}
         </PanelBody>
       </Panel>
-      <HookedCustomConfirmAccountClose
-        handleRemoveAccount={handleRemoveAccount}
-        organizationSlugs={Array.from(orgsToRemove)}
-      />
+      <Flex justify="end">
+        <HookedCustomConfirmAccountClose
+          handleRemoveAccount={handleRemoveAccount}
+          organizationSlugs={Array.from(orgsToRemove)}
+        />
+      </Flex>
     </div>
   );
 }
