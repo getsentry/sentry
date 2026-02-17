@@ -728,10 +728,8 @@ describe('autogrouping', () => {
         expect(tree.build().serialize()).toMatchSnapshot();
       });
 
-      it('groups spans with the same op and name if OTel UI is enabled', () => {
-        const OTELOrganization = OrganizationFixture({
-          features: [...OrganizationFixture().features, 'performance-otel-friendly-ui'],
-        });
+      it('groups spans with the same op and name', () => {
+        const OTELOrganization = OrganizationFixture();
 
         const tree = TraceTree.FromTrace(
           makeEAPTrace([

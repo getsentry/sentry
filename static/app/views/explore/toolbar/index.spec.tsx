@@ -269,7 +269,7 @@ describe('ExploreToolbar', () => {
 
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
@@ -288,7 +288,7 @@ describe('ExploreToolbar', () => {
 
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
@@ -472,7 +472,7 @@ describe('ExploreToolbar', () => {
       'id',
       'span.description',
       'span.duration',
-      'span.op',
+      'span.name',
       'timestamp',
       'transaction',
     ];
@@ -484,10 +484,10 @@ describe('ExploreToolbar', () => {
     });
 
     // try changing the field
-    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
-    expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
+    await userEvent.click(within(section).getByRole('option', {name: 'span.name'}));
+    expect(within(section).getByRole('button', {name: 'span.name'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
-    expect(sortBys).toEqual([{field: 'span.op', kind: 'desc'}]);
+    expect(sortBys).toEqual([{field: 'span.name', kind: 'desc'}]);
 
     // check the kind options
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
@@ -498,9 +498,9 @@ describe('ExploreToolbar', () => {
 
     // try changing the kind
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
-    expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'span.name'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Asc'})).toBeInTheDocument();
-    expect(sortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
+    expect(sortBys).toEqual([{field: 'span.name', kind: 'asc'}]);
   });
 
   it('allows changing sort by in aggregates mode', async () => {
