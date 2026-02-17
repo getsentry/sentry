@@ -43,6 +43,7 @@ export function useIssuesSeriesQuery(
     enabled = true,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -62,7 +63,8 @@ export function useIssuesSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.ISSUE_PLATFORM,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       requestData.generatePathname = () =>
@@ -109,7 +111,7 @@ export function useIssuesSeriesQuery(
     });
 
     return keys;
-  }, [filteredWidget, organization, pageFilters]);
+  }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
   const createQueryFn = useCallback(
     () =>

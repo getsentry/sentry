@@ -32,6 +32,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const api = useApi();
@@ -62,9 +63,10 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
         const interval = getWidgetInterval(
           filteredWidget,
           {start, end, period},
-          '5m',
+          widgetInterval || '5m',
           // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-          isCustomReleaseSorting ? 'medium' : undefined
+          isCustomReleaseSorting ? 'medium' : undefined,
+          !!widgetInterval
         );
 
         const requestData = getReleasesRequestData(
@@ -93,7 +95,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       // Return empty array to prevent queries from running
       return {queryKeys: [], validationError: errorMessage};
     }
-  }, [filteredWidget, organization, pageFilters]);
+  }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
   const createQueryFn = useCallback(
     (useSessionAPI: boolean) =>

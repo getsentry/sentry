@@ -1311,6 +1311,17 @@ class DashboardDetail extends Component<Props, State> {
                                       useTimeseriesVisualization={
                                         useTimeseriesVisualization
                                       }
+                                      widgetInterval={
+                                        organization.features.includes(
+                                          'dashboards-interval-selection'
+                                        )
+                                          ? location.query.interval === 'auto'
+                                            ? undefined
+                                            : (location.query.interval as
+                                                | string
+                                                | undefined)
+                                          : undefined
+                                      }
                                     />
                                   </WidgetQueryQueueProvider>
 

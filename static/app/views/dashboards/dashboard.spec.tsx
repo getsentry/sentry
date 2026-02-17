@@ -7,11 +7,16 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {useLocation} from 'sentry/utils/useLocation';
 import Dashboard from 'sentry/views/dashboards/dashboard';
+import FiltersBar from 'sentry/views/dashboards/filtersBar';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
@@ -380,6 +385,127 @@ describe('Dashboards > Dashboard', () => {
       mount(mockDashboardWithIssueWidget);
       // Widget should render with assignee column
       expect(await screen.findByText('assignee')).toBeInTheDocument();
+    });
+  });
+
+  describe('Interval selection', () => {
+    describe('no interval set in URL', () => {
+      it('re-fetches widget data with appropriate interval', async () => {
+        const orgWithFlag = OrganizationFixture({
+          features: ['dashboards-interval-selection'],
+        });
+
+        // Use a SPANS widget with LINE display: both are required by
+        // widgetCanUseTimeSeriesVisualization, which gates widgetInterval propagation.
+        const spansWidget: Widget = {
+          id: '3',
+          title: 'Test Spans Widget',
+          displayType: DisplayType.LINE,
+          widgetType: WidgetType.SPANS,
+          interval: '',
+          queries: [
+            {
+              name: '',
+              conditions: '',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+              orderby: '',
+            },
+          ],
+        };
+        // The dashboard carries a saved 24h time range — this is the source of the
+        // time range, not the URL or PageFiltersStore.
+        const dashboardWithWidget = {
+          ...mockDashboard,
+          widgets: [spansWidget],
+          period: '24h',
+        };
+
+        // Initialize page filters from the dashboard's saved time range so that
+        // FiltersBar's interval selector computes valid options for a 24h window
+        // (5m, 15m, 30m, 1h).
+        PageFiltersStore.init();
+        PageFiltersStore.onInitializeUrlState(
+          getSavedFiltersAsPageFilters(dashboardWithWidget)
+        );
+
+        // Specific mocks that only match requests with the given interval
+        const fiveMinuteMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          body: [],
+          match: [MockApiClient.matchQuery({interval: '5m'})],
+        });
+        const hourlyIntervalMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          body: [],
+          match: [MockApiClient.matchQuery({interval: '1h'})],
+        });
+
+        // FiltersBar renders the interval selector and needs these endpoints.
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/releases/',
+          body: [],
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/measurements-meta/',
+          body: {},
+        });
+
+        // useChartInterval computes the active interval from PageFiltersStore's
+        // datetime selection — no URL seed needed. FiltersBar uses the same hook,
+        // so clicking a new option updates both the URL and widgetInterval together.
+        function DashboardWithIntervalSelector() {
+          const location = useLocation();
+          const [widgetInterval] = useChartInterval();
+          return (
+            <OrganizationContext value={orgWithFlag}>
+              <MEPSettingProvider forceTransactions={false}>
+                <FiltersBar
+                  dashboard={dashboardWithWidget}
+                  filters={{}}
+                  hasUnsavedChanges={false}
+                  isEditingDashboard={false}
+                  isPreview={false}
+                  location={location}
+                  onDashboardFilterChange={() => undefined}
+                />
+                <Dashboard
+                  dashboard={dashboardWithWidget}
+                  isEditingDashboard={false}
+                  onUpdate={() => undefined}
+                  handleUpdateWidgetList={() => undefined}
+                  handleAddCustomWidget={() => undefined}
+                  widgetLimitReached={false}
+                  widgetLegendState={widgetLegendState}
+                  widgetInterval={widgetInterval}
+                  useTimeseriesVisualization
+                />
+              </MEPSettingProvider>
+            </OrganizationContext>
+          );
+        }
+
+        // No interval in the URL — the 5m default is derived purely from the
+        // dashboard's saved 24h period via PageFiltersStore → useChartInterval.
+        render(<DashboardWithIntervalSelector />, {
+          initialRouterConfig: {location: {pathname: '/'}},
+        });
+
+        await screen.findByText('Test Spans Widget');
+        await waitFor(() => expect(fiveMinuteMock).toHaveBeenCalled());
+        expect(hourlyIntervalMock).not.toHaveBeenCalled();
+
+        // Click the interval selector and choose '1 hour'. FiltersBar writes
+        // interval=1h to the URL, DashboardWithIntervalSelector re-renders with
+        // the new widgetInterval, and the widget re-fetches with the new interval.
+        await userEvent.click(screen.getByRole('button', {name: '5 minutes'}));
+        await userEvent.click(screen.getByRole('option', {name: '1 hour'}));
+
+        await waitFor(() => expect(hourlyIntervalMock).toHaveBeenCalled());
+      });
     });
   });
 

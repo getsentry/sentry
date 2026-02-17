@@ -4,7 +4,10 @@ import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -16,6 +19,7 @@ import {
   RELEASES_SORT_OPTIONS,
   ReleasesSortOption,
 } from 'sentry/constants/releases';
+import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
@@ -37,6 +41,7 @@ import {
   PREBUILT_DASHBOARDS,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -192,6 +197,11 @@ export default function FiltersBar({
 
   const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
 
+  const hasIntervalSelection = organization.features.includes(
+    'dashboards-interval-selection'
+  );
+  const [interval, setInterval, intervalOptions] = useChartInterval();
+
   return (
     <Wrapper>
       <PageFilterBar condensed>
@@ -317,6 +327,27 @@ export default function FiltersBar({
           </Grid>
         )}
       <ToggleOnDemand />
+      {hasIntervalSelection && (
+        <IntervalSection>
+          <Tooltip title={t('Time interval displayed in chart visualizations (ex. 5m)')}>
+            <CompactSelect
+              value={interval}
+              onChange={option => setInterval(option.value)}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={<IconClock />}
+                  priority="transparent"
+                  showChevron={false}
+                  size="xs"
+                />
+              )}
+              menuTitle={t('Interval')}
+              options={intervalOptions}
+            />
+          </Tooltip>
+        </IntervalSection>
+      )}
     </Wrapper>
   );
 }
@@ -342,4 +373,10 @@ const Wrapper = styled('div')`
     height: 100%;
     width: 100%;
   }
+`;
+
+const IntervalSection = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-left: auto;
 `;

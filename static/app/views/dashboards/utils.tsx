@@ -129,10 +129,17 @@ export function getWidgetInterval(
   widget: Widget,
   datetimeObj: Partial<PageFilters['datetime']>,
   widgetIntervalOverride?: string,
-  fidelity?: Fidelity
+  fidelity?: Fidelity,
+  isUserSelected?: boolean
 ): string {
   // Don't fetch more than 66 bins as we're plotting on a small area.
   const MAX_BIN_COUNT = 66;
+
+  // When the user has explicitly selected an interval, respect their choice
+  // without applying widget-type or display-type overrides.
+  if (isUserSelected && widgetIntervalOverride) {
+    return widgetIntervalOverride;
+  }
 
   let interval =
     widget.widgetType === WidgetType.SPANS ||
