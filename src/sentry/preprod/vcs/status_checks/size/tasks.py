@@ -781,6 +781,11 @@ def _compute_overall_status(
                                     platform=artifact.get_platform_label(),
                                     metrics_artifact_type=candidate_metric.metrics_artifact_type,
                                     identifier=candidate_metric.identifier,
+                                    build_configuration_name=(
+                                        artifact.build_configuration.name
+                                        if artifact.build_configuration
+                                        else None
+                                    ),
                                 )
                             )
 

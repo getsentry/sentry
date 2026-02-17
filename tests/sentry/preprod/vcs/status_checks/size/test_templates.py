@@ -1298,6 +1298,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             artifact_id=artifact.id,
             app_id="com.example.app",
             platform="Android",
+            build_configuration_name=None,
         )
 
         title, subtitle, summary = format_status_check_messages(
@@ -1419,6 +1420,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=artifact.id,
                 app_id="com.example.app",
                 platform="Android",
+                build_configuration_name=None,
             ),
             TriggeredRule(
                 rule=StatusCheckRule(
@@ -1430,6 +1432,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=artifact.id,
                 app_id="com.example.app",
                 platform="Android",
+                build_configuration_name=None,
             ),
             TriggeredRule(
                 rule=StatusCheckRule(
@@ -1441,6 +1444,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=artifact.id,
                 app_id="com.example.app",
                 platform="Android",
+                build_configuration_name=None,
             ),
         ]
 
@@ -1536,6 +1540,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=artifact1.id,
                 app_id="com.example.app1",
                 platform="iOS",
+                build_configuration_name=None,
             ),
             TriggeredRule(
                 rule=StatusCheckRule(
@@ -1547,6 +1552,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=artifact2.id,
                 app_id="com.example.app2",
                 platform="Android",
+                build_configuration_name=None,
             ),
         ]
 
@@ -1650,6 +1656,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=failed_artifact.id,
                 app_id="com.example.failed",
                 platform="Android",
+                build_configuration_name=None,
             ),
         ]
 
