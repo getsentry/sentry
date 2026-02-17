@@ -653,8 +653,10 @@ class SanitizationTests(ImportTestCase):
 
                 # Add project options with several types that should be preserved
                 option_values = (
-                    ("filters:browser-extension", "1"),
-                    ("filters:legacy-browser", ["ie", "edge"]),
+                    ("bool-val", True),
+                    ("int-val", 0),
+                    ("str-int", "1"),
+                    ("list-val", ["ie", "edge"]),
                     ("string-list", '["a","b"]'),
                     ("str-dict-val", '{"k":"v"}'),
                     ("dict-val", {"k": "v"}),
