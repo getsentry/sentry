@@ -77,6 +77,8 @@ def get_repo_and_projects(
             "provider": provider,
             "external_id": external_id,
             "run_id": run_id,
+            "owner": owner,
+            "name": name,
         }
     )
     repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()

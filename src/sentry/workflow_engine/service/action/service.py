@@ -46,31 +46,6 @@ class ActionService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abc.abstractmethod
-    def update_action_status_for_sentry_app_via_uuid(
-        self,
-        *,
-        organization_id: int,
-        status: int,
-        sentry_app_install_uuid: str | None = None,
-        sentry_app_id: int | None = None,
-    ) -> None:
-        pass
-
-    @regional_rpc_method(resolve=ByRegionName())
-    @abc.abstractmethod
-    def update_action_status_for_sentry_app_via_uuid__region(
-        self,
-        *,
-        region_name: str,
-        status: int,
-        sentry_app_install_uuid: str | None = None,
-        organization_id: int | None = None,
-        sentry_app_id: int | None = None,
-    ) -> None:
-        pass
-
     @regional_rpc_method(resolve=ByRegionName())
     @abc.abstractmethod
     def update_action_status_for_sentry_app_via_sentry_app_id(

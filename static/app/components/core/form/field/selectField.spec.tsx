@@ -1,3 +1,4 @@
+import {expectTypeOf} from 'expect-type';
 import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -92,6 +93,120 @@ function AutoSaveTestForm({
 }
 
 describe('SelectField', () => {
+  describe('types', () => {
+    it('should enforce correct types for single select', () => {
+      function TypeTestSingleSelect() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {fruit: ''},
+        });
+
+        return (
+          <form.AppForm>
+            <form.AppField name="fruit">
+              {field => (
+                <field.Select
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<string>();
+                    field.handleChange(val);
+                  }}
+                  options={[
+                    {value: 'opt_one', label: 'Option One'},
+                    {value: 'opt_two', label: 'Option Two'},
+                  ]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestSingleSelect;
+    });
+
+    it('should enforce array types for multiple select', () => {
+      function TypeTestMultipleSelect() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {tags: [] as string[]},
+        });
+
+        return (
+          <form.AppForm>
+            <form.AppField name="tags">
+              {field => (
+                <field.Select
+                  multiple
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<string[]>();
+                    field.handleChange(val);
+                  }}
+                  options={[
+                    {value: 'opt_one', label: 'Option One'},
+                    {value: 'opt_two', label: 'Option Two'},
+                  ]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestMultipleSelect;
+    });
+
+    it('should not allow string value with multiple=true', () => {
+      function TypeTestInvalidMultiple() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {tags: [] as string[]},
+        });
+
+        return (
+          <form.AppForm>
+            <form.AppField name="tags">
+              {field => (
+                // @ts-expect-error value should be string[] when multiple is true
+                <field.Select
+                  multiple
+                  value="opt_one"
+                  onChange={field.handleChange}
+                  options={[{value: 'opt_one', label: 'Option One'}]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestInvalidMultiple;
+    });
+
+    it('should not allow array value with multiple=false', () => {
+      function TypeTestInvalidSingle() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {fruit: ''},
+        });
+
+        return (
+          <form.AppForm>
+            <form.AppField name="fruit">
+              {field => (
+                // @ts-expect-error value should be string when multiple is false
+                <field.Select
+                  value={['opt_one']}
+                  onChange={field.handleChange}
+                  options={[{value: 'opt_one', label: 'Option One'}]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestInvalidSingle;
+    });
+  });
+
   it('renders with a label', () => {
     render(<TestForm label="Favorite Fruit" />);
 
@@ -349,6 +464,266 @@ describe('SelectField a11y', () => {
 
     await waitFor(() => {
       expect(input).toHaveAttribute('aria-invalid', 'true');
+    });
+  });
+});
+
+const MULTI_OPTIONS = [
+  {value: 'tag1', label: 'Tag 1'},
+  {value: 'tag2', label: 'Tag 2'},
+  {value: 'tag3', label: 'Tag 3'},
+];
+
+interface MultiTestFormProps {
+  label: string;
+  defaultValue?: string[];
+  disabled?: boolean | string;
+}
+
+function MultiTestForm({label, defaultValue = [], disabled}: MultiTestFormProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      tags: defaultValue,
+    },
+  });
+
+  return (
+    <form.AppForm>
+      <form.AppField name="tags">
+        {field => (
+          <field.Layout.Row label={label}>
+            <field.Select
+              multiple
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={MULTI_OPTIONS}
+              disabled={disabled}
+            />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
+describe('SelectField multiple', () => {
+  it('renders multi-select with label', () => {
+    render(<MultiTestForm label="Tags" />);
+
+    expect(screen.getByText('Tags')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+  });
+
+  it('displays selected values as chips', () => {
+    render(<MultiTestForm label="Tags" defaultValue={['tag1', 'tag2']} />);
+
+    expect(screen.getByText('Tag 1')).toBeInTheDocument();
+    expect(screen.getByText('Tag 2')).toBeInTheDocument();
+  });
+
+  it('allows selecting multiple options', async () => {
+    render(<MultiTestForm label="Tags" />);
+
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 1'}));
+
+    // Menu stays open for multi-select
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 2'}));
+
+    // Close menu by pressing Escape
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.getByText('Tag 1')).toBeInTheDocument();
+    expect(screen.getByText('Tag 2')).toBeInTheDocument();
+  });
+
+  it('allows removing selected items', async () => {
+    render(<MultiTestForm label="Tags" defaultValue={['tag1', 'tag2']} />);
+
+    // Click the remove button on tag1
+    const removeButtons = screen.getAllByLabelText('Remove item');
+    await userEvent.click(removeButtons[0]!);
+
+    expect(screen.queryByText('Tag 1')).not.toBeInTheDocument();
+    expect(screen.getByText('Tag 2')).toBeInTheDocument();
+  });
+
+  it('is disabled when disabled prop is true', () => {
+    render(<MultiTestForm label="Tags" disabled />);
+
+    expect(screen.getByRole('textbox')).toBeDisabled();
+  });
+
+  it('shows tooltip with reason when disabled is a string', async () => {
+    render(<MultiTestForm label="Tags" disabled="Feature not available" />);
+
+    expect(screen.getByRole('textbox')).toBeDisabled();
+
+    // Hover on the select container to trigger tooltip
+    const selectContainer = screen.getByRole('textbox').closest('[class*="container"]');
+    await userEvent.hover(selectContainer!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Feature not available')).toBeInTheDocument();
+    });
+  });
+});
+
+const multiTestSchema = z.object({
+  tags: z.array(z.string()),
+});
+
+interface MultiAutoSaveTestFormProps {
+  mutationFn: (data: {tags: string[]}) => Promise<{tags: string[]}>;
+  initialValue?: string[];
+  label?: string;
+}
+
+function MultiAutoSaveTestForm({
+  mutationFn,
+  initialValue = [],
+  label = 'Tags',
+}: MultiAutoSaveTestFormProps) {
+  return (
+    <AutoSaveField
+      name="tags"
+      schema={multiTestSchema}
+      initialValue={initialValue}
+      mutationOptions={{mutationFn}}
+    >
+      {field => (
+        <field.Layout.Row label={label}>
+          <field.Select
+            multiple
+            value={field.state.value}
+            onChange={field.handleChange}
+            options={MULTI_OPTIONS}
+            clearable
+          />
+        </field.Layout.Row>
+      )}
+    </AutoSaveField>
+  );
+}
+
+describe('SelectField multiple auto-save', () => {
+  it('triggers save when clicking X on a tag while menu is closed', async () => {
+    const mutationFn = jest.fn((data: {tags: string[]}) => Promise.resolve(data));
+
+    render(
+      <MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={['tag1', 'tag2']} />
+    );
+
+    // Click the remove button on tag1 (menu is closed)
+    const removeButtons = screen.getAllByLabelText('Remove item');
+    await userEvent.click(removeButtons[0]!);
+
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({tags: ['tag2']});
+    });
+  });
+
+  it('triggers save when clicking clear all while menu is closed', async () => {
+    const mutationFn = jest.fn((data: {tags: string[]}) => Promise.resolve(data));
+
+    render(
+      <MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={['tag1', 'tag2']} />
+    );
+
+    // Click clear all button (menu is closed)
+    await userEvent.click(screen.getByLabelText('Clear choices'));
+
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({tags: []});
+    });
+  });
+
+  it('does not trigger save while selecting options with menu open', async () => {
+    const mutationFn = jest.fn((data: {tags: string[]}) => Promise.resolve(data));
+
+    render(<MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={[]} />);
+
+    // Open menu and select options
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 1'}));
+
+    // Should not have triggered save yet (menu is still open)
+    expect(mutationFn).not.toHaveBeenCalled();
+
+    // Select another option
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 2'}));
+
+    // Still should not have triggered save
+    expect(mutationFn).not.toHaveBeenCalled();
+  });
+
+  it('triggers save when menu closes after selecting options', async () => {
+    const mutationFn = jest.fn((data: {tags: string[]}) => Promise.resolve(data));
+
+    render(<MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={[]} />);
+
+    // Open menu and select options
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 1'}));
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 2'}));
+
+    // Close menu
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({tags: ['tag1', 'tag2']});
+    });
+  });
+
+  it('does not trigger multiple saves when removing item while menu is closed', async () => {
+    const mutationFn = jest.fn((data: {tags: string[]}) => Promise.resolve(data));
+
+    render(
+      <MultiAutoSaveTestForm
+        mutationFn={mutationFn}
+        initialValue={['tag1', 'tag2', 'tag3']}
+      />
+    );
+
+    // Remove first item
+    const removeButtons = screen.getAllByLabelText('Remove item');
+    await userEvent.click(removeButtons[0]!);
+
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mutationFn).toHaveBeenCalledWith({tags: ['tag2', 'tag3']});
+  });
+
+  it('shows spinner when auto-save is pending for multi-select', async () => {
+    const mutationFn = jest.fn(() => new Promise<{tags: string[]}>(() => {}));
+
+    render(
+      <MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={['tag1', 'tag2']} />
+    );
+
+    // Remove an item to trigger save
+    const removeButtons = screen.getAllByLabelText('Remove item');
+    await userEvent.click(removeButtons[0]!);
+
+    expect(await screen.findByRole('status', {name: 'Saving tags'})).toBeInTheDocument();
+  });
+
+  it('disables multi-select while auto-save is pending', async () => {
+    const mutationFn = jest.fn(() => new Promise<{tags: string[]}>(() => {}));
+
+    render(
+      <MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={['tag1', 'tag2']} />
+    );
+
+    // Remove an item to trigger save
+    const removeButtons = screen.getAllByLabelText('Remove item');
+    await userEvent.click(removeButtons[0]!);
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeDisabled();
     });
   });
 });

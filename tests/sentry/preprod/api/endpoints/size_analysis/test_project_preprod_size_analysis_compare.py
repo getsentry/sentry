@@ -548,8 +548,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_head_artifact_processing(self):
-        """Test POST endpoint returns 202 when head artifact size metrics are still processing"""
-        # Set head size metric to processing state
         self.head_size_metric.state = PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
         self.head_size_metric.save()
 
@@ -558,15 +556,10 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert response.status_code == 202
         data = response.json()
         assert data["status"] == "processing"
-        assert (
-            f"Head PreprodArtifact with id {self.head_artifact.id} has no completed size metrics yet"
-            in data["message"]
-        )
+        assert "not completed size analysis yet" in data["message"]
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_base_artifact_processing(self):
-        """Test POST endpoint returns 202 when base artifact size metrics are still processing"""
-        # Set base size metric to processing state
         self.base_size_metric.state = PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
         self.base_size_metric.save()
 
@@ -575,10 +568,32 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert response.status_code == 202
         data = response.json()
         assert data["status"] == "processing"
-        assert (
-            f"Base PreprodArtifact with id {self.base_artifact.id} has no completed size metrics yet"
-            in data["message"]
+        assert "not completed size analysis yet" in data["message"]
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    def test_post_comparison_mixed_completed_and_pending_returns_202(self):
+        self.create_preprod_artifact_size_metrics(
+            self.head_artifact,
+            analysis_file_id=self.head_analysis_file.id,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="watch",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
+
+        self.create_preprod_artifact_size_metrics(
+            self.base_artifact,
+            analysis_file_id=self.base_analysis_file.id,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="watch",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+
+        response = self.client.post(self._get_url())
+
+        assert response.status_code == 202
+        data = response.json()
+        assert data["status"] == "processing"
+        assert "not completed size analysis yet" in data["message"]
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_existing_comparison(self):

@@ -8,7 +8,6 @@ import toArray from 'sentry/utils/array/toArray';
 import parseApiError from 'sentry/utils/parseApiError';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
-import SelectedGroupStore from './selectedGroupStore';
 import type {StrictStoreDefinition} from './types';
 
 function showAlert(msg: string, type: Indicator['type']) {
@@ -147,7 +146,6 @@ const storeConfig: GroupStoreDefinition = {
     const idSet = new Set(itemIds);
     this.state = mergePendingChanges(this.items, this.pendingChanges);
     this.trigger(idSet);
-    SelectedGroupStore.onGroupChange(idSet);
   },
 
   mergeItems(items: Item[]) {
