@@ -269,12 +269,14 @@ export const useSeerExplorer = () => {
         setWaitingForResponse(false);
         setOptimistic(null);
         if (effectiveRunId !== null) {
+          // API data is disabled for null runId (new runs).
           setApiQueryData<SeerExplorerResponse>(
             queryClient,
             makeSeerExplorerQueryKey(orgSlug, effectiveRunId),
             makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
           );
         }
+        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to send message');
       }
     },
     [
