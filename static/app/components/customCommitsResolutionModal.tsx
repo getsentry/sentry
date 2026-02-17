@@ -113,7 +113,7 @@ function CustomCommitsResolutionModal({
         <Footer>
           <Flex gap="sm" justify="end">
             <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <form.SubmitButton priority="primary">{t('Resolve')}</form.SubmitButton>
+            <form.SubmitButton>{t('Resolve')}</form.SubmitButton>
           </Flex>
         </Footer>
       </form.FormWrapper>
