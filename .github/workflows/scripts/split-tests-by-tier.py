@@ -5,14 +5,14 @@ Reads classification JSON (from service_classifier pytest plugin) and outputs
 test identifier lists for each tier.
 
 Granularity (--granularity):
-  file:  Entire file → assigned by heaviest service in file.
-  class: file::class → assigned by heaviest service in class.
+  file:  Entire file → assigned to highest tier any test needs.
+  class: file::class → assigned to highest tier any test in class needs.
   test:  Each test independently classified.
 
 Tiers:
   tier1: Postgres + Redis only (migrations mode).
-  tier2: Snuba/Kafka only (backend-ci mode, per-worker Snuba).
-  tier3: Heavy services — symbolicator/objectstore/bigtable (full backend-ci, -n 2).
+  tier2: Snuba/Kafka only (backend-ci-light mode, no heavy images).
+  tier3: Heavy services — symbolicator/objectstore/bigtable/relay (backend-ci mode).
 
 Usage:
     python split-tests-by-tier.py --classification report.json --tier tier1 --output tier1.txt

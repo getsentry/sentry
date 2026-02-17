@@ -329,6 +329,6 @@ The baseline continued iterating beyond the 11m29s configuration:
 | T2 spread | **838s** | **704s** | 133s |
 | Runner-min | 224m | 225m | 217m |
 
-**Root cause:** Scope sharding keeps entire classes on one shard. A few enormous classes (likely relay_integration, symbolicator, objectstore tests) create massive T2 hotspots — one shard took 20+ minutes while others finished in 6-7 minutes.
+**Root cause:** Scope sharding keeps entire classes on one shard. A few enormous classes (relay_integration, symbolicator, objectstore tests) create massive T2 hotspots — one shard took 20+ minutes while others finished in 6-7 minutes. The concentration of heavy tests on a single shard also caused resource exhaustion: too many tests hitting Postgres simultaneously led to `psycopg2.OperationalError: Connection refused` (port 5432) and Snuba gateway crashes, producing 50+ errors on the worst shards.
 
-**Next experiment:** Three-tier split to isolate heavy tests (symbolicator/objectstore/bigtable/relay) into tier3 (1 shard, `-n 2`). This should make tier2 uniform enough for scope sharding to work. Results TBD.
+**Conclusion:** Scope sharding is not viable without first solving the heavy-class hotspot problem. Reverted to `roundrobin` + `--dist=loadfile` (baseline config).
