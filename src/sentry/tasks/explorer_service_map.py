@@ -208,6 +208,7 @@ def _query_service_dependencies(org_id: int, transactions: list[str]) -> list[di
                         "project.id",
                         "project.slug",
                         "transaction",
+                        "timestamp",
                     ],
                     orderby=["-timestamp"],  # Get most recent
                     offset=0,
