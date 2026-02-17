@@ -35,7 +35,7 @@ jobs:
       PYTHONHASHSEED: '0'
       # Per-worker Snuba routing (read by sentry.py pytest plugin)
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '3'
+      XDIST_WORKERS: '2'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
