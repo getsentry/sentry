@@ -364,10 +364,14 @@ function VisualizeDropdown({
   }, [aggregateFunction, sortedBooleanKeys, sortedNumberKeys, sortedStringKeys]);
 
   const onChangeAggregate = useCallback(
-    (option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
+    (option: SelectOption<SelectKey> | Array<SelectOption<SelectKey>>) => {
+      const selected = Array.isArray(option) ? option[0] : option;
+      if (!selected) {
+        return;
+      }
+      if (typeof selected.value === 'string') {
         const yAxis = updateVisualizeAggregate({
-          newAggregate: option.value,
+          newAggregate: selected.value,
           oldAggregate: aggregateFunction,
           oldArgument: aggregateParam,
           firstNumberKey: sortedNumberKeys[0] || null,
@@ -390,6 +394,7 @@ function VisualizeDropdown({
 
   return (
     <ToolbarVisualizeDropdown
+      aggregateValue={visualize.parsedFunction?.name ?? ''}
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
       canDelete={canDelete}

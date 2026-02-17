@@ -9,6 +9,7 @@ import {IconHide} from 'sentry/icons/iconHide';
 import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -198,9 +199,11 @@ function VisualizeDropdown({
   onSearch,
   onClose,
 }: VisualizeDropdownProps & {onClose: () => void; onSearch: (search: string) => void}) {
+  const organization = useOrganization();
   const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
   const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
   const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags('boolean');
+  const hasMultiSelect = organization.features.includes('traces-overlay-charts-ui');
 
   const aggregateOptions = useMemo(
     () =>
@@ -214,7 +217,11 @@ function VisualizeDropdown({
     []
   );
 
-  const parsedFunction = useMemo(() => parseFunction(visualize.yAxis), [visualize.yAxis]);
+  const parsedFunctions = useMemo(
+    () => visualize.yAxes.map(yAxis => parseFunction(yAxis)),
+    [visualize.yAxes]
+  );
+  const parsedFunction = parsedFunctions[0] ?? null;
 
   const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
@@ -225,7 +232,28 @@ function VisualizeDropdown({
   });
 
   const onChangeAggregate = useCallback(
-    (option: SelectOption<SelectKey>) => {
+    (option: SelectOption<SelectKey> | Array<SelectOption<SelectKey>>) => {
+      if (Array.isArray(option)) {
+        const selectedAggregates = option.flatMap(selected => {
+          return typeof selected.value === 'string' ? [selected.value] : [];
+        });
+
+        if (selectedAggregates.length === 0) {
+          onReplace(visualize.replace({yAxis: DEFAULT_VISUALIZATION}));
+          return;
+        }
+
+        const yAxes = selectedAggregates.map(aggregate =>
+          updateVisualizeAggregate({
+            newAggregate: aggregate,
+            oldAggregate: parsedFunction?.name,
+            oldArguments: parsedFunction?.arguments,
+          })
+        );
+        onReplace(visualize.replace({yAxes}));
+        return;
+      }
+
       if (typeof option.value === 'string') {
         const yAxis = updateVisualizeAggregate({
           newAggregate: option.value,
@@ -241,22 +269,46 @@ function VisualizeDropdown({
   const onChangeArgument = useCallback(
     (index: number, option: SelectOption<SelectKey>) => {
       if (typeof option.value === 'string') {
+        const nextArgument = option.value;
+        if (hasMultiSelect && visualize.yAxes.length > 1) {
+          const yAxes = parsedFunctions.flatMap(func => {
+            if (!func) {
+              return [];
+            }
+            let args = cloneDeep(func.arguments);
+            if (args) {
+              args[index] = nextArgument;
+            } else {
+              args = [nextArgument];
+            }
+            return [`${func.name}(${args.join(',')})`];
+          });
+          onReplace(visualize.replace({yAxes}));
+          return;
+        }
+
         let args = cloneDeep(parsedFunction?.arguments);
         if (args) {
-          args[index] = option.value;
+          args[index] = nextArgument;
         } else {
-          args = [option.value];
+          args = [nextArgument];
         }
         const yAxis = `${parsedFunction?.name}(${args.join(',')})`;
         onReplace(visualize.replace({yAxis}));
       }
     },
-    [onReplace, parsedFunction, visualize]
+    [hasMultiSelect, onReplace, parsedFunction, parsedFunctions, visualize]
   );
+
+  const aggregateValue = hasMultiSelect
+    ? parsedFunctions.flatMap(func => (func?.name ? [func.name] : []))
+    : (parsedFunction?.name ?? '');
 
   return (
     <ToolbarVisualizeDropdown
+      aggregateMultiple={hasMultiSelect}
       aggregateOptions={aggregateOptions}
+      aggregateValue={aggregateValue}
       fieldOptions={fieldOptions}
       canDelete={canDelete}
       onChangeAggregate={onChangeAggregate}

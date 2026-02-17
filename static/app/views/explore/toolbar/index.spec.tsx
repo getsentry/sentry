@@ -311,6 +311,73 @@ describe('ExploreToolbar', () => {
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
   });
 
+  it('supports multi-aggregate overlays in a single visualize when feature is enabled', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        features: ['dashboards-edit', 'traces-overlay-charts-ui'],
+      }),
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+    expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count'}));
+
+    expect(visualizes).toHaveLength(1);
+    expect(visualizes[0]!.yAxes).toEqual(['avg(span.duration)']);
+
+    await userEvent.click(within(section).getByRole('option', {name: 'p95'}));
+    expect(visualizes).toHaveLength(1);
+    expect(visualizes[0]!.yAxes).toEqual(
+      expect.arrayContaining(['avg(span.duration)', 'p95(span.duration)'])
+    );
+
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    expect(visualizes[0]!.yAxes).toEqual(
+      expect.arrayContaining(['avg(span.self_time)', 'p95(span.self_time)'])
+    );
+  });
+
+  it('resets to default visualize when all aggregates are deselected in multi-select mode', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        features: ['dashboards-edit', 'traces-overlay-charts-ui'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            visualize: '{"yAxes":["avg(span.duration)"]}',
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    expect(visualizes).toHaveLength(1);
+    expect(visualizes[0]!.yAxes).toEqual(['count(span.duration)']);
+  });
+
   it('allows changing group bys', async () => {
     let groupBys: any;
 
