@@ -29,7 +29,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {TimeseriesValue} from 'sentry/types/core';
@@ -57,6 +56,10 @@ import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/cons
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
+import {
+  useOptionalIssueSelectionActions,
+  useOptionalIssueSelectionSummary,
+} from 'sentry/views/issueList/issueSelectionContext';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
@@ -105,18 +108,19 @@ function GroupCheckbox({
   group: Group;
   displayReprocessingLayout?: boolean;
 }) {
-  const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
-  const isSelected = selectedGroupMap.get(group.id) ?? false;
+  const issueSelectionSummary = useOptionalIssueSelectionSummary();
+  const issueSelectionActions = useOptionalIssueSelectionActions();
+  const isSelected = issueSelectionSummary?.records.get(group.id);
 
   const handleToggle = useCallback(
     (isShiftClick: boolean) => {
       if (isShiftClick) {
-        SelectedGroupStore.shiftToggleItems(group.id);
+        issueSelectionActions?.shiftToggleSelect(group.id);
       } else {
-        SelectedGroupStore.toggleSelect(group.id);
+        issueSelectionActions?.toggleSelect(group.id);
       }
     },
-    [group.id]
+    [group.id, issueSelectionActions]
   );
 
   const onChange = useCallback(
@@ -290,9 +294,8 @@ function StreamGroup({
   onPriorityChange,
   onAssigneeChange,
 }: Props) {
-  const organization = useOrganization();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const issueSelectionSummary = useOptionalIssueSelectionSummary();
+  const issueSelectionActions = useOptionalIssueSelectionActions();
   const groups = useLegacyStore(GroupStore);
   const group = useMemo(() => {
     if (incomingGroup) {
@@ -300,6 +303,13 @@ function StreamGroup({
     }
     return groups.find(item => item.id === id) as Group | undefined;
   }, [incomingGroup, groups, id]);
+  const groupId = group?.id ?? id;
+
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const selectionEnabled =
+    canSelect && !!issueSelectionSummary && !!issueSelectionActions;
   const originalInboxState = useRef(group?.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
 
@@ -332,7 +342,7 @@ function StreamGroup({
     ): Promise<AssignableEntity | null> => {
       if (newAssignee) {
         await assignToActor({
-          id: group!.id,
+          id: groupId,
           orgSlug: organization.slug,
           actor: {id: newAssignee.id, type: newAssignee.type},
           assignedBy: 'assignee_selector',
@@ -340,7 +350,7 @@ function StreamGroup({
         return Promise.resolve(newAssignee);
       }
 
-      await clearAssignment(group!.id, organization.slug, 'assignee_selector');
+      await clearAssignment(groupId, organization.slug, 'assignee_selector');
       return Promise.resolve(null);
     },
     onSuccess: (newAssignee: AssignableEntity | null) => {
@@ -627,14 +637,14 @@ function StreamGroup({
       return;
     }
 
-    if (canSelect && e.shiftKey) {
-      SelectedGroupStore.shiftToggleItems(group.id);
+    if (selectionEnabled && e.shiftKey) {
+      issueSelectionActions?.shiftToggleSelect(group.id);
       window.getSelection()?.removeAllRanges();
       return;
     }
 
-    if (canSelect && isCtrlKeyPressed(e)) {
-      SelectedGroupStore.toggleSelect(group.id);
+    if (selectionEnabled && isCtrlKeyPressed(e)) {
+      issueSelectionActions?.toggleSelect(group.id);
       return;
     }
 
@@ -661,13 +671,13 @@ function StreamGroup({
     >
       <InteractionStateLayer />
       <Fragment>
-        {canSelect && (
+        {selectionEnabled && (
           <GroupCheckbox
             group={group}
             displayReprocessingLayout={displayReprocessingLayout}
           />
         )}
-        <GroupSummary canSelect={canSelect}>
+        <GroupSummary canSelect={selectionEnabled}>
           <EventOrGroupHeader data={group} query={query} source={referrer} />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupSummary>

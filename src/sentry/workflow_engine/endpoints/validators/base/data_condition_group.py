@@ -6,7 +6,8 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionValidator
 from sentry.workflow_engine.endpoints.validators.utils import remove_items_by_api_input
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.models import DataConditionGroup
+from sentry.workflow_engine.models.data_condition import TRIGGER_CONDITIONS, DataCondition
 
 
 class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
@@ -22,6 +23,18 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
             conditions.append(condition_validator.validated_data)
 
         return conditions
+
+    def _validate_logic_type(self, condition_data: list[dict[str, Any]], logic_type: str) -> None:
+        """
+        Validate that if we're passed a "trigger" it has the logic type 'any-short'. We only validate on create
+        because we have conditions grandfathered into logic type 'all' that were migrated from issue alerts that would
+        break upon updating.
+        """
+        for condition in condition_data:
+            if (condition.get("type") in TRIGGER_CONDITIONS) and (
+                logic_type != DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
+            ):
+                raise serializers.ValidationError("Triggers' logic type must be 'any-short'")
 
     def update_or_create_condition(
         self, condition_data: dict[str, Any], organization_id: int
@@ -72,6 +85,9 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         return instance
 
     def create(self, validated_data: dict[str, Any]) -> DataConditionGroup:
+        logic_type = validated_data.get("logic_type", DataConditionGroup.Type.ANY.value)
+        self._validate_logic_type(validated_data.get("conditions", []), logic_type)
+
         with transaction.atomic(router.db_for_write(DataConditionGroup)):
             condition_group = DataConditionGroup.objects.create(
                 logic_type=validated_data["logic_type"],

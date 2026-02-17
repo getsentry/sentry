@@ -204,6 +204,7 @@ export function HybridFilter<Value extends SelectKey>({
             gap="md"
             align="center"
             flow="column"
+            height="100%"
             onKeyDown={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
@@ -222,6 +223,7 @@ export function HybridFilter<Value extends SelectKey>({
             gap="md"
             align="center"
             flow="column"
+            height="100%"
             onKeyDown={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}

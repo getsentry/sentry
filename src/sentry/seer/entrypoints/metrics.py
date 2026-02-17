@@ -16,6 +16,7 @@ class SeerOperatorInteractionType(StrEnum):
     OPERATOR_CACHE_MIGRATE = "cache_migrate"
     ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR = "entrypoint_on_trigger_autofix_error"
     ENTRYPOINT_ON_TRIGGER_AUTOFIX_SUCCESS = "entrypoint_on_trigger_autofix_success"
+    ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS = "entrypoint_on_trigger_autofix_already_exists"
     ENTRYPOINT_CREATE_AUTOFIX_CACHE_PAYLOAD = "entrypoint_create_autofix_cache_payload"
     ENTRYPOINT_ON_AUTOFIX_UPDATE = "entrypoint_on_autofix_update"
 
