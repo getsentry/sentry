@@ -68,8 +68,6 @@ class ReleaseFile(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
     release_id = BoundedBigIntegerField(db_index=True)
     file = FlexibleForeignKey("sentry.File")
     ident = models.CharField(max_length=40)

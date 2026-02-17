@@ -14,8 +14,6 @@ class ReleaseCommit(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
     release = FlexibleForeignKey("sentry.Release")
     commit = FlexibleForeignKey("sentry.Commit", db_constraint=False)
     order = BoundedPositiveIntegerField()
