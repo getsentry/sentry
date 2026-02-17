@@ -207,6 +207,14 @@ export const useSeerExplorer = () => {
         ? `${screenshot ?? ''}\n\n${uiContextPrompt}`
         : screenshot;
 
+      // eslint-disable-next-line no-console
+      console.log('[LLM UI Context] Sending on_page_context:', {
+        hasScreenshot: !!screenshot,
+        hasUIContext: !!uiContextPrompt,
+        treeNodeCount: llmContextTree.length,
+        prompt: uiContextPrompt?.slice(0, 500),
+      });
+
       setWaitingForResponse(true);
       setWasJustInterrupted(false);
 
@@ -437,6 +445,15 @@ export const useSeerExplorer = () => {
       }
 
       for (const toolCall of toolCalls) {
+        // Log all tool calls so we can see what the LLM is emitting
+        // eslint-disable-next-line no-console
+        console.log('[LLM UI Action] Tool call seen:', {
+          function: toolCall.function,
+          id: toolCall.id,
+          args: toolCall.args,
+          isUIAction: toolCall.function === UI_ACTION_TOOL_NAME,
+        });
+
         if (toolCall.function !== UI_ACTION_TOOL_NAME) {
           continue;
         }
@@ -450,10 +467,40 @@ export const useSeerExplorer = () => {
         try {
           const parsed = JSON.parse(toolCall.args);
           if (typeof parsed?.context === 'string' && typeof parsed?.type === 'string') {
-            llmDispatch(parsed.context, parsed.type, parsed.payload ?? {});
+            // The LLM sometimes double-encodes payload as a JSON string
+            // instead of an object. Unwrap it if so.
+            let payload = parsed.payload ?? {};
+            if (typeof payload === 'string') {
+              try {
+                payload = JSON.parse(payload);
+              } catch {
+                // Not valid JSON string — use as-is
+              }
+            }
+
+            // eslint-disable-next-line no-console
+            console.log('[LLM UI Action] Dispatching:', {
+              context: parsed.context,
+              type: parsed.type,
+              payload,
+            });
+            const handled = llmDispatch(parsed.context, parsed.type, payload);
+            // eslint-disable-next-line no-console
+            console.log('[LLM UI Action] Dispatch result:', {handled});
+          } else {
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[LLM UI Action] Malformed args — missing context or type:',
+              parsed
+            );
           }
-        } catch {
-          // Malformed args — skip
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[LLM UI Action] Failed to parse tool call args:',
+            toolCall.args,
+            e
+          );
         }
       }
     }
