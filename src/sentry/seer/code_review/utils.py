@@ -400,6 +400,7 @@ def extract_github_info(
             - github_event_action: The event action (e.g., "opened", "closed", "created")
             - github_actor_login: The GitHub username who triggered the action
             - github_actor_id: The GitHub user ID (as string)
+            - github_pr_author_id: The GitHub user ID of the PR author (as string)
     """
     result: dict[str, str | None] = {
         "github_owner": None,
@@ -447,6 +448,9 @@ def extract_github_info(
             result["github_actor_login"] = actor_login
         if actor_id := sender.get("id"):
             result["github_actor_id"] = str(actor_id)
+
+    if pr_author_id := get_pr_author_id(event):
+        result["github_pr_author_id"] = pr_author_id
 
     return result
 

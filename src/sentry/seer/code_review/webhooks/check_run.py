@@ -128,6 +128,7 @@ def handle_check_run_event(
         action=validated_event.action,
         html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        extra=dict(extra) if extra else None,
     )
     record_webhook_enqueued(github_event, action)
 

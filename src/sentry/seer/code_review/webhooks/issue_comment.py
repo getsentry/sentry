@@ -118,4 +118,5 @@ def handle_issue_comment_event(
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
+        extra=extra,
     )

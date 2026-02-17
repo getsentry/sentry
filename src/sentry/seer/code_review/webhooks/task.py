@@ -42,6 +42,7 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    extra: Mapping[str, str | None] | None = None,
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
@@ -62,10 +63,12 @@ def schedule_task(
         return
 
     # Convert enum to string for Celery serialization
+    # extra must remain JSON-serializable since it is passed through Celery
     process_github_webhook_event.delay(
         github_event=github_event.value,
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        extra=dict(extra) if extra else None,
     )
     record_webhook_enqueued(github_event, github_event_action)
 
@@ -81,6 +84,7 @@ def process_github_webhook_event(
     enqueued_at_str: str,
     github_event: str,
     event_payload: Mapping[str, Any],
+    extra: Mapping[str, str | None] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -90,6 +94,7 @@ def process_github_webhook_event(
         enqueued_at_str: The timestamp when the task was enqueued
         github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
         event_payload: The payload of the webhook event
+        extra: Logging context from the webhook handler (must be JSON-serializable)
         **kwargs: Parameters to pass to webhook handler functions
     """
     status = "success"
@@ -118,7 +123,7 @@ def process_github_webhook_event(
         else:
             payload = event_payload
 
-        log_seer_request(event_payload, github_event)
+        log_seer_request(event_payload, github_event, extra=extra)
         make_seer_request(path=path, payload=payload)
     except Exception as e:
         status = e.__class__.__name__
@@ -135,16 +140,19 @@ def process_github_webhook_event(
             record_latency(status, enqueued_at_str)
 
 
-def log_seer_request(event_payload: Mapping[str, Any], github_event: str) -> None:
+def log_seer_request(
+    event_payload: Mapping[str, Any],
+    github_event: str,
+    extra: Mapping[str, str | None] | None = None,
+) -> None:
     repo_data = event_payload.get("data", {}).get("repo", {})
     trigger_at_str = event_payload.get("data", {}).get("config", {}).get("trigger_at")
     logger.info(
         "%s.sending_request_to_seer",
         PREFIX,
         extra={
+            **(extra or {}),
             "provider": repo_data.get("provider"),
-            "repo_owner": repo_data.get("owner"),
-            "repo_name": repo_data.get("name"),
             "pr_id": event_payload.get("data", {}).get("pr_id"),
             "commit_sha": repo_data.get("base_commit_sha"),
             "request_type": event_payload.get("request_type"),
