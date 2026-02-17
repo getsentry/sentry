@@ -1,5 +1,8 @@
+import {VisuallyHidden} from '@react-aria/visually-hidden';
+
 import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
 import {RequiredIndicator} from '@sentry/scraps/form/icons';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -17,17 +20,28 @@ function HintText(props: {children: string}) {
   );
 }
 
-function Label(props: {children: string; required?: boolean}) {
+function Label(props: {children: string; description?: string; required?: boolean}) {
   const fieldId = useFieldId();
+  const hintTextId = useHintTextId();
+
+  const labelContent = props.description ? (
+    <InfoText title={props.description}>{props.children}</InfoText>
+  ) : (
+    props.children
+  );
 
   return (
     <Container width="fit-content">
       {containerProps => (
         <Flex gap="xs">
           <Text {...containerProps} as="label" htmlFor={fieldId}>
-            {props.children}
+            {labelContent}
           </Text>
           {props.required ? <RequiredIndicator /> : null}
+          {/* Visually hidden text maintains aria-describedby linkage */}
+          {props.description ? (
+            <VisuallyHidden id={hintTextId}>{props.description}</VisuallyHidden>
+          ) : null}
         </Flex>
       )}
     </Container>

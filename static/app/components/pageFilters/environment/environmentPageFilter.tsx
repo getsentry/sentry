@@ -54,6 +54,14 @@ export interface EnvironmentPageFilterProps extends Partial<
    */
   onReset?: () => void;
   /**
+   * Called when the selection changes
+   */
+  onChange?: (selected: string[]) => void;
+  /**
+   * Called when the reset button is clicked
+   */
+  onReset?: () => void;
+  /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];

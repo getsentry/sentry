@@ -93,6 +93,7 @@ class LLMIssueDetectionTest(TestCase):
             subcategory="Connection Pool Exhaustion",
             category="Database",
             verification_reason="Problem is correctly identified",
+            group_for_fingerprint="",
         )
 
         create_issue_occurrence_from_detection(
@@ -113,11 +114,7 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.culprit == "test_transaction"
         assert occurrence.level == "warning"
 
-        assert len(occurrence.fingerprint) == 1
-        assert (
-            occurrence.fingerprint[0]
-            == "llm-detected-database-connection-pool-exhaustion-test_transaction"
-        )
+        assert occurrence.fingerprint == ["llm-detected--test_transaction"]
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
         assert occurrence.evidence_data["transaction"] == "test_transaction"
@@ -146,6 +143,31 @@ class LLMIssueDetectionTest(TestCase):
         assert "event_id" in event_data
         assert "received" in event_data
         assert "timestamp" in event_data
+
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    def test_create_issue_occurrence_uses_group_for_fingerprint_when_set(
+        self, mock_produce_occurrence
+    ):
+        detected_issue = DetectedIssue(
+            title="N+1 Queries",
+            explanation="Multiple queries in loop",
+            impact="Medium",
+            evidence="5 queries",
+            missing_telemetry=None,
+            offender_span_ids=[],
+            trace_id="trace456",
+            transaction_name="GET /api",
+            subcategory="N+1",
+            category="Performance",
+            verification_reason="Verified",
+            group_for_fingerprint="seer-group-key-123",
+        )
+        create_issue_occurrence_from_detection(
+            detected_issue=detected_issue,
+            project=self.project,
+        )
+        occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
+        assert occurrence.fingerprint == ["llm-detected-seer-group-key-123-get-/api"]
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
