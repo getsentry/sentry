@@ -8,8 +8,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
-from sentry.models.projectkey import ProjectKey
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -53,6 +54,9 @@ class DsnLookupEndpoint(OrganizationEndpoint):
             project_key = ProjectKey.objects.select_related("project").get(
                 public_key=public_key,
                 project__organization_id=organization.id,
+                project__status=ObjectStatus.ACTIVE,
+                status=ProjectKeyStatus.ACTIVE,
+                use_case=UseCase.USER.value,
             )
         except ProjectKey.DoesNotExist:
             return Response({"detail": "DSN not found"}, status=404)
