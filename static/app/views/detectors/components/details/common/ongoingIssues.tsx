@@ -14,9 +14,6 @@ type DetectorDetailsOngoingIssuesProps = {
   // When null, the query uses 90d as the stats period.
   dateTimeSelection: PageFilters['datetime'] | null;
   detector: Detector;
-  // Extra query params to include in the issue details link.
-  // Useful for feature-specific deep-linking.
-  issueLinkExtraQuery?: Record<string, string>;
 };
 
 const DEFAULT_STATS_PERIOD = '90d';
@@ -24,7 +21,6 @@ const DEFAULT_STATS_PERIOD = '90d';
 export function DetectorDetailsOngoingIssues({
   detector,
   dateTimeSelection,
-  issueLinkExtraQuery,
 }: DetectorDetailsOngoingIssuesProps) {
   const organization = useOrganization();
   const query = `is:unresolved detector:${detector.id}`;
@@ -56,11 +52,7 @@ export function DetectorDetailsOngoingIssues({
     >
       <ErrorBoundary mini>
         <div>
-          <GroupList
-            numPlaceholderRows={5}
-            queryParams={{...queryParams, limit: 5}}
-            issueLinkExtraQuery={issueLinkExtraQuery}
-          />
+          <GroupList numPlaceholderRows={5} queryParams={{...queryParams, limit: 5}} />
         </div>
       </ErrorBoundary>
     </Section>

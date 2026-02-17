@@ -1436,6 +1436,12 @@ SENTRY_ORGANIZATION: int | None = None
 # Organization ID for granting superuser/staff privileges.
 SUPERUSER_ORG_ID: int | None = None
 
+# SCIM team slugs for managing privileged access.
+# When set, adding/removing members from these teams will grant/revoke the corresponding privileges.
+SENTRY_SCIM_STAFF_TEAM_SLUG: str | None = None
+SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG: str | None = None
+SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG: str | None = None
+
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority

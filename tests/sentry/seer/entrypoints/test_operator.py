@@ -9,7 +9,11 @@ from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.models.organization import Organization
 from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint
-from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    AUTOFIX_FALLBACK_CAUSE_ID,
+    SeerOperator,
+    process_autofix_updates,
+)
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey, SeerOperatorCacheResult
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -329,7 +333,51 @@ class SeerOperatorTest(TestCase):
         assert call_kwargs["organization_id"] == self.group.organization.id
         payload = call_kwargs["payload"]
         assert payload["type"] == "select_root_cause"
-        assert payload["cause_id"] == 0
+        assert payload["cause_id"] == AUTOFIX_FALLBACK_CAUSE_ID
+
+    @patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True)
+    def test_has_access_returns_false_with_autofix_on_explorer(self, _mock_has_seer_access):
+        with self.feature({"organizations:autofix-on-explorer": True}):
+            assert not SeerOperator.has_access(organization=self.group.project.organization)
+
+    @patch("sentry.seer.entrypoints.operator.update_autofix")
+    @patch("sentry.seer.entrypoints.operator.get_autofix_state")
+    def test_solution_stopping_point_uses_cause_id_from_state(
+        self, mock_get_autofix_state, mock_update_autofix
+    ):
+        mock_update_autofix.return_value = Response({"run_id": MOCK_RUN_ID}, status=202)
+        existing_state = AutofixState(
+            run_id=MOCK_RUN_ID,
+            request={
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "issue": {"id": self.group.id, "title": "test"},
+                "repos": [],
+            },
+            updated_at=datetime.now(),
+            status=AutofixStatus.PROCESSING,
+            steps=[
+                {
+                    "key": "root_cause_analysis",
+                    "status": AutofixStatus.COMPLETED,
+                    "causes": [{"id": 12}, {"id": 34}],
+                },
+            ],
+        )
+        mock_get_autofix_state.return_value = existing_state
+
+        self.operator.trigger_autofix(
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.SOLUTION,
+            run_id=MOCK_RUN_ID,
+        )
+
+        mock_update_autofix.assert_called_once()
+        call_kwargs = mock_update_autofix.call_args.kwargs
+        payload = call_kwargs["payload"]
+        assert payload["type"] == "select_root_cause"
+        assert payload["cause_id"] == 34
 
     def test_can_trigger_autofix_returns_false_without_seer_access(self):
         assert SeerOperator.can_trigger_autofix(group=self.group) is False

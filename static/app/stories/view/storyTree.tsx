@@ -188,7 +188,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   overlays: {
     label: 'Overlays',
-    components: ['slideoverpanel', 'tooltip'],
+    components: ['slideoverpanel', 'tooltip', 'infotext', 'infotip'],
   },
   utilities: {
     label: 'Utilities',
