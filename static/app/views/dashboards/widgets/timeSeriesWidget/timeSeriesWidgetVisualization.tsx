@@ -172,7 +172,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     ...props.chartXRangeSelection,
   });
 
-  const plottablesByType = groupBy(plottables, p => p.dataType);
+  // Use `props.plottables` (not `plottables`) to avoid global annotations
+  // influencing axis type assignment. Annotations only render vertical marker
+  // lines and have a hard-coded `dataType` that can skew the type counts,
+  // causing the actual data to be assigned to the wrong Y axis.
+  const plottablesByType = groupBy(props.plottables, p => p.dataType);
 
   // Count up the field types of all the plottables
   const fieldTypeCounts = mapValues(plottablesByType, items => items.length);

@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {createContext, useCallback, useContext, useState} from 'react';
+import {createContext, useCallback, useContext, useEffect, useState} from 'react';
 
 interface TimestampAnnotationEntry {
   timestamp: number;
@@ -15,6 +15,8 @@ interface GlobalTimestampAnnotationsContextValue {
   removeAnnotation: (index: number) => void;
 }
 
+const STORAGE_KEY = 'global-timestamp-annotations';
+
 const GlobalTimestampAnnotationsContext =
   createContext<GlobalTimestampAnnotationsContextValue | null>(null);
 
@@ -25,7 +27,18 @@ interface GlobalTimestampAnnotationsProviderProps {
 export function GlobalTimestampAnnotationsProvider({
   children,
 }: GlobalTimestampAnnotationsProviderProps) {
-  const [annotations, setAnnotations] = useState<TimestampAnnotationEntry[]>([]);
+  const [annotations, setAnnotations] = useState<TimestampAnnotationEntry[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
+  }, [annotations]);
 
   const addAnnotation = useCallback((annotation: TimestampAnnotationEntry) => {
     setAnnotations(prev => [...prev, annotation]);
