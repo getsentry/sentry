@@ -2,13 +2,16 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {SelectAsync} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SelectValue} from 'sentry/types/core';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 
@@ -30,8 +33,8 @@ function CustomCommitsResolutionModal({
   const [commit, setCommit] = useState<Commit | undefined>();
   const [commits, setCommits] = useState<Commit[] | undefined>();
 
-  const onChange = (value: string | number | boolean) => {
-    setCommit(commits?.find(result => result.id === value));
+  const onChange = (option: SelectValue<string> | null) => {
+    setCommit(commits?.find(result => result.id === option?.value));
   };
 
   const onAsyncFieldResults = (results: Commit[]) => {
@@ -65,18 +68,23 @@ function CustomCommitsResolutionModal({
         <h4>{t('Resolved In')}</h4>
       </Header>
       <Body>
-        <SelectAsyncField
-          label={t('Commit')}
-          id="commit"
-          name="commit"
-          onChange={onChange}
-          placeholder={t('e.g. d86b832')}
-          url={`/projects/${orgSlug}/${projectSlug}/commits/`}
-          onResults={onAsyncFieldResults}
-          onQuery={(query: any) => ({
-            query,
-          })}
-        />
+        <Stack gap="sm">
+          <Text as="label" htmlFor="commit">
+            {t('Commit')}
+          </Text>
+          <SelectAsync
+            id="commit"
+            name="commit"
+            onChange={onChange}
+            placeholder={t('e.g. d86b832')}
+            url={`/projects/${orgSlug}/${projectSlug}/commits/`}
+            onResults={onAsyncFieldResults}
+            onQuery={(query: string | undefined) => ({
+              query,
+            })}
+            value={commit?.id ?? ''}
+          />
+        </Stack>
       </Body>
       <Footer>
         <Button
