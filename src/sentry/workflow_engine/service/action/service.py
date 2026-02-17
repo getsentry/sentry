@@ -39,6 +39,7 @@ class ActionService(RpcService):
     def update_action_status_for_sentry_app_installation(
         self,
         *,
+        region_name: str,
         status: int,
         organization_id: int,
         sentry_app_id: int,
