@@ -28,14 +28,14 @@ import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spa
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
-  SERVICE_ENTRY_SPANS_COLUMN_ORDER,
-  type ServiceEntrySpansColumn,
-  type ServiceEntrySpansRow,
+  SEGMENT_SPANS_COLUMN_ORDER,
+  type SegmentSpansColumn,
+  type SegmentSpansRow,
 } from 'sentry/views/performance/otlp/types';
-import {useServiceEntrySpansQuery} from 'sentry/views/performance/otlp/useServiceEntrySpansQuery';
+import {useSegmentSpansQuery} from 'sentry/views/performance/otlp/useSegmentSpansQuery';
 import {
   getOTelTransactionsListSort,
-  SERVICE_ENTRY_SPANS_CURSOR,
+  SEGMENT_SPANS_CURSOR,
 } from 'sentry/views/performance/otlp/utils';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -50,7 +50,7 @@ type Props = {
   showViewSampledEventsButton?: boolean;
 };
 
-export function ServiceEntrySpansTable({
+export function SegmentSpansTable({
   eventView,
   handleDropdownChange,
   totalValues,
@@ -79,7 +79,7 @@ export function ServiceEntrySpansTable({
     pageLinks,
     meta,
     error,
-  } = useServiceEntrySpansQuery({
+  } = useSegmentSpansQuery({
     query: eventViewQuery.formatString(),
     sort: selected.sort,
     transactionName,
@@ -99,7 +99,7 @@ export function ServiceEntrySpansTable({
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
       pathname,
-      query: {...query, [SERVICE_ENTRY_SPANS_CURSOR]: _cursor},
+      query: {...query, [SEGMENT_SPANS_CURSOR]: _cursor},
     });
   };
 
@@ -151,7 +151,7 @@ export function ServiceEntrySpansTable({
         isLoading={isLoading}
         error={error}
         data={consolidatedData}
-        columnOrder={SERVICE_ENTRY_SPANS_COLUMN_ORDER}
+        columnOrder={SEGMENT_SPANS_COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
           renderHeadCell: column =>
@@ -167,8 +167,8 @@ export function ServiceEntrySpansTable({
 }
 
 function renderBodyCell(
-  column: ServiceEntrySpansColumn,
-  row: ServiceEntrySpansRow,
+  column: SegmentSpansColumn,
+  row: SegmentSpansRow,
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
   location: Location,
