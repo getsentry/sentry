@@ -383,3 +383,23 @@ The baseline continued iterating beyond the 11m29s configuration:
 **Expected improvement:** Tier2 startup should be faster since 16 shards skip pulling ~3 heavy Docker images. Tier3 absorbs the slow relay/symbolicator/objectstore tests onto a dedicated shard with the full stack.
 
 **Results:** TBD (run `22118316595`).
+
+---
+
+## Bug Fix: Kafka Per-Worker Topic Isolation
+
+**What:** Fixed a correctness bug where Kafka topic isolation under xdist was completely non-functional. All xdist workers shared the same Kafka topics and consumer group, meaning Relay events from one worker could be consumed by another worker's test consumer, causing non-deterministic test pollution.
+
+**Root cause:** The per-worker isolation required three coordinated pieces. `template/config.yml` was already correct on our branch (the Step 2 commit included `${KAFKA_TOPIC_EVENTS}` / `${KAFKA_TOPIC_OUTCOMES}` template variables), and `sentry.py`'s `_get_xdist_kafka_topic()` helper was fine. However, `kafka.py` — the consumer side — was never updated:
+
+1. **`sentry.py`** — `_get_xdist_kafka_topic("ingest-events")` correctly computes per-worker topic names (e.g., `ingest-events-gw0`). Fine.
+2. **`template/config.yml`** — Already had `${KAFKA_TOPIC_EVENTS}` / `${KAFKA_TOPIC_OUTCOMES}` from Step 2, so Relay containers write to per-worker topics correctly. Fine.
+3. **`kafka.py`** — Had **hardcoded** `"ingest-events"`, `"outcomes"`, and `group_id = "test-consumer"` instead of using `_get_xdist_kafka_topic()`. All workers' consumers subscribed to the same topic with the same group ID.
+
+**Net effect:** Relay was writing to per-worker topics (e.g., `ingest-events-gw0`) but consumers were reading from the shared `ingest-events` topic. Events written by Relay were never consumed, and the consumers saw nothing (or stale data from a previous run).
+
+**Fix (ported from golden branch):**
+
+- `kafka.py`: Added `from sentry.testutils.pytest.sentry import _get_xdist_kafka_topic`, replaced all hardcoded topic names and the consumer group ID with `_get_xdist_kafka_topic(...)` calls.
+
+**Impact:** Currently masked because relay tests run on tier3 with only 1 shard and 2 xdist workers, limiting the blast radius. Would cause increasingly flaky failures as shard count or worker count scales up. Fixing this is a prerequisite for reliable parallel relay test execution.
