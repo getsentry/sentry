@@ -379,7 +379,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
   // find min/max timestamp of *all* timeSeries
-  const allBoundaries = plottables
+  const allBoundaries = props.plottables
     .flatMap(plottable => [plottable.start, plottable.end])
     .toSorted();
   const earliestTimeStamp = allBoundaries.at(0);
