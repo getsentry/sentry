@@ -135,3 +135,28 @@ Failures: 2/22 — both `test_snowflake.py` (fixed above). All other tests passe
 
 Setup + bootstrap is no longer visible as a separate phase — it overlaps with collection.
 The 1.5m wall-clock savings (103s sequential overhead → overlapped) matches the expected ~80-100s.
+
+---
+
+## Step 4: Two-Tier Split (5T1 / 17T2)
+
+**What:** Split tests by service dependency into two tiers. Tier 1 (5 shards) runs ~71% of tests with Postgres + Redis only (`migrations` mode, no Snuba). Tier 2 (17 shards) runs ~29% of tests with the full stack + per-worker isolation + H1.
+
+**New files:**
+- `split-tests-by-tier.py` — reads classification JSON, outputs tier1/tier2 test lists. Supports `--granularity file|class|test`.
+- Workflow restructured from 1 job to 3 jobs: `split-tiers` → `tier1` + `tier2` in parallel.
+
+**`sentry.py` change:** `SELECTED_TESTS_FILE` filtering now respects `TIER_GRANULARITY` env var (file/class/test matching).
+
+**Tier 1 service containers:** Kafka, Zookeeper, and redis-cluster run as GitHub Actions `services:` containers. Kafka is bundled with Snuba in devservices and can't be started alone, but app code (`on_commit` hooks like `invalidate_project_config`) produces to Kafka even for non-Snuba tests.
+
+**Classifier gap — objectstore runtime detection:**
+Initial tier1 runs failed on `test_preprod_artifact_snapshot.py` (500 errors). Root cause: the endpoint calls `get_preprod_session().put()` to upload to objectstore (port 8888), but:
+1. The test lacks a `requires_objectstore` fixture marker (static detection misses it).
+2. `SERVICE_PORTS` in `service_classifier.py` only had snuba (1218) and bigtable (8086) — objectstore (8888) was missing from runtime detection.
+
+**Fix:** Added objectstore (8888) and symbolicator (3021) to `SERVICE_PORTS` so runtime detection catches implicit dependencies. Also added the file to `FORCE_TIER2_FILES` as an immediate workaround (classification data is pre-generated and won't update until the classifier reruns).
+
+**Testing:** 3 parallel worktrees comparing file/class/test granularity.
+
+**Results:** TBD

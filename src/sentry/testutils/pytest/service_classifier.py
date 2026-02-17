@@ -22,6 +22,9 @@ import pytest
 # Port-to-service mapping for runtime socket monitoring.
 SERVICE_PORTS: dict[int, str] = {
     1218: "snuba",
+    3021: "symbolicator",
+    8086: "bigtable",
+    8888: "objectstore",
 }
 
 # Fixture-to-service mapping for static detection.
@@ -30,14 +33,6 @@ FIXTURE_SERVICE_MAP: dict[str, str] = {
     "_requires_kafka": "kafka",
     "_requires_symbolicator": "symbolicator",
     "_requires_objectstore": "objectstore",
-}
-
-# Bigtable has no fixture and no runtime socket detection — hardcoded by file path.
-BIGTABLE_TEST_FILES: set[str] = {
-    "tests/sentry/services/nodestore/bigtable/test_backend.py",
-    "tests/sentry/services/nodestore/test_common.py",
-    "tests/sentry/utils/kvstore/test_bigtable.py",
-    "tests/sentry/utils/kvstore/test_common.py",
 }
 
 _original_send: Any = None
@@ -101,10 +96,6 @@ def _detect_static_services(item: pytest.Item) -> set[str]:
         for name in marker.args:
             if name in FIXTURE_SERVICE_MAP:
                 services.add(FIXTURE_SERVICE_MAP[name])
-
-    rel_path = str(Path(item.fspath).relative_to(Path(item.config.rootpath)))
-    if rel_path in BIGTABLE_TEST_FILES:
-        services.add("bigtable")
 
     return services
 
