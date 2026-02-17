@@ -411,6 +411,7 @@ def extract_github_info(
         "github_event_action": None,
         "github_actor_login": None,
         "github_actor_id": None,
+        "github_pr_author_id": None,
     }
 
     repository = event.get("repository", {})

@@ -523,6 +523,7 @@ class TestExtractGithubInfo:
         assert result["github_event_action"] == "opened"
         assert result["github_actor_login"] == "baxterthehacker"
         assert result["github_actor_id"] == "6752317"
+        assert result["github_pr_author_id"] == "6752317"
 
     def test_extract_from_check_run_event(self) -> None:
         event = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
@@ -536,6 +537,8 @@ class TestExtractGithubInfo:
         assert result["github_event_action"] == "rerequested"
         assert result["github_actor_login"] == "test-user"
         assert result["github_actor_id"] == "12345678"
+        # check_run events have no PR user; falls back to sender via get_pr_author_id
+        assert result["github_pr_author_id"] == "12345678"
 
     def test_extract_from_check_run_completed_event(self) -> None:
         event = orjson.loads(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
@@ -560,6 +563,7 @@ class TestExtractGithubInfo:
             },
             "issue": {
                 "number": 42,
+                "user": {"login": "pr-author", "id": 42},
                 "pull_request": {
                     "html_url": "https://github.com/comment-owner/comment-repo/pull/42"
                 },
@@ -586,6 +590,29 @@ class TestExtractGithubInfo:
         assert result["github_event_action"] == "created"
         assert result["github_actor_login"] == "commenter-user"
         assert result["github_actor_id"] == "98765"
+        # PR author is issue.user, not the commenter (sender)
+        assert result["github_pr_author_id"] == "42"
+
+    def test_extract_pr_author_differs_from_sender(self) -> None:
+        """PR author and sender can be different (e.g., collaborator pushes commits)."""
+        event = {
+            "action": "synchronize",
+            "pull_request": {
+                "html_url": "https://github.com/owner/repo/pull/1",
+                "user": {"login": "pr-author", "id": 111},
+            },
+            "sender": {"login": "collaborator", "id": 222},
+            "repository": {
+                "name": "repo",
+                "full_name": "owner/repo",
+                "owner": {"login": "owner"},
+            },
+        }
+        result = extract_github_info(event, github_event="pull_request")
+
+        assert result["github_actor_login"] == "collaborator"
+        assert result["github_actor_id"] == "222"
+        assert result["github_pr_author_id"] == "111"
 
     def test_comment_url_takes_precedence_over_pr_url(self) -> None:
         event = {
@@ -641,6 +668,7 @@ class TestExtractGithubInfo:
         assert result["github_event_action"] is None
         assert result["github_actor_login"] is None
         assert result["github_actor_id"] is None
+        assert result["github_pr_author_id"] is None
 
     def test_missing_repository_owner_returns_none(self) -> None:
         event = {"repository": {"name": "repo-without-owner"}}
