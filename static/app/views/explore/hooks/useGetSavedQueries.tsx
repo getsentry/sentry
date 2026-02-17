@@ -249,13 +249,11 @@ export function useGetSavedQuery(id?: string) {
       enabled: defined(id),
     }
   );
-  const savedQuery = useMemo(
-    () =>
-      defined(data) && Array.isArray(data.query) && data.query.length > 0
-        ? new SavedQuery(data)
-        : data,
-    [data]
-  );
+  const savedQuery = useMemo(() => {
+    return Array.isArray(data?.query) && data.query.length > 0
+      ? new SavedQuery(data)
+      : data;
+  }, [data]);
   return {data: savedQuery, isLoading, ...rest};
 }
 
