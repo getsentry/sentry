@@ -123,4 +123,15 @@ Failures: 2/22 — both `test_snowflake.py` (fixed above). All other tests passe
 
 **Expected savings:** Step 2 showed 48s setup + 55s bootstrap = 103s sequential overhead. With H1, most of this overlaps with collection. Net saving ~80-100s per shard.
 
-**Results:** TBD
+**Results** (run `22113448082`, 22 shards × 3 workers, all passed):
+
+| Metric | Step 2 | Step 3 | Delta |
+|---|---|---|---|
+| Wall clock | 13.6m | 12.1m | -1.5m (11%) |
+| Avg shard | 12.2m | 11.2m | -1.0m |
+| Max / Min | 13.6m / 9.8m | 12.1m / 9.7m | |
+| Spread | 224s | 142s | -82s |
+| Runner-minutes | 268m | 247m | -21m |
+
+Setup + bootstrap is no longer visible as a separate phase — it overlaps with collection.
+The 1.5m wall-clock savings (103s sequential overhead → overlapped) matches the expected ~80-100s.

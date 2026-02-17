@@ -29,6 +29,9 @@ from pathlib import Path
 # with the full backend-ci service stack.
 FORCE_TIER2_FILES: set[str] = {
     "tests/sentry/testutils/thread_leaks/test_pytest.py",
+    # Uploads to objectstore (GCS) but lacks requires_objectstore marker;
+    # classifier misses the dependency, causing 500s in tier1 migrations mode.
+    "tests/sentry/preprod/api/endpoints/test_preprod_artifact_snapshot.py",
 }
 
 TIER2_SERVICES: set[str] = {"snuba", "kafka", "symbolicator", "objectstore", "bigtable"}
