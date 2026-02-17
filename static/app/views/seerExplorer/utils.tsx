@@ -5,6 +5,7 @@ import queryString from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -33,10 +34,16 @@ type ToolFormatter = (
 
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
-  runId?: number
+  runId: number | null
 ): ApiQueryKey => [
-  // @ts-expect-error TODO(ryan953): Invalid useApiQuery path
-  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+  runId
+    ? getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
+        path: {organizationIdOrSlug: orgSlug, runId},
+      })
+    : getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+
   {},
 ];
 

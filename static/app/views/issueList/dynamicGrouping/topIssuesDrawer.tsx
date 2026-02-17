@@ -314,8 +314,11 @@ function useSeerExplorerRun(runId: number | undefined) {
   const organization = useOrganization();
 
   return useApiQuery<SeerExplorerRunResponse>(
-    // @ts-expect-error TODO(ryan953): Invalid useApiQuery path (definition is missing trailing slash)
-    [`/organizations/${organization.slug}/seer/explorer-chat/${runId}/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
+        path: {organizationIdOrSlug: organization.slug, runId: runId!},
+      }),
+    ],
     {
       staleTime: 60000,
       enabled: runId !== undefined && runId > 0,
