@@ -8,6 +8,8 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - mchen/scope-class
+      - mchen/scope-test
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -16,7 +18,7 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
-  TIER_GRANULARITY: file
+  TIER_GRANULARITY: class
 
 jobs:
   # ─── Split tests into tiers using classification data ──────────────
@@ -106,7 +108,7 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 5
-      TEST_GROUP_STRATEGY: roundrobin
+      TEST_GROUP_STRATEGY: scope
       PYTHONHASHSEED: '0'
 
     steps:
@@ -131,7 +133,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n 3 \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
@@ -174,7 +176,7 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 17
-      TEST_GROUP_STRATEGY: roundrobin
+      TEST_GROUP_STRATEGY: scope
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '3'
@@ -258,7 +260,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
