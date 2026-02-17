@@ -18,6 +18,7 @@ Usage:
     python split-tests-by-tier.py --classification report.json --tier tier1 --output tier1.txt
     python split-tests-by-tier.py --classification report.json --summary
 """
+
 from __future__ import annotations
 
 import argparse
@@ -31,6 +32,10 @@ FORCE_TIER3_FILES: set[str] = {
     # Uploads to objectstore (GCS) but lacks requires_objectstore marker;
     # classifier misses the dependency, causing 500s in lighter tiers.
     "tests/sentry/preprod/api/endpoints/test_preprod_artifact_snapshot.py",
+    # Heavy snuba test files moved to tier3 to use headroom and reduce T2 max.
+    "tests/snuba/api/endpoints/test_organization_events.py",
+    "tests/sentry/tasks/test_post_process.py",
+    "tests/snuba/api/endpoints/test_organization_events_mep.py",
 }
 
 FORCE_TIER2_FILES: set[str] = {
@@ -101,9 +106,15 @@ def main() -> int:
         label = {"file": "files", "class": "scopes", "test": "tests"}[args.granularity]
         print(f"Granularity: {args.granularity}")
         print(f"Total {label}: {total}")
-        print(f"Tier 1 (Postgres + Redis):  {len(tiers['tier1'])} {label} ({len(tiers['tier1']) / total * 100:.1f}%)")
-        print(f"Tier 2 (Snuba/Kafka):       {len(tiers['tier2'])} {label} ({len(tiers['tier2']) / total * 100:.1f}%)")
-        print(f"Tier 3 (heavy):             {len(tiers['tier3'])} {label} ({len(tiers['tier3']) / total * 100:.1f}%)")
+        print(
+            f"Tier 1 (Postgres + Redis):  {len(tiers['tier1'])} {label} ({len(tiers['tier1']) / total * 100:.1f}%)"
+        )
+        print(
+            f"Tier 2 (Snuba/Kafka):       {len(tiers['tier2'])} {label} ({len(tiers['tier2']) / total * 100:.1f}%)"
+        )
+        print(
+            f"Tier 3 (heavy):             {len(tiers['tier3'])} {label} ({len(tiers['tier3']) / total * 100:.1f}%)"
+        )
 
         tests_data = classification.get("tests", {})
         counts = {"tier1": 0, "tier2": 0, "tier3": 0}
@@ -125,7 +136,10 @@ def main() -> int:
     scopes = sorted(tiers[args.tier])
     if args.output:
         Path(args.output).write_text("\n".join(scopes) + "\n")
-        print(f"Wrote {len(scopes)} {args.granularity}-level identifiers to {args.output}", file=sys.stderr)
+        print(
+            f"Wrote {len(scopes)} {args.granularity}-level identifiers to {args.output}",
+            file=sys.stderr,
+        )
     else:
         for s in scopes:
             print(s)

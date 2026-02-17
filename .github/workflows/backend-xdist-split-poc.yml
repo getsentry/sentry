@@ -88,7 +88,8 @@ jobs:
     services:
       redis-cluster:
         image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
-        ports: ['7000:7000', '7001:7001', '7002:7002', '7003:7003', '7004:7004', '7005:7005']
+        ports:
+          ['7000:7000', '7001:7001', '7002:7002', '7003:7003', '7004:7004', '7005:7005']
         env:
           IP: 0.0.0.0
       zookeeper:
@@ -136,7 +137,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n 3 \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
@@ -263,7 +264,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
@@ -397,7 +398,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
