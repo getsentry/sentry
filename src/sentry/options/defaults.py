@@ -1171,32 +1171,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Seer organization index options
-register(
-    "seer.org_index.enable",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.org_index.killswitch.enable",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.org_index.allowed_organizations",
-    default=[],
-    type=Sequence,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.org_index.stats_period",
-    default="7d",
-    type=String,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "seer.similarity.global-rate-limit",
     type=Dict,
