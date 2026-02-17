@@ -150,13 +150,8 @@ function AccountSubscriptions() {
                       const labelId = `subscription-${subscription.email}-${subscription.listId}`;
 
                       return (
-                        <Flex align="center" gap="sm">
-                          <field.Switch
-                            aria-labelledby={labelId}
-                            checked={field.state.value}
-                            onChange={field.handleChange}
-                          />
-                          <Stack gap="xs" flex="1">
+                        <Flex align="center" justify="between" gap="sm">
+                          <Stack gap="xs" width={{xs: '100%', sm: '75%', md: '65%'}}>
                             <Text as="label" id={labelId} htmlFor={labelId}>
                               {subscription.listName}
                             </Text>
@@ -171,6 +166,13 @@ function AccountSubscriptions() {
                               </Text>
                             )}
                           </Stack>
+                          <Flex align="start" justify="start" flexGrow={1}>
+                            <field.Switch
+                              aria-labelledby={labelId}
+                              checked={field.state.value}
+                              onChange={field.handleChange}
+                            />
+                          </Flex>
                         </Flex>
                       );
                     }}
