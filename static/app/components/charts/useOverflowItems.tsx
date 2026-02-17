@@ -32,14 +32,15 @@ export function useOverflowItems<T>(
       threshold: 0.95,
     };
 
+    const elementToIndex = new WeakMap<Element, number>();
+    const children = Array.from(containerRef.current.children);
+    children.forEach((child, index) => elementToIndex.set(child, index));
+
     const callback: IntersectionObserverCallback = entries => {
       entries.forEach(entry => {
-        const {target} = entry;
-        const index = Array.from(containerRef.current!.children).indexOf(
-          target as HTMLElement
-        );
+        const index = elementToIndex.get(entry.target);
 
-        if (index === -1) {
+        if (index === undefined) {
           return;
         }
 
@@ -61,7 +62,6 @@ export function useOverflowItems<T>(
 
     const observer = new IntersectionObserver(callback, options);
 
-    const children = Array.from(containerRef.current.children);
     children.forEach(child => observer.observe(child));
 
     return () => {

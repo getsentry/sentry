@@ -1,3 +1,4 @@
+import type React from 'react';
 import styled from '@emotion/styled';
 
 const CHECKBOX_SIZE = '12px';
@@ -7,7 +8,7 @@ const BORDER_RADIUS = '2px';
 interface LegendCheckboxProps {
   checked: boolean;
   color: string;
-  onChange: () => void;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   'aria-label'?: string;
 }
 

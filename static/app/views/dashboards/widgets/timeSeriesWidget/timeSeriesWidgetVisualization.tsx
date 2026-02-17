@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
@@ -35,8 +35,7 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-// TODO: restore when feature flag is re-enabled
-// import useOrganization from 'sentry/utils/useOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
@@ -141,8 +140,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
-  // TODO: restore when feature flag is re-enabled
-  // const organization = useOrganization();
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
@@ -273,7 +271,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // Set up a fallback palette for any plottable without a color
   const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
 
-  const palette = paletteSize > 0 ? theme.chart.getColorPalette(paletteSize - 1) : [];
+  const palette = useMemo(
+    () => (paletteSize > 0 ? theme.chart.getColorPalette(paletteSize - 1) : []),
+    [paletteSize, theme.chart]
+  );
 
   // Create a lookup of series names (given to ECharts) to labels (from
   // Plottable). This makes it easier to look up alises when rendering tooltips
@@ -546,42 +547,44 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
-  const hasChartLegend = true; // TODO: gate behind organization.features.includes('chart-legend-component')
+  const hasChartLegend = organization.features.includes('chart-legend-component');
 
   // Local legend selection state used when the parent doesn't manage it
   const [localLegendSelection, setLocalLegendSelection] = useState<
     Record<string, boolean>
   >({});
   const legendSelection = props.legendSelection ?? localLegendSelection;
+  const {onLegendSelectionChange} = props;
   const handleLegendSelectionChange = useCallback(
     (selection: Record<string, boolean>) => {
-      if (props.onLegendSelectionChange) {
-        props.onLegendSelectionChange(selection);
+      if (onLegendSelectionChange) {
+        onLegendSelectionChange(selection);
       } else {
         setLocalLegendSelection(selection);
       }
     },
-    [props]
+    [onLegendSelectionChange]
   );
 
   // Build legend items from plottables using their assigned colors
-  const chartLegendItems: LegendItem[] = hasChartLegend
-    ? (() => {
-        let colorIndex = 0;
-        return props.plottables.map(plottable => {
-          let color = '';
-          if (plottable.needsColor) {
-            color = palette[colorIndex % palette.length]!;
-            colorIndex += 1;
-          }
-          return {
-            name: plottable.name,
-            label: aliases[plottable.name] ?? plottable.name,
-            color,
-          };
-        });
-      })()
-    : [];
+  const chartLegendItems: LegendItem[] = useMemo(() => {
+    if (!hasChartLegend) {
+      return [];
+    }
+    let colorIndex = 0;
+    return props.plottables.map(plottable => {
+      let color = '';
+      if (plottable.needsColor) {
+        color = palette[colorIndex % palette.length]!;
+        colorIndex += 1;
+      }
+      return {
+        name: plottable.name,
+        label: aliases[plottable.name] ?? plottable.name,
+        color,
+      };
+    });
+  }, [hasChartLegend, props.plottables, palette, aliases]);
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 

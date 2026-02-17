@@ -93,7 +93,10 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
             <LegendCheckbox
               color={item.color}
               checked={selected[item.name] !== false}
-              onChange={() => toggleItem(item.name)}
+              onChange={e => {
+                e.stopPropagation();
+                toggleItem(item.name);
+              }}
               aria-label={t('Toggle %s', item.label)}
             />
             <Text size="xs" ellipsis>
