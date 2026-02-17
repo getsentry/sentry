@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from django.test import override_settings
 
-from sentry.types.region import Region, RegionDirectory, get_global_directory
+from sentry.types.region import Locality, Region, RegionDirectory, get_global_directory
 
 
 @dataclass(frozen=True)
@@ -18,8 +18,8 @@ class _TemporaryRegionDirectoryState:
 class TestEnvRegionDirectory(RegionDirectory):
     __test__ = False
 
-    def __init__(self, regions: Collection[Region]) -> None:
-        super().__init__(regions)
+    def __init__(self, regions: Collection[Region], localities: Collection[Locality]) -> None:
+        super().__init__(regions, localities)
         self._tmp_state = _TemporaryRegionDirectoryState(
             regions=super().regions, default_region=next(iter(regions))
         )
