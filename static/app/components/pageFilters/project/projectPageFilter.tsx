@@ -108,6 +108,15 @@ export function ProjectPageFilter({
     useState<Set<string>>(
       () => new Set(projects.filter(p => p.isBookmarked).map(p => p.id))
     );
+
+  // Snapshot of bookmarked projects when menu opens - used for sorting to prevent
+  // re-sorting while menu is open
+  const bookmarkedSnapshotRef = useRef<Set<string> | undefined>(undefined);
+
+  if (!bookmarkedSnapshotRef.current) {
+    bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+  }
+
   const [memberProjects, otherProjects] = useMemo(
     () => partition(projects, project => project.isMember),
     [projects]
@@ -346,11 +355,14 @@ export function ProjectPageFilter({
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
-    const listSort = (project: Project) => [
-      !lastSelected.includes(parseInt(project.id, 10)),
-      !project.isBookmarked,
-      project.slug,
-    ];
+    const listSort = (project: Project) =>
+      bookmarkedSnapshotRef.current
+        ? [
+            !lastSelected.includes(parseInt(project.id, 10)),
+            !bookmarkedSnapshotRef.current.has(project.id),
+            project.slug,
+          ]
+        : [!lastSelected.includes(parseInt(project.id, 10)), project.slug];
 
     return nonMemberProjects.length > 0
       ? [
@@ -429,6 +441,9 @@ export function ProjectPageFilter({
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
+      onOpenChange={() => {
+        bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+      }}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
           <HybridFilterComponents.ResetButton
