@@ -409,6 +409,14 @@ function useWidgetBuilderState(): {
             setQuery(query?.slice(0, 1), options);
             // Categorical bars show more categories than time-series groupings
             setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
+          } else if (action.payload === DisplayType.TEXT) {
+            // Text widgets don't need any data fields, just title and description
+            setFields([], options);
+            setYAxis([], options);
+            setQuery([''], options);
+            setSort([], options);
+            setLimit(undefined, options);
+            setLegendAlias([], options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [

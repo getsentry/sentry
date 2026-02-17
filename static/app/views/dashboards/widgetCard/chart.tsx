@@ -90,6 +90,7 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -249,6 +250,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       <TransitionChart loading={loading} reloading={loading}>
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <CategoricalSeriesComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.TEXT) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <TextComponent {...props} />
       </TransitionChart>
     );
   }
@@ -823,6 +833,10 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
       selection={props.selection}
     />
   );
+}
+
+function TextComponent(props: TableComponentProps): React.ReactNode {
+  return <TextWidgetVisualization description={props.widget.description} />;
 }
 
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
