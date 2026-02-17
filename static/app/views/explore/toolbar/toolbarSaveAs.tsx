@@ -170,10 +170,9 @@ export function ToolbarSaveAs() {
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
   const chartOptions = useMemo(() => {
-    return visualizeYAxes.map((yAxis, index) => {
-      const dedupedYAxes = [yAxis];
-      const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(yaxis);
+    return visualizes.filter(isVisualizeFunction).map((visualize, index) => {
+      const formattedYAxes = visualize.yAxes.map(yAxis => {
+        const func = parseFunction(yAxis);
         return func ? prettifyParsedFunction(func) : undefined;
       });
 
@@ -194,7 +193,7 @@ export function ToolbarSaveAs() {
         },
       };
     });
-  }, [addToDashboard, disableAddToDashboard, organization, visualizeYAxes]);
+  }, [addToDashboard, disableAddToDashboard, organization, visualizes]);
 
   items.push({
     key: 'add-to-dashboard',
