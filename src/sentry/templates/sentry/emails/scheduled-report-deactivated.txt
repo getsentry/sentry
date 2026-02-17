@@ -1,0 +1,9 @@
+Scheduled Report Deactivated: {{ report_name }}
+=================================================
+
+Your scheduled report "{{ report_name }}" in the {{ organization_name }} organization has been deactivated.
+
+Reason: {{ reason }}
+
+To manage your scheduled reports, visit your organization settings:
+{{ settings_url|safe }}

@@ -1,0 +1,13 @@
+Scheduled Report: {{ report_name }}
+====================================
+{% if empty_result %}
+The query returned no results for the configured time range. The report file is still attached (headers only).
+{% else %}
+Your scheduled report is ready. The file is attached to this email.
+{% endif %}
+Organization: {{ organization_name }}
+Schedule: {{ frequency }}
+Generated: {{ generated_at }}
+
+To manage your scheduled reports, visit your organization settings:
+{{ settings_url|safe }}

@@ -1,0 +1,14 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block main %}
+    <h3>Scheduled Report Deactivated: {{ report_name }}</h3>
+    <p>Your scheduled report <strong>{{ report_name }}</strong> in the <strong>{{ organization_name }}</strong> organization has been deactivated.</p>
+    <p><strong>Reason:</strong> {{ reason }}</p>
+    <p>
+        To manage your scheduled reports, visit your
+        <a href="{{ settings_url|safe }}">organization settings</a>.
+    </p>
+{% endblock %}

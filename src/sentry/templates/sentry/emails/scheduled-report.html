@@ -1,0 +1,31 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block main %}
+    <h3>Scheduled Report: {{ report_name }}</h3>
+    {% if empty_result %}
+        <p>The query returned no results for the configured time range. The report file is still attached (headers only).</p>
+    {% else %}
+        <p>Your scheduled report is ready. The file is attached to this email.</p>
+    {% endif %}
+    <table style="margin-bottom:12px">
+        <tr>
+            <td style="padding-right:12px;color:#80708f"><strong>Organization</strong></td>
+            <td>{{ organization_name }}</td>
+        </tr>
+        <tr>
+            <td style="padding-right:12px;color:#80708f"><strong>Schedule</strong></td>
+            <td>{{ frequency }}</td>
+        </tr>
+        <tr>
+            <td style="padding-right:12px;color:#80708f"><strong>Generated</strong></td>
+            <td>{{ generated_at }}</td>
+        </tr>
+    </table>
+    <p style="font-size:12px;color:#80708f">
+        To manage your scheduled reports, visit your
+        <a href="{{ settings_url|safe }}">organization settings</a>.
+    </p>
+{% endblock %}
