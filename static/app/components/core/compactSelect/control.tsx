@@ -558,7 +558,11 @@ export function Control({
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
                   : menuBody}
-                {!hideOptions && <Stack minHeight="0">{children}</Stack>}
+                {!hideOptions && (
+                  <Stack flex="1 1 0" minHeight="0">
+                    {children}
+                  </Stack>
+                )}
                 {menuFooter && (
                   <MenuFooter>
                     {typeof menuFooter === 'function'
