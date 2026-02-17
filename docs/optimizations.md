@@ -103,3 +103,24 @@ Phase breakdown (avg, as % of wall clock):
 - Run backend tests: 564s / 9.4m (69.2%)
 
 Failures: 2/22 — both `test_snowflake.py` (fixed above). All other tests passed.
+
+---
+
+## Step 3: Overlapped Startup (H1)
+
+**What:** Run `devservices up` + per-worker Snuba bootstrap in a background subshell while pytest starts immediately. Pytest collection (~100-120s) doesn't need services — it only discovers test functions. By overlapping, we save ~80-100s of setup time per shard.
+
+**Workflow changes:**
+- `skip-devservices: true` in `setup-sentry` — prevents the action from starting devservices synchronously.
+- Single combined step: background subshell runs `sentry init` → `devservices up` → parallel per-worker bootstrap, while foreground starts pytest immediately.
+- Per-worker bootstrap runs in parallel (`&` + `wait`) instead of sequentially.
+- `SNUBA_WAIT_TIMEOUT: '180'` — tells `_requires_snuba` to poll instead of failing.
+- `DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'` — Docker bridge gateway for relay tests.
+
+**`_requires_snuba` polling** (`skips.py`):
+- Added `_wait_for_service()` that polls `socket.create_connection` every 1s up to `SNUBA_WAIT_TIMEOUT`.
+- When `SNUBA_WAIT_TIMEOUT > 0`, `_requires_snuba` waits for the per-worker Snuba port instead of immediately failing. This is the bridge that lets pytest collection proceed while services are still starting.
+
+**Expected savings:** Step 2 showed 48s setup + 55s bootstrap = 103s sequential overhead. With H1, most of this overlaps with collection. Net saving ~80-100s per shard.
+
+**Results:** TBD
