@@ -2,14 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
@@ -76,11 +69,11 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
     // Deselect project-1 & project-2 by clicking on their checkboxes
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
 
     // Select project-3 by clicking on its checkbox
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
 
     // Click "Apply"
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
