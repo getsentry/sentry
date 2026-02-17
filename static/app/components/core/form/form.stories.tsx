@@ -394,6 +394,72 @@ function BasicForm() {
   );
 }
 
+function CompactExample() {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      field1: '',
+      field2: '',
+      field3: '',
+      field4: '',
+    },
+  });
+
+  return (
+    <form.AppForm>
+      <form.FormWrapper>
+        <FieldGroup title="Row Layout">
+          <form.AppField name="field1">
+            {field => (
+              <field.Layout.Row
+                label="Default Variant"
+                hintText="This hint text appears below the label"
+              >
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="field2">
+            {field => (
+              <field.Layout.Row
+                label="Compact Variant"
+                hintText="This hint text appears in a tooltip when hovering the label"
+                variant="compact"
+              >
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+        </FieldGroup>
+
+        <FieldGroup title="Stack Layout">
+          <form.AppField name="field3">
+            {field => (
+              <field.Layout.Stack
+                label="Default Variant"
+                hintText="This hint text appears below the input"
+              >
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="field4">
+            {field => (
+              <field.Layout.Stack
+                label="Compact Variant"
+                hintText="This hint text appears in a tooltip when hovering the label"
+                variant="compact"
+              >
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </FieldGroup>
+      </form.FormWrapper>
+    </form.AppForm>
+  );
+}
+
 export default Storybook.story('Form', story => {
   story('Basic', () => {
     return (
@@ -410,5 +476,9 @@ export default Storybook.story('Form', story => {
         <AutoSaveExample />
       </Fragment>
     );
+  });
+
+  story('Compact Variant', () => {
+    return <CompactExample />;
   });
 });
