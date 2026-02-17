@@ -1,15 +1,14 @@
 import {useMemo, useState} from 'react';
-import {css} from '@emotion/react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -112,15 +111,10 @@ function CustomCommitsResolutionModal({
           </form.AppField>
         </Body>
         <Footer>
-          <Button
-            css={css`
-              margin-right: ${space(1.5)};
-            `}
-            onClick={closeModal}
-          >
-            {t('Cancel')}
-          </Button>
-          <form.SubmitButton priority="primary">{t('Resolve')}</form.SubmitButton>
+          <Flex gap="sm" justify="end">
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <form.SubmitButton priority="primary">{t('Resolve')}</form.SubmitButton>
+          </Flex>
         </Footer>
       </form.FormWrapper>
     </form.AppForm>
