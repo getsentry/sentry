@@ -577,6 +577,35 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 
 @pytest.fixture(scope="session", autouse=True)
+def _wait_for_services():
+    """Block until background services are ready (H1 overlapped startup).
+
+    With G1 (pytest_ignore_collect), test collection finishes ~50s faster,
+    which means tests can start executing before devservices has finished
+    starting. This fixture blocks on a sentinel file written by the background
+    service-startup script, ensuring all services are healthy before any test
+    runs. The collection phase still overlaps with service startup.
+    """
+    sentinel = os.environ.get("SERVICES_READY_FILE")
+    if not sentinel:
+        return
+    timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "180"))
+    start = time.time()
+    sentinel_path = Path(sentinel)
+    while not sentinel_path.exists():
+        if time.time() - start > timeout:
+            print(
+                f"[services] WARNING: timed out after {timeout}s waiting for {sentinel}",
+                file=sys.stderr,
+            )
+            break
+        time.sleep(1)
+    elapsed = time.time() - start
+    if elapsed > 1:
+        print(f"[services] waited {elapsed:.0f}s for services after collection", file=sys.stderr)
+
+
+@pytest.fixture(scope="session", autouse=True)
 def _xdist_per_worker_snuba():
     """Patch Snuba connection pool to use per-worker Snuba instance.
 
