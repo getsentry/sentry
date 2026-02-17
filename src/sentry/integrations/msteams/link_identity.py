@@ -52,6 +52,7 @@ class MsTeamsLinkIdentityView(MsTeamsIdentityLinkageView, LinkIdentityView):
                 'Integration is required for linking (params must include "integration_id")'
             )
         card = build_linked_card()
-        client = MsTeamsClient(integration)
+        organization_id = params.get("organization_id")
+        client = MsTeamsClient(integration, organization_id=organization_id)
         user_conversation_id = client.get_user_conversation_id(external_id, params["tenant_id"])
         client.send_card(user_conversation_id, card)

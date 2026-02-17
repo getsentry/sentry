@@ -263,7 +263,12 @@ class IntegrationService(RpcService):
     @rpc_method
     @abstractmethod
     def send_msteams_incident_alert_notification(
-        self, *, integration_id: int, channel: str, attachment: dict[str, Any]
+        self,
+        *,
+        integration_id: int,
+        channel: str,
+        attachment: dict[str, Any],
+        organization_id: int | None = None,
     ) -> bool:
         raise NotImplementedError
 

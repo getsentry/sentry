@@ -497,10 +497,15 @@ class DatabaseBackedIntegrationService(IntegrationService):
         return alert_rule_action_ui_component
 
     def send_msteams_incident_alert_notification(
-        self, *, integration_id: int, channel: str, attachment: dict[str, Any]
+        self,
+        *,
+        integration_id: int,
+        channel: str,
+        attachment: dict[str, Any],
+        organization_id: int | None = None,
     ) -> bool:
         integration = Integration.objects.get(id=integration_id)
-        client = MsTeamsClient(integration)
+        client = MsTeamsClient(integration, organization_id=organization_id)
 
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.SEND_INCIDENT_ALERT_NOTIFICATION,

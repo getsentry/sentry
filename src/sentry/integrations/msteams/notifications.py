@@ -116,9 +116,11 @@ def send_notification_as_msteams(
                         card = get_base_notification_card(notification, context, recipient)
 
                 for channel, integration in integrations_by_channel.items():
-                    conversation_id = get_user_conversation_id(integration, channel)
+                    conversation_id = get_user_conversation_id(
+                        integration, channel, organization_id=notification.organization.id
+                    )
 
-                    client = MsTeamsClient(integration)
+                    client = MsTeamsClient(integration, organization_id=notification.organization.id)
                     try:
                         with sentry_sdk.start_span(
                             op="notification.send_msteams", name="notify_recipient"

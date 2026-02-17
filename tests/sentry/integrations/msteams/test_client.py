@@ -181,6 +181,25 @@ class MsTeamsClientTest(TestCase):
         ]
         assert self.metrics.incr.mock_calls == calls
 
+    @responses.activate
+    def test_client_uses_correct_org_integration_with_organization_id(self) -> None:
+        """Test that MsTeamsClient uses the correct org_integration when organization_id is provided."""
+        # Create a second organization with the same integration
+        org2 = self.create_organization(owner=self.user)
+        org_integration_1 = self.integration.add_organization(self.organization)
+        org_integration_2 = self.integration.add_organization(org2)
+
+        # Create client with organization_id from first org
+        client_org1 = MsTeamsClient(self.integration, organization_id=self.organization.id)
+        assert client_org1.org_integration_id == org_integration_1.id
+
+        # Create client with organization_id from second org
+        client_org2 = MsTeamsClient(self.integration, organization_id=org2.id)
+        assert client_org2.org_integration_id == org_integration_2.id
+
+        # Verify they use different org_integrations
+        assert client_org1.org_integration_id != client_org2.org_integration_id
+
 
 def assert_proxy_request(request: Request, is_proxy: bool = True) -> None:
     assert (PROXY_BASE_PATH in request.url) == is_proxy

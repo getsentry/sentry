@@ -564,7 +564,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
             return self.respond(status=404)
 
         team_id = integration.external_id
-        client = MsTeamsClient(integration)
 
         group = Group.objects.select_related("project__organization").filter(id=group_id).first()
         if group:
@@ -583,6 +582,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 },
             )
             return self.respond(status=404)
+        
+        # Create client with organization context now that we have the group
+        client = MsTeamsClient(integration, organization_id=group.organization.id)
 
         idp = identity_service.get_provider(
             provider_type=IntegrationProviderSlug.MSTEAMS.value, provider_ext_id=team_id

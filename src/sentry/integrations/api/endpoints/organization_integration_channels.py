@@ -147,7 +147,7 @@ def _discord_list_channels(*, guild_id: str) -> list[dict[str, Any]]:
 
 
 def _msteams_list_channels(
-    *, integration: Integration | RpcIntegration, team_id: str
+    *, integration: Integration | RpcIntegration, team_id: str, organization_id: int | None = None
 ) -> list[dict[str, Any]]:
     """
     List Microsoft Teams channels for a given team.
@@ -156,7 +156,7 @@ def _msteams_list_channels(
     Only standard and private channels are included.
     """
 
-    client = MsTeamsClient(integration)
+    client = MsTeamsClient(integration, organization_id=organization_id)
 
     try:
         raw_resp = client.get(client.CHANNEL_URL % team_id)
@@ -242,6 +242,7 @@ class OrganizationIntegrationChannelsEndpoint(OrganizationIntegrationBaseEndpoin
                     results = _msteams_list_channels(
                         integration=integration,
                         team_id=str(integration.external_id),
+                        organization_id=organization_context.organization.id,
                     )
                 case _:
                     return self.respond(

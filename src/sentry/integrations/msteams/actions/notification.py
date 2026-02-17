@@ -54,7 +54,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
                 event.group, event, rules, integration
             ).build_group_card(notification_uuid=notification_uuid)
 
-            client = MsTeamsClient(integration)
+            client = MsTeamsClient(integration, organization_id=event.organization.id)
             with MessagingInteractionEvent(
                 interaction_type=MessagingInteractionType.SEND_ISSUE_ALERT_NOTIFICATION,
                 spec=MsTeamsMessagingSpec(),

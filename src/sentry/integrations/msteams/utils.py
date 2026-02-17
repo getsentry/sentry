@@ -42,11 +42,13 @@ def channel_filter(channel, name):
         return name.lower() == "general"
 
 
-def get_user_conversation_id(integration: Integration | RpcIntegration, user_id: str) -> str:
+def get_user_conversation_id(
+    integration: Integration | RpcIntegration, user_id: str, organization_id: int | None = None
+) -> str:
     """
     Get the user_conversation_id even if `integration.metadata.tenant_id` is not set.
     """
-    client = MsTeamsClient(integration)
+    client = MsTeamsClient(integration, organization_id=organization_id)
 
     tenant_id = integration.metadata.get("tenant_id")
 
@@ -61,9 +63,11 @@ def get_user_conversation_id(integration: Integration | RpcIntegration, user_id:
     return conversation_id
 
 
-def find_channel_id(integration: Integration | RpcIntegration, name: str) -> str | None:
+def find_channel_id(
+    integration: Integration | RpcIntegration, name: str, organization_id: int | None = None
+) -> str | None:
     team_id = integration.external_id
-    client = MsTeamsClient(integration)
+    client = MsTeamsClient(integration, organization_id=organization_id)
 
     # handle searching for channels first
     channel_list = client.get_channel_list(team_id)
@@ -106,7 +110,7 @@ def get_channel_id(organization: Organization, integration_id: int, name: str) -
     assert len(integrations) == 1, "Found multiple msteams integrations for org!"
     integration = integrations[0]
 
-    return find_channel_id(integration, name)
+    return find_channel_id(integration, name, organization_id=organization.id)
 
 
 def send_incident_alert_notification(
@@ -135,6 +139,7 @@ def send_incident_alert_notification(
         integration_id=notification_context.integration_id,
         channel=notification_context.target_identifier,
         attachment=attachment,
+        organization_id=organization.id,
     )
     return success
 

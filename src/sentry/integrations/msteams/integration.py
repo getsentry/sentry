@@ -82,7 +82,7 @@ metadata = IntegrationMetadata(
 
 class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient):
     def get_client(self) -> MsTeamsClient:
-        return MsTeamsClient(self.model)
+        return MsTeamsClient(self.model, organization_id=self.organization_id)
 
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: AdaptiveCard
@@ -142,7 +142,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
-        client = MsTeamsClient(integration)
+        client = MsTeamsClient(integration, organization_id=organization.id)
         card = (
             build_team_installation_confirmation_message(organization)
             if "team" == integration.metadata["installation_type"]

@@ -91,11 +91,25 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
 class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
-    def __init__(self, integration: Integration | RpcIntegration):
+    def __init__(
+        self, integration: Integration | RpcIntegration, organization_id: int | None = None
+    ):
         self.integration = integration
         self.metadata = self.integration.metadata
         self.base_url = self.metadata["service_url"].rstrip("/")
-        org_integration_id = infer_org_integration(integration_id=integration.id)
+        
+        # If organization_id is provided, get the specific org_integration for that organization
+        # This ensures we use the correct credentials when multiple orgs have MS Teams integrations
+        if organization_id is not None:
+            org_integration = integration_service.get_organization_integration(
+                integration_id=integration.id, organization_id=organization_id
+            )
+            org_integration_id = org_integration.id if org_integration else None
+        else:
+            # Fallback to infer_org_integration if no organization_id is provided
+            # Note: This may pick the wrong org_integration in multi-org scenarios
+            org_integration_id = infer_org_integration(integration_id=integration.id)
+        
         super().__init__(org_integration_id=org_integration_id)
 
     @property
