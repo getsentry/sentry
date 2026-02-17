@@ -5,6 +5,7 @@ Requires=sandbox-startup.service
 
 [Service]
 Environment=SENTRY_CONF=/home/sentry/.sentry/
+Environment=PATH=/opt/sentry/.venv/bin:/usr/local/bin:/usr/bin:/bin
 ExecStartPre=/bin/bash -c 'until [ -f /tmp/sandbox-ready ]; do sleep 1; done'
 ExecStart=/opt/sentry/.venv/bin/devservices serve
 Restart=on-failure

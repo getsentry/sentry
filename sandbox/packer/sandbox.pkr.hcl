@@ -44,7 +44,7 @@ build {
   # 2. Create sentry user and clone repo
   provisioner "shell" {
     inline = [
-      "sudo useradd -m -s /bin/bash sentry",
+      "id -u sentry &>/dev/null || sudo useradd -m -s /bin/bash sentry",
       "sudo usermod -aG docker sentry",
       "sudo mkdir -p /opt/sentry",
       "sudo git clone https://github.com/getsentry/sentry.git /opt/sentry",
@@ -93,7 +93,14 @@ build {
     ]
   }
 
-  # 5. Symlink devenv globally + IDE support + optimize (as root)
+  # 5. Pre-build frontend assets (as sentry user)
+  provisioner "shell" {
+    inline = [
+      "cd /opt/sentry && sudo -u sentry env PATH=/usr/local/bin:$PATH pnpm build",
+    ]
+  }
+
+  # 6. IDE support + optimize (as root)
   provisioner "shell" {
     execute_command = "sudo bash -eux '{{ .Path }}'"
     scripts = [
@@ -102,7 +109,7 @@ build {
     ]
   }
 
-  # 6. Global environment + devenv symlink + direnv hook
+  # 7. Global environment + devenv symlink + direnv hook
   provisioner "shell" {
     inline = [
       "sudo ln -sf /home/sentry/.local/share/sentry-devenv/bin/devenv /usr/local/bin/devenv",

@@ -30,11 +30,11 @@ rm -f /tmp/sandbox-ready
 ###############################################################################
 if [ -n "$SANDBOX_BRANCH" ] && [ "$SANDBOX_BRANCH" != "master" ]; then
     echo "--> Checking out branch: $SANDBOX_BRANCH"
-    sudo -u sentry git fetch origin
-    sudo -u sentry git checkout "$SANDBOX_BRANCH" || sudo -u sentry git checkout -b "$SANDBOX_BRANCH" "origin/$SANDBOX_BRANCH"
+    git fetch origin
+    git checkout "$SANDBOX_BRANCH" || git checkout -b "$SANDBOX_BRANCH" "origin/$SANDBOX_BRANCH"
 
     echo "--> Running devenv sync for branch"
-    sudo -u sentry devenv sync
+    devenv sync
 else
     echo "--> Warm path: staying on current branch"
 fi
@@ -43,7 +43,7 @@ fi
 # Start services (devservices handles its own health checks)
 ###############################################################################
 echo "--> Starting devservices (mode: $SANDBOX_MODE)"
-sudo -u sentry devservices up --mode "$SANDBOX_MODE"
+devservices up --mode "$SANDBOX_MODE"
 
 ###############################################################################
 # Signal readiness
