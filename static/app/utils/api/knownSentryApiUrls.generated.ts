@@ -35,6 +35,7 @@ export type KnownSentryApiUrls =
   | '/doc-integrations/'
   | '/doc-integrations/$docIntegrationIdOrSlug/'
   | '/doc-integrations/$docIntegrationIdOrSlug/avatar/'
+  | '/dsn-lookup/'
   | '/groups/$issueId/'
   | '/groups/$issueId/activities/'
   | '/groups/$issueId/attachments/'
