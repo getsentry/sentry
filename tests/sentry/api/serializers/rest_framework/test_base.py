@@ -17,26 +17,27 @@ class PersonSerializer(CamelSnakeSerializer):
     works_at = serializers.CharField()
 
 
-class CamelSnakeSerializerTest(TestCase):
-    def test_simple(self) -> None:
-        serializer = PersonSerializer(data={"name": "Rick", "worksAt": "Sentry"})
-        assert serializer.is_valid()
-        assert serializer.data == {"name": "Rick", "works_at": "Sentry"}
+def test_camel_snake_serializer_simple() -> None:
+    serializer = PersonSerializer(data={"name": "Rick", "worksAt": "Sentry"})
+    assert serializer.is_valid()
+    assert serializer.data == {"name": "Rick", "works_at": "Sentry"}
 
-    def test_error(self) -> None:
-        serializer = PersonSerializer(data={"worksAt": None})
-        assert not serializer.is_valid()
-        assert serializer.errors == {
-            "worksAt": ["This field may not be null."],
-            "name": ["This field is required."],
-        }
 
-    def test_smuggling(self) -> None:
-        with pytest.raises(
-            serializers.ValidationError,
-            match=r"_name collides with name, please pass only one value",
-        ):
-            PersonSerializer(data={"name": "Rick", "worksAt": "Sentry", "_name": "Chuck"})
+def test_camel_snake_serializer_error() -> None:
+    serializer = PersonSerializer(data={"worksAt": None})
+    assert not serializer.is_valid()
+    assert serializer.errors == {
+        "worksAt": ["This field may not be null."],
+        "name": ["This field is required."],
+    }
+
+
+def test_camel_snake_serializer_smuggling() -> None:
+    with pytest.raises(
+        serializers.ValidationError,
+        match=r"_name collides with name, please pass only one value",
+    ):
+        PersonSerializer(data={"name": "Rick", "worksAt": "Sentry", "_name": "Chuck"})
 
 
 class ContentTypeSerializer(CamelSnakeModelSerializer):
