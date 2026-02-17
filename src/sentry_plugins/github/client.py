@@ -66,10 +66,7 @@ class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
         return self.delete(f"/repos/{repo}/hooks/{id}")
 
     def get_installations(self):
-        # TODO(jess): remove this whenever it's out of preview
-        headers = {"Accept": "application/vnd.github.machine-man-preview+json"}
-
-        return self._request("GET", "/user/installations", headers=headers)
+        return self._request("GET", "/user/installations")
 
 
 class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
@@ -108,17 +105,11 @@ class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
         if headers is None:
             headers = {
                 "Authorization": "token %s" % self.get_token(),
-                # TODO(jess): remove this whenever it's out of preview
-                "Accept": "application/vnd.github.machine-man-preview+json",
             }
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def create_token(self):
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
-        headers.update(jwt.authorization_header(self.get_jwt()))
+        headers = jwt.authorization_header(self.get_jwt())
         return self.post(
             f"/app/installations/{self.integration.external_id}/access_tokens",
             headers=headers,
