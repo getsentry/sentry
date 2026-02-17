@@ -71,6 +71,7 @@ class SystemOptionsTest(APITestCase):
             self.login_as(user=self.user, superuser=True)
             response = self.client.put(self.url, {"auth.allow-registration": 1})
             assert response.status_code == 200
+        options.delete("auth.allow-registration")
 
     def test_put_int_for_boolean(self) -> None:
         self.login_as(user=self.user, superuser=True)
