@@ -23,6 +23,10 @@ from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
+# Truncate response bodies longer than this in the LLM prompt to avoid
+# exceeding the model's context window.
+MAX_BODY_LENGTH = 16_000
+
 # JSON schema for structured LLM response
 ASSERTION_SUGGESTIONS_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -189,13 +193,19 @@ def build_assertion_prompt(response_data: dict[str, Any]) -> str:
     Returns:
         Prompt string for Seer
     """
+    body_str = "N/A"
+    if response_data.get("body"):
+        body_str = orjson.dumps(response_data.get("body"), option=orjson.OPT_INDENT_2).decode()
+        if len(body_str) > MAX_BODY_LENGTH:
+            body_str = body_str[:MAX_BODY_LENGTH] + "\n... (truncated)"
+
     return f"""Analyze this HTTP response and suggest monitoring assertions:
 
 HTTP Response:
 - Status Code: {response_data.get("status_code")}
 - Response Time: {response_data.get("response_time_ms")}ms
 - Headers: {orjson.dumps(response_data.get("headers", {}), option=orjson.OPT_INDENT_2).decode()}
-- Body: {orjson.dumps(response_data.get("body"), option=orjson.OPT_INDENT_2).decode() if response_data.get("body") else "N/A"}"""
+- Body: {body_str}"""
 
 
 def suggestion_to_assertion_json(suggestion: SuggestedAssertion) -> dict[str, Any]:
@@ -311,15 +321,13 @@ def generate_assertion_suggestions(
 
     # Parse the preview response
     response_data = parse_preview_response(preview_result)
-    logger.info("Parsed response data: %s", response_data)
 
     if not response_data.get("status_code"):
         logger.warning("No status code in preview result, skipping Seer suggestions")
-        return None, f"No status_code in parsed response. Got: {response_data}"
+        return None, "No status_code in parsed response"
 
     # Build the prompt
     prompt = build_assertion_prompt(response_data)
-    logger.info("Built prompt for Seer LLM proxy (length=%d)", len(prompt))
 
     # Call Seer's LLM proxy endpoint
     # Note: Using Gemini for structured output support (response_schema).
