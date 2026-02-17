@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {hasIntercom, showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
@@ -25,6 +26,24 @@ function getContactSupportItem({
     return null;
   }
 
+  const useIntercom = organization.features.includes('intercom-support');
+
+  // Use Intercom if feature flag is enabled and Intercom is available
+  if (useIntercom && hasIntercom()) {
+    return {
+      key: 'support',
+      label: t('Contact Support'),
+      onAction() {
+        showIntercom();
+        trackAnalytics('intercom_link.clicked', {
+          organization,
+          source: 'sidebar',
+        });
+      },
+    };
+  }
+
+  // Fall back to Zendesk if available
   if (hasZendesk()) {
     return {
       key: 'support',
@@ -39,6 +58,7 @@ function getContactSupportItem({
     };
   }
 
+  // Fall back to mailto
   return {
     key: 'support',
     label: t('Contact Support'),
