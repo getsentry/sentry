@@ -98,6 +98,7 @@ export function TestSuiteDropdown() {
   const stagedSelect = useStagedCompactSelect({
     value,
     defaultValue: [],
+    options,
     onChange: handleChange,
     multiple: true,
   });

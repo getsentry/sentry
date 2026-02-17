@@ -217,6 +217,7 @@ export function EnvironmentPageFilter({
   const stagedSelect = useStagedCompactSelect({
     value,
     defaultValue: [],
+    options,
     onChange: handleChange,
     onToggle,
     onReplace,
