@@ -88,6 +88,10 @@ ERR_IDENTITY_CONFLICT = _(
     " Try logging in with your existing credentials instead."
 )
 
+ERR_MERGE_FAILED = _(
+    "Unable to merge accounts. Please verify your email address to link your SSO identity."
+)
+
 
 @dataclass
 class AuthIdentityHandler:
@@ -578,8 +582,20 @@ class AuthIdentityHandler:
             is_new_account = True
 
         try:
-            if op == "confirm" and (self.request.user.id == self.user.id) or is_account_verified:
+            if op == "confirm" and ((self.request.user.id == self.user.id) or is_account_verified):
                 auth_identity = self.handle_attach_identity()
+            elif op == "confirm":
+                logger.info(
+                    "sso.login-pipeline.merge-failed",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "email": self.identity.get("email"),
+                        "request_user_id": self.request.user.id,
+                        "resolved_user_id": self.user.id,
+                    },
+                )
+                messages.add_message(self.request, messages.ERROR, ERR_MERGE_FAILED)
+                return self._build_confirmation_response(is_new_account)
             elif op == "newuser":
                 auth_identity = self.handle_new_user()
             elif op == "login" and not self._logged_in_user:
@@ -959,7 +975,18 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
                 )
                 return auth_handler.handle_unknown_identity(self.state)
 
-            return auth_handler.handle_existing_identity(self.state, auth_identity)
+            try:
+                return auth_handler.handle_existing_identity(self.state, auth_identity)
+            except IntegrityError:
+                logger.info(
+                    "sso.login-pipeline.integrity-error",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "email": identity.get("email"),
+                        "auth_identity_id": auth_identity.id,
+                    },
+                )
+                return self.error(ERR_IDENTITY_CONFLICT)
 
     def _finish_setup_pipeline(self, identity: Mapping[str, Any]) -> HttpResponseRedirect:
         """

@@ -4,7 +4,7 @@ from typing import TypedDict
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import models, router, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.test import Client, RequestFactory
 
 from sentry import audit_log
@@ -563,6 +563,29 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
             ERR_IDENTITY_CONFLICT,
         )
 
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_confirm_merge_user_mismatch_shows_error(
+        self, mock_render: mock.MagicMock, mock_messages: mock.MagicMock
+    ) -> None:
+        from sentry.auth.helper import ERR_MERGE_FAILED
+
+        # Log in as a different user than the one resolved by identity email
+        different_user = self.create_user(email="other@example.com")
+        self.request.user = different_user
+        # Create the user that matches the identity email
+        self.create_user(email=self.email)
+
+        self.request.POST = {"op": "confirm"}
+        response = self.handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        mock_messages.add_message.assert_called_once_with(
+            self.request,
+            mock_messages.ERROR,
+            ERR_MERGE_FAILED,
+        )
+
     # TODO: More test cases for various values of request.POST.get("op")
 
 
@@ -617,6 +640,52 @@ class AuthHelperTest(TestCase):
     def test_referrer_state(self, mock_messages: mock.MagicMock) -> None:
         final_step = self._test_pipeline(flow=FLOW_SETUP_PROVIDER, referrer="foobar")
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
+
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch(
+        "sentry.auth.helper.AuthIdentityHandler.handle_existing_identity",
+        side_effect=IntegrityError(),
+    )
+    def test_existing_identity_integrity_error_shows_error(
+        self,
+        mock_handle_existing: mock.MagicMock,
+        mock_messages: mock.MagicMock,
+    ) -> None:
+        user = self.create_user(email="test@example.com")
+        AuthIdentity.objects.create(
+            auth_provider=self.auth_provider_inst,
+            user=user,
+            ident="test@example.com",
+        )
+
+        initial_state = {
+            "org_id": self.organization.id,
+            "flow": FLOW_LOGIN,
+            "provider_model_id": self.auth_provider_inst.id,
+            "provider_key": None,
+            "referrer": None,
+        }
+        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client.set(self.auth_key, json.dumps(initial_state))
+
+        helper = AuthHelper.get_for_request(self.request)
+        assert helper is not None
+        helper.initialize()
+
+        helper.bind_state("email", "test@example.com")
+        helper.bind_state("email_verified", True)
+
+        # Skip provider views, go straight to finish_pipeline
+        helper.state.step_index = len(helper.pipeline_views)
+        result = helper.current_step()
+
+        assert result.status_code == 302
+        assert result.url == f"/auth/login/{self.organization.slug}/"
+        mock_messages.add_message.assert_called_once_with(
+            self.request,
+            mock_messages.ERROR,
+            f"Authentication error: {ERR_IDENTITY_CONFLICT}",
+        )
 
 
 @control_silo_test
