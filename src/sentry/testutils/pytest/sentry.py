@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+import collections.abc
 import os
 import random
 import shutil
@@ -490,9 +491,27 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     if shuffle_enabled:
         _shuffle(items, random.Random(seed))
 
+        # Write the final ordered test IDs to a file for detect-test-pollution
+        with open("/tmp/testids-full", "w") as f:
+            f.write("\n".join(item.nodeid for item in items) + "\n")
+
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo[None]
+) -> collections.abc.Generator[None]:
+    outcome = yield
+    report = outcome.get_result()
+    # When running shuffled tests with --exitfirst, record the first failing
+    # test ID so the CI workflow can pass it to detect-test-pollution.
+    if report.failed and report.when == "call":
+        if os.environ.get("SENTRY_SHUFFLE_TESTS") and not os.path.exists("/tmp/failing-testid"):
+            with open("/tmp/failing-testid", "w") as f:
+                f.write(item.nodeid)
 
 
 def pytest_xdist_setupnodes() -> None:
