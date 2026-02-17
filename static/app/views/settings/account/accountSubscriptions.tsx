@@ -148,11 +148,12 @@ function AccountSubscriptions() {
                           : undefined
                         : t('Not currently subscribed');
                       const labelId = `subscription-${subscription.email}-${subscription.listId}`;
+                      const switchId = `subscription-switch-${subscription.email}-${subscription.listId}`;
 
                       return (
                         <Flex align="center" justify="between" gap="sm">
                           <Stack gap="xs" width={{xs: '100%', sm: '75%', md: '65%'}}>
-                            <Text as="label" id={labelId} htmlFor={labelId}>
+                            <Text as="label" id={labelId} htmlFor={switchId}>
                               {subscription.listName}
                             </Text>
                             {subscription.listDescription && (
@@ -168,6 +169,7 @@ function AccountSubscriptions() {
                           </Stack>
                           <Flex align="start" justify="start" flexGrow={1}>
                             <field.Switch
+                              id={switchId}
                               aria-labelledby={labelId}
                               checked={field.state.value}
                               onChange={field.handleChange}
