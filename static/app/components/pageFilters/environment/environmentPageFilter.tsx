@@ -249,6 +249,7 @@ export function EnvironmentPageFilter({
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
             <HybridFilterComponents.CancelButton
+              disabled={!stagedSelect.hasStagedChanges}
               onClick={() => stagedSelect.removeStagedChanges()}
             />
             <HybridFilterComponents.ApplyButton
