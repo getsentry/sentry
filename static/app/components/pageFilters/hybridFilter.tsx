@@ -35,7 +35,7 @@ export interface HybridFilterRef<Value extends SelectKey> {
   toggleOption: (val: Value) => void;
 }
 
-export interface UseStagedCompactSelectOptions<Value extends SelectKey> {
+interface UseStagedCompactSelectOptions<Value extends SelectKey> {
   defaultValue: Value[];
   onChange: (selected: Value[]) => void;
   options: Array<SelectOptionOrSection<Value>>;
