@@ -1,7 +1,6 @@
 import datetime
 import logging
 
-from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -55,12 +54,9 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if isinstance(request.user, AnonymousUser):
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        signing_secret = options.get("intercom.sentry-api-secret")
+        signing_secret = options.get("intercom.identity-verification-secret")
         if not signing_secret:
-            logger.warning("intercom.sentry-api-secret is not configured")
+            logger.warning("intercom.identity-verification-secret is not configured")
             return Response(
                 {"detail": "Intercom identity verification is not configured."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -74,6 +70,7 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
         claims = {
             "user_id": str(user.id),
             "email": user.email,
+            "name": user.get_display_name(),
             "iat": now,
             "exp": exp,
         }
