@@ -48,7 +48,7 @@ export function PasswordField({
                 aria-label={isFieldVisible ? t('Hide password') : t('Show password')}
                 onClick={() => setisFieldVisible(v => !v)}
               >
-                {isFieldVisible ? <IconShow size="xs" /> : <IconHide size="xs" />}
+                {isFieldVisible ? <IconHide size="xs" /> : <IconShow size="xs" />}
               </Button>
               {indicator}
             </InputGroup.TrailingItems>
