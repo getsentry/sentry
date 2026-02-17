@@ -111,6 +111,7 @@ from .rollbackuser import *  # NOQA
 from .rule import *  # NOQA
 from .rulefirehistory import *  # NOQA
 from .rulesnooze import *  # NOQA
+from sentry.reports.models import *  # NOQA
 from .savedsearch import *  # NOQA
 from .search_common import *  # NOQA
 from .sentryshot import *  # NOQA
