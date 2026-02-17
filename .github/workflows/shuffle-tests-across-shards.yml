@@ -31,9 +31,8 @@ jobs:
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       MATRIX_INSTANCE_TOTAL: 11
-      SENTRY_SHUFFLE_TESTS_ACROSS_SHARDS: true
-      # All shards must share the same seed. github.run_id is consistent
-      # across matrix instances. Manual seed input takes precedence.
+      SENTRY_SHUFFLE_TESTS: 1
+      # All shards must share the same seed; github.run_id is consistent across matrix instances
       SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed || github.run_id }}
 
     steps:
