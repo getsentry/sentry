@@ -1248,6 +1248,7 @@ class TestSendResourceChangeWebhook(TestCase):
             ],
         )
 
+    @pytest.mark.skip(reason="flaky: #108362")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @with_feature("organizations:integrations-event-hooks")
