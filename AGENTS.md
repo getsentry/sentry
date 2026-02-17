@@ -157,6 +157,15 @@ CI=true pnpm test <file_path>
 CI=true pnpm test components/avatar.spec.tsx
 ```
 
+### Development with Git worktrees
+
+When using multiple working trees (e.g. `git worktree add` or Cursor Parallel Agents), direnv and the repo root are detected per worktree. Optional overrides:
+
+- **Repo detection**: Node checks run only when `${SENTRY_ROOT}/.node-version` exists (sentry has it, getsentry does not), so worktrees and different directory names work.
+- **Shared virtualenv**: In a worktree `.env`, set `VIRTUAL_ENV` to the absolute path of the primary clone's `.venv` to reuse one venv across worktrees. Then run `direnv allow` in that worktree.
+- **Backend-only**: Set `SENTRY_DEVENV_SKIP_FRONTEND=1` in the worktree `.env` to skip Node/node_modules checks.
+- **Full isolation**: Run `devenv sync` and `direnv allow` in the worktree to give it its own venv and node_modules.
+
 > For detailed development patterns, see nested AGENTS.md files:
 >
 > - **Backend patterns**: `src/AGENTS.md`
