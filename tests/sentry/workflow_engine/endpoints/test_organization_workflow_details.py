@@ -1,6 +1,6 @@
-import pytest
 from contextlib import AbstractContextManager
 
+import pytest
 import responses
 
 from sentry import audit_log
