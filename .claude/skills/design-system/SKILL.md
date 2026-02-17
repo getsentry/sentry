@@ -256,6 +256,84 @@ const Title = styled('h2')`
 <Heading as="h3" size="xl">Large H3</Heading>
 ```
 
+## Info Components
+
+> **Important**: Always prefer `InfoTip` and `InfoText` over using raw `<Tooltip>` components. These provide consistent, accessible patterns for contextual help.
+
+### InfoTip
+
+Use `<InfoTip>` to add an info icon with tooltip next to labels or headings. It's keyboard accessible and provides a consistent pattern for supplementary help.
+
+```tsx
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+// ❌ Don't use Tooltip with arbitrary icons
+<Flex gap="xs" align="center">
+  <Text>Retention Period</Text>
+  <Tooltip title="The number of days...">
+    <IconInfo size="xs" />
+  </Tooltip>
+</Flex>
+
+// ✅ Use InfoTip for contextual help icons
+<Flex gap="xs" align="center">
+  <Text>Retention Period</Text>
+  <InfoTip title="The number of days event data is stored before being automatically deleted." />
+</Flex>
+```
+
+**Key Props**:
+
+- `title`: Tooltip content (required)
+- `size`: "xs" | "sm" (default) | "md"
+
+**When to Use**:
+
+- Add context to headings or section titles
+- Show supplementary information without inline text
+- Explain settings or configuration options
+
+### InfoText
+
+Use `<InfoText>` for inline text with a tooltip. It renders text with a dotted underline that reveals a tooltip on hover/focus.
+
+```tsx
+import {InfoText} from '@sentry/scraps/info';
+
+// ❌ Don't wrap text with raw Tooltip
+<Tooltip title="Time to First Byte measures the time...">
+  <span style={{textDecoration: 'underline dotted'}}>TTFB</span>
+</Tooltip>
+
+// ✅ Use InfoText for inline explanations
+<InfoText title="Time to First Byte measures the time from the request start until the first byte of the response is received.">
+  TTFB
+</InfoText>
+```
+
+**Key Props**:
+
+- `title`: Tooltip content (required)
+- Extends `Text`, so supports all Text props: `size`, `variant`, `bold`, etc.
+
+```tsx
+// With Text styling props
+<InfoText title="Small muted text" size="sm" variant="muted">
+  Hint text
+</InfoText>
+<InfoText title="Bold text" bold>
+  Important term
+</InfoText>
+```
+
+**When to Use**:
+
+- Define technical terms or acronyms inline
+- Provide additional context without adding visual clutter
+- Create consistent, accessible inline help patterns
+
 ## Creating Thin Abstractions
 
 > **⚠️ CRITICAL: ALWAYS prompt the user for confirmation before creating abstractions over layout primitives (`Container`, `Flex`, `Grid`, `Stack`, `Text`, `Heading`) when the intent is to DRY (Don't Repeat Yourself) repeated props.**
@@ -413,6 +491,7 @@ Before creating a styled component, ask:
 - ✅ Can I use `<Stack>` for vertical layouts with default column direction?
 - ✅ Can I use `<Container>` for borders/padding/positioning?
 - ✅ Can I use `<Text>` or `<Heading>` for typography?
+- ✅ Can I use `<InfoTip>` or `<InfoText>` instead of `<Tooltip>`?
 - ✅ Can I use responsive props instead of media queries?
 - ✅ Can I use `gap` instead of margins?
 - ✅ Does the primitive support the prop I need? (Check implementation files)

@@ -114,8 +114,9 @@ describe('ProjectPageFilter', () => {
 
     // Move focus to Option One's "Project Details" link
     await userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{ArrowRight}');
     expect(
-      within(optionOne).getByRole('button', {name: 'Project Details'})
+      within(optionOne).getByRole('button', {name: 'Open Project Details'})
     ).toHaveFocus();
 
     // Activating the link triggers a route change
@@ -129,7 +130,7 @@ describe('ProjectPageFilter', () => {
     // Move focus to "Project Settings" link
     await userEvent.keyboard('{ArrowRight}');
     expect(
-      within(optionOne).getByRole('button', {name: 'Project Settings'})
+      within(optionOne).getByRole('button', {name: 'Open Project Settings'})
     ).toHaveFocus();
 
     // Activating the link triggers a route change

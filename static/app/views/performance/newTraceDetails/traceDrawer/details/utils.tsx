@@ -15,6 +15,7 @@ import {
   SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {fixJson} from 'sentry/views/replays/detail/network/truncateJson/fixJson';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function getProfileMeta(event: EventTransaction | null) {
@@ -257,5 +258,23 @@ export function tryParseJson(value: unknown): unknown {
     return parsedValue.map((item: unknown): unknown => tryParseJson(item));
   } catch {
     return value;
+  }
+}
+
+/**
+ * Attempts to parse a JSON string, with fallback to fix invalid JSON.
+ * Returns the parsed result and whether the JSON needed fixing.
+ */
+export function parseJsonWithFix(value: string): {
+  fixedInvalidJson: boolean;
+  parsed: any;
+} {
+  try {
+    const parsed = JSON.parse(value);
+    return {parsed, fixedInvalidJson: false};
+  } catch {
+    const fixed = fixJson(value);
+    const parsed = JSON.parse(fixed);
+    return {parsed, fixedInvalidJson: true};
   }
 }

@@ -13,11 +13,7 @@ type FieldChildrenProps = {
   onBlur: () => void;
 };
 
-type FieldStateProps = {
-  indicator: React.JSX.Element | null;
-};
-
-const useFieldStateIndicator = () => {
+export const useFieldStateIndicator = () => {
   const field = useFieldContext();
   const hasValidationError = field.state.meta.isTouched && !field.state.meta.isValid;
   const status = useAutoSaveContext()?.status;
@@ -57,23 +53,19 @@ export const useHintTextId = () => {
 
 export function BaseField(
   props: BaseFieldProps & {
-    children: (props: FieldChildrenProps, state: FieldStateProps) => React.ReactNode;
+    children: (props: FieldChildrenProps) => React.ReactNode;
   }
 ) {
   const field = useFieldContext();
   const hasError = field.state.meta.isTouched && !field.state.meta.isValid;
-  const indicator = useFieldStateIndicator();
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
 
-  return props.children(
-    {
-      'aria-invalid': hasError,
-      'aria-describedby': hintTextId,
-      onBlur: field.handleBlur,
-      name: field.name,
-      id: fieldId,
-    },
-    {indicator}
-  );
+  return props.children({
+    'aria-invalid': hasError,
+    'aria-describedby': hintTextId,
+    onBlur: field.handleBlur,
+    name: field.name,
+    id: fieldId,
+  });
 }

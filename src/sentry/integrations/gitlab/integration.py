@@ -123,6 +123,10 @@ class GitlabIntegration(
     def integration_name(self) -> str:
         return IntegrationProviderSlug.GITLAB
 
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
+
     def get_client(self) -> GitLabApiClient:
         try:
             # eagerly populate this just for the error message

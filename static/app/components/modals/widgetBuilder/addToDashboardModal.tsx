@@ -136,6 +136,13 @@ function AddToDashboardModal({
   // Check if we have multiple widgets to adjust UI accordingly
   const hasMultipleWidgets = widgets.length > 1;
 
+  // Check if the widget is a static widget from a widget template
+  const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
+  const widgetTemplate = widgetTemplates.find(w => w.displayType === widget.displayType);
+  const shouldOpenWidgetLibrary =
+    !isWidgetEditable(widget.displayType) ||
+    (widgetTemplate && widgetTemplate.isCustomizable === false);
+
   const handleWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
     setOrderBy(newOrderBy);
@@ -207,16 +214,6 @@ function AddToDashboardModal({
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
     const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
-
-    // For non-customizable widgets (e.g., Performance Score), open the widget library
-    // instead of the widget builder
-    const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
-    const widgetTemplate = widgetTemplates.find(
-      w => w.displayType === widget.displayType
-    );
-    const shouldOpenWidgetLibrary =
-      !isWidgetEditable(widget.displayType) ||
-      (widgetTemplate && widgetTemplate.isCustomizable === false);
 
     navigate(
       normalizeUrl({
@@ -557,7 +554,9 @@ function AddToDashboardModal({
               disabled={!canSubmit}
               tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
-              {t('Open in Widget Builder')}
+              {shouldOpenWidgetLibrary
+                ? t('Open in Widget Library')
+                : t('Open in Widget Builder')}
             </Button>
           )}
         </StyledButtonBar>
