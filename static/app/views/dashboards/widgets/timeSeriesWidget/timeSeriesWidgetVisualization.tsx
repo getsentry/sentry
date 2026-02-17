@@ -12,6 +12,7 @@ import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
 
 import BaseChart from 'sentry/components/charts/baseChart';
+import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {
   useChartXRangeSelection,
@@ -33,6 +34,7 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
@@ -137,6 +139,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
@@ -540,6 +543,27 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
+  const hasChartLegend = organization.features.includes('chart-legend-component');
+
+  // Build legend items from plottables using their assigned colors
+  const chartLegendItems: LegendItem[] = hasChartLegend
+    ? (() => {
+        let colorIndex = 0;
+        return props.plottables.map(plottable => {
+          let color = '';
+          if (plottable.needsColor) {
+            color = palette[colorIndex % palette.length]!;
+            colorIndex += 1;
+          }
+          return {
+            name: plottable.name,
+            label: aliases[plottable.name] ?? plottable.name,
+            color,
+          };
+        });
+      })()
+    : [];
+
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
   const runHandler = (
@@ -603,15 +627,26 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           // incorrectly truncating long labels. See
           // https://github.com/apache/echarts/issues/15562
           left: 2,
-          top: showLegend ? 25 : 10,
+          top: showLegend && !hasChartLegend ? 25 : 10,
           right: 8,
           bottom: 0,
           containLabel: true,
           ...releaseBubbleGrid,
           ...xAxisGrid,
         }}
+        chartLegend={
+          hasChartLegend && showLegend
+            ? {
+                items: chartLegendItems,
+                selected: props.legendSelection ?? {},
+                onSelectionChange: selection => {
+                  props?.onLegendSelectionChange?.(selection);
+                },
+              }
+            : undefined
+        }
         legend={
-          showLegend
+          !hasChartLegend && showLegend
             ? {
                 top: 0,
                 left: 0,

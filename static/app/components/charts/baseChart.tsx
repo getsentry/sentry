@@ -28,6 +28,8 @@ import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
+import {ChartLegend} from 'sentry/components/charts/chartLegend';
+import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {space} from 'sentry/styles/space';
 import type {
@@ -153,6 +155,15 @@ export interface BaseChartProps {
    * Bucket size to display time range in chart tooltip
    */
   bucketSize?: number;
+  /**
+   * Custom React chart legend rendered above the chart.
+   * When provided, the ECharts legend is hidden but still used to control series visibility.
+   */
+  chartLegend?: {
+    items: LegendItem[];
+    onSelectionChange: (selected: Record<string, boolean>) => void;
+    selected: Record<string, boolean>;
+  };
   /**
    * Array of color codes to use in charts. May also take a function which is
    * provided with the current theme
@@ -336,6 +347,7 @@ const DEFAULT_X_AXIS = {};
 function BaseChart({
   animation,
   brush,
+  chartLegend,
   colors,
   grid,
   tooltip,
@@ -568,7 +580,11 @@ function BaseChart({
       color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
-      legend: legend ? Legend({theme, ...legend}) : undefined,
+      legend: chartLegend
+        ? {show: false, selected: chartLegend.selected}
+        : legend
+          ? Legend({theme, ...legend})
+          : undefined,
       yAxis: yAxisOrCustom,
       xAxis: xAxisOrCustom,
       series: resolvedSeries,
@@ -582,6 +598,7 @@ function BaseChart({
   }, [
     animation,
     chartId,
+    chartLegend,
     color,
     resolvedSeries,
     isTooltipPortalled,
@@ -684,6 +701,13 @@ function BaseChart({
       data-test-id={dataTestId}
     >
       {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
+      {chartLegend && (
+        <ChartLegend
+          items={chartLegend.items}
+          selected={chartLegend.selected}
+          onSelectionChange={chartLegend.onSelectionChange}
+        />
+      )}
       <ReactEchartsCore
         ref={ref}
         echarts={echarts}

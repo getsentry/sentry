@@ -18,6 +18,7 @@ import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
+import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import ChartZoom, {type ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import type {FormatterOptions} from 'sentry/components/charts/components/tooltip';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -52,6 +53,7 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
@@ -148,6 +150,7 @@ function Chart({
   legendFormatter,
 }: Props) {
   const theme = useTheme();
+  const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
   const {projects, environments} = pageFilters.selection;
@@ -166,6 +169,22 @@ function Chart({
   }
 
   const colors = chartColors ?? theme.chart.getColorPalette(4);
+
+  const hasChartLegend = organization.features.includes('chart-legend-component');
+
+  // Track legend selection state for the custom chart legend
+  const [legendSelected, legendSelectedDispatch] = useReducer(
+    (_state: Record<string, boolean>, action: Record<string, boolean>) => action,
+    {}
+  );
+
+  const chartLegendItems: LegendItem[] = hasChartLegend
+    ? data.map((series, index) => ({
+        name: series.seriesName,
+        label: legendFormatter ? legendFormatter(series.seriesName) : series.seriesName,
+        color: (colors[index] as string) ?? '',
+      }))
+    : [];
 
   const durationOnly =
     aggregateOutputFormat === 'duration' ||
@@ -346,15 +365,35 @@ function Chart({
     })(deDupedParams, asyncTicket);
   };
 
-  const legend = isLegendVisible
-    ? {
-        top: 0,
-        right: 10,
-        truncate: true,
-        formatter: legendFormatter,
-        ...legendOptions,
-      }
-    : undefined;
+  const legend =
+    isLegendVisible && !hasChartLegend
+      ? {
+          top: 0,
+          right: 10,
+          truncate: true,
+          formatter: legendFormatter,
+          ...legendOptions,
+        }
+      : undefined;
+
+  const chartLegendProp =
+    hasChartLegend && isLegendVisible
+      ? {
+          items: chartLegendItems,
+          selected: legendSelected,
+          onSelectionChange: (selection: Record<string, boolean>) => {
+            legendSelectedDispatch(selection);
+            onLegendSelectChanged?.(
+              {
+                name: '',
+                selected: selection,
+                type: 'legendselectchanged' as const,
+              },
+              null as any
+            );
+          },
+        }
+      : undefined;
 
   const areaChartProps = {
     seriesOptions: {
@@ -363,6 +402,7 @@ function Chart({
     grid,
     yAxes,
     utc,
+    chartLegend: chartLegendProp,
     legend,
     isGroupedByDate: true,
     showTimeInTooltip: true,
@@ -411,6 +451,7 @@ function Chart({
           tooltip={areaChartProps.tooltip}
           colors={colors}
           grid={grid}
+          chartLegend={chartLegendProp}
           legend={legend}
           onClick={onClick}
           onMouseOut={onMouseOut}
@@ -495,6 +536,7 @@ function Chart({
           }}
           colors={colors}
           grid={grid}
+          chartLegend={chartLegendProp}
           legend={legend}
           onClick={onClick}
         />
