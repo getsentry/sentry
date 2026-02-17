@@ -62,7 +62,9 @@ describe('PasswordForm', () => {
       })
     );
 
-    await waitFor(() => expect(screen.getByLabelText('Current Password')).toHaveValue(''));
+    await waitFor(() =>
+      expect(screen.getByLabelText('Current Password')).toHaveValue('')
+    );
   });
 
   it('validates mismatched passwords and remvoes validation on match', async () => {
