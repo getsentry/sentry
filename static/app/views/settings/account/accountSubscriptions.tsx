@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -147,20 +147,31 @@ function AccountSubscriptions() {
                           ? `${subscription.email} on ${moment(subscription.subscribedDate).format('ll')}`
                           : undefined
                         : t('Not currently subscribed');
-                      const hintText = [subscription.listDescription, statusText]
-                        .filter(Boolean)
-                        .join(' · ');
+                      const labelId = `subscription-${subscription.email}-${subscription.listId}`;
 
                       return (
-                        <field.Layout.Row
-                          label={subscription.listName}
-                          hintText={hintText}
-                        >
+                        <Flex align="center" justify="between" gap="sm">
+                          <Stack gap="xs" flex="1">
+                            <Text as="label" id={labelId} htmlFor={labelId}>
+                              {subscription.listName}
+                            </Text>
+                            {subscription.listDescription && (
+                              <Text size="sm" variant="muted">
+                                {subscription.listDescription}
+                              </Text>
+                            )}
+                            {statusText && (
+                              <Text size="sm" variant="muted">
+                                {statusText}
+                              </Text>
+                            )}
+                          </Stack>
                           <field.Switch
+                            aria-labelledby={labelId}
                             checked={field.state.value}
                             onChange={field.handleChange}
                           />
-                        </field.Layout.Row>
+                        </Flex>
                       );
                     }}
                   </AutoSaveField>
