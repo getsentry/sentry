@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from typing import cast
 
 import orjson
 import requests
@@ -116,11 +117,11 @@ def _query_top_transactions(org_id: int, limit: int = 100) -> list[str]:
             config=SearchResolverConfig(),
         )
 
-        transactions = [
-            row.get("transaction")
-            for row in result.get("data", [])
-            if row.get("transaction") and row.get("transaction") != ""
-        ]
+        transactions = []
+        for row in result.get("data", []):
+            tx = row.get("transaction")
+            if tx and tx != "":
+                transactions.append(tx)
 
         logger.info(
             "Queried top transactions",
@@ -288,7 +289,7 @@ def _query_service_dependencies(org_id: int, transactions: list[str]) -> list[di
         # Query 2: Resolve parent spans to get their project_ids
         # Batch the parent span IDs to avoid query size limits
         batch_size = 500
-        edges_by_pair: dict[tuple[int, int], int] = defaultdict(int)
+        edges_by_pair: dict[tuple[int, str | None, int, str | None], int] = defaultdict(int)
 
         for i in range(0, len(unique_parent_span_ids), batch_size):
             batch = unique_parent_span_ids[i : i + batch_size]
@@ -344,7 +345,7 @@ def _query_service_dependencies(org_id: int, transactions: list[str]) -> list[di
         ]
 
         # Sort by count and apply limit
-        edges.sort(key=lambda x: x["count"], reverse=True)
+        edges.sort(key=lambda x: cast(int, x["count"]), reverse=True)
         edges = edges[:max_edges]
 
         logger.info(
