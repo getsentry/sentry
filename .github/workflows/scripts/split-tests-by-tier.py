@@ -40,6 +40,11 @@ FORCE_TIER2_FILES: set[str] = {
 # Services that require the heavy tier3 stack.
 TIER3_SERVICES: set[str] = {"symbolicator", "objectstore", "bigtable"}
 
+# Path prefixes routed to tier3 regardless of service classification.
+# relay_integration tests are individually slow (12-18s each) and cause
+# shard imbalance if left in tier2.
+TIER3_PATH_PREFIXES: tuple[str, ...] = ("tests/relay_integration/",)
+
 # Services that require tier2 (Snuba stack) but not tier3.
 TIER2_SERVICES: set[str] = {"snuba", "kafka"}
 
@@ -66,7 +71,8 @@ def split(classification: dict, granularity: str = "file") -> dict[str, set[str]
     tier3: set[str] = set()
     for scope, services in scope_services.items():
         file_path = scope.split("::")[0]
-        if file_path in FORCE_TIER3_FILES or (services & TIER3_SERVICES):
+        is_tier3_path = any(file_path.startswith(p) for p in TIER3_PATH_PREFIXES)
+        if file_path in FORCE_TIER3_FILES or is_tier3_path or (services & TIER3_SERVICES):
             tier3.add(scope)
         elif file_path in FORCE_TIER2_FILES or (services & TIER2_SERVICES):
             tier2.add(scope)
