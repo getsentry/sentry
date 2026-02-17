@@ -117,15 +117,12 @@ function AccountSubscriptions() {
                     addSuccessMessage(
                       `${variables.subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
                     );
-                    setApiQueryData<Subscription[]>(
-                      queryClient,
-                      [ENDPOINT],
-                      cachedSubs =>
-                        cachedSubs?.map(sub =>
-                          sub.listId === subscription.listId
-                            ? {...subscription, ...variables}
-                            : sub
-                        )
+                    setApiQueryData<Subscription[]>(queryClient, [ENDPOINT], cachedSubs =>
+                      cachedSubs?.map(sub =>
+                        sub.listId === subscription.listId
+                          ? {...subscription, ...variables}
+                          : sub
+                      )
                     );
                   },
                   onError: () => {
