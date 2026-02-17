@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
@@ -28,6 +28,7 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {useLLMContext, type LLMAction} from 'sentry/utils/seer/llmContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -429,45 +430,163 @@ export function ProjectPageFilter({
 
   const hasProjectWrite = organization.access.includes('project:write');
 
+  // ---- LLM Context ----
+  // Use refs to track latest state for LLM handlers to avoid stale closures
+  const valueRef = useRef(value);
+  const projectsRef = useRef(projects);
+
+  useEffect(() => {
+    valueRef.current = value;
+    projectsRef.current = projects;
+  }, [value, projects]);
+
+  const llmData = useMemo(
+    () => ({
+      selected: value,
+      available: projects.map(p => ({id: parseInt(p.id, 10), slug: p.slug})),
+    }),
+    [value, projects]
+  );
+
+  const llmActions = useMemo<LLMAction[]>(
+    () => [
+      {
+        type: 'setProjects',
+        description: 'Replace the currently selected projects with the given list',
+        schema: {
+          type: 'object',
+          properties: {
+            projects: {
+              type: 'array',
+              items: {type: 'number'},
+              description: 'List of project IDs to select',
+            },
+          },
+          required: ['projects'],
+        },
+      },
+      {
+        type: 'addProject',
+        description: 'Add a single project to the current selection',
+        schema: {
+          type: 'object',
+          properties: {
+            project: {
+              type: 'number',
+              description: 'Project ID to add',
+            },
+          },
+          required: ['project'],
+        },
+      },
+      {
+        type: 'removeProject',
+        description: 'Remove a single project from the current selection',
+        schema: {
+          type: 'object',
+          properties: {
+            project: {
+              type: 'number',
+              description: 'Project ID to remove',
+            },
+          },
+          required: ['project'],
+        },
+      },
+      {
+        type: 'reset',
+        description: 'Clear all selected projects (select all projects)',
+        schema: {type: 'object', properties: {}},
+      },
+    ],
+    []
+  );
+
+  const llmHandlers = useMemo(
+    () => ({
+      setProjects: (payload: any) => {
+        if (Array.isArray(payload?.projects)) {
+          const projectIds = projectsRef.current.map(p => parseInt(p.id, 10));
+          const valid = payload.projects.filter((id: number) => projectIds.includes(id));
+          handleChange(valid);
+        }
+      },
+      addProject: (payload: any) => {
+        if (typeof payload?.project === 'number') {
+          const projectIds = projectsRef.current.map(p => parseInt(p.id, 10));
+          const currentValue = valueRef.current;
+          if (
+            projectIds.includes(payload.project) &&
+            !currentValue.includes(payload.project)
+          ) {
+            handleChange([...currentValue, payload.project]);
+          }
+        }
+      },
+      removeProject: (payload: any) => {
+        if (typeof payload?.project === 'number') {
+          const currentValue = valueRef.current;
+          handleChange(currentValue.filter(id => id !== payload.project));
+        }
+      },
+      reset: () => {
+        handleChange([]);
+      },
+    }),
+    [handleChange]
+  );
+
+  const {ref: llmContextRef} = useLLMContext({
+    name: 'project-filter',
+    entity: 'filter',
+    description:
+      'Controls which projects the page data is filtered by. When no projects are selected, all projects are shown.',
+    data: llmData,
+    actions: llmActions,
+    onAction: llmHandlers,
+  });
+
   return (
-    <HybridFilter
-      ref={hybridFilterRef}
-      {...selectProps}
-      stagedSelect={stagedSelect}
-      searchable
-      options={options}
-      disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
-      sizeLimit={sizeLimit ?? 25}
-      emptyMessage={emptyMessage ?? t('No projects found')}
-      menuTitle={menuTitle ?? t('Filter Projects')}
-      menuWidth={menuWidth ?? defaultMenuWidth}
-      menuFooter={
-        hasProjectWrite ? (
-          <LinkButton
-            size="xs"
-            aria-label={t('Create Project')}
-            to={makeProjectsPathname({path: '/new/', organization})}
-            icon={<IconAdd />}
-          >
-            {t('Create Project')}
-          </LinkButton>
-        ) : undefined
-      }
-      menuFooterMessage={menuFooterMessage}
-      trigger={
-        trigger ??
-        (triggerProps => (
-          <ProjectPageFilterTrigger
-            {...triggerProps}
-            value={value}
-            memberProjects={memberProjects}
-            nonMemberProjects={nonMemberProjects}
-            ready={projectsLoaded && pageFilterIsReady}
-          />
-        ))
-      }
-      shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-    />
+    <div ref={llmContextRef as React.RefObject<HTMLDivElement>}>
+      <HybridFilter
+        ref={hybridFilterRef}
+        {...selectProps}
+        stagedSelect={stagedSelect}
+        searchable
+        options={options}
+        disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
+        sizeLimit={sizeLimit ?? 25}
+        emptyMessage={emptyMessage ?? t('No projects found')}
+        menuTitle={menuTitle ?? t('Filter Projects')}
+        menuWidth={menuWidth ?? defaultMenuWidth}
+        menuFooter={
+          hasProjectWrite ? (
+            <LinkButton
+              size="xs"
+              aria-label={t('Create Project')}
+              to={makeProjectsPathname({path: '/new/', organization})}
+              icon={<IconAdd />}
+            >
+              {t('Create Project')}
+            </LinkButton>
+          ) : undefined
+        }
+        menuFooterMessage={menuFooterMessage}
+        trigger={
+          trigger ??
+          (triggerProps => (
+            <ProjectPageFilterTrigger
+              {...triggerProps}
+              value={value}
+              memberProjects={memberProjects}
+              nonMemberProjects={nonMemberProjects}
+              ready={projectsLoaded && pageFilterIsReady}
+            />
+          ))
+        }
+        shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
+      />
+    </div>
   );
 }
 

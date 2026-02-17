@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
@@ -231,6 +231,15 @@ export function EnvironmentPageFilter({
   });
 
   // ---- LLM Context ----
+  // Use refs to track latest state for LLM handlers to avoid stale closures
+  const valueRef = useRef(value);
+  const environmentsRef = useRef(environments);
+
+  useEffect(() => {
+    valueRef.current = value;
+    environmentsRef.current = environments;
+  }, [value, environments]);
+
   const llmData = useMemo(
     () => ({selected: value, available: environments}),
     [value, environments]
@@ -295,7 +304,7 @@ export function EnvironmentPageFilter({
       setEnvironments: (payload: any) => {
         if (Array.isArray(payload?.environments)) {
           const valid = payload.environments.filter((e: string) =>
-            environments.includes(e)
+            environmentsRef.current.includes(e)
           );
           handleChange(valid);
         }
@@ -303,26 +312,28 @@ export function EnvironmentPageFilter({
       addEnvironment: (payload: any) => {
         if (
           typeof payload?.environment === 'string' &&
-          environments.includes(payload.environment)
+          environmentsRef.current.includes(payload.environment)
         ) {
-          if (!value.includes(payload.environment)) {
-            handleChange([...value, payload.environment]);
+          const currentValue = valueRef.current;
+          if (!currentValue.includes(payload.environment)) {
+            handleChange([...currentValue, payload.environment]);
           }
         }
       },
       removeEnvironment: (payload: any) => {
         if (typeof payload?.environment === 'string') {
-          handleChange(value.filter(e => e !== payload.environment));
+          const currentValue = valueRef.current;
+          handleChange(currentValue.filter(e => e !== payload.environment));
         }
       },
       reset: () => {
         handleChange([]);
       },
     }),
-    [environments, value, handleChange]
+    [handleChange]
   );
 
-  useLLMContext({
+  const {ref: llmContextRef} = useLLMContext({
     name: 'environment-filter',
     entity: 'filter',
     description:
@@ -333,31 +344,33 @@ export function EnvironmentPageFilter({
   });
 
   return (
-    <HybridFilter
-      {...selectProps}
-      ref={hybridFilterRef}
-      stagedSelect={stagedSelect}
-      searchable
-      options={options}
-      disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
-      sizeLimit={sizeLimit ?? 25}
-      sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
-      emptyMessage={emptyMessage ?? t('No environments found')}
-      menuTitle={t('Filter Environments')}
-      menuWidth={menuWidth ?? defaultMenuWidth}
-      menuFooterMessage={footerMessage}
-      trigger={
-        trigger ??
-        (tp => (
-          <EnvironmentPageFilterTrigger
-            {...tp}
-            {...triggerProps}
-            value={value}
-            environments={environments}
-            ready={projectsLoaded && pageFilterIsReady}
-          />
-        ))
-      }
-    />
+    <div ref={llmContextRef as React.RefObject<HTMLDivElement>}>
+      <HybridFilter
+        {...selectProps}
+        ref={hybridFilterRef}
+        stagedSelect={stagedSelect}
+        searchable
+        options={options}
+        disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
+        sizeLimit={sizeLimit ?? 25}
+        sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
+        emptyMessage={emptyMessage ?? t('No environments found')}
+        menuTitle={t('Filter Environments')}
+        menuWidth={menuWidth ?? defaultMenuWidth}
+        menuFooterMessage={footerMessage}
+        trigger={
+          trigger ??
+          (tp => (
+            <EnvironmentPageFilterTrigger
+              {...tp}
+              {...triggerProps}
+              value={value}
+              environments={environments}
+              ready={projectsLoaded && pageFilterIsReady}
+            />
+          ))
+        }
+      />
+    </div>
   );
 }

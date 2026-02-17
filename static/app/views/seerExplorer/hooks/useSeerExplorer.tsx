@@ -426,6 +426,133 @@ export const useSeerExplorer = () => {
   // ---- UI Action Dispatch ----
   // Track which tool_call IDs we've already dispatched to avoid re-dispatching
   const dispatchedToolCallIds = useRef(new Set<string>());
+  // Queue for pending actions to process sequentially
+  const actionQueueRef = useRef<
+    Array<{
+      context: string;
+      payload: any;
+      toolCallId: string;
+      type: string;
+    }>
+  >([]);
+  // Track if queue is currently processing
+  const isProcessingQueueRef = useRef(false);
+
+  // Function to apply visual highlight to a component
+  const applyVisualHighlight = useCallback(
+    (contextName: string) => {
+      // Find the component ref from the LLM context tree
+      const findNodeRef = (nodes: typeof llmContextTree): HTMLElement | null => {
+        for (const node of nodes) {
+          if (node.name === contextName) {
+            return node.ref;
+          }
+          const childRef = findNodeRef(node.children);
+          if (childRef) {
+            return childRef;
+          }
+        }
+        return null;
+      };
+
+      const element = findNodeRef(llmContextTree);
+      if (!element) {
+        return null;
+      }
+
+      // Store original styles
+      const originalBoxShadow = element.style.boxShadow;
+      const originalTransition = element.style.transition;
+
+      // Apply purple box shadow with transition
+      element.style.transition = 'box-shadow 1s ease-in-out';
+      element.style.boxShadow = '0 0 0 3px rgb(147, 51, 234)'; // purple
+
+      // Transition to orange after a brief moment
+      setTimeout(() => {
+        element.style.boxShadow = '0 0 0 3px rgb(249, 115, 22)'; // orange
+      }, 50);
+
+      // Return cleanup function
+      return () => {
+        element.style.boxShadow = originalBoxShadow;
+        element.style.transition = originalTransition;
+      };
+    },
+    [llmContextTree]
+  );
+
+  // Function to process action queue sequentially
+  const processActionQueue = useCallback(async () => {
+    if (isProcessingQueueRef.current) {
+      // Already processing, the current processor will handle queued items
+      return;
+    }
+
+    if (actionQueueRef.current.length === 0) {
+      return;
+    }
+
+    isProcessingQueueRef.current = true;
+
+    // eslint-disable-next-line no-console
+    console.log(
+      '[LLM UI Action] Starting queue processing, queue length:',
+      actionQueueRef.current.length
+    );
+
+    while (actionQueueRef.current.length > 0) {
+      const action = actionQueueRef.current.shift();
+      if (!action) {
+        break;
+      }
+
+      // eslint-disable-next-line no-console
+      console.log('[LLM UI Action] Processing queued action:', {
+        context: action.context,
+        type: action.type,
+        payload: action.payload,
+        remainingInQueue: actionQueueRef.current.length,
+      });
+
+      // Step 1: Apply visual styles
+      const cleanupStyles = applyVisualHighlight(action.context);
+
+      // Step 2: Wait 1s
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 3: Dispatch state update
+      // eslint-disable-next-line no-console
+      console.log('[LLM UI Action] Dispatching:', {
+        context: action.context,
+        type: action.type,
+      });
+      const handled = llmDispatch(action.context, action.type, action.payload);
+      // eslint-disable-next-line no-console
+      console.log('[LLM UI Action] Dispatch result:', {handled});
+
+      // Step 4: Wait 1s
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 5: Remove visual styles
+      if (cleanupStyles) {
+        cleanupStyles();
+      }
+    }
+
+    isProcessingQueueRef.current = false;
+
+    // eslint-disable-next-line no-console
+    console.log('[LLM UI Action] Finished queue processing');
+
+    // Check if new items were added while we were processing
+    // This handles race conditions where items are added just as we finish
+    if (actionQueueRef.current.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log('[LLM UI Action] New items detected, restarting queue processing');
+      processActionQueue();
+    }
+  }, [applyVisualHighlight, llmDispatch]);
 
   useEffect(() => {
     const blocks = apiData?.session?.blocks;
@@ -434,11 +561,6 @@ export const useSeerExplorer = () => {
     }
 
     for (const block of blocks) {
-      // Skip loading blocks — wait until the tool call is complete
-      if (block.loading) {
-        continue;
-      }
-
       const toolCalls = block.message.tool_calls;
       if (!toolCalls) {
         continue;
@@ -452,6 +574,7 @@ export const useSeerExplorer = () => {
           id: toolCall.id,
           args: toolCall.args,
           isUIAction: toolCall.function === UI_ACTION_TOOL_NAME,
+          blockLoading: block.loading,
         });
 
         if (toolCall.function !== UI_ACTION_TOOL_NAME) {
@@ -462,7 +585,11 @@ export const useSeerExplorer = () => {
           continue;
         }
 
-        dispatchedToolCallIds.current.add(toolCall.id);
+        // Skip tool calls that don't have complete args yet
+        // (they may still be streaming in)
+        if (!toolCall.args || toolCall.args.trim() === '') {
+          continue;
+        }
 
         try {
           const parsed = JSON.parse(toolCall.args);
@@ -478,15 +605,29 @@ export const useSeerExplorer = () => {
               }
             }
 
-            // eslint-disable-next-line no-console
-            console.log('[LLM UI Action] Dispatching:', {
+            // Mark as dispatched only after successful parsing
+            dispatchedToolCallIds.current.add(toolCall.id);
+
+            // Add action to queue
+            actionQueueRef.current.push({
               context: parsed.context,
               type: parsed.type,
               payload,
+              toolCallId: toolCall.id,
             });
-            const handled = llmDispatch(parsed.context, parsed.type, payload);
+
             // eslint-disable-next-line no-console
-            console.log('[LLM UI Action] Dispatch result:', {handled});
+            console.log('[LLM UI Action] Added to queue:', {
+              context: parsed.context,
+              type: parsed.type,
+              payload,
+              blockLoading: block.loading,
+              queueLength: actionQueueRef.current.length,
+              isProcessing: isProcessingQueueRef.current,
+            });
+
+            // Start processing queue if not already processing
+            processActionQueue();
           } else {
             // eslint-disable-next-line no-console
             console.warn(
@@ -504,7 +645,7 @@ export const useSeerExplorer = () => {
         }
       }
     }
-  }, [apiData?.session?.blocks, llmDispatch]);
+  }, [apiData?.session?.blocks, processActionQueue]);
 
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;

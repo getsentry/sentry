@@ -31,6 +31,7 @@ import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
+import {useLLMContext, type LLMAction} from 'sentry/utils/seer/llmContext';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -61,6 +62,7 @@ interface SearchQueryBuilderContextData {
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: GetTagValues;
   handleSearch: (query: string) => void;
+  llmContextRef: React.RefObject<HTMLElement | null>;
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
   query: string;
@@ -258,6 +260,7 @@ export function SearchQueryBuilderProvider({
       getFieldDefinition: stableFieldDefinitionGetter,
       dispatch,
       wrapperRef,
+      llmContextRef,
       actionBarRef,
       handleSearch,
       placeholder,
@@ -300,6 +303,7 @@ export function SearchQueryBuilderProvider({
     getTagKeys,
     getTagValues,
     handleSearch,
+    llmContextRef,
     matchKeySuggestions,
     onCaseInsensitiveClick,
     parseQuery,
@@ -316,6 +320,105 @@ export function SearchQueryBuilderProvider({
     stableGetSuggestedFilterKey,
     state,
   ]);
+
+  // ---- LLM Context ----
+  // Use ref to track latest query for LLM handlers to avoid stale closures
+  const queryRef = useRef(state.query);
+
+  useEffect(() => {
+    queryRef.current = state.query;
+  }, [state.query]);
+
+  const llmData = useMemo(
+    () => ({
+      query: state.query,
+      parsedQuery: parsedQuery?.map(token => ({
+        type: token.type,
+        text: token.text,
+      })),
+      availableFilters: Object.keys(stableFilterKeys),
+    }),
+    [state.query, parsedQuery, stableFilterKeys]
+  );
+
+  const llmActions = useMemo<LLMAction[]>(
+    () => [
+      {
+        type: 'setQuery',
+        description:
+          'Replace the entire search query with a new query string. Use the Sentry search syntax (e.g., "status:unresolved level:error")',
+        schema: {
+          type: 'object',
+          properties: {
+            query: {
+              type: 'string',
+              description: 'The complete search query string in Sentry search syntax',
+            },
+          },
+          required: ['query'],
+        },
+      },
+      {
+        type: 'appendFilter',
+        description:
+          'Add a filter to the existing query. The filter will be appended with proper spacing.',
+        schema: {
+          type: 'object',
+          properties: {
+            filter: {
+              type: 'string',
+              description:
+                'A single filter to append (e.g., "status:unresolved", "level:error")',
+            },
+          },
+          required: ['filter'],
+        },
+      },
+      {
+        type: 'clearQuery',
+        description: 'Clear the entire search query',
+        schema: {type: 'object', properties: {}},
+      },
+    ],
+    []
+  );
+
+  const llmHandlers = useMemo(
+    () => ({
+      setQuery: (payload: any) => {
+        if (typeof payload?.query === 'string') {
+          dispatch({type: 'UPDATE_QUERY', query: payload.query, shouldCommitQuery: true});
+          handleSearch(payload.query);
+        }
+      },
+      appendFilter: (payload: any) => {
+        if (typeof payload?.filter === 'string') {
+          const currentQuery = queryRef.current;
+          const newQuery =
+            currentQuery.trim() === ''
+              ? payload.filter
+              : `${currentQuery.trim()} ${payload.filter}`;
+          dispatch({type: 'UPDATE_QUERY', query: newQuery, shouldCommitQuery: true});
+          handleSearch(newQuery);
+        }
+      },
+      clearQuery: () => {
+        dispatch({type: 'CLEAR'});
+        handleSearch('');
+      },
+    }),
+    [dispatch, handleSearch]
+  );
+
+  const {ref: llmContextRef} = useLLMContext({
+    name: 'search-query-builder',
+    entity: 'search',
+    description:
+      'The search query builder allows filtering data using Sentry search syntax. Supports filters like "status:unresolved", "level:error", "is:assigned", etc.',
+    data: llmData,
+    actions: llmActions,
+    onAction: llmHandlers,
+  });
 
   return (
     <SearchQueryBuilderContext.Provider value={contextValue}>

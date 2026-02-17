@@ -266,7 +266,7 @@ function SearchQueryBuilderUI({
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
-  const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
+  const {parsedQuery, query, dispatch, wrapperRef, llmContextRef, actionBarRef, size} =
     useSearchQueryBuilder();
 
   useOnChange({onChange});
@@ -277,33 +277,35 @@ function SearchQueryBuilderUI({
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 
   return (
-    <Wrapper
-      className={className}
-      onBlur={() =>
-        onBlur?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
-      }
-      ref={wrapperRef as React.RefObject<HTMLInputElement>}
-      aria-disabled={disabled}
-      data-test-id="search-query-builder"
-    >
-      <PanelProvider>
-        <PositionedSearchIconContainer>
-          <SearchIcon size="sm" />
-        </PositionedSearchIconContainer>
-        {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
-          <PlainTextQueryInput label={label} />
-        ) : (
-          <TokenizedQueryGrid
-            autoFocus={autoFocus || false}
-            label={label}
-            actionBarWidth={actionBarWidth}
-          />
-        )}
-        {size !== 'small' && (
-          <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
-        )}
-      </PanelProvider>
-    </Wrapper>
+    <div ref={llmContextRef as React.RefObject<HTMLDivElement>}>
+      <Wrapper
+        className={className}
+        onBlur={() =>
+          onBlur?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
+        }
+        ref={wrapperRef as React.RefObject<HTMLInputElement>}
+        aria-disabled={disabled}
+        data-test-id="search-query-builder"
+      >
+        <PanelProvider>
+          <PositionedSearchIconContainer>
+            <SearchIcon size="sm" />
+          </PositionedSearchIconContainer>
+          {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
+            <PlainTextQueryInput label={label} />
+          ) : (
+            <TokenizedQueryGrid
+              autoFocus={autoFocus || false}
+              label={label}
+              actionBarWidth={actionBarWidth}
+            />
+          )}
+          {size !== 'small' && (
+            <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
+          )}
+        </PanelProvider>
+      </Wrapper>
+    </div>
   );
 }
 
