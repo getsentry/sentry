@@ -382,7 +382,19 @@ The baseline continued iterating beyond the 11m29s configuration:
 
 **Expected improvement:** Tier2 startup should be faster since 16 shards skip pulling ~3 heavy Docker images. Tier3 absorbs the slow relay/symbolicator/objectstore tests onto a dedicated shard with the full stack.
 
-**Results:** TBD (run `22118316595`).
+**Results** (run `22120115422`, `--dist=loadscope`, no extra tests forced to tier3):
+
+| Metric       | Step 4 best  | Step 5       |
+| ------------ | ------------ | ------------ |
+| Wall clock   | 11.9m        | **13.0m**    |
+| T1 avg / max | 9.8m / 10.8m | 11.4m / 12.7m |
+| T2 avg / max | 9.9m / 10.7m | 10.6m / 11.4m |
+| T3           | —            | 8.1m         |
+| T1 spread    | 153s         | 136s         |
+| T2 spread    | 133s         | 88s          |
+| Runner-min   | 217m         | 234m         |
+
+Wall clock regressed from the earlier 11.8m (run `22118316595`, `--dist=loadfile`) to 13.0m. Investigation: the earlier 11.8m run used `--dist=loadfile` with the same tier layout and no extra forced tests. T1 spread was only 26s (vs 136s with `loadscope`). `loadscope` appears worse in the 3-tier config — T1 has fewer, larger test files where `loadfile`'s per-file fixture reuse is more valuable. The `loadscope` advantage seen in Step 4 (2-tier, 17 T2 shards) doesn't carry over to the 3-tier layout.
 
 ---
 
@@ -403,3 +415,57 @@ The baseline continued iterating beyond the 11m29s configuration:
 - `kafka.py`: Added `from sentry.testutils.pytest.sentry import _get_xdist_kafka_topic`, replaced all hardcoded topic names and the consumer group ID with `_get_xdist_kafka_topic(...)` calls.
 
 **Impact:** Currently masked because relay tests run on tier3 with only 1 shard and 2 xdist workers, limiting the blast radius. Would cause increasingly flaky failures as shard count or worker count scales up. Fixing this is a prerequisite for reliable parallel relay test execution.
+
+---
+
+## Experiment: G1 (direct file collection) and Balanced Sharding (LPT)
+
+Two optimization experiments run in parallel worktrees on top of the Step 5 + Kafka fix baseline. All three runs used `--dist=loadscope`, no extra tests forced to tier3, and the Kafka isolation fix.
+
+### G1: `pytest_ignore_collect` hook
+
+**What:** Added a `pytest_ignore_collect` hook that reads `SELECTED_TESTS_FILE` and skips importing test files not in the tier's test list. Normally pytest imports every `.py` file under `tests/` during collection even if the file will be deselected later. With G1, irrelevant files are skipped before import, reducing collection time from ~105s to ~55s per shard.
+
+**Service-readiness gate:** Because collection finishes faster with G1, tests can start executing before background `devservices up` completes (H1 overlap). A session-scoped autouse fixture `_wait_for_services` blocks until a sentinel file (`/tmp/services-ready`) exists, created by the startup script after all services are healthy. This preserves the collection/startup overlap while preventing race conditions.
+
+**Results** (run `22120115559`, 0 failures):
+
+| Metric       | Step 5 (main) | G1            | Delta        |
+| ------------ | ------------- | ------------- | ------------ |
+| Wall clock   | 13.0m         | **11.2m**     | **-1.8m**    |
+| T1 avg / max | 11.4m / 12.7m | 10.5m / 10.9m | -1.8m max    |
+| T2 avg / max | 10.6m / 11.4m | 9.6m / 10.6m  | -0.8m max    |
+| T3           | 8.1m          | 8.4m          | +0.3m        |
+| T1 spread    | 136s          | **51s**        | -85s         |
+| T2 spread    | 88s           | 95s           | +7s          |
+| Runner-min   | 234m          | **215m**      | **-19m**     |
+
+**Analysis:** G1 delivers the biggest single improvement since H1 (overlapped startup). The 50s collection savings per shard directly reduces wall clock since T1 doesn't have devservices startup to overlap with — the time comes straight off T1 durations. T1 spread dropped to 51s (from 136s), making it remarkably well-balanced. T1 is still the critical path (10.9m) but now only barely above T2 max (10.6m).
+
+### Balanced Sharding: LPT (Longest Processing Time) bin packing
+
+**What:** Duration-based test assignment using greedy bin packing (LPT algorithm). Each test is assigned to the shard with the lowest cumulative load, using historical per-test durations from a cached JSON file. Extracts only `call` phase durations to avoid H1 setup contamination. Caps any single test at 60s. Falls back to hash-based sharding on the seed run (no prior data).
+
+**Results** (run `22120116013`, 0 failures, **seed run — no prior duration data**):
+
+| Metric       | Step 5 (main) | Balanced (seed) | Delta     |
+| ------------ | ------------- | --------------- | --------- |
+| Wall clock   | 13.0m         | **12.6m**       | **-0.4m** |
+| T1 avg / max | 11.4m / 12.7m | 10.9m / 12.1m   | -0.6m max |
+| T2 avg / max | 10.6m / 11.4m | 10.6m / 11.7m   | +0.3m max |
+| T3           | 8.1m          | 8.6m            | +0.5m     |
+| T1 spread    | 136s          | 167s            | +31s      |
+| T2 spread    | 88s           | 99s             | +11s      |
+| Runner-min   | 234m          | **232m**        | **-2m**   |
+
+**Analysis:** This was a seed run (no cached durations), so LPT fell back to hash-based sharding — essentially the same as roundrobin. The small improvement is noise. The real LPT benefit should appear on the next run, which will use the durations cached from this run. A follow-up run is needed to evaluate actual LPT performance.
+
+### Summary
+
+| Config         | Wall clock | Runner-min | T1 spread | Failures |
+| -------------- | ---------- | ---------- | --------- | -------- |
+| Main (Step 5)  | 13.0m      | 234m       | 136s      | 0        |
+| **G1**         | **11.2m**  | **215m**   | **51s**   | 0        |
+| Balanced (seed)| 12.6m      | 232m       | 167s      | 0        |
+
+G1 is the clear winner. Collection-time savings are the largest remaining lever after H1. Balanced sharding needs a follow-up run with cached durations to show its potential — ideally combined with G1.
