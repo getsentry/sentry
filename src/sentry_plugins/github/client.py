@@ -66,7 +66,8 @@ class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
         return self.delete(f"/repos/{repo}/hooks/{id}")
 
     def get_installations(self):
-        return self._request("GET", "/user/installations")
+        headers = {"Accept": "application/vnd.github+json"}
+        return self._request("GET", "/user/installations", headers=headers)
 
 
 class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
@@ -105,11 +106,13 @@ class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
         if headers is None:
             headers = {
                 "Authorization": "token %s" % self.get_token(),
+                "Accept": "application/vnd.github+json",
             }
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def create_token(self):
-        headers = jwt.authorization_header(self.get_jwt())
+        headers = {"Accept": "application/vnd.github+json"}
+        headers.update(jwt.authorization_header(self.get_jwt()))
         return self.post(
             f"/app/installations/{self.integration.external_id}/access_tokens",
             headers=headers,
