@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
@@ -10,6 +10,8 @@ import type {
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
+
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {ChartLegend} from 'sentry/components/charts/chartLegend';
@@ -638,7 +640,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   return (
-    <Fragment>
+    <Flex direction="column" height="100%">
       {ActionMenu}
       {hasChartLegend && showLegend && (
         <ChartLegend
@@ -647,77 +649,79 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           onSelectionChange={handleLegendSelectionChange}
         />
       )}
-      <BaseChart
-        ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
-        autoHeightResize
-        series={allSeries}
-        grid={{
-          // NOTE: Adding a few pixels of left padding prevents ECharts from
-          // incorrectly truncating long labels. See
-          // https://github.com/apache/echarts/issues/15562
-          left: 2,
-          top: showLegend && !hasChartLegend ? 25 : 10,
-          right: 8,
-          bottom: 0,
-          containLabel: true,
-          ...releaseBubbleGrid,
-          ...xAxisGrid,
-        }}
-        legend={
-          hasChartLegend && showLegend
-            ? {
-                show: false,
-                selected: legendSelection,
-              }
-            : !hasChartLegend && showLegend
+      <Container flex="1 1 0%" minHeight="0">
+        <BaseChart
+          ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
+          autoHeightResize
+          series={allSeries}
+          grid={{
+            // NOTE: Adding a few pixels of left padding prevents ECharts from
+            // incorrectly truncating long labels. See
+            // https://github.com/apache/echarts/issues/15562
+            left: 2,
+            top: showLegend && !hasChartLegend ? 25 : 10,
+            right: 8,
+            bottom: 0,
+            containLabel: true,
+            ...releaseBubbleGrid,
+            ...xAxisGrid,
+          }}
+          legend={
+            hasChartLegend && showLegend
               ? {
-                  top: 0,
-                  left: 0,
-                  formatter(seriesName: string) {
-                    return truncationFormatter(
-                      aliases[seriesName] ?? seriesName,
-                      true,
-                      // Escaping the legend string will cause some special
-                      // characters to render as their HTML equivalents.
-                      // So disable it here.
-                      false
-                    );
-                  },
+                  show: false,
                   selected: legendSelection,
                 }
-              : undefined
-        }
-        onLegendSelectChanged={event => {
-          handleLegendSelectionChange(event.selected);
-        }}
-        tooltip={{
-          appendToBody: true,
-          trigger: 'axis',
-          axisPointer: {
-            type: 'cross',
-          },
-          formatter: formatTooltip,
-        }}
-        xAxis={xAxis}
-        yAxes={yAxes}
-        {...chartZoomProps}
-        onDataZoom={props.onZoom ?? onDataZoom}
-        toolBox={toolBox ?? chartZoomProps.toolBox}
-        brush={brush}
-        onBrushStart={onBrushStart}
-        onBrushEnd={onBrushEnd}
-        onChartReady={handleChartReady}
-        isGroupedByDate
-        useMultilineDate
-        start={start ? new Date(start) : undefined}
-        end={end ? new Date(end) : undefined}
-        period={period}
-        utc={utc ?? undefined}
-        onHighlight={handleHighlight}
-        onDownplay={handleDownplay}
-        onClick={handleClick}
-      />
-    </Fragment>
+              : !hasChartLegend && showLegend
+                ? {
+                    top: 0,
+                    left: 0,
+                    formatter(seriesName: string) {
+                      return truncationFormatter(
+                        aliases[seriesName] ?? seriesName,
+                        true,
+                        // Escaping the legend string will cause some special
+                        // characters to render as their HTML equivalents.
+                        // So disable it here.
+                        false
+                      );
+                    },
+                    selected: legendSelection,
+                  }
+                : undefined
+          }
+          onLegendSelectChanged={event => {
+            handleLegendSelectionChange(event.selected);
+          }}
+          tooltip={{
+            appendToBody: true,
+            trigger: 'axis',
+            axisPointer: {
+              type: 'cross',
+            },
+            formatter: formatTooltip,
+          }}
+          xAxis={xAxis}
+          yAxes={yAxes}
+          {...chartZoomProps}
+          onDataZoom={props.onZoom ?? onDataZoom}
+          toolBox={toolBox ?? chartZoomProps.toolBox}
+          brush={brush}
+          onBrushStart={onBrushStart}
+          onBrushEnd={onBrushEnd}
+          onChartReady={handleChartReady}
+          isGroupedByDate
+          useMultilineDate
+          start={start ? new Date(start) : undefined}
+          end={end ? new Date(end) : undefined}
+          period={period}
+          utc={utc ?? undefined}
+          onHighlight={handleHighlight}
+          onDownplay={handleDownplay}
+          onClick={handleClick}
+        />
+      </Container>
+    </Flex>
   );
 }
 

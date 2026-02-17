@@ -1,9 +1,10 @@
 import type React from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 const CHECKBOX_SIZE = '12px';
 const ICON_SIZE = '10px';
-const BORDER_RADIUS = '2px';
 
 interface LegendCheckboxProps {
   checked: boolean;
@@ -19,21 +20,40 @@ export function LegendCheckbox({
   'aria-label': ariaLabel,
 }: LegendCheckboxProps) {
   return (
-    <Wrapper>
+    <Flex
+      position="relative"
+      display="inline-flex"
+      flexShrink={0}
+      radius="2xs"
+      style={{cursor: 'pointer'}}
+    >
       <NativeCheckbox
         type="checkbox"
         checked={checked}
         onChange={onChange}
         aria-label={ariaLabel}
       />
-      <FakeCheckbox checked={checked} color={color} aria-hidden>
+      <Flex
+        position="relative"
+        align="center"
+        justify="center"
+        width={CHECKBOX_SIZE}
+        height={CHECKBOX_SIZE}
+        radius="2xs"
+        style={{
+          backgroundColor: checked ? color : 'transparent',
+          border: `1px solid ${checked ? color : 'var(--border-primary)'}`,
+          pointerEvents: 'none',
+        }}
+        aria-hidden
+      >
         {checked && (
           <CheckIcon viewBox="0 0 16 16">
             <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
           </CheckIcon>
         )}
-      </FakeCheckbox>
-    </Wrapper>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -53,19 +73,6 @@ const NativeCheckbox = styled('input')`
   }
 `;
 
-const FakeCheckbox = styled('div')<{checked: boolean; color: string}>`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: ${CHECKBOX_SIZE};
-  height: ${CHECKBOX_SIZE};
-  border-radius: ${BORDER_RADIUS};
-  background-color: ${p => (p.checked ? p.color : 'transparent')};
-  border: 1px solid ${p => (p.checked ? p.color : p.theme.tokens.border.primary)};
-  pointer-events: none;
-`;
-
 const CheckIcon = styled('svg')`
   width: ${ICON_SIZE};
   height: ${ICON_SIZE};
@@ -74,12 +81,4 @@ const CheckIcon = styled('svg')`
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.8px;
-`;
-
-const Wrapper = styled('div')`
-  position: relative;
-  cursor: pointer;
-  display: inline-flex;
-  border-radius: ${BORDER_RADIUS};
-  flex-shrink: 0;
 `;
