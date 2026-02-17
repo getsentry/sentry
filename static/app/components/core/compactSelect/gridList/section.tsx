@@ -40,7 +40,7 @@ export function GridListSection({
   isFirst = false,
 }: GridListSectionProps) {
   const titleId = useId();
-  const {separatorProps} = useSeparator({elementType: 'li'});
+  const {separatorProps} = useSeparator({elementType: 'div'});
 
   const showToggleAllButton =
     listState.selectionManager.selectionMode === 'multiple' &&

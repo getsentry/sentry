@@ -30,7 +30,7 @@ export function GridListOption({
   node,
   listState,
   size,
-  ref: refProp,
+  ref: externalRef,
   'data-index': dataIndex,
 }: GridListOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
@@ -126,7 +126,7 @@ export function GridListOption({
     <StyledMenuListItem
       {...rowPropsMemo}
       data-index={dataIndex}
-      ref={mergeRefs(ref, refProp)}
+      ref={externalRef ? mergeRefs(ref, externalRef) : ref}
       size={size}
       label={label}
       details={details}

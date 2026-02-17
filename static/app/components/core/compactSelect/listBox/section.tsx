@@ -51,7 +51,7 @@ export function ListBoxSection({
     'aria-label': item['aria-label'],
   });
 
-  const {separatorProps} = useSeparator({elementType: 'li'});
+  const {separatorProps} = useSeparator({elementType: 'div'});
 
   const showToggleAllButton =
     listState.selectionManager.selectionMode === 'multiple' &&

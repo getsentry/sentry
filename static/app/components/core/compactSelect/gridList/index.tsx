@@ -134,58 +134,67 @@ function GridList({
     showSectionHeaders,
   });
 
+  const listContent = virtualizer.items.map(row => {
+    const item = listItems[row.index]!;
+    if (item.type === 'section') {
+      return (
+        <GridListSection
+          {...virtualizer.itemProps(row.index)}
+          key={item.key}
+          node={item}
+          listState={listState}
+          onToggle={onSectionToggle}
+          size={size}
+          isFirst={row.index === 0}
+        />
+      );
+    }
+
+    return (
+      <GridListOption
+        {...virtualizer.itemProps(row.index)}
+        key={item.key}
+        node={item}
+        listState={listState}
+        size={size}
+      />
+    );
+  });
+
+  const sizeLimitContent = !searchable && hiddenOptions.size > 0 && (
+    <SizeLimitMessage>
+      {sizeLimitMessage ?? t('Use search to find more options…')}
+    </SizeLimitMessage>
+  );
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
-      <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
-        <Container {...virtualizer.wrapperProps}>
-          {overlayIsOpen && (
-            <ListWrap
-              {...mergeProps(gridProps, props)}
-              style={{
-                ...gridProps.style,
-                ...virtualizer.listWrapStyle,
-              }}
-              onKeyDown={onKeyDown}
-              ref={ref}
-            >
-              {virtualizer.items.map(row => {
-                const item = listItems[row.index]!;
-                if (item.type === 'section') {
-                  return (
-                    <GridListSection
-                      {...virtualizer.itemProps(row.index)}
-                      key={item.key}
-                      node={item}
-                      listState={listState}
-                      onToggle={onSectionToggle}
-                      size={size}
-                      isFirst={row.index === 0}
-                    />
-                  );
-                }
-
-                return (
-                  <GridListOption
-                    {...virtualizer.itemProps(row.index)}
-                    key={item.key}
-                    node={item}
-                    listState={listState}
-                    size={size}
-                  />
-                );
-              })}
-
-              {!searchable && hiddenOptions.size > 0 && (
-                <SizeLimitMessage>
-                  {sizeLimitMessage ?? t('Use search to find more options…')}
-                </SizeLimitMessage>
-              )}
-            </ListWrap>
-          )}
-        </Container>
-      </Container>
+      {overlayIsOpen &&
+        (virtualized ? (
+          <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
+            <Container {...virtualizer.wrapperProps}>
+              <ListWrap
+                {...mergeProps(gridProps, props)}
+                style={{
+                  ...gridProps.style,
+                  ...virtualizer.listWrapStyle,
+                }}
+                onKeyDown={onKeyDown}
+                ref={ref}
+              >
+                {listContent}
+                {sizeLimitContent}
+              </ListWrap>
+            </Container>
+          </Container>
+        ) : (
+          <ListWrap {...mergeProps(gridProps, props)} onKeyDown={onKeyDown} ref={ref}>
+            {listContent}
+            {sizeLimitContent}
+          </ListWrap>
+        ))}
     </Fragment>
   );
 }
