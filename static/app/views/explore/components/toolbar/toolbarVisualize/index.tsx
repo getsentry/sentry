@@ -2,7 +2,11 @@ import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import type {
+  SelectKey,
+  SelectOption,
+  SelectOptionOrSection,
+} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -34,7 +38,7 @@ export function ToolbarVisualizeHeader() {
 }
 
 interface ToolbarVisualizeDropdownProps {
-  aggregateOptions: Array<SelectOption<SelectKey>>;
+  aggregateOptions: Array<SelectOptionOrSection<SelectKey>>;
   aggregateValue: string | string[];
   canDelete: boolean;
   fieldOptions: Array<SelectOption<SelectKey>>;
