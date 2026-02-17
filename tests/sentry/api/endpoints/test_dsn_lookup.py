@@ -11,6 +11,7 @@ class DsnLookupEndpointTest(APITestCase):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
         self.key = self.project.key_set.first()
+        assert self.key is not None
         self.dsn = self.key.dsn_public
         self.login_as(self.user)
 
@@ -36,6 +37,7 @@ class DsnLookupEndpointTest(APITestCase):
         other_org = self.create_organization(owner=other_user)
         other_project = self.create_project(organization=other_org)
         other_key = other_project.key_set.first()
+        assert other_key is not None
 
         with self.feature("organizations:cmd-k-dsn-lookup"):
             response = self.get_response(qs_params={"dsn": other_key.dsn_public})
@@ -45,6 +47,7 @@ class DsnLookupEndpointTest(APITestCase):
         other_org = self.create_organization(owner=self.user)
         other_project = self.create_project(organization=other_org)
         other_key = other_project.key_set.first()
+        assert other_key is not None
 
         with self.feature("organizations:cmd-k-dsn-lookup"):
             response = self.get_success_response(qs_params={"dsn": other_key.dsn_public})
