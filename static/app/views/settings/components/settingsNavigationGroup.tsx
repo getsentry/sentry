@@ -80,7 +80,7 @@ function SubSectionContent({
       <SubSectionTitle onClick={() => setIsCollapsed(!isCollapsed)}>
         <SubSectionTitleLabel>
           {SubIcon ? (
-            <Flex align="center" gap="xs">
+            <Flex align="center" gap="sm">
               <SubIcon size="sm" />
               {subName}
             </Flex>
@@ -123,7 +123,7 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
   const hasIcon = props.icon || props.renderIcon;
 
   const title = hasIcon ? (
-    <Flex align="center" gap="xs">
+    <Flex align="center" gap="sm">
       {iconElement}
       {name}
     </Flex>
@@ -142,7 +142,7 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
 }
 
 // Adds padding-left to nav items so they align with the title text
-// (which is offset by 16px icon + 4px gap from the section edge)
+// (which is offset by 16px icon + 8px gap from the section edge)
 const StyledSection = styled(SecondaryNav.Section)`
   a {
     padding-left: calc(${space(1.5)} + 16px + ${space(0.5)});
@@ -153,7 +153,7 @@ const SubSectionGroup = styled('div')`
   margin-top: ${space(0.5)};
 
   a {
-    padding-left: calc(2 * (${space(1.5)} + 16px + ${space(0.5)}));
+    padding-left: calc(${space(1.5)} + 2 * 16px + ${space(1)} + ${space(0.5)});
   }
 `;
 
@@ -169,7 +169,7 @@ const SubSectionTitle = styled('button')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.primary};
   padding: ${space(0.75)} ${space(1)} ${space(0.75)}
-    calc(${space(1.5)} + 16px + ${space(0.5)});
+    calc(${space(1.5)} + 16px + ${space(1)});
 
   &:hover {
     background-color: ${p =>
@@ -183,9 +183,9 @@ const SubSectionTitleLabel = styled('span')`
   text-overflow: ellipsis;
 `;
 
-// Aligns section titles without icons to match those with icons (16px icon + 4px gap)
+// Aligns section titles without icons to match those with icons (16px icon + 8px gap)
 const NoIconTitle = styled('span')`
-  padding-left: calc(16px + ${space(0.5)});
+  padding-left: calc(16px + ${space(1)});
 `;
 
 export default SettingsNavigationGroup;
