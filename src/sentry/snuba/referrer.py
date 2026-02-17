@@ -316,12 +316,12 @@ class Referrer(StrEnum):
     API_INSIGHTS_MOBILE_SPAN_TABLE = "api.insights.mobile-span-table"
     API_INSIGHTS_MOBILE_LANDING_TABLE = "api.insights.mobile.landing-table"
 
-    # Service Entry Spans
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE = "api.insights.service-entry-spans-table"
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_WITH_CATEGORY = (
-        "api.insights.service-entry-spans-table-with-category"
+    # Segment Spans
+    API_INSIGHTS_SEGMENT_SPANS_TABLE = "api.insights.segment-spans-table"
+    API_INSIGHTS_SEGMENT_SPANS_TABLE_WITH_CATEGORY = (
+        "api.insights.segment-spans-table-with-category"
     )
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_COUNT = "api.insights.service-entry-spans-table-count"
+    API_INSIGHTS_SEGMENT_SPANS_TABLE_COUNT = "api.insights.segment-spans-table-count"
 
     # Trace Panel
     API_INSIGHTS_TRACE_PANEL_LEFT_TRACE_LINK = "api.insights.trace-panel-left-trace-link"
