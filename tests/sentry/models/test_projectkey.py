@@ -79,9 +79,9 @@ class ProjectKeyTest(TestCase):
     def test_get_default(self) -> None:
         key = self.projectkey
         self.model.objects.create(project=self.project, status=ProjectKeyStatus.INACTIVE)
-        assert (
-            self.model.objects.filter(project=self.project).count() == 2
-        ), self.model.objects.all()
+        assert self.model.objects.filter(project=self.project).count() == 2, (
+            self.model.objects.all()
+        )
         assert self.model.get_default(self.project) == key
 
     def test_is_active(self) -> None:

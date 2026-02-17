@@ -332,12 +332,12 @@ const TableRow = memo(function TableRow({
           {hasProjectAccess && (
             <SettingsButton
               tabIndex={-1}
-              title={t('Open Project Settings')}
+              tooltipProps={{title: t('Open Project Settings')}}
               aria-label={t('Open Project Settings')}
               size="xs"
               priority="link"
               icon={<IconSettings />}
-              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance/`}
+              to={`/settings/${organization.slug}/projects/${project.slug}/performance/`}
             />
           )}
         </FirstCellLine>

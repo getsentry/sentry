@@ -60,7 +60,7 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
       icon={<IconDownload />}
       href={`${state.region?.url}/api/0/_admin/cells/${state.region?.name}/payments/${row.id}/pdf/`}
       size="md"
-      title="Download Invoice"
+      tooltipProps={{title: 'Download Invoice'}}
     />
   </td>,
 ];
@@ -117,7 +117,7 @@ export default function Invoices() {
       </Panel>
       <ResultGrid
         inPanel
-        isRegional
+        isCellScoped
         path="/_admin/invoices/"
         endpoint="/invoices/"
         method="GET"

@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -209,7 +209,9 @@ const TourHeader = styled('h4')`
   margin-bottom: ${space(1)};
 `;
 
-const TourButtonBar = styled(ButtonBar)`
+const TourButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-bottom: ${space(3)};
 `;
 

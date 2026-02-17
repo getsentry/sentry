@@ -2,7 +2,8 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -13,6 +14,7 @@ import {
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,7 +26,6 @@ import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/field
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
@@ -283,7 +284,7 @@ export function ToolbarSaveAs() {
 
   return (
     <StyledToolbarSection data-test-id="section-save-as">
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Tooltip
           disabled={!hasCrossEvents}
           title={t('Saving cross event queries is not supported during early access.')}
@@ -339,7 +340,7 @@ export function ToolbarSaveAs() {
             {`${t('Compare Queries')}`}
           </LinkButton>
         </Tooltip>
-      </ButtonBar>
+      </Grid>
     </StyledToolbarSection>
   );
 }

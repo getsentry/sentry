@@ -1,6 +1,7 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tct} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   useMutation,
@@ -10,14 +11,15 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   ProviderLabels,
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
-  `/organizations/${params.orgSlug}/forwarding/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/forwarding/`, {
+    path: {organizationIdOrSlug: params.orgSlug},
+  }),
 ];
 
 export function useDataForwarders({
@@ -27,13 +29,8 @@ export function useDataForwarders({
   params: {orgSlug: string};
   options?: Partial<UseApiQueryOptions<DataForwarder[]>>;
 }) {
-  const organization = useOrganization();
   return useApiQuery<DataForwarder[]>(makeDataForwarderQueryKey(params), {
     staleTime: 30000,
-    enabled:
-      params.orgSlug === organization.slug
-        ? organization.features.includes('data-forwarding-revamp-access')
-        : undefined,
     ...options,
   });
 }
@@ -42,7 +39,9 @@ const makeDataForwarderMutationQueryKey = (params: {
   dataForwarderId: string;
   orgSlug: string;
 }): ApiQueryKey => [
-  `/organizations/${params.orgSlug}/forwarding/${params.dataForwarderId}/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/forwarding/$dataForwarderId/`, {
+    path: {organizationIdOrSlug: params.orgSlug, dataForwarderId: params.dataForwarderId},
+  }),
 ];
 
 /**

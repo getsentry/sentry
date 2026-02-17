@@ -1,5 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import configureCodeReviewImg from 'sentry-images/spot/seer-config-check.svg';
 
@@ -68,6 +69,9 @@ export function ConfigureCodeReviewStep() {
               resolve();
             },
             onError: () => {
+              Sentry.captureException(
+                new Error('Seer Onboarding: Unable to enable code review')
+              );
               reject(new Error(t('Failed to enable AI Code Review')));
             },
           }

@@ -1,4 +1,5 @@
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
@@ -31,7 +32,7 @@ function EventAttachmentActions({
   const hasPreview = hasInlineAttachmentRenderer(attachment);
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {withPreviewButton && (
         <Button
           size="xs"
@@ -39,13 +40,13 @@ function EventAttachmentActions({
           priority={previewIsOpen ? 'primary' : 'default'}
           icon={<IconShow />}
           onClick={onPreviewClick}
-          title={
-            hasAttachmentRole
+          tooltipProps={{
+            title: hasAttachmentRole
               ? hasPreview
                 ? undefined
                 : t('This attachment cannot be previewed')
-              : t('Insufficient permissions to preview attachments')
-          }
+              : t('Insufficient permissions to preview attachments'),
+          }}
         >
           {t('Preview')}
         </Button>
@@ -55,11 +56,11 @@ function EventAttachmentActions({
         icon={<IconDownload />}
         href={hasAttachmentRole ? `${url}?download=1` : ''}
         disabled={!hasAttachmentRole}
-        title={
-          hasAttachmentRole
+        tooltipProps={{
+          title: hasAttachmentRole
             ? t('Download')
-            : t('Insufficient permissions to download attachments')
-        }
+            : t('Insufficient permissions to download attachments'),
+        }}
         aria-label={t('Download')}
       />
       <Confirm
@@ -74,14 +75,14 @@ function EventAttachmentActions({
           icon={<IconDelete />}
           aria-label={t('Delete')}
           disabled={!hasAttachmentRole}
-          title={
-            hasAttachmentRole
+          tooltipProps={{
+            title: hasAttachmentRole
               ? t('Delete')
-              : t('Insufficient permissions to delete attachments')
-          }
+              : t('Insufficient permissions to delete attachments'),
+          }}
         />
       </Confirm>
-    </ButtonBar>
+    </Grid>
   );
 }
 

@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
+import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {SavedSearchType} from 'sentry/types/group';
 import EventView from 'sentry/utils/discover/eventView';

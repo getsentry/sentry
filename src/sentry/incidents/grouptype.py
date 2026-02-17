@@ -170,7 +170,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         data_packet: DataPacket[MetricUpdate],
         priority: DetectorPriorityLevel,
     ) -> dict[str, Any]:
-
         try:
             alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
             return {"alert_id": alert_rule_detector.alert_rule_id}
@@ -362,5 +361,8 @@ class MetricIssue(GroupType):
         return True
 
     @classmethod
-    def build_visible_feature_name(cls) -> str:
-        return "organizations:workflow-engine-ui"
+    def build_visible_feature_name(cls) -> list[str]:
+        return [
+            "organizations:workflow-engine-ui",
+            "organizations:workflow-engine-metric-issue-ui",
+        ]

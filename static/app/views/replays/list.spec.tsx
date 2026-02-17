@@ -3,8 +3,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ConfigStore from 'sentry/stores/configStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
@@ -96,6 +96,7 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: false,
+      data: [],
     });
 
     render(<ListPage />, {
@@ -116,6 +117,7 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: false,
+      data: [],
     });
 
     render(<ListPage />, {
@@ -136,6 +138,7 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: false,
+      data: [],
     });
 
     render(<ListPage />, {
@@ -156,6 +159,7 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: true,
+      data: [],
     });
 
     render(<ListPage />, {
@@ -178,6 +182,7 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: false,
+      data: [],
     });
 
     render(<ListPage />, {
@@ -203,6 +208,7 @@ describe('ReplayList', () => {
       isError: false,
       isFetching: false,
       needsUpdate: false,
+      data: [],
     });
 
     render(<ListPage />, {

@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
@@ -15,24 +15,27 @@ export interface ConversationUser {
   username: string | null;
 }
 
-interface ConversationApiResponse extends Omit<Conversation, 'firstInput'> {
-  firstInput?: Array<{text: string; type: string}> | string | null;
-}
-
 export interface Conversation {
   conversationId: string;
   duration: number;
+  endTimestamp: number;
   errors: number;
   firstInput: string | null;
   lastOutput: string | null;
   llmCalls: number;
-  timestamp: number;
+  startTimestamp: number;
   toolCalls: number;
+  toolErrors: number;
+  toolNames: string[];
   totalCost: number | null;
   totalTokens: number;
   traceCount: number;
   traceIds: string[];
   user: ConversationUser | null;
+}
+
+interface ConversationApiResponse extends Omit<Conversation, 'firstInput'> {
+  firstInput?: Array<{text: string; type: string}> | string | null;
 }
 
 export function useConversations() {
@@ -69,15 +72,12 @@ export function useConversations() {
   const pageLinks = getResponseHeader?.('Link');
 
   const data = useMemo(() => {
-    return (rawData ?? []).map((conversation): Conversation => {
-      let firstInput: string | null = null;
-      if (typeof conversation.firstInput === 'string') {
-        firstInput = conversation.firstInput;
-      } else if (Array.isArray(conversation.firstInput)) {
-        firstInput =
-          conversation.firstInput.find(content => content.type === 'text')?.text ?? null;
-      }
-      return {...conversation, firstInput};
+    return (rawData ?? []).map(({firstInput: rawFirstInput, ...rest}): Conversation => {
+      const firstInput =
+        typeof rawFirstInput === 'string'
+          ? rawFirstInput
+          : (rawFirstInput?.find(content => content.type === 'text')?.text ?? null);
+      return {...rest, firstInput};
     });
   }, [rawData]);
 

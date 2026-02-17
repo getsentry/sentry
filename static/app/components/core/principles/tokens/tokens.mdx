@@ -1,6 +1,7 @@
 ---
 title: Tokens
 description: Tokens are the smallest unit of a Design System. They represent discrete design decisions in a platform-agnostic way.
+layout: document
 resources:
   figma: https://www.figma.com/design/97XKAiOW0Rg8Rk1hb02R4E/%F0%9F%90%A6-Primitives?node-id=446-34701&p=f&t=secYuPMqzV9RoH8F-0
   js: https://github.com/getsentry/design-engineering/tree/main/packages/scraps/src/tokens
@@ -10,12 +11,13 @@ resources:
     Design Tokens explained: https://atlassian.design/tokens/design-tokens
 ---
 
+{/* eslint-disable @sentry/scraps/use-semantic-token */}
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
@@ -237,11 +239,20 @@ export function FontSize() {
     <Storybook.TokenReference
       scale="font.size"
       tokens={theme.font.size}
-      renderToken={({token}) => (
-        <Text size={token} variant="accent">
-          Aa
-        </Text>
-      )}
+      renderToken={({token}) => {
+        if (['3xl', '4xl'].includes(token)) {
+          return (
+            <Heading as="h4" size={token} variant="accent">
+              Aa
+            </Heading>
+          );
+        }
+        return (
+          <Text size={token} variant="accent">
+            Aa
+          </Text>
+        );
+      }}
     />
   );
 }
@@ -516,9 +527,8 @@ export function BorderColors() {
           radius="sm"
         />
       )}
-     />
-
-);
+    />
+  );
 }
 
 export function GraphicsColors() {

@@ -1,5 +1,5 @@
 import {Tag} from '@sentry/scraps/badge';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -41,7 +41,7 @@ export function DataForwarderRow({
             {getDataForwarderProjectText(dataForwarder)}
           </Text>
         </Flex>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <LinkButton
             icon={<IconEdit />}
             to={`/settings/${organization.slug}/data-forwarding/${dataForwarder.id}/edit/`}
@@ -54,14 +54,14 @@ export function DataForwarderRow({
           </LinkButton>
           <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
             <Button
-              title={t('Delete Data Forwarder')}
+              tooltipProps={{title: t('Delete Data Forwarder')}}
               aria-label={t('Delete Data Forwarder')}
               icon={<IconDelete />}
               // Deletions are always permitted, even if you lose the feature.
               disabled={false}
             />
           </DataForwarderDeleteConfirm>
-        </ButtonBar>
+        </Grid>
       </Grid>
     </Container>
   );

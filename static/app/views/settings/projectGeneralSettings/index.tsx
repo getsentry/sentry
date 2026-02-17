@@ -21,7 +21,7 @@ import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
 import LoadingError from 'sentry/components/loadingError';
-import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
+import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -34,6 +34,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
@@ -79,7 +80,9 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const api = useApi({persistInFlight: true});
 
   const makeProjectSettingsQueryKey: ApiQueryKey = [
-    `/projects/${organization.slug}/${project.slug}/`,
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+    }),
   ];
 
   const handleTransferFieldChange = (id: string, value: FieldValue) => {

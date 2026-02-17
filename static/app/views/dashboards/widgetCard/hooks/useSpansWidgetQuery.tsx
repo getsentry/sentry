@@ -36,7 +36,9 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
 
 type SpansSeriesResponse =
@@ -151,13 +153,26 @@ export function useSpansSeriesQuery(
       },
     [queue]
   );
+
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
   const queryResults = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
-      retry: false,
+      retry: hasQueueFeature
+        ? false
+        : (failureCount: number, error: any) => {
+            if (error?.status === 429 && failureCount < 10) {
+              return true;
+            }
+            return false;
+          },
+      retryDelay: getRetryDelay,
       // Keep data from previous query keys while fetching new data
       placeholderData: (previousData: unknown) => previousData,
     })),
@@ -358,15 +373,27 @@ export function useSpansTableQuery(
     [queue]
   );
 
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
   // Use native useQueries with queue-integrated queryFn
   // React Query auto-refetches when keys change, but API calls go through the queue
   const queryResults = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
-      retry: false,
+      retry: hasQueueFeature
+        ? false
+        : (failureCount: number, error: any) => {
+            if (error?.status === 429 && failureCount < 10) {
+              return true;
+            }
+            return false;
+          },
+      retryDelay: getRetryDelay,
     })),
   });
 

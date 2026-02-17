@@ -2,9 +2,9 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -208,14 +208,14 @@ function InputSection({
                 </Text>
               )}
             </Flex>
-            <ButtonBar gap="md">
+            <Grid flow="column" align="center" gap="md">
               <Button size="md" onClick={onReject}>
                 {t('Reject')} <Kbd>esc</Kbd>
               </Button>
               <Button size="md" priority="primary" onClick={onApprove}>
                 {t('Approve')} <Kbd>↵</Kbd>
               </Button>
-            </ButtonBar>
+            </Grid>
           </Flex>
         </Container>
       </ActionBar>
@@ -253,7 +253,7 @@ function InputSection({
                 </Text>
               )}
             </Flex>
-            <ButtonBar gap="md">
+            <Grid flow="column" align="center" gap="md">
               {currentIndex > 0 && (
                 <Button size="md" onClick={onBack}>
                   {t('Back')} ⌫
@@ -267,7 +267,7 @@ function InputSection({
               >
                 {isLastQuestion ? t('Submit') : t('Next')} ⏎
               </Button>
-            </ButtonBar>
+            </Grid>
           </Flex>
         </Container>
       </ActionBar>
@@ -291,7 +291,7 @@ function InputSection({
           size="sm"
           priority="transparent"
           aria-label={t('Interrupt')}
-          title={t('Press Esc to interrupt')}
+          tooltipProps={{title: t('Press Esc to interrupt')}}
         />
       );
     }

@@ -12,7 +12,7 @@ import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -480,7 +480,7 @@ function OpenInButton({detector}: OpenInButtonProps) {
         size="xs"
         to={destination.to}
         disabled={isUsingMigratedExtrapolationMode}
-        title={disabledTooltip}
+        tooltipProps={{title: disabledTooltip}}
       >
         {destination.buttonText}
       </LinkButton>

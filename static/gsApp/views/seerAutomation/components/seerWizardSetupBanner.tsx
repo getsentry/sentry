@@ -23,7 +23,10 @@ export default function SeerWizardSetupBanner() {
     return null;
   }
 
-  if (data?.isSeerConfigured) {
+  if (
+    data?.isSeerConfigured ||
+    (data?.needsConfigReminder && !data?.isCodeReviewEnabled)
+  ) {
     return null;
   }
 
@@ -41,7 +44,7 @@ export default function SeerWizardSetupBanner() {
 
               <Flex paddingTop="lg">
                 <LinkButton
-                  to={`/organizations/${organization.slug}/settings/seer/onboarding/`}
+                  to={`/settings/${organization.slug}/seer/onboarding/`}
                   priority="primary"
                   icon={<IconSeer />}
                 >

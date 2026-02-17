@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
 // TODO: When supported, also add span operation breakdown as a field
-export type ServiceEntrySpansRow = Pick<
+export type SegmentSpansRow = Pick<
   SpanResponse,
   | 'span_id'
   | 'user.id'
@@ -24,11 +24,11 @@ export type ServiceEntrySpansRow = Pick<
   | 'precise.finish_ts'
 >;
 
-export type ServiceEntrySpansColumn = GridColumnHeader<
+export type SegmentSpansColumn = GridColumnHeader<
   'span_id' | 'span.duration' | 'trace' | 'timestamp' | 'replayId' | 'profile.id'
 >;
 
-export const SERVICE_ENTRY_SPANS_COLUMN_ORDER: ServiceEntrySpansColumn[] = [
+export const SEGMENT_SPANS_COLUMN_ORDER: SegmentSpansColumn[] = [
   {
     key: 'trace',
     name: t('Trace ID'),

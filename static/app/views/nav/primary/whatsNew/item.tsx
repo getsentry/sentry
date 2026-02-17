@@ -19,11 +19,10 @@ export const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, st
   video: t('Video'),
 };
 
-interface BroadcastPanelItemProps
-  extends Pick<
-    Broadcast,
-    'hasSeen' | 'category' | 'title' | 'message' | 'link' | 'mediaUrl'
-  > {}
+interface BroadcastPanelItemProps extends Pick<
+  Broadcast,
+  'hasSeen' | 'category' | 'title' | 'message' | 'link' | 'mediaUrl'
+> {}
 
 export function WhatsNewItem({
   hasSeen,

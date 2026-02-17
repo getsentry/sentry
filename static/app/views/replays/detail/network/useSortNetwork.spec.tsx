@@ -6,26 +6,11 @@ import {
 } from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
 import useSortNetwork from './useSortNetwork';
-
-jest.mock('sentry/utils/url/useUrlParams', () => {
-  const map = new Map();
-  return (name: string, dflt: string) => {
-    if (!map.has(name)) {
-      map.set(name, dflt);
-    }
-    return {
-      getParamValue: () => map.get(name),
-      setParamValue: (value: string) => {
-        map.set(name, value);
-      },
-    };
-  };
-});
 
 const [
   SPAN_0_NAVIGATE,
@@ -124,7 +109,7 @@ describe('useSortNetwork', () => {
   ];
 
   it('should the list by timestamp by default', () => {
-    const {result} = renderHook(useSortNetwork, {
+    const {result} = renderHookWithProviders(useSortNetwork, {
       initialProps: {items},
     });
 
@@ -147,7 +132,7 @@ describe('useSortNetwork', () => {
   });
 
   it('should reverse the sort order', () => {
-    const {result, rerender} = renderHook(useSortNetwork, {
+    const {result, rerender} = renderHookWithProviders(useSortNetwork, {
       initialProps: {items},
     });
 
@@ -176,7 +161,7 @@ describe('useSortNetwork', () => {
   });
 
   it('should sort by the description field', () => {
-    const {result, rerender} = renderHook(useSortNetwork, {
+    const {result, rerender} = renderHookWithProviders(useSortNetwork, {
       initialProps: {items},
     });
 
@@ -205,7 +190,7 @@ describe('useSortNetwork', () => {
   });
 
   it('should sort by looking up the size field', () => {
-    const {result, rerender} = renderHook(useSortNetwork, {
+    const {result, rerender} = renderHookWithProviders(useSortNetwork, {
       initialProps: {items},
     });
 
@@ -235,7 +220,7 @@ describe('useSortNetwork', () => {
 
   it('should sort by method, using GET as a default', () => {
     const mixedItems = [SPAN_6_PUSH!, SPAN_8_FETCH_POST!, SPAN_7_FETCH_GET!];
-    const {result, rerender} = renderHook(useSortNetwork, {
+    const {result, rerender} = renderHookWithProviders(useSortNetwork, {
       initialProps: {items: mixedItems},
     });
 

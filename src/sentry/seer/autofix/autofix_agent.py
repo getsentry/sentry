@@ -135,7 +135,7 @@ def trigger_autofix_explorer(
     step: AutofixStep,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
-    intelligence_level: Literal["low", "medium", "high"] = "high",
+    intelligence_level: Literal["low", "medium", "high"] = "low",
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -156,6 +156,7 @@ def trigger_autofix_explorer(
     config = STEP_CONFIGS[step]
     client = SeerExplorerClient(
         organization=group.organization,
+        project=group.project,
         user=None,  # No user personalization for autofix
         category_key="autofix",
         category_value=str(group.id),

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from collections import OrderedDict as ordereddict
-from collections import defaultdict
 from copy import deepcopy
 from difflib import unified_diff
 from typing import Any
@@ -52,8 +51,7 @@ def validate(
             model_name = NormalizedModelName(obj["model"])
             findings = []
             if (
-                self.max_seen_ordinal_value is None
-                or ordinal_value > self.max_seen_ordinal_value  # type: ignore[operator]
+                self.max_seen_ordinal_value is None or ordinal_value > self.max_seen_ordinal_value  # type: ignore[operator]
             ):
                 self.max_seen_ordinal_value = ordinal_value
             else:

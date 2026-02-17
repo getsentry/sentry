@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
@@ -32,12 +32,14 @@ type Props = {
 export function VisualizeSection({query, index}: Props) {
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const parsedFunction = findFirstFunction(query.yAxes);
 
   const options: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
+    booleanTags,
     parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });

@@ -218,7 +218,7 @@ function Pagination({
 }: PaginationProps) {
   return (
     <PaginationContainer>
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <Button
           icon={<IconChevron direction="left" />}
           aria-label={t('Previous')}

@@ -304,6 +304,22 @@ class TestTriggerAutofixExplorer(TestCase):
         assert call_kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
         assert call_kwargs["payload"]["run_id"] == 67890
 
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_autofix_explorer_passes_project_to_client(
+        self, mock_client_class, mock_broadcast
+    ):
+        """SeerExplorerClient is constructed with project from the group."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        trigger_autofix_explorer(group=self.group, step=AutofixStep.ROOT_CAUSE, run_id=None)
+
+        mock_client_class.assert_called_once()
+        call_kwargs = mock_client_class.call_args.kwargs
+        assert call_kwargs["project"] == self.group.project
+
 
 class TestTriggerCodingAgentHandoff(TestCase):
     """Tests for trigger_coding_agent_handoff function."""

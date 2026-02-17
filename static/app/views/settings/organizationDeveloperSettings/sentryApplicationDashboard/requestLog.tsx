@@ -4,7 +4,7 @@ import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
-import {Button, StyledButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
@@ -26,6 +26,7 @@ import type {
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
@@ -121,7 +122,12 @@ function makeRequestLogQueryKey(
   slug: string,
   query: Record<string, string>
 ): ApiQueryKey {
-  return [`/sentry-apps/${slug}/webhook-requests/`, {query}];
+  return [
+    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/webhook-requests/`, {
+      path: {sentryAppIdOrSlug: slug},
+    }),
+    {query},
+  ];
 }
 
 export default function RequestLog({app}: RequestLogProps) {
@@ -305,7 +311,8 @@ const RequestLogFilters = styled('div')`
   align-items: center;
   padding-bottom: ${space(1)};
 
-  > :first-child ${StyledButton} {
+  > :first-child button,
+  > :first-child a {
     border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   }
 `;

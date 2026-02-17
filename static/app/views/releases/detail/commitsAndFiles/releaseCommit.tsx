@@ -64,7 +64,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
       <CommitContent>
         <Message>{formatCommitMessage(commit.message)}</Message>
         <MetaWrapper>
-          <UserAvatar size={16} user={commit.author} />
+          {commit.author ? <UserAvatar size={16} user={commit.author} /> : null}
           <Meta>
             <Tooltip
               title={tct(
@@ -131,7 +131,7 @@ const BoldEmail = styled('strong')`
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  border-bottom: 1px dotted ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px dotted currentColor;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};

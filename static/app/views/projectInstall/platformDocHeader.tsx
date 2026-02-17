@@ -2,7 +2,8 @@ import {useCallback} from 'react';
 import {useBlocker} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
@@ -93,7 +94,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       <h2>
         {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
       </h2>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Button
           size="sm"
           icon={<IconChevron direction="left" size="xs" />}
@@ -106,7 +107,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
             {t('Full Documentation')}
           </LinkButton>
         )}
-      </ButtonBar>
+      </Grid>
     </StyledPageHeader>
   );
 }

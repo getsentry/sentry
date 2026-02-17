@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -19,6 +20,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ApiApplication} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -33,7 +35,7 @@ export default function ApiApplications() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const ENDPOINT = '/api-applications/';
+  const ENDPOINT = getApiUrl('/api-applications/');
 
   const {
     data: appList = [],
@@ -182,12 +184,12 @@ function CreateApplicationModal({
         />
       </Body>
       <Footer>
-        <ButtonBar gap="sm">
+        <Grid flow="column" align="center" gap="sm">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" type="submit">
             {t('Create Application')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </form>
   );

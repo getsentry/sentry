@@ -638,6 +638,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for double writing sessions to EAP.
+register(
+    "relay.sessions-eap.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
@@ -670,6 +677,13 @@ register(
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Organizations that should always see the Seer config reminder
+register(
+    "seer.organizations.force-config-reminder",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Coding Workflows
 register(
@@ -686,6 +700,13 @@ register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIOR
 register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to codecov
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# GitHub owners whose webhooks we skip forwarding to Codecov (payload is still deleted)
+register(
+    "codecov.forward-webhooks.skip-github-owners",
+    type=Sequence,
+    default=["getsentry"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # GitHub Integration
@@ -695,6 +716,12 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "github-app.rate-limit-sensitive-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Console SDK App (separate app for repository invitations)
 register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1371,14 +1398,6 @@ register(
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Option which rolls out counting transactions based on the span usage metric.
-register(
-    "ingest.billing_metrics_consumer.use_only_span_metric_orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
@@ -1388,6 +1407,16 @@ register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODI
 
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# When True, schedule_invalidate_project_config calls the invalidation callback
+# directly when outside an atomic block, instead of going through
+# transaction.on_commit(). This fixes TransactionManagementError in the
+# taskworker where autocommit is off.
+register(
+    "relay.invalidation-direct-outside-atomic",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
 # In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
@@ -2268,11 +2297,59 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# List of organization IDs that should be using span metrics for boost low volume transactions.
+# List of organization IDs that should be using segment metrics for boost low volume transactions.
 register(
-    "dynamic-sampling.transactions.span-metric-orgs",
+    "dynamic-sampling.transactions.segment-metric-orgs",
     default=[],
     type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, use segment metrics for ALL orgs in boost low volume transactions.
+register(
+    "dynamic-sampling.transactions.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using segment metrics for recalibrate_orgs.
+register(
+    "dynamic-sampling.recalibrate_orgs.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, use segment metrics for ALL orgs in recalibrate_orgs.
+register(
+    "dynamic-sampling.recalibrate_orgs.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using segment metrics for sliding_window_org.
+register(
+    "dynamic-sampling.sliding_window_org.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, use segment metrics for ALL orgs in sliding_window_org.
+register(
+    "dynamic-sampling.sliding_window_org.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using segment metrics for boost_low_volume_projects.
+register(
+    "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, use segment metrics for ALL orgs in boost_low_volume_projects.
+register(
+    "dynamic-sampling.boost_low_volume_projects.segment-metric.enabled",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3146,23 +3223,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# ZSET to SET migration options.
-register(
-    "spans.buffer.write-to-zset",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.buffer.write-to-set",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.buffer.read-from-set",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
@@ -3331,6 +3391,7 @@ register(
 )
 
 # Controls the rate of using the sentry api shared secret for communicating to sentry.
+# DEPRECATED: will be removed after the shared secret is confirmed to always be set.
 register(
     "seer.api.use-shared-secret",
     default=0.0,
@@ -3435,13 +3496,6 @@ register(
 )
 
 register(
-    "workflow_engine.issue_alert.group.type_id.rollout",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "workflow_engine.group.type_id.disable_issue_stream_detector",
     type=Sequence,
     default=[8001],  # MetricIssue.type_id
@@ -3450,13 +3504,6 @@ register(
 
 register(
     "workflow_engine.group.type_id.open_periods_type_denylist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3813,6 +3860,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Lists all the consumers we need verbose multiprocess logs for.
+# We observed some consumers hanging after restarts. We narrowed down the
+# issue to the shared memory manager initialization. Specifically,
+# the consumer hangs when the shared memory manager initializes a subprocess.
+register(
+    "consumer.verbose_multiprocessing_logs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
@@ -3942,10 +4000,34 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Project ID allowlist to enable missing SDK integration detector for specific projects.
+register(
+    "autopilot.missing-sdk-integration.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable trace instrumentation detector for specific projects.
+register(
+    "autopilot.trace-instrumentation.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global flag to enable API token async flush
 register(
     "api-token-async-flush",
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TODO(telkins): Remove once we no longer need integration_id on SLO metrics
+register(
+    "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

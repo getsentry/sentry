@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {rc, type Responsive} from '@sentry/scraps/layout';
 
-import type {ContentVariant, FontSize} from 'sentry/utils/theme';
+import type {ContentVariant, TextSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 
@@ -43,12 +43,6 @@ export interface BaseTextProps {
    * If true, the text will be displayed in a monospace font.
    */
   monospace?: boolean;
-
-  /**
-   * The size of the text.
-   * @default md
-   */
-  size?: Responsive<FontSize>;
 
   /**
    * Strikethrough the text.
@@ -100,8 +94,9 @@ export type ExclusiveTextEllipsisProps =
   | {ellipsis?: true; wrap?: never}
   | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
-interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
-  extends BaseTextProps,
+interface TextAttributes<T extends TextPrimitive = 'span'>
+  extends
+    BaseTextProps,
     Omit<
       React.DetailedHTMLProps<
         React.HTMLAttributes<HTMLElementTagNameMap[T]>,
@@ -124,6 +119,8 @@ interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
    * Forbid color HTML attribute from being passed to the component, all usage should be variant-based.
    */
   color?: never;
+  dateTime?: T extends 'time' ? string : never;
+
   /**
    * This could have been avoided by using React.JSX.IntrinsicElements<T>, however doing so would be
    * grosely inefficient, as it would cause type helpers like DistributedOmit to traverse the entire
@@ -132,6 +129,11 @@ interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
    *
    */
   htmlFor?: T extends 'label' ? string : never;
+  /**
+   * The size of the text.
+   * @default md
+   */
+  size?: Responsive<TextSize>;
 
   /**
    * Deprecated in favor of the Text component API.
@@ -141,11 +143,13 @@ interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
   style?: React.CSSProperties;
 }
 
-export type TextProps<T extends 'span' | 'p' | 'label' | 'div'> = TextAttributes<T> &
+type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time';
+
+export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;
 
 export const Text = styled(
-  <T extends 'span' | 'p' | 'label' | 'div' = 'span'>(props: TextProps<T>) => {
+  <T extends TextPrimitive = 'span'>(props: TextProps<T>) => {
     const {children, ...rest} = props;
     const Component = props.as || 'span';
     return <Component {...(rest as any)}>{children}</Component>;
@@ -212,6 +216,6 @@ export const Text = styled(
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
    * https://github.com/styled-components/styled-components/issues/1803
    */
-` as unknown as <T extends 'span' | 'p' | 'label' | 'div' = 'span'>(
+` as unknown as <T extends TextPrimitive = 'span'>(
   props: TextProps<T>
 ) => React.ReactElement;

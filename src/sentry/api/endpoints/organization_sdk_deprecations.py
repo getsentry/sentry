@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import DefaultDict, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from packaging.version import InvalidVersion
@@ -57,7 +57,7 @@ class OrganizationSdkDeprecationsEndpoint(OrganizationEndpoint):
             event_type__in=[event_type.value for event_type in event_types],
         )
 
-        sdk_deprecations_by_project: DefaultDict[Project, list[SDKDeprecation]] = defaultdict(list)
+        sdk_deprecations_by_project: defaultdict[Project, list[SDKDeprecation]] = defaultdict(list)
         projects_with_up_to_date_sdk: set[Project] = set()
 
         for project_sdk in project_sdks:

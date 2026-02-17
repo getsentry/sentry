@@ -96,7 +96,6 @@ def timeseries_query(
     *,
     referrer: str,
 ) -> Any:
-
     builder = ProfileFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
         params={},

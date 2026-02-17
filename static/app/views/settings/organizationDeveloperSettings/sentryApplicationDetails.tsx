@@ -41,6 +41,7 @@ import {space} from 'sentry/styles/space';
 import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -153,12 +154,20 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-const makeSentryAppQueryKey = (appSlug?: string): ApiQueryKey => {
-  return [`/sentry-apps/${appSlug}/`];
+const makeSentryAppQueryKey = (appSlug: string): ApiQueryKey => {
+  return [
+    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+      path: {sentryAppIdOrSlug: appSlug},
+    }),
+  ];
 };
 
-const makeSentryAppApiTokensQueryKey = (appSlug?: string): ApiQueryKey => {
-  return [`/sentry-apps/${appSlug}/api-tokens/`];
+const makeSentryAppApiTokensQueryKey = (appSlug: string): ApiQueryKey => {
+  return [
+    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/api-tokens/`, {
+      path: {sentryAppIdOrSlug: appSlug},
+    }),
+  ];
 };
 
 export default function SentryApplicationDetails() {

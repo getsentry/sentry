@@ -354,7 +354,6 @@ def translate_equations(equations):
     dropped_equations = []
 
     for equation in equations:
-
         flattened_equation: list[str] = []
 
         # strip equation prefix

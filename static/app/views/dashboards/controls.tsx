@@ -1,7 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
@@ -172,9 +173,9 @@ function Controls({
               }}
               priority="primary"
               disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-              title={limitMessage}
               tooltipProps={{
                 isHoverable: true,
+                title: limitMessage,
               }}
             >
               {t('Add Dashboard')}
@@ -243,7 +244,7 @@ function Controls({
           }}
           icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
           disabled={isDisabled}
-          title={toolTipMessage}
+          tooltipProps={{title: toolTipMessage}}
           priority="default"
           size="sm"
         />
@@ -364,7 +365,7 @@ function Controls({
                         }}
                         icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}
                         disabled={isLoading || hasReachedDashboardLimit}
-                        title={limitMessage}
+                        tooltipProps={{title: limitMessage}}
                         priority="default"
                         size="sm"
                       >
@@ -412,7 +413,9 @@ function DashboardEditFeature({
   );
 }
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};

@@ -1015,7 +1015,6 @@ def get_issue_and_event_details_v2(
     project_slug: str | None = None,
     include_issue: bool = True,
 ) -> dict[str, Any] | None:
-
     if bool(issue_id) == bool(event_id):
         raise BadRequest("Either issue_id or event_id must be provided, but not both.")
 
@@ -1056,18 +1055,30 @@ def get_issue_and_event_details_v2(
                 tenant_ids={"organization_id": organization_id},
             )
         else:
-            events_result = eventstore.backend.get_events(
-                filter=eventstore.Filter(
-                    event_ids=[event_id],
-                    organization_id=organization_id,
-                    project_ids=project_ids,
-                ),
-                limit=1,
-                tenant_ids={"organization_id": organization_id},
-            )
-            event = events_result[0] if events_result else None
+            # Error events live in Events, occurrence events in IssuePlatform;
+            # we don't know which dataset holds this event_id until we query.
+            event = None
+            for dataset in (Dataset.Events, Dataset.IssuePlatform):
+                events_result = eventstore.backend.get_events(
+                    filter=eventstore.Filter(
+                        event_ids=[event_id],
+                        organization_id=organization_id,
+                        project_ids=project_ids,
+                    ),
+                    limit=1,
+                    tenant_ids={"organization_id": organization_id},
+                    dataset=dataset,
+                )
+                if events_result:
+                    event = events_result[0]
+                    break
 
         group = event.group if event else None
+
+    # Convert Event to GroupEvent so the occurrence (if any) can be lazy-loaded
+    # from nodestore via the occurrence_id in snuba_data during serialization.
+    if event is not None and group is not None and isinstance(event, Event):
+        event = event.for_group(group)
 
     if group is None:
         logger.warning(

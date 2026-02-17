@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from functools import lru_cache
+from functools import cache
 
 from arroyo import Partition
 from arroyo import Topic as ArroyoTopic
@@ -37,7 +37,7 @@ def _get_producer():
 _checkin_producer = SingletonProducer(_get_producer)
 
 
-@lru_cache(maxsize=None)
+@cache
 def _get_partitions() -> Mapping[int, PartitionMetadata]:
     topic_defn = get_topic_definition(Topic.INGEST_MONITORS)
     topic = topic_defn["real_topic_name"]
