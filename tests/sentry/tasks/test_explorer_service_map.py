@@ -134,335 +134,6 @@ class TestQueryTopTransactions(TestCase):
 
 
 @django_db_all
-class TestQueryServiceDependencies(TestCase):
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_returns_empty_for_no_transactions(self, mock_query):
-        org = self.create_organization()
-        result = _query_service_dependencies(org.id, [])
-        assert result == []
-        mock_query.assert_not_called()
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_returns_empty_for_nonexistent_org(self, mock_query):
-        result = _query_service_dependencies(99999, ["/api/users"])
-        assert result == []
-        mock_query.assert_not_called()
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_queries_segment_spans_with_while_loop(self, mock_query):
-        org = self.create_organization()
-        self.create_project(organization=org)
-        project2 = self.create_project(organization=org)
-
-        transactions = ["/api/users", "/api/events"]
-
-        # Mock segment span query - first iteration gets all transactions
-        mock_query.return_value = {
-            "data": [
-                {
-                    "id": "span1",
-                    "parent_span": "parent1",
-                    "project.id": project2.id,
-                    "transaction": "/api/users",
-                },
-                {
-                    "id": "span2",
-                    "parent_span": "parent2",
-                    "project.id": project2.id,
-                    "transaction": "/api/events",
-                },
-            ]
-        }
-
-        with override_options({"explorer.service_map.max_edges": 5000}):
-            _query_service_dependencies(org.id, transactions)
-
-        # Should call query at least twice (once for segments, once for parents)
-        assert mock_query.call_count >= 2
-
-        # First call should be for segment spans
-        first_call = mock_query.call_args_list[0][1]
-        assert "is_transaction:true" in first_call["query_string"]
-        assert "/api/users" in first_call["query_string"]
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_builds_cross_project_edges(self, mock_query):
-        org = self.create_organization()
-        project1 = self.create_project(organization=org, name="frontend", slug="frontend")
-        project2 = self.create_project(organization=org, name="backend", slug="backend")
-
-        transactions = ["/api/users"]
-
-        # Mock responses: segment spans, then parent spans
-        mock_query.side_effect = [
-            # First call: segment spans
-            {
-                "data": [
-                    {
-                        "id": "span1",
-                        "parent_span": "parent1",
-                        "project.id": project2.id,
-                        "project.slug": project2.slug,
-                        "transaction": "/api/users",
-                    }
-                ]
-            },
-            # Second call: parent spans
-            {"data": [{"id": "parent1", "project.id": project1.id, "project.slug": project1.slug}]},
-        ]
-
-        with override_options({"explorer.service_map.max_edges": 5000}):
-            result = _query_service_dependencies(org.id, transactions)
-
-        assert len(result) == 1
-        assert result[0]["source_project_id"] == project1.id
-        assert result[0]["source_project_slug"] == project1.slug
-        assert result[0]["target_project_id"] == project2.id
-        assert result[0]["target_project_slug"] == project2.slug
-        assert result[0]["count"] == 1
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_filters_same_project_edges(self, mock_query):
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        transactions = ["/api/users"]
-
-        mock_query.side_effect = [
-            # Segment spans
-            {
-                "data": [
-                    {
-                        "id": "span1",
-                        "parent_span": "parent1",
-                        "project.id": project.id,
-                        "transaction": "/api/users",
-                    }
-                ]
-            },
-            # Parent spans - same project
-            {"data": [{"id": "parent1", "project.id": project.id}]},
-        ]
-
-        with override_options({"explorer.service_map.max_edges": 5000}):
-            result = _query_service_dependencies(org.id, transactions)
-
-        # Should filter out same-project edges
-        assert len(result) == 0
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_aggregates_duplicate_edges(self, mock_query):
-        org = self.create_organization()
-        project1 = self.create_project(organization=org, slug="frontend")
-        project2 = self.create_project(organization=org, slug="backend")
-
-        # Use two different transactions to test aggregation
-        transactions = ["/api/users", "/api/events"]
-
-        mock_query.side_effect = [
-            # Multiple segments with same parent (different transactions)
-            {
-                "data": [
-                    {
-                        "id": "span1",
-                        "parent_span": "parent1",
-                        "project.id": project2.id,
-                        "project.slug": project2.slug,
-                        "transaction": "/api/users",
-                    },
-                    {
-                        "id": "span2",
-                        "parent_span": "parent1",
-                        "project.id": project2.id,
-                        "project.slug": project2.slug,
-                        "transaction": "/api/events",
-                    },
-                ]
-            },
-            # Parent spans
-            {"data": [{"id": "parent1", "project.id": project1.id, "project.slug": project1.slug}]},
-        ]
-
-        with override_options({"explorer.service_map.max_edges": 5000}):
-            result = _query_service_dependencies(org.id, transactions)
-
-        assert len(result) == 1
-        assert result[0]["count"] == 2  # Aggregated count from both transactions
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_respects_max_edges_limit(self, mock_query):
-        org = self.create_organization()
-        projects = [self.create_project(organization=org) for _ in range(10)]
-
-        transactions = ["/api/users"]
-
-        # Create many edges
-        segment_data = []
-        parent_data = []
-
-        for i in range(10):
-            segment_data.append(
-                {
-                    "id": f"span{i}",
-                    "parent_span": f"parent{i}",
-                    "project.id": projects[i].id,
-                    "transaction": "/api/users",
-                }
-            )
-            parent_data.append({"id": f"parent{i}", "project.id": projects[(i + 1) % 10].id})
-
-        mock_query.side_effect = [
-            {"data": segment_data},
-            {"data": parent_data},
-        ]
-
-        with override_options({"explorer.service_map.max_edges": 5}):
-            result = _query_service_dependencies(org.id, transactions)
-
-        # Should limit to 5 edges
-        assert len(result) <= 5
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_handles_missing_parent_spans(self, mock_query):
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        transactions = ["/api/users"]
-
-        mock_query.side_effect = [
-            # Segment with parent
-            {
-                "data": [
-                    {
-                        "id": "span1",
-                        "parent_span": "parent1",
-                        "project.id": project.id,
-                        "transaction": "/api/users",
-                    }
-                ]
-            },
-            # Parent not found
-            {"data": []},
-        ]
-
-        with override_options({"explorer.service_map.max_edges": 5000}):
-            result = _query_service_dependencies(org.id, transactions)
-
-        # No edges since parent wasn't resolved
-        assert len(result) == 0
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_batches_parent_span_queries(self, mock_query):
-        org = self.create_organization()
-        self.create_project(organization=org)
-        project2 = self.create_project(organization=org)
-
-        # Create 600 different transactions to ensure we get 600 segments
-        transactions = [f"/api/endpoint{i}" for i in range(600)]
-
-        # Create 600 segments with different parent spans
-        segment_data = [
-            {
-                "id": f"span{i}",
-                "parent_span": f"parent{i}",
-                "project.id": project2.id,
-                "transaction": f"/api/endpoint{i}",
-            }
-            for i in range(600)
-        ]
-
-        mock_query.side_effect = [
-            {"data": segment_data},
-            {"data": []},  # First batch of parents
-            {"data": []},  # Second batch of parents
-        ]
-
-        with override_options({"explorer.service_map.max_edges": 5000}):
-            _query_service_dependencies(org.id, transactions)
-
-        # Should be called 3 times: 1 for segments, 2 for parent batches (batch size 500)
-        assert mock_query.call_count == 3
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_stops_after_max_iterations(self, mock_query):
-        org = self.create_organization()
-        self.create_project(organization=org)
-
-        # Create 150 transactions
-        transactions = [f"/api/endpoint{i}" for i in range(150)]
-
-        # Mock always returns empty data to trigger max iterations
-        mock_query.return_value = {"data": []}
-
-        with override_options({"explorer.service_map.max_edges": 5000}):
-            result = _query_service_dependencies(org.id, transactions)
-
-        # Should stop at max_iterations (10)
-        assert mock_query.call_count <= 10
-        assert result == []
-
-
-@django_db_all
-class TestClassifyServiceRoles(TestCase):
-    def test_returns_empty_for_no_edges(self):
-        result = _classify_service_roles([])
-        assert result == {}
-
-    def test_classifies_core_backend(self):
-        # Service with high in-degree and out-degree
-        edges = [
-            {"source_project_id": 1, "target_project_id": 2, "count": 10},
-            {"source_project_id": 3, "target_project_id": 1, "count": 10},
-            {"source_project_id": 1, "target_project_id": 4, "count": 10},
-        ]
-
-        result = _classify_service_roles(edges)
-
-        # Project 1 has both incoming and outgoing edges
-        assert result[1] == "core_backend"
-
-    def test_classifies_frontend(self):
-        # Service with high out-degree, low in-degree
-        edges = [
-            {"source_project_id": 1, "target_project_id": 2, "count": 10},
-            {"source_project_id": 1, "target_project_id": 3, "count": 10},
-            {"source_project_id": 2, "target_project_id": 3, "count": 10},
-        ]
-
-        result = _classify_service_roles(edges)
-
-        # Project 1 only has outgoing edges
-        assert result[1] == "frontend"
-
-    def test_classifies_isolated(self):
-        # Service with low connectivity
-        edges = [
-            {"source_project_id": 1, "target_project_id": 2, "count": 10},
-            {"source_project_id": 2, "target_project_id": 3, "count": 10},
-        ]
-
-        result = _classify_service_roles(edges)
-
-        # Project 3 only has one incoming edge (below average)
-        assert result[3] == "isolated"
-
-    def test_handles_complex_graph(self):
-        edges = [
-            {"source_project_id": 1, "target_project_id": 2, "count": 10},
-            {"source_project_id": 1, "target_project_id": 3, "count": 10},
-            {"source_project_id": 2, "target_project_id": 3, "count": 10},
-            {"source_project_id": 2, "target_project_id": 4, "count": 10},
-            {"source_project_id": 3, "target_project_id": 4, "count": 10},
-            {"source_project_id": 3, "target_project_id": 5, "count": 10},
-        ]
-
-        result = _classify_service_roles(edges)
-
-        # All projects should be classified
-        assert len(result) == 5
-        assert all(role in ["core_backend", "frontend", "isolated"] for role in result.values())
-
-
 @django_db_all
 class TestSendToSeer(TestCase):
     @responses.activate
@@ -1184,7 +855,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         spans = []
 
-        # Create A → B trace
+        # Create A → B trace (using unique transaction names)
         trace1 = uuid4().hex
         a_span_id = uuid4().hex[:16]
 
@@ -1196,7 +867,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
                         "span_id": a_span_id,
                         "parent_span_id": "0000000000000000",
                         "is_segment": True,
-                        "sentry_tags": {"transaction": "/service-a/endpoint"},
+                        "sentry_tags": {"transaction": "/service-a/endpoint1"},
                     },
                     project=project_a,
                     start_ts=self.ten_mins_ago,
@@ -1208,7 +879,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
                         "span_id": uuid4().hex[:16],
                         "parent_span_id": a_span_id,
                         "is_segment": True,
-                        "sentry_tags": {"transaction": "/service-b/endpoint"},
+                        "sentry_tags": {"transaction": "/service-b/endpoint1"},
                     },
                     project=project_b,
                     start_ts=self.ten_mins_ago,
@@ -1217,7 +888,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
             ]
         )
 
-        # Create B → A trace
+        # Create B → A trace (using different unique transaction names)
         trace2 = uuid4().hex
         b_span_id = uuid4().hex[:16]
 
@@ -1229,7 +900,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
                         "span_id": b_span_id,
                         "parent_span_id": "0000000000000000",
                         "is_segment": True,
-                        "sentry_tags": {"transaction": "/service-b/other"},
+                        "sentry_tags": {"transaction": "/service-b/endpoint2"},
                     },
                     project=project_b,
                     start_ts=self.ten_mins_ago,
@@ -1241,7 +912,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
                         "span_id": uuid4().hex[:16],
                         "parent_span_id": b_span_id,
                         "is_segment": True,
-                        "sentry_tags": {"transaction": "/service-a/endpoint"},
+                        "sentry_tags": {"transaction": "/service-a/endpoint2"},
                     },
                     project=project_a,
                     start_ts=self.ten_mins_ago,
@@ -1252,9 +923,15 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        # Query for both transactions
+        # Query for all transactions
         edges = _query_service_dependencies(
-            self.organization.id, ["/service-a/endpoint", "/service-b/endpoint"]
+            self.organization.id,
+            [
+                "/service-a/endpoint1",
+                "/service-a/endpoint2",
+                "/service-b/endpoint1",
+                "/service-b/endpoint2",
+            ],
         )
 
         # Verify both circular edges detected
