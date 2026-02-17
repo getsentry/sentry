@@ -22,7 +22,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       title: state.title ?? '',
       description: state.description,
       displayType: DisplayType.TEXT,
-      interval: '',
+      interval: '1m',
       queries: [],
       widgetType: undefined,
       limit: undefined,

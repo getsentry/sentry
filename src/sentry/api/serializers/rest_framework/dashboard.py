@@ -395,10 +395,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
     validate_id = validate_id
 
-    def validate_interval(self, interval):
-        if parse_stats_period(interval) is None:
+    def _validate_interval(self, data):
+        interval = data.get("interval")
+        if (
+            parse_stats_period(interval) is None
+            and data.get("display_type") != DashboardWidgetDisplayTypes.TEXT
+        ):
             raise serializers.ValidationError("Invalid interval")
-        return interval
 
     def to_internal_value(self, data):
         # Update the context for the queries serializer because the display type is
@@ -425,6 +428,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
         current_widget_specs = None
         organization = self.context["organization"]
+
+        self._validate_interval(data)
 
         ondemand_feature = features.has(
             "organizations:on-demand-metrics-extraction-widgets", organization
