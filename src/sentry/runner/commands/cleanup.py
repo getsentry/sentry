@@ -301,8 +301,6 @@ def _cleanup(
     partition_total: int | None = None,
     partition_key: str = "id",
 ) -> None:
-    # Validate partition flags before setting up environment to avoid
-    # leaking env vars (like _SENTRY_CLEANUP) when validation fails early.
     parsed_partition: tuple[int, int, str] | None = None
     if partition_bucket is not None or partition_total is not None:
         if partition_bucket is None or partition_total is None:
