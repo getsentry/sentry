@@ -15,6 +15,8 @@ import {
   type SelectKey,
   type SelectSection,
 } from '@sentry/scraps/compactSelect';
+import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
+import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
@@ -58,11 +60,19 @@ interface GridListProps
     section: SelectSection<SelectKey>,
     type: 'select' | 'unselect'
   ) => void;
+  /**
+   * When false, hides section headers in the grid list.
+   */
+  showSectionHeaders?: boolean;
   size?: GridListOptionProps['size'];
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+  /**
+   * If true, virtualization will be enabled for the list.
+   */
+  virtualized?: boolean;
 }
 
 /**
@@ -82,6 +92,8 @@ function GridList({
   onSectionToggle,
   sizeLimitMessage,
   keyDownHandler,
+  virtualized,
+  showSectionHeaders = true,
   ...props
 }: GridListProps) {
   const ref = useRef<HTMLUListElement>(null);
@@ -114,42 +126,66 @@ function GridList({
     [listState.collection, hiddenOptions]
   );
 
+  const virtualizer = useVirtualizedItems({
+    listItems,
+    virtualized,
+    size,
+    hiddenOptions,
+    showSectionHeaders,
+  });
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
-      {overlayIsOpen && (
-        <ListWrap {...mergeProps(gridProps, props)} onKeyDown={onKeyDown} ref={ref}>
-          {listItems.map(item => {
-            if (item.type === 'section') {
-              return (
-                <GridListSection
-                  key={item.key}
-                  node={item}
-                  listState={listState}
-                  onToggle={onSectionToggle}
-                  size={size}
-                />
-              );
-            }
+      <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
+        <Container {...virtualizer.wrapperProps}>
+          {overlayIsOpen && (
+            <ListWrap
+              {...mergeProps(gridProps, props)}
+              style={{
+                ...gridProps.style,
+                ...virtualizer.listWrapStyle,
+              }}
+              onKeyDown={onKeyDown}
+              ref={ref}
+            >
+              {virtualizer.items.map(row => {
+                const item = listItems[row.index]!;
+                if (item.type === 'section') {
+                  return (
+                    <GridListSection
+                      {...virtualizer.itemProps(row.index)}
+                      key={item.key}
+                      node={item}
+                      listState={listState}
+                      onToggle={onSectionToggle}
+                      size={size}
+                      isFirst={row.index === 0}
+                    />
+                  );
+                }
 
-            return (
-              <GridListOption
-                key={item.key}
-                node={item}
-                listState={listState}
-                size={size}
-              />
-            );
-          })}
+                return (
+                  <GridListOption
+                    {...virtualizer.itemProps(row.index)}
+                    key={item.key}
+                    node={item}
+                    listState={listState}
+                    size={size}
+                  />
+                );
+              })}
 
-          {!searchable && hiddenOptions.size > 0 && (
-            <SizeLimitMessage>
-              {sizeLimitMessage ?? t('Use search to find more options…')}
-            </SizeLimitMessage>
+              {!searchable && hiddenOptions.size > 0 && (
+                <SizeLimitMessage>
+                  {sizeLimitMessage ?? t('Use search to find more options…')}
+                </SizeLimitMessage>
+              )}
+            </ListWrap>
           )}
-        </ListWrap>
-      )}
+        </Container>
+      </Container>
     </Fragment>
   );
 }

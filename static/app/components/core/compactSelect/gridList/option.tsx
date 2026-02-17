@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {AriaGridListItemOptions} from '@react-aria/gridlist';
 import {useGridListItem, useGridListSelectionCheckbox} from '@react-aria/gridlist';
 import {useFocusWithin, useHover} from '@react-aria/interactions';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
@@ -18,13 +18,21 @@ export interface GridListOptionProps extends AriaGridListItemOptions {
   listState: ListState<any>;
   node: Node<any>;
   size: FormSize;
+  'data-index'?: number;
+  ref?: React.Ref<HTMLLIElement>;
 }
 
 /**
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListOption({node, listState, size}: GridListOptionProps) {
+export function GridListOption({
+  node,
+  listState,
+  size,
+  ref: refProp,
+  'data-index': dataIndex,
+}: GridListOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const {
     label,
@@ -117,7 +125,8 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
   return (
     <StyledMenuListItem
       {...rowPropsMemo}
-      ref={ref}
+      data-index={dataIndex}
+      ref={mergeRefs(ref, refProp)}
       size={size}
       label={label}
       details={details}

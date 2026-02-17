@@ -81,6 +81,10 @@ interface BaseListProps<Value extends SelectKey>
    * and before `onChange`.
    */
   onSectionToggle?: (section: SelectSection<SelectKey>) => void;
+  /**
+   * When false, hides section headers in the list.
+   */
+  showSectionHeaders?: boolean;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
@@ -89,6 +93,7 @@ interface BaseListProps<Value extends SelectKey>
    * hidden from view.
    */
   sizeLimit?: number;
+
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
@@ -360,6 +365,8 @@ export function List<Value extends SelectKey>({
             listState={listState}
             sizeLimitMessage={sizeLimitMessage}
             keyDownHandler={keyDownHandler}
+            virtualized={props.virtualized}
+            showSectionHeaders={props.showSectionHeaders}
           />
         </SelectFilterContext>
       ) : (
