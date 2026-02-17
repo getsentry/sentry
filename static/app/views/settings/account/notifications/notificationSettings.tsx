@@ -27,7 +27,7 @@ import {
   NOTIFICATION_SETTINGS_PATHNAMES,
   NOTIFICATION_SETTINGS_TYPES,
 } from 'sentry/views/settings/account/notifications/constants';
-import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
+import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

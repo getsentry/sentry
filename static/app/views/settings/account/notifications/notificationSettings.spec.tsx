@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
+import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import NotificationSettings from 'sentry/views/settings/account/notifications/notificationSettings';
 
 function renderMockRequests() {
