@@ -172,6 +172,8 @@ ERR_INTEGRATION_MISSING_ORGANIZATION = _(
     "You must be logged into an organization to access this feature."
 )
 
+GITHUB_API_ACCEPT_HEADER = "application/vnd.github+json"
+
 
 class GithubInstallationInfo(TypedDict):
     installation_id: str

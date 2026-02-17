@@ -2,6 +2,7 @@ from django.core.exceptions import PermissionDenied
 
 from sentry import http, options
 from sentry.identity.oauth2 import OAuth2Provider
+from sentry.integrations.github.integration import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.types import IntegrationProviderSlug
 
 
@@ -9,10 +10,7 @@ def get_user_info(access_token):
     with http.build_session() as session:
         resp = session.get(
             "https://api.github.com/user",
-            headers={
-                "Accept": "application/vnd.github.machine-man-preview+json",
-                "Authorization": f"token {access_token}",
-            },
+            headers={"Accept": GITHUB_API_ACCEPT_HEADER, "Authorization": f"token {access_token}"},
         )
         resp.raise_for_status()
     return resp.json()
