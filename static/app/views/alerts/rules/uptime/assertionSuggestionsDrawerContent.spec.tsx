@@ -120,7 +120,7 @@ describe('AssertionSuggestionsDrawerContent', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders drawer header with title', async () => {
+  it('renders drawer header with title', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-assertion-suggestions/`,
       method: 'POST',
@@ -135,7 +135,7 @@ describe('AssertionSuggestionsDrawerContent', () => {
     expect(screen.getByText('AI Assertion Suggestions')).toBeInTheDocument();
   });
 
-  it('renders info alert about AI-generated suggestions', async () => {
+  it('renders info alert about AI-generated suggestions', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-assertion-suggestions/`,
       method: 'POST',
