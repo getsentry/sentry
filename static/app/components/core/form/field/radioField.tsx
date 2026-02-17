@@ -66,13 +66,15 @@ function RadioGroup({
   };
 
   const content = (
-    <Flex
-      role="radiogroup"
-      direction={orientation === 'horizontal' ? 'row' : 'column'}
-      gap="md"
-      align={orientation === 'horizontal' ? 'center' : 'start'}
-    >
-      <RadioContext.Provider value={contextValue}>{children}</RadioContext.Provider>
+    <Flex gap="md" align="center">
+      <Flex
+        role="radiogroup"
+        direction={orientation === 'horizontal' ? 'row' : 'column'}
+        gap="md"
+        align={orientation === 'horizontal' ? 'center' : 'start'}
+      >
+        <RadioContext.Provider value={contextValue}>{children}</RadioContext.Provider>
+      </Flex>
       {indicator}
     </Flex>
   );
