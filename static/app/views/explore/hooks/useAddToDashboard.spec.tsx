@@ -223,7 +223,7 @@ describe('AddToDashboardButton', () => {
     );
   });
 
-  it('takes the first 3 yAxes', async () => {
+  it('passes all yAxes from a multi-aggregate visualize', async () => {
     render(
       <Wrapper>
         <TestPage visualizeIndex={0} />
@@ -260,8 +260,10 @@ describe('AddToDashboardButton', () => {
             queries: [
               {
                 aggregates: [
-                  // because the visualizes get flattend, we only take the first y axis
                   'avg(span.duration)',
+                  'max(span.duration)',
+                  'min(span.duration)',
+                  'p90(span.duration)',
                 ],
                 columns: [],
                 fields: [],
