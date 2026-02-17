@@ -6,14 +6,24 @@ interface LayoutProps {
   label: string;
   hintText?: string;
   required?: boolean;
+  variant?: 'compact';
 }
 
 function RowLayout(props: LayoutProps) {
+  const isCompact = props.variant === 'compact';
+
   return (
     <Flex gap="sm" align="center" justify="between">
       <Stack width="50%" gap="xs">
-        <FieldMeta.Label required={props.required}>{props.label}</FieldMeta.Label>
-        {props.hintText ? (
+        <Flex gap="xs" align="center">
+          <FieldMeta.Label
+            required={props.required}
+            description={isCompact ? props.hintText : undefined}
+          >
+            {props.label}
+          </FieldMeta.Label>
+        </Flex>
+        {props.hintText && !isCompact ? (
           <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
         ) : null}
       </Stack>
@@ -24,11 +34,22 @@ function RowLayout(props: LayoutProps) {
 }
 
 function StackLayout(props: LayoutProps) {
+  const isCompact = props.variant === 'compact';
+
   return (
     <Stack gap="md">
-      <FieldMeta.Label required={props.required}>{props.label}</FieldMeta.Label>
+      <Flex gap="xs" align="center">
+        <FieldMeta.Label
+          required={props.required}
+          description={isCompact ? props.hintText : undefined}
+        >
+          {props.label}
+        </FieldMeta.Label>
+      </Flex>
       {props.children}
-      {props.hintText ? <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText> : null}
+      {props.hintText && !isCompact ? (
+        <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
+      ) : null}
     </Stack>
   );
 }

@@ -859,7 +859,8 @@ class RPCBase:
         table_search_resolver = cls.get_resolver(table_query_params, config)
 
         # Make a table query first to get what we need to filter by
-        _, non_equation_axes = arithmetic.categorize_columns(y_axes)
+        equation_axes, non_equation_axes = arithmetic.categorize_columns(y_axes)
+        all_equations = (equations or []) + equation_axes
         top_events = cls._run_table_query(
             TableQuery(
                 query_string=query_string,
@@ -870,7 +871,7 @@ class RPCBase:
                 referrer=f"{referrer}.find-topn",
                 sampling_mode=sampling_mode,
                 resolver=table_search_resolver,
-                equations=equations,
+                equations=all_equations,
                 additional_queries=additional_queries,
             ),
             debug=params.debug,

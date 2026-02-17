@@ -70,6 +70,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
           <DetectorDetailsOngoingIssues
             detector={detector}
             issueLinkExtraQuery={{includeUptime: '1'}}
+            dateTimeSelection={null}
           />
           <Section title={t('Recent Check-Ins')}>
             <div>

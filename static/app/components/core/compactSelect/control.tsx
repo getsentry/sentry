@@ -55,6 +55,10 @@ interface ControlContextValue {
    * Search string to determine whether an option should be rendered in the select list.
    */
   search: string;
+  /**
+   * Whether the select has a search input field.
+   */
+  searchable: boolean;
   disabled?: boolean;
   /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
@@ -67,6 +71,7 @@ interface ControlContextValue {
 export const ControlContext = createContext<ControlContextValue>({
   overlayIsOpen: false,
   search: '',
+  searchable: false,
 });
 
 export interface ControlProps
@@ -458,10 +463,11 @@ export function Control({
       overlayState,
       overlayIsOpen,
       search,
+      searchable,
       size,
       disabled,
     };
-  }, [overlayState, overlayIsOpen, search, size, disabled]);
+  }, [overlayState, overlayIsOpen, search, searchable, size, disabled]);
 
   const theme = useTheme();
 

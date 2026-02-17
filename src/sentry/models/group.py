@@ -1040,11 +1040,6 @@ class Group(Model):
         return et.get_location(self.get_event_metadata())
 
     @property
-    def message_short(self):
-        warnings.warn("Group.message_short is deprecated, use Group.title", DeprecationWarning)
-        return self.title
-
-    @property
     def organization(self):
         return self.project.organization
 
