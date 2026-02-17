@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {isAppleDevice, isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
 import type {DistributedOmit} from 'type-fest';
 
@@ -28,7 +29,6 @@ import {CompactSelect, ControlContext} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 
 export interface HybridFilterRef<Value extends SelectKey> {
   toggleOption: (val: Value) => void;
@@ -37,6 +37,7 @@ export interface HybridFilterRef<Value extends SelectKey> {
 export interface UseStagedCompactSelectOptions<Value extends SelectKey> {
   defaultValue: Value[];
   onChange: (selected: Value[]) => void;
+  options: Array<SelectOptionOrSection<Value>>;
   value: Value[];
   disableCommit?: boolean;
   hasExternalChanges?: boolean;
@@ -83,6 +84,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   value,
   defaultValue,
   onChange,
+  options,
   onStagedValueChange,
   onToggle,
   onReplace,
@@ -103,6 +105,9 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   const [uncommittedStagedValue, setUncommittedStagedValue] = useState<Value[] | null>(
     null
   );
+
+  // Track anchor point for shift-click range selection (ref to avoid re-renders)
+  const lastSelectedRef = useRef<Value | null>(null);
 
   /**
    * The actual staged value to display. This is derived from:
@@ -126,7 +131,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   const commit = useCallback(
     (val: Value[]) => {
-      setUncommittedStagedValue(null); // clear uncommitted changes
+      setUncommittedStagedValue(null);
       onChange?.(val);
     },
     [onChange]
@@ -143,7 +148,17 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     commit(stagedValue);
   }, [disableCommit, removeStagedChanges, commit, stagedValue]);
 
-  const toggleOption = useCallback(
+  const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
+  const [shiftKeyPressed, setShiftKeyPressed] = useState(false);
+
+  const getFlatOptions = useCallback(
+    (opts: Array<SelectOptionOrSection<Value>>): Array<SelectOption<Value>> => {
+      return opts.flatMap(item => ('options' in item ? item.options : [item]));
+    },
+    []
+  );
+
+  const performSingleToggle = useCallback(
     (val: Value) => {
       const newSet = new Set(stagedValue);
       if (newSet.has(val)) {
@@ -151,29 +166,91 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       } else {
         newSet.add(val);
       }
-
       const newValue = [...newSet];
       setUncommittedStagedValue(newValue);
       onToggle?.(newValue);
+      lastSelectedRef.current = val;
     },
     [stagedValue, onToggle]
   );
 
-  /**
-   * Whether a modifier key (ctrl/alt/shift) is being pressed. If true, the selector is
-   * in multiple selection mode.
-   */
-  const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
-  const handleKeyUp = useCallback(() => setModifierKeyPressed(false), []);
+  const shiftToggleRange = useCallback(
+    (clickedValue: Value) => {
+      if (!lastSelectedRef.current) {
+        performSingleToggle(clickedValue);
+        return;
+      }
+
+      const flatOptions = getFlatOptions(options);
+      const lastIdx = flatOptions.findIndex(opt => opt.value === lastSelectedRef.current);
+      const currentIdx = flatOptions.findIndex(opt => opt.value === clickedValue);
+
+      if (lastIdx === -1 || currentIdx === -1) {
+        performSingleToggle(clickedValue);
+        return;
+      }
+
+      const currentlySelected = stagedValue.includes(clickedValue);
+      const targetState = !currentlySelected;
+
+      const startIdx = Math.min(lastIdx, currentIdx);
+      const endIdx = Math.max(lastIdx, currentIdx);
+      const rangeValues = flatOptions.slice(startIdx, endIdx + 1).map(opt => opt.value);
+
+      const newValueSet = new Set(stagedValue);
+      rangeValues.forEach(val => {
+        targetState ? newValueSet.add(val) : newValueSet.delete(val);
+      });
+
+      // Sort by original option order
+      const sortedValue = [...newValueSet].sort((a, b) => {
+        const aIdx = flatOptions.findIndex(opt => opt.value === a);
+        const bIdx = flatOptions.findIndex(opt => opt.value === b);
+        return aIdx - bIdx;
+      });
+
+      setUncommittedStagedValue(sortedValue);
+      onToggle?.(sortedValue);
+      lastSelectedRef.current = clickedValue;
+    },
+    [stagedValue, onToggle, getFlatOptions, options, performSingleToggle]
+  );
+
+  const toggleOption = useCallback(
+    (val: Value) => {
+      if (shiftKeyPressed) {
+        shiftToggleRange(val);
+        return;
+      }
+
+      performSingleToggle(val);
+    },
+    [shiftKeyPressed, shiftToggleRange, performSingleToggle]
+  );
+
+  const handleKeyUp = useCallback(() => {
+    setModifierKeyPressed(false);
+    setShiftKeyPressed(false);
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: any) => {
       if (e.key === 'Escape') {
         commitStagedChanges();
       }
-      setModifierKeyPressed(isModifierKeyPressed(e));
+      setShiftKeyPressed(e.shiftKey);
+      setModifierKeyPressed(
+        (isAppleDevice() ? e.altKey : e.ctrlKey) || (isMac() ? e.metaKey : e.ctrlKey)
+      );
     },
     [commitStagedChanges]
   );
+
+  useEffect(() => {
+    if (uncommittedStagedValue === null && hasExternalChanges) {
+      lastSelectedRef.current = null;
+    }
+  }, [hasExternalChanges, uncommittedStagedValue]);
 
   const sectionToggleWasPressed = useRef(false);
   const handleSectionToggle = useCallback(
@@ -191,7 +268,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       const oldValueSet = new Set(oldValue);
       const newValueSet = new Set(newValue);
 
-      // Find out which options were added/removed by comparing the old and new value
       newValueSet.forEach(val => {
         if (oldValueSet.has(val)) {
           newValueSet.delete(val);
@@ -200,24 +276,36 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       });
       const diff = newValueSet.size > 0 ? [...newValueSet] : [...oldValueSet];
 
-      // A section toggle button was clicked
       if (diff.length > 1 || sectionToggleWasPressed.current) {
         sectionToggleWasPressed.current = false;
         commit(newValue);
         return;
       }
 
-      // A modifier key is being pressed --> enter multiple selection mode
+      if (multiple && shiftKeyPressed) {
+        shiftToggleRange(diff[0]!);
+        return;
+      }
+
       if (multiple && modifierKeyPressed) {
         toggleOption(diff[0]!);
         return;
       }
 
-      // Only one option was clicked on --> use single, direct selection mode
       onReplace?.(diff[0]!);
       commit(diff);
+      lastSelectedRef.current = diff[0]!;
     },
-    [commit, stagedValue, toggleOption, onReplace, multiple, modifierKeyPressed]
+    [
+      commit,
+      stagedValue,
+      toggleOption,
+      onReplace,
+      multiple,
+      modifierKeyPressed,
+      shiftKeyPressed,
+      shiftToggleRange,
+    ]
   );
 
   // Don't show reset button if current value is already equal to the default one.
@@ -236,7 +324,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       onInteractOutside: commitStagedChanges,
       onKeyDown: handleKeyDown,
       onKeyUp: handleKeyUp,
-      closeOnSelect: !(multiple && modifierKeyPressed),
+      closeOnSelect: !(multiple && (modifierKeyPressed || shiftKeyPressed)),
     },
     defaultValue,
     handleReset,
