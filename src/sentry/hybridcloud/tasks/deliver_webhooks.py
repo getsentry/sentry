@@ -275,6 +275,24 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
             )
 
 
+def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
+    """Record delivery time metrics for a successfully delivered webhook payload."""
+    duration = timezone.now() - payload.date_added
+    region_sent_to = (
+        payload.region_name
+        if payload.destination_type == DestinationType.SENTRY_REGION
+        else "codecov"
+    )
+    tags = {"region_sent_to": region_sent_to}
+    metrics.distribution(
+        "hybridcloud.deliver_webhooks.delivery_time_ms",
+        # e.g. 0.123 seconds → 123 milliseconds
+        duration.total_seconds() * 1000,
+        tags=tags,
+        unit="millisecond",
+    )
+
+
 def _handle_parallel_delivery_result(
     payload_record: WebhookPayload, err: Exception | None
 ) -> tuple[bool, bool]:
@@ -300,9 +318,8 @@ def _handle_parallel_delivery_result(
             request_failed = True
         return (request_failed, not isinstance(err, DeliveryFailed))
     payload_record.delete()
-    duration = timezone.now() - payload_record.date_added
+    _record_delivery_time_metrics(payload_record)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
-    metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
     return (False, False)
 
 
@@ -423,9 +440,7 @@ def deliver_message(payload: WebhookPayload) -> None:
     payload.schedule_next_attempt()
     perform_request(payload)
     payload.delete()
-
-    duration = timezone.now() - payload.date_added
-    metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
+    _record_delivery_time_metrics(payload)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
 
 

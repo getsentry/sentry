@@ -184,7 +184,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             "enabled": True,
             "config": {},
             "triggers": {
-                "logicType": "any",
+                "logicType": "any-short",
                 "conditions": [
                     {"type": "first_seen_event", "comparison": True, "conditionResult": True},
                 ],
@@ -733,7 +733,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             **self.valid_workflow,
             "actionFilters": [
                 {
-                    "logicType": "any",
+                    "logicType": "any-short",
                     "conditions": [
                         {
                             "conditionGroupId": other_dcg.id,

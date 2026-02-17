@@ -237,6 +237,10 @@ class GitHubIntegration(
 ):
     integration_name = IntegrationProviderSlug.GITHUB
 
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
+
     # IssueSyncIntegration configuration keys
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"

@@ -53,7 +53,7 @@ describe('Legacy Tier Checkout', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -187,7 +187,7 @@ describe('Default Tier Checkout', () => {
       body: BillingConfigFixture(PlanTier.AM3),
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });

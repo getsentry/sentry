@@ -48,6 +48,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
@@ -74,7 +75,7 @@ from sentry.seer.assisted_query.traces_tools import (
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
@@ -606,6 +607,35 @@ def trigger_coding_agent_launch(
         return {"success": False}
 
 
+def has_repo_code_mappings(
+    *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
+) -> dict[str, bool]:
+    """
+    Validate that a repository exists and belongs to the given organization.
+
+    Args:
+        organization_id: The Sentry organization ID
+        provider: The SCM provider (e.g., "github", "github_enterprise", w/ or w/o "integrations:" prefix)
+        external_id: The repository's external ID in the provider's system
+        owner: The repository owner (e.g., "getsentry")
+        name: The repository name (e.g., "sentry")
+
+    Returns:
+        dict: {"has_code_mappings": bool}
+    """
+    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+
+    if not repo:
+        return {"has_code_mappings": False}
+
+    has_mappings = RepositoryProjectPathConfig.objects.filter(
+        organization_id=organization_id,
+        repository_id=repo.id,
+    ).exists()
+
+    return {"has_code_mappings": has_mappings}
+
+
 def validate_repo(
     *,
     organization_id: int,
@@ -747,6 +777,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "trigger_coding_agent_launch": trigger_coding_agent_launch,
     #
     # Bug prediction
+    "has_repo_code_mappings": has_repo_code_mappings,
     "get_issues_by_function_name": by_function_name.fetch_issues,
     "get_issues_related_to_exception_type": by_error_type.fetch_issues,
     "get_issues_by_raw_query": by_text_query.fetch_issues,

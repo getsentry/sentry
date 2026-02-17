@@ -66,7 +66,7 @@ class OAuthUserInfoTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data == {"sub": self.user.id}
+        assert response.data == {"sub": str(self.user.id)}
 
     def test_gets_email_information(self) -> None:
         email_token = self.create_user_auth_token(user=self.user, scope_list=["openid", "email"])
@@ -76,7 +76,7 @@ class OAuthUserInfoTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "sub": self.user.id,
+            "sub": str(self.user.id),
             "email": self.user.email,
             "email_verified": True,
         }
@@ -95,7 +95,7 @@ class OAuthUserInfoTest(APITestCase):
         assert response.data["avatar_url"] is None
         assert isinstance(response.data["date_joined"], datetime.datetime)
         assert response.data["name"] == ""
-        assert response.data["sub"] == self.user.id
+        assert response.data["sub"] == str(self.user.id)
 
     def test_gets_multiple_scopes(self) -> None:
         all_access_token = self.create_user_auth_token(
@@ -118,4 +118,4 @@ class OAuthUserInfoTest(APITestCase):
         assert response.data["email_verified"]
 
         # openid information
-        assert response.data["sub"] == self.user.id
+        assert response.data["sub"] == str(self.user.id)

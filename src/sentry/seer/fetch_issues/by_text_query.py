@@ -7,6 +7,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.fetch_issues import utils
 from sentry.snuba.referrer import Referrer
 
@@ -45,7 +46,7 @@ def _fetch_issues_from_repo_projects(
 @utils.handle_fetch_issues_exceptions
 def fetch_issues(
     organization_id: int,
-    provider: str,
+    provider: SeerSCMProvider,
     external_id: str,
     query: str,
     owner: str,

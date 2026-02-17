@@ -166,3 +166,23 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"slug": self.organization.slug}
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_has_repo_code_mappings(self) -> None:
+        """Test that has_repo_code_mappings works through the public endpoint"""
+        path = self._get_path("has_repo_code_mappings")
+        response = self.client.post(
+            path,
+            data={
+                "args": {
+                    "provider": "integrations:github",
+                    "external_id": "123",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                }
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"has_code_mappings": False}
