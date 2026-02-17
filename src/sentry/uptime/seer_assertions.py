@@ -194,8 +194,8 @@ def build_assertion_prompt(response_data: dict[str, Any]) -> str:
         Prompt string for Seer
     """
     body_str = "N/A"
-    if response_data.get("body"):
-        body_str = orjson.dumps(response_data.get("body"), option=orjson.OPT_INDENT_2).decode()
+    if response_data.get("body") is not None:
+        body_str = orjson.dumps(response_data["body"], option=orjson.OPT_INDENT_2).decode()
         if len(body_str) > MAX_BODY_LENGTH:
             body_str = body_str[:MAX_BODY_LENGTH] + "\n... (truncated)"
 
