@@ -2438,24 +2438,27 @@ type AllEventFieldKeys =
   | keyof typeof TRACE_FIELD_DEFINITIONS
   | FieldKey;
 
-const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
-  ...AGGREGATION_FIELDS,
-  ...MEASUREMENT_FIELDS,
-  ...SPAN_OP_FIELDS,
-  ...TRACE_FIELD_DEFINITIONS,
-  ...SHARED_FIELD_KEY,
-  ...ERROR_FIELD_DEFINITION,
-  ...BROWSER_FIELD_DEFINITION,
-  ...DEVICE_FIELD_DEFINITION,
-  ...GEO_FIELD_DEFINITIONS,
-  ...OS_FIELD_DEFINITIONS,
-  ...RELEASE_FIELD_DEFINITION,
-  ...SDK_FIELD_DEFINITIONS,
-  ...TRANSACTION_FIELD_DEFINITIONS,
-  ...USER_FIELD_DEFINITIONS,
-  ...PROFILE_FIELD_DEFINITIONS,
-  ...OTA_FIELD_DEFINITIONS,
-};
+const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = Object.assign(
+  Object.create(null),
+  {
+    ...AGGREGATION_FIELDS,
+    ...MEASUREMENT_FIELDS,
+    ...SPAN_OP_FIELDS,
+    ...TRACE_FIELD_DEFINITIONS,
+    ...SHARED_FIELD_KEY,
+    ...ERROR_FIELD_DEFINITION,
+    ...BROWSER_FIELD_DEFINITION,
+    ...DEVICE_FIELD_DEFINITION,
+    ...GEO_FIELD_DEFINITIONS,
+    ...OS_FIELD_DEFINITIONS,
+    ...RELEASE_FIELD_DEFINITION,
+    ...SDK_FIELD_DEFINITIONS,
+    ...TRANSACTION_FIELD_DEFINITIONS,
+    ...USER_FIELD_DEFINITIONS,
+    ...PROFILE_FIELD_DEFINITIONS,
+    ...OTA_FIELD_DEFINITIONS,
+  } satisfies Record<AllEventFieldKeys, FieldDefinition>
+);
 
 const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
   [SpanHttpField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
@@ -2475,188 +2478,200 @@ const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
   },
 };
 
-const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  ...EVENT_FIELD_DEFINITIONS,
-  ...SPAN_AGGREGATION_FIELDS,
-  ...SPAN_HTTP_FIELD_DEFINITIONS,
-  [SpanFields.NAME]: {
-    desc: t(
-      'The span name. A short, human-readable identifier for the operation being performed by the span.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [SpanFields.KIND]: {
-    desc: t(
-      'The kind of span. Indicates the type of span such as server, client, internal, producer, or consumer.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [SpanFields.SPAN_STATUS]: {
-    desc: t('Span status. Indicates whether the span operation was successful.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [SpanFields.STATUS_MESSAGE]: {
-    desc: t(
-      'Span status message. If the span operation was not successful, this contains an error message.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-};
+const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = Object.assign(
+  Object.create(null),
+  {
+    ...EVENT_FIELD_DEFINITIONS,
+    ...SPAN_AGGREGATION_FIELDS,
+    ...SPAN_HTTP_FIELD_DEFINITIONS,
+    [SpanFields.NAME]: {
+      desc: t(
+        'The span name. A short, human-readable identifier for the operation being performed by the span.'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [SpanFields.KIND]: {
+      desc: t(
+        'The kind of span. Indicates the type of span such as server, client, internal, producer, or consumer.'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [SpanFields.SPAN_STATUS]: {
+      desc: t('Span status. Indicates whether the span operation was successful.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [SpanFields.STATUS_MESSAGE]: {
+      desc: t(
+        'Span status message. If the span operation was not successful, this contains an error message.'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+  } satisfies Record<string, FieldDefinition>
+);
 
-const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  app_id: {
-    desc: t('The bundle identifier of the application'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  app_name: {
-    desc: t('The display name of the application'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  build_configuration_name: {
-    desc: t('The name of the build configuration (e.g., Debug, Release)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  platform_name: {
-    desc: t('The platform the build targets (e.g., apple, android)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  build_number: {
-    desc: t('The build number assigned to this build'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  build_version: {
-    desc: t('The version string of the build'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  git_head_ref: {
-    desc: t('The Git branch of the HEAD commit associated with a build'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  git_base_ref: {
-    desc: t('The Git branch of the base commit for comparison associated with a build'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  git_head_sha: {
-    desc: t('The Git SHA of the HEAD commit associated with a build'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  git_base_sha: {
-    desc: t('The Git SHA of the base commit for comparison associated with a build'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  git_head_repo_name: {
-    desc: t('The repository name for the HEAD commit associated with a build'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  git_pr_number: {
-    desc: t('The pull request number associated with a build'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-};
+const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = Object.assign(
+  Object.create(null),
+  {
+    app_id: {
+      desc: t('The bundle identifier of the application'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    app_name: {
+      desc: t('The display name of the application'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    build_configuration_name: {
+      desc: t('The name of the build configuration (e.g., Debug, Release)'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    platform_name: {
+      desc: t('The platform the build targets (e.g., apple, android)'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    build_number: {
+      desc: t('The build number assigned to this build'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    build_version: {
+      desc: t('The version string of the build'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    git_head_ref: {
+      desc: t('The Git branch of the HEAD commit associated with a build'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    git_base_ref: {
+      desc: t('The Git branch of the base commit for comparison associated with a build'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    git_head_sha: {
+      desc: t('The Git SHA of the HEAD commit associated with a build'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    git_base_sha: {
+      desc: t('The Git SHA of the base commit for comparison associated with a build'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    git_head_repo_name: {
+      desc: t('The repository name for the HEAD commit associated with a build'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    git_pr_number: {
+      desc: t('The pull request number associated with a build'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+  } satisfies Record<string, FieldDefinition>
+);
 
-const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  ...LOG_AGGREGATION_FIELDS,
-  ...EVENT_FIELD_DEFINITIONS,
-  [OurLogKnownFieldKey.CODE_FILE_PATH]: {
-    desc: t(
-      'The source code file name that identifies the code unit as uniquely as possible (preferably an absolute file path).'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.CODE_LINE_NUMBER]: {
-    desc: t(
-      'The line number in %s best representing the operation. It SHOULD point within the code unit named in %s.',
-      OurLogKnownFieldKey.CODE_FILE_PATH,
-      OurLogKnownFieldKey.CODE_FUNCTION_NAME
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-  },
-  [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: {
-    desc: t(
-      'The method or function name, or equivalent (usually rightmost part of the code unit’s name).'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.LOGGER]: {
-    desc: t('The name of the logger that generated this event.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.MESSAGE]: {
-    desc: t('Log message'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.PARENT_SPAN_ID]: {
-    desc: t(
-      'The span id of the span that was active when the log was collected. This should not be set if there was no active span.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [OurLogKnownFieldKey.PAYLOAD_SIZE]: {
-    desc: t('The size of the log payload in bytes.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.SIZE,
-  },
-  [OurLogKnownFieldKey.REPLAY_ID]: {
-    desc: t('The ID of an associated sentry replay.'),
-    kind: FieldKind.TAG,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [OurLogKnownFieldKey.SERVER_ADDRESS]: {
-    desc: t(
-      'Server domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.SEVERITY]: {
-    desc: t('The severity level of the log.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.SPAN_ID]: {
-    desc: t('The associated span ID of the log.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [OurLogKnownFieldKey.TEMPLATE]: {
-    desc: t('The parameterized template string.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-};
+const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = Object.assign(
+  Object.create(null),
+  {
+    ...LOG_AGGREGATION_FIELDS,
+    ...EVENT_FIELD_DEFINITIONS,
+    [OurLogKnownFieldKey.CODE_FILE_PATH]: {
+      desc: t(
+        'The source code file name that identifies the code unit as uniquely as possible (preferably an absolute file path).'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [OurLogKnownFieldKey.CODE_LINE_NUMBER]: {
+      desc: t(
+        'The line number in %s best representing the operation. It SHOULD point within the code unit named in %s.',
+        OurLogKnownFieldKey.CODE_FILE_PATH,
+        OurLogKnownFieldKey.CODE_FUNCTION_NAME
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+    },
+    [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: {
+      desc: t(
+        'The method or function name, or equivalent (usually rightmost part of the code unit’s name).'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [OurLogKnownFieldKey.LOGGER]: {
+      desc: t('The name of the logger that generated this event.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [OurLogKnownFieldKey.MESSAGE]: {
+      desc: t('Log message'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [OurLogKnownFieldKey.PARENT_SPAN_ID]: {
+      desc: t(
+        'The span id of the span that was active when the log was collected. This should not be set if there was no active span.'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+    },
+    [OurLogKnownFieldKey.PAYLOAD_SIZE]: {
+      desc: t('The size of the log payload in bytes.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.SIZE,
+    },
+    [OurLogKnownFieldKey.REPLAY_ID]: {
+      desc: t('The ID of an associated sentry replay.'),
+      kind: FieldKind.TAG,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+    },
+    [OurLogKnownFieldKey.SERVER_ADDRESS]: {
+      desc: t(
+        'Server domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [OurLogKnownFieldKey.SEVERITY]: {
+      desc: t('The severity level of the log.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [OurLogKnownFieldKey.SPAN_ID]: {
+      desc: t('The associated span ID of the log.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+    },
+    [OurLogKnownFieldKey.TEMPLATE]: {
+      desc: t('The parameterized template string.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+  } satisfies Record<string, FieldDefinition>
+);
 
-const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  [FieldKey.TIMESTAMP]: {
-    desc: t('The time the metric was recorded'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.DATE,
-  },
-};
+const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = Object.assign(
+  Object.create(null),
+  {
+    [FieldKey.TIMESTAMP]: {
+      desc: t('The time the metric was recorded'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.DATE,
+    },
+  } satisfies Record<string, FieldDefinition>
+);
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
@@ -3051,157 +3066,162 @@ export const REPLAY_TAG_ALIASES = {
 
 const SMALL_INTEGER_VALUES = ['1', '10', '100', '1000'];
 
-const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
-  [ReplayFieldKey.ACTIVITY]: {
-    desc: t('Amount of activity in the replay from 0 to 10'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-    defaultValue: SMALL_INTEGER_VALUES[0],
-    values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.COUNT_DEAD_CLICKS]: {
-    desc: t('Number of dead clicks in the replay'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-    defaultValue: SMALL_INTEGER_VALUES[0],
-    values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.COUNT_RAGE_CLICKS]: {
-    desc: t('Number of rage clicks in the replay'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-    defaultValue: SMALL_INTEGER_VALUES[0],
-    values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.COUNT_ERRORS]: {
-    desc: t('Number of issues in the replay with level=error'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-    defaultValue: SMALL_INTEGER_VALUES[0],
-    values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.COUNT_INFOS]: {
-    desc: t('Number of issues in the replay with level=info'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-    defaultValue: SMALL_INTEGER_VALUES[0],
-    values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.COUNT_SCREENS]: {
-    desc: t('Number of screens visited within the replay. Alias of count_urls.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-    defaultValue: SMALL_INTEGER_VALUES[0],
-    values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.COUNT_SEGMENTS]: {
-    desc: t('Number of segments in the replay'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-    defaultValue: SMALL_INTEGER_VALUES[0],
-    values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.COUNT_TRACES]: {
-    desc: t('Number of traces in the replay'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-    defaultValue: SMALL_INTEGER_VALUES[0],
-    values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.COUNT_URLS]: {
-    desc: t('Number of urls visited within the replay'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-    defaultValue: SMALL_INTEGER_VALUES[0],
-    values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.COUNT_WARNINGS]: {
-    desc: t('Number of issues in the replay with level=warning'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-    defaultValue: SMALL_INTEGER_VALUES[0],
-    values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.DURATION]: {
-    desc: t('Duration of the replay, in seconds'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.DURATION,
-  },
-  [ReplayFieldKey.ERROR_IDS]: {
-    desc: t('Error instance'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [ReplayFieldKey.IS_ARCHIVED]: {
-    desc: t('Whether the replay has been archived'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
-  [ReplayFieldKey.OS_NAME]: {
-    desc: t('Name of the Operating System'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.OS_VERSION]: {
-    desc: t('Version number of the Operating System'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.REPLAY_TYPE]: {
-    desc: t('The replay recording mode - "session" or "buffer"'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.SEEN_BY_ME]: {
-    desc: t(
-      'Whether you have seen this replay before. Alias of viewed_by_me. (true/false)'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
-  [ReplayFieldKey.SCREEN]: {
-    desc: t('A screen visited within the replay. Alias of url.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.SCREENS]: {
-    desc: t('List of screens that were visited within the replay. Alias of urls.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.URL]: {
-    desc: t('A url visited within the replay'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.URLS]: {
-    desc: t('List of urls that were visited within the replay'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.USER_GEO_CITY]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_CITY],
-  [ReplayFieldKey.USER_GEO_COUNTRY_CODE]:
-    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_COUNTRY_CODE],
-  [ReplayFieldKey.USER_GEO_REGION]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_REGION],
-  [ReplayFieldKey.USER_GEO_SUBDIVISION]:
-    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_SUBDIVISION],
-  [ReplayFieldKey.VIEWED_BY_ME]: {
-    desc: t('Whether you have seen this replay before. Alias of seen_by_me (true/false)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
-};
+const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = Object.assign(
+  Object.create(null),
+  {
+    [ReplayFieldKey.ACTIVITY]: {
+      desc: t('Amount of activity in the replay from 0 to 10'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+      defaultValue: SMALL_INTEGER_VALUES[0],
+      values: SMALL_INTEGER_VALUES,
+    },
+    [ReplayFieldKey.BROWSER_NAME]: {
+      desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayFieldKey.BROWSER_VERSION]: {
+      desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayFieldKey.COUNT_DEAD_CLICKS]: {
+      desc: t('Number of dead clicks in the replay'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+      defaultValue: SMALL_INTEGER_VALUES[0],
+      values: SMALL_INTEGER_VALUES,
+    },
+    [ReplayFieldKey.COUNT_RAGE_CLICKS]: {
+      desc: t('Number of rage clicks in the replay'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+      defaultValue: SMALL_INTEGER_VALUES[0],
+      values: SMALL_INTEGER_VALUES,
+    },
+    [ReplayFieldKey.COUNT_ERRORS]: {
+      desc: t('Number of issues in the replay with level=error'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+      defaultValue: SMALL_INTEGER_VALUES[0],
+      values: SMALL_INTEGER_VALUES,
+    },
+    [ReplayFieldKey.COUNT_INFOS]: {
+      desc: t('Number of issues in the replay with level=info'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+      defaultValue: SMALL_INTEGER_VALUES[0],
+      values: SMALL_INTEGER_VALUES,
+    },
+    [ReplayFieldKey.COUNT_SCREENS]: {
+      desc: t('Number of screens visited within the replay. Alias of count_urls.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+      defaultValue: SMALL_INTEGER_VALUES[0],
+      values: SMALL_INTEGER_VALUES,
+    },
+    [ReplayFieldKey.COUNT_SEGMENTS]: {
+      desc: t('Number of segments in the replay'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+      defaultValue: SMALL_INTEGER_VALUES[0],
+      values: SMALL_INTEGER_VALUES,
+    },
+    [ReplayFieldKey.COUNT_TRACES]: {
+      desc: t('Number of traces in the replay'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+      defaultValue: SMALL_INTEGER_VALUES[0],
+      values: SMALL_INTEGER_VALUES,
+    },
+    [ReplayFieldKey.COUNT_URLS]: {
+      desc: t('Number of urls visited within the replay'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+      defaultValue: SMALL_INTEGER_VALUES[0],
+      values: SMALL_INTEGER_VALUES,
+    },
+    [ReplayFieldKey.COUNT_WARNINGS]: {
+      desc: t('Number of issues in the replay with level=warning'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+      defaultValue: SMALL_INTEGER_VALUES[0],
+      values: SMALL_INTEGER_VALUES,
+    },
+    [ReplayFieldKey.DURATION]: {
+      desc: t('Duration of the replay, in seconds'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.DURATION,
+    },
+    [ReplayFieldKey.ERROR_IDS]: {
+      desc: t('Error instance'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+    },
+    [ReplayFieldKey.IS_ARCHIVED]: {
+      desc: t('Whether the replay has been archived'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.BOOLEAN,
+    },
+    [ReplayFieldKey.OS_NAME]: {
+      desc: t('Name of the Operating System'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayFieldKey.OS_VERSION]: {
+      desc: t('Version number of the Operating System'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayFieldKey.REPLAY_TYPE]: {
+      desc: t('The replay recording mode - "session" or "buffer"'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayFieldKey.SEEN_BY_ME]: {
+      desc: t(
+        'Whether you have seen this replay before. Alias of viewed_by_me. (true/false)'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.BOOLEAN,
+    },
+    [ReplayFieldKey.SCREEN]: {
+      desc: t('A screen visited within the replay. Alias of url.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayFieldKey.SCREENS]: {
+      desc: t('List of screens that were visited within the replay. Alias of urls.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayFieldKey.URL]: {
+      desc: t('A url visited within the replay'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayFieldKey.URLS]: {
+      desc: t('List of urls that were visited within the replay'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayFieldKey.USER_GEO_CITY]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_CITY],
+    [ReplayFieldKey.USER_GEO_COUNTRY_CODE]:
+      EVENT_FIELD_DEFINITIONS[FieldKey.GEO_COUNTRY_CODE],
+    [ReplayFieldKey.USER_GEO_REGION]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_REGION],
+    [ReplayFieldKey.USER_GEO_SUBDIVISION]:
+      EVENT_FIELD_DEFINITIONS[FieldKey.GEO_SUBDIVISION],
+    [ReplayFieldKey.VIEWED_BY_ME]: {
+      desc: t(
+        'Whether you have seen this replay before. Alias of seen_by_me (true/false)'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.BOOLEAN,
+    },
+  } satisfies Record<ReplayFieldKey, FieldDefinition>
+);
 
 export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_ALT,
@@ -3226,100 +3246,102 @@ export const REPLAY_TAP_FIELDS = [
 ];
 
 // This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
-const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinition> = {
-  [ReplayClickFieldKey.CLICK_ALT]: {
-    desc: t('`alt` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayClickFieldKey.CLICK_CLASS]: {
-    desc: t('`class` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayClickFieldKey.CLICK_ID]: {
-    desc: t('`id` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayClickFieldKey.CLICK_LABEL]: {
-    desc: t('`aria-label` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayClickFieldKey.CLICK_ROLE]: {
-    desc: t('`role` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayClickFieldKey.CLICK_SELECTOR]: {
-    desc: t(
-      'query using CSS selector-like syntax, supports class, id, and attribute selectors'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [ReplayClickFieldKey.DEAD_SELECTOR]: {
-    desc: t(
-      'query using CSS selector-like syntax, supports class, id, and attribute selectors'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [ReplayClickFieldKey.RAGE_SELECTOR]: {
-    desc: t(
-      'query using CSS selector-like syntax, supports class, id, and attribute selectors'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [ReplayClickFieldKey.CLICK_TAG]: {
-    desc: t('`tag` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayClickFieldKey.CLICK_TESTID]: {
-    desc: t('`data-testid` or `data-test-id` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayClickFieldKey.CLICK_TEXT_CONTENT]: {
-    desc: t('textContent of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayClickFieldKey.CLICK_TITLE]: {
-    desc: t('`title` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayClickFieldKey.CLICK_COMPONENT_NAME]: {
-    desc: t('the name of the frontend component that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-};
+const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinition> =
+  Object.assign(Object.create(null), {
+    [ReplayClickFieldKey.CLICK_ALT]: {
+      desc: t('`alt` of an element that was clicked'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayClickFieldKey.CLICK_CLASS]: {
+      desc: t('`class` of an element that was clicked'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayClickFieldKey.CLICK_ID]: {
+      desc: t('`id` of an element that was clicked'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayClickFieldKey.CLICK_LABEL]: {
+      desc: t('`aria-label` of an element that was clicked'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayClickFieldKey.CLICK_ROLE]: {
+      desc: t('`role` of an element that was clicked'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayClickFieldKey.CLICK_SELECTOR]: {
+      desc: t(
+        'query using CSS selector-like syntax, supports class, id, and attribute selectors'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+    },
+    [ReplayClickFieldKey.DEAD_SELECTOR]: {
+      desc: t(
+        'query using CSS selector-like syntax, supports class, id, and attribute selectors'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+    },
+    [ReplayClickFieldKey.RAGE_SELECTOR]: {
+      desc: t(
+        'query using CSS selector-like syntax, supports class, id, and attribute selectors'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+    },
+    [ReplayClickFieldKey.CLICK_TAG]: {
+      desc: t('`tag` of an element that was clicked'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayClickFieldKey.CLICK_TESTID]: {
+      desc: t('`data-testid` or `data-test-id` of an element that was clicked'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayClickFieldKey.CLICK_TEXT_CONTENT]: {
+      desc: t('textContent of an element that was clicked'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayClickFieldKey.CLICK_TITLE]: {
+      desc: t('`title` of an element that was clicked'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayClickFieldKey.CLICK_COMPONENT_NAME]: {
+      desc: t('the name of the frontend component that was clicked'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+  } satisfies Record<ReplayClickFieldKey, FieldDefinition>);
 
-const REPLAY_TAP_FIELD_DEFINITIONS: Record<ReplayTapFieldKey, FieldDefinition> = {
-  [ReplayTapFieldKey.TAP_MESSAGE]: {
-    desc: t('`Message` of an element that was tapped'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayTapFieldKey.TAP_VIEW_CLASS]: {
-    desc: t('`View Class` of an element that was tapped'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayTapFieldKey.TAP_VIEW_ID]: {
-    desc: t('`View ID` of an element that was tapped'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-};
+const REPLAY_TAP_FIELD_DEFINITIONS: Record<ReplayTapFieldKey, FieldDefinition> =
+  Object.assign(Object.create(null), {
+    [ReplayTapFieldKey.TAP_MESSAGE]: {
+      desc: t('`Message` of an element that was tapped'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayTapFieldKey.TAP_VIEW_CLASS]: {
+      desc: t('`View Class` of an element that was tapped'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [ReplayTapFieldKey.TAP_VIEW_ID]: {
+      desc: t('`View ID` of an element that was tapped'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+  } satisfies Record<ReplayTapFieldKey, FieldDefinition>);
 
 export enum FeedbackFieldKey {
   AI_CATEGORIZATION_LABELS = 'ai_categorization.labels',
@@ -3366,54 +3388,56 @@ export const FEEDBACK_FIELDS = [
   FieldKey.USER_USERNAME,
 ];
 
-const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
-  [FeedbackFieldKey.AI_CATEGORIZATION_LABELS]: {
-    desc: t('AI-generated labels for categorizing feedback'),
-    kind: FieldKind.TAG,
-    valueType: FieldValueType.STRING,
-    allowWildcard: true,
-  },
-  [FeedbackFieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[FeedbackFieldKey.BROWSER_NAME].brief),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FeedbackFieldKey.LOCALE_LANG]: {
-    desc: t('Language preference of the user'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FeedbackFieldKey.LOCALE_TIMEZONE]: {
-    desc: t('Timezone the feedback was submitted from'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FeedbackFieldKey.MESSAGE]: {
-    desc: t(
-      'Message written by the user providing feedback. Search is case insensitive and supports substrings.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: true,
-  },
-  [FeedbackFieldKey.OS_NAME]: {
-    desc: t('Name of the operating system'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FeedbackFieldKey.OS_VERSION]: {
-    desc: t('Version number of the operating system'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FeedbackFieldKey.URL]: {
-    desc: t('URL of the page that the feedback is triggered on'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-};
+const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> =
+  Object.assign(Object.create(null), {
+    [FeedbackFieldKey.AI_CATEGORIZATION_LABELS]: {
+      desc: t('AI-generated labels for categorizing feedback'),
+      kind: FieldKind.TAG,
+      valueType: FieldValueType.STRING,
+      allowWildcard: true,
+    },
+    [FeedbackFieldKey.BROWSER_NAME]: {
+      desc: td(ATTRIBUTE_METADATA[FeedbackFieldKey.BROWSER_NAME].brief),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [FeedbackFieldKey.LOCALE_LANG]: {
+      desc: t('Language preference of the user'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [FeedbackFieldKey.LOCALE_TIMEZONE]: {
+      desc: t('Timezone the feedback was submitted from'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [FeedbackFieldKey.MESSAGE]: {
+      desc: t(
+        'Message written by the user providing feedback. Search is case insensitive and supports substrings.'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: true,
+    },
+    [FeedbackFieldKey.OS_NAME]: {
+      desc: t('Name of the operating system'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [FeedbackFieldKey.OS_VERSION]: {
+      desc: t('Version number of the operating system'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [FeedbackFieldKey.URL]: {
+      desc: t('URL of the page that the feedback is triggered on'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+  } satisfies Record<FeedbackFieldKey, FieldDefinition>);
 
-function _getFieldFromMappings(
+export const getFieldDefinition = (
+  key: string,
   type:
     | 'event'
     | 'replay'
@@ -3424,9 +3448,8 @@ function _getFieldFromMappings(
     | 'log'
     | 'uptime'
     | 'tracemetric' = 'event',
-  key: string,
   kind?: FieldKind
-): FieldDefinition | undefined | null {
+): FieldDefinition | null => {
   switch (type) {
     case 'replay':
       if (Object.hasOwn(REPLAY_FIELD_DEFINITIONS, key)) {
@@ -3460,10 +3483,10 @@ function _getFieldFromMappings(
       return null;
     case 'preprod':
       if (Object.hasOwn(PREPROD_FIELD_DEFINITIONS, key)) {
-        return PREPROD_FIELD_DEFINITIONS[key];
+        return PREPROD_FIELD_DEFINITIONS[key] ?? null;
       }
       if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
-        return SPAN_FIELD_DEFINITIONS[key];
+        return SPAN_FIELD_DEFINITIONS[key] ?? null;
       }
 
       if (kind === FieldKind.MEASUREMENT) {
@@ -3504,7 +3527,7 @@ function _getFieldFromMappings(
 
     case 'log':
       if (Object.hasOwn(LOG_FIELD_DEFINITIONS, key)) {
-        return LOG_FIELD_DEFINITIONS[key];
+        return LOG_FIELD_DEFINITIONS[key] ?? null;
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -3526,7 +3549,7 @@ function _getFieldFromMappings(
 
     case 'tracemetric':
       if (Object.hasOwn(TRACEMETRIC_FIELD_DEFINITIONS, key)) {
-        return TRACEMETRIC_FIELD_DEFINITIONS[key];
+        return TRACEMETRIC_FIELD_DEFINITIONS[key] ?? null;
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -3549,28 +3572,10 @@ function _getFieldFromMappings(
     case 'event':
     default:
       if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return EVENT_FIELD_DEFINITIONS[key];
+        return EVENT_FIELD_DEFINITIONS[key as keyof typeof EVENT_FIELD_DEFINITIONS];
       }
       return null;
   }
-}
-
-export const getFieldDefinition = (
-  key: string,
-  type:
-    | 'event'
-    | 'replay'
-    | 'replay_click'
-    | 'feedback'
-    | 'preprod'
-    | 'span'
-    | 'log'
-    | 'uptime'
-    | 'tracemetric' = 'event',
-  kind?: FieldKind
-): FieldDefinition | null => {
-  return _getFieldFromMappings(type, key, kind) ?? null;
 };
 
 export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
