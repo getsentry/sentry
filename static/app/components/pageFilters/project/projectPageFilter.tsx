@@ -111,11 +111,9 @@ export function ProjectPageFilter({
 
   // Snapshot of bookmarked projects when menu opens - used for sorting to prevent
   // re-sorting while menu is open
-  const bookmarkedSnapshotRef = useRef<Set<string> | undefined>(undefined);
-
-  if (!bookmarkedSnapshotRef.current) {
-    bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
-  }
+  const [bookmarkedSnapshot, setBookmarkedSnapshot] = useState<Set<string>>(
+    () => new Set(optimisticallyBookmarkedProjects)
+  );
 
   const [memberProjects, otherProjects] = useMemo(
     () => partition(projects, project => project.isMember),
@@ -355,14 +353,11 @@ export function ProjectPageFilter({
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
-    const listSort = (project: Project) =>
-      bookmarkedSnapshotRef.current
-        ? [
-            !lastSelected.includes(parseInt(project.id, 10)),
-            !bookmarkedSnapshotRef.current.has(project.id),
-            project.slug,
-          ]
-        : [!lastSelected.includes(parseInt(project.id, 10)), project.slug];
+    const listSort = (project: Project) => [
+      !lastSelected.includes(parseInt(project.id, 10)),
+      !bookmarkedSnapshot.has(project.id),
+      project.slug,
+    ];
 
     return nonMemberProjects.length > 0
       ? [
@@ -387,6 +382,7 @@ export function ProjectPageFilter({
     mapURLValueToNormalValue,
     optimisticallyBookmarkedProjects,
     pageFilterValue,
+    bookmarkedSnapshot,
   ]);
 
   const defaultMenuWidth = useMemo(() => {
@@ -442,7 +438,7 @@ export function ProjectPageFilter({
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
       onOpenChange={() => {
-        bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+        setBookmarkedSnapshot(new Set(optimisticallyBookmarkedProjects));
       }}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
