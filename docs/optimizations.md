@@ -83,4 +83,23 @@ Incremental optimizations to the backend test CI pipeline. Each entry describes 
 - The module-level env var + session fixture is belt-and-suspenders: the env var covers Django settings load, the fixture covers the `_snuba_pool` singleton in case of unexpected import ordering.
 - `--dist=loadfile` groups tests from the same file onto one worker, maximizing fixture reuse (module/class-scoped fixtures run once instead of per-worker).
 
-**Results:** TBD
+**Snowflake test fix** (`tests/sentry/utils/test_snowflake.py`):
+- `test_generate_correct_ids` and `test_generate_correct_ids_with_region_sequence` hardcode expected snowflake values assuming `region_snowflake_id=0`. Under xdist, workers use `worker_num + 1`, shifting the region segment.
+- **Fix:** Wrap both tests in `override_regions` with an explicit `Region("test-region", 0, ...)` so expected values are deterministic regardless of xdist worker.
+
+**Results** (run `22112621345`, 22 shards × 3 workers):
+
+| Metric | Value |
+|---|---|
+| Wall clock | 13.6m |
+| Avg shard time | 12.2m |
+| Max / Min | 13.6m / 9.8m |
+| Spread | 224s |
+| Runner-minutes | 268m |
+
+Phase breakdown (avg, as % of wall clock):
+- Setup sentry env: 48s (5.9%)
+- Bootstrap per-worker Snuba: 55s (6.7%)
+- Run backend tests: 564s / 9.4m (69.2%)
+
+Failures: 2/22 — both `test_snowflake.py` (fixed above). All other tests passed.
