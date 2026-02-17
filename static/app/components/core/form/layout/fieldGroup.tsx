@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -13,26 +12,6 @@ export function FieldGroup({
   title: React.ReactNode;
   children?: React.ReactNode;
 }) {
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) {
-      return undefined;
-    }
-
-    const fieldName = decodeURIComponent(hash.slice(1));
-    if (!fieldName) {
-      return undefined;
-    }
-
-    const rafId = requestAnimationFrame(() => {
-      document
-        .getElementById(fieldName)
-        ?.scrollIntoView({block: 'center', behavior: 'smooth'});
-    });
-
-    return () => cancelAnimationFrame(rafId);
-  }, []);
-
   return (
     <Panel>
       <PanelHeader>{title}</PanelHeader>
