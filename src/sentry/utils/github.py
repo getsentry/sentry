@@ -10,7 +10,7 @@ from requests.exceptions import HTTPError
 
 from sentry import options
 from sentry.http import build_session
-from sentry.integrations.github.integration import GITHUB_API_ACCEPT_HEADER
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.shared_integrations.exceptions import ApiError
 
 

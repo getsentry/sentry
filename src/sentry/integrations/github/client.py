@@ -17,7 +17,7 @@ from sentry.integrations.github.blame import (
     generate_file_path_mapping,
     is_graphql_response,
 )
-from sentry.integrations.github.integration import GITHUB_API_ACCEPT_HEADER
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration

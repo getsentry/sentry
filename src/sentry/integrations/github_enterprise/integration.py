@@ -18,9 +18,12 @@ from sentry.integrations.base import (
     IntegrationFeatures,
     IntegrationMetadata,
 )
-from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
-from sentry.integrations.github.integration import (
+from sentry.integrations.github.constants import (
     GITHUB_API_ACCEPT_HEADER,
+    ISSUE_LOCKED_ERROR_MESSAGE,
+    RATE_LIMITED_MESSAGE,
+)
+from sentry.integrations.github.integration import (
     GitHubIntegrationProvider,
     build_repository_query,
 )
