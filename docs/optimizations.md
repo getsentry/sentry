@@ -157,6 +157,178 @@ Initial tier1 runs failed on `test_preprod_artifact_snapshot.py` (500 errors). R
 
 **Fix:** Added objectstore (8888) and symbolicator (3021) to `SERVICE_PORTS` so runtime detection catches implicit dependencies. Also added the file to `FORCE_TIER2_FILES` as an immediate workaround (classification data is pre-generated and won't update until the classifier reruns).
 
-**Testing:** 3 parallel worktrees comparing file/class/test granularity.
+**Testing:** 3 parallel worktrees comparing file/class/test granularity (`--dist=loadfile`).
 
-**Results:** TBD
+**Results — `--dist=loadfile`** (runs `22114412739`, `22114413407`, `22114413637`, all passed):
+
+| Metric | Step 3 | File | Class | Test |
+|---|---|---|---|---|
+| Wall clock | 12.1m | **12.4m** | 12.7m | 13.0m |
+| T1 avg / max | — | 9.8m / 10.8m | 11.0m / 11.4m | 11.2m / 11.7m |
+| T2 avg / max | — | 9.9m / 11.0m | 9.6m / 10.4m | 9.5m / 10.2m |
+| T1 spread | — | 137s | 36s | 73s |
+| T2 spread | — | 161s | 105s | 74s |
+| Runner-min | 247m | **216m** | 219m | 218m |
+
+Wall clock did not improve — tier1 (5 shards, ~71% of tests) is overloaded relative to tier2 (17 shards, ~29%). The win is runner-minutes: 247m → 216m (−13%) since tier1 skips the Snuba/devservices stack.
+
+File granularity outperformed class/test on runner-minutes because:
+1. The 5:17 shard ratio means moving tests from tier2→tier1 (finer granularity) costs `duration/5` but saves only `duration/17`.
+2. `--dist=loadfile` aligns perfectly with file-level tier boundaries — no wasted partial-file imports.
+
+**Results — `--dist=load`** (runs `22115067011`, `22115087951`, `22115092297`, `22115096011`, all passed):
+
+**File granularity:**
+
+| Metric | loadfile | load |
+|---|---|---|
+| Wall clock | 12.4m | 12.2m |
+| T1 avg / max | 9.8m / 10.8m | 10.5m / 11.2m |
+| T2 avg / max | 9.9m / 11.0m | 10.0m / 10.9m |
+| T1 spread | 137s | 129s |
+| T2 spread | 161s | 150s |
+| Runner-min | 216m | 222m |
+
+**Class granularity:**
+
+| Metric | loadfile | load |
+|---|---|---|
+| Wall clock | 12.7m | 13.1m |
+| T1 avg / max | 11.0m / 11.4m | 11.6m / 11.9m |
+| T2 avg / max | 9.6m / 10.4m | 9.5m / 10.2m |
+| T1 spread | 36s | 34s |
+| T2 spread | 105s | 114s |
+| Runner-min | 219m | 220m |
+
+**Test granularity:**
+
+| Metric | loadfile | load |
+|---|---|---|
+| Wall clock | 13.0m | 13.6m |
+| T1 avg / max | 11.2m / 11.7m | 12.3m / 12.6m |
+| T2 avg / max | 9.5m / 10.2m | 9.5m / 10.6m |
+| T1 spread | 73s | 41s |
+| T2 spread | 74s | 120s |
+| Runner-min | 218m | 223m |
+
+`--dist=load` did not improve over `--dist=loadfile`. Runner-minutes increased (216→222 for file granularity) and wall clock was similar or worse. Per-test dispatching overhead outweighs any worker utilization gains. `--dist=loadfile` remains the better choice, particularly at file granularity.
+
+**Results — `--dist=loadscope`** (runs `22115158205`, `22115168046`, `22115176096`, all passed):
+
+**File granularity:**
+
+| Metric | loadfile | load | loadscope |
+|---|---|---|---|
+| Wall clock | 12.4m | 12.2m | **11.9m** |
+| T1 avg / max | 9.8m / 10.8m | 10.5m / 11.2m | 9.8m / 10.8m |
+| T2 avg / max | 9.9m / 11.0m | 10.0m / 10.9m | 9.9m / 10.7m |
+| T1 spread | 137s | 129s | 153s |
+| T2 spread | 161s | 150s | **133s** |
+| Runner-min | **216m** | 222m | 217m |
+
+**Class granularity:**
+
+| Metric | loadfile | load | loadscope |
+|---|---|---|---|
+| Wall clock | 12.7m | 13.1m | **12.8m** |
+| T1 avg / max | 11.0m / 11.4m | 11.6m / 11.9m | 10.8m / 11.7m |
+| T2 avg / max | 9.6m / 10.4m | 9.5m / 10.2m | 9.6m / 10.7m |
+| T1 spread | 36s | 34s | 89s |
+| T2 spread | 105s | 114s | 155s |
+| Runner-min | 219m | 220m | **217m** |
+
+**Test granularity:**
+
+| Metric | loadfile | load | loadscope |
+|---|---|---|---|
+| Wall clock | 13.0m | 13.6m | **13.2m** |
+| T1 avg / max | 11.2m / 11.7m | 12.3m / 12.6m | 11.5m / 11.8m |
+| T2 avg / max | 9.5m / 10.2m | 9.5m / 10.6m | 9.3m / 10.0m |
+| T1 spread | 73s | 41s | 38s |
+| T2 spread | 74s | 120s | 106s |
+| Runner-min | 218m | 223m | **216m** |
+
+**Summary:** `loadscope` is consistently the best or tied for best across all granularities. Best overall: **loadscope + file at 11.9m / 217m**. `load` (per-test dispatching) is consistently worst — overhead outweighs utilization gains. File granularity wins across all dist modes, confirming the 5:17 shard imbalance as the dominant factor. Differences between dist modes are small (~0.5m); shard rebalancing or three-tier split would have bigger impact.
+
+---
+
+## Baseline comparison: how the baseline branch achieved 11m29s
+
+The baseline branch (commit `87b94db`, run `21929461389`) achieved **11m29s wall clock** with the same 5T1/17T2 shard split and file-level classification. Configuration:
+
+- **Sharding:** `TEST_GROUP_STRATEGY: roundrobin` — hashes each individual test's full nodeid (`sha256(nodeid) % total_groups`), giving statistically even per-test distribution across shards.
+- **Dist mode:** `--dist=loadfile`
+- **Workers:** `-n 3` on ubuntu-24.04 (4-core, 16GB)
+- **Granularity:** File-level tier classification
+- **Tier split:** 5 tier1 / 17 tier2
+
+**Baseline timing (run 21929461389):**
+
+| | Avg | Max | Min | Spread |
+|---|---|---|---|---|
+| Tier 1 (5) | 10m15s | 10m25s | 10m04s | **21s** |
+| Tier 2 (17) | 9m41s | 11m08s | 8m12s | 176s |
+| Wall clock | — | **11m29s** | — | — |
+
+**Our best (loadscope + file):**
+
+| | Avg | Max | Min | Spread |
+|---|---|---|---|---|
+| Tier 1 (5) | 9m46s | 10m49s | 8m16s | **153s** |
+| Tier 2 (17) | 9m53s | 10m41s | 8m28s | 133s |
+| Wall clock | — | **11m56s** | — | — |
+
+**Gap analysis (27s):**
+
+The 27-second gap is almost entirely explained by **Tier 1 shard balance**. The baseline's T1 spread was 21s vs our 153s. With per-test hash sharding, each of the 5 tier1 shards gets a statistically uniform slice of ~14% of tests. Our round-robin distributes at file granularity (entire files to shards), which is clumpier — one shard can draw several large files and become a hotspot.
+
+**What the baseline evolved to after 11m29s:**
+
+The baseline continued iterating beyond the 11m29s configuration:
+
+1. **Iteration 19: Test-level classification + 6/16 shard rebalance** — Split at test granularity, moved 1 shard from T2→T1 (6T1/16T2). Achieved 11m30s (parity). This created headroom for further tier reductions.
+
+2. **Iteration 20: Reclassification (Optimization D)** — Removed `_requires_snuba` from fixture-based detection, switched to runtime-only socket monitoring. Reclassified ~1,844 tests that inherited `SnubaTestCase` but never actually queried Snuba, moving them from T2→T1.
+
+3. **Three-tier split (tier2-light / tier2-heavy)** — Separated tier2 into: `tier2-light` (14 shards, Snuba only, `backend-ci-light` mode) and `tier2-heavy` (1 shard, full stack with symbolicator/objectstore/bigtable). New `backend-ci-light` devservices mode skips pulling heavy images.
+
+4. **Docker image pre-pull (F1)** — Background-pull locally-defined images during setup-sentry overlap.
+
+5. **Shard balancing (I1)** — Identified as the biggest remaining lever (reduce 134s spread to ~30-50s).
+
+**Final baseline state (7T1 / 15T2, run 21974448623):**
+
+| | Avg | Max | Spread |
+|---|---|---|---|
+| Tier 1 (7) | 10m33s | 11m20s | 134s |
+| Tier 2 (15) | 9m55s | 11m00s | 134s |
+| Wall clock | — | **~11m40s** | — |
+
+**Key takeaways for our clean branch:**
+
+1. **Shard balance is the #1 remaining lever.** The baseline's 21s T1 spread vs our 153s accounts for most of the wall-clock gap. Per-test hash sharding or sorted round-robin would close this.
+2. **Three-tier split** saves tier2 startup time by skipping heavy images for the majority of tier2 shards.
+3. **Reclassification** (runtime-only Snuba detection) can move ~1,800 more tests to tier1, reducing T2 load.
+4. **Shard count tuning** (6T1/16T2 or 7T1/15T2) better matches the actual workload distribution.
+
+---
+
+## Experiment: scope sharding (`TEST_GROUP_STRATEGY: scope`)
+
+**Hypothesis:** Per-test hash sharding (`roundrobin`) scatters tests from the same class across shards, causing redundant module imports and class fixture setup. Switching to `scope` sharding (hash by `nodeid.rsplit("::", 1)[0]`, i.e. class-level) keeps entire classes on one shard, aligning with `--dist=loadscope` within shards.
+
+**Config:** `TEST_GROUP_STRATEGY: scope` + `--dist=loadscope`, tested with class and test tier granularity.
+
+**Results** (runs `22116057082`, `22116065056`, both passed):
+
+| Metric | scope+class | scope+test | Previous best (roundrobin+loadscope+file) |
+|---|---|---|---|
+| Wall clock | **21.0m** | **19.5m** | **11.9m** |
+| T1 avg / max | 10.5m / 11.5m | 11.3m / 11.7m | 9.8m / 10.8m |
+| T2 avg / max | 10.1m / **20.4m** | 9.9m / **18.9m** | 9.9m / 10.7m |
+| T2 spread | **838s** | **704s** | 133s |
+| Runner-min | 224m | 225m | 217m |
+
+**Root cause:** Scope sharding keeps entire classes on one shard. A few enormous classes (likely relay_integration, symbolicator, objectstore tests) create massive T2 hotspots — one shard took 20+ minutes while others finished in 6-7 minutes.
+
+**Next experiment:** Three-tier split to isolate heavy tests (symbolicator/objectstore/bigtable/relay) into tier3 (1 shard, `-n 2`). This should make tier2 uniform enough for scope sharding to work. Results TBD.
