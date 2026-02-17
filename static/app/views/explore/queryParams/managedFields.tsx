@@ -173,8 +173,10 @@ function findAllFieldRefs(
 
 function getVisualizeFields(visualize: Visualize): string[] {
   if (isVisualizeFunction(visualize)) {
-    const field = parseFunction(visualize.yAxis)?.arguments?.[0];
-    return defined(field) ? [field] : [];
+    return visualize.yAxes.flatMap(yAxis => {
+      const field = parseFunction(yAxis)?.arguments?.[0];
+      return defined(field) ? [field] : [];
+    });
   }
 
   return []; // TODO: unsupported

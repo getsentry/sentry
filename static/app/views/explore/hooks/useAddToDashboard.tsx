@@ -49,14 +49,14 @@ export function useAddToDashboard() {
 
   const getEventView = useCallback(
     (visualizeIndex: number) => {
-      const yAxis = visualizes[visualizeIndex]!.yAxis;
+      const yAxes = visualizes[visualizeIndex]!.yAxes;
 
       let fields: any;
       if (mode === Mode.SAMPLES) {
         fields = [];
       } else {
         fields = [
-          ...new Set([...groupBys, yAxis, ...sortBys.map(sort => sort.field)]),
+          ...new Set([...groupBys, ...yAxes, ...sortBys.map(sort => sort.field)]),
         ].filter(Boolean);
       }
 
@@ -69,7 +69,7 @@ export function useAddToDashboard() {
         query: search.formatString(),
         version: 2,
         dataset,
-        yAxis: [yAxis],
+        yAxis: [...yAxes],
       };
 
       const newEventView = EventView.fromNewQueryWithPageFilters(

@@ -408,7 +408,7 @@ export function viewSamplesTarget({
     search,
     row,
     sorts,
-    yAxes: visualizes.map(visualize => visualize.yAxis),
+    yAxes: visualizes.flatMap(visualize => visualize.yAxes),
   });
 
   return getTargetWithReadableQueryParams(location, {
