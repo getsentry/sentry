@@ -984,6 +984,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "tempest.tempestcredentials": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
+            "sentry.scheduledreport": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquery": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquerystarred": [
                 DateUpdatedComparator("date_updated", "date_added")
