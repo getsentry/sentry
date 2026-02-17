@@ -28,7 +28,6 @@ import {CompactSelect, ControlContext} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 
 export interface HybridFilterRef<Value extends SelectKey> {
@@ -409,6 +408,6 @@ const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${space(0.5)};
-  margin: -${space(0.5)} -${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
 `;
