@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
 import type {Theme} from 'sentry/utils/theme';
 
-export interface ToastProps {
+interface ToastProps {
   indicator: Indicator;
   onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
 }
