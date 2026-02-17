@@ -19,12 +19,12 @@ export function ReleaseSeries(
     id: 'release-lines',
     name: t('Releases'),
     renderItem: () => null,
-    color: theme.colors.blue200,
+    color: theme.tokens.dataviz.semantic.release,
     data: [],
     markLine: MarkLine({
       animation: false,
       lineStyle: {
-        color: theme.colors.blue400,
+        color: theme.tokens.dataviz.semantic.release,
         opacity: 0.3,
         type: 'solid',
       },

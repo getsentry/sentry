@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';

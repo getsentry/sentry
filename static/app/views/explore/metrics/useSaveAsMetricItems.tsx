@@ -72,8 +72,8 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
 
     items.push({
       key: 'save-query',
-      label: <span>{t('A New Query')}</span>,
-      textValue: t('A New Query'),
+      label: <span>{t('New Query')}</span>,
+      textValue: t('New Query'),
       onAction: () => {
         trackAnalytics('metrics.save_query_modal', {
           action: 'open',
@@ -101,22 +101,36 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
     if (hasTraceMetricsDashboards) {
       items.push({
         key: 'add-to-dashboard',
-        label: <span>{t('A Dashboard widget')}</span>,
-        textValue: t('A Dashboard widget'),
+        label: t('Dashboard widget'),
+        textValue: t('Dashboard widget'),
         isSubmenu: true,
-        children: metricQueries.map((metricQuery, index) => {
-          return {
-            key: `add-to-dashboard-${index}`,
-            label: `${getVisualizeLabel(index)}: ${
-              formatTraceMetricsFunction(
-                metricQuery.queryParams.aggregateFields.find(isVisualize)?.yAxis ?? ''
-              ) as string
-            }`,
-            onAction: () => {
-              addToDashboard(metricQuery);
-            },
-          };
-        }),
+        children: [
+          ...(metricQueries.length > 1
+            ? [
+                {
+                  key: 'add-to-dashboard-all',
+                  label: t('All Metrics'),
+                  textValue: t('All Metrics'),
+                  onAction: () => {
+                    addToDashboard(metricQueries);
+                  },
+                },
+              ]
+            : []),
+          ...metricQueries.map((metricQuery, index) => {
+            return {
+              key: `add-to-dashboard-${index}`,
+              label: `${getVisualizeLabel(index)}: ${
+                formatTraceMetricsFunction(
+                  metricQuery.queryParams.aggregateFields.find(isVisualize)?.yAxis ?? ''
+                ) as string
+              }`,
+              onAction: () => {
+                addToDashboard(metricQuery);
+              },
+            };
+          }),
+        ],
       });
     }
 

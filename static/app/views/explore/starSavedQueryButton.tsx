@@ -2,8 +2,9 @@ import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import {IconStar} from 'sentry/icons/iconStar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -74,7 +75,7 @@ export function StarSavedQueryButton() {
   return (
     <Button
       aria-label={isStarred ? t('Unstar') : t('Star')}
-      icon={<IconStar isSolid={isStarred} color={isStarred ? 'yellow300' : 'subText'} />}
+      icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"
       onClick={() => debouncedOnClick(locationId, !isStarred)}
     />

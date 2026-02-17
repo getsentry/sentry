@@ -73,7 +73,7 @@ const Wrapper = styled(DataSection)<{
 
 const StyledScreenshotDataSection = styled(ScreenshotDataSection)`
   h3 a {
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
   }
 `;
 

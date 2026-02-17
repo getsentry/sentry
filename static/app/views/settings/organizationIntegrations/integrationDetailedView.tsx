@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Data, JsonFormObject} from 'sentry/components/forms/types';
@@ -18,6 +19,7 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
   getIntegrationStatus,
@@ -69,7 +71,9 @@ function makeIntegrationQueryKey({
   orgSlug: string;
 }): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/integrations/`,
+    getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       query: {
         provider_key: integrationSlug,
@@ -100,7 +104,9 @@ export default function IntegrationDetailedView() {
     isError: isInformationError,
   } = useApiQuery<IntegrationInformation>(
     [
-      `/organizations/${organization.slug}/config/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           provider_key: integrationSlug,
@@ -139,11 +145,17 @@ export default function IntegrationDetailedView() {
     // The server response for integration installations includes old icon CSS classes
     // We map those to the currently in use values to their react equivalents
     // and fallback to IconFlag just in case.
-    const alertList = provider?.metadata.aspects.alerts || [];
+    const alertList: AlertType[] = (provider?.metadata.aspects.alerts || []).map(
+      alert => ({
+        variant: alert.variant ?? 'muted',
+        text: alert.text,
+        icon: alert.icon,
+      })
+    );
 
     if (!provider?.canAdd && provider?.metadata.aspects.externalInstall) {
       alertList.push({
-        type: 'warning',
+        variant: 'warning',
         text: provider?.metadata.aspects.externalInstall.noticeText,
       });
     }
@@ -340,7 +352,7 @@ export default function IntegrationDetailedView() {
       <Fragment>
         {alertText && (
           <Alert.Container>
-            <Alert type="warning">{alertText}</Alert>
+            <Alert variant="warning">{alertText}</Alert>
           </Alert.Container>
         )}
         <Panel>

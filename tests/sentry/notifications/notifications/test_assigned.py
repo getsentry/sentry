@@ -87,7 +87,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.setup_user(user, self.team)
         self.login_as(user)
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user.username})
         assert response.status_code == 200, response.content
@@ -140,7 +140,7 @@ class AssignedNotificationAPITest(APITestCase):
             context={"commitId": commit.id},
         )
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user.username})
         assert response.status_code == 200, response.content
@@ -171,7 +171,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.setup_user(user, self.team)
         self.login_as(user)
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user.username})
         assert response.status_code == 200, response.content
@@ -219,7 +219,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.organization.refresh_from_db()
         assert self.organization.flags.enhanced_privacy.is_set is True
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user.username})
         assert response.status_code == 200, response.content
@@ -272,7 +272,7 @@ class AssignedNotificationAPITest(APITestCase):
 
         assert self.organization.flags.enhanced_privacy.is_set is False
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user.username})
         assert response.status_code == 200, response.content
@@ -341,7 +341,7 @@ class AssignedNotificationAPITest(APITestCase):
             context={"commitId": commit2.id},
         )
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": user1.username})
         assert response.status_code == 200, response.content
@@ -368,7 +368,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.setup_user(user2, self.team)
         self.login_as(user1)
 
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
 
         # assign to user 1
         with self.tasks():
@@ -446,7 +446,7 @@ class AssignedNotificationAPITest(APITestCase):
 
         self.login_as(user1)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         # assign to team1
         with self.tasks():

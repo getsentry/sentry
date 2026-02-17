@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -163,13 +163,13 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
     return (
       <Body data-test-id="feature-tour">
         <CloseButton
-          borderless
+          priority="transparent"
           size="zero"
           onClick={closeModal}
           icon={<IconClose />}
           aria-label={t('Close tour')}
         />
-        <TourContent>
+        <Stack align="center" margin="2xl 3xl md 3xl">
           {step.image}
           <TourHeader>{step.title}</TourHeader>
           {step.body}
@@ -193,7 +193,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
             )}
           </TourButtonBar>
           <StepCounter>{t('%s of %s', current + 1, steps.length)}</StepCounter>
-        </TourContent>
+        </Stack>
       </Body>
     );
   }
@@ -205,26 +205,21 @@ const CloseButton = styled(Button)`
   right: -${space(1)};
 `;
 
-const TourContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: ${space(3)} ${space(4)} ${space(1)} ${space(4)};
-`;
-
 const TourHeader = styled('h4')`
   margin-bottom: ${space(1)};
 `;
 
-const TourButtonBar = styled(ButtonBar)`
+const TourButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-bottom: ${space(3)};
 `;
 
 const StepCounter = styled('div')`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 // Styled components that can be used to build tour content.

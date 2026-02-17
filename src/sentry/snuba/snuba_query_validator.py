@@ -15,7 +15,7 @@ from sentry.exceptions import (
     InvalidSearchQuery,
     UnsupportedQuerySubscription,
 )
-from sentry.explore.utils import is_logs_enabled
+from sentry.explore.utils import is_logs_enabled, is_trace_metrics_alerts_enabled
 from sentry.incidents.logic import (
     check_aggregate_column_support,
     get_column_from_aggregate,
@@ -23,6 +23,7 @@ from sentry.incidents.logic import (
     translate_aggregate_field,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -68,6 +69,7 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
         SnubaQueryEventType.EventType.TRANSACTION,
         SnubaQueryEventType.EventType.TRACE_ITEM_LOG,
         SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
+        SnubaQueryEventType.EventType.TRACE_ITEM_METRIC,
     },
 }
 
@@ -165,16 +167,33 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_LOG]):
             raise serializers.ValidationError("You do not have access to the log alerts feature.")
 
+        if not is_trace_metrics_alerts_enabled(
+            self.context["organization"], actor=self.context.get("user", None)
+        ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC]):
+            raise serializers.ValidationError(
+                "You do not have access to the metrics alerts feature."
+            )
+
         return validated
 
-    def validate_extrapolation_mode(self, extrapolation_mode: str) -> ExtrapolationMode | None:
+    def _validate_extrapolation_mode(self, data: dict) -> ExtrapolationMode | None:
+        extrapolation_mode = data.get("extrapolation_mode")
         if extrapolation_mode is not None:
             extrapolation_mode_enum = ExtrapolationMode.from_str(extrapolation_mode)
             if extrapolation_mode_enum is None:
                 raise serializers.ValidationError(
                     f"Invalid extrapolation mode: {extrapolation_mode}"
                 )
+            if data.get("dataset") == Dataset.EventsAnalyticsPlatform:
+                if extrapolation_mode_enum in [
+                    ExtrapolationMode.SERVER_WEIGHTED,
+                    ExtrapolationMode.NONE,
+                ]:
+                    raise serializers.ValidationError(
+                        f"Invalid extrapolation mode for this alert type: {extrapolation_mode}. Allowed modes are: client_and_server_weighted, unknown."
+                    )
             return extrapolation_mode_enum
+        return None
 
     def validate(self, data):
         data = super().validate(data)
@@ -182,6 +201,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         self._validate_query(data)
 
         data["group_by"] = self._validate_group_by(data.get("group_by"))
+
+        data["extrapolation_mode"] = self._validate_extrapolation_mode(data)
 
         query_type = data["query_type"]
         if query_type == SnubaQuery.Type.CRASH_RATE:
@@ -207,6 +228,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     def _validate_aggregate(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
         aggregate = data.get("aggregate")
+        event_types = data.get("event_types", [])
         allow_mri = features.has(
             "organizations:custom-metrics",
             self.context["organization"],
@@ -217,21 +239,31 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             actor=self.context.get("user", None),
         )
         allow_eap = dataset == Dataset.EventsAnalyticsPlatform
-        try:
-            if not check_aggregate_column_support(
-                aggregate,
-                allow_mri=allow_mri,
-                allow_eap=allow_eap,
-            ):
-                raise serializers.ValidationError(
-                    {"aggregate": _("Invalid Metric: We do not currently support this field.")}
-                )
-        except InvalidSearchQuery as e:
-            raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
 
-        data["aggregate"] = translate_aggregate_field(
-            aggregate, allow_mri=allow_mri, allow_eap=allow_eap
+        # Check if this is a trace metrics query
+        is_trace_metrics = (
+            dataset == Dataset.EventsAnalyticsPlatform
+            and event_types
+            and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types
         )
+
+        if is_trace_metrics:
+            validate_trace_metrics_aggregate(aggregate)
+        else:
+            try:
+                if not check_aggregate_column_support(
+                    aggregate,
+                    allow_mri=allow_mri,
+                    allow_eap=allow_eap,
+                ):
+                    raise serializers.ValidationError(
+                        {"aggregate": _("Invalid Metric: We do not currently support this field.")}
+                    )
+            except InvalidSearchQuery as e:
+                raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
+            data["aggregate"] = translate_aggregate_field(
+                aggregate, allow_mri=allow_mri, allow_eap=allow_eap
+            )
 
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
@@ -345,7 +377,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         except Exception:
             logger.exception("Error while validating snuba alert rule query")
             raise serializers.ValidationError(
-                "Invalid Query or Metric: An error occurred while attempting " "to run the query"
+                "Invalid Query or Metric: An error occurred while attempting to run the query"
             )
 
     def _validate_time_window(self, value: int, dataset: Dataset):

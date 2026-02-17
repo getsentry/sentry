@@ -51,7 +51,7 @@ function useReplayerInstance() {
         duration: 0.75 * 1000,
         lineCap: 'round',
         lineWidth: 2,
-        strokeStyle: theme.colors.blue200,
+        strokeStyle: theme.tokens.border.accent.moderate,
       },
       plugins: getPlugins(webFrames),
       skipInactive: initialPrefsRef.current.isSkippingInactive,

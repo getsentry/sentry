@@ -33,7 +33,7 @@ export function CopyDsnField({params}: {params: DocsParams<any>}) {
 
 const Wrapper = styled('div')`
   padding-top: ${space(2)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   flex-direction: column;
   gap: ${space(1)};

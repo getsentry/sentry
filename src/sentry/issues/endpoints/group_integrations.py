@@ -12,7 +12,9 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs
 from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
@@ -88,6 +90,7 @@ class GroupIntegrationsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integrations"])
     def get(self, request: Request, group) -> Response:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", group.organization, actor=request.user

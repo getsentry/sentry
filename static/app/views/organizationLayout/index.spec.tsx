@@ -3,10 +3,10 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationLayout from 'sentry/views/organizationLayout';
@@ -117,7 +117,7 @@ describe('OrganizationLayout', () => {
     AlertStore.addAlert({
       id: 'abc123',
       message: 'Celery workers have not checked in',
-      type: 'error',
+      variant: 'danger',
       url: '/internal/health/',
     });
 

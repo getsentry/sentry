@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {SummaryCard, SummaryCardGroup} from 'sentry/components/prevent/summary';
 import {t, tct} from 'sentry/locale';
@@ -86,7 +87,7 @@ function CIEfficiencyBody({
         }
         extra={
           totalTestsRunTimeChange ? (
-            <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
+            <Tag variant={totalTestsRunTimeChange > 0 ? 'danger' : 'success'}>
               {formatPercentRate(totalTestsRunTimeChange, {minimumValue: 0.01})}
             </Tag>
           ) : undefined

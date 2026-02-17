@@ -41,6 +41,33 @@ class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
         return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
     )
     @responses.activate
+    def test_codecov_repo_name_missing_owner(self, mock_integration: MagicMock) -> None:
+        """Test that repository names without owner/repo format are rejected."""
+        # Change the repo name to not have a "/" (like some Azure DevOps repos)
+        self.repo.name = "sentry-issues-platform"
+        self.repo.save()
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+                "commitId": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
+            },
+        )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Repository name must be in owner/repo format for Codecov"
+
+    @patch.object(
+        ExampleIntegration,
+        "get_stacktrace_link",
+        return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
+    )
+    @responses.activate
     def test_codecov_not_enabled(self, mock_integration: MagicMock) -> None:
         self.organization.flags.codecov_access = False
         self.organization.save()

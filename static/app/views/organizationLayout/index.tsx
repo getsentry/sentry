@@ -1,6 +1,8 @@
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
@@ -19,7 +21,7 @@ import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import Nav from 'sentry/views/nav';
 import {NavContextProvider} from 'sentry/views/nav/context';
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 import OrganizationDetailsBody from './body';
@@ -70,7 +72,7 @@ function AppLayout({organization}: LayoutProps) {
       <AppContainer>
         <Nav />
         {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-        <BodyContainer id="main">
+        <Stack flex="1" minWidth="0" id="main">
           <DemoHeader />
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
@@ -79,7 +81,7 @@ function AppLayout({organization}: LayoutProps) {
             </OrganizationDetailsBody>
           </AppBodyContent>
           <Footer />
-        </BodyContainer>
+        </Stack>
       </AppContainer>
       {organization ? <AppDrawers /> : null}
     </NavContextProvider>
@@ -106,13 +108,6 @@ const AppContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: row;
   }
-`;
-
-const BodyContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
 `;
 
 export default OrganizationLayout;

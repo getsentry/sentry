@@ -597,6 +597,7 @@ function main() {
       summary: {
         total: totals.total,
         typed: totals.typed,
+        untyped: totals.total - totals.typed,
         coverage: Number(pct.toFixed(2)),
         filesScanned: files.length,
       },
@@ -680,15 +681,17 @@ function main() {
 
     console.log(colors.bold('Summary'));
     console.log(`Files scanned: ${files.length}`);
-    console.log(`Items total : ${totals.total}`);
-    console.log(`Items typed : ${totals.typed}`);
-    console.log(`Coverage    : ${colors.green(pct.toFixed(2) + '%')}\n`);
+    console.log(`Items total  : ${totals.total}`);
+    console.log(`Items typed  : ${totals.typed}`);
+    console.log(`Items untyped: ${totals.total - totals.typed}`);
+    console.log(`Coverage     : ${colors.green(pct.toFixed(2) + '%')}\n`);
   } else {
     console.log(colors.bold('\nType Coverage Report (tsconfig-aware)'));
     console.log(`Files scanned: ${files.length}`);
-    console.log(`Items total : ${totals.total}`);
-    console.log(`Items typed : ${totals.typed}`);
-    console.log(`Coverage    : ${colors.green(pct.toFixed(2) + '%')}\n`);
+    console.log(`Items total  : ${totals.total}`);
+    console.log(`Items typed  : ${totals.typed}`);
+    console.log(`Items untyped: ${totals.total - totals.typed}`);
+    console.log(`Coverage     : ${colors.green(pct.toFixed(2) + '%')}\n`);
 
     const worst = Object.entries(perFile)
       .map(([file, c]) => ({

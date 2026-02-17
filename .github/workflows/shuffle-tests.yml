@@ -23,10 +23,6 @@ concurrency:
 env:
   SENTRY_SHUFFLE_TESTS: true
 jobs:
-  per-test-coverage:
-    if: ${{ inputs.per-test-coverage == 'true' || github.event_name == 'schedule' }}
-    uses: ./.github/workflows/codecov_per_test_coverage.yml
-    secrets: inherit
   backend-test:
     name: run backend tests
     runs-on: ubuntu-24.04
@@ -44,7 +40,6 @@ jobs:
 
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
-      # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
       MATRIX_INSTANCE_TOTAL: 11
 
     steps:

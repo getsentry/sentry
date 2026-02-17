@@ -69,7 +69,7 @@ export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
 }
 
 const Header = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: 1;
 `;
 

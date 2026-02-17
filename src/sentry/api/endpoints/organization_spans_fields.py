@@ -36,13 +36,15 @@ from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 
 
-def as_tag_key(name: str, type: Literal["string", "number"]):
+def as_tag_key(name: str, type: Literal["string", "number", "boolean"]):
     key, _, _ = translate_internal_to_public_alias(name, type, SupportedTraceItemType.SPANS)
 
     if key is not None:
         name = key
     elif type == "number":
         key = f"tags[{name},number]"
+    elif type == "boolean":
+        key = f"tags[{name},boolean]"
     else:
         key = name
 
@@ -62,7 +64,9 @@ class OrganizationSpansFieldsEndpointBase(OrganizationEventsEndpointBase):
 
 
 class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
-    type = serializers.ChoiceField(["string", "number"], required=False, default="string")
+    type = serializers.ChoiceField(
+        ["string", "number", "boolean"], required=False, default="string"
+    )
 
 
 @region_silo_endpoint
@@ -107,15 +111,14 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             )
             meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
 
+            attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
+                serialized["type"], AttributeKey.Type.TYPE_STRING
+            )
             rpc_request = TraceItemAttributeNamesRequest(
                 meta=meta,
                 limit=max_span_tags,
                 offset=0,
-                type=(
-                    AttributeKey.Type.TYPE_DOUBLE
-                    if serialized["type"] == "number"
-                    else AttributeKey.Type.TYPE_STRING
-                ),
+                type=attr_type,
             )
 
             rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)

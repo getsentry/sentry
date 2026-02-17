@@ -5,27 +5,29 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {
   normalizeDateTimeParams,
   normalizeDateTimeString,
-} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+} from 'sentry/components/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -36,6 +38,7 @@ import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -58,7 +61,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   DEFAULT_EVENT_VIEW,
@@ -591,7 +593,7 @@ export class Results extends Component<Props, State> {
     }
     return (
       <Alert.Container>
-        <Alert type="error">{error}</Alert>
+        <Alert variant="danger">{error}</Alert>
       </Alert.Container>
     );
   }
@@ -608,7 +610,7 @@ export class Results extends Component<Props, State> {
     ) {
       return (
         <Alert.Container>
-          <Alert type="info">
+          <Alert variant="info">
             {t(
               "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
             )}
@@ -619,7 +621,7 @@ export class Results extends Component<Props, State> {
     if (this.state.showUnparameterizedBanner) {
       return (
         <Alert.Container>
-          <Alert type="info">
+          <Alert variant="info">
             {tct(
               'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
               {
@@ -641,7 +643,7 @@ export class Results extends Component<Props, State> {
       return (
         <Alert.Container>
           <Alert
-            type="warning"
+            variant="warning"
             trailingItems={
               <StyledCloseButton
                 icon={<IconClose size="sm" />}
@@ -650,7 +652,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showQueryIncompatibleWithDataset: false});
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
               />
             }
           >
@@ -694,7 +696,7 @@ export class Results extends Component<Props, State> {
       });
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {tct(
               'This query has been migrated to Explore, the fancy new UI that will soon replace Discover. Try it out in [explore:Explore] instead.',
               {
@@ -714,7 +716,7 @@ export class Results extends Component<Props, State> {
       return (
         <Alert.Container>
           <Alert
-            type="warning"
+            variant="warning"
             trailingItems={
               <StyledCloseButton
                 icon={<IconClose size="sm" />}
@@ -723,7 +725,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showTransactionsDeprecationAlert: false});
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
               />
             }
           >
@@ -748,7 +750,7 @@ export class Results extends Component<Props, State> {
     if (tips) {
       return tips.map((tip, index) => (
         <Alert.Container key={`tip-${index}`}>
-          <Alert type="info" key={`tip-${index}`}>
+          <Alert variant="info" key={`tip-${index}`}>
             <TipContainer as="span" text={tip} />
           </Alert>
         </Alert.Container>
@@ -974,7 +976,12 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
-      `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          queryId: decodeScalar(location.query.id)!,
+        },
+      }),
     ],
     [organization, location.query.id]
   );

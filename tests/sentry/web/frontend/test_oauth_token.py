@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
+from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
@@ -36,7 +37,8 @@ class OAuthTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.post(
-            self.path, {"grant_type": "foo", "client_id": "abcd", "client_secret": "abcd"}
+            self.path,
+            {"grant_type": "foo", "client_id": "abcd", "client_secret": "abcd"},
         )
 
         assert resp.status_code == 400
@@ -56,7 +58,9 @@ class OAuthTokenCodeTest(TestCase):
         )
         self.client_secret = self.application.client_secret
         self.grant = ApiGrant.objects.create(
-            user=self.user, application=self.application, redirect_uri="https://example.com"
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
         )
 
     def _basic_auth_value(self) -> str:
@@ -536,7 +540,9 @@ class OAuthTokenRefreshTokenTest(TestCase):
         self.client_secret = self.application.client_secret
 
         self.grant = ApiGrant.objects.create(
-            user=self.user, application=self.application, redirect_uri="https://example.com"
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
         )
         self.token = ApiToken.objects.create(
             application=self.application, user=self.user, expires_at=timezone.now()
@@ -1075,3 +1081,884 @@ class OAuthTokenPKCETest(TestCase):
 
         # Grant should be immediately deleted on validation failure
         assert not ApiGrant.objects.filter(id=grant.id).exists()
+
+
+@control_silo_test
+class OAuthTokenPublicClientAuthCodeTest(TestCase):
+    """Tests for public client authorization_code flow.
+
+    Public clients (RFC 6749 §2.1) cannot securely store client_secret,
+    so they must use PKCE (RFC 7636) for the authorization_code flow.
+    """
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/token/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Create a public client (no client_secret)
+        self.public_application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            client_secret=None,  # Public client
+        )
+        assert self.public_application.is_public is True
+
+    def test_public_client_authorization_code_with_pkce_succeeds(self) -> None:
+        """Public client can use authorization_code with PKCE."""
+        code_verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.public_application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": code_verifier,
+                "client_id": self.public_application.client_id,
+                # No client_secret - public client
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        assert "access_token" in data
+        assert data["token_type"] == "Bearer"
+
+    def test_public_client_authorization_code_without_pkce_succeeds(self) -> None:
+        """Public client can use authorization_code without PKCE (currently allowed).
+
+        NOTE: RFC 9700 (OAuth 2.0 Security BCP) recommends that public clients
+        SHOULD use PKCE for authorization_code flow. However, this is currently
+        not enforced to maintain backward compatibility. The PKCE requirement
+        is enforced at the authorization endpoint level (during grant creation),
+        not at the token endpoint level.
+
+        Future enhancement: Consider requiring PKCE for public clients at the
+        authorization endpoint (when creating the grant).
+        """
+        # Create grant without PKCE challenge
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.public_application,
+            redirect_uri="https://example.com",
+            # No code_challenge - no PKCE
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "client_id": self.public_application.client_id,
+                # No client_secret - public client
+                # No code_verifier - no PKCE
+            },
+        )
+
+        # Currently succeeds - PKCE is optional for backward compatibility
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        assert "access_token" in data
+
+    def test_public_client_with_wrong_secret_fails(self) -> None:
+        """Providing a wrong secret for a public client should fail.
+
+        Public clients (created with client_secret=None) have no secret, so any
+        provided secret will not match and authentication should fail.
+        """
+        code_verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.public_application,
+            redirect_uri="https://example.com",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://example.com",
+                "code": grant.code,
+                "code_verifier": code_verifier,
+                "client_id": self.public_application.client_id,
+                "client_secret": "some_random_secret",
+            },
+        )
+
+        assert resp.status_code == 401
+        data = json.loads(resp.content)
+        assert data["error"] == "invalid_client"
+
+
+@control_silo_test
+class OAuthTokenDeviceCodeTest(TestCase):
+    """Tests for device code grant type (RFC 8628 §3.4/§3.5)."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/token/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        from sentry.models.apidevicecode import ApiDeviceCode, DeviceCodeStatus
+
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com"
+        )
+        self.client_secret = self.application.client_secret
+        self.device_code = ApiDeviceCode.objects.create(
+            application=self.application,
+            scope_list=["project:read"],
+        )
+        self.DeviceCodeStatus = DeviceCodeStatus
+
+    def test_missing_device_code(self) -> None:
+        """Missing device_code should return invalid_request."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_request"}
+
+    def test_invalid_device_code(self) -> None:
+        """Invalid device_code should return invalid_grant."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": "invalid",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_authorization_pending(self) -> None:
+        """Pending device code should return authorization_pending."""
+        assert self.device_code.status == self.DeviceCodeStatus.PENDING
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "authorization_pending"}
+
+        # Device code should still exist
+        assert ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+    def test_access_denied(self) -> None:
+        """Denied device code should return access_denied and delete the code."""
+        self.device_code.status = self.DeviceCodeStatus.DENIED
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "access_denied"}
+
+        # Device code should be deleted
+        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+    def test_expired_token(self) -> None:
+        """Expired device code should return expired_token and delete the code."""
+        from datetime import timedelta
+
+        self.device_code.expires_at = timezone.now() - timedelta(minutes=1)
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "expired_token"}
+
+        # Device code should be deleted
+        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+    def test_success_approved(self) -> None:
+        """Approved device code should return access token and delete the code."""
+        from sentry.models.apidevicecode import ApiDeviceCode
+
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert "access_token" in data
+        assert data["token_type"] == "Bearer"
+        assert "expires_in" in data
+        assert data["scope"] == "project:read"
+        assert data["user"]["id"] == str(self.user.id)
+
+        # Device code should be deleted
+        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+        # Token should be created
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.user == self.user
+        assert token.application == self.application
+
+    def test_success_with_organization(self) -> None:
+        """Approved device code with org should include organization_id."""
+        organization = self.create_organization(owner=self.user)
+
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.organization_id = organization.id
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert data["organization_id"] == str(organization.id)
+
+    def test_wrong_application(self) -> None:
+        """Device code for different application should return invalid_grant."""
+        other_app = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://other.com"
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": other_app.client_id,
+                "client_secret": other_app.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_slow_down(self) -> None:
+        """Polling too fast should return slow_down error."""
+        from unittest.mock import patch
+
+        # First request should succeed (returns authorization_pending)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "authorization_pending"}
+
+        # Second request within the rate limit window should return slow_down
+        with patch("sentry.ratelimits.backend.is_limited", return_value=True):
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                    "device_code": self.device_code.device_code,
+                    "client_id": self.application.client_id,
+                    "client_secret": self.client_secret,
+                },
+            )
+            assert resp.status_code == 400
+            assert json.loads(resp.content) == {"error": "slow_down"}
+
+    def test_success_returns_refresh_token(self) -> None:
+        """Approved device code should return refresh_token for token renewal.
+
+        Per RFC 6749 §5.1, refresh_token is OPTIONAL but RECOMMENDED for
+        headless clients that cannot easily re-authenticate interactively.
+        """
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert "refresh_token" in data
+        assert data["refresh_token"]
+
+        # Verify the refresh_token can be used
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.refresh_token == data["refresh_token"]
+
+    def test_inactive_application_rejects_device_code_grant(self) -> None:
+        """Inactive applications cannot exchange approved device codes for tokens.
+
+        This prevents tokens from being issued after an application is disabled
+        (e.g., for security reasons) even if the device code was approved while
+        the application was still active.
+        """
+        from sentry.models.apiapplication import ApiApplicationStatus
+
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        # Deactivate the application after approval
+        self.application.status = ApiApplicationStatus.inactive
+        self.application.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        # Per RFC 6749 §5.2, invalid_grant when grant is "revoked"
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+        # Device code should be deleted
+        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+
+        # No token should be created
+        assert not ApiToken.objects.filter(application=self.application, user=self.user).exists()
+
+    def test_public_client_success(self) -> None:
+        """Public clients (without client_secret) should be able to exchange device codes.
+
+        Per RFC 8628 §5.6, device clients are generally public clients that cannot
+        securely store credentials. They should be able to authenticate with just
+        client_id.
+        """
+        # Create a public application (no client_secret)
+        public_app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com",
+            client_secret=None,  # Public client
+        )
+        public_device_code = ApiDeviceCode.objects.create(
+            application=public_app,
+            user_code="ABCD-1234",
+            scope_list=["project:read"],
+            status=self.DeviceCodeStatus.APPROVED,
+            user=self.user,
+        )
+
+        # Request without client_secret (public client)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": public_device_code.device_code,
+                "client_id": public_app.client_id,
+                # No client_secret - this is a public client
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert "access_token" in data
+        assert data["token_type"] == "Bearer"
+        assert data["scope"] == "project:read"
+        assert data["user"]["id"] == str(self.user.id)
+
+        # Device code should be deleted
+        assert not ApiDeviceCode.objects.filter(id=public_device_code.id).exists()
+
+        # Token should be created
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.user == self.user
+        assert token.application == public_app
+
+    def test_public_client_invalid_client_id(self) -> None:
+        """Public clients with invalid client_id should return invalid_client."""
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": "nonexistent_client_id",
+                # No client_secret - public client
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
+    def test_public_client_missing_client_id(self) -> None:
+        """Device flow without client_id should return invalid_client."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                # No client_id or client_secret
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
+    def test_public_client_authorization_pending(self) -> None:
+        """Public client polling pending device code should return authorization_pending."""
+        # Create a public application (no client_secret)
+        public_app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com",
+            client_secret=None,  # Public client
+        )
+        public_device_code = ApiDeviceCode.objects.create(
+            application=public_app,
+            user_code="PEND-1234",
+            scope_list=["project:read"],
+            status=self.DeviceCodeStatus.PENDING,  # Pending status
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": public_device_code.device_code,
+                "client_id": public_app.client_id,
+                # No client_secret - public client
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "authorization_pending"}
+
+        # Device code should still exist
+        assert ApiDeviceCode.objects.filter(id=public_device_code.id).exists()
+
+    def test_confidential_client_wrong_secret_rejected(self) -> None:
+        """Device flow with wrong client_secret should be rejected.
+
+        When a client provides client_secret, we should validate it even
+        though device flow supports public clients. This allows confidential
+        clients to use device flow with full credential validation.
+        """
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": "wrong_secret",
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
+
+@control_silo_test
+class OAuthTokenPublicClientRefreshTest(TestCase):
+    """Tests for public client refresh token rotation.
+
+    Public clients (CLIs, native apps) cannot securely store client_secret,
+    so they use refresh token rotation instead of client authentication.
+    Each refresh issues a new refresh token and deletes the old one.
+    """
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/token/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Create a public client (no client_secret)
+        self.public_application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            client_secret=None,  # Public client
+        )
+
+        # Create a token for the public client
+        self.token = ApiToken.objects.create(
+            application=self.public_application,
+            user=self.user,
+        )
+        # Store the original refresh token for tests
+        self.original_refresh_token = self.token.refresh_token
+
+    def test_public_client_can_refresh_without_secret(self) -> None:
+        """Public clients should be able to refresh tokens without client_secret."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": self.original_refresh_token,
+                "client_id": self.public_application.client_id,
+                # No client_secret - this is a public client
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["token_type"] == "Bearer"
+
+    def test_refresh_rotation_issues_new_tokens(self) -> None:
+        """Refresh should issue new access and refresh tokens (in-place update)."""
+        old_token_id = self.token.id
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": self.original_refresh_token,
+                "client_id": self.public_application.client_id,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+
+        # New tokens should be different from original
+        assert data["access_token"] != self.token.token
+        assert data["refresh_token"] != self.original_refresh_token
+
+        # Same token record is updated in-place (not deleted and recreated)
+        assert ApiToken.objects.filter(id=old_token_id).exists()
+        self.token.refresh_from_db()
+        assert self.token.token == data["access_token"]
+        assert self.token.refresh_token == data["refresh_token"]
+
+    def test_old_refresh_token_cannot_be_reused(self) -> None:
+        """Using an already-rotated refresh token should fail."""
+        # First refresh - should succeed
+        resp1 = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": self.original_refresh_token,
+                "client_id": self.public_application.client_id,
+            },
+        )
+        assert resp1.status_code == 200
+
+        # Try to use the old refresh token again - should fail
+        resp2 = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": self.original_refresh_token,
+                "client_id": self.public_application.client_id,
+            },
+        )
+        assert resp2.status_code == 400
+        assert json.loads(resp2.content) == {"error": "invalid_grant"}
+
+    def test_confidential_client_refresh_requires_secret(self) -> None:
+        """Confidential clients must still provide client_secret for refresh."""
+        # Create a confidential client (has client_secret)
+        confidential_app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            # client_secret is auto-generated
+        )
+        token = ApiToken.objects.create(
+            application=confidential_app,
+            user=self.user,
+        )
+
+        # Try to refresh without secret - should fail
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": token.refresh_token,
+                "client_id": confidential_app.client_id,
+                # Missing client_secret
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
+    def test_confidential_client_refresh_with_secret_works(self) -> None:
+        """Confidential clients can refresh with valid client_secret (existing behavior)."""
+        # Create a confidential client
+        confidential_app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+        )
+        client_secret = confidential_app.client_secret
+        token = ApiToken.objects.create(
+            application=confidential_app,
+            user=self.user,
+        )
+        original_refresh = token.refresh_token
+
+        # Refresh with secret - should succeed
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": original_refresh,
+                "client_id": confidential_app.client_id,
+                "client_secret": client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert "access_token" in data
+        # Confidential client uses in-place refresh, same token object
+        token.refresh_from_db()
+        assert token.token == data["access_token"]
+
+    def test_confidential_client_refresh_with_wrong_secret_fails(self) -> None:
+        """Confidential clients with incorrect client_secret should fail."""
+        confidential_app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+        )
+        token = ApiToken.objects.create(
+            application=confidential_app,
+            user=self.user,
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": token.refresh_token,
+                "client_id": confidential_app.client_id,
+                "client_secret": "wrong_secret",
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
+    def test_confidential_client_refresh_with_empty_secret_fails(self) -> None:
+        """Sending client_secret='' should NOT authenticate a confidential client.
+
+        This tests that an empty string secret doesn't bypass authentication
+        by being treated as "no secret provided" for a public client.
+        """
+        confidential_app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+        )
+        token = ApiToken.objects.create(
+            application=confidential_app,
+            user=self.user,
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": token.refresh_token,
+                "client_id": confidential_app.client_id,
+                "client_secret": "",  # Empty string, not missing
+            },
+        )
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_client"}
+
+    def test_confidential_client_refresh_rotates_in_place(self) -> None:
+        """Confidential clients rotate tokens in-place (same DB record).
+
+        Both confidential and public clients rotate refresh tokens, but:
+        - Confidential: updates the same token record (in-place rotation)
+        - Public: creates new token record, deletes old one
+
+        This test verifies the confidential client behavior.
+        """
+        confidential_app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+        )
+        client_secret = confidential_app.client_secret
+        token = ApiToken.objects.create(
+            application=confidential_app,
+            user=self.user,
+        )
+        original_token_id = token.id
+        original_refresh_token = token.refresh_token
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": original_refresh_token,
+                "client_id": confidential_app.client_id,
+                "client_secret": client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+
+        # Same token object should still exist (in-place update)
+        assert ApiToken.objects.filter(id=original_token_id).exists()
+
+        # Refresh token IS rotated (new value)
+        token.refresh_from_db()
+        assert token.refresh_token != original_refresh_token
+        assert token.refresh_token == data["refresh_token"]
+
+        # Old refresh token can NOT be reused
+        resp2 = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": original_refresh_token,
+                "client_id": confidential_app.client_id,
+                "client_secret": client_secret,
+            },
+        )
+        assert resp2.status_code == 400
+        assert json.loads(resp2.content) == {"error": "invalid_grant"}
+
+    def test_refresh_preserves_scopes(self) -> None:
+        """Refreshed token should have the same scopes as the original."""
+        self.token.scope_list = ["project:read", "org:read"]
+        self.token.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": self.original_refresh_token,
+                "client_id": self.public_application.client_id,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        new_token = ApiToken.objects.get(token=data["access_token"])
+
+        assert set(new_token.get_scopes()) == {"project:read", "org:read"}
+
+    def test_refresh_preserves_organization_scope(self) -> None:
+        """Refreshed token should have the same organization scope."""
+        organization = self.create_organization(owner=self.user)
+        self.token.scoping_organization_id = organization.id
+        self.token.save()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": self.original_refresh_token,
+                "client_id": self.public_application.client_id,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        assert data["organization_id"] == str(organization.id)
+
+        new_token = ApiToken.objects.get(token=data["access_token"])
+        assert new_token.scoping_organization_id == organization.id
+
+    def test_invalid_refresh_token_returns_error(self) -> None:
+        """Invalid refresh token should return invalid_grant."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": "invalid_token",
+                "client_id": self.public_application.client_id,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_missing_refresh_token_returns_error(self) -> None:
+        """Missing refresh_token should return invalid_request."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "client_id": self.public_application.client_id,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_request"}
+
+    def test_scope_changes_not_supported(self) -> None:
+        """Scope parameter on refresh is not supported."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": self.original_refresh_token,
+                "client_id": self.public_application.client_id,
+                "scope": "project:write",  # Trying to change scope
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_request"}

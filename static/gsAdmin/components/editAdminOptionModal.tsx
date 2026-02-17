@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 
@@ -32,7 +33,7 @@ function EditAdminOptionModal({
       <Header closeButton>Edit Option {option.groupingInfo ? 'Group' : null}</Header>
       <Body>
         <Alert.Container>
-          <Alert type="info" showIcon={false}>
+          <Alert variant="info" showIcon={false}>
             Options setting through _admin is deprecated. Please use the options
             automator.
           </Alert>
@@ -72,5 +73,4 @@ function EditOption({option}: {option: SerializedOption}) {
   );
 }
 
-// TODO(TS): Type cast added as part of react 18 upgrade, can remove after?
 export default EditAdminOptionModal;

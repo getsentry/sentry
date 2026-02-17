@@ -97,7 +97,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 queryset = Project.objects.filter(teams__in=team_list)
             else:
                 return Response(
-                    {"detail": "Current access does not point to " "organization."}, status=400
+                    {"detail": "Current access does not point to organization."}, status=400
                 )
         else:
             queryset = Project.objects.filter(organization=organization)

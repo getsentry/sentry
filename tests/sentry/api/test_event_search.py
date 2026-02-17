@@ -108,6 +108,9 @@ def result_transformer(result):
         if token["type"] == "keyExplicitNumberTag":
             return SearchKey(name=f"tags[{token['key']['value']},number]")
 
+        if token["type"] == "keyExplicitBooleanTag":
+            return SearchKey(name=f"tags[{token['key']['value']},boolean]")
+
         if token["type"] == "keyExplicitFlag":
             return SearchKey(name=f"flags[{token['key']['value']}]")
 
@@ -528,6 +531,19 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
+    def test_currency_filter(self, mock_type: MagicMock) -> None:
+        config = SearchConfig()
+        mock_type.return_value = "currency"
+
+        assert parse_search_query("ai.total_cost:>0.5", config=config) == [
+            SearchFilter(
+                key=SearchKey(name="ai.total_cost"),
+                operator=">",
+                value=SearchValue(0.5),
+            ),
+        ]
+
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_numeric_measurement_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "number"
@@ -570,7 +586,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
 
     def test_invalid_rel_time_filter(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
-            parse_search_query(f'time:+{"1" * 9999}d')
+            parse_search_query(f"time:+{'1' * 9999}d")
         (msg,) = excinfo.value.args
         assert msg.endswith(" is not a valid datetime query")
 
@@ -597,7 +613,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
 
     def test_invalid_aggregate_rel_time_filter(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
-            parse_search_query(f'last_seen():+{"1" * 9999}d')
+            parse_search_query(f"last_seen():+{'1' * 9999}d")
         (msg,) = excinfo.value.args
         assert msg.endswith(" is not a valid datetime query")
 
@@ -1115,6 +1131,8 @@ def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern) -> None:
         pytest.param("tags[foo:bar,string]:true", "tags[foo:bar,string]", "true"),
         pytest.param("tags[foo,number]:0", "tags[foo,number]", "0"),
         pytest.param("tags[foo:bar,number]:0", "tags[foo:bar,number]", "0"),
+        pytest.param("tags[foo,boolean]:true", "tags[foo,boolean]", "true"),
+        pytest.param("tags[foo:bar,boolean]:true", "tags[foo:bar,boolean]", "true"),
         pytest.param("flags[foo]:true", "flags[foo]", "true"),
         pytest.param("flags[foo,string]:true", "flags[foo,string]", "true"),
         pytest.param("flags[foo:bar,string]:true", "flags[foo:bar,string]", "true"),
@@ -1133,9 +1151,11 @@ def test_handles_special_character_in_tags_and_flags(query, key, value) -> None:
         pytest.param("has:tags[foo]", "tags[foo]"),
         pytest.param("has:tags[foo,string]", "tags[foo,string]"),
         pytest.param("has:tags[foo,number]", "tags[foo,number]"),
+        pytest.param("has:tags[foo,boolean]", "tags[foo,boolean]"),
         pytest.param("has:tags[foo:bar]", "tags[foo:bar]"),
         pytest.param("has:tags[foo:bar,string]", "tags[foo:bar,string]"),
         pytest.param("has:tags[foo:bar,number]", "tags[foo:bar,number]"),
+        pytest.param("has:tags[foo:bar,boolean]", "tags[foo:bar,boolean]"),
         pytest.param("has:flags[foo]", "flags[foo]"),
         pytest.param("has:flags[foo,string]", "flags[foo,string]"),
         pytest.param("has:flags[foo,number]", "flags[foo,number]"),

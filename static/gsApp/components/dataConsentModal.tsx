@@ -2,12 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import missionControl from 'getsentry-images/missionControl.jpg';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {IconClose, IconFix, IconLock} from 'sentry/icons';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import {t} from 'sentry/locale';
@@ -46,7 +47,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         analyticsEventKey="data_consent_banner.dismissed"
         analyticsEventName="Data Consent Banner: Dismissed"
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => closeModal()}
@@ -59,7 +60,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
             "We're working to improve grouping, alert relevance, issue prioritization, and more, and we need your help."
           )}
         </Body>
-        <InfoHeader>
+        <Flex justify="between">
           <ConsentHeader>{t('Data Consent')}</ConsentHeader>
           <LearnMore
             href="https://docs.sentry.io/product/security/ai-ml-policy/"
@@ -69,53 +70,53 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
           >
             {t('Learn More')}
           </LearnMore>
-        </InfoHeader>
+        </Flex>
 
         <ConsentInfo>
-          <ConsentRow>
+          <Flex align="center" gap="2xl">
             <StyledIconWrapper>
               <IconGraphBar size="lg" />
             </StyledIconWrapper>
-            <ConsentLabel>
+            <Stack>
               <ConsentLabelHeader>{t('What data do we access?')}</ConsentLabelHeader>
               <ConsentLabelBody>
                 {t(
                   'Sentry will access error messages, stack traces, spans, and DOM interactions.'
                 )}
               </ConsentLabelBody>
-            </ConsentLabel>
-          </ConsentRow>
+            </Stack>
+          </Flex>
           <Divider />
-          <ConsentRow>
+          <Flex align="center" gap="2xl">
             <StyledIconWrapper>
               <IconFix size="lg" />
             </StyledIconWrapper>
-            <ConsentLabel>
+            <Stack>
               <ConsentLabelHeader>{t('How do we use it?')}</ConsentLabelHeader>
               <ConsentLabelBody>
                 {t(
                   'The data will be used to train and validate models to improve our product.'
                 )}
               </ConsentLabelBody>
-            </ConsentLabel>
-          </ConsentRow>
+            </Stack>
+          </Flex>
           <Divider />
-          <ConsentRow>
+          <Flex align="center" gap="2xl">
             <StyledIconWrapper>
               <IconLock locked size="lg" />
             </StyledIconWrapper>
-            <ConsentLabel>
+            <Stack>
               <ConsentLabelHeader>{t('Where does it go?')}</ConsentLabelHeader>
               <ConsentLabelBody>
                 {t(
                   "We store data within Sentry's standard infrastructure. We will not share it with other customers or AI sub-processors without additional consent."
                 )}
               </ConsentLabelBody>
-            </ConsentLabel>
-          </ConsentRow>
+            </Stack>
+          </Flex>
         </ConsentInfo>
       </div>
-      <Footer>
+      <Flex justify="right" marginTop="2xl" gap="md">
         <Button
           analyticsEventKey="data_consent_modal.maybe_later"
           analyticsEventName="Data Consent Modal: Maybe Later"
@@ -129,7 +130,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         <LinkButton
           analyticsEventKey="data_consent_modal.settings"
           analyticsEventName="Data Consent Modal: Settings"
-          href="/settings/legal/#aggregatedDataConsent"
+          href={`/settings/${organization.slug}/legal/#aggregatedDataConsent`}
           busy={isPending}
         >
           {t('View Settings')}
@@ -145,7 +146,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         >
           {t('I agree')}
         </Button>
-      </Footer>
+      </Flex>
     </Fragment>
   );
 }
@@ -156,70 +157,44 @@ const Title = styled('h3')`
 
 const Subheader = styled('p')`
   text-transform: uppercase;
-  color: ${p => p.theme.pink300};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.promotion};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
   margin-bottom: ${space(1)};
 `;
 
 const Body = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(2)};
-`;
-
-const InfoHeader = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
 `;
 
 const ConsentHeader = styled('p')`
   font-weight: bold;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   margin-bottom: ${space(1)};
 `;
 
 const ConsentInfo = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   padding-top: ${space(1.5)};
   padding-bottom: ${space(1.5)};
 `;
 
-const ConsentRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(3)};
-`;
-
-const ConsentLabel = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const ConsentLabelHeader = styled('div')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 const ConsentLabelBody = styled('p')`
   margin-bottom: 0;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledIconWrapper = styled('span')`
   margin-left: ${space(3)};
-  color: ${p => p.theme.subText};
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: right;
-  gap: ${space(1)};
-  margin-top: ${space(3)};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const LearnMore = styled(ExternalLink)`
@@ -228,7 +203,8 @@ const LearnMore = styled(ExternalLink)`
 
   &:hover {
     text-decoration: underline;
-    text-decoration-color: ${p => p.theme.blue200};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    text-decoration-color: ${p => p.theme.tokens.border.accent.moderate};
   }
 `;
 
@@ -251,7 +227,7 @@ const ImageHeader = styled('div')`
 const Divider = styled('hr')`
   width: 95%;
   height: 1px;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.colors.gray100};
   border: none;
   margin-top: ${space(1.5)};
   margin-bottom: ${space(1.5)};
@@ -261,7 +237,7 @@ const DismissButton = styled(Button)`
   position: absolute;
   top: ${space(1)};
   right: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   z-index: 1;
   background-color: rgba(255, 255, 255, 0.8);
   border-radius: 50%;

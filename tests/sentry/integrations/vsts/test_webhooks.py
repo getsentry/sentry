@@ -49,7 +49,7 @@ class VstsWebhookWorkItemTest(APITestCase):
                 data={
                     "access_token": self.access_token,
                     "refresh_token": "qwertyuiop",
-                    "expires": int(time()) + int(1234567890),
+                    "expires": int(time()) + 1234567890,
                 },
             )
             self.org_integration = self.model.add_organization(
@@ -165,7 +165,6 @@ class VstsWebhookWorkItemTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_inbound_status_sync_resolve(self, mock_record: MagicMock) -> None:
-
         header_validation = []
         if SiloMode.get_current_mode() != SiloMode.REGION:
             header_validation = [

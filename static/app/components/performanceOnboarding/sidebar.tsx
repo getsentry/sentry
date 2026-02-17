@@ -3,19 +3,27 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -23,7 +31,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,
 } from 'sentry/stores/onboardingDrawerStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
@@ -161,7 +168,7 @@ function SidebarContent() {
   // The panel shouldn't be activated in this case, but if so we'll show a message
   if (projects?.length > 0 && !shouldShowPerformanceTasks(projects)) {
     return (
-      <Alert type="info" showIcon={false}>
+      <Alert variant="info" showIcon={false}>
         {t("Performance isn't supported for your projects.")}
       </Alert>
     );
@@ -332,13 +339,21 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   ];
 
   return (
-    <Fragment>
+    <TabSelectionScope>
       {performanceDocs.introduction && (
         <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
       )}
+      <CopySetupInstructionsGate>
+        <Container paddingBottom="md">
+          <OnboardingCopyMarkdownButton
+            steps={steps}
+            source="performance_sidebar_onboarding"
+          />
+        </Container>
+      </CopySetupInstructionsGate>
       <Steps>
-        {steps.map(step => {
-          return <Step key={step.title ?? step.type} {...step} />;
+        {steps.map((step, index) => {
+          return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
         })}
       </Steps>
       <EventWaiter
@@ -352,7 +367,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       >
         {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
       </EventWaiter>
-    </Fragment>
+    </TabSelectionScope>
   );
 }
 
@@ -388,10 +403,10 @@ const TaskList = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-size: ${p => p.theme.font.size.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   margin-top: ${space(3)};
 `;
@@ -416,7 +431,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   display: flex;
   align-items: center;
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
 `;
 
@@ -429,6 +444,6 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   display: flex;
   align-items: center;
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.successText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.success};
 `;

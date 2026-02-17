@@ -1,4 +1,3 @@
-import {createParser} from 'nuqs';
 import * as qs from 'query-string';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -8,11 +7,6 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 // Create a string representation of the regex so we need to create a new regex
 // for each use to avoid carrying over state
 export const TAG_VALUE_ESCAPE_PATTERN = '[:\\s\\(\\)\\\\"]';
-
-// remove leading and trailing whitespace and remove double spaces
-function formatQueryString(query: string): string {
-  return query.trim().replace(/\s+/g, ' ');
-}
 
 export function addQueryParamsToExistingUrl(
   origUrl: string,
@@ -166,27 +160,3 @@ export function decodeBoolean(
 
   return fallback;
 }
-
-export const parseAsSort = createParser({
-  parse: value => {
-    const sorts = decodeSorts(value);
-    return sorts[0] ? sorts[0] : null;
-  },
-  serialize: (value: Sort) => {
-    return value.kind === 'desc' ? `-${value.field}` : value.field;
-  },
-});
-
-const queryString = {
-  decodeBoolean,
-  decodeInteger,
-  decodeList,
-  decodeScalar,
-  decodeSorts,
-  formatQueryString,
-  addQueryParamsToExistingUrl,
-  appendTagCondition,
-  appendExcludeTagValuesCondition,
-};
-
-export default queryString;

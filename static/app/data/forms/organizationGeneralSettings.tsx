@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -20,7 +21,7 @@ const formGroups: JsonFormObject[] = [
         help: t('A unique ID used to identify this organization'),
         transformInput: slugify,
         saveOnBlur: false,
-        saveMessageAlertType: 'info',
+        saveMessageAlertVariant: 'info',
         saveMessage: tct(
           'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
           {

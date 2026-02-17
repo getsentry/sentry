@@ -1,8 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import CrumbItem from 'sentry/components/replays/diff/picker/crumbItem';
 import MutationOption from 'sentry/components/replays/diff/picker/mutationOption';

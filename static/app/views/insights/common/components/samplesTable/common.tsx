@@ -41,7 +41,7 @@ export function DurationComparisonCell({
 const ComparisonLabel = styled('span')<{value: number}>`
   color: ${p =>
     p.value === 0
-      ? p.theme.subText
+      ? p.theme.tokens.content.secondary
       : p.value < 0
         ? p.theme.colors.green500
         : p.theme.colors.red500};

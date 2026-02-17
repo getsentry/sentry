@@ -2,8 +2,9 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Input} from 'sentry/components/core/input';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {space} from 'sentry/styles/space';
@@ -235,13 +236,13 @@ const Label = styled('div')<{isDisabled: boolean}>`
 
 const InnerLabel = styled(TextOverflow)`
   border-top: 1px solid transparent;
-  border-bottom: 1px dotted ${p => p.theme.border};
+  border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
   line-height: 38px;
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
-  background: ${p => p.theme.colors.surface300};
+  background: ${p => p.theme.tokens.background.tertiary};
   border-radius: ${p => p.theme.radius.md};
   margin: -${space(0.5)} -${space(1)};
   padding: ${space(0.5)} ${space(1)};

@@ -10,19 +10,18 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -37,7 +36,7 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -54,6 +53,7 @@ import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
+import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
@@ -132,18 +132,33 @@ function WidgetBuilderSlideout({
     : isEditing
       ? t('Edit Widget')
       : t('Custom Widget Builder');
-  const isChartWidget = isChartDisplayType(state.displayType);
+  const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
+  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
 
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
   const showQueryFilterBuilder = !(
-    state.dataset === WidgetType.ISSUE && isChartDisplayType(state.displayType)
+    state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType)
   );
-  const showGroupBySelector = isChartWidget && !(state.dataset === WidgetType.ISSUE);
+
+  // Group By is used by time-series chart widgets to break down data by a field.
+  // - Time-series widgets: show Group By to allow breaking down by fields
+  // - Issue widgets: don't support Group By (issues have their own grouping)
+  // - Categorical Bar widgets: group by is not supported yet, but may be in the future
+  const showGroupBySelector = isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE);
+
+  // X-Axis selector is only for Categorical Bar widgets, other chart widgets
+  // always use time as the X-axis
+  const showXAxisSelector = isCategoricalBarWidget;
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
+  // Sort By controls the ordering of results.
+  // - Table: Always show to control row ordering
+  // - Line, Area, Bar (Time Series): Show to control which top N groups are displayed
+  // - Bar (Categorical): Show to control category ordering (like tables)
   const showSortByStep =
-    (isChartWidget && state.fields && state.fields.length > 0) ||
+    isCategoricalBarWidget ||
+    (isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
     state.displayType === DisplayType.TABLE;
 
   const observer = useMemo(
@@ -224,19 +239,24 @@ function WidgetBuilderSlideout({
       ];
 
   const header = (
-    <SlideoutHeaderWrapper>
+    <Flex
+      align="center"
+      justify="between"
+      borderBottom="primary"
+      height="44px"
+      padding="0 2xl"
+    >
       <Breadcrumbs crumbs={breadcrumbs} />
       <CloseButton
         priority="link"
         size="zero"
-        borderless
         aria-label={t('Close Widget Builder')}
         icon={<IconClose size="sm" />}
         onClick={onCloseWithModal}
       >
         {t('Close')}
       </CloseButton>
-    </SlideoutHeaderWrapper>
+    </Flex>
   );
 
   return (
@@ -267,7 +287,7 @@ function WidgetBuilderSlideout({
               {isTransactionsWidget && showTransactionsDeprecationAlert && (
                 <Section>
                   <Alert
-                    type="warning"
+                    variant="warning"
                     trailingItems={
                       <StyledCloseButton
                         icon={<IconClose size="sm" />}
@@ -276,7 +296,7 @@ function WidgetBuilderSlideout({
                           setShowTransactionsDeprecationAlert(false);
                         }}
                         size="zero"
-                        borderless
+                        priority="transparent"
                       />
                     }
                   >
@@ -388,6 +408,13 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
+
+                    {showXAxisSelector && (
+                      <Section>
+                        <WidgetBuilderXAxisSelector />
+                      </Section>
+                    )}
+
                     {showVisualizeSection && (
                       <Section>
                         <Visualize error={error} setError={setError} />
@@ -482,20 +509,12 @@ function DisableTransactionWidget({children}: DisableModeProps) {
 }
 
 const CloseButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: fit-content;
   &:hover {
     color: ${p => p.theme.colors.gray500};
   }
   z-index: 100;
-`;
-
-const SlideoutHeaderWrapper = styled('div')`
-  padding: ${space(1)} ${space(4)};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const SlideoutBreadcrumb = styled('div')`

@@ -52,9 +52,10 @@ describe('InvoiceDetails', () => {
       });
 
       const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${mockOrg.slug}/invoices/${invoice.id}/close/`,
+        url: `/_admin/cells/us/invoices/${invoice.id}/close/`,
         method: 'PUT',
         body: InvoiceFixture({isClosed: true}),
+        host: 'https://us.sentry.io',
       });
 
       render(<InvoiceDetails />, {

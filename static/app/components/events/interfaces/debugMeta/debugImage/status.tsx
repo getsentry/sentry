@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+
 import {t} from 'sentry/locale';
 import {ImageStatus} from 'sentry/types/debugImage';
 
@@ -15,26 +16,26 @@ function Status({status}: Props) {
     case ImageStatus.FETCHING_FAILED:
     case ImageStatus.MALFORMED:
     case ImageStatus.TIMEOUT: {
-      return <StyledTag type="error">{t('Error')}</StyledTag>;
+      return <StyledTag variant="danger">{t('Error')}</StyledTag>;
     }
     case ImageStatus.UNSUPPORTED: {
-      return <StyledTag type="error">{t('Unsupported')}</StyledTag>;
+      return <StyledTag variant="danger">{t('Unsupported')}</StyledTag>;
     }
     case ImageStatus.MISSING: {
-      return <StyledTag type="error">{t('Missing')}</StyledTag>;
+      return <StyledTag variant="danger">{t('Missing')}</StyledTag>;
     }
     case ImageStatus.FOUND: {
-      return <StyledTag type="success">{t('Ok')}</StyledTag>;
+      return <StyledTag variant="success">{t('Ok')}</StyledTag>;
     }
     case ImageStatus.UNUSED: {
-      return <StyledTag>{t('Unreferenced')}</StyledTag>;
+      return <StyledTag variant="muted">{t('Unreferenced')}</StyledTag>;
     }
     default: {
       Sentry.withScope(scope => {
         scope.setLevel('warning');
         Sentry.captureException(new Error('Unknown image status'));
       });
-      return <StyledTag>{t('Unknown')}</StyledTag>; // This shall not happen
+      return <StyledTag variant="muted">{t('Unknown')}</StyledTag>; // This shall not happen
     }
   }
 }

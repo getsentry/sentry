@@ -176,16 +176,21 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
 
         integration_id = request.GET.get("integrationId")
 
-        queryset = RepositoryProjectPathConfig.objects.all()
+        # When no explicit project IDs are in the request, include all projects the user can
+        # access so open team membership is respected. When explicit IDs are present, get_projects
+        # already uses has_project_access and validates the requested projects.
+        has_explicit_projects = bool(request.GET.getlist("project"))
+        projects = self.get_projects(
+            request, organization, include_all_accessible=not has_explicit_projects
+        )
+        queryset = RepositoryProjectPathConfig.objects.filter(project__in=projects).select_related(
+            "project", "repository"
+        )
 
         if integration_id:
             # get_organization_integration will raise a 404 if no org_integration is found
             org_integration = self.get_organization_integration(organization, integration_id)
             queryset = queryset.filter(organization_integration_id=org_integration.id)
-        else:
-            # Filter by project
-            projects = self.get_projects(request, organization)
-            queryset = queryset.filter(project__in=projects)
 
         return self.paginate(
             request=request,

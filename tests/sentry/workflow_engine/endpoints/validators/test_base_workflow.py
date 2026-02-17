@@ -6,7 +6,11 @@ from rest_framework.serializers import ValidationError
 
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
+    TriggerSerializerResponse,
+    WorkflowSerializer,
+    WorkflowSerializerResponse,
+)
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
     Action,
@@ -416,7 +420,9 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         serializer = WorkflowSerializer()
         attrs = serializer.get_attrs([self.workflow], self.user)
-        self.valid_saved_data = serializer.serialize(self.workflow, attrs[self.workflow], self.user)
+        self.valid_saved_data: WorkflowSerializerResponse = serializer.serialize(
+            self.workflow, attrs[self.workflow], self.user
+        )
 
     def test_update_property(self, mock_action_validator: mock.MagicMock) -> None:
         self.valid_data["name"] = "Update Test"
@@ -431,11 +437,13 @@ class TestWorkflowValidatorUpdate(TestCase):
     def test_update__remove_trigger_conditions(self, mock_action_validator: mock.MagicMock) -> None:
         assert self.workflow.when_condition_group
 
-        self.valid_saved_data["triggers"] = {
-            "id": self.workflow.when_condition_group.id,
+        triggers: TriggerSerializerResponse = {
+            "id": str(self.workflow.when_condition_group.id),
             "logicType": "any",
             "conditions": [],
         }
+
+        self.valid_saved_data["triggers"] = triggers
 
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
         assert validator.is_valid() is True
@@ -455,7 +463,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         )
 
         self.valid_saved_data["triggers"] = {
-            "id": fake_dcg.id,
+            "id": str(fake_dcg.id),
             "logicType": "any",
             "conditions": [],
         }
@@ -478,6 +486,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.workflowdataconditiongroup_set.count() == 0
 
     def test_update__add_new_filter(self, mock_action_validator: mock.MagicMock) -> None:
+        assert self.valid_saved_data["actionFilters"] is not None
         self.valid_saved_data["actionFilters"].append(
             {
                 "actions": [
@@ -540,6 +549,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         attrs = serializer.get_attrs([self.workflow], self.user)
         self.valid_saved_data = serializer.serialize(self.workflow, attrs[self.workflow], self.user)
 
+        assert self.valid_saved_data["actionFilters"] is not None
         self.valid_saved_data["actionFilters"].pop(0)
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
         assert validator.is_valid() is True
@@ -564,6 +574,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         first_condition = self._get_first_trigger_condition(self.workflow)
         assert first_condition.comparison == 1
 
+        assert self.valid_saved_data["triggers"] is not None
         updated_condition = self.valid_saved_data["triggers"]["conditions"][0]
         updated_condition["comparison"] = 2
         self.valid_saved_data["triggers"]["conditions"][0] = updated_condition
@@ -591,6 +602,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         self.valid_saved_data = serializer.serialize(self.workflow, attrs[self.workflow], self.user)
 
         # Make the update
+        assert self.valid_saved_data["triggers"] is not None
         self.valid_saved_data["triggers"]["conditions"].pop(0)
 
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
@@ -604,6 +616,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group.conditions.first() == dc
 
     def test_update__add_new_action(self, mock_action_validator: mock.MagicMock) -> None:
+        assert self.valid_saved_data["actionFilters"]
         self.valid_saved_data["actionFilters"][0]["actions"].append(
             {
                 "type": Action.Type.SLACK,
@@ -633,9 +646,10 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert action.type == Action.Type.SLACK
 
         # Update the data for the action
+        assert self.valid_saved_data["actionFilters"] is not None
         self.valid_saved_data["actionFilters"][0]["actions"] = [
             {
-                "id": action.id,
+                "id": str(action.id),
                 "type": Action.Type.EMAIL,
                 "config": {
                     "targetIdentifier": str(self.user.id),
@@ -697,6 +711,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert action_condition_group.action.type == Action.Type.SLACK
 
     def test_update__remove_all_actions(self, mock_action_validator: mock.MagicMock) -> None:
+        assert self.valid_saved_data["actionFilters"]
         self.valid_saved_data["actionFilters"][0]["actions"] = []
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
         assert validator.is_valid() is True

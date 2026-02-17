@@ -1,7 +1,8 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import moment from 'moment-timezone';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';

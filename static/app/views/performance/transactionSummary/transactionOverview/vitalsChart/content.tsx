@@ -54,7 +54,7 @@ function Content({
   if (errored) {
     return (
       <ErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning variant="primary" size="lg" />
       </ErrorPanel>
     );
   }
@@ -95,7 +95,7 @@ function Content({
     yAxis: {
       minInterval: durationUnit,
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         // p75(measurements.fcp) coerces the axis to be time based
         formatter: (value: number) =>
           axisLabelFormatter(value, 'duration', undefined, durationUnit),

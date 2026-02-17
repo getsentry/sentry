@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useUrlParams from 'sentry/utils/url/useUrlParams';
@@ -36,7 +37,7 @@ function NetworkDetailsTabs() {
 }
 
 const TabsContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
@@ -48,7 +49,7 @@ const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
   & > li {
     margin-right: 0;
     padding-right: ${space(3)};
-    background: ${p => p.theme.colors.surface500};
+    background: ${p => p.theme.tokens.background.primary};
     z-index: ${p => p.theme.zIndex.initial};
   }
   & > li:first-child {

@@ -10,6 +10,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -36,7 +37,9 @@ function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
     isSuccess,
   } = useApiQuery<Project[]>(
     [
-      `/organizations/${organization.slug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           statsPeriod,
@@ -95,7 +98,10 @@ function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
         series={series}
         isGroupedByDate
         showTimeInTooltip
-        colors={theme => [theme.colors.blue400, theme.colors.blue200]}
+        colors={theme => [
+          theme.tokens.dataviz.semantic.accent,
+          theme.tokens.dataviz.semantic.neutral,
+        ]}
         grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
       />
     </Fragment>

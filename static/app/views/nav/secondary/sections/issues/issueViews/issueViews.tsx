@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import {Reorder} from 'framer-motion';
 import debounce from 'lodash/debounce';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,7 +20,7 @@ interface IssueViewsProps {
 }
 
 export interface IssueView extends IssueViewParams {
-  createdBy: AvatarUser;
+  createdBy: AvatarUser | null;
   dateCreated: string;
   dateUpdated: string;
   id: string;

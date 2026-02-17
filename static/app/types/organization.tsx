@@ -12,10 +12,8 @@ import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
 import type {Relay} from './relay';
+import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
-
-// Matches `PrReviewTrigger` in Seer
-type CodeReviewTriggers = 'on_command_phrase' | 'on_ready_for_review' | 'on_new_commit';
 
 /**
  * Organization summaries are sent when you request a list of all organizations
@@ -67,7 +65,7 @@ export interface Organization extends OrganizationSummary {
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
-  defaultCodeReviewTriggers: CodeReviewTriggers[];
+  defaultCodeReviewTriggers: CodeReviewTrigger[];
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
@@ -101,6 +99,7 @@ export interface Organization extends OrganizationSummary {
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  consoleSdkInviteQuota?: number;
   defaultAutofixAutomationTuning?:
     | 'off'
     | 'super_low'

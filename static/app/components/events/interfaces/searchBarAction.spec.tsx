@@ -1,7 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Level} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/level';
-import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
 import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
@@ -15,32 +13,32 @@ const options: NonNullable<
       {
         value: BreadcrumbType.HTTP,
         label: 'HTTP request',
-        leadingItems: <Type color="green300" type={BreadcrumbType.HTTP} />,
+        leadingItems: <span>http</span>,
       },
       {
         value: BreadcrumbType.TRANSACTION,
         label: 'Transaction',
-        leadingItems: <Type color="pink300" type={BreadcrumbType.TRANSACTION} />,
+        leadingItems: <span>transaction</span>,
       },
       {
         value: BreadcrumbType.UI,
         label: 'User Action',
-        leadingItems: <Type color="purple300" type={BreadcrumbType.UI} />,
+        leadingItems: <span>ui</span>,
       },
       {
         value: BreadcrumbType.NAVIGATION,
         label: 'Navigation',
-        leadingItems: <Type color="green300" type={BreadcrumbType.NAVIGATION} />,
+        leadingItems: <span>navigation</span>,
       },
       {
         value: BreadcrumbType.DEBUG,
         label: 'Debug',
-        leadingItems: <Type color="purple300" type={BreadcrumbType.DEBUG} />,
+        leadingItems: <span>debug</span>,
       },
       {
         value: BreadcrumbType.ERROR,
         label: 'Error',
-        leadingItems: <Type color="red300" type={BreadcrumbType.ERROR} />,
+        leadingItems: <span>error</span>,
       },
     ],
   },
@@ -51,12 +49,12 @@ const options: NonNullable<
       {
         value: BreadcrumbLevelType.INFO,
         label: 'info',
-        leadingItems: <Level level={BreadcrumbLevelType.INFO} />,
+        leadingItems: <span>info</span>,
       },
       {
         value: BreadcrumbLevelType.ERROR,
         label: 'error',
-        leadingItems: <Level level={BreadcrumbLevelType.ERROR} />,
+        leadingItems: <span>error</span>,
       },
     ],
   },
@@ -94,8 +92,8 @@ describe('SearchBarAction', () => {
 
     // Levels
     expect(screen.getByText('Levels')).toBeInTheDocument();
-    expect(screen.getByText('info')).toBeInTheDocument();
-    expect(screen.getAllByText('Error')[1]).toBeInTheDocument();
+    expect(screen.getAllByText('info')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('error')[0]).toBeInTheDocument();
   });
 
   it('Without Options', async () => {
@@ -170,11 +168,11 @@ describe('SearchBarAction', () => {
     expect(screen.queryByText('Types')).not.toBeInTheDocument();
 
     // List Items
-    expect(screen.getByText('info')).toBeInTheDocument();
-    expect(screen.getByText('error')).toBeInTheDocument();
+    expect(screen.getAllByText('info')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('error')[0]).toBeInTheDocument();
 
     // Check Item
-    const infoItem = screen.getByText('info');
+    const infoItem = screen.getAllByText('info')[0]!;
     await userEvent.click(infoItem);
 
     const infoOption = ('options' in levelOptions ? levelOptions.options : []).find(

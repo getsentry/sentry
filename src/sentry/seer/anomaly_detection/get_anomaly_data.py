@@ -23,7 +23,7 @@ from sentry.seer.anomaly_detection.types import (
     SeerDetectorDataResponse,
     TimeSeriesPoint,
 )
-from sentry.seer.anomaly_detection.utils import translate_direction
+from sentry.seer.anomaly_detection.utils import get_aggregate_type, translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.utils import json
@@ -55,7 +55,12 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
-SEER_RETRIES = Retry(total=2, backoff_factor=0.5)
+SEER_RETRIES = Retry(
+    total=2,
+    backoff_factor=0.5,
+    status_forcelist=[408, 429, 502, 503, 504],
+    allowed_methods=["GET", "POST"],
+)
 
 
 def get_anomaly_data_from_seer(
@@ -92,6 +97,8 @@ def get_anomaly_data_from_seer(
         direction=translate_direction(threshold_type),
         expected_seasonality=seasonality,
     )
+    if aggregate_type := get_aggregate_type(snuba_query.aggregate):
+        anomaly_detection_config["aggregate"] = aggregate_type
     context = AlertInSeer(
         id=None,
         source_id=source_id,
@@ -204,6 +211,7 @@ def get_anomaly_threshold_data_from_seer(
             connection_pool=SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             path=SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
             body=json.dumps(payload).encode("utf-8"),
+            retries=SEER_RETRIES,
         )
     except (TimeoutError, MaxRetryError):
         logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")

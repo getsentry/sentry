@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
 import InputField from 'sentry/components/forms/fields/inputField';
 import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
@@ -82,7 +82,7 @@ function ChangeDatesModal({
           cancelLabel="Cancel"
         >
           <Alert.Container>
-            <Alert type="info" showIcon={false}>
+            <Alert variant="info" showIcon={false}>
               This overrides the current contract and on-demand period dates so the
               subscription may fall into a weird state.
             </Alert>

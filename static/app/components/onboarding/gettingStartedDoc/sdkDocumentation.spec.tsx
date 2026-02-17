@@ -1,6 +1,7 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
@@ -40,14 +41,10 @@ function renderMockRequests({
 
 describe('Renders SDK Documentation corretly based on platform id and language', () => {
   it('Native QT', async () => {
-    const {organization, project} = initializeOrg({
-      projects: [
-        {
-          ...initializeOrg().project,
-          slug: 'native-qt',
-          platform: 'native-qt',
-        },
-      ],
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({
+      slug: 'native-qt',
+      platform: 'native-qt',
     });
 
     renderMockRequests({project, orgSlug: organization.slug});
@@ -67,9 +64,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
           activeProductSelection={[]}
         />
       </OnboardingContextProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {organization}
     );
 
     // Renders main headings
@@ -79,21 +74,10 @@ describe('Renders SDK Documentation corretly based on platform id and language',
   });
 
   it('JavaScript', async () => {
-    const {organization, project, router} = initializeOrg({
-      projects: [
-        {
-          ...initializeOrg().project,
-          slug: 'javascript',
-          platform: 'javascript',
-        },
-      ],
-      router: {
-        location: {
-          query: {
-            installationMode: 'manual',
-          },
-        },
-      },
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({
+      slug: 'javascript',
+      platform: 'javascript',
     });
 
     renderMockRequests({project, orgSlug: organization.slug});
@@ -114,8 +98,13 @@ describe('Renders SDK Documentation corretly based on platform id and language',
         />
       </OnboardingContextProvider>,
       {
-        router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/',
+            query: {installationMode: 'manual'},
+          },
+        },
       }
     );
 

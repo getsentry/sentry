@@ -152,8 +152,8 @@ function Step({
 
 export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
   const organization = useOrganization();
-  const codingDisabled =
-    organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
+  const enableSeerCoding = organization.enableSeerCoding !== false;
+
   const steps = data.steps;
   const isMountedRef = useRef<boolean>(false);
   const {repos} = useAutofixRepos(groupId);
@@ -221,8 +221,8 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
           .slice(0, index)
           .some(s => s.type === AutofixStepType.SOLUTION);
         const hideStep =
-          (codingDisabled && hasSolutionStepBefore) ||
-          (codingDisabled && step.type === AutofixStepType.CHANGES);
+          (!enableSeerCoding && hasSolutionStepBefore) ||
+          (!enableSeerCoding && step.type === AutofixStepType.CHANGES);
 
         const previousStep = index > 0 ? steps[index - 1] : null;
         const previousStepErrored =
@@ -313,8 +313,8 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
 const StepMessage = styled('div')`
   overflow: hidden;
   padding: ${space(1)};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   justify-content: flex-start;
   text-align: left;
 `;
@@ -345,5 +345,5 @@ const AnimationWrapper = styled(motion.div)``;
 const StandaloneErrorMessage = styled('div')`
   margin: ${space(1)} 0;
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

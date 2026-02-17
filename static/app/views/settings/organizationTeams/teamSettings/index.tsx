@@ -1,12 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -82,7 +83,7 @@ export default function TeamSettings() {
       <ProjectPermissionAlert access={['team:write']} team={team} />
       {isIdpProvisioned && (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {t(
               "This team is managed through your organization's identity provider. These settings cannot be modified."
             )}

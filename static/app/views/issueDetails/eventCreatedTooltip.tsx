@@ -87,5 +87,5 @@ const DescriptionList = styled('dl')`
 `;
 
 const NotApplicableText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

@@ -4,14 +4,12 @@ import pytest
 from django.db import IntegrityError
 from django.utils import timezone
 
-from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.cases import TestCase
 
 
 class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase):
-
     def setUp(self) -> None:
         # Metric Alert
         self.project = self.create_project()
@@ -23,7 +21,7 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
         )
 
         # Issue Alert
-        self.rule = Rule.objects.create(project=self.project)
+        self.rule = self.create_project_rule()
         self.group = self.create_group(project=self.project)
         self.rule_fire_history = RuleFireHistory.objects.create(
             project=self.project, rule=self.rule, group=self.group

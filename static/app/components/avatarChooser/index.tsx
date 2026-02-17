@@ -1,23 +1,20 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {OrganizationAvatar, SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import type {AvatarProps} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';
 import Panel from 'sentry/components/panels/panel';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {IconImage, IconOpen, IconUpload} from 'sentry/icons';
+import {IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Avatar} from 'sentry/types/core';
@@ -215,54 +212,19 @@ function AvatarChooser({
   const choices = options.filter(([key]) => supportedTypes.includes(key));
 
   const uploadActions = (
-    <AvatarActions>
+    <Container position="absolute" bottom="-6px" margin="auto">
       <Button
-        aria-label={t('Replace image')}
-        title={t('Replace image')}
-        size="zero"
-        borderless
+        aria-label={t('Upload')}
         icon={<IconUpload />}
         onClick={openUpload}
-      />
-    </AvatarActions>
-  );
-
-  const gravatarActions = (
-    <AvatarActions>
-      <LinkButton
-        external
-        href="https://gravatar.com"
-        size="zero"
-        borderless
-        icon={<IconOpen />}
-        aria-label={t('Go to gravatar.com')}
-        title={t('Visit gravatar.com to upload your Gravatar to be used on Sentry.')}
-      />
-    </AvatarActions>
-  );
-
-  const emptyGravatar = (
-    <BlankAvatar>
-      <IconImage size="xl" />
-    </BlankAvatar>
-  );
-
-  const emptyUploader = (
-    <BlankUploader>
-      <Button size="xs" icon={<IconUpload />} onClick={openUpload}>
+        size="xs"
+      >
         {t('Upload')}
       </Button>
-    </BlankUploader>
+    </Container>
   );
 
-  const backupAvatars: Partial<Record<AvatarType, React.ReactNode>> = {
-    gravatar: emptyGravatar,
-    upload: emptyUploader,
-  };
-
-  const sharedAvatarProps: Partial<Omit<BaseAvatarProps, 'ref'>> = {
-    type: avatarType,
-    backupAvatar: backupAvatars[avatarType],
+  const sharedAvatarProps: Partial<Omit<AvatarProps, 'ref'>> = {
     size: 90,
   };
 
@@ -334,7 +296,6 @@ function AvatarChooser({
         >
           <AvatarPreview>
             {avatarPreview}
-            {avatarType === 'gravatar' && gravatarActions}
             {avatarType === 'upload' && !disabled && uploadActions}
           </AvatarPreview>
         </CropperHovercard>
@@ -378,14 +339,26 @@ const AvatarPreview = styled('div')`
     -10px 0px;
   background-color: ${p => p.theme.tokens.background.primary};
   background-image:
-    linear-gradient(45deg, ${p => p.theme.backgroundSecondary} 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(
-      -45deg,
-      ${p => p.theme.backgroundSecondary} 25%,
+      45deg,
+      ${p => p.theme.tokens.background.secondary} 25%,
       rgba(0, 0, 0, 0) 25%
     ),
-    linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%),
-    linear-gradient(-45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%);
+    linear-gradient(
+      -45deg,
+      ${p => p.theme.tokens.background.secondary} 25%,
+      rgba(0, 0, 0, 0) 25%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0) 75%,
+      ${p => p.theme.tokens.background.secondary} 75%
+    ),
+    linear-gradient(
+      -45deg,
+      rgba(0, 0, 0, 0) 75%,
+      ${p => p.theme.tokens.background.secondary} 75%
+    );
 `;
 
 const AvatarChooserBody = styled('div')`
@@ -402,37 +375,9 @@ const CropperHovercard = styled(Hovercard)`
 
 const AvatarHelp = styled('p')`
   margin-right: auto;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   width: 50%;
-`;
-
-const BlankAvatar = styled('div')`
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${p => p.theme.colors.gray200};
-  background: ${p => p.theme.backgroundSecondary};
-  height: 90px;
-  width: 90px;
-`;
-
-const BlankUploader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-`;
-
-const AvatarActions = styled('div')`
-  position: absolute;
-  top: ${space(0.25)};
-  right: ${space(0.25)};
-  display: flex;
-  background: ${p => p.theme.colors.surface200};
-  padding: ${space(0.25)};
-  border-radius: 3px;
 `;
 
 export default AvatarChooser;

@@ -56,13 +56,13 @@ class GithubWebhookBase(View, abc.ABC):
 
         body = bytes(request.body)
         if not body:
-            logger.error("github.webhook.missing-body", extra=self.get_logging_data(organization))
+            logger.warning("github.webhook.missing-body", extra=self.get_logging_data(organization))
             return HttpResponse(status=400)
 
         try:
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
-            logger.exception(
+            logger.warning(
                 "github.webhook.missing-event", extra=self.get_logging_data(organization)
             )
             return HttpResponse(status=400)
@@ -79,7 +79,7 @@ class GithubWebhookBase(View, abc.ABC):
             return HttpResponse(status=400)
 
         if not self.is_valid_signature(method, body, self.get_secret(organization), signature):
-            logger.error(
+            logger.warning(
                 "github.webhook.invalid-signature", extra=self.get_logging_data(organization)
             )
             return HttpResponse(status=401)
@@ -87,7 +87,7 @@ class GithubWebhookBase(View, abc.ABC):
         try:
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.exception(
+            logger.warning(
                 "github.webhook.invalid-json",
                 extra=self.get_logging_data(organization),
             )

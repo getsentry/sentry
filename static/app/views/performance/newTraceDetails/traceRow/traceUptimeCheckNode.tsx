@@ -46,7 +46,9 @@ export function TraceUptimeCheckNodeRow(props: TraceRowProps<UptimeCheckNode>) {
                   props.node.canFetchChildren ? (
                     '+'
                   ) : (
-                    <TraceIcons.Chevron direction={props.node.expanded ? 'up' : 'down'} />
+                    <TraceIcons.Chevron
+                      direction={props.node.expanded ? 'down' : 'right'}
+                    />
                   )
                 }
                 status={props.node.fetchStatus}

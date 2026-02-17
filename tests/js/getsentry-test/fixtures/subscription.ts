@@ -38,6 +38,10 @@ export function SubscriptionFixture(props: Props): TSubscription {
   );
   const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
   const hasLogBytes = planDetails?.categories?.includes(DataCategory.LOG_BYTE);
+  const hasSizeAnalyses = planDetails?.categories?.includes(DataCategory.SIZE_ANALYSIS);
+  const hasInstallableBuilds = planDetails?.categories?.includes(
+    DataCategory.INSTALLABLE_BUILD
+  );
   const hasLegacySeer = AddOnCategory.LEGACY_SEER in planDetails.addOnCategories;
   const hasSeer = AddOnCategory.SEER in planDetails.addOnCategories;
 
@@ -240,6 +244,22 @@ export function SubscriptionFixture(props: Props): TSubscription {
           reserved: safeCategories.profileDurationUI?.[0]?.events || 0,
           prepaid: safeCategories.profileDurationUI?.[0]?.events || 0,
           order: 11,
+        }),
+      }),
+      ...(hasSizeAnalyses && {
+        sizeAnalyses: MetricHistoryFixture({
+          category: DataCategory.SIZE_ANALYSIS,
+          reserved: safeCategories.sizeAnalyses?.[0]?.events || 100,
+          prepaid: safeCategories.sizeAnalyses?.[0]?.events || 100,
+          order: 17,
+        }),
+      }),
+      ...(hasInstallableBuilds && {
+        installableBuilds: MetricHistoryFixture({
+          category: DataCategory.INSTALLABLE_BUILD,
+          reserved: safeCategories.installableBuilds?.[0]?.events || 0,
+          prepaid: safeCategories.installableBuilds?.[0]?.events || 0,
+          order: 18,
         }),
       }),
       ...(hasLegacySeer && {

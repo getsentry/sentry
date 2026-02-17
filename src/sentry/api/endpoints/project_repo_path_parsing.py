@@ -15,7 +15,10 @@ from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.auto_source_code_config.code_mapping import find_roots
-from sentry.issues.auto_source_code_config.errors import UnsupportedFrameInfo
+from sentry.issues.auto_source_code_config.errors import (
+    UnexpectedPathException,
+    UnsupportedFrameInfo,
+)
 from sentry.issues.auto_source_code_config.frame_info import FrameInfo, create_frame_info
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -142,7 +145,14 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
         branch = installation.extract_branch_from_source_url(repo, source_url)
         source_path = installation.extract_source_path_from_source_url(repo, source_url)
-        stack_root, source_root = find_roots(frame_info, source_path)
+
+        try:
+            stack_root, source_root = find_roots(frame_info, source_path)
+        except UnexpectedPathException:
+            return self.respond(
+                {"detail": "Could not determine code mapping from provided paths"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return self.respond(
             {

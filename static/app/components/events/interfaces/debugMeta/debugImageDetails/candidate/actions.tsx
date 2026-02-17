@@ -1,10 +1,10 @@
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconDelete, IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ImageCandidate} from 'sentry/types/debugImage';
@@ -53,7 +53,7 @@ function Actions({
   const actions = (
     <Access access={['project:write']}>
       {({hasAccess}) => (
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
             <LinkButton
               size="xs"
@@ -80,7 +80,7 @@ function Actions({
               />
             </Confirm>
           </Tooltip>
-        </ButtonBar>
+        </Grid>
       )}
     </Access>
   );

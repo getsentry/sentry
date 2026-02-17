@@ -7,15 +7,16 @@ import {useNumberField} from '@react-aria/numberfield';
 import {mergeRefs} from '@react-aria/utils';
 import {useNumberFieldState} from '@react-stately/numberfield';
 
-import {Button} from 'sentry/components/core/button';
-import type {InputStylesProps} from 'sentry/components/core/input';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Button} from '@sentry/scraps/button';
+import type {InputStylesProps} from '@sentry/scraps/input';
+import {InputGroup} from '@sentry/scraps/input';
+
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface NumberInputProps
-  extends InputStylesProps,
+  extends
+    InputStylesProps,
     AriaNumberFieldProps,
     Pick<
       React.InputHTMLAttributes<HTMLInputElement>,
@@ -82,7 +83,7 @@ export function NumberInput({
           <StepButton
             ref={incrementButtonRef}
             size="zero"
-            borderless
+            priority="transparent"
             {...incrementProps}
             aria-label={incrementProps['aria-label'] ?? t('Increment')}
             icon={<StyledIconChevron direction="up" />}
@@ -90,7 +91,7 @@ export function NumberInput({
           <StepButton
             ref={decrementButtonRef}
             size="zero"
-            borderless
+            priority="transparent"
             {...decrementProps}
             aria-label={decrementProps['aria-label'] ?? t('Decrement')}
             icon={<StyledIconChevron direction="down" />}
@@ -105,16 +106,16 @@ const StepWrap = styled('div')<{size?: NonNullable<NumberInputProps['size']>}>`
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: ${space(1.5)};
+  width: ${p => p.theme.space.lg};
   height: ${p => (p.size === 'xs' ? '1rem' : '1.25rem')};
 `;
 
 const StepButton = styled(Button)`
   display: flex;
   height: 50%;
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   min-height: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconChevron = styled(IconChevron)`

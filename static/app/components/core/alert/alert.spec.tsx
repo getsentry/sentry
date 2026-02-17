@@ -1,17 +1,17 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
 
 describe('Alert', () => {
   it('renders icon by default', () => {
-    render(<Alert type="info">Hello</Alert>);
+    render(<Alert variant="info">Hello</Alert>);
     expect(screen.getByRole('img')).toBeInTheDocument();
   });
 
   describe('expandable', () => {
     it('does not render expand text by default', async () => {
       render(
-        <Alert type="info" expand={<div>More stuff here</div>}>
+        <Alert variant="info" expand={<div>More stuff here</div>}>
           Hello
         </Alert>
       );
@@ -23,7 +23,7 @@ describe('Alert', () => {
 
     it('renders expand text when defaultExpanded is true', () => {
       render(
-        <Alert type="info" defaultExpanded expand={<div>More stuff here</div>}>
+        <Alert variant="info" defaultExpanded expand={<div>More stuff here</div>}>
           Hello
         </Alert>
       );

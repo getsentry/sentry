@@ -1,25 +1,24 @@
 import {Fragment, type MouseEventHandler} from 'react';
-import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
-  PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -33,6 +32,7 @@ interface SidebarItemLinkProps {
   group: PrimaryNavGroup;
   to: string;
   activeTo?: string;
+  analyticsParams?: Record<string, unknown>;
   children?: React.ReactNode;
 }
 
@@ -40,6 +40,7 @@ interface SidebarItemDropdownProps {
   analyticsKey: string;
   items: MenuItemProps[];
   label: string;
+  analyticsParams?: Record<string, unknown>;
   children?: React.ReactNode;
   disableTooltip?: boolean;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
@@ -50,15 +51,21 @@ interface SidebarButtonProps {
   analyticsKey: string;
   children: React.ReactNode;
   label: string;
+  analyticsParams?: Record<string, unknown>;
   buttonProps?: Omit<ButtonProps, 'aria-label'>;
   className?: string;
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
-function recordPrimaryItemClick(analyticsKey: string, organization: Organization) {
+function recordPrimaryItemClick(
+  analyticsKey: string,
+  organization: Organization,
+  analyticsParams?: Record<string, unknown>
+) {
   trackAnalytics('navigation.primary_item_clicked', {
     item: analyticsKey,
     organization,
+    ...analyticsParams,
   });
 }
 
@@ -86,7 +93,9 @@ function SidebarItem({
         skipWrapper
         delay={0}
       >
-        <SidebarListItem {...props}>{children}</SidebarListItem>
+        <Flex as="li" justify="center" align="center" {...props}>
+          {children}
+        </Flex>
       </Tooltip>
     </IconDefaultsProvider>
   );
@@ -110,6 +119,7 @@ export function SidebarMenu({
   items,
   children,
   analyticsKey,
+  analyticsParams,
   label,
   onOpen,
   disableTooltip,
@@ -139,7 +149,7 @@ export function SidebarMenu({
                 aria-label={showLabel ? undefined : label}
                 onClick={event => {
                   if (organization) {
-                    recordPrimaryItemClick(analyticsKey, organization);
+                    recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
                   }
                   props.onClick?.(event);
                   onOpen?.(event);
@@ -167,6 +177,7 @@ function SidebarNavLink({
   to,
   activeTo = to,
   analyticsKey,
+  analyticsParams,
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
@@ -187,7 +198,7 @@ function SidebarNavLink({
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
       onClick={() => {
-        recordPrimaryItemClick(analyticsKey, organization);
+        recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
       }}
       {...{
         [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
@@ -213,6 +224,7 @@ export function SidebarLink({
   to,
   activeTo = to,
   analyticsKey,
+  analyticsParams,
   group,
   ...props
 }: SidebarItemLinkProps) {
@@ -224,6 +236,7 @@ export function SidebarLink({
         to={to}
         activeTo={activeTo}
         analyticsKey={analyticsKey}
+        analyticsParams={analyticsParams}
         group={group}
       >
         {children}
@@ -235,6 +248,7 @@ export function SidebarLink({
 export function SidebarButton({
   className,
   analyticsKey,
+  analyticsParams,
   children,
   buttonProps = {},
   onClick,
@@ -248,10 +262,11 @@ export function SidebarButton({
     <SidebarItem label={label} showLabel={showLabel} className={className}>
       <NavButton
         {...buttonProps}
+        analyticsParams={analyticsParams}
         isMobile={layout === NavLayout.MOBILE}
         aria-label={showLabel ? undefined : label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-          recordPrimaryItemClick(analyticsKey, organization);
+          recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
           buttonProps.onClick?.(e);
           onClick?.(e);
         }}
@@ -280,12 +295,6 @@ export function SeparatorItem({
   );
 }
 
-const SidebarListItem = styled('li')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   list-style: none;
   width: 100%;
@@ -301,49 +310,12 @@ const Separator = styled('hr')`
   outline: 0;
   border: 0;
   height: 1px;
-  background: ${p => p.theme.innerBorder};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.secondary};
   margin: 0;
 `;
 
-const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1.5)};
-  align-items: center;
-  padding: ${space(1.5)} ${space(3)};
-  color: ${p.theme.tokens.content.primary};
-  font-size: ${p.theme.fontSize.md};
-  font-weight: ${p.theme.fontWeight.normal};
-  line-height: 1;
-  width: 100%;
-
-  &:hover {
-    color: ${p.theme.tokens.content.primary};
-  }
-
-  & > * {
-    pointer-events: none;
-  }
-
-  &:focus-visible {
-    box-shadow: 0 0 0 2px ${p.theme.focusBorder};
-    color: currentColor;
-  }
-
-  ${!p.isMobile &&
-  css`
-    flex-direction: column;
-    justify-content: center;
-    border-radius: ${p.theme.radius.md};
-    margin-inline: 0 auto;
-    gap: ${space(0.75)};
-    padding: ${space(1)} 0;
-    min-height: 42px;
-    width: 46px;
-  `}
-`;
-
-const ChonkNavLinkIconContainer = styled('span')`
+const NavLinkIconContainer = styled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -351,41 +323,16 @@ const ChonkNavLinkIconContainer = styled('span')`
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const NavLinkIconContainer = withChonk(
-  styled('span')`
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 42px;
-    border-radius: ${p => p.theme.radius.md};
-    overflow: hidden;
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: currentColor;
-      opacity: 0;
-    }
-  `,
-  ChonkNavLinkIconContainer
-);
-
 const NavLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xs};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   letter-spacing: -0.05em;
 `;
 
-const ChonkNavLink = styled(Link, {
+const NavLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   display: flex;
@@ -402,7 +349,7 @@ const ChonkNavLink = styled(Link, {
   gap: ${p => (p.isMobile ? space(1) : space(0.5))};
 
   /* Disable default link styles and only apply them to the icon container */
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   outline: none;
   box-shadow: none;
   transition: none;
@@ -424,7 +371,7 @@ const ChonkNavLink = styled(Link, {
     width: 4px;
     height: 20px;
     border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
@@ -433,85 +380,40 @@ const ChonkNavLink = styled(Link, {
   &:focus-visible {
     ${NavLinkIconContainer} {
       outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
-      background-color: ${p => p.theme.colors.blue100};
+      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
     }
   }
 
   &:hover,
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.content.muted};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.gray100};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
   }
 
   &[aria-current='page'] {
-    color: ${p => p.theme.tokens.content.accent};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
     &::before {
       opacity: 1;
     }
     ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.blue100};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     }
 
     &:hover {
-      ${NavLinkIconContainer} {
-        background-color: ${p => p.theme.colors.blue100};
+      color: ${p => p.theme.tokens.interactive.link.accent.hover} ${NavLinkIconContainer} {
+        background-color: ${p =>
+          p.theme.tokens.interactive.transparent.accent.selected.background.hover};
       }
     }
   }
 `;
 
-const StyledNavLink = styled(Link, {
-  shouldForwardProp: prop => prop !== 'isMobile',
-})<{isMobile: boolean}>`
-  ${baseNavItemStyles}
-  position: relative;
-
-  ${p =>
-    !p.isMobile &&
-    css`
-      width: ${PRIMARY_SIDEBAR_WIDTH - 8}px;
-      padding-top: ${space(0.5)};
-      padding-bottom: ${space(1)};
-      gap: ${space(0.5)};
-
-      &:hover,
-      &[aria-selected='true'] {
-        ${NavLinkIconContainer} {
-          &::before {
-            opacity: 0.06;
-          }
-        }
-      }
-
-      &:active {
-        ${NavLinkIconContainer} {
-          &::before {
-            opacity: 0.12;
-          }
-        }
-      }
-
-      &[aria-current='page'] {
-        color: ${p.theme.colors.blue500};
-
-        ${NavLinkIconContainer} {
-          box-shadow: inset 0 0 0 1px ${p.theme.colors.blue100};
-
-          &::before {
-            opacity: 0.09;
-          }
-        }
-      }
-    `}
-`;
-
-const NavLink = withChonk(StyledNavLink, ChonkNavLink);
-
-const ChonkNavButton = styled(Button, {
+const StyledNavButton = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   display: flex;
@@ -537,12 +439,12 @@ type NavButtonProps = ButtonProps & {
   isMobile: boolean;
 };
 
-const NavButton = styled((p: NavButtonProps) => {
+const NavButton = styled((props: NavButtonProps) => {
   return (
-    <ChonkNavButton
-      {...p}
-      aria-label={p['aria-label'] ?? ''}
-      size={p.isMobile ? 'zero' : undefined}
+    <StyledNavButton
+      {...props}
+      aria-label={props['aria-label'] ?? ''}
+      size={props.isMobile ? 'zero' : undefined}
     />
   );
 })``;
@@ -554,13 +456,13 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
-  color: ${p => p.theme.white};
-  font-size: ${p => p.theme.fontSize.xs};
-  background: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.colors.white};
+  font-size: ${p => p.theme.font.size.xs};
+  background: ${p => p.theme.tokens.graphics.accent.vibrant};
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid ${p => p.theme.tokens.background.primary};
+  border: 2px solid ${p => p.theme.tokens.border.primary};
 
   ${p =>
     p.isMobile &&

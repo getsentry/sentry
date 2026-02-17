@@ -23,8 +23,10 @@ get_api_context:
         lock: null
         module: null
         package: null
+        parentIndex: null
         platform: null
         rawFunction: null
+        sampleCount: null
         sourceLink: null
         symbol: null
         symbolAddr: null
@@ -49,8 +51,10 @@ get_api_context:
         lock: null
         module: null
         package: null
+        parentIndex: null
         platform: null
         rawFunction: null
+        sampleCount: null
         sourceLink: null
         symbol: null
         symbolAddr: null

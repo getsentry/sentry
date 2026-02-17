@@ -1,0 +1,57 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_exception_message": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "Error"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": "stripped event-specific values",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "Loading chunk <int> failed.\n(timeout: <url>"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": []
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception message",
+      "hash": "10dfd81e2df31e96fae451b9e205ad81",
+      "hint": null,
+      "key": "app_exception_message",
+      "type": "component"
+    }
+  }
+}

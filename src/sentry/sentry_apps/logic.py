@@ -167,13 +167,14 @@ class SentryAppUpdater:
             self.sentry_app.author = self.author
 
     def _update_status(self, user: User | RpcUser) -> None:
-        if self.status is not None:
-            if _is_elevated_user(user):
-                if self.status == SentryAppStatus.PUBLISHED_STR:
-                    self.sentry_app.status = SentryAppStatus.PUBLISHED
-                    self.sentry_app.date_published = timezone.now()
-                if self.status == SentryAppStatus.UNPUBLISHED_STR:
-                    self.sentry_app.status = SentryAppStatus.UNPUBLISHED
+        # All status changes require elevated permissions (superuser/staff).
+        # The publish request endpoint handles its own status change directly.
+        if self.status is not None and _is_elevated_user(user):
+            if self.status == SentryAppStatus.PUBLISHED_STR:
+                self.sentry_app.status = SentryAppStatus.PUBLISHED
+                self.sentry_app.date_published = timezone.now()
+            if self.status == SentryAppStatus.UNPUBLISHED_STR:
+                self.sentry_app.status = SentryAppStatus.UNPUBLISHED
             if self.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR:
                 self.sentry_app.status = SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
 
@@ -243,7 +244,9 @@ class SentryAppUpdater:
                     assert (
                         installation_org_id_to_region_name.get(installation.organization_id)
                         is not None
-                    ), f"OrganizationMapping must exist for installation {installation.id} and organization {installation.organization_id}"
+                    ), (
+                        f"OrganizationMapping must exist for installation {installation.id} and organization {installation.organization_id}"
+                    )
 
                     ControlOutbox(
                         shard_scope=OutboxScope.APP_SCOPE,
@@ -382,9 +385,9 @@ class SentryAppCreator:
 
     def __post_init__(self) -> None:
         if self.is_internal:
-            assert (
-                not self.verify_install
-            ), "Internal apps should not require installation verification"
+            assert not self.verify_install, (
+                "Internal apps should not require installation verification"
+            )
 
     def run(
         self,
@@ -393,7 +396,6 @@ class SentryAppCreator:
         request: HttpRequest | None = None,
         skip_default_auth_token: bool = False,
     ) -> SentryApp:
-
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.MANAGEMENT,
             event_type=SentryAppEventType.APP_CREATE,

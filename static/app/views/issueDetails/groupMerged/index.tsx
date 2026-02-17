@@ -139,7 +139,7 @@ function GroupMergedView(props: Props) {
 export default GroupMergedView;
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(0.75)};
 `;
 
@@ -147,6 +147,6 @@ const HeaderWrapper = styled('div')`
   margin-bottom: ${space(2)};
 
   small {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

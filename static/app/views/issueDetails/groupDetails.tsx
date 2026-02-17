@@ -5,12 +5,14 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
-import {TabPanels, Tabs} from 'sentry/components/core/tabs';
+import {Container} from '@sentry/scraps/layout';
+import {TabPanels, Tabs} from '@sentry/scraps/tabs';
+
 import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
@@ -646,7 +648,11 @@ function GroupDetailsContentError({
       );
 
     case ERROR_TYPES.MISSING_MEMBERSHIP:
-      return <MissingProjectMembership organization={organization} project={project} />;
+      return (
+        <Container padding="lg">
+          <MissingProjectMembership organization={organization} project={project} />
+        </Container>
+      );
     default:
       return <StyledLoadingError onRetry={onRetry} />;
   }

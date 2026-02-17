@@ -11,16 +11,18 @@ import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -28,17 +30,17 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
+import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
 import MobileBuilds from 'sentry/views/releases/list/mobileBuilds';
 import ReleaseHealthCTA from 'sentry/views/releases/list/releaseHealthCTA';
@@ -57,6 +59,10 @@ const RELEASE_FILTER_KEYS = [
   {
     key: 'release',
     name: 'release',
+  },
+  {
+    key: FieldKey.RELEASE_CREATED,
+    name: FieldKey.RELEASE_CREATED,
   },
 ].reduce<TagCollection>((acc, tag) => {
   acc[tag.key] = tag;
@@ -92,7 +98,12 @@ function makeReleaseListQueryKey({
         : ReleaseStatus.ACTIVE,
   };
 
-  return [`/organizations/${organizationSlug}/releases/`, {query}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+      path: {organizationIdOrSlug: organizationSlug},
+    }),
+    {query},
+  ];
 }
 
 export default function ReleasesList() {
@@ -211,19 +222,39 @@ export default function ReleasesList() {
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }, [selection.projects, projects]);
 
-  const shouldShowMobileBuildsTab = useMemo(() => {
-    const singleProjectSelected =
-      selection.projects?.length === 1 && selection.projects[0] !== ALL_ACCESS_PROJECTS;
+  // Get selected project IDs, handling "All Projects" case
+  const selectedProjectIds = useMemo(() => {
+    const selectedIds = selection.projects.filter(id => id !== ALL_ACCESS_PROJECTS);
 
-    if (!singleProjectSelected || !selectedProject?.platform) {
+    // If no specific projects selected, pass [-1] to represent "all projects"
+    // This avoids expanding to hundreds of project IDs which causes URL length issues
+    return selectedIds.length === 0
+      ? [`${ALL_ACCESS_PROJECTS}`]
+      : selectedIds.map(id => `${id}`);
+  }, [selection.projects]);
+
+  const shouldShowMobileBuildsTab = useMemo(() => {
+    if (!organization.features?.includes('preprod-frontend-routes')) {
       return false;
     }
 
-    return (
-      organization.features?.includes('preprod-frontend-routes') &&
-      isMobileRelease(selectedProject.platform, false)
-    );
-  }, [organization.features, selectedProject?.platform, selection.projects]);
+    // When "All Projects" is selected (represented by [-1]), check all accessible projects
+    // When specific projects are selected, check only those projects
+    const isAllProjects =
+      selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
+    const projectIdsToCheck = isAllProjects
+      ? projects.map(p => p.id)
+      : selectedProjectIds;
+
+    // Check if at least one project has a mobile platform
+    const hasAnyStrictlyMobileProject = projectIdsToCheck
+      .map(id => ProjectsStore.getById(id))
+      .filter(Boolean)
+      .some(project => project?.platform && isMobileRelease(project.platform, false));
+
+    return hasAnyStrictlyMobileProject;
+  }, [organization.features, selectedProjectIds, projects]);
 
   const selectedTab = useMemo(() => {
     if (!shouldShowMobileBuildsTab) {
@@ -337,18 +368,30 @@ export default function ReleasesList() {
     [tagValueLoader]
   );
 
-  const hasAnyMobileProject = selection.projects
-    .map(id => `${id}`)
-    .map(ProjectsStore.getById)
-    .some(project => project?.platform && isMobileRelease(project.platform));
+  const hasAnyMobileProject = useMemo(() => {
+    // When "All Projects" is selected (represented by [-1]), check all accessible projects
+    // When specific projects are selected, check only those projects
+    const isAllProjects =
+      selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
+    const projectIdsToCheck = isAllProjects
+      ? projects.map(p => p.id)
+      : selectedProjectIds;
+
+    return projectIdsToCheck
+      .map(id => ProjectsStore.getById(id))
+      .filter(Boolean)
+      .some(project => project?.platform && isMobileRelease(project.platform));
+  }, [selectedProjectIds, projects]);
+
   const showReleaseAdoptionStages =
     hasAnyMobileProject && selection.environments.length === 1;
   const shouldShowQuickstart = Boolean(
     selectedProject &&
-      // Has not set up releases
-      !selectedProject?.features.includes('releases') &&
-      // Has no releases
-      !releases?.length
+    // Has not set up releases
+    !selectedProject?.features.includes('releases') &&
+    // Has no releases
+    !releases?.length
   );
   const releasesPageLinks = getReleasesResponseHeader?.('Link');
 
@@ -414,7 +457,7 @@ export default function ReleasesList() {
                     key="releases"
                     to={{
                       pathname: location.pathname,
-                      query: {...location.query, tab: undefined},
+                      query: {...location.query, query: undefined, tab: undefined},
                     }}
                     textValue={t('Releases')}
                   >
@@ -424,13 +467,13 @@ export default function ReleasesList() {
                     key="mobile-builds"
                     to={{
                       pathname: location.pathname,
-                      query: {...location.query, tab: 'mobile-builds'},
+                      query: {...location.query, query: undefined, tab: 'mobile-builds'},
                     }}
                     textValue={t('Mobile Builds')}
                   >
                     <Flex align="center" gap="sm">
                       {t('Mobile Builds')}
-                      <FeatureBadge type="beta" />
+                      <FeatureBadge type="new" />
                     </Flex>
                   </TabList.Item>
                 </TabList>
@@ -444,7 +487,7 @@ export default function ReleasesList() {
               {selectedTab === 'mobile-builds' && (
                 <MobileBuilds
                   organization={organization}
-                  projectSlug={selectedProject?.slug}
+                  selectedProjectIds={selectedProjectIds}
                 />
               )}
 
@@ -498,18 +541,22 @@ export default function ReleasesList() {
                       )}
                       position="top-start"
                     >
-                      <ReleaseListInner
-                        activeDisplay={activeDisplay}
-                        loading={isReleasesPending}
-                        organization={organization}
-                        releases={releases}
-                        releasesPageLinks={releasesPageLinks}
-                        reloading={isReleasesRefetching}
-                        selectedProject={selectedProject}
-                        selection={selection}
-                        shouldShowQuickstart={shouldShowQuickstart}
-                        showReleaseAdoptionStages={showReleaseAdoptionStages}
-                      />
+                      {props => (
+                        <div {...props}>
+                          <ReleaseListInner
+                            activeDisplay={activeDisplay}
+                            loading={isReleasesPending}
+                            organization={organization}
+                            releases={releases}
+                            releasesPageLinks={releasesPageLinks}
+                            reloading={isReleasesRefetching}
+                            selectedProject={selectedProject}
+                            selection={selection}
+                            shouldShowQuickstart={shouldShowQuickstart}
+                            showReleaseAdoptionStages={showReleaseAdoptionStages}
+                          />
+                        </div>
+                      )}
                     </DemoTourElement>
                   )}
                 </Fragment>

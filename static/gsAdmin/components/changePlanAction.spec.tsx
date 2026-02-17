@@ -91,7 +91,7 @@ describe('ChangePlanAction', () => {
 
     // Set up default subscription response
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
+      url: `/customers/${mockOrg.slug}/`,
       body: subscription,
     });
 
@@ -184,7 +184,7 @@ describe('ChangePlanAction', () => {
     });
     SubscriptionStore.set(mockOrg.slug, ntSubscription);
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
+      url: `/customers/${mockOrg.slug}/`,
       body: ntSubscription,
     });
 
@@ -228,6 +228,14 @@ describe('ChangePlanAction', () => {
       '1'
     );
     await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Size analysis builds'}),
+      '100'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Build distribution installs'}),
+      '-1'
+    );
 
     expect(screen.getByText('Available Products')).toBeInTheDocument(); // will always show if any product is launched and available for an org
 
@@ -265,6 +273,14 @@ describe('ChangePlanAction', () => {
       '1'
     );
     await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Size analysis builds'}),
+      '100'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Build distribution installs'}),
+      '-1'
+    );
 
     // XXX: irl we would not have both versions of Seer available, but doing this for testing multiple addons
     expect(screen.getByText('Available Products')).toBeInTheDocument();
@@ -397,7 +413,7 @@ describe('ChangePlanAction', () => {
 
       // Set up default subscription response
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${mockOrg.slug}/`,
+        url: `/customers/${mockOrg.slug}/`,
         body: subscription,
       });
 
@@ -459,7 +475,7 @@ describe('ChangePlanAction', () => {
 
       SubscriptionStore.set(mockOrg.slug, subscriptionWithSeer);
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${mockOrg.slug}/`,
+        url: `/customers/${mockOrg.slug}/`,
         body: subscriptionWithSeer,
       });
 
@@ -539,6 +555,14 @@ describe('ChangePlanAction', () => {
         '1'
       );
       await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Size analysis builds'}),
+        '100'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Build distribution installs'}),
+        '-1'
+      );
 
       // Submit the form
       expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
@@ -591,6 +615,14 @@ describe('ChangePlanAction', () => {
         '1'
       );
       await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Size analysis builds'}),
+        '100'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Build distribution installs'}),
+        '-1'
+      );
 
       // Submit the form
       expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();

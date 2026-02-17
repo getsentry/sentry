@@ -261,7 +261,7 @@ class TracesExecutor:
                 "sdk.name",
                 "span.op",
                 "parent_span",
-                "transaction",
+                "span.name",
                 "precise.start_ts",
                 "precise.finish_ts",
                 "span.duration",
@@ -353,7 +353,7 @@ class TracesExecutor:
 
             name: tuple[str, str, float] = (
                 span["project"],
-                span["transaction"],
+                span["span.name"],
                 # to minmimize the impact of floating point errors,
                 # multiply by 1e3 first then do the subtraction
                 # once we move to eap_items, this can be just `span["span.duration"]`

@@ -75,7 +75,6 @@ class RedisQuotaTest(TestCase):
         assert QuotaScope.ORGANIZATION.api_name() == "organization"
         assert QuotaScope.PROJECT.api_name() == "project"
         assert QuotaScope.KEY.api_name() == "key"
-        assert QuotaScope.GLOBAL.api_name() == "global"
 
     def test_abuse_quotas(self) -> None:
         # These legacy options need to be set, otherwise we'll run into
@@ -154,7 +153,6 @@ class RedisQuotaTest(TestCase):
         for scope, prefix in [
             (QuotaScope.PROJECT, "p"),
             (QuotaScope.ORGANIZATION, "o"),
-            (QuotaScope.GLOBAL, "g"),
         ]:
             expected_quotas[(scope, None)] = f"{prefix}amb"
             for use_case in CARDINALITY_LIMIT_USE_CASES:
@@ -174,9 +172,7 @@ class RedisQuotaTest(TestCase):
             else:
                 assert quota.namespace == expected_use_case.value
             assert quota.window == 10
-            if expected_scope == QuotaScope.GLOBAL:
-                assert quota.reason_code == "global_abuse_limit"
-            elif expected_scope == QuotaScope.ORGANIZATION:
+            if expected_scope == QuotaScope.ORGANIZATION:
                 assert quota.reason_code == "org_abuse_limit"
             elif expected_scope == QuotaScope.PROJECT:
                 assert quota.reason_code == "project_abuse_limit"

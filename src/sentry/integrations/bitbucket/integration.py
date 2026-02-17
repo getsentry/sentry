@@ -42,6 +42,7 @@ from sentry.utils.http import absolute_uri
 from .client import BitbucketApiClient
 from .issues import BitbucketIssuesSpec
 from .repository import BitbucketRepositoryProvider
+from .utils import parse_bitbucket_src_url
 
 DESCRIPTION = """
 Connect your Sentry organization to Bitbucket, enabling the following features:
@@ -164,7 +165,7 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
         return [repo for repo in repos if repo.name not in accessible_repos]
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith(f'https://{self.model.metadata["domain_name"]}') or url.startswith(
+        return url.startswith(f"https://{self.model.metadata['domain_name']}") or url.startswith(
             "https://bitbucket.org",
         )
 
@@ -172,13 +173,15 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
         return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/src/", "")
-        branch, _, _ = url.partition("/")
+        if not repo.url:
+            return ""
+        branch, _ = parse_bitbucket_src_url(repo.url, url)
         return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/src/", "")
-        _, _, source_path = url.partition("/")
+        if not repo.url:
+            return ""
+        _, source_path = parse_bitbucket_src_url(repo.url, url)
         return source_path
 
     # Bitbucket only methods

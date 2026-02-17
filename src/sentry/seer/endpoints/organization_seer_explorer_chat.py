@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.conduit.auth import get_conduit_credentials
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -75,6 +79,10 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         """
         Get the current state of a Seer Explorer session.
         """
+        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        if not has_access:
+            raise PermissionDenied(error)
+
         if not run_id:
             return Response({"session": None}, status=404)
 
@@ -102,7 +110,12 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
 
         Returns:
         - run_id: The run ID.
+        - conduit: Optional Conduit credentials for streaming (if streaming is enabled).
         """
+        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        if not has_access:
+            raise PermissionDenied(error)
+
         serializer = SeerExplorerChatSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -112,12 +125,21 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
 
+        # Generate Conduit credentials for streaming if enabled
+        conduit_credentials = None
+        if features.has("organizations:seer-explorer-streaming", organization):
+            try:
+                conduit_credentials = get_conduit_credentials(organization.id)
+            except ValueError as e:
+                sentry_sdk.capture_exception(e, level="warning")
+
         try:
+            enable_coding = organization.get_option("sentry:enable_seer_coding", True)
             client = SeerExplorerClient(
                 organization,
                 request.user,
                 is_interactive=True,
-                enable_coding=True,
+                enable_coding=enable_coding,
             )
             if run_id:
                 # Continue existing conversation
@@ -126,13 +148,33 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     prompt=query,
                     insert_index=insert_index,
                     on_page_context=on_page_context,
+                    conduit_channel_id=(
+                        conduit_credentials.channel_id if conduit_credentials else None
+                    ),
+                    conduit_url=conduit_credentials.url if conduit_credentials else None,
                 )
             else:
                 # Start new conversation
                 result_run_id = client.start_run(
                     prompt=query,
                     on_page_context=on_page_context,
+                    conduit_channel_id=(
+                        conduit_credentials.channel_id if conduit_credentials else None
+                    ),
+                    conduit_url=conduit_credentials.url if conduit_credentials else None,
                 )
-            return Response({"run_id": result_run_id})
+
+            # Build response
+            response_data: dict[str, object] = {"run_id": result_run_id}
+
+            # Include conduit credentials for frontend if streaming is enabled
+            if conduit_credentials:
+                response_data["conduit"] = {
+                    "token": conduit_credentials.token,
+                    "channel_id": conduit_credentials.channel_id,
+                    "url": conduit_credentials.url,
+                }
+
+            return Response(response_data)
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e

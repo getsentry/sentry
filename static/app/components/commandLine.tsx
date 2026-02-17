@@ -20,7 +20,7 @@ const Wrapper = styled('code')`
   color: ${p => p.theme.colors.pink500};
   background: ${p => p.theme.colors.pink100};
   border: 1px solid ${p => p.theme.colors.pink200};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.md};
   white-space: nowrap;
 `;

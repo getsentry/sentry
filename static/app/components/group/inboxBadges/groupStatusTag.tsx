@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import TimeSince from 'sentry/components/timeSince';
 import type {TagVariant} from 'sentry/utils/theme';
 
@@ -11,14 +12,14 @@ interface GroupStatusBadgeProps {
   dateAdded?: string;
   fontSize?: 'sm' | 'md';
   tooltip?: React.ReactNode;
-  type?: TagVariant;
+  variant?: TagVariant;
 }
 
 /**
  * A styled tag shared between the inbox reason badge and the status badge.
  */
 export function GroupStatusTag({
-  type = 'default',
+  variant = 'muted',
   fontSize = 'sm',
   tooltip,
   dateAdded,
@@ -26,11 +27,11 @@ export function GroupStatusTag({
 }: GroupStatusBadgeProps) {
   return (
     <Tooltip title={tooltip} skipWrapper>
-      <StyledTag type={type} fontSize={fontSize}>
+      <StyledTag variant={variant} fontSize={fontSize}>
         {children}
         {dateAdded && (
           <Fragment>
-            <Separator type={type}>{' | '}</Separator>
+            <Separator variant={variant}>{' | '}</Separator>
             <TimeSince
               date={dateAdded}
               suffix=""
@@ -47,10 +48,9 @@ export function GroupStatusTag({
 const StyledTag = styled(Tag, {
   shouldForwardProp: p => p !== 'fontSize',
 })<{fontSize: 'sm' | 'md'}>`
-  font-size: ${p => (p.fontSize === 'sm' ? p.theme.fontSize.sm : p.theme.fontSize.md)};
+  font-size: ${p => (p.fontSize === 'sm' ? p.theme.font.size.sm : p.theme.font.size.md)};
 `;
 
-const Separator = styled('span')<{type: TagVariant}>`
-  color: ${p => p.theme.tag[p.type].border};
+const Separator = styled('span')<{variant: TagVariant}>`
   opacity: 80%;
 `;

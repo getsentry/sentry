@@ -40,7 +40,6 @@ class SendTestNotification(GroupType):
 
 
 def get_test_notification_event_data(project) -> GroupEvent | None:
-
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         project_id=project.id,

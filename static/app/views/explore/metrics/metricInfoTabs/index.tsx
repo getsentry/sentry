@@ -1,6 +1,6 @@
 import {Flex} from '@sentry/scraps/layout';
+import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
-import {TabList, TabPanels, TabStateProvider} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
@@ -38,7 +38,7 @@ export default function MetricInfoTabs({
   const setAggregatesMode = useSetQueryParamsMode();
   return (
     <TabStateProvider<Mode>
-      defaultValue={queryParamsMode}
+      value={queryParamsMode}
       onChange={mode => {
         setAggregatesMode(mode);
       }}
@@ -47,12 +47,12 @@ export default function MetricInfoTabs({
       {(orientation === 'right' || visualize.visible) && (
         <Flex direction="row" justify="between" align="center" paddingRight="xl">
           <TabListWrapper orientation={orientation}>
-            <TabList>
-              <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
-                {t('Aggregates')}
-              </TabList.Item>
+            <TabList variant="floating">
               <TabList.Item key={Mode.SAMPLES} disabled={contentsHidden}>
                 {t('Samples')}
+              </TabList.Item>
+              <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
+                {t('Aggregates')}
               </TabList.Item>
             </TabList>
           </TabListWrapper>

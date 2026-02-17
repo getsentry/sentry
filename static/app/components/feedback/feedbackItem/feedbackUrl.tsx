@@ -44,7 +44,9 @@ export default function FeedbackUrl({eventData, feedbackItem}: Props) {
       title={t('URL')}
     >
       <StyledTextCopyInput
-        style={urlIsLink ? {cursor: 'pointer', color: theme.colors.blue500} : undefined}
+        style={
+          urlIsLink ? {cursor: 'pointer', color: theme.tokens.content.accent} : undefined
+        }
         onClick={
           urlIsLink
             ? e => {

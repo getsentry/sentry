@@ -1,6 +1,6 @@
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
@@ -47,14 +47,14 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
     : t('Release Health is not yet supported on this platform.');
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <LinkButton
         size="sm"
         priority="primary"
         external
         href={health ? DOCS_HEALTH_URL : DOCS_URL}
         disabled={setupDisabled}
-        title={setupDisabled ? setupDisabledTooltip : undefined}
+        tooltipProps={{title: setupDisabled ? setupDisabledTooltip : undefined}}
       >
         {t('Start Setup')}
       </LinkButton>
@@ -73,7 +73,7 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
           )}
         </FeatureTourModal>
       )}
-    </ButtonBar>
+    </Grid>
   );
 }
 

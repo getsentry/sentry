@@ -9,7 +9,6 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.commit import Commit
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import RepositorySettings
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -55,7 +54,7 @@ class OrganizationRepositoryGetTest(APITestCase):
             organization_id=org.id,
             provider="integrations:github",
         )
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
             code_review_triggers=["on_new_commit", "on_ready_for_review"],
@@ -88,7 +87,13 @@ class OrganizationRepositoryGetTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["id"] == str(repo.id)
-        assert response.data["settings"] is None
+        # Settings are auto-created for GitHub repos with org defaults
+        assert response.data["settings"] is not None
+        assert response.data["settings"]["enabledCodeReview"] is False
+        assert response.data["settings"]["codeReviewTriggers"] == [
+            "on_ready_for_review",
+            "on_new_commit",
+        ]
 
 
 class OrganizationRepositoryDeleteTest(APITestCase):

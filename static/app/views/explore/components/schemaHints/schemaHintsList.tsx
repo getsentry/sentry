@@ -5,7 +5,9 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -49,6 +51,7 @@ interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
+  booleanTags?: TagCollection;
   isLoading?: boolean;
   /**
    * The width of all elements to the right of the search bar.
@@ -115,7 +118,6 @@ export function parseTagKey(tagKey: string) {
 const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
   [SchemaHintsSources.EXPLORE]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.LOGS]: LOGS_FILTER_KEY_SECTIONS,
-  [SchemaHintsSources.AI_GENERATIONS]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.CONVERSATIONS]: SPANS_FILTER_KEY_SECTIONS,
 };
 
@@ -139,6 +141,7 @@ function formatHintOperator(hint: Tag) {
 
 function SchemaHintsList({
   supportedAggregates,
+  booleanTags = {},
   numberTags,
   stringTags,
   isLoading,
@@ -168,6 +171,7 @@ function SchemaHintsList({
     const filterTags = removeHiddenSchemaHintsKeys({
       ...functionTags,
       ...numberTags,
+      ...booleanTags,
       ...stringTags,
     });
 
@@ -187,7 +191,7 @@ function SchemaHintsList({
     const otherTags = getTagsFromKeys(otherKeys, filterTags);
 
     return [...schemaHintsPresetTags, ...sectionSortedTags, ...otherTags];
-  }, [functionTags, numberTags, stringTags, source]);
+  }, [functionTags, numberTags, booleanTags, stringTags, source]);
 
   // In the bar, we can limit the schema hints shown to ONLY be ones in the list order set (eg. logs), but should still show the fullFilterTagsSorted in the drawer.
   const filterTagsSorted = useMemo(() => {
@@ -429,19 +433,19 @@ function SchemaHintsList({
     }
 
     return (
-      <HintTextContainer>
+      <Flex gap="xs">
         <HintName>{formatHintName(hint)}</HintName>
         <HintOperator>{formatHintOperator(hint)}</HintOperator>
         <HintValue>...</HintValue>
-      </HintTextContainer>
+      </Flex>
     );
   };
 
   if (isLoading) {
     return (
-      <SchemaHintsLoadingContainer>
+      <Flex justify="center" align="center" height="24px">
         <LoadingIndicator mini />
-      </SchemaHintsLoadingContainer>
+      </Flex>
     );
   }
 
@@ -477,13 +481,6 @@ const SchemaHintsContainer = styled('div')`
   }
 `;
 
-const SchemaHintsLoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 24px;
-`;
-
 const SchemaHintOption = styled(Button)`
   /* Ensures that filters do not grow outside of the container */
   min-width: fit-content;
@@ -504,23 +501,17 @@ export const SchemaHintsSection = styled('div')`
   }
 `;
 
-const HintTextContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-`;
-
 const HintName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
 const HintOperator = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const HintValue = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.colors.blue500};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.accent};
 `;

@@ -1,8 +1,7 @@
 import {Alert} from '@sentry/scraps/alert';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
@@ -35,7 +34,7 @@ const DSYM_INPUT_FILE =
 function getStripDebugSymbolsContent() {
   return (
     <Flex direction="column" gap="lg">
-      <Alert type="warning">
+      <Alert variant="warning">
         {t(
           'Stripping symbols before creating a dSYM breaks crash symbolication. Confirm your release build still produces and uploads dSYMs before stripping.'
         )}

@@ -15,7 +15,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import InvoiceDetails from 'getsentry/views/invoiceDetails';
 
 describe('InvoiceDetails', () => {
-  const {organization, router, routerProps} = initializeOrg();
+  const {organization} = initializeOrg();
   const basicInvoice = InvoiceFixture(
     {
       dateCreated: '2021-09-20T22:33:38.042Z',
@@ -77,7 +77,14 @@ describe('InvoiceDetails', () => {
       method: 'GET',
       body: basicInvoice,
     });
-    render(<InvoiceDetails {...routerProps} params={params} />);
+    render(<InvoiceDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+        },
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
+      },
+    });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(await screen.findByText('Sentry')).toBeInTheDocument();
@@ -109,7 +116,14 @@ describe('InvoiceDetails', () => {
       method: 'GET',
       body: annualInvoice,
     });
-    render(<InvoiceDetails {...routerProps} params={params} />);
+    render(<InvoiceDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+        },
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
+      },
+    });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(
@@ -126,7 +140,14 @@ describe('InvoiceDetails', () => {
       body: creditInvoice,
     });
     const creditParams = {invoiceGuid: creditInvoice.id};
-    render(<InvoiceDetails {...routerProps} params={creditParams} />);
+    render(<InvoiceDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${creditParams.invoiceGuid}/`,
+        },
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
+      },
+    });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(await screen.findByText('Sentry')).toBeInTheDocument();
@@ -141,7 +162,14 @@ describe('InvoiceDetails', () => {
       statusCode: 404,
       body: {},
     });
-    render(<InvoiceDetails {...routerProps} params={params} />);
+    render(<InvoiceDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+        },
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
+      },
+    });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(
@@ -150,11 +178,6 @@ describe('InvoiceDetails', () => {
   });
 
   it('renders without pay now for self serve partner', async () => {
-    router.location = {
-      ...router.location,
-      query: {referrer: 'billing-failure'},
-    };
-
     const pastDueInvoice = InvoiceFixture(
       {
         amount: 8900,
@@ -186,7 +209,15 @@ describe('InvoiceDetails', () => {
       body: pastDueInvoice,
     });
 
-    render(<InvoiceDetails {...routerProps} params={pastDueParams} />);
+    render(<InvoiceDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${pastDueParams.invoiceGuid}/`,
+          query: {referrer: 'billing-failure'},
+        },
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
+      },
+    });
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
 
@@ -206,7 +237,14 @@ describe('InvoiceDetails', () => {
       url: `/customers/${organization.slug}/invoices/${basicInvoice.id}/`,
       method: 'POST',
     });
-    render(<InvoiceDetails {...routerProps} params={params} />);
+    render(<InvoiceDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+        },
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
+      },
+    });
     await waitFor(() => expect(mockget).toHaveBeenCalled());
 
     const input = await screen.findByPlaceholderText('you@example.com');
@@ -258,13 +296,13 @@ describe('InvoiceDetails', () => {
     });
 
     renderGlobalModal();
-    render(<InvoiceDetails {...routerProps} params={pastDueParams} />, {
+    render(<InvoiceDetails />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/invoices/${pastDueInvoice.id}/`,
+          pathname: `/organizations/${organization.slug}/invoices/${pastDueParams.invoiceGuid}/`,
           query: {referrer: 'billing-failure'},
         },
-        route: `/organizations/${organization.slug}/invoices/:invoiceGuid/`,
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
       },
     });
 
@@ -274,10 +312,8 @@ describe('InvoiceDetails', () => {
     expect(screen.getByText(/Receipt Details/)).toBeInTheDocument();
     expect(screen.getAllByText(/Pay Now/)).toHaveLength(2);
     expect(screen.getByText(/Pay Bill/)).toBeInTheDocument();
-    expect(screen.getByText(/Card Details/)).toBeInTheDocument();
     expect(screen.getByTestId('modal-backdrop')).toBeInTheDocument();
-    expect(screen.getByTestId('cancel')).toBeInTheDocument();
-    expect(screen.getByTestId('submit')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 
   describe('Invoice Details Attributes', () => {
@@ -301,7 +337,14 @@ describe('InvoiceDetails', () => {
         method: 'GET',
         body: basicInvoice,
       });
-      render(<InvoiceDetails {...routerProps} params={params} />);
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
 
       await waitFor(() => expect(mockInvoice).toHaveBeenCalled());
 
@@ -338,7 +381,14 @@ describe('InvoiceDetails', () => {
         method: 'GET',
         body: basicInvoiceWithSentryTaxIds,
       });
-      render(<InvoiceDetails {...routerProps} params={params} />);
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
 
       await waitFor(() => expect(mockInvoice).toHaveBeenCalled());
       expect(await screen.findByText('Country Id: 1234')).toBeInTheDocument();
@@ -359,7 +409,14 @@ describe('InvoiceDetails', () => {
         method: 'GET',
         body: basicInvoiceReverseCharge,
       });
-      render(<InvoiceDetails {...routerProps} params={params} />);
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
 
       await waitFor(() => expect(mockInvoice).toHaveBeenCalled());
       expect(await screen.findByText('VAT')).toBeInTheDocument();

@@ -1,6 +1,9 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
@@ -10,8 +13,6 @@ import {
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
 import {useTimezone} from 'sentry/components/timezoneProvider';
@@ -75,7 +76,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
     (new Date(event.dateReceived).valueOf() - start.valueOf()) / msPerPixel;
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <LinkButton
         size="xs"
         icon={<IconOpen />}
@@ -90,7 +91,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
         {t('View in Monitor Details')}
       </LinkButton>
       <ResolutionSelector />
-    </ButtonBar>
+    </Grid>
   );
 
   return (
@@ -147,7 +148,7 @@ const TimelineContainer = styled(Panel)`
 `;
 
 const StyledGridLineTimeLabels = styled(GridLineLabels)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TimelineWidthTracker = styled('div')`
@@ -158,7 +159,8 @@ const TimelineWidthTracker = styled('div')`
 `;
 
 const EventLineTick = styled('div')<{left: number}>`
-  background: ${p => p.theme.translucentBorder};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   width: 2px;
   height: 100%;
   grid-row: 2 / 3;
@@ -174,7 +176,7 @@ const EventLineLabel = styled(Overlay, {
   width: max-content;
   padding: ${space(0.75)} ${space(1)};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   position: absolute;
   bottom: ${space(1)};
   left: clamp(0px, ${p => p.left}px, calc(${p => p.timelineWidth}px - 50px));

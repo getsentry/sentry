@@ -182,7 +182,6 @@ describe('DashboardTable', () => {
         data: expect.objectContaining({
           title: 'Dashboard',
           widgets: [],
-          duplicate: true,
         }),
       })
     );

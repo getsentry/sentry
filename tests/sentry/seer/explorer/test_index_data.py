@@ -60,7 +60,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
                     )
                     spans.append(non_tx_span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Call our function
         result = get_transactions_for_project(self.project.id)
@@ -109,14 +109,14 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
                         "description": f"span-{i}-{trace_suffix}",
                         "sentry_tags": {"transaction": transaction_name},
                         "trace_id": trace_id,
-                        "parent_span_id": None if i == 0 else f"parent-{i-1}",
+                        "parent_span_id": None if i == 0 else f"parent-{i - 1}",
                         "is_segment": i == 0,  # First span is the transaction span
                     },
                     start_ts=self.ten_mins_ago + timedelta(minutes=start_offset_minutes + i),
                 )
                 spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Call our function
         result = get_trace_for_transaction(transaction_name, self.project.id)
@@ -235,7 +235,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
             }
         )
 
-        self.store_spans([span1, span2, span3, span4], is_eap=True)
+        self.store_spans([span1, span2, span3, span4])
 
         with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
             # Mock profile service responses for both transaction and continuous profiles
@@ -429,7 +429,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         )
         span4.update({"profile_id": different_profile_id})
 
-        self.store_spans([span1, span2, span3, span4], is_eap=True)
+        self.store_spans([span1, span2, span3, span4])
 
         # Mock the external profiling service calls
         with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
@@ -556,7 +556,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         )
         spans.append(span_different)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Mock the external profiling service calls
         with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
@@ -678,7 +678,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         )
         span3.update({"profile_id": profile_id})
 
-        self.store_spans([span1, span2, span3], is_eap=True)
+        self.store_spans([span1, span2, span3])
 
         captured_timestamps = {}
 
@@ -797,9 +797,9 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         for group in groups:
             latest_event = group.get_latest_event()
             transaction_tag = latest_event.get_tag("transaction")
-            assert (
-                transaction_tag == transaction_name
-            ), f"Expected transaction tag '{transaction_name}', got '{transaction_tag}'"
+            assert transaction_tag == transaction_name, (
+                f"Expected transaction tag '{transaction_name}', got '{transaction_tag}'"
+            )
 
         result = get_issues_for_transaction(transaction_name, self.project.id)
 

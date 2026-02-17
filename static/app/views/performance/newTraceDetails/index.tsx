@@ -118,7 +118,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
-    additionalAttributes: ['thread.id'],
+    additionalAttributes: ['thread.id', 'tags[performance.timeOrigin,number]'],
   });
   const tree = useTraceTree({traceSlug, trace, replay: null});
 

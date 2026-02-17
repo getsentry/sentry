@@ -3,11 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import ProgressBar from 'sentry/components/progressBar';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -15,6 +16,7 @@ import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
+import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {
   OnDemandBudgetMode,
@@ -23,14 +25,13 @@ import {
 } from 'getsentry/types';
 import {displayBudgetName, hasBillingAccess} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
+import {openSpendLimitsPricingModal} from 'getsentry/views/spendLimits/pricingModal';
 import {
   getTotalBudget,
   getTotalSpend,
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
-} from 'getsentry/views/onDemandBudgets/utils';
-import {openSpendLimitsPricingModal} from 'getsentry/views/spendLimits/modal';
+} from 'getsentry/views/spendLimits/utils';
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
 function PaygCard({
@@ -143,7 +144,7 @@ function PaygCard({
           ? [
               <Flex key="payg-form" direction="column" gap="xl" width="100%">
                 {error && (
-                  <Alert type="error" key="error">
+                  <Alert variant="danger" key="error">
                     {error}
                   </Alert>
                 )}
@@ -206,11 +207,11 @@ function PaygCard({
                   <Button
                     size="xs"
                     disabled={!hasPaymentSource}
-                    title={
-                      hasPaymentSource
+                    tooltipProps={{
+                      title: hasPaymentSource
                         ? undefined
-                        : t('You must add a payment method to edit the limit')
-                    }
+                        : t('You must add a payment method to edit the limit'),
+                    }}
                     onClick={() => {
                       handleEditPayg(false);
                     }}
@@ -262,8 +263,8 @@ const Currency = styled('div')`
     position: absolute;
     padding: 9px ${p => p.theme.space.xl} ${p => p.theme.space.md};
     content: '$';
-    color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSize.sm};
+    color: ${p => p.theme.tokens.content.secondary};
+    font-size: ${p => p.theme.font.size.sm};
     font-weight: bold;
   }
 `;

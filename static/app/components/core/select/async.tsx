@@ -18,10 +18,10 @@ export type Result = {
   value: string;
 };
 
-export interface SelectAsyncControlProps {
+export interface SelectAsyncControlProps<TData = any> {
   // TODO(ts): Improve data type
   onQuery: (query: string | undefined) => Record<string, unknown>;
-  onResults: (data: any) => Result[];
+  onResults: (data: TData) => Result[];
   url: string;
   value: ControlProps['value'];
   defaultOptions?: boolean | GeneralSelectValue[];
@@ -35,13 +35,15 @@ type State = {
 /**
  * Performs an API request to `url` to fetch the options
  */
-class SelectAsyncControl extends Component<SelectAsyncControlProps> {
+class SelectAsyncControl<TData = unknown> extends Component<
+  SelectAsyncControlProps<TData>
+> {
   static defaultProps = {
     placeholder: '--',
     defaultOptions: true,
   };
 
-  constructor(props: any) {
+  constructor(props: SelectAsyncControlProps<TData>) {
     super(props);
     this.api = new Client();
     this.state = {
@@ -61,9 +63,9 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   }
 
   api: Client | null;
-  cache: Record<string, any>;
+  cache: Record<string, unknown>;
 
-  doQuery = debounce(cb => {
+  doQuery = debounce((cb: (...args: [RequestError] | [null, TData]) => void) => {
     const {url, onQuery} = this.props;
     const {query} = this.state;
 
@@ -82,12 +84,12 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   }, 250);
 
   handleLoadOptions = () =>
-    new Promise((resolve, reject) => {
-      this.doQuery((err: any, result: any) => {
-        if (err) {
-          reject(err);
+    new Promise<TData>((resolve, reject) => {
+      this.doQuery((...errorOrData) => {
+        if (errorOrData[0]) {
+          reject(errorOrData[0]);
         } else {
-          resolve(result);
+          resolve(errorOrData[1]);
         }
       });
     }).then(

@@ -4,7 +4,7 @@ from uuid import UUID
 
 import pytest
 
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -695,9 +695,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             status_code=400,
             **{"config": {"schedule": "0 0 0 * * *"}},
         )
-        assert (
-            resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
-        ), resp.content
+        assert resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported", (
+            resp.content
+        )
 
         resp = self.get_error_response(
             self.organization.slug,
@@ -707,9 +707,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             # Using a \u3000 ideographic space
             **{"config": {"schedule": "0 0 0 * *　*"}},
         )
-        assert (
-            resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
-        ), resp.content
+        assert resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported", (
+            resp.content
+        )
 
     def test_cronjob_interval(self) -> None:
         monitor = self._create_monitor()
@@ -844,8 +844,8 @@ class BaseUpdateMonitorTest(MonitorTestCase):
     ):
         check_seat.return_value = SeatAssignmentResult(assignable=True)
 
-        def dummy_assign(data_category, monitor):
-            assert monitor.slug == old_slug
+        def dummy_assign(data_category=None, seat_object=None):
+            assert seat_object.slug == old_slug
             return Outcome.ACCEPTED
 
         assign_seat.side_effect = dummy_assign
@@ -927,7 +927,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
             object_id=monitor.id, model_name="Monitor"
         ).exists()
         mock_update_monitor_slug.assert_called_once()
-        mock_disable_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
+        mock_disable_seat.assert_called_once_with(seat_object=monitor)
 
     def test_mismatched_org_slugs(self) -> None:
         monitor = self._create_monitor()

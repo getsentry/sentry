@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import {Badge} from 'sentry/components/core/badge';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -62,7 +62,7 @@ export function CommitsFilesSection({
         <TabList.Item key="commits" textValue={t('Commits')}>
           <Flex>
             <span>{t('Commits')}</span>
-            <Badge type="default">
+            <Badge variant="muted">
               {isLoadingMeta
                 ? '-'
                 : isMetaError
@@ -74,7 +74,7 @@ export function CommitsFilesSection({
         <TabList.Item key="files" textValue={t('File Changes')}>
           <Flex>
             <span>{t('File Changes')}</span>
-            <Badge type="default">
+            <Badge variant="muted">
               {isLoadingMeta
                 ? '-'
                 : isMetaError

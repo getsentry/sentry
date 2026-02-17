@@ -65,7 +65,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
 
   const colors = [...theme.chart.getColorPalette(5)].reverse();
 
@@ -170,7 +170,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
                 'low'
               )}
               hideError
-              onError={setPageError}
+              onError={setPageDanger}
               queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
             />
           );

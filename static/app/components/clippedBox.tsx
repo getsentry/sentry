@@ -1,10 +1,12 @@
 import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import {useReducedMotion} from 'framer-motion';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 

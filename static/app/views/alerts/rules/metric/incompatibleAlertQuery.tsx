@@ -1,8 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -114,14 +115,14 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
   return (
     <Alert.Container>
       <StyledAlert
-        type="info"
+        variant="info"
         trailingItems={
           <Button
             icon={<IconClose size="sm" />}
             aria-label={t('Close')}
             size="zero"
             onClick={() => setIsOpen(false)}
-            borderless
+            priority="transparent"
           />
         }
       >

@@ -14,6 +14,7 @@ describe('awslambda onboarding docs', () => {
           version: '1.99.9',
         },
       },
+      selectedProducts: [ProductSolution.LOGS, ProductSolution.METRICS],
     });
 
     // Renders main headings
@@ -36,6 +37,16 @@ describe('awslambda onboarding docs', () => {
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.TracesSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
     ).toBeInTheDocument();
   });
 });

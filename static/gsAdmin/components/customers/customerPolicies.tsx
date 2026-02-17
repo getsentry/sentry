@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import ResultGrid from 'admin/components/resultGrid';
 

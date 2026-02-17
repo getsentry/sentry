@@ -107,9 +107,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.attachment_tab.screenshot_modal_deleted': Record<string, unknown>;
   'issue_details.attachment_tab.screenshot_modal_download': Record<string, unknown>;
   'issue_details.attachment_tab.screenshot_modal_opened': Record<string, unknown>;
-  'issue_details.attachment_tab.screenshot_title_clicked': Record<string, unknown>;
   'issue_details.event_json_clicked': {group_id: number; streamline: boolean};
-  'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.issue_tab.screenshot_dropdown_deleted': Record<string, unknown>;
   'issue_details.issue_tab.screenshot_dropdown_download': Record<string, unknown>;
   'issue_details.issue_tab.screenshot_modal_deleted': Record<string, unknown>;
@@ -137,6 +135,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.seer_opened': {
     autofix_exists: boolean;
     autofix_step_type: string | null;
+    group_id: string;
     has_coded_solution: boolean;
     has_pr: boolean;
     has_root_cause: boolean;
@@ -177,13 +176,6 @@ export type TeamInsightsEventParameters = {
   'releases_list.click_add_release_health': {
     project_id: number;
   };
-  'seer.autofix.feedback_submitted': {
-    autofix_run_id: string;
-    group_id: string;
-    positive: boolean;
-    step_type: 'root_cause' | 'solution' | 'changes';
-    user_id: string;
-  };
   'suspect_commit.feedback_submitted': {
     choice_selected: boolean;
     group_owner_id: number;
@@ -218,8 +210,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
-  'issue_details.attachment_tab.screenshot_title_clicked':
-    'Attachment Tab: Screenshot title clicked',
   'issue_details.attachment_tab.screenshot_modal_deleted':
     'Attachment Tab: Screenshot deleted from modal',
   'issue_details.attachment_tab.screenshot_modal_download':
@@ -227,7 +217,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.attachment_tab.screenshot_modal_opened':
     'Attachment Tab: Screenshot modal opened',
   'issue_details.event_json_clicked': 'Issue Details: Event JSON Clicked',
-  'issue_details.event_navigation_clicked': 'Issue Details: Event Navigation Clicked',
   'issue_details.issue_tab.screenshot_dropdown_deleted':
     'Issue Details: Screenshot deleted from dropdown',
   'issue_details.issue_tab.screenshot_dropdown_download':
@@ -263,7 +252,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
   'release_detail.pagination': 'Release Detail: Pagination',
   'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
-  'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
   trace_timeline_clicked: 'Trace Timeline Clicked',
   trace_timeline_more_events_clicked: 'Trace Timeline More Events Clicked',
   'suspect_commit.feedback_submitted': 'Suspect Commit Feedback Submitted',

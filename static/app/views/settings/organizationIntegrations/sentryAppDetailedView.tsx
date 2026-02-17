@@ -1,6 +1,10 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
@@ -9,8 +13,6 @@ import {
 } from 'sentry/actionCreators/sentryAppInstallations';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSubtract} from 'sentry/icons';
@@ -21,6 +23,7 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getSentryAppInstallStatus,
@@ -45,7 +48,11 @@ import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrat
 import {SplitInstallationIdModal} from 'sentry/views/settings/organizationIntegrations/SplitInstallationIdModal';
 
 function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
-  return [`/organizations/${orgSlug}/sentry-app-installations/`];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/sentry-app-installations/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+  ];
 }
 
 export default function SentryAppDetailedView() {
@@ -60,19 +67,33 @@ export default function SentryAppDetailedView() {
     data: sentryApp,
     isPending: isSentryAppPending,
     isError: isSentryAppError,
-  } = useApiQuery<SentryApp>([`/sentry-apps/${integrationSlug}/`], {
-    staleTime: Infinity,
-    retry: false,
-  });
+  } = useApiQuery<SentryApp>(
+    [
+      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+        path: {sentryAppIdOrSlug: integrationSlug},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+    }
+  );
 
   const {
     data: featureData = [],
     isPending: isFeatureDataPending,
     isError: isFeatureDataError,
-  } = useApiQuery<IntegrationFeature[]>([`/sentry-apps/${integrationSlug}/features/`], {
-    staleTime: Infinity,
-    retry: false,
-  });
+  } = useApiQuery<IntegrationFeature[]>(
+    [
+      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/features/`, {
+        path: {sentryAppIdOrSlug: integrationSlug},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+    }
+  );
 
   const {
     data: appInstalls = [],
@@ -268,7 +289,7 @@ export default function SentryAppDetailedView() {
       <PermissionWrapper>
         <Title>{t('Permissions')}</Title>
         {permissions.read.length > 0 && (
-          <Permission>
+          <Flex>
             <Indicator />
             <Text key="read">
               {tct('[read] access to [resources] resources', {
@@ -276,10 +297,10 @@ export default function SentryAppDetailedView() {
                 resources: permissions.read.join(', '),
               })}
             </Text>
-          </Permission>
+          </Flex>
         )}
         {permissions.write.length > 0 && (
-          <Permission>
+          <Flex>
             <Indicator />
             <Text key="write">
               {tct('[read] and [write] access to [resources] resources', {
@@ -288,10 +309,10 @@ export default function SentryAppDetailedView() {
                 resources: permissions.write.join(', '),
               })}
             </Text>
-          </Permission>
+          </Flex>
         )}
         {permissions.admin.length > 0 && (
-          <Permission>
+          <Flex>
             <Indicator />
             <Text key="admin">
               {tct('[admin] access to [resources] resources', {
@@ -299,7 +320,7 @@ export default function SentryAppDetailedView() {
                 resources: permissions.admin.join(', '),
               })}
             </Text>
-          </Permission>
+          </Flex>
         )}
       </PermissionWrapper>
     );
@@ -419,22 +440,18 @@ const Text = styled('p')`
   margin: 0px 6px;
 `;
 
-const Permission = styled('div')`
-  display: flex;
-`;
-
 const PermissionWrapper = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
 const Title = styled('p')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
   align-self: center;
-  color: ${p => p.theme.success};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const InstallButton = styled(Button)`
@@ -442,7 +459,7 @@ const InstallButton = styled(Button)`
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.tokens.background.primary};
 
   border: ${p => `1px solid ${p.theme.colors.gray400}`};

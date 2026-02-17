@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {InlineCode} from '@sentry/scraps/code';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 
@@ -48,7 +50,7 @@ function StoryLayout() {
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
-          <Flex flexGrow={1}>
+          <Flex flexGrow={1} minWidth="0px">
             <StoryTabPanels />
           </Flex>
           <ErrorBoundary>
@@ -99,7 +101,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
               {props.story.exports.frontmatter?.status ? (
                 props.story.exports.frontmatter.status === 'stable' ? null : (
                   <Tag
-                    type={
+                    variant={
                       props.story.exports.frontmatter.status === 'in-progress'
                         ? 'warning'
                         : 'promotion'
@@ -160,7 +162,7 @@ function StoryTabPanels() {
   }
 
   return (
-    <TabPanels>
+    <StyledTabPanels>
       <TabPanels.Item key="usage">
         <StoryModuleExports exports={story.exports.documentation?.exports} />
         <StoryUsage />
@@ -171,7 +173,7 @@ function StoryTabPanels() {
       <TabPanels.Item key="resources">
         <StoryResources />
       </TabPanels.Item>
-    </TabPanels>
+    </StyledTabPanels>
   );
 }
 const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>([
@@ -190,11 +192,11 @@ function StoryUsage() {
   return (
     <Fragment>
       {Story && (
-        <Storybook.Section>
+        <Storybook.Section flexGrow={1}>
           <ErrorBoundary
             fallback={
-              <Alert type="error" showIcon={false}>
-                Problem loading <code>{filename}</code>
+              <Alert variant="danger" showIcon={false}>
+                Problem loading <InlineCode>{filename}</InlineCode>
               </Alert>
             }
           >
@@ -262,9 +264,15 @@ function StoryModuleExports(props: {
   return <Storybook.ModuleExports exports={props.exports} />;
 }
 
+const StyledTabPanels = styled(TabPanels)`
+  flex-grow: 1;
+  min-width: 0;
+`;
+
 const StoryContainer = styled('div')`
   max-width: 580px;
   width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space['3xl']};

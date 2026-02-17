@@ -68,11 +68,10 @@ class ProjectTest(APITestCase, TestCase):
         project = self.create_project(teams=[team])
         project_other = self.create_project(teams=[team])
 
-        rule = Rule.objects.create(
+        rule = self.create_project_rule(
+            name="Golden Rule",
             project=project,
             environment_id=Environment.get_or_create(project, "production").id,
-            label="Golden Rule",
-            data={},
         )
         environment_from_new = self.create_environment(organization=from_org)
         environment_from_existing = self.create_environment(organization=from_org)
@@ -297,20 +296,12 @@ class ProjectTest(APITestCase, TestCase):
             environment=environment,
         )
         snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
-        rule1 = Rule.objects.create(label="another test rule", project=project, owner_team=team)
-        rule2 = Rule.objects.create(
-            label="rule4",
-            project=project,
-            owner_user_id=from_user.id,
-        )
+        rule1 = self.create_project_rule(name="another test rule", project=project, owner_team=team)
+        rule2 = self.create_project_rule(name="rule4", project=project, owner_user_id=from_user.id)
 
         # should keep their owners
-        rule3 = Rule.objects.create(label="rule2", project=project, owner_team=to_team)
-        rule4 = Rule.objects.create(
-            label="rule3",
-            project=project,
-            owner_user_id=to_user.id,
-        )
+        rule3 = self.create_project_rule(name="rule2", project=project, owner_team=to_team)
+        rule4 = self.create_project_rule(name="rule3", project=project, owner_user_id=to_user.id)
 
         assert EnvironmentProject.objects.count() == 1
         assert snuba_query.environment is not None
@@ -463,7 +454,7 @@ class ProjectTest(APITestCase, TestCase):
         team = self.create_team(organization=self.organization)
         assert self.project.add_team(team)
 
-        rule = Rule.objects.create(project=self.project, label="issa rule", owner_team_id=team.id)
+        rule = self.create_project_rule(name="issa rule", owner_team_id=team.id)
         alert_rule = self.create_alert_rule(
             organization=self.organization, owner=Actor.from_id(team_id=team.id)
         )
@@ -732,9 +723,9 @@ class CopyProjectSettingsTest(TestCase):
             project=self.other_project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
 
-        Rule.objects.create(project=self.other_project, label="rule1")
-        Rule.objects.create(project=self.other_project, label="rule2")
-        Rule.objects.create(project=self.other_project, label="rule3")
+        self.create_project_rule(name="rule1", project=self.other_project)
+        self.create_project_rule(name="rule2", project=self.other_project)
+        self.create_project_rule(name="rule3", project=self.other_project)
         # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 

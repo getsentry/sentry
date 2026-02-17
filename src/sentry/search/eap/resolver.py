@@ -133,7 +133,9 @@ class SearchResolver:
         )
 
     @sentry_sdk.trace
-    def resolve_query(self, querystring: str | None) -> tuple[
+    def resolve_query(
+        self, querystring: str | None
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -197,7 +199,9 @@ class SearchResolver:
             )
         )
 
-    def __resolve_query(self, querystring: str | None) -> tuple[
+    def __resolve_query(
+        self, querystring: str | None
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -230,7 +234,9 @@ class SearchResolver:
         else:
             return self._resolve_terms(parsed_terms)
 
-    def _resolve_boolean_conditions(self, terms: event_filter.ParsedTerms) -> tuple[
+    def _resolve_boolean_conditions(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -324,7 +330,9 @@ class SearchResolver:
 
         return where, having, contexts
 
-    def _resolve_terms(self, terms: event_filter.ParsedTerms) -> tuple[
+    def _resolve_terms(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -528,6 +536,62 @@ class SearchResolver:
                 return exists_filter, context_definition
             else:
                 raise InvalidSearchQuery(f"Unsupported operator for None {term.operator}")
+
+        # Handle lists containing None for IN/NOT IN operators
+        if isinstance(value, list) and None in value and term.operator in constants.IN_OPERATORS:
+            non_none_values = [v for v in value if v is not None]
+
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(
+                    key=resolved_column.proto_definition,
+                )
+            )
+
+            if term.operator == "IN":
+                filters = []
+                filters.append(TraceItemFilter(not_filter=NotFilter(filters=[exists_filter])))
+
+                if non_none_values:
+                    filters.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, non_none_values
+                                ),
+                                ignore_case=self.params.case_insensitive
+                                and resolved_column.search_type == "string",
+                            )
+                        )
+                    )
+
+                return (
+                    TraceItemFilter(or_filter=OrFilter(filters=filters)),
+                    context_definition,
+                )
+            else:  # NOT IN
+                filters = [exists_filter]
+
+                if non_none_values:
+                    filters.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, non_none_values
+                                ),
+                                ignore_case=self.params.case_insensitive
+                                and resolved_column.search_type == "string",
+                            )
+                        )
+                    )
+
+                return (
+                    TraceItemFilter(and_filter=AndFilter(filters=filters)),
+                    context_definition,
+                )
 
         if value == "" and context_definition is None:
             exists_filter = TraceItemFilter(
@@ -799,7 +863,9 @@ class SearchResolver:
         return final_contexts
 
     @sentry_sdk.trace
-    def resolve_columns(self, selected_columns: list[str], has_aggregates: bool = False) -> tuple[
+    def resolve_columns(
+        self, selected_columns: list[str], has_aggregates: bool = False
+    ) -> tuple[
         list[ResolvedAttribute | ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
@@ -945,7 +1011,9 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
     @sentry_sdk.trace
-    def resolve_functions(self, columns: list[str]) -> tuple[
+    def resolve_functions(
+        self, columns: list[str]
+    ) -> tuple[
         list[ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
@@ -1085,7 +1153,9 @@ class SearchResolver:
         self._resolved_function_cache[alias] = (resolved_function, resolved_context)
         return self._resolved_function_cache[alias]
 
-    def resolve_equations(self, equations: list[str]) -> tuple[
+    def resolve_equations(
+        self, equations: list[str]
+    ) -> tuple[
         list[ResolvedColumn],
         list[VirtualColumnDefinition],
     ]:
@@ -1097,7 +1167,9 @@ class SearchResolver:
             contexts.extend(context)
         return formulas, contexts
 
-    def resolve_equation(self, equation: str) -> tuple[
+    def resolve_equation(
+        self, equation: str
+    ) -> tuple[
         ResolvedColumn,
         list[VirtualColumnDefinition],
     ]:
@@ -1121,8 +1193,12 @@ class SearchResolver:
                 ),
                 [],
             )
-        lhs, lhs_contexts = self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
-        rhs, rhs_contexts = self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+        lhs, lhs_contexts = (
+            self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
+        )
+        rhs, rhs_contexts = (
+            self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
+        )
         has_aggregates = False
         for function in functions:
             resolved_function, _ = self.resolve_function(function)
@@ -1144,7 +1220,9 @@ class SearchResolver:
             lhs_contexts + rhs_contexts,
         )
 
-    def _resolve_operation(self, operation: arithmetic.OperandType) -> tuple[
+    def _resolve_operation(
+        self, operation: arithmetic.OperandType
+    ) -> tuple[
         Column,
         list[VirtualColumnDefinition],
     ]:
@@ -1154,10 +1232,10 @@ class SearchResolver:
         """
         if isinstance(operation, arithmetic.Operation):
             lhs, lhs_contexts = (
-                self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
+                self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
             )
             rhs, rhs_contexts = (
-                self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+                self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
             )
             vcc = []
             if lhs_contexts:

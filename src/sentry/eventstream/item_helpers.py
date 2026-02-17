@@ -13,13 +13,14 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.utils.eap import hex_to_item_id
 
 
 def serialize_event_data_as_item(
     event: Event | GroupEvent, event_data: Mapping[str, Any], project: Project
 ) -> TraceItem:
     return TraceItem(
-        item_id=event_data["event_id"].encode("utf-8"),
+        item_id=hex_to_item_id(event_data["event_id"]),
         item_type=TRACE_ITEM_TYPE_OCCURRENCE,
         trace_id=event_data["contexts"]["trace"]["trace_id"],
         timestamp=Timestamp(seconds=int(event_data["timestamp"])),
@@ -90,7 +91,10 @@ def encode_attributes(
     tag_keys = set()
     tags = event_data.get("tags")
     if tags is not None:
-        for key, value in tags:
+        for tag in tags:
+            if tag is None:
+                continue
+            key, value = tag
             if value is None:
                 continue
             formatted_key = format_tag_key(key)

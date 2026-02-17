@@ -273,9 +273,9 @@ class SnubaTagStorage(TagStorage):
                 key=tag_key,
                 value=bucket.label,
                 times_seen=int(bucket.value),
-                # TODO: Find way to fetch first/last seen.
+                # TODO: Officially deprecate first seen.
                 first_seen=None,
-                last_seen=None,
+                last_seen=bucket.last_seen.ToDatetime(timezone.utc),
             )
             for bucket in value_buckets
         )
@@ -376,11 +376,15 @@ class SnubaTagStorage(TagStorage):
                     ):
                         return False
 
-                    snuba_values = {v.value: v for v in snuba.top_values}
-                    for eap_value in eap.top_values:
-                        if eap_value.value in snuba_values:
-                            if snuba_values[eap_value.value].times_seen < eap_value.times_seen:
-                                return False
+                    if snuba.top_values is not None and eap.top_values is not None:
+                        snuba_values = {v.value: v for v in snuba.top_values}
+                        for eap_value in eap.top_values:
+                            if eap_value.value in snuba_values:
+                                if snuba_values[eap_value.value].times_seen < eap_value.times_seen:
+                                    return False
+                                if snuba_values[eap_value.value].last_seen != eap_value.last_seen:
+                                    return False
+
                     return True
 
                 eap_output = self.__eap_get_tags_for_group(
@@ -491,9 +495,7 @@ class SnubaTagStorage(TagStorage):
         if should_cache:
             filtering_strings = [f"{key}={value}" for key, value in filters.items()]
             filtering_strings.append(f"dataset={dataset.name}")
-            cache_key = "tagstore.__get_tag_keys:{}".format(
-                md5_text(*filtering_strings).hexdigest()
-            )
+            cache_key = f"tagstore.__get_tag_keys:{md5_text(*filtering_strings).hexdigest()}"
             key_hash = hash(cache_key)
 
             # Needs to happen before creating the cache suffix otherwise rounding will cause different durations
@@ -804,7 +806,7 @@ class SnubaTagStorage(TagStorage):
             Condition(Column(self.format_string.format(key)), Op.EQ, value),
         ]
         if translated_params.get("environment"):
-            Condition(Column("environment"), Op.IN, translated_params["environment"]),
+            (Condition(Column("environment"), Op.IN, translated_params["environment"]),)
 
         snuba_request = Request(
             dataset="search_issues",
@@ -900,7 +902,12 @@ class SnubaTagStorage(TagStorage):
 
         # First get totals and unique counts by key.
         keys_with_counts = self.get_group_tag_keys(
-            group, environment_ids, keys=keys, tenant_ids=tenant_ids
+            group,
+            environment_ids,
+            keys=keys,
+            tenant_ids=tenant_ids,
+            start=kwargs.get("start"),
+            end=kwargs.get("end"),
         )
 
         # Then get the top values with first_seen/last_seen/count for each

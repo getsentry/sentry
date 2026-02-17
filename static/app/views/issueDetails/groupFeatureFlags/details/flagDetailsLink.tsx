@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {useLocation} from 'sentry/utils/useLocation';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -34,7 +35,10 @@ export default function FlagDetailsLink({flag, children}: Props) {
 const StyledLink = styled(Link)`
   border-radius: ${p => p.theme.radius.md};
 
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 
   &:hover [data-underline-on-hover='true'] {

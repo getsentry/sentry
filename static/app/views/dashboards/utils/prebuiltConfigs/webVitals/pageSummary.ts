@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
@@ -15,6 +15,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'score-breakdown-chart',
       title: t('Score Breakdown'),
+      description: `${t(`Each Web Vital score contributes a different amount to the total score. Refer to the Performance Score wheel for total contribution.`)}`,
       displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -23,18 +24,18 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
           fields: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
+            'equation|performance_score(measurements.score.lcp)',
+            'equation|performance_score(measurements.score.fcp)',
+            'equation|performance_score(measurements.score.inp)',
+            'equation|performance_score(measurements.score.cls)',
+            'equation|performance_score(measurements.score.ttfb)',
           ],
           aggregates: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
+            'equation|performance_score(measurements.score.lcp)',
+            'equation|performance_score(measurements.score.fcp)',
+            'equation|performance_score(measurements.score.inp)',
+            'equation|performance_score(measurements.score.cls)',
+            'equation|performance_score(measurements.score.ttfb)',
           ],
           columns: [],
           orderby: '',
@@ -51,6 +52,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'score-breakdown-wheel',
       title: t('Performance Score'),
+      description: t('The overall performance rating of this page.'),
       displayType: DisplayType.WHEEL,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -101,6 +103,9 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'lcp-p75-meter',
       title: t('P75 Largest Contentful Paint'),
+      description: t(
+        'Time to render the largest item in the viewport. Bad LCP frustrates users because the website feels slow to load.'
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -112,6 +117,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.lcp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.LCP_SUMMARY,
         },
       ],
       thresholds: {
@@ -130,39 +136,11 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'fcp-p75-meter',
-      title: t('P75 First Contentful Paint'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.fcp)'],
-          aggregates: ['p75(measurements.fcp)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 900,
-          max2: 1600,
-        },
-        unit: null,
-      },
-      layout: {
-        y: 2,
-        w: 1,
-        h: 1,
-        x: 1,
-        minH: 1,
-      },
-    },
-    {
       id: 'inp-p75-meter',
       title: t('P75 Interaction to Next Paint'),
+      description: t(
+        'Latency between user input and visual response. Bad INP makes users feel like the site is laggy, outdated, and unresponsive.'
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -174,6 +152,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.inp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.INP_SUMMARY,
         },
       ],
       thresholds: {
@@ -187,13 +166,16 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         y: 2,
         w: 1,
         h: 1,
-        x: 2,
+        x: 1,
         minH: 1,
       },
     },
     {
       id: 'cls-p75-meter',
       title: t('P75 Cumulative Layout Shift'),
+      description: t(
+        "Measures content 'shifting' during load. Bad CLS indicates a janky website, degrading UX and trust."
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -205,6 +187,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.cls)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.CLS_SUMMARY,
         },
       ],
       thresholds: {
@@ -215,16 +198,19 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         unit: null,
       },
       layout: {
-        y: 2,
+        y: 3,
         w: 1,
         h: 1,
-        x: 3,
+        x: 0,
         minH: 1,
       },
     },
     {
       id: 'ttfb-p75-meter',
       title: t('P75 Time To First Byte'),
+      description: t(
+        'Time until first byte is delivered to the client. Bad TTFB makes the server feel unresponsive.'
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -236,6 +222,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.ttfb)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.TTFB_SUMMARY,
         },
       ],
       thresholds: {
@@ -246,70 +233,6 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         unit: 'millisecond',
       },
       layout: {
-        y: 2,
-        w: 1,
-        h: 1,
-        x: 4,
-        minH: 1,
-      },
-    },
-    {
-      id: 'lcp-score-meter',
-      title: t('Largest Contentful Paint Score'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['avg(measurements.score.ratio.lcp)'],
-          aggregates: ['avg(measurements.score.ratio.lcp)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 0.5,
-          max2: 0.9,
-        },
-        unit: null,
-        preferredPolarity: '+',
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 0,
-        minH: 1,
-      },
-    },
-    {
-      id: 'fcp-score-meter',
-      title: t('First Contentful Paint Score'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['avg(measurements.score.ratio.fcp)'],
-          aggregates: ['avg(measurements.score.ratio.fcp)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 0.5,
-          max2: 0.9,
-        },
-        unit: null,
-        preferredPolarity: '+',
-      },
-      layout: {
         y: 3,
         w: 1,
         h: 1,
@@ -317,103 +240,6 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         minH: 1,
       },
     },
-    {
-      id: 'inp-score-meter',
-      title: t('Interaction to Next Paint Score'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['avg(measurements.score.ratio.inp)'],
-          aggregates: ['avg(measurements.score.ratio.inp)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 0.5,
-          max2: 0.9,
-        },
-        unit: null,
-        preferredPolarity: '+',
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 2,
-        minH: 1,
-      },
-    },
-    {
-      id: 'cls-score-meter',
-      title: t('Cumulative Layout Shift Score'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['avg(measurements.score.ratio.cls)'],
-          aggregates: ['avg(measurements.score.ratio.cls)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 0.5,
-          max2: 0.9,
-        },
-        unit: null,
-        preferredPolarity: '+',
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 3,
-        minH: 1,
-      },
-    },
-    {
-      id: 'ttfb-score-meter',
-      title: t('Time To First Byte Score'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['avg(measurements.score.ratio.ttfb)'],
-          aggregates: ['avg(measurements.score.ratio.ttfb)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 0.5,
-          max2: 0.9,
-        },
-        unit: null,
-        preferredPolarity: '+',
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 4,
-        minH: 1,
-      },
-    },
-
     {
       id: 'issues-table',
       title: t('Web Vital Issues'),
@@ -432,7 +258,124 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       layout: {
-        y: 4,
+        y: 2,
+        w: 3,
+        h: 2,
+        x: 2,
+        minH: 2,
+      },
+    },
+    {
+      id: 'lcp-samples-table',
+      title: t('LCP Samples'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      tableWidths: [-1, 200, -1, -1, -1, -1, -1],
+      queries: [
+        {
+          name: '',
+          conditions: `has:measurements.lcp`,
+          fields: [
+            'trace',
+            'lcp.element',
+            'measurements.lcp',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.lcp',
+            'timestamp',
+          ],
+          aggregates: [],
+          columns: [
+            'trace',
+            'lcp.element',
+            'measurements.lcp',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.lcp',
+            'timestamp',
+          ],
+          orderby: '-timestamp',
+        },
+      ],
+      layout: {
+        y: 6,
+        w: 5,
+        h: 2,
+        x: 0,
+        minH: 2,
+      },
+    },
+    {
+      id: 'inp-samples-table',
+      title: t('INP Samples'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: `has:measurements.inp`,
+          fields: [
+            'trace',
+            'measurements.inp',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.inp',
+            'timestamp',
+          ],
+          aggregates: [],
+          columns: [
+            'trace',
+            'measurements.inp',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.inp',
+            'timestamp',
+          ],
+          orderby: '-timestamp',
+        },
+      ],
+      layout: {
+        y: 8,
+        w: 5,
+        h: 2,
+        x: 0,
+        minH: 2,
+      },
+    },
+    {
+      id: 'cls-samples-table',
+      title: t('CLS Samples'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: `has:measurements.cls`,
+          fields: [
+            'trace',
+            'measurements.cls',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.cls',
+            'timestamp',
+          ],
+          aggregates: [],
+          columns: [
+            'trace',
+            'measurements.cls',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.cls',
+            'timestamp',
+          ],
+          orderby: '-timestamp',
+        },
+      ],
+      layout: {
+        y: 10,
         w: 5,
         h: 2,
         x: 0,

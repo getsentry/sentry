@@ -60,12 +60,12 @@ function XAxis({
     splitNumber: 4,
     axisLine: {
       lineStyle: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
       },
     },
     axisTick: {
       lineStyle: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
       },
     },
     splitLine: {
@@ -73,8 +73,8 @@ function XAxis({
     },
     axisLabel: {
       hideOverlap: true,
-      color: theme.tokens.content.muted,
-      fontFamily: theme.text.family,
+      color: theme.tokens.content.secondary,
+      fontFamily: theme.font.family.sans,
       margin: 12,
 
       // This was default with ChartZoom, we are making it default for all charts now

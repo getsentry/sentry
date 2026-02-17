@@ -1,6 +1,7 @@
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {TabList} from 'sentry/components/core/tabs';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {TabList} from '@sentry/scraps/tabs';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -46,7 +47,7 @@ export default function PullRequestDetails() {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main>
-            <Flex justify="center" align="center" style={{minHeight: '200px'}}>
+            <Flex justify="center" align="center" minHeight="200px">
               <LoadingIndicator />
             </Flex>
           </Layout.Main>

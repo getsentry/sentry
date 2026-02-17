@@ -1,5 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   StepType,
   type BasePlatformOptions,
@@ -11,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 
 function BrowserProfilingBetaWarning() {
   return (
-    <Alert type="info" showIcon={false}>
+    <Alert variant="info" showIcon={false}>
       {tct(
         `Browser profiling is currently in Beta as we wait for the JS Self Profiling spec to gain wider support. You can read the detailed explanation [explainer].`,
         {

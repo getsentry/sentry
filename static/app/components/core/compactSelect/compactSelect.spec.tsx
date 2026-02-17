@@ -3,7 +3,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import DropdownButton from 'sentry/components/dropdownButton';
 
@@ -125,12 +125,39 @@ describe('CompactSelect', () => {
           onChange={() => {}}
           trigger={props => {
             // no type error here
-            return <SelectTrigger.Button {...props}>Trigger</SelectTrigger.Button>;
+            return <OverlayTrigger.Button {...props}>Trigger</OverlayTrigger.Button>;
           }}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
           ]}
+        />
+      );
+    });
+
+    it('should not allow undefined or null as children of SelectTrigger', () => {
+      void (
+        <CompactSelect
+          value=""
+          onChange={() => {}}
+          trigger={props => {
+            // @ts-expect-error TS2322: Type null is not assignable to type NonNullable<ReactNode>
+            return <OverlayTrigger.Button {...props}>{null}</OverlayTrigger.Button>;
+          }}
+          options={[]}
+        />
+      );
+      void (
+        <CompactSelect
+          value=""
+          onChange={() => {}}
+          trigger={props => {
+            return (
+              // @ts-expect-error TS2322: Type undefined is not assignable to type NonNullable<ReactNode>
+              <OverlayTrigger.Button {...props}>{undefined}</OverlayTrigger.Button>
+            );
+          }}
+          options={[]}
         />
       );
     });
@@ -379,7 +406,9 @@ describe('CompactSelect', () => {
     it('displays trigger button with prefix', async () => {
       render(
         <CompactSelect
-          triggerProps={{prefix: 'Prefix'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Prefix" />
+          )}
           value="opt_one"
           onChange={jest.fn()}
           options={[
@@ -488,9 +517,6 @@ describe('CompactSelect', () => {
         screen.queryByRole('option', {name: 'Option Three'})
       ).not.toBeInTheDocument();
 
-      // there's a message prompting the user to use search to find more options
-      expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
-
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
       });
@@ -507,9 +533,6 @@ describe('CompactSelect', () => {
       // Option Three is still available via search
       await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
       expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
-
-      // the size limit message is gone during search
-      expect(screen.queryByText('Use search for more options…')).not.toBeInTheDocument();
     });
 
     it('can toggle sections', async () => {
@@ -773,7 +796,9 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           grid
-          triggerProps={{prefix: 'Prefix'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Prefix" />
+          )}
           value="opt_one"
           options={[
             {value: 'opt_one', label: 'Option One'},
@@ -839,9 +864,6 @@ describe('CompactSelect', () => {
       expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('row', {name: 'Option Three'})).not.toBeInTheDocument();
 
-      // there's a message prompting the user to use search to find more options
-      expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
-
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
       });
@@ -854,9 +876,6 @@ describe('CompactSelect', () => {
       // Option Three is still available via search
       await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
       expect(screen.getByRole('row', {name: 'Option Three'})).toBeInTheDocument();
-
-      // the size limit message is gone during search
-      expect(screen.queryByText('Use search for more options…')).not.toBeInTheDocument();
     });
 
     it('can toggle sections', async () => {

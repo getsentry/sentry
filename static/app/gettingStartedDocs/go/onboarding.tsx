@@ -5,6 +5,8 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
+import {metricsVerify} from './metrics';
+
 const getConfigureSnippet = (params: DocsParams) => `
 package main
 
@@ -126,6 +128,7 @@ export const onboarding: OnboardingConfig = {
           language: 'go',
           code: getVerifySnippet(params),
         },
+        metricsVerify(params),
       ],
     },
   ],

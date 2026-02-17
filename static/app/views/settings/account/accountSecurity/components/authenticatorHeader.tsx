@@ -1,8 +1,7 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface AuthenticatorHeaderProps {
   isActive: boolean;
@@ -11,7 +10,7 @@ interface AuthenticatorHeaderProps {
 
 export function AuthenticatorHeader({name, isActive}: AuthenticatorHeaderProps) {
   return (
-    <PageTitle>
+    <Flex align="center" gap="md">
       <CircleIndicator
         role="status"
         aria-label={
@@ -22,12 +21,6 @@ export function AuthenticatorHeader({name, isActive}: AuthenticatorHeaderProps) 
         enabled={isActive}
       />
       {name}
-    </PageTitle>
+    </Flex>
   );
 }
-
-const PageTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;

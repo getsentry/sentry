@@ -23,7 +23,7 @@ def do_things() -> None:
 
 @pytest.fixture
 def task_namespace() -> TaskNamespace:
-    return TaskNamespace(name="tests", router=DefaultRouter(), retry=None)
+    return TaskNamespace(name="tests", application="sentry", router=DefaultRouter(), retry=None)
 
 
 def test_define_task_defaults(task_namespace: TaskNamespace) -> None:
@@ -203,6 +203,7 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     activation = no_retry_task.create_activation([], {})
     assert activation.taskname == "test.no_retry"
     assert activation.namespace == task_namespace.name
+    assert activation.application == task_namespace.application
     assert activation.retry_state
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.max_attempts == 1
@@ -211,6 +212,7 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     activation = retry_task.create_activation([], {})
     assert activation.taskname == "test.with_retry"
     assert activation.namespace == task_namespace.name
+    assert activation.application == task_namespace.application
     assert activation.retry_state
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.max_attempts == 3
@@ -223,17 +225,20 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
 
     activation = int_expiry_task.create_activation([], {})
     assert activation.taskname == "test.with_int_expires"
+    assert activation.application == task_namespace.application
     assert activation.expires == 300
     assert activation.processing_deadline_duration == 30
 
     activation = int_expiry_task.create_activation([], {}, expires=600)
     assert activation.taskname == "test.with_int_expires"
+    assert activation.application == task_namespace.application
     assert activation.expires == 600
     assert activation.processing_deadline_duration == 30
 
     activation = at_most_once_task.create_activation([], {})
     assert activation.taskname == "test.at_most_once"
     assert activation.namespace == task_namespace.name
+    assert activation.application == task_namespace.application
     assert activation.retry_state
     assert activation.retry_state.at_most_once is True
     assert activation.retry_state.attempts == 0

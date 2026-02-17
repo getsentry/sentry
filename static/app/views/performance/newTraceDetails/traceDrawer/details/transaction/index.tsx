@@ -1,8 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -143,7 +144,7 @@ export function TransactionNodeDetails({
       <TraceDrawerComponents.BodyContainer>
         {node.canFetchChildren ? null : (
           <Alert.Container>
-            <StyledAlert type="info">
+            <StyledAlert variant="info">
               {tct(
                 'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
                 {
@@ -202,7 +203,7 @@ export function TransactionNodeDetails({
 
         {replay ? null : <ReplayPreview event={event} organization={organization} />}
 
-        <BreadCrumbs event={event} organization={organization} />
+        <BreadCrumbs event={event} />
 
         {project ? (
           <EventAttachments event={event} project={project} group={undefined} />
