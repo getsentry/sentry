@@ -19,18 +19,29 @@ interface VisualizeOptions {
   visible?: boolean;
 }
 
+function normalizeYAxes(yAxis: string | readonly string[]): readonly string[] {
+  if (typeof yAxis === 'string') {
+    return [yAxis];
+  }
+  return [...yAxis];
+}
+
 export abstract class Visualize {
-  readonly yAxis: string;
+  readonly yAxes: readonly string[];
   readonly chartType: ChartType;
   readonly visible: boolean;
   protected readonly selectedChartType?: ChartType;
   abstract readonly kind: 'function' | 'equation';
 
-  constructor(yAxis: string, options?: VisualizeOptions) {
-    this.yAxis = yAxis;
+  constructor(yAxis: string | readonly string[], options?: VisualizeOptions) {
+    this.yAxes = normalizeYAxes(yAxis);
     this.selectedChartType = options?.chartType;
-    this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
+    this.chartType = this.selectedChartType ?? determineDefaultChartType(this.yAxes);
     this.visible = options?.visible ?? true;
+  }
+
+  get yAxis(): string {
+    return this.yAxes[0] ?? '';
   }
 
   abstract clone(): Visualize;
@@ -38,15 +49,17 @@ export abstract class Visualize {
     chartType,
     visible,
     yAxis,
+    yAxes,
   }: {
     chartType?: ChartType;
     visible?: boolean;
+    yAxes?: readonly string[];
     yAxis?: string;
   }): Visualize;
 
   serialize(): BaseVisualize {
     const json: BaseVisualize = {
-      yAxes: [this.yAxis],
+      yAxes: this.yAxes,
     };
 
     if (defined(this.selectedChartType)) {
@@ -61,32 +74,49 @@ export abstract class Visualize {
   }
 
   static fromJSON(json: BaseVisualize): Visualize[] {
-    return json.yAxes.map(yAxis => {
-      if (isEquation(yAxis)) {
-        return new VisualizeEquation(yAxis, {
+    if (!json.yAxes.length) {
+      return [];
+    }
+
+    if (json.yAxes.some(isEquation)) {
+      return json.yAxes.map(yAxis => {
+        if (isEquation(yAxis)) {
+          return new VisualizeEquation(yAxis, {
+            chartType: json.chartType,
+            visible: json.visible,
+          });
+        }
+        return new VisualizeFunction(yAxis, {
           chartType: json.chartType,
           visible: json.visible,
         });
-      }
-      return new VisualizeFunction(yAxis, {
+      });
+    }
+
+    return [
+      new VisualizeFunction(json.yAxes, {
         chartType: json.chartType,
         visible: json.visible,
-      });
-    });
+      }),
+    ];
   }
 }
 
 export class VisualizeFunction extends Visualize {
   readonly kind = 'function';
-  readonly parsedFunction: ParsedFunction | null;
+  readonly parsedFunctions: ReadonlyArray<ParsedFunction | null>;
 
-  constructor(yAxis: string, options?: VisualizeOptions) {
+  constructor(yAxis: string | readonly string[], options?: VisualizeOptions) {
     super(yAxis, options);
-    this.parsedFunction = parseFunction(yAxis);
+    this.parsedFunctions = this.yAxes.map(axis => parseFunction(axis));
+  }
+
+  get parsedFunction(): ParsedFunction | null {
+    return this.parsedFunctions[0] ?? null;
   }
 
   clone(): VisualizeFunction {
-    return new VisualizeFunction(this.yAxis, {
+    return new VisualizeFunction(this.yAxes, {
       chartType: this.selectedChartType,
       visible: this.visible,
     });
@@ -96,12 +126,14 @@ export class VisualizeFunction extends Visualize {
     chartType,
     visible,
     yAxis,
+    yAxes,
   }: {
     chartType?: ChartType;
     visible?: boolean;
+    yAxes?: readonly string[];
     yAxis?: string;
   }): VisualizeFunction {
-    return new VisualizeFunction(yAxis ?? this.yAxis, {
+    return new VisualizeFunction(yAxes ?? yAxis ?? this.yAxes, {
       chartType: chartType ?? this.selectedChartType,
       visible: visible ?? this.visible,
     });
@@ -127,12 +159,14 @@ export class VisualizeEquation extends Visualize {
     chartType,
     visible,
     yAxis,
+    yAxes,
   }: {
     chartType?: ChartType;
     visible?: boolean;
+    yAxes?: readonly string[];
     yAxis?: string;
   }): Visualize {
-    return new VisualizeEquation(yAxis ?? this.yAxis, {
+    return new VisualizeEquation(yAxes?.[0] ?? yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
       visible: visible ?? this.visible,
     });
