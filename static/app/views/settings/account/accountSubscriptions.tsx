@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -150,33 +150,17 @@ function AccountSubscriptions() {
                       const hintText = [subscription.listDescription, statusText]
                         .filter(Boolean)
                         .join(' · ');
-                      const labelId = `subscription-${subscription.email}-${subscription.listId}`;
 
                       return (
-                        <Flex align="center" justify="between" gap="sm">
-                          <Stack
-                            width={{xs: '85%', sm: '75%', lg: '50%'}}
-                            gap="xs"
-                          >
-                            <Text
-                              as="label"
-                              id={labelId}
-                              htmlFor={labelId}
-                            >
-                              {subscription.listName}
-                            </Text>
-                            {hintText && (
-                              <Text size="sm" variant="muted">
-                                {hintText}
-                              </Text>
-                            )}
-                          </Stack>
+                        <field.Layout.Row
+                          label={subscription.listName}
+                          hintText={hintText}
+                        >
                           <field.Switch
-                            aria-labelledby={labelId}
                             checked={field.state.value}
                             onChange={field.handleChange}
                           />
-                        </Flex>
+                        </field.Layout.Row>
                       );
                     }}
                   </AutoSaveField>
