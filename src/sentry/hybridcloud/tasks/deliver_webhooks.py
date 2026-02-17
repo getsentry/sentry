@@ -441,6 +441,7 @@ def deliver_message(payload: WebhookPayload) -> None:
     perform_request(payload)
     payload.delete()
     _record_delivery_time_metrics(payload)
+    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
 
 
 def perform_request(payload: WebhookPayload) -> None:

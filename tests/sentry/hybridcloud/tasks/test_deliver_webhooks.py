@@ -961,6 +961,14 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         assert delivery_time_ms_calls[0][1].get("tags", {}).get("region_sent_to") == "us"
 
+        incr_calls = [
+            c
+            for c in mock_metrics.incr.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery"
+        ]
+        assert len(incr_calls) == 1
+        assert incr_calls[0][1].get("tags", {}).get("outcome") == "ok"
+
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
     @override_options({"codecov.api-bridge-signing-secret": "test"})
@@ -985,3 +993,11 @@ class DeliveryTimeMetricsTest(TestCase):
         ]
         assert len(delivery_time_ms_calls) == 1
         assert delivery_time_ms_calls[0][1].get("tags", {}).get("region_sent_to") == "codecov"
+
+        incr_calls = [
+            c
+            for c in mock_metrics.incr.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery"
+        ]
+        assert len(incr_calls) == 1
+        assert incr_calls[0][1].get("tags", {}).get("outcome") == "ok"
