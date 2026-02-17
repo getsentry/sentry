@@ -23,7 +23,7 @@ from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.encrypted_field import EncryptedFieldSettings
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
-from sentry.conf.types.region_config import RegionConfig
+from sentry.conf.types.region_config import CellConfig, LocalityConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
@@ -753,8 +753,11 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
-# List of the available regions
-SENTRY_REGION_CONFIG: list[RegionConfig] = []
+# List of the available cells (e.g. "us1", "us2", "de1")
+SENTRY_REGION_CONFIG: list[CellConfig] = []
+
+# Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
+SENTRY_LOCALITIES: list[LocalityConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
