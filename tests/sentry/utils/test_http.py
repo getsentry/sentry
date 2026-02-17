@@ -217,26 +217,28 @@ class IsValidOriginTestCase(unittest.TestCase):
         assert result is True
 
 
-class OriginFromRequestTestCase(TestCase):
-    def test_nothing(self) -> None:
-        request = HttpRequest()
-        assert origin_from_request(request) is None
+def test_origin_from_request_nothing() -> None:
+    request = HttpRequest()
+    assert origin_from_request(request) is None
 
-    def test_origin(self) -> None:
-        request = HttpRequest()
-        request.META["HTTP_ORIGIN"] = "http://example.com"
-        request.META["HTTP_REFERER"] = "nope"
-        assert origin_from_request(request) == "http://example.com"
 
-    def test_referer(self) -> None:
-        request = HttpRequest()
-        request.META["HTTP_REFERER"] = "http://example.com/foo/bar"
-        assert origin_from_request(request) == "http://example.com"
+def test_origin_from_request_origin() -> None:
+    request = HttpRequest()
+    request.META["HTTP_ORIGIN"] = "http://example.com"
+    request.META["HTTP_REFERER"] = "nope"
+    assert origin_from_request(request) == "http://example.com"
 
-    def test_null_origin(self) -> None:
-        request = HttpRequest()
-        request.META["HTTP_ORIGIN"] = "null"
-        assert origin_from_request(request) is None
 
-        request.META["HTTP_REFERER"] = "http://example.com"
-        assert origin_from_request(request) == "http://example.com"
+def test_origin_from_request_referer() -> None:
+    request = HttpRequest()
+    request.META["HTTP_REFERER"] = "http://example.com/foo/bar"
+    assert origin_from_request(request) == "http://example.com"
+
+
+def test_origin_from_request_null_origin() -> None:
+    request = HttpRequest()
+    request.META["HTTP_ORIGIN"] = "null"
+    assert origin_from_request(request) is None
+
+    request.META["HTTP_REFERER"] = "http://example.com"
+    assert origin_from_request(request) == "http://example.com"
