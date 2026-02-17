@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useId, useMemo} from 'react';
+import {createContext, useContext, useId, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -24,6 +24,7 @@ import {
   getHiddenOptions,
   getSelectedOptions,
   HiddenSectionToggle,
+  SectionToggleRefContext,
   shouldCloseOnSelect,
 } from './utils';
 
@@ -331,6 +332,10 @@ export function List<Value extends SelectKey>({
   };
 
   const listId = useId();
+  const sectionToggleRefMap = useMemo(
+    () => new Map<SelectKey, HTMLButtonElement | null>(),
+    []
+  );
 
   const sections = useMemo(
     () =>
@@ -346,7 +351,7 @@ export function List<Value extends SelectKey>({
   );
 
   return (
-    <Fragment>
+    <SectionToggleRefContext value={sectionToggleRefMap}>
       {grid ? (
         <SelectFilterContext value={hiddenOptions}>
           <GridList
@@ -384,6 +389,6 @@ export function List<Value extends SelectKey>({
               />
             )
         )}
-    </Fragment>
+    </SectionToggleRefContext>
   );
 }

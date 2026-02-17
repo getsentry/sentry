@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {createContext, useCallback, useContext, useMemo} from 'react';
 import {useFocus, usePress} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
@@ -19,6 +19,14 @@ import type {
   SelectSection,
   SelectSectionWithKey,
 } from './types';
+
+/**
+ * Context providing a map of section keys to their visible toggle button DOM elements.
+ * Used by HiddenSectionToggle to find visible counterparts without DOM queries.
+ */
+export const SectionToggleRefContext = createContext<
+  Map<SelectKey, HTMLButtonElement | null>
+>(new Map());
 
 export function getEscapedKey<Value extends SelectKey | undefined>(value: Value): string {
   return CSS.escape(String(value));
@@ -219,6 +227,18 @@ interface SectionToggleProps {
  * also: `HiddenSectionToggle`.
  */
 export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
+  const toggleRefMap = useContext(SectionToggleRefContext);
+  const buttonRef = useCallback(
+    (element: HTMLButtonElement | null) => {
+      if (element) {
+        toggleRefMap.set(item.key, element);
+      } else {
+        toggleRefMap.delete(item.key);
+      }
+    },
+    [toggleRefMap, item.key]
+  );
+
   const allOptionsSelected = useMemo(
     () => [...item.childNodes].every(n => listState.selectionManager.isSelected(n.key)),
     [item, listState.selectionManager]
@@ -254,6 +274,7 @@ export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
       aria-hidden
       tabIndex={-1}
       onClick={toggleAllOptions}
+      ref={buttonRef}
     >
       {allOptionsSelected ? t('Unselect All') : t('Select All')}
     </SectionToggleButton>
@@ -273,23 +294,19 @@ export function HiddenSectionToggle({
   listId = '',
   ...props
 }: SectionToggleProps) {
+  const toggleRefMap = useContext(SectionToggleRefContext);
+
   // Highlight this toggle's visible counterpart (rendered inside the list box) on focus
   const {focusProps} = useFocus({
     onFocus: () => {
-      const visibleCounterpart = document
-        .getElementById(listId)
-        ?.querySelector(`button[aria-hidden][data-key="${item.key}"]`);
-
+      const visibleCounterpart = toggleRefMap.get(item.key);
       if (!visibleCounterpart) {
         return;
       }
       visibleCounterpart.classList.add('focus-visible');
     },
     onBlur: () => {
-      const visibleCounterpart = document
-        .getElementById(listId)
-        ?.querySelector(`button[aria-hidden][data-key="${item.key}"]`);
-
+      const visibleCounterpart = toggleRefMap.get(item.key);
       if (!visibleCounterpart) {
         return;
       }
