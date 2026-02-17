@@ -106,6 +106,11 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.reports.models import (
+    ScheduledReport,
+    ScheduledReportFrequency,
+    ScheduledReportSourceType,
+)
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
@@ -782,6 +787,19 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             last_visited=timezone.now(),
+        )
+
+        ScheduledReport.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            name=f"Scheduled report for {slug}",
+            source_type=ScheduledReportSourceType.EXPLORE_SAVED_QUERY,
+            source_id=explore_saved_query.id,
+            frequency=ScheduledReportFrequency.WEEKLY,
+            day_of_week=1,
+            hour=9,
+            recipient_emails=[f"{slug}@example.com"],
+            next_run_at=timezone.now() + timedelta(days=7),
         )
 
         InsightsStarredSegment.objects.create(
