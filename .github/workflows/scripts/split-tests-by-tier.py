@@ -5,13 +5,14 @@ Reads classification JSON (from service_classifier pytest plugin) and outputs
 test identifier lists for each tier.
 
 Granularity (--granularity):
-  file:  Entire file → tier2 if any test needs Snuba.
-  class: file::class → tier2 if any test in class needs Snuba.
+  file:  Entire file → assigned by heaviest service in file.
+  class: file::class → assigned by heaviest service in class.
   test:  Each test independently classified.
 
 Tiers:
   tier1: Postgres + Redis only (migrations mode).
-  tier2: Snuba/Kafka/symbolicator/objectstore/bigtable (backend-ci mode).
+  tier2: Snuba/Kafka only (backend-ci mode, per-worker Snuba).
+  tier3: Heavy services — symbolicator/objectstore/bigtable (full backend-ci, -n 2).
 
 Usage:
     python split-tests-by-tier.py --classification report.json --tier tier1 --output tier1.txt
@@ -25,16 +26,22 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-# Files forced to tier2 due to environment-dependent behavior that only works
-# with the full backend-ci service stack.
-FORCE_TIER2_FILES: set[str] = {
-    "tests/sentry/testutils/thread_leaks/test_pytest.py",
+# Files forced to specific tiers due to environment-dependent behavior.
+FORCE_TIER3_FILES: set[str] = {
     # Uploads to objectstore (GCS) but lacks requires_objectstore marker;
-    # classifier misses the dependency, causing 500s in tier1 migrations mode.
+    # classifier misses the dependency, causing 500s in lighter tiers.
     "tests/sentry/preprod/api/endpoints/test_preprod_artifact_snapshot.py",
 }
 
-TIER2_SERVICES: set[str] = {"snuba", "kafka", "symbolicator", "objectstore", "bigtable"}
+FORCE_TIER2_FILES: set[str] = {
+    "tests/sentry/testutils/thread_leaks/test_pytest.py",
+}
+
+# Services that require the heavy tier3 stack.
+TIER3_SERVICES: set[str] = {"symbolicator", "objectstore", "bigtable"}
+
+# Services that require tier2 (Snuba stack) but not tier3.
+TIER2_SERVICES: set[str] = {"snuba", "kafka"}
 
 
 def _scope_key(test_id: str, granularity: str) -> str:
@@ -56,20 +63,23 @@ def split(classification: dict, granularity: str = "file") -> dict[str, set[str]
 
     tier1: set[str] = set()
     tier2: set[str] = set()
+    tier3: set[str] = set()
     for scope, services in scope_services.items():
         file_path = scope.split("::")[0]
-        if file_path in FORCE_TIER2_FILES or (services & TIER2_SERVICES):
+        if file_path in FORCE_TIER3_FILES or (services & TIER3_SERVICES):
+            tier3.add(scope)
+        elif file_path in FORCE_TIER2_FILES or (services & TIER2_SERVICES):
             tier2.add(scope)
         else:
             tier1.add(scope)
 
-    return {"tier1": tier1, "tier2": tier2}
+    return {"tier1": tier1, "tier2": tier2, "tier3": tier3}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Split tests into tiers")
     parser.add_argument("--classification", required=True)
-    parser.add_argument("--tier", choices=["tier1", "tier2"])
+    parser.add_argument("--tier", choices=["tier1", "tier2", "tier3"])
     parser.add_argument("--output", help="Output file (default: stdout)")
     parser.add_argument("--granularity", choices=["file", "class", "test"], default="file")
     parser.add_argument("--summary", action="store_true")
@@ -81,15 +91,16 @@ def main() -> int:
     tiers = split(classification, granularity=args.granularity)
 
     if args.summary:
-        total = len(tiers["tier1"]) + len(tiers["tier2"])
+        total = len(tiers["tier1"]) + len(tiers["tier2"]) + len(tiers["tier3"])
         label = {"file": "files", "class": "scopes", "test": "tests"}[args.granularity]
         print(f"Granularity: {args.granularity}")
         print(f"Total {label}: {total}")
-        print(f"Tier 1 (Postgres + Redis): {len(tiers['tier1'])} {label} ({len(tiers['tier1']) / total * 100:.1f}%)")
-        print(f"Tier 2 (full stack):       {len(tiers['tier2'])} {label} ({len(tiers['tier2']) / total * 100:.1f}%)")
+        print(f"Tier 1 (Postgres + Redis):  {len(tiers['tier1'])} {label} ({len(tiers['tier1']) / total * 100:.1f}%)")
+        print(f"Tier 2 (Snuba/Kafka):       {len(tiers['tier2'])} {label} ({len(tiers['tier2']) / total * 100:.1f}%)")
+        print(f"Tier 3 (heavy):             {len(tiers['tier3'])} {label} ({len(tiers['tier3']) / total * 100:.1f}%)")
 
         tests_data = classification.get("tests", {})
-        counts = {"tier1": 0, "tier2": 0}
+        counts = {"tier1": 0, "tier2": 0, "tier3": 0}
         for test_id in tests_data:
             scope = _scope_key(test_id, args.granularity)
             for tier_name, tier_scopes in tiers.items():
@@ -98,6 +109,7 @@ def main() -> int:
                     break
         print(f"\nTier 1 tests: {counts['tier1']}")
         print(f"Tier 2 tests: {counts['tier2']}")
+        print(f"Tier 3 tests: {counts['tier3']}")
         return 0
 
     if not args.tier:
