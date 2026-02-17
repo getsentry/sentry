@@ -39,7 +39,11 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.quotas import get_size_retention_cutoff
 from sentry.preprod.size_analysis.tasks import manual_size_analysis_comparison
-from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
+from sentry.preprod.size_analysis.utils import (
+    ComparisonValidationResult,
+    build_size_metrics_map,
+    can_compare_size_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -328,22 +332,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 status=404,
             )
 
-        # Check if any of the size metrics are not completed
-        if (
-            head_size_metrics_qs.filter(
-                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-            ).count()
-            == 0
-        ):
-            body = SizeAnalysisComparePOSTResponse(
-                status="processing",
-                message=f"Head PreprodArtifact with id {head_artifact_id} has no completed size metrics yet. Size analysis may still be processing. Please try again later.",
-            )
-            return Response(
-                body.dict(),
-                status=202,  # Accepted, processing not complete
-            )
-
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[base_artifact.id],
             preprod_artifact__project=project,
@@ -354,27 +342,21 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 status=404,
             )
 
-        if (
-            base_size_metrics_qs.filter(
-                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-            ).count()
-            == 0
-        ):
-            body = SizeAnalysisComparePOSTResponse(
-                status="processing",
-                message=f"Base PreprodArtifact with id {base_artifact_id} has no completed size metrics yet. Size analysis may still be processing. Please try again later.",
-            )
-            return Response(
-                body.dict(),
-                status=202,  # Accepted, processing not complete
-            )
-
         head_size_metrics = list(head_size_metrics_qs)
         base_size_metrics = list(base_size_metrics_qs)
 
         # Check if the size metrics can be compared
         validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
         if not validation_result.can_compare:
+            if (
+                validation_result.error_type
+                == ComparisonValidationResult.ErrorType.NOT_ALL_COMPLETED
+            ):
+                body = SizeAnalysisComparePOSTResponse(
+                    status="processing",
+                    message=validation_result.error_message,
+                )
+                return Response(body.dict(), status=202)
             return Response(
                 {"detail": validation_result.error_message},
                 status=400,

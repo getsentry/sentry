@@ -51,7 +51,6 @@ export interface ProjectPageFilterProps extends Partial<
     | 'onToggle'
     | 'menuBody'
     | 'menuFooter'
-    | 'menuFooterMessage'
     | 'shouldCloseOnInteractOutside'
     | 'sizeLimitMessage'
     | 'stagedSelect'
@@ -277,25 +276,29 @@ export function ProjectPageFilter({
         value: parseInt(project.id, 10),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
-          <Checkbox
-            size="sm"
-            checked={isSelected}
-            onChange={() =>
-              hybridFilterRef.current?.toggleOption(parseInt(project.id, 10))
-            }
-            aria-label={t('Select %s', project.slug)}
-            tabIndex={-1}
-          />
+          <Flex align="center" gap="sm" flex="1 1 100%">
+            <Checkbox
+              size="sm"
+              checked={isSelected}
+              onChange={() =>
+                hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+              }
+              aria-label={t('Select %s', project.slug)}
+              tabIndex={-1}
+            />
+          </Flex>
         ),
         label: (
-          <Flex align="center" gap="sm">
+          <Flex align="center" gap="sm" flex="1 1 100%">
             <ProjectBadge project={project} avatarSize={16} hideName disableLink />
             <Text ellipsis>{project.slug}</Text>
           </Flex>
         ),
         trailingItems: (props: {isFocused: boolean}) => {
           return (
-            <Flex align="center">
+            // This is nasty, but because CompactSelect's menuListItem has a padding around the entire item and a height
+            // that is smaller than the height of an xs button, they end up being misaligned and we need to manually adjust them.
+            <Flex align="center" style={{marginTop: '-4px'}}>
               {props.isFocused ? (
                 <Fragment>
                   <LinkButton
@@ -464,7 +467,7 @@ export function ProjectPageFilter({
                 </Text>
               </CondensedAlert>
             )}
-            <Flex gap="md" align="center" justify="between">
+            <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
               {hasProjectWrite ? (
                 <HybridFilterComponents.LinkButton
                   icon={<IconAdd />}

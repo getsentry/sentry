@@ -21,6 +21,17 @@ import documentation from '!!type-loader!@sentry/scraps/tooltip/index';
 
 export {documentation};
 
+## Prefer Info Patterns
+
+For common tooltip use cases, prefer the dedicated Info components which provide consistent styling and built-in accessibility:
+
+- **[InfoText](/stories/core/infotext/)** - Text with tooltip for inline term definitions
+- **[InfoTip](/stories/core/infotip/)** - Info icon with tooltip for supplementary help
+
+Use `Tooltip` directly only when these patterns don't fit your use case.
+
+---
+
 To create a basic tooltip, wrap any element with `<Tooltip>` and provide the `title` prop with the content to display.
 
 <Storybook.Demo>

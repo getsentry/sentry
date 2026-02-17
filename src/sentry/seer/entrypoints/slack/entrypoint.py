@@ -9,7 +9,8 @@ from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerAutofixUpdate
 from sentry.notifications.utils.actions import BlockKitMessageAction
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.slack.messaging import (
@@ -60,7 +61,10 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         self.slack_request = slack_request
         self.group = group
         self.channel_id = slack_request.channel_id or ""
-        self.thread_ts = slack_request.data["message"]["ts"]
+        self.message_ts = slack_request.data["message"]["ts"]
+        # Use the thread_ts if available, otherwise this is a channel message, so it will
+        # be the parent of a future thread.
+        self.thread_ts = slack_request.data["message"].get("thread_ts", self.message_ts)
         self.thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
         self.organization_id = organization_id
         self.install = SlackIntegration(
@@ -118,6 +122,30 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             f"autofix:entrypoint:{SeerEntrypointKey.SLACK.value}:{group_id}:{stopping_point.value}"
         )
 
+    def _update_existing_message(
+        self, *, run_id: int, has_complete_stage: bool, include_user: bool
+    ) -> None:
+        """
+        Updates the clicked message as 'in-progress' with a given run_id.
+        """
+        data = SeerAutofixUpdate(
+            run_id=run_id,
+            organization_id=self.organization_id,
+            project_id=self.group.project_id,
+            group_id=self.group.id,
+            current_point=self.autofix_stopping_point,
+            group_link=self.get_group_link(self.group),
+        )
+        update_existing_message(
+            request=self.slack_request,
+            install=self.install,
+            channel_id=self.channel_id,
+            message_ts=self.message_ts,
+            data=data,
+            has_complete_stage=has_complete_stage,
+            slack_user_id=self.slack_request.user_id if include_user else None,
+        )
+
     def on_trigger_autofix_error(self, *, error: str) -> None:
         send_thread_update(
             install=self.install,
@@ -127,27 +155,22 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         )
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
-        data = SeerAutofixUpdate(
-            run_id=run_id,
-            organization_id=self.organization_id,
-            project_id=self.group.project_id,
-            group_id=self.group.id,
-            current_point=self.autofix_stopping_point,
-            group_link=self.get_group_link(self.group),
-            has_progressed=True,
+        self._update_existing_message(run_id=run_id, has_complete_stage=False, include_user=True)
+
+    def on_trigger_autofix_already_exists(self, *, state: AutofixState, step_state: dict) -> None:
+        # We don't include the user since we don't know that they started the original run.
+        has_complete_stage = (
+            False
+            if step_state.get("key") in {"root_cause_analysis_processing", "solution_processing"}
+            else step_state.get("status") == AutofixStatus.COMPLETED
         )
-        update_existing_message(
-            request=self.slack_request,
-            install=self.install,
-            channel_id=self.channel_id,
-            message_ts=self.thread_ts,
-            data=data,
-            slack_user_id=self.slack_request.user_id,
+        self._update_existing_message(
+            run_id=state.run_id, has_complete_stage=has_complete_stage, include_user=False
         )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
         return SlackEntrypointCachePayload(
-            threads=[SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)],
+            threads=[self.thread],
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
             project_id=self.group.project_id,
@@ -173,7 +196,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             "project_id": cache_payload["project_id"],
             "group_id": cache_payload["group_id"],
             "group_link": cache_payload["group_link"],
-            "has_progressed": False,
         }
 
         match event_type:

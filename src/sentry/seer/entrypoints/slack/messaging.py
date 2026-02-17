@@ -198,6 +198,7 @@ def update_existing_message(
     channel_id: str,
     message_ts: str,
     data: SeerAutofixUpdate,
+    has_complete_stage: bool,
     slack_user_id: str | None,
 ) -> None:
     from sentry.integrations.slack.message_builder.types import SlackAction
@@ -207,7 +208,7 @@ def update_existing_message(
             return None
         return elem
 
-    def remove_all_buttons_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
+    def remove_all_buttons_transformer(_elem: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
     with SlackEntrypointEventLifecycleMetric(
@@ -223,6 +224,9 @@ def update_existing_message(
             }
         )
 
+        # The RCA button is on an issue alert, so we just remove the button from the list of actions.
+        # Later updates only have autofix buttons (View, Start), so we remove the whole actions block.
+        # This is because we add the View button back to the footer, along with some status text.
         transformer = (
             remove_autofix_button_transformer
             if data.current_point == AutofixStoppingPoint.ROOT_CAUSE
@@ -239,16 +243,11 @@ def update_existing_message(
         blocks = _transform_block_actions(original_blocks, transformer)
 
         parsed_blocks = [Block.parse(block) for block in blocks]
-        if slack_user_id:
-            parsed_blocks.extend(
-                SeerSlackRenderer.render_footer_blocks(
-                    data=data, extra_text=f"(ty <@{slack_user_id}>)", stage_completed=False
-                )
-            )
-        else:
-            parsed_blocks.extend(
-                SeerSlackRenderer.render_footer_blocks(data=data, stage_completed=False)
-            )
+        footer_extra_text = f"(ty <@{slack_user_id}>)" if slack_user_id else None
+        footer_blocks = SeerSlackRenderer.render_footer_blocks(
+            data=data, extra_text=footer_extra_text, has_complete_stage=has_complete_stage
+        )
+        parsed_blocks.extend(footer_blocks)
 
         renderable = SlackRenderable(
             blocks=[block for block in parsed_blocks if block is not None],

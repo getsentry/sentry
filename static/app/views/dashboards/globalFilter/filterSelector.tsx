@@ -343,8 +343,8 @@ function FilterSelector({
           <Flex gap="lg">
             {activeFilterValues.length > 0 && (
               <StyledButton
+                size="xs"
                 aria-label={t('Clear Selections')}
-                size="zero"
                 priority="transparent"
                 onClick={() => {
                   setSearchQuery('');
@@ -357,8 +357,8 @@ function FilterSelector({
             )}
             {!disableRemoveFilter && (
               <StyledButton
+                size="xs"
                 aria-label={t('Remove Filter')}
-                size="zero"
                 priority="transparent"
                 onClick={() => {
                   onRemoveFilter(globalFilter);
@@ -437,8 +437,8 @@ function FilterSelector({
         <Flex gap="lg">
           {activeFilterValues.length > 0 && (
             <StyledButton
+              size="xs"
               aria-label={t('Clear Selections')}
-              size="zero"
               priority="transparent"
               onClick={() => {
                 setSearchQuery('');
@@ -451,7 +451,7 @@ function FilterSelector({
           )}
           {!disableRemoveFilter && (
             <StyledButton
-              size="zero"
+              size="xs"
               priority="transparent"
               aria-label={t('Remove Filter')}
               onClick={() => {
@@ -492,7 +492,7 @@ const translateKnownFilterOptions = (
 export default FilterSelector;
 
 const StyledButton = styled(Button)`
-  font-size: inherit;
+  font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};

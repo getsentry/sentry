@@ -1357,7 +1357,62 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Ensure this value is less than or equal to 10" in response.content
+        assert b"The maximum limit for this display type is 10" in response.content
+
+    def test_add_categorical_bar_widget_with_valid_limit(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Categorical Bar Widget",
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 20,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        assert widgets[0].limit == 20
+
+    def test_add_categorical_bar_widget_with_invalid_limit_above_maximum(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Categorical Bar Widget",
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 26,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"The maximum limit for this display type is 25" in response.content
 
     def test_add_widget_with_invalid_limit_below_minimum(self) -> None:
         data = {

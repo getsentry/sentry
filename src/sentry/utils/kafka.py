@@ -3,6 +3,7 @@ import logging
 import signal
 import sys
 import time
+from multiprocessing.util import log_to_stderr
 from threading import Thread
 from typing import Any
 
@@ -49,6 +50,7 @@ def run_processor_with_signals(
     processor: StreamProcessor[Any],
     quantized_rebalance_delay_secs: int | None = None,
     dump_stacktrace_on_shutdown: bool = False,
+    verbose_multiprocessing_logs: bool = False,
 ) -> None:
     if quantized_rebalance_delay_secs:
         # delay startup for quantization
@@ -61,6 +63,10 @@ def run_processor_with_signals(
             args=(processor, quantized_rebalance_delay_secs, dump_stacktrace_on_shutdown),
         )
         t.start()
+
+    if verbose_multiprocessing_logs:
+        logger.info("Setting verbose multiprocessing logs")
+        log_to_stderr(logging.DEBUG)
 
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
