@@ -50,14 +50,6 @@ export interface EnvironmentPageFilterProps extends Partial<
    */
   onChange?: (selected: string[]) => void;
   /**
-   * Called when the selection changes
-   */
-  onChange?: (selected: string[]) => void;
-  /**
-   * Called when the reset button is clicked
-   */
-  onReset?: () => void;
-  /**
    * Called when the reset button is clicked
    */
   onReset?: () => void;
