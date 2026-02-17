@@ -10,62 +10,6 @@ const userSettingsPathPrefix = '/settings/account';
 export function getUserOrgNavigationConfiguration(): NavigationSection[] {
   return [
     {
-      id: 'settings-account',
-      name: t('Account'),
-      items: [
-        {
-          path: `${userSettingsPathPrefix}/details/`,
-          title: t('Account Details'),
-          description: t(
-            'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
-          ),
-        },
-        {
-          path: `${userSettingsPathPrefix}/security/`,
-          title: t('Security'),
-          description: t('Change your account password and/or two factor authentication'),
-        },
-        {
-          path: `${userSettingsPathPrefix}/notifications/`,
-          title: t('Notifications'),
-          description: t('Configure what email notifications to receive'),
-        },
-        {
-          path: `${userSettingsPathPrefix}/emails/`,
-          title: t('Email Addresses'),
-          description: t(
-            'Add or remove secondary emails, change your primary email, verify your emails'
-          ),
-        },
-        {
-          path: `${userSettingsPathPrefix}/subscriptions/`,
-          title: t('Subscriptions'),
-          description: t(
-            'Change Sentry marketing subscriptions you are subscribed to (GDPR)'
-          ),
-        },
-        {
-          path: `${userSettingsPathPrefix}/authorizations/`,
-          title: t('Authorized Applications'),
-          description: t(
-            'Manage third-party applications that have access to your Sentry account'
-          ),
-        },
-        {
-          path: `${userSettingsPathPrefix}/identities/`,
-          title: t('Identities'),
-          description: t(
-            'Manage your third-party identities that are associated to Sentry'
-          ),
-        },
-        {
-          path: `${userSettingsPathPrefix}/close-account/`,
-          title: t('Close Account'),
-          description: t('Permanently close your Sentry account'),
-        },
-      ],
-    },
-    {
       id: 'settings-organization',
       name: t('Organization'),
       items: [
@@ -226,6 +170,62 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           path: `${userSettingsPathPrefix}/api/applications/`,
           title: t('Applications'),
           description: t('Add and configure OAuth2 applications'),
+        },
+      ],
+    },
+    {
+      id: 'settings-account',
+      name: t('Account'),
+      items: [
+        {
+          path: `${userSettingsPathPrefix}/details/`,
+          title: t('Account Details'),
+          description: t(
+            'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
+          ),
+        },
+        {
+          path: `${userSettingsPathPrefix}/security/`,
+          title: t('Security'),
+          description: t('Change your account password and/or two factor authentication'),
+        },
+        {
+          path: `${userSettingsPathPrefix}/notifications/`,
+          title: t('Notifications'),
+          description: t('Configure what email notifications to receive'),
+        },
+        {
+          path: `${userSettingsPathPrefix}/emails/`,
+          title: t('Email Addresses'),
+          description: t(
+            'Add or remove secondary emails, change your primary email, verify your emails'
+          ),
+        },
+        {
+          path: `${userSettingsPathPrefix}/subscriptions/`,
+          title: t('Subscriptions'),
+          description: t(
+            'Change Sentry marketing subscriptions you are subscribed to (GDPR)'
+          ),
+        },
+        {
+          path: `${userSettingsPathPrefix}/authorizations/`,
+          title: t('Authorized Applications'),
+          description: t(
+            'Manage third-party applications that have access to your Sentry account'
+          ),
+        },
+        {
+          path: `${userSettingsPathPrefix}/identities/`,
+          title: t('Identities'),
+          description: t(
+            'Manage your third-party identities that are associated to Sentry'
+          ),
+        },
+        {
+          path: `${userSettingsPathPrefix}/close-account/`,
+          title: t('Close Account'),
+          description: t('Permanently close your Sentry account'),
         },
       ],
     },
