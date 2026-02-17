@@ -34,6 +34,7 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.tombstone import RegionTombstone
 from sentry.monitors.models import Monitor
+from sentry.reports.models import ScheduledReport
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.backups import BackupTestCase
@@ -379,6 +380,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleActivity,
         RuleSnooze,
         SavedSearch,
+        ScheduledReport,
     )
     def test_only_source_user_is_member_of_organization(
         self, expected_models: list[type[Model]]
@@ -423,6 +425,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleActivity,
         RuleSnooze,
         SavedSearch,
+        ScheduledReport,
     )
     def test_both_users_are_members_of_organization(
         self, expected_models: list[type[Model]]

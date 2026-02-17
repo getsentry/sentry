@@ -76,6 +76,7 @@ from sentry.organizations.services.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
 )
 from sentry.projects.services.project import RpcProjectFlags
+from sentry.reports.models import ScheduledReport
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth.auth import email_unlink_notifications
@@ -596,6 +597,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 RuleActivity,
                 RuleSnooze,
                 SavedSearch,
+                ScheduledReport,
             ]
             for model in model_list:
                 merge_users_for_model_in_org(
