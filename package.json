@@ -89,7 +89,7 @@
     "@tanstack/react-query-persist-client": "5.85.0",
     "@tanstack/react-virtual": "^3.13.6",
     "@types/gtag.js": "^0.0.12",
-    "@types/history": "^3.2.5",
+    "@types/history": "^5.0.0",
     "@types/invariant": "^2.2.35",
     "@types/jest": "30.0.0",
     "@types/js-beautify": "^1.14.3",
