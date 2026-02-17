@@ -1181,6 +1181,11 @@ def _get_project_config(
         if retentions_config:
             config["retentions"] = retentions_config
 
+    with sentry_sdk.start_span(op="get_trimming_configs"):
+        trimming_configs = quotas.backend.get_trimming_configs(project.organization)
+        if trimming_configs:
+            config["trimming"] = trimming_configs
+
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config

@@ -130,6 +130,11 @@ class CommitContextIntegration(ABC):
     def integration_name(self) -> str:
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def integration_id(self) -> int:
+        raise NotImplementedError
+
     @abstractmethod
     def get_client(self) -> CommitContextClient:
         raise NotImplementedError
@@ -145,6 +150,7 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
             provider_key=self.integration_name,
+            integration_id=self.integration_id,
         ).capture() as lifecycle:
             try:
                 client = self.get_client()
@@ -224,6 +230,7 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
             provider_key=self.integration_name,
+            integration_id=self.integration_id,
             organization_id=project.organization_id,
             project=project,
             commit=commit,
@@ -334,6 +341,7 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=interaction_type,
             provider_key=self.integration_name,
+            integration_id=self.integration_id,
             repository=repo,
             pull_request_id=pr.id,
         ).capture():
