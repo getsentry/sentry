@@ -131,7 +131,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n 3 \
-            --dist=loadfile \
+            --dist=load \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
@@ -258,7 +258,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadfile \
+            --dist=load \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
