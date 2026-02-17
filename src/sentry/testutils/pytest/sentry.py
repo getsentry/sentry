@@ -464,18 +464,26 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     keep, discard = [], []
 
-    # Filter by selected test files if SELECTED_TESTS_FILE is set
+    # Filter by selected tests if SELECTED_TESTS_FILE is set.
+    # TIER_GRANULARITY controls matching: file (default), class, or test.
     selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
     if selected_tests_file:
         selected_path = Path(selected_tests_file)
         if selected_path.exists():
             with selected_path.open() as f:
-                selected_files = {line.strip() for line in f if line.strip()}
+                selected_ids = {line.strip() for line in f if line.strip()}
 
-            if selected_files:
+            if selected_ids:
+                granularity = os.environ.get("TIER_GRANULARITY", "file")
                 for item in items:
-                    test_file = item.nodeid.split("::")[0]
-                    if test_file in selected_files:
+                    parts = item.nodeid.split("::")
+                    if granularity == "test":
+                        key = item.nodeid
+                    elif granularity == "class":
+                        key = "::".join(parts[:2])
+                    else:
+                        key = parts[0]
+                    if key in selected_ids:
                         keep.append(item)
                     else:
                         discard.append(item)
