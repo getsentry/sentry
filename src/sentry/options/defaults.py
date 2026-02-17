@@ -716,6 +716,10 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Intercom Integration
+register("intercom.app-id", default="", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("intercom.identity-verification-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
