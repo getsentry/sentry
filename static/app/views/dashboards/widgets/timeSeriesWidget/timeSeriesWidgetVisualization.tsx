@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
@@ -12,6 +12,7 @@ import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
 
 import BaseChart from 'sentry/components/charts/baseChart';
+import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {
@@ -34,7 +35,8 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+// TODO: restore when feature flag is re-enabled
+// import useOrganization from 'sentry/utils/useOrganization';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
@@ -139,7 +141,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
-  const organization = useOrganization();
+  // TODO: restore when feature flag is re-enabled
+  // const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
@@ -543,7 +546,23 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
-  const hasChartLegend = organization.features.includes('chart-legend-component');
+  const hasChartLegend = true; // TODO: gate behind organization.features.includes('chart-legend-component')
+
+  // Local legend selection state used when the parent doesn't manage it
+  const [localLegendSelection, setLocalLegendSelection] = useState<
+    Record<string, boolean>
+  >({});
+  const legendSelection = props.legendSelection ?? localLegendSelection;
+  const handleLegendSelectionChange = useCallback(
+    (selection: Record<string, boolean>) => {
+      if (props.onLegendSelectionChange) {
+        props.onLegendSelectionChange(selection);
+      } else {
+        setLocalLegendSelection(selection);
+      }
+    },
+    [props]
+  );
 
   // Build legend items from plottables using their assigned colors
   const chartLegendItems: LegendItem[] = hasChartLegend
@@ -618,6 +637,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   return (
     <Fragment>
       {ActionMenu}
+      {hasChartLegend && showLegend && (
+        <ChartLegend
+          items={chartLegendItems}
+          selected={legendSelection}
+          onSelectionChange={handleLegendSelectionChange}
+        />
+      )}
       <BaseChart
         ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
         autoHeightResize
@@ -634,38 +660,32 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           ...releaseBubbleGrid,
           ...xAxisGrid,
         }}
-        chartLegend={
+        legend={
           hasChartLegend && showLegend
             ? {
-                items: chartLegendItems,
-                selected: props.legendSelection ?? {},
-                onSelectionChange: selection => {
-                  props?.onLegendSelectionChange?.(selection);
-                },
+                show: false,
+                selected: legendSelection,
               }
-            : undefined
-        }
-        legend={
-          !hasChartLegend && showLegend
-            ? {
-                top: 0,
-                left: 0,
-                formatter(seriesName: string) {
-                  return truncationFormatter(
-                    aliases[seriesName] ?? seriesName,
-                    true,
-                    // Escaping the legend string will cause some special
-                    // characters to render as their HTML equivalents.
-                    // So disable it here.
-                    false
-                  );
-                },
-                selected: props.legendSelection,
-              }
-            : undefined
+            : !hasChartLegend && showLegend
+              ? {
+                  top: 0,
+                  left: 0,
+                  formatter(seriesName: string) {
+                    return truncationFormatter(
+                      aliases[seriesName] ?? seriesName,
+                      true,
+                      // Escaping the legend string will cause some special
+                      // characters to render as their HTML equivalents.
+                      // So disable it here.
+                      false
+                    );
+                  },
+                  selected: legendSelection,
+                }
+              : undefined
         }
         onLegendSelectChanged={event => {
-          props?.onLegendSelectionChange?.(event.selected);
+          handleLegendSelectionChange(event.selected);
         }}
         tooltip={{
           appendToBody: true,
