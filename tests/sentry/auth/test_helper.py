@@ -735,3 +735,51 @@ class ProviderMismatchTest(TestCase):
         for call in mock_messages.add_message.call_args_list:
             if call[0][1] == mock_messages.WARNING:
                 assert "SSO" not in str(call)
+
+
+@control_silo_test
+class InactiveUserIdentityTest(AuthIdentityHandlerTest):
+    """Tests that inactive-user AuthIdentity always routes through handle_unknown_identity."""
+
+    def _create_inactive_user_with_identity(self):
+        """Create an inactive user with an AuthIdentity matching self.identity."""
+        inactive_user = self.create_user(is_active=False)
+        auth_identity = self.create_auth_identity(
+            user=inactive_user,
+            auth_provider=self.auth_provider_inst,
+            ident=self.identity["id"],
+        )
+        return inactive_user, auth_identity
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_inactive_identity_unauthenticated_shows_confirmation(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """Unauthenticated request + inactive-user identity shows confirmation page."""
+        self._create_inactive_user_with_identity()
+
+        self.handler.handle_unknown_identity(self.state)
+
+        assert mock_render.called
+        template = mock_render.call_args.args[0]
+        assert template == "sentry/auth-confirm-identity.html"
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_inactive_identity_authenticated_request_shows_confirmation(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """Authenticated request + inactive-user identity routes through
+        handle_unknown_identity and shows confirmation page, not a redirect."""
+        inactive_user, auth_identity = self._create_inactive_user_with_identity()
+        attacker = self.set_up_user()
+
+        result = self.handler.handle_unknown_identity(self.state)
+
+        assert result is mock_render.return_value
+        template = mock_render.call_args.args[0]
+        assert template == "sentry/auth-confirm-link.html"
+
+        # AuthIdentity still points to the original inactive user, not the attacker
+        auth_identity.refresh_from_db()
+        assert auth_identity.user_id == inactive_user.id
+        assert auth_identity.user_id != attacker.id

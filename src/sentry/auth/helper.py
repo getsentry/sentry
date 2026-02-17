@@ -924,14 +924,19 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
                 return auth_handler.handle_unknown_identity(self.state)
 
             # If the User attached to this AuthIdentity is not active,
-            # we want to clobber the old account and take it over, rather than
-            # getting logged into the inactive account.
+            # always route through handle_unknown_identity which enforces
+            # email verification, membership validation, and user confirmation.
             if not auth_identity.user.is_active:
-                # Current user is also not logged in, so we have to
-                # assume unknown.
-                if not self.request.user.is_authenticated:
-                    return auth_handler.handle_unknown_identity(self.state)
-                auth_identity = auth_handler.handle_attach_identity()
+                logger.info(
+                    "sso.login-pipeline.inactive-user-identity",
+                    extra={
+                        "auth_identity_id": auth_identity.id,
+                        "inactive_user_id": auth_identity.user_id,
+                        "request_user_authenticated": self.request.user.is_authenticated,
+                        "organization_id": self.organization.id,
+                    },
+                )
+                return auth_handler.handle_unknown_identity(self.state)
 
             return auth_handler.handle_existing_identity(self.state, auth_identity)
 
