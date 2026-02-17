@@ -12,7 +12,6 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-import networkx as nx
 import orjson
 import requests
 from django.conf import settings
@@ -375,25 +374,29 @@ def _classify_service_roles(edges: list[dict]) -> dict[int, str]:
     if not edges:
         return {}
 
-    # Build directed graph
-    graph = nx.DiGraph()
+    # Count incoming and outgoing edges for each project
+    in_degrees: dict[int, int] = defaultdict(int)
+    out_degrees: dict[int, int] = defaultdict(int)
+    all_nodes: set[int] = set()
+
     for edge in edges:
-        graph.add_edge(edge["source_project_id"], edge["target_project_id"], weight=edge["count"])
+        source = edge["source_project_id"]
+        target = edge["target_project_id"]
+        out_degrees[source] += 1
+        in_degrees[target] += 1
+        all_nodes.add(source)
+        all_nodes.add(target)
 
-    roles = {}
-
-    # Compute degree statistics for thresholds
-    in_degrees = dict(graph.in_degree())
-    out_degrees = dict(graph.out_degree())
-
-    if not in_degrees:
+    if not all_nodes:
         return {}
 
-    avg_in = sum(in_degrees.values()) / len(in_degrees)
-    avg_out = sum(out_degrees.values()) / len(out_degrees)
+    # Compute average degrees for thresholds
+    avg_in = sum(in_degrees.values()) / len(all_nodes)
+    avg_out = sum(out_degrees.values()) / len(all_nodes)
 
     # Classify each node
-    for node in graph.nodes():
+    roles = {}
+    for node in all_nodes:
         in_degree = in_degrees.get(node, 0)
         out_degree = out_degrees.get(node, 0)
 
