@@ -18,19 +18,19 @@ jest.mock('@sentry-internal/rrweb', () => {
 });
 
 // debounce doesn't work with fake timers
-jest.mock('lodash/debounce', () =>
-  jest.fn().mockImplementation((callback, timeout) => {
+vi.mock('lodash/debounce', () => ({
+  default: vi.fn().mockImplementation((callback, timeout) => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const debounced = jest.fn((...args) => {
+    const debounced = vi.fn((...args: any[]) => {
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => callback(...args), timeout);
     });
 
-    const cancel = jest.fn(() => {
+    const cancel = vi.fn(() => {
       if (timeoutId) clearTimeout(timeoutId);
     });
 
-    const flush = jest.fn(() => {
+    const flush = vi.fn(() => {
       if (timeoutId) clearTimeout(timeoutId);
       callback();
     });
@@ -40,8 +40,8 @@ jest.mock('lodash/debounce', () =>
     // @ts-expect-error mock lodash debounce
     debounced.flush = flush;
     return debounced;
-  })
-);
+  }),
+}));
 
 type EventWithTime = {
   data: any;

@@ -669,8 +669,12 @@ describe('Discover -> ColumnEditModal', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count_if', 'user', 'equals', '300']},
-        {kind: 'function', function: ['p95', '']},
-        {kind: 'equation', field: '(p95() / count_if(user,equals,300)  ) *   100'},
+        {kind: 'function', function: ['p95', '', undefined, undefined]},
+        {
+          kind: 'equation',
+          field: '(p95() / count_if(user,equals,300)  ) *   100',
+          alias: undefined,
+        },
       ]);
     });
     it('update equation with repeated columns when they change', async () => {

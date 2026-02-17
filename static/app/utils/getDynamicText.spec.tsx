@@ -3,11 +3,11 @@ describe('getDynamicText', () => {
     jest.resetModules();
   });
 
-  it('renders actual value', () => {
+  it('renders actual value', async () => {
     jest.doMock('sentry/constants', () => ({
       IS_ACCEPTANCE_TEST: false,
     }));
-    const getDynamicText = require('sentry/utils/getDynamicText').default;
+    const {default: getDynamicText} = await import('sentry/utils/getDynamicText');
 
     expect(
       getDynamicText({
@@ -17,11 +17,11 @@ describe('getDynamicText', () => {
     ).toBe('Dynamic Content');
   });
 
-  it('renders fixed content when `app/constants/IS_ACCEPTANCE_TEST` is true', () => {
+  it('renders fixed content when `app/constants/IS_ACCEPTANCE_TEST` is true', async () => {
     jest.doMock('sentry/constants', () => ({
       IS_ACCEPTANCE_TEST: true,
     }));
-    const getDynamicText = require('sentry/utils/getDynamicText').default;
+    const {default: getDynamicText} = await import('sentry/utils/getDynamicText');
 
     expect(
       getDynamicText({

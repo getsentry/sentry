@@ -1,9 +1,19 @@
+import * as echarts from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 import type {EChartsInstance} from 'echarts-for-react';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useChartXRangeSelection} from './useChartXRangeSelection';
+
+vi.mock('echarts', async importOriginal => {
+  const actual = await importOriginal<typeof import('echarts')>();
+  return {
+    ...actual,
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+  };
+});
 
 describe('useChartXRangeSelection', () => {
   const mockChartRef = {
@@ -85,8 +95,8 @@ describe('useChartXRangeSelection', () => {
     });
 
     it('should disconnect chart group when chartsGroupName is provided', () => {
-      const disconnectSpy = jest.fn();
-      jest.spyOn(require('echarts'), 'disconnect').mockImplementation(disconnectSpy);
+      const disconnectSpy = vi.fn();
+      vi.mocked(echarts.disconnect).mockImplementation(disconnectSpy);
 
       const {result} = renderHook(() =>
         useChartXRangeSelection({
@@ -248,8 +258,8 @@ describe('useChartXRangeSelection', () => {
     });
 
     it('should reconnect chart group after brush ends', async () => {
-      const connectSpy = jest.fn();
-      jest.spyOn(require('echarts'), 'connect').mockImplementation(connectSpy);
+      const connectSpy = vi.fn();
+      vi.mocked(echarts.connect).mockImplementation(connectSpy);
 
       const mockEchartsInstance = {
         ...mockChartInstance,

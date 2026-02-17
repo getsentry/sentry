@@ -5,8 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {IssueDiff} from 'sentry/components/issueDiff';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-jest.mock('sentry/api');
-jest.mock('sentry/utils/analytics');
+// sentry/api is already mocked by vitest-setup.ts
+vi.mock('sentry/utils/analytics');
 
 describe('IssueDiff', () => {
   const entries123Target = Entries123Target();

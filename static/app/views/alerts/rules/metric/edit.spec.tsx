@@ -15,17 +15,21 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-jest.mock('sentry/utils/analytics', () => ({
-  metric: {
-    startSpan: jest.fn(() => ({
-      setTag: jest.fn(),
-      setData: jest.fn(),
-    })),
-    mark: jest.fn(),
-    measure: jest.fn(),
-    endSpan: jest.fn(),
-  },
-}));
+jest.mock('sentry/utils/analytics', () => {
+  const metricFn = jest.fn();
+  metricFn.startSpan = jest.fn(() => ({
+    setTag: jest.fn(),
+    setData: jest.fn(),
+  }));
+  metricFn.mark = jest.fn();
+  metricFn.measure = jest.fn();
+  metricFn.endSpan = jest.fn();
+  return {
+    trackAnalytics: jest.fn(),
+    rawTrackAnalyticsEvent: jest.fn(),
+    metric: metricFn,
+  };
+});
 
 describe('MetricRulesEdit', () => {
   beforeEach(() => {

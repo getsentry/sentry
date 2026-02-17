@@ -9,11 +9,11 @@ import type {EventTransaction} from 'sentry/types/event';
 
 import ReplayPreview from './replayPreview';
 
-jest.mock('sentry/components/events/eventReplay/replayClipPreview', () => {
-  return function MockReplayClipPreview() {
+vi.mock('sentry/components/events/eventReplay/replayClipPreview', () => ({
+  default: function MockReplayClipPreview() {
     return <div data-test-id="replay-clip-preview">Replay Clip Preview</div>;
-  };
-});
+  },
+}));
 
 describe('ReplayPreview', () => {
   const user = UserFixture({id: '1'});

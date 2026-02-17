@@ -11,7 +11,7 @@ import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
 import IssueList from 'sentry/views/issueList/overview';
 
-jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
+vi.mock('sentry/views/issueList/filters', () => ({default: vi.fn(() => null)}));
 jest.mock('sentry/components/stream/group', () => ({
   __esModule: true,
   default: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
@@ -19,6 +19,10 @@ jest.mock('sentry/components/stream/group', () => ({
 }));
 
 jest.mock('js-cookie', () => ({
+  default: {
+    get: jest.fn(),
+    set: jest.fn(),
+  },
   get: jest.fn(),
   set: jest.fn(),
 }));

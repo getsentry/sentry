@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {WebVital} from 'sentry/utils/fields';
@@ -243,7 +243,7 @@ describe('Performance > TransactionSummary', () => {
     expect(tableHeader[4]).toHaveTextContent('trace id');
     expect(tableHeader[5]).toHaveTextContent('timestamp');
 
-    const tableFirstRowColumns = screen.getAllByRole('cell');
+    const tableFirstRowColumns = await screen.findAllByRole('cell');
     expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
     expect(tableFirstRowColumns[1]).toHaveTextContent('uhoh@example.com');
     expect(tableFirstRowColumns[2]).toHaveTextContent('(no value)');
@@ -273,8 +273,11 @@ describe('Performance > TransactionSummary', () => {
     expect(tableHeader[5]).toHaveTextContent('trace id');
     expect(tableHeader[6]).toHaveTextContent('timestamp');
 
-    const tableFirstRowColumns = screen.getAllByRole('cell');
-    expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
+    let tableFirstRowColumns!: HTMLElement[];
+    await waitFor(async () => {
+      tableFirstRowColumns = await screen.findAllByRole('cell');
+      expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
+    });
     expect(tableFirstRowColumns[1]).toHaveTextContent('uhoh@example.com');
     expect(tableFirstRowColumns[2]).toHaveTextContent('(no value)');
     expect(tableFirstRowColumns[3]).toHaveTextContent('200');

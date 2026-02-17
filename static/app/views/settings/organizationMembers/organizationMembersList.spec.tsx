@@ -608,7 +608,7 @@ describe('OrganizationMembersList', () => {
       renderGlobalModal();
 
       await userEvent.click(await screen.findByRole('button', {name: 'Invite Members'}));
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
     });
 
     it('can not invite members without the invite-members feature', async () => {
@@ -663,7 +663,7 @@ describe('OrganizationMembersList', () => {
       renderGlobalModal();
 
       await userEvent.click(await screen.findByRole('button', {name: 'Invite Members'}));
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
     });
 
     it('renders member list', async () => {

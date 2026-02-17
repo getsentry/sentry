@@ -354,7 +354,6 @@ describe('Nav', () => {
       const exploreLink = screen.getByRole('link', {name: 'Explore'});
 
       const event = new MouseEvent('click', {
-        view: window,
         bubbles: true,
         cancelable: true,
       });
@@ -395,7 +394,6 @@ describe('Nav', () => {
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
       const event = new MouseEvent('click', {
-        view: window,
         bubbles: true,
         cancelable: true,
       });

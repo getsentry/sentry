@@ -1,3 +1,5 @@
+import {waitFor} from 'sentry-test/reactTestingLibrary';
+
 import type {ActiveFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
 import type {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -628,11 +630,8 @@ describe('WaterfallModel', () => {
     const waterfallModel = new WaterfallModel(event);
     expect(waterfallModel.fuse).toBeUndefined();
 
-    // Fuzzy search needs to be loaded asynchronously
-    await tick();
-
-    // expect fuse index to be created
-    expect(waterfallModel.fuse).toBeDefined();
+    // Fuzzy search needs to be loaded asynchronously (dynamic import of fuse.js)
+    await waitFor(() => expect(waterfallModel.fuse).toBeDefined());
 
     expect(waterfallModel.filterSpans).toBeUndefined();
     expect(waterfallModel.searchQuery).toBeUndefined();

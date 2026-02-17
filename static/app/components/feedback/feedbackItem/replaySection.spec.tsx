@@ -7,11 +7,11 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import ReplaySection from './replaySection';
 
-jest.mock('sentry/components/events/eventReplay/replayClipPreview', () => {
-  return function MockReplayClipPreview() {
+vi.mock('sentry/components/events/eventReplay/replayClipPreview', () => ({
+  default: function MockReplayClipPreview() {
     return <div data-test-id="replay-clip-preview">Replay Clip Preview</div>;
-  };
-});
+  },
+}));
 
 describe('ReplaySection', () => {
   const user = UserFixture({id: '1'});

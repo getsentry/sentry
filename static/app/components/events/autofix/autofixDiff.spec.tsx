@@ -12,7 +12,11 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 
-jest.mock('sentry/actionCreators/indicator');
+jest.mock('sentry/actionCreators/indicator', () => ({
+  addErrorMessage: jest.fn(),
+  addSuccessMessage: jest.fn(),
+  addLoadingMessage: jest.fn(),
+}));
 
 describe('AutofixDiff', () => {
   const defaultProps = {
@@ -73,6 +77,7 @@ describe('AutofixDiff', () => {
   });
 
   it('can collapse a file diff', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     render(<AutofixDiff {...defaultProps} />);
 
     expect(screen.getAllByTestId('line-context')).toHaveLength(6);
@@ -89,7 +94,7 @@ describe('AutofixDiff', () => {
   it('can edit changes', async () => {
     render(<AutofixDiff {...defaultProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Edit changes'}));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Edit changes'})[0]!);
 
     expect(
       screen.getByRole('heading', {

@@ -1,3 +1,5 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -15,7 +17,7 @@ describe('ExploreContent', () => {
 
   beforeEach(() => {
     // Suppress console errors from CompactSelect async updates
-    jest.spyOn(console, 'error').mockImplementation();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
 
     PageFiltersStore.init();
 
@@ -83,6 +85,25 @@ describe('ExploreContent', () => {
       url: `/organizations/${organization.slug}/explore/saved/`,
       method: 'GET',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      body: AutofixSetupFixture({}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/stats_v2/`,
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-explorer-ai/setup/`,
+      method: 'POST',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
+      method: 'POST',
+      body: {},
     });
   });
 

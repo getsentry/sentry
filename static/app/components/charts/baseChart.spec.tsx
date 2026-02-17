@@ -7,8 +7,8 @@ import BaseChart from 'sentry/components/charts/baseChart';
 
 const theme = ThemeFixture();
 
-jest.mock('echarts-for-react/lib/core', () => {
-  return jest.fn(() => null);
+vi.mock('echarts-for-react/lib/core', () => {
+  return {default: vi.fn(() => null)};
 });
 
 describe('BaseChart', () => {

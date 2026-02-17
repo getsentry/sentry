@@ -93,15 +93,17 @@ const render = (
 
 const mockIsFullscreen = jest.fn();
 
-jest.mock('screenfull', () => ({
-  enabled: true,
-  get isFullscreen() {
-    return mockIsFullscreen();
+vi.mock('screenfull', () => ({
+  default: {
+    enabled: true,
+    get isFullscreen() {
+      return mockIsFullscreen();
+    },
+    request: vi.fn(),
+    exit: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
   },
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
 }));
 
 describe('ReplayClipPreview', () => {

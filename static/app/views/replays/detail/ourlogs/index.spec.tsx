@@ -9,7 +9,9 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import OurLogs from 'sentry/views/replays/detail/ourlogs';
 import {useReplayTraces} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
-jest.mock('sentry/views/replays/detail/trace/useReplayTraces');
+jest.mock('sentry/views/replays/detail/trace/useReplayTraces', () => ({
+  useReplayTraces: jest.fn(),
+}));
 
 function Wrappers({
   children,
@@ -46,7 +48,7 @@ const mockReplay = ReplayReader.factory({
 describe('OurLogs', () => {
   beforeEach(() => {
     // Seeing this error: <tbody> cannot be a child of <div>.
-    jest.spyOn(console, 'error').mockImplementation();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {

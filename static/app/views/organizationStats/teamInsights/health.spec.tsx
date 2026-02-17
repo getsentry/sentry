@@ -19,6 +19,17 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
   isActiveSuperuser: jest.fn(),
 }));
 
+// Helper to find the innermost element whose full textContent matches.
+// This handles cases where text is split across child elements (e.g. <span>#</span><span>backend</span>).
+function byFullText(text: string) {
+  return (_: string, el: Element | null): boolean => {
+    if (!el) return false;
+    if (el.textContent !== text) return false;
+    // Exclude parent containers that also have the same textContent via children
+    return !Array.from(el.children).some(child => child.textContent === text);
+  };
+}
+
 describe('TeamStatsHealth', () => {
   const project1 = ProjectFixture({id: '2', name: 'js', slug: 'js'});
   const project2 = ProjectFixture({id: '3', name: 'py', slug: 'py'});
@@ -46,6 +57,7 @@ describe('TeamStatsHealth', () => {
 
   beforeEach(() => {
     TeamStore.reset();
+    localStorage.clear();
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -196,19 +208,19 @@ describe('TeamStatsHealth', () => {
   it('defaults to first team', async () => {
     createWrapper();
 
-    expect(await screen.findByText('#backend')).toBeInTheDocument();
+    expect(await screen.findByText(byFullText('#backend'))).toBeInTheDocument();
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 
   it('allows team switching as non-owner', async () => {
     const {router} = createWrapper({isOrgOwner: false});
 
-    expect(screen.getByText('#backend')).toBeInTheDocument();
-    await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
-    expect(screen.getByText('#frontend')).toBeInTheDocument();
+    expect(await screen.findByText(byFullText('#backend'))).toBeInTheDocument();
+    await userEvent.type(screen.getByText(byFullText('#backend')), '{mouseDown}');
+    expect(screen.getByText(byFullText('#frontend'))).toBeInTheDocument();
     // Teams user is not a member of are hidden
-    expect(screen.queryByText('#internal')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByText('#frontend'));
+    expect(screen.queryByText(byFullText('#internal'))).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText(byFullText('#frontend')));
     expect(router.location.query).toEqual({team: team1.id});
 
     expect(localStorage.setItem).toHaveBeenCalledWith(
@@ -220,12 +232,12 @@ describe('TeamStatsHealth', () => {
   it('allows team switching as owner', async () => {
     const {router} = createWrapper();
 
-    expect(screen.getByText('#backend')).toBeInTheDocument();
-    await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
-    expect(screen.getByText('#frontend')).toBeInTheDocument();
+    expect(await screen.findByText(byFullText('#backend'))).toBeInTheDocument();
+    await userEvent.type(screen.getByText(byFullText('#backend')), '{mouseDown}');
+    expect(screen.getByText(byFullText('#frontend'))).toBeInTheDocument();
     // Org owners can see all teams including ones they are not members of
-    expect(screen.getByText('#internal')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('#internal'));
+    expect(screen.getByText(byFullText('#internal'))).toBeInTheDocument();
+    await userEvent.click(screen.getByText(byFullText('#internal')));
     expect(router.location.query).toEqual({team: team3.id});
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
@@ -237,19 +249,19 @@ describe('TeamStatsHealth', () => {
     jest.mocked(isActiveSuperuser).mockReturnValue(true);
     createWrapper();
 
-    expect(screen.getByText('#backend')).toBeInTheDocument();
-    await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
-    expect(screen.getByText('#frontend')).toBeInTheDocument();
+    expect(await screen.findByText(byFullText('#backend'))).toBeInTheDocument();
+    await userEvent.type(screen.getByText(byFullText('#backend')), '{mouseDown}');
+    expect(screen.getByText(byFullText('#frontend'))).toBeInTheDocument();
     // User is not a member of internal team
-    expect(screen.getByText('#internal')).toBeInTheDocument();
+    expect(screen.getByText(byFullText('#internal'))).toBeInTheDocument();
   });
 
-  it('shows users with no teams the join team button', () => {
+  it('shows users with no teams the join team button', async () => {
     createWrapper({
       projects: [{...project1, isMember: false}],
       teams: [],
     });
 
-    expect(screen.getByText('Join a Team')).toBeInTheDocument();
+    expect(await screen.findAllByText('Join a Team')).not.toHaveLength(0);
   });
 });

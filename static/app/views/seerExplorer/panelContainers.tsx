@@ -149,7 +149,10 @@ const PanelBackdrop = styled(motion.div)`
   pointer-events: none;
 `;
 
-const PanelContainer = styled(motion.div)<{
+const PanelContainer = styled(motion.div, {
+  shouldForwardProp: prop =>
+    !['isMinimized', 'isMobile', 'panelSize', 'isSeerDrawerOpen'].includes(prop),
+})<{
   isMinimized: boolean;
   isMobile: boolean;
   panelSize: 'max' | 'med';

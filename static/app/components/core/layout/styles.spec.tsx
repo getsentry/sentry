@@ -322,8 +322,10 @@ describe('useActiveBreakpoint', () => {
       },
     } as unknown as AbortController;
 
-    const mockAbortController = jest.fn(() => abortController);
-    window.AbortController = mockAbortController;
+    const mockAbortController = vi.fn(() => {
+      return abortController;
+    });
+    window.AbortController = mockAbortController as any;
 
     window.matchMedia = jest.fn(() => ({
       matches: false,

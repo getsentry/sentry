@@ -5,8 +5,8 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import {FrontendVersionProvider, useFrontendVersion} from './frontendVersionContext';
 
-jest.mock('sentry/constants', () => ({
-  __esModule: true,
+vi.mock('sentry/constants', async () => ({
+  ...(await vi.importActual('sentry/constants')),
   DEPLOY_PREVIEW_CONFIG: undefined,
   NODE_ENV: 'production',
 }));

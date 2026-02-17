@@ -5,7 +5,7 @@ import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
 describe('WidgetFrame', () => {
   describe('Layout', () => {
     beforeEach(() => {
-      jest.spyOn(console, 'error').mockImplementation();
+      jest.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {

@@ -3,6 +3,9 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
+// This file tests Prism tokenization directly — needs the real prismjs, not the mock.
+vi.unmock('prismjs');
+
 jest.unmock('prismjs');
 
 const JS_CODE = `function foo() {

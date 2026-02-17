@@ -35,7 +35,9 @@ function Wrapper({children}: {children: ReactNode}) {
   );
 }
 
-jest.mock('sentry/utils/analytics');
+jest.mock('sentry/utils/analytics', () => ({
+  trackAnalytics: jest.fn(),
+}));
 
 const mockStringTags: TagCollection = {
   stringTag1: {key: 'stringTag1', kind: FieldKind.TAG, name: 'stringTag1'},
@@ -69,7 +71,7 @@ describe('SpansTabContent', () => {
     MockApiClient.clearMockResponses();
 
     // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState({
@@ -113,6 +115,21 @@ describe('SpansTabContent', () => {
       url: `/organizations/${organization.slug}/seer/setup-check/`,
       body: AutofixSetupFixture({}),
     });
+    // MockApiClient.addMockResponse({
+    //   url: `/organizations/${organization.slug}/stats_v2/`,
+    //   method: 'GET',
+    //   body: {},
+    // });
+    // MockApiClient.addMockResponse({
+    //   url: `/organizations/${organization.slug}/trace-explorer-ai/setup/`,
+    //   method: 'POST',
+    //   body: {},
+    // });
+    // MockApiClient.addMockResponse({
+    //   url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
+    //   method: 'POST',
+    //   body: {},
+    // });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',

@@ -12,7 +12,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 
-jest.mock('lodash/debounce', () => {
+vi.mock('lodash/debounce', () => {
   const debounceMap = new Map();
   const mockDebounce =
     (fn: (...args: any[]) => void, timeout: number) =>
@@ -28,7 +28,7 @@ jest.mock('lodash/debounce', () => {
         }, timeout)
       );
     };
-  return mockDebounce;
+  return {default: mockDebounce};
 });
 
 describe('ExternalIssueForm', () => {

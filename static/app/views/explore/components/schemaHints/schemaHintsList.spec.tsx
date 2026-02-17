@@ -1,5 +1,6 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import * as searchQueryBuilderContext from 'sentry/components/searchQueryBuilder/context';
 import type {TagCollection} from 'sentry/types/group';
 import {AggregationKey, FieldKind} from 'sentry/utils/fields';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -276,10 +277,7 @@ describe('SchemaHintsList', () => {
 
   it('should remove hint from query when checkbox is unchecked on drawer', async () => {
     const mockUseSearchQueryBuilder = jest
-      .spyOn(
-        require('sentry/components/searchQueryBuilder/context'),
-        'useSearchQueryBuilder'
-      )
+      .spyOn(searchQueryBuilderContext, 'useSearchQueryBuilder')
       .mockImplementation(() => ({
         query: '!stringTag1:"" numberTag1:>0',
         getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
@@ -318,10 +316,7 @@ describe('SchemaHintsList', () => {
 
   it('should remove aggregate hint from query when checkbox is unchecked on drawer', async () => {
     const mockUseSearchQueryBuilder = jest
-      .spyOn(
-        require('sentry/components/searchQueryBuilder/context'),
-        'useSearchQueryBuilder'
-      )
+      .spyOn(searchQueryBuilderContext, 'useSearchQueryBuilder')
       .mockImplementation(() => ({
         query: 'stringTag1:"" numberTag1:>0 count_unique(user):>0',
         getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
@@ -416,10 +411,7 @@ describe('SchemaHintsList', () => {
 
   it('should set focus override propely on duplicate filters', async () => {
     const mockUseSearchQueryBuilder = jest
-      .spyOn(
-        require('sentry/components/searchQueryBuilder/context'),
-        'useSearchQueryBuilder'
-      )
+      .spyOn(searchQueryBuilderContext, 'useSearchQueryBuilder')
       .mockImplementation(() => ({
         query: 'stringTag1:"something"',
         getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),

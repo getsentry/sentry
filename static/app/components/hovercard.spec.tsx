@@ -113,6 +113,7 @@ describe('Hovercard', () => {
     await userEvent.unhover(screen.getByText('Hovercard Trigger'), {delay: null});
 
     act(() => jest.advanceTimersByTime(1));
+    act(() => jest.runAllTimers());
     jest.useRealTimers();
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();

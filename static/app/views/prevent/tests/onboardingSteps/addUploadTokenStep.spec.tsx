@@ -5,14 +5,12 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
 
-jest.mock(
-  'sentry-images/features/test-analytics-repo-secret-dark.png',
-  () => 'dark-image'
-);
-jest.mock(
-  'sentry-images/features/test-analytics-repo-secret-light.png',
-  () => 'light-image'
-);
+jest.mock('sentry-images/features/test-analytics-repo-secret-dark.png', () => ({
+  default: 'dark-image',
+}));
+jest.mock('sentry-images/features/test-analytics-repo-secret-light.png', () => ({
+  default: 'light-image',
+}));
 
 describe('AddUploadTokenStep', () => {
   const mockOrganization = OrganizationFixture({

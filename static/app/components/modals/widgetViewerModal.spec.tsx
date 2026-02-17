@@ -30,11 +30,11 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
-jest.mock('echarts-for-react/lib/core', () => {
-  return jest.fn(({style}) => {
+vi.mock('echarts-for-react/lib/core', () => ({
+  default: vi.fn(({style}) => {
     return <div style={{...style, background: 'green'}}>echarts mock</div>;
-  });
-});
+  }),
+}));
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 

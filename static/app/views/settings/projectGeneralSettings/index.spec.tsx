@@ -488,7 +488,7 @@ describe('projectGeneralSettings', () => {
       });
 
       // required for async updates
-      jest.spyOn(console, 'error').mockImplementation();
+      jest.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     it('shows all platform options when all console platforms enabled', async () => {

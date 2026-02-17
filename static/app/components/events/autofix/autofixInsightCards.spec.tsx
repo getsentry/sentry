@@ -4,7 +4,11 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import AutofixInsightCards from 'sentry/components/events/autofix/insights/autofixInsightCards';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 
-jest.mock('sentry/actionCreators/indicator');
+jest.mock('sentry/actionCreators/indicator', () => ({
+  addErrorMessage: jest.fn(),
+  addLoadingMessage: jest.fn(),
+  addSuccessMessage: jest.fn(),
+}));
 
 const sampleInsights: AutofixInsight[] = [
   {
@@ -44,8 +48,9 @@ describe('AutofixInsightCards', () => {
   });
 
   it('toggles context expansion correctly', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     renderComponent();
-    const contextButton = screen.getByText('Sample insight 1');
+    const contextButton = screen.getAllByText('Sample insight 1')[0]!;
 
     await userEvent.click(contextButton);
     await waitFor(() => {
@@ -67,7 +72,7 @@ describe('AutofixInsightCards', () => {
       },
     ];
     renderComponent({insights: multipleInsights});
-    expect(screen.getByText('Sample insight 1')).toBeInTheDocument();
+    expect(screen.getAllByText('Sample insight 1')[0]).toBeInTheDocument();
     expect(screen.getByText('User message')).toBeInTheDocument();
     expect(screen.getByText('Another insight')).toBeInTheDocument();
   });

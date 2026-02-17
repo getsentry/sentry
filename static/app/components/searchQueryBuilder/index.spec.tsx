@@ -3929,8 +3929,8 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(screen.getByRole('option', {name: 'count()'}));
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
 
-        const gtOption = screen.getByRole('option', {name: '>'});
-        expect(gtOption).toHaveFocus();
+        const gtOption = await screen.findByRole('option', {name: '>'});
+        await waitFor(() => expect(gtOption).toHaveFocus());
         await userEvent.click(gtOption);
 
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
@@ -3945,8 +3945,8 @@ describe('SearchQueryBuilder', () => {
         await userEvent.keyboard('count(');
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
 
-        const gtOption = screen.getByRole('option', {name: '>'});
-        expect(gtOption).toHaveFocus();
+        const gtOption = await screen.findByRole('option', {name: '>'});
+        await waitFor(() => expect(gtOption).toHaveFocus());
         await userEvent.click(gtOption);
 
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();

@@ -15,13 +15,17 @@ import type {GroupSummaryData} from 'sentry/components/group/groupSummary';
 import * as groupSummaryHooks from 'sentry/components/group/groupSummary';
 import {EntryType} from 'sentry/types/event';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
+import * as useHotkeysModule from 'sentry/utils/useHotkeys';
 import * as useOrganization from 'sentry/utils/useOrganization';
 import {
   issueAndEventToMarkdown,
   useCopyIssueDetails,
 } from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 
-jest.mock('sentry/utils/useCopyToClipboard');
+jest.mock('sentry/utils/useCopyToClipboard', () => ({
+  copyToClipboard: jest.fn(),
+  default: jest.fn(() => ({copy: jest.fn()})),
+}));
 
 describe('useCopyIssueDetails', () => {
   const organization = OrganizationFixture();
@@ -397,7 +401,7 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('sets up hotkeys with the correct callbacks', () => {
-      const useHotkeysMock = jest.spyOn(require('sentry/utils/useHotkeys'), 'useHotkeys');
+      const useHotkeysMock = jest.spyOn(useHotkeysModule, 'useHotkeys');
 
       renderHook(() => useCopyIssueDetails(group, event));
 

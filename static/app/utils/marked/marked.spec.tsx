@@ -1,11 +1,13 @@
-/* eslint no-script-url:0 */
-
 import {
   asyncSanitizedMarked,
   sanitizedMarked,
   singleLineRenderer,
 } from 'sentry/utils/marked/marked';
 import {loadPrismLanguage} from 'sentry/utils/prism';
+
+/* eslint no-script-url:0 */
+// This file tests Prism-powered syntax highlighting — needs the real prismjs, not the mock.
+vi.unmock('prismjs');
 
 jest.unmock('prismjs');
 

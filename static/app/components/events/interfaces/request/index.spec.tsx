@@ -2,7 +2,7 @@ import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRe
 import {EventFixture} from 'sentry-fixture/event';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Request} from 'sentry/components/events/interfaces/request';
@@ -455,15 +455,13 @@ describe('Request entry', () => {
           },
         });
 
-        const {container} = render(
-          <Request event={event} data={event.entries[0]!.data} />
-        );
+        render(<Request event={event} data={event.entries[0]!.data} />);
 
-        // eslint-disable-next-line testing-library/no-container
-        expect(container.querySelector('.line-highlight')).toBeInTheDocument();
+        await waitFor(() => {
+          expect(document.querySelector('.line-highlight')).toBeInTheDocument();
+        });
         expect(
-          // eslint-disable-next-line testing-library/no-container
-          container.querySelector('.line-highlight')?.getAttribute('data-start')
+          document.querySelector('.line-highlight')?.getAttribute('data-start')
         ).toBe('1');
         expect(
           screen.getByText('There was 1 GraphQL error raised during this request.')

@@ -294,7 +294,13 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setupFramework.ts',
   ],
   testMatch: testMatch || ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
-  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/tests/sentry/lang/javascript/',
+    // Migrated to Vitest — run via `pnpm test:vitest-run`
+    '<rootDir>/static/app/utils/',
+    '<rootDir>/static/app/components/',
+    '<rootDir>/static/app/views/',
+  ],
 
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',

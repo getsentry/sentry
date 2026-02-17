@@ -18,7 +18,7 @@ describe('StructuredEventData', () => {
       expect(screen.getByText(URL)).toBeInTheDocument();
       const linkHint = screen.getByRole('link');
       await userEvent.click(linkHint);
-      expect(screen.getByTestId('external-link-warning')).toBeInTheDocument();
+      expect(await screen.findByTestId('external-link-warning')).toBeInTheDocument();
     });
 
     it('should not render urls if meta is present', () => {

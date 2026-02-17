@@ -1,0 +1,136 @@
+import path from 'node:path';
+
+import react from '@vitejs/plugin-react-swc';
+import {defineConfig} from 'vitest/config';
+
+import jestCompatPlugin from './tests/js/vite-jest-compat-plugin';
+import pegjsPlugin from './tests/js/vite-pegjs-plugin';
+
+const ROOT = import.meta.dirname;
+
+export default defineConfig({
+  plugins: [
+    react({
+      jsxImportSource: '@emotion/react',
+      plugins: [['@swc/plugin-emotion', {}]],
+    }),
+    pegjsPlugin(),
+    jestCompatPlugin(),
+  ],
+  resolve: {
+    alias: [
+      // Mirror moduleNameMapper from jest.config.ts
+      {find: /^sentry\/(.*)/, replacement: path.resolve(ROOT, 'static/app/$1')},
+      {
+        find: /^@sentry\/scraps\/(.*)/,
+        replacement: path.resolve(ROOT, 'static/app/components/core/$1'),
+      },
+      {find: /^getsentry\/(.*)/, replacement: path.resolve(ROOT, 'static/gsApp/$1')},
+      {find: /^admin\/(.*)/, replacement: path.resolve(ROOT, 'static/gsAdmin/$1')},
+      {
+        find: /^sentry-fixture\/(.*)/,
+        replacement: path.resolve(ROOT, 'tests/js/fixtures/$1'),
+      },
+      {
+        find: /^sentry-test\/(.*)/,
+        replacement: path.resolve(ROOT, 'tests/js/sentry-test/$1'),
+      },
+      {
+        find: /^getsentry-test\/(.*)/,
+        replacement: path.resolve(ROOT, 'tests/js/getsentry-test/$1'),
+      },
+      {
+        find: /^sentry-locale\/(.*)/,
+        replacement: path.resolve(ROOT, 'src/sentry/locale/$1'),
+      },
+
+      // Image/logo aliases (matches rspack.config.ts)
+      {
+        find: /^sentry-images\/(.*)/,
+        replacement: path.resolve(ROOT, 'static/images/$1'),
+      },
+      {
+        find: /^getsentry-images\/(.*)/,
+        replacement: path.resolve(ROOT, 'static/images/$1'),
+      },
+      {
+        find: /^sentry-logos\/(.*)/,
+        replacement: path.resolve(ROOT, 'src/sentry/static/sentry/images/logos/$1'),
+      },
+
+      // Asset / style mocks (replaces moduleNameMapper patterns from Jest)
+      // Also match CSS imports from node_modules (e.g. react-date-range/dist/styles.css)
+      {
+        find: /.*\.css$/,
+        replacement: path.resolve(ROOT, 'tests/js/sentry-test/mocks/importStyleMock.js'),
+      },
+      {
+        find: /\.(less|png|gif|jpg|woff|mp4)$/,
+        replacement: path.resolve(ROOT, 'tests/js/sentry-test/mocks/importStyleMock.js'),
+      },
+      {
+        find: /\.svg$/,
+        replacement: path.resolve(ROOT, 'tests/js/sentry-test/mocks/svgMock.js'),
+      },
+
+      // Disable echarts in test (same as Jest config)
+      {
+        find: /^echarts\/(.*)/,
+        replacement: path.resolve(ROOT, 'tests/js/sentry-test/mocks/echartsMock.js'),
+      },
+      {
+        find: /^zrender\/(.*)/,
+        replacement: path.resolve(ROOT, 'tests/js/sentry-test/mocks/echartsMock.js'),
+      },
+
+      // Disable @sentry/toolbar in tests
+      {
+        find: '@sentry/toolbar',
+        replacement: path.resolve(
+          ROOT,
+          'tests/js/sentry-test/mocks/sentryToolbarMock.js'
+        ),
+      },
+
+      // Mock react-date-range with a lightweight test double (same as Jest __mocks__)
+      {
+        find: 'react-date-range',
+        replacement: path.resolve(ROOT, 'static/app/__mocks__/react-date-range.tsx'),
+      },
+    ],
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    env: {
+      // Mirror scripts/test.js — tests hardcode Eastern timezone values
+      TZ: 'America/New_York',
+    },
+    environmentOptions: {
+      jsdom: {
+        url: 'http://localhost/',
+      },
+    },
+    clearMocks: true,
+    setupFiles: [
+      'tests/js/vitest-cjs-shim.ts',
+      'static/app/utils/silence-react-unsafe-warnings.ts',
+      'vitest-canvas-mock',
+      'tests/js/vitest-setup.ts',
+      'tests/js/vitest-setupFramework.ts',
+    ],
+    include: ['static/**/*.spec.{ts,tsx}'],
+    css: false,
+    deps: {
+      optimizer: {
+        web: {
+          include: ['screenfull', 'cbor2', 'nuqs', 'color'],
+        },
+      },
+    },
+    pool: 'forks',
+    experimental: {
+      fsModuleCache: true,
+    },
+  },
+});

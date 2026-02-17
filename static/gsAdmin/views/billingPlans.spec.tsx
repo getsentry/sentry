@@ -158,9 +158,9 @@ describe('BillingPlans Component', () => {
   it('downloads CSV when the download button is clicked', async () => {
     const TEST_BLOB_CONSTRUCTOR = jest.fn();
 
-    jest
-      .spyOn(global, 'Blob')
-      .mockImplementationOnce((...args) => TEST_BLOB_CONSTRUCTOR(...args));
+    vi.spyOn(global, 'Blob').mockImplementationOnce((...args) => {
+      return TEST_BLOB_CONSTRUCTOR(...args);
+    });
 
     render(<BillingPlans />);
 

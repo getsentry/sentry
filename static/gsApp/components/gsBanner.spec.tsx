@@ -16,6 +16,7 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
+import GuideStore from 'sentry/stores/guideStore';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
@@ -27,14 +28,15 @@ import {
 import GSBanner from 'getsentry/components/gsBanner';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
-jest.mock('getsentry/actionCreators/modal');
-const guideMock = jest.requireMock('sentry/stores/guideStore');
-jest.mock('sentry/stores/guideStore', () => ({
-  state: {},
+vi.mock('getsentry/actionCreators/modal');
+vi.mock('sentry/stores/guideStore', () => ({
+  default: {
+    state: {} as any,
+  },
 }));
 
 function setUpTests() {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   delete window.pendo;
 
   MockApiClient.clearMockResponses();
@@ -746,7 +748,7 @@ describe('GSBanner', () => {
   });
 
   it('loads pendo', async () => {
-    guideMock.state.currentGuide = false;
+    (GuideStore.state as any).currentGuide = false;
     const organization = OrganizationFixture({
       slug: 'forced-trial',
       orgRole: 'admin',
@@ -787,7 +789,7 @@ describe('GSBanner', () => {
     });
 
     window.pendo = {
-      initialize: jest.fn(),
+      initialize: vi.fn(),
     };
 
     MockApiClient.addMockResponse({
@@ -837,7 +839,7 @@ describe('GSBanner', () => {
   });
 
   it('delays pendo guides if other guides are active', async () => {
-    guideMock.state.currentGuide = true;
+    (GuideStore.state as any).currentGuide = true;
     const organization = OrganizationFixture();
     SubscriptionStore.set(
       organization.slug,
@@ -853,7 +855,7 @@ describe('GSBanner', () => {
     });
 
     window.pendo = {
-      initialize: jest.fn(),
+      initialize: vi.fn(),
     };
 
     const now = moment();

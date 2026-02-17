@@ -1,4 +1,38 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`highlightFuseMatches > matches whole word 1`] = `
+[
+  <Styled(mark)>
+    foo
+  </Styled(mark)>,
+]
+`;
+
+exports[`highlightFuseMatches > renders a highlighted string 1`] = `
+[
+  <span>
+    Auth
+  </span>,
+  <Styled(mark)>
+    ent
+  </Styled(mark)>,
+  <span>
+    icati
+  </span>,
+  <Styled(mark)>
+    on
+  </Styled(mark)>,
+  <span>
+     
+  </span>,
+  <Styled(mark)>
+    to
+  </Styled(mark)>,
+  <span>
+    kens allow you to perform actions
+  </span>,
+]
+`;
 
 exports[`highlightFuseMatches matches whole word 1`] = `
 [

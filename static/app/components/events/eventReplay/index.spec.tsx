@@ -23,13 +23,11 @@ jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 // Replay clip preview is very heavy, mock it out
-jest.mock(
-  'sentry/components/events/eventReplay/replayClipPreview',
-  () =>
-    function () {
-      return <div data-test-id="replay-clip" />;
-    }
-);
+vi.mock('sentry/components/events/eventReplay/replayClipPreview', () => ({
+  default: function () {
+    return <div data-test-id="replay-clip" />;
+  },
+}));
 
 const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
 const mockReplayId = '761104e184c64d439ee1014b72b4d83b';

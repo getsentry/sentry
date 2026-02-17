@@ -148,7 +148,7 @@ describe('Chart Utils', () => {
     });
 
     // This uses moment so we probably don't need to test it too extensively
-    describe('with absolute dates', () => {});
+    // Absolute date handling is tested via integration tests
   });
 
   describe('canIncludePreviousPeriod()', () => {

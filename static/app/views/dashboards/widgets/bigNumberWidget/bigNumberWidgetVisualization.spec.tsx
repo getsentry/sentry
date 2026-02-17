@@ -8,7 +8,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 describe('BigNumberWidgetVisualization', () => {
   describe('Visualization', () => {
     beforeEach(() => {
-      jest.spyOn(console, 'error').mockImplementation();
+      jest.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {

@@ -35,6 +35,15 @@ import ViewEditDashboard from 'sentry/views/dashboards/view';
 import useWidgetBuilderState from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
+// Wrap the types module in a plain object so MAX_WIDGETS can be patched per-test
+// (ESM module namespace objects are read-only in Vitest/native ESM).
+vi.mock('sentry/views/dashboards/types', async () => {
+  const actual = await vi.importActual<typeof import('sentry/views/dashboards/types')>(
+    'sentry/views/dashboards/types'
+  );
+  return {...actual};
+});
+
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 jest.mock('sentry/actionCreators/indicator');
 
@@ -589,8 +598,11 @@ describe('Dashboards > Detail', () => {
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: '1'},
       });
-      // @ts-expect-error this is assigning to readonly property...
-      types.MAX_WIDGETS = 1;
+      Object.defineProperty(types, 'MAX_WIDGETS', {
+        value: 1,
+        writable: true,
+        configurable: true,
+      });
 
       render(
         <OrganizationContext value={initialData.organization}>
@@ -605,6 +617,13 @@ describe('Dashboards > Detail', () => {
       // Enter edit mode.
       await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
       expect(screen.queryByRole('button', {name: 'Add widget'})).not.toBeInTheDocument();
+
+      // Restore MAX_WIDGETS to original value
+      Object.defineProperty(types, 'MAX_WIDGETS', {
+        value: 30,
+        writable: true,
+        configurable: true,
+      });
     });
 
     it('renders successfully if more widgets than stored layouts', async () => {

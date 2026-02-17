@@ -16,6 +16,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
+import * as issueTypeConfigModule from 'sentry/utils/issueTypeConfig';
 import {SeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 describe('SeerDrawer', () => {
@@ -296,7 +297,6 @@ describe('SeerDrawer', () => {
     });
 
     // Use jest.spyOn instead of jest.mock inside the test
-    const issueTypeConfigModule = require('sentry/utils/issueTypeConfig');
     const spy = jest
       .spyOn(issueTypeConfigModule, 'getConfigForIssueType')
       .mockImplementation(() => ({

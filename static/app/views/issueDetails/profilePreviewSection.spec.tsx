@@ -19,9 +19,9 @@ jest.mock('sentry/components/profiling/flamegraph/flamegraphPreview', () => ({
 }));
 
 jest.mock('sentry/utils/profiling/flamegraph', () => ({
-  Flamegraph: jest.fn().mockImplementation(() => ({
-    configSpace: {width: 100},
-  })),
+  Flamegraph: jest.fn(() => {
+    return {configSpace: {width: 100}};
+  }),
 }));
 
 jest.mock('sentry/views/profiling/profileGroupProvider', () => {

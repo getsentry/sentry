@@ -2,10 +2,14 @@ import * as Sentry from '@sentry/react';
 
 import {getHighlightedSpanAttributes} from './highlightedAttributes';
 
-// Mock Sentry
-jest.mock('@sentry/react', () => ({
-  captureMessage: jest.fn(),
-}));
+// Mock Sentry - spread actual module to preserve all exports (e.g. logger)
+jest.mock('@sentry/react', async () => {
+  const actual = await vi.importActual('@sentry/react');
+  return {
+    ...actual,
+    captureMessage: jest.fn(),
+  };
+});
 
 describe('getHighlightedSpanAttributes', () => {
   beforeEach(() => {

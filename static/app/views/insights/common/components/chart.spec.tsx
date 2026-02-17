@@ -5,9 +5,9 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import type {Series} from 'sentry/types/echarts';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 
-jest.mock('sentry/components/charts/baseChart', () => {
-  return jest.fn().mockImplementation(() => <div />);
-});
+vi.mock('sentry/components/charts/baseChart', () => ({
+  default: vi.fn().mockImplementation(() => <div />),
+}));
 
 describe('Chart', () => {
   test('it shows an error panel if an error prop is supplied', () => {

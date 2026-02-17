@@ -17,12 +17,10 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import ProjectsDashboard from 'sentry/views/projectsDashboard';
 
-jest.unmock('lodash/debounce');
-jest.mock('lodash/debounce', () => {
-  const debounceMap = new Map();
-  const mockDebounce =
-    (fn: (...args: any[]) => void, timeout: number) =>
-    (...args: any[]) => {
+vi.mock('lodash/debounce', () => ({
+  default: vi.fn((fn: any, timeout: number) => {
+    const debounceMap = new Map();
+    const debounced = (...args: any[]) => {
       if (debounceMap.has(fn)) {
         clearTimeout(debounceMap.get(fn));
       }
@@ -34,8 +32,22 @@ jest.mock('lodash/debounce', () => {
         }, timeout)
       );
     };
-  return mockDebounce;
-});
+    debounced.cancel = vi.fn(() => {
+      if (debounceMap.has(fn)) {
+        clearTimeout(debounceMap.get(fn));
+        debounceMap.delete(fn);
+      }
+    });
+    debounced.flush = vi.fn(() => {
+      if (debounceMap.has(fn)) {
+        clearTimeout(debounceMap.get(fn));
+        debounceMap.delete(fn);
+        fn.apply(fn, []);
+      }
+    });
+    return debounced;
+  }),
+}));
 
 describe('ProjectsDashboard', () => {
   const org = OrganizationFixture();

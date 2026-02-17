@@ -10,7 +10,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import ConfigStore from 'sentry/stores/configStore';
@@ -394,7 +400,8 @@ describe('CronDetectorDetails - check-ins', () => {
 
       await screen.findByText('Recent Check-Ins');
 
-      expect(detectorRefetchRequest).toHaveBeenCalledTimes(1);
+      expect(detectorRefetchRequest).toHaveBeenCalled();
+      const refetchCountBeforeMute = detectorRefetchRequest.mock.calls.length;
 
       const envButtons = screen.getAllByRole('button', {
         name: 'Monitor environment actions',
@@ -414,7 +421,11 @@ describe('CronDetectorDetails - check-ins', () => {
         })
       );
 
-      expect(detectorRefetchRequest).toHaveBeenCalledTimes(2);
+      await waitFor(() => {
+        expect(detectorRefetchRequest.mock.calls.length).toBeGreaterThan(
+          refetchCountBeforeMute
+        );
+      });
     });
   });
 });

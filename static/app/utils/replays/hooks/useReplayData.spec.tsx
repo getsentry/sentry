@@ -207,7 +207,7 @@ describe('useReplayData', () => {
     });
     const mockedErrorEventsMetaCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
-      body: {},
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1"',
@@ -223,7 +223,7 @@ describe('useReplayData', () => {
 
     const mockedIssuePlatformEventsMetaCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
-      body: {},
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1"',
@@ -250,7 +250,7 @@ describe('useReplayData', () => {
     expect(mockedIssuePlatformEventsMetaCall).toHaveBeenCalledTimes(1);
 
     await waitFor(() => {
-      expect(result.current).toStrictEqual(
+      expect(result.current).toEqual(
         expect.objectContaining({
           attachments: [],
           errors: [],

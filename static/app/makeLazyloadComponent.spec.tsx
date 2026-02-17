@@ -95,7 +95,7 @@ describe('makeLazyloadComponent', () => {
           screen.getByText('There was an error loading a component.')
         ).toBeInTheDocument();
       });
-      expect(consoleSpy).toHaveBeenCalledWith(new Error('Load failed'));
+      expect(consoleSpy.mock.calls[1]![0].message).toBe('Load failed');
     });
   });
 

@@ -7,6 +7,7 @@ import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams'
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {QUERY_PAGE_LIMIT} from 'sentry/views/explore/logs/constants';
 import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
+import {downloadLogsAsCsv} from 'sentry/views/explore/logs/logsExportCsv';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
@@ -122,9 +123,7 @@ describe('LogsExportButton', () => {
   });
 
   it('should handle CSV export for small datasets', async () => {
-    const mockDownloadLogsAsCsv = jest.mocked(
-      require('sentry/views/explore/logs/logsExportCsv').downloadLogsAsCsv
-    );
+    const mockDownloadLogsAsCsv = jest.mocked(downloadLogsAsCsv);
 
     render(
       <ProviderWrapper>

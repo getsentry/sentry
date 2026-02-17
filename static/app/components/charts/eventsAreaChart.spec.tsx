@@ -5,8 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import BaseChart from 'sentry/components/charts/baseChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 
-jest.mock('sentry/components/charts/baseChart', () => {
-  return jest.fn().mockImplementation(() => <div data-test-id="area-chart" />);
+vi.mock('sentry/components/charts/baseChart', () => {
+  return {default: vi.fn().mockImplementation(() => <div data-test-id="area-chart" />)};
 });
 
 describe('EventsChart with legend', () => {

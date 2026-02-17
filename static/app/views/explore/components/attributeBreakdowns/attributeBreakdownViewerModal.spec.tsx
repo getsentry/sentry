@@ -13,11 +13,11 @@ import AttributeBreakdownViewerModal from './attributeBreakdownViewerModal';
 
 jest.mock('sentry/actionCreators/modal');
 
-jest.mock('echarts-for-react/lib/core', () => {
-  return jest.fn(({style}) => {
+vi.mock('echarts-for-react/lib/core', () => ({
+  default: vi.fn(({style}) => {
     return <div style={{...style, background: 'green'}}>echarts mock</div>;
-  });
-});
+  }),
+}));
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
