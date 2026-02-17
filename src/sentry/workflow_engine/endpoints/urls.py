@@ -1,5 +1,6 @@
 from django.urls import re_path
 
+from sentry.workflow_engine.endpoints.admin_debug_index import AdminWorkflowDetailEndpoint
 from sentry.workflow_engine.endpoints.organization_deduplicate_workflows import (
     OrganizationDeduplicateWorkflowsEndpoint,
 )
@@ -108,5 +109,14 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/incident-groupopenperiod/$",
         OrganizationIncidentGroupOpenPeriodIndexEndpoint.as_view(),
         name="sentry-api-0-organization-incident-groupopenperiod-index",
+    ),
+]
+
+# These URLs power /_admin/alerts
+admin_urlpatterns = [
+    re_path(
+        r"^workflows/(?P<workflow_id>[^/]+)/$",
+        AdminWorkflowDetailEndpoint.as_view(),
+        name="sentry-api-0-admin-workflow-details",
     ),
 ]
