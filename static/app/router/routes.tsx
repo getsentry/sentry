@@ -695,8 +695,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'loader-script/',
-      name: t('Loader Script'),
-      component: make(() => import('sentry/views/settings/project/loaderScript')),
+      redirectTo: 'keys/',
     },
     {
       path: 'release-tracking/',

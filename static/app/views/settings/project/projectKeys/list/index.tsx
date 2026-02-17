@@ -1,7 +1,7 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {ExternalLink} from '@sentry/scraps/link';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {
   addErrorMessage,
@@ -9,14 +9,11 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconFlag} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
@@ -27,11 +24,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import KeyRow from './keyRow';
+import {ClientKeysTab} from './clientKeysTab';
+import {LoaderScriptTab} from './loaderScriptTab';
 
 export default function ProjectKeys() {
   const params = useParams<{projectId: string}>();
@@ -41,6 +37,7 @@ export default function ProjectKeys() {
   const api = useApi({persistInFlight: true});
   const routes = useRoutes();
 
+  const [tab, setTab] = useState<'keys' | 'loader-script'>('keys');
   const [keyListState, setKeyListState] = useState<ProjectKey[] | undefined>(undefined);
 
   const {
@@ -149,83 +146,58 @@ export default function ProjectKeys() {
   }
 
   const keyList = keyListState ? keyListState : fetchedKeyList;
-
-  const renderEmpty = () => {
-    return (
-      <Panel>
-        <EmptyMessage icon={<IconFlag />}>
-          {t('There are no keys active for this project.')}
-        </EmptyMessage>
-      </Panel>
-    );
-  };
-
-  const renderResults = () => {
-    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
-
-    return (
-      <Fragment>
-        {keyList.map(key => (
-          <KeyRow
-            hasWriteAccess={hasAccess}
-            key={key.id}
-            projectId={project.slug}
-            project={project}
-            organization={organization}
-            data={key}
-            onToggle={(isActive, data) =>
-              handleToggleKeyMutation.mutate({isActive, data})
-            }
-            onRemove={data => handleRemoveKeyMutation.mutate(data)}
-            routes={routes}
-            location={location}
-            params={params}
-          />
-        ))}
-        <Pagination pageLinks={getResponseHeader?.('Link')} />
-      </Fragment>
-    );
-  };
-
-  const isEmpty = !keyList.length;
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
   return (
     <div data-test-id="project-keys">
       <SentryDocumentTitle title={t('Client Keys')} projectSlug={project.slug} />
       <SettingsPageHeader
-        title={t('Client Keys')}
+        title={t('Client Keys (DSN)')}
         action={
-          <Button
-            onClick={() => handleCreateKeyMutation.mutate()}
-            size="sm"
-            priority="primary"
-            icon={<IconAdd />}
-            disabled={!hasAccess}
-          >
-            {t('Generate New Key')}
-          </Button>
+          tab === 'keys' ? (
+            <Button
+              onClick={() => handleCreateKeyMutation.mutate()}
+              size="sm"
+              priority="primary"
+              icon={<IconAdd />}
+              disabled={!hasAccess}
+            >
+              {t('Generate New Key')}
+            </Button>
+          ) : undefined
         }
       />
 
-      <TextBlock>
-        {tct(
-          `To send data to Sentry you will need to configure an SDK with a client key
-          (usually referred to as the [code:SENTRY_DSN] value). For more
-          information on integrating Sentry with your application take a look at our
-          [link:documentation].`,
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/options/" />
-            ),
-            code: <code />,
-          }
-        )}
-      </TextBlock>
-
-      <ProjectPermissionAlert project={project} />
-
-      {isEmpty ? renderEmpty() : renderResults()}
+      <Tabs value={tab} onChange={(key: 'keys' | 'loader-script') => setTab(key)}>
+        <TabList>
+          <TabList.Item key="keys">{t('Client Keys')}</TabList.Item>
+          <TabList.Item key="loader-script">{t('Loader Script')}</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="keys">
+            <ClientKeysTab
+              organization={organization}
+              project={project}
+              keyList={keyList}
+              onToggle={(isActive, data) =>
+                handleToggleKeyMutation.mutate({isActive, data})
+              }
+              onRemove={data => handleRemoveKeyMutation.mutate(data)}
+              pageLinks={getResponseHeader?.('Link')}
+              routes={routes}
+              location={location}
+              params={params}
+            />
+          </TabPanels.Item>
+          <TabPanels.Item key="loader-script">
+            <LoaderScriptTab
+              organization={organization}
+              project={project}
+              keyList={keyList}
+            />
+          </TabPanels.Item>
+        </TabPanels>
+      </Tabs>
     </div>
   );
 }

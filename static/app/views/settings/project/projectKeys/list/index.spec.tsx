@@ -8,6 +8,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
@@ -136,8 +137,7 @@ describe('ProjectKeys', () => {
     expect(unrealEndpoint).not.toBeInTheDocument();
     expect(securityHeaderEndpoint).not.toBeInTheDocument();
 
-    // Loader Script is rendered
-    expect(screen.getByText('Loader Script')).toBeInTheDocument();
+    // Loader Script inline field is rendered for javascript platform
     const loaderScript = screen.getByRole<HTMLInputElement>('textbox', {
       name: 'Loader Script',
     });
@@ -170,7 +170,10 @@ describe('ProjectKeys', () => {
     expect(minidumpEndpoint).not.toBeInTheDocument();
     expect(unrealEndpoint).not.toBeInTheDocument();
     expect(securityHeaderEndpoint).not.toBeInTheDocument();
-    expect(screen.queryByText('Loader Script')).not.toBeInTheDocument();
+    // Inline loader script textbox should not be present for non-browser JS platforms
+    expect(
+      screen.queryByRole('textbox', {name: 'Loader Script'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders multiple keys', async () => {
@@ -339,8 +342,305 @@ describe('ProjectKeys', () => {
       initialRouterConfig,
     });
 
-    await screen.findByRole('heading', {name: 'Client Keys'});
+    await screen.findByRole('heading', {name: 'Client Keys (DSN)'});
     expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
+  });
+
+  it('shows tabs for Client Keys and Loader Script', async () => {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
+      initialRouterConfig,
+    });
+
+    // Both tabs should be visible
+    expect(await screen.findByRole('tab', {name: 'Client Keys'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Loader Script'})).toBeInTheDocument();
+  });
+
+  it('defaults to the Client Keys (DSN) tab', async () => {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
+      initialRouterConfig,
+    });
+
+    // Client Keys tab should be selected by default
+    expect(
+      await screen.findByRole('tab', {name: 'Client Keys', selected: true})
+    ).toBeInTheDocument();
+
+    // Loader Script tab should not be selected
+    expect(
+      screen.getByRole('tab', {name: 'Loader Script', selected: false})
+    ).toBeInTheDocument();
+
+    // Client Keys content should be visible (DSN URL field)
+    expect(screen.getByRole('textbox', {name: 'DSN URL'})).toBeInTheDocument();
+  });
+
+  it('switches to Loader Script tab', async () => {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
+      initialRouterConfig,
+    });
+
+    await screen.findByRole('tab', {name: 'Client Keys'});
+
+    // Switch to Loader Script tab
+    await userEvent.click(screen.getByRole('tab', {name: 'Loader Script'}));
+
+    // Loader Script content should be visible
+    expect(
+      await screen.findByText(/The Loader Script is the easiest way/)
+    ).toBeInTheDocument();
+
+    // Key details link should be visible for each key
+    expect(screen.getByText('View Key Details')).toBeInTheDocument();
+  });
+
+  it('renders loader script settings on Loader Script tab', async () => {
+    const projectKey = projectKeys[0]!;
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
+      method: 'PUT',
+      body: {
+        ...projectKey,
+        dynamicSdkLoaderOptions: {
+          ...projectKey.dynamicSdkLoaderOptions,
+          hasPerformance: true,
+        },
+      },
+    });
+
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
+      initialRouterConfig,
+    });
+
+    await screen.findByRole('tab', {name: 'Client Keys'});
+
+    // Switch to Loader Script tab
+    await userEvent.click(screen.getByRole('tab', {name: 'Loader Script'}));
+
+    // Should show the key name
+    expect(await screen.findByText(`Client Key: ${projectKey.name}`)).toBeInTheDocument();
+  });
+
+  it('hides Generate New Key button on Loader Script tab', async () => {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
+      initialRouterConfig,
+    });
+
+    // Generate New Key button should be visible on Client Keys tab
+    expect(
+      await screen.findByRole('button', {name: 'Generate New Key'})
+    ).toBeInTheDocument();
+
+    // Switch to Loader Script tab
+    await userEvent.click(screen.getByRole('tab', {name: 'Loader Script'}));
+
+    // Wait for loader script content to appear
+    await screen.findByText(/The Loader Script is the easiest way/);
+
+    // Generate New Key button should not be visible
+    expect(
+      screen.queryByRole('button', {name: 'Generate New Key'})
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('ProjectKeys - Loader Script tab', () => {
+  it('renders loader script error on Loader Script tab', async () => {
+    const {organization, project} = initializeOrg();
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      method: 'GET',
+      statusCode: 400,
+    });
+
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/keys/`,
+        },
+        route: '/settings/:orgId/projects/:projectId/settings/keys/',
+      },
+    });
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    expect(screen.getByTestId('loading-error')).toBeInTheDocument();
+  });
+
+  it('renders empty on Loader Script tab', async () => {
+    const {organization, project} = initializeOrg();
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      method: 'GET',
+      body: [],
+    });
+
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/keys/`,
+        },
+        route: '/settings/:orgId/projects/:projectId/settings/keys/',
+      },
+    });
+
+    await screen.findByRole('tab', {name: 'Client Keys'});
+
+    // Switch to Loader Script tab
+    await userEvent.click(screen.getByRole('tab', {name: 'Loader Script'}));
+
+    expect(
+      await screen.findByText('There are no keys active for this project.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders loader items for single project on Loader Script tab', async () => {
+    const {organization, project} = initializeOrg();
+    const projectKey = ProjectKeysFixture()[0]!;
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      method: 'GET',
+      body: [projectKey],
+    });
+
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/keys/`,
+        },
+        route: '/settings/:orgId/projects/:projectId/settings/keys/',
+      },
+    });
+
+    await screen.findByRole('tab', {name: 'Client Keys'});
+
+    // Switch to Loader Script tab
+    await userEvent.click(screen.getByRole('tab', {name: 'Loader Script'}));
+
+    // Loader Script item is rendered
+    expect(await screen.findByText(`Client Key: ${projectKey.name}`)).toBeInTheDocument();
+
+    // Has the Loader Script CDN input in the loader settings
+    const loaderScript = screen.getByRole<HTMLInputElement>('textbox', {
+      name: 'Loader Script',
+    });
+    expect(loaderScript).toHaveValue(expect.stringContaining(projectKey.dsn.cdn));
+  });
+
+  it('allows to update key settings on Loader Script tab', async () => {
+    const {organization, project} = initializeOrg();
+    const baseKey = ProjectKeysFixture()[0]!;
+    const projectKey = {
+      ...baseKey,
+      dynamicSdkLoaderOptions: {
+        ...baseKey.dynamicSdkLoaderOptions,
+        hasReplay: true,
+      },
+    };
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      method: 'GET',
+      body: [projectKey],
+    });
+
+    const mockPut = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
+      method: 'PUT',
+      body: {
+        ...projectKey,
+        dynamicSdkLoaderOptions: {
+          ...projectKey.dynamicSdkLoaderOptions,
+          hasPerformance: true,
+        },
+      },
+    });
+
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/keys/`,
+        },
+        route: '/settings/:orgId/projects/:projectId/settings/keys/',
+      },
+    });
+
+    await screen.findByRole('tab', {name: 'Client Keys'});
+
+    // Switch to Loader Script tab
+    await userEvent.click(screen.getByRole('tab', {name: 'Loader Script'}));
+
+    expect(await screen.findByText('Enable Performance Monitoring')).toBeInTheDocument();
+    expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
+    expect(screen.getByText('Enable SDK debugging')).toBeInTheDocument();
+
+    let performanceCheckbox = screen.getByRole('checkbox', {
+      name: 'Enable Performance Monitoring',
+    });
+    expect(performanceCheckbox).toBeEnabled();
+    expect(performanceCheckbox).not.toBeChecked();
+
+    const replayCheckbox = screen.getByRole('checkbox', {
+      name: 'Enable Session Replay',
+    });
+    expect(replayCheckbox).toBeEnabled();
+    expect(replayCheckbox).toBeChecked();
+
+    const debugCheckbox = screen.getByRole('checkbox', {
+      name: 'Enable SDK debugging',
+    });
+    expect(debugCheckbox).toBeEnabled();
+    expect(debugCheckbox).not.toBeChecked();
+
+    // Toggle performance option
+    await userEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'Enable Performance Monitoring',
+      })
+    );
+
+    performanceCheckbox = await screen.findByRole('checkbox', {
+      name: 'Enable Performance Monitoring',
+      checked: true,
+    });
+    expect(performanceCheckbox).toBeEnabled();
+    expect(performanceCheckbox).toBeChecked();
+
+    expect(mockPut).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          dynamicSdkLoaderOptions: {
+            ...projectKey.dynamicSdkLoaderOptions,
+            hasPerformance: true,
+          },
+        }),
+      })
+    );
   });
 });
