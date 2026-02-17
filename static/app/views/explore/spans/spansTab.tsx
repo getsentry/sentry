@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -265,7 +266,7 @@ function SpanTabContentSection({
   const confidences = useMemo(
     () =>
       visualizes.map(visualize => {
-        const dedupedYAxes = [visualize.yAxis];
+        const dedupedYAxes = dedupeArray([...visualize.yAxes]);
         const series = dedupedYAxes
           .flatMap(yAxis => timeseriesResult.data[yAxis])
           .filter(defined);

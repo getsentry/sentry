@@ -187,7 +187,7 @@ function Chart({
 
   const chartInfo: ChartInfo = useMemo(() => {
     const isTopN = defined(topEvents) && topEvents > 0;
-    const series = timeseriesResult.data[visualize.yAxis] ?? [];
+    const series = visualize.yAxes.flatMap(yAxis => timeseriesResult.data[yAxis] ?? []);
 
     let confidenceSeries = series;
 
@@ -214,11 +214,22 @@ function Chart({
     };
   }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
 
+  const chartTitle = useMemo(
+    () => visualize.yAxes.map(yAxis => prettifyAggregation(yAxis) ?? yAxis).join(', '),
+    [visualize.yAxes]
+  );
+
+  const visualizeYAxes = useMemo(() => {
+    if (visualize.yAxes.length <= 1) {
+      return [visualize];
+    }
+
+    return visualize.yAxes.map(yAxis => visualize.replace({yAxis}));
+  }, [visualize]);
+
   const Title = (
     <Flex>
-      <Widget.WidgetTitle
-        title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
-      />
+      <Widget.WidgetTitle title={chartTitle} />
     </Flex>
   );
 
@@ -260,7 +271,7 @@ function Chart({
       </Tooltip>
       <ChartContextMenu
         key="context"
-        visualizeYAxes={[visualize]}
+        visualizeYAxes={visualizeYAxes}
         query={query}
         interval={interval}
         visualizeIndex={index}
