@@ -45,7 +45,7 @@ import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
-import {SegmentSpansTable} from 'sentry/views/performance/otlp/segmentSpansTable';
+import {SegmentSpansTable} from 'sentry/views/performance/eap/segmentSpansTable';
 import Filter, {
   decodeFilterFromLocation,
   filterToField,
@@ -98,7 +98,7 @@ type Props = {
 
 export const SEGMENT_SPANS_CURSOR_NAME = 'segmentSpansCursor';
 
-function OTelSummaryContentInner({
+function EAPSummaryContentInner({
   eventView,
   location,
   totalValues,
@@ -812,4 +812,4 @@ const EAPChartsWidgetContainer = styled('div')`
 
 export default withProjects(SummaryContent);
 
-export const OTelSummaryContent = withProjects(OTelSummaryContentInner);
+export const EAPSummaryContent = withProjects(EAPSummaryContentInner);
