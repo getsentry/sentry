@@ -226,38 +226,36 @@ All fields are accessed via the `field` render prop and follow consistent patter
 
 ### Radio Field
 
+Radio fields use a composable API with `Radio.Group` and `Radio.Item`. Use `variant="group"` on the layout to render proper `<fieldset>` + `<legend>` semantics.
+
 ```tsx
 <form.AppField name="priority">
   {field => (
-    <field.Layout.Stack label="Priority">
-      <field.Radio
-        value={field.state.value}
-        onChange={field.handleChange}
-        options={[
-          {value: 'low', label: 'Low'},
-          {value: 'medium', label: 'Medium'},
-          {
-            value: 'high',
-            label: 'High',
-            description: 'Urgent issues requiring immediate attention',
-          },
-        ]}
-      />
+    <field.Layout.Stack label="Priority" variant="group">
+      <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+        <field.Radio.Item value="low">Low</field.Radio.Item>
+        <field.Radio.Item value="medium">Medium</field.Radio.Item>
+        <field.Radio.Item value="high" description="Urgent issues">
+          High
+        </field.Radio.Item>
+      </field.Radio.Group>
     </field.Layout.Stack>
   )}
 </form.AppField>
 ```
 
-Radio fields support an optional `orientation` prop:
+Radio groups support an optional `orientation` prop:
 
 ```tsx
 // Horizontal layout (options side by side)
-<field.Radio
+<field.Radio.Group
   value={field.state.value}
   onChange={field.handleChange}
-  options={options}
   orientation="horizontal"
-/>
+>
+  <field.Radio.Item value="low">Low</field.Radio.Item>
+  <field.Radio.Item value="high">High</field.Radio.Item>
+</field.Radio.Group>
 ```
 
 ---

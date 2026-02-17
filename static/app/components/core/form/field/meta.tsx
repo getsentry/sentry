@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
 import {RequiredIndicator} from '@sentry/scraps/form/icons';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -34,9 +36,38 @@ function Label(props: {children: string; required?: boolean}) {
   );
 }
 
+function Legend(props: {children: string; required?: boolean}) {
+  return (
+    <Flex gap="xs">
+      <StyledLegend>{props.children}</StyledLegend>
+      {props.required ? <RequiredIndicator /> : null}
+    </Flex>
+  );
+}
+
+const Fieldset = styled('fieldset')`
+  border: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const StyledLegend = styled('legend')`
+  /* Reset global legend styles */
+  display: inline;
+  width: auto;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  border: none;
+`;
+
 export function FieldMeta() {
   return null;
 }
 
 FieldMeta.Label = Label;
 FieldMeta.HintText = HintText;
+FieldMeta.Legend = Legend;
+FieldMeta.Fieldset = Fieldset;

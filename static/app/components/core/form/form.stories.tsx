@@ -28,12 +28,6 @@ const COUNTRY_OPTIONS = [
   {value: 'AT', label: 'Austria'},
 ];
 
-const PRIORITY_OPTIONS = [
-  {value: 'low', label: 'Low', description: 'Non-urgent issues'},
-  {value: 'medium', label: 'Medium', description: 'Normal priority'},
-  {value: 'high', label: 'High', description: 'Urgent issues'},
-];
-
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const baseUserSchema = z.object({
@@ -251,13 +245,21 @@ function AutoSaveExample() {
         mutationOptions={userMutationOptions(client)}
       >
         {field => (
-          <field.Layout.Stack label="Priority:" hintText="Select issue priority">
-            <field.Radio
-              value={field.state.value ?? 'medium'}
+          <field.Layout.Stack
+            label="Priority:"
+            hintText="Select issue priority"
+            variant="group"
+          >
+            <field.Radio.Group
+              value={field.state.value ?? ''}
               onChange={field.handleChange}
-              options={PRIORITY_OPTIONS}
-              orientation="vertical"
-            />
+            >
+              <field.Radio.Item value="low">Low</field.Radio.Item>
+              <field.Radio.Item value="medium">Medium</field.Radio.Item>
+              <field.Radio.Item value="high" description="Urgent issues">
+                High
+              </field.Radio.Item>
+            </field.Radio.Group>
           </field.Layout.Stack>
         )}
       </AutoSaveField>
@@ -357,12 +359,21 @@ function BasicForm() {
           </form.AppField>
           <form.AppField name="priority">
             {field => (
-              <field.Layout.Row label="Priority:" hintText="Select issue priority">
-                <field.Radio
-                  value={field.state.value ?? 'medium'}
+              <field.Layout.Row
+                label="Priority:"
+                hintText="Select issue priority"
+                variant="group"
+              >
+                <field.Radio.Group
+                  value={field.state.value ?? ''}
                   onChange={field.handleChange}
-                  options={PRIORITY_OPTIONS}
-                />
+                >
+                  <field.Radio.Item value="low">Low</field.Radio.Item>
+                  <field.Radio.Item value="medium">Medium</field.Radio.Item>
+                  <field.Radio.Item value="high" description="Urgent issues">
+                    High
+                  </field.Radio.Item>
+                </field.Radio.Group>
               </field.Layout.Row>
             )}
           </form.AppField>

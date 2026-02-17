@@ -4,24 +4,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
-const options = [
-  {value: 'low', label: 'Low'},
-  {value: 'medium', label: 'Medium'},
-  {value: 'high', label: 'High'},
-];
-
-const optionsWithDescriptions = [
-  {value: 'low', label: 'Low', description: 'Non-urgent issues'},
-  {value: 'medium', label: 'Medium', description: 'Normal priority'},
-  {value: 'high', label: 'High', description: 'Urgent issues'},
-];
-
 interface TestFormProps {
   label: string;
   defaultValue?: string;
   disabled?: boolean | string;
   hintText?: string;
-  optionsList?: typeof options;
   orientation?: 'vertical' | 'horizontal';
   required?: boolean;
 }
@@ -32,7 +19,6 @@ function TestForm({
   required,
   defaultValue = 'low',
   disabled,
-  optionsList = options,
   orientation,
 }: TestFormProps) {
   const form = useScrapsForm({
@@ -46,14 +32,24 @@ function TestForm({
     <form.AppForm>
       <form.AppField name="priority">
         {field => (
-          <field.Layout.Row label={label} hintText={hintText} required={required}>
-            <field.Radio
+          <field.Layout.Row
+            label={label}
+            hintText={hintText}
+            required={required}
+            variant="group"
+          >
+            <field.Radio.Group
               value={field.state.value}
               onChange={field.handleChange}
-              options={optionsList}
               disabled={disabled}
               orientation={orientation}
-            />
+            >
+              <field.Radio.Item value="low">Low</field.Radio.Item>
+              <field.Radio.Item value="medium">Medium</field.Radio.Item>
+              <field.Radio.Item value="high" description="Urgent issues">
+                High
+              </field.Radio.Item>
+            </field.Radio.Group>
           </field.Layout.Row>
         )}
       </form.AppField>
@@ -86,12 +82,12 @@ function AutoSaveTestForm({
       mutationOptions={{mutationFn, onError}}
     >
       {field => (
-        <field.Layout.Row label={label}>
-          <field.Radio
-            value={field.state.value}
-            onChange={field.handleChange}
-            options={options}
-          />
+        <field.Layout.Row label={label} variant="group">
+          <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+            <field.Radio.Item value="low">Low</field.Radio.Item>
+            <field.Radio.Item value="medium">Medium</field.Radio.Item>
+            <field.Radio.Item value="high">High</field.Radio.Item>
+          </field.Radio.Group>
         </field.Layout.Row>
       )}
     </AutoSaveField>
@@ -129,11 +125,16 @@ describe('RadioField', () => {
   });
 
   it('renders options with descriptions', () => {
-    render(<TestForm label="Priority" optionsList={optionsWithDescriptions} />);
+    render(<TestForm label="Priority" />);
 
-    expect(screen.getByText('Non-urgent issues')).toBeInTheDocument();
-    expect(screen.getByText('Normal priority')).toBeInTheDocument();
     expect(screen.getByText('Urgent issues')).toBeInTheDocument();
+  });
+
+  it('renders as fieldset with legend', () => {
+    render(<TestForm label="Priority" />);
+
+    expect(screen.getByRole('group')).toBeInTheDocument(); // fieldset has role="group"
+    expect(screen.getByText('Priority').tagName).toBe('LEGEND');
   });
 });
 
