@@ -304,6 +304,7 @@ function FilterSelector({
   const stagedSelect = useStagedCompactSelect({
     value: activeFilterValues,
     defaultValue: [],
+    options,
     onChange: handleChange,
     onStagedValueChange: setStagedFilterValues,
     multiple: true,

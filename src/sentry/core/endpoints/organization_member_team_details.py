@@ -412,7 +412,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                 old_role = team_roles.get(omt.role) if omt.role else None
             except KeyError:
                 old_role = None
-            can_set_old_role = can_set_team_role(request, team, old_role) if old_role else True
+            if old_role is None:
+                old_role = roles.get_minimum_team_role(member.role)
+            can_set_old_role = can_set_team_role(request, team, old_role)
 
             # Verify that the request is allowed to set both the old and new role to prevent role downgrades by low-privilege users
             if not (can_set_new_role and can_set_old_role):
