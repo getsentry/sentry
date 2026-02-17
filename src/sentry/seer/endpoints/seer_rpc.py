@@ -75,7 +75,7 @@ from sentry.seer.assisted_query.traces_tools import (
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
@@ -608,14 +608,14 @@ def trigger_coding_agent_launch(
 
 
 def has_repo_code_mappings(
-    *, organization_id: int, provider: str, external_id: str, owner: str, name: str
+    *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
 ) -> dict[str, bool]:
     """
     Validate that a repository exists and belongs to the given organization.
 
     Args:
         organization_id: The Sentry organization ID
-        provider: The SCM provider (e.g., "github", "github_enterprise")
+        provider: The SCM provider (e.g., "github", "github_enterprise", w/ or w/o "integrations:" prefix)
         external_id: The repository's external ID in the provider's system
         owner: The repository owner (e.g., "getsentry")
         name: The repository name (e.g., "sentry")
