@@ -133,9 +133,7 @@ class OrganizationUptimeAssertionSuggestionsEndpoint(OrganizationEndpoint):
 
         # Generate suggestions using Seer
         try:
-            suggestions, debug_info = generate_assertion_suggestions(
-                organization, request.user, preview_result
-            )
+            suggestions, debug_info = generate_assertion_suggestions(preview_result)
             if debug_info:
                 logger.error("Seer suggestion generation issue: %s", debug_info)
         except Exception:

@@ -12,13 +12,9 @@ from typing import Any
 import orjson
 import requests
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel, Field
 
-from sentry.models.organization import Organization
-from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import sign_with_seer_secret
-from sentry.users.models.user import User
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -195,7 +191,13 @@ def build_assertion_prompt(response_data: dict[str, Any]) -> str:
     """
     body_str = "N/A"
     if response_data.get("body") is not None:
-        body_str = orjson.dumps(response_data["body"], option=orjson.OPT_INDENT_2).decode()
+        body = response_data["body"]
+        # Only JSON-encode structured data; include plain strings directly
+        body_str = (
+            orjson.dumps(body, option=orjson.OPT_INDENT_2).decode()
+            if isinstance(body, (dict, list))
+            else str(body)
+        )
         if len(body_str) > MAX_BODY_LENGTH:
             body_str = body_str[:MAX_BODY_LENGTH] + "\n... (truncated)"
 
@@ -299,26 +301,20 @@ def suggestions_to_combined_assertion(
 
 
 def generate_assertion_suggestions(
-    organization: Organization,
-    user: User | AnonymousUser,
     preview_result: dict[str, Any],
 ) -> tuple[AssertionSuggestions | None, str | None]:
     """
     Generate assertion suggestions using Seer's LLM proxy based on preview check results.
 
+    The caller is responsible for checking feature flags and access permissions
+    (e.g. has_seer_access) before calling this function.
+
     Args:
-        organization: The organization making the request
-        user: The user making the request
         preview_result: The JSON response from the uptime preview check
 
     Returns:
         Tuple of (AssertionSuggestions or None, debug_info string or None)
     """
-    # Check Seer access (gen-ai-features flag + hide_ai_features org opt-out)
-    if not has_seer_access(organization, actor=user):
-        logger.info("Seer access not available for organization %s", organization.slug)
-        return None, "Seer access not available for organization"
-
     # Parse the preview response
     response_data = parse_preview_response(preview_result)
 

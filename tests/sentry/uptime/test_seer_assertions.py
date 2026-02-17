@@ -280,37 +280,10 @@ class SuggestionsToCombinedAssertionTest(TestCase):
 
 
 class GenerateAssertionSuggestionsTest(TestCase):
-    def test_feature_flag_disabled(self):
-        with self.feature({"organizations:gen-ai-features": False}):
-            suggestions, debug = generate_assertion_suggestions(
-                self.organization,
-                self.user,
-                {"check_result": {"request_info": {"http_status_code": 200}}},
-            )
-
-        assert suggestions is None
-        assert debug is not None and "not available" in debug
-
-    def test_hide_ai_features_opt_out(self):
-        self.organization.update_option("sentry:hide_ai_features", True)
-
-        with self.feature({"organizations:gen-ai-features": True}):
-            suggestions, debug = generate_assertion_suggestions(
-                self.organization,
-                self.user,
-                {"check_result": {"request_info": {"http_status_code": 200}}},
-            )
-
-        assert suggestions is None
-        assert debug is not None and "not available" in debug
-
     def test_no_status_code(self):
-        with self.feature({"organizations:gen-ai-features": True}):
-            suggestions, debug = generate_assertion_suggestions(
-                self.organization,
-                self.user,
-                {"check_result": {"request_info": {}}},
-            )
+        suggestions, debug = generate_assertion_suggestions(
+            {"check_result": {"request_info": {}}},
+        )
 
         assert suggestions is None
         assert debug is not None and "No status_code" in debug
@@ -332,12 +305,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
             }
         }
 
-        with self.feature({"organizations:gen-ai-features": True}):
-            suggestions, debug = generate_assertion_suggestions(
-                self.organization,
-                self.user,
-                preview_result,
-            )
+        suggestions, debug = generate_assertion_suggestions(preview_result)
 
         assert suggestions is None
         assert debug is not None and "request failed" in debug
@@ -361,12 +329,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
             }
         }
 
-        with self.feature({"organizations:gen-ai-features": True}):
-            suggestions, debug = generate_assertion_suggestions(
-                self.organization,
-                self.user,
-                preview_result,
-            )
+        suggestions, debug = generate_assertion_suggestions(preview_result)
 
         assert suggestions is not None
         assert len(suggestions.suggestions) == 1
@@ -390,12 +353,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
             }
         }
 
-        with self.feature({"organizations:gen-ai-features": True}):
-            suggestions, debug = generate_assertion_suggestions(
-                self.organization,
-                self.user,
-                preview_result,
-            )
+        suggestions, debug = generate_assertion_suggestions(preview_result)
 
         assert suggestions is None
         assert debug is not None and "empty content" in debug
