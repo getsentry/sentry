@@ -142,6 +142,12 @@ function WidgetCard(props: Props) {
     const {...rest} = newData;
     if (props.onDataFetched && rest.tableResults) {
       props.onDataFetched(rest.tableResults);
+    } else if (props.onDataFetched && rest.timeseriesResultsTypes) {
+      // For time series data, construct synthetic table results with meta
+      // so the threshold section can determine the data type
+      props.onDataFetched([
+        {title: '', data: [], meta: {...rest.timeseriesResultsTypes}},
+      ]);
     }
 
     setData(prevData => ({...prevData, ...rest}));
