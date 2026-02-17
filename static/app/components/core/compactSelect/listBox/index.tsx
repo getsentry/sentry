@@ -198,7 +198,8 @@ export function ListBox<T extends ObjectLike>({
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
       <Container
         ref={virtualizer.scrollElementRef}
-        height="100%"
+        flex="1 1 0"
+        minHeight="0"
         overflowY="auto"
         className={className}
       >

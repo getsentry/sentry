@@ -173,7 +173,12 @@ function GridList({
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen &&
         (virtualized ? (
-          <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
+          <Container
+            ref={virtualizer.scrollElementRef}
+            flex="1 1 0"
+            minHeight="0"
+            overflowY="auto"
+          >
             <Container {...virtualizer.wrapperProps}>
               <ListWrap
                 {...mergeProps(gridProps, props)}
