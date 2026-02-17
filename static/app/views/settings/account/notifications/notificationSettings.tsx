@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {Link} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import LoadingError from 'sentry/components/loadingError';
@@ -14,8 +14,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconMail} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -79,7 +78,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
             data-test-id="fine-tuning"
             to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[type]}/`}
           >
-            {t('Update Settings')}
+            {t('Manage')}
           </LinkButton>
         </IconWrapper>
       </FieldWrapper>
@@ -114,7 +113,12 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
       <SentryDocumentTitle title={t('Notifications')} />
       <SettingsPageHeader title={t('Notifications')} />
       <TextBlock>
-        {t('Personal notifications sent by email or an integration.')}
+        {tct(
+          'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
+          {
+            link: <Link to="/settings/account/emails" />,
+          }
+        )}
       </TextBlock>
       {isError && <LoadingError onRetry={refetch} />}
       <Panel>
@@ -158,15 +162,6 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
           </AutoSaveField>
         </FieldGroup>
       )}
-      <AlertLink.Container>
-        <AlertLink
-          variant="info"
-          to="/settings/account/emails"
-          trailingItems={<IconMail />}
-        >
-          {t('Looking to add or remove an email address? Use the emails panel.')}
-        </AlertLink>
-      </AlertLink.Container>
     </Fragment>
   );
 }
