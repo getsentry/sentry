@@ -215,6 +215,8 @@ export type IssueEventParameters = {
   'issue_views.save.clicked': Record<string, unknown>;
   'issue_views.save_as.clicked': Record<string, unknown>;
   'issue_views.save_as.created': {
+    ai_title_shown: boolean;
+    ai_title_used: boolean;
     starred: boolean;
     surface: 'issue-view-details' | 'issues-feed' | 'issue-views-list';
   };

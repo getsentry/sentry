@@ -171,7 +171,10 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         return self.description_as_text(description, params, True, provider)
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return f"{self.group.qualified_short_id} - {self.group.title}"
+        subject = f"{self.group.qualified_short_id}"
+        if not self.group.organization.flags.enhanced_privacy:
+            subject += f" - {self.group.title}"
+        return subject
 
     def description_as_text(
         self,

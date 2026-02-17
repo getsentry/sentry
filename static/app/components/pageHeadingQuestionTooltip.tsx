@@ -1,18 +1,19 @@
-import styled from '@emotion/styled';
-
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
-type TooltipProps = Omit<React.ComponentProps<typeof QuestionTooltip>, 'size'>;
-
-interface PageHeadingQuestionTooltipProps extends TooltipProps {
+interface PageHeadingQuestionTooltipProps {
   /**
    * The link to the documentation for this page.
    */
   docsUrl: string;
+  /**
+   * The content to show in the tooltip.
+   */
+  title: React.ReactNode;
   /**
    * The label to use for the external link.
    */
@@ -23,24 +24,13 @@ export function PageHeadingQuestionTooltip({
   docsUrl,
   title,
   linkLabel,
-  ...props
 }: PageHeadingQuestionTooltipProps) {
   const contents = (
-    <Container>
-      {title}
+    <Flex direction="column" align="start" gap="md">
+      <Text align="left">{title}</Text>
       <ExternalLink href={docsUrl}>{linkLabel ?? t('Read the Docs')}</ExternalLink>
-    </Container>
+    </Flex>
   );
 
-  return (
-    <QuestionTooltip isHoverable position="right" size="sm" title={contents} {...props} />
-  );
+  return <InfoTip title={contents} size="sm" variant="muted" position="right" />;
 }
-
-const Container = styled('div')`
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: ${space(1)};
-`;

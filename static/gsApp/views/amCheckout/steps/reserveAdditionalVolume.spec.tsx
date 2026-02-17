@@ -105,7 +105,7 @@ describe('ReserveAdditionalVolume', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
+        url: `/customers/${organization.slug}/`,
         method: 'GET',
         body: {},
       });
@@ -240,7 +240,7 @@ describe('ReserveAdditionalVolume', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
+        url: `/customers/${organization.slug}/`,
         method: 'GET',
         body: {},
       });

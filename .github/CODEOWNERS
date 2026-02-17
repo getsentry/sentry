@@ -456,7 +456,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/middleware/superuser.py                                     @getsentry/enterprise
 /src/sentry/models/release_threshold                                    @getsentry/enterprise
 /src/sentry/scim/                                                       @getsentry/enterprise
-/src/sentry/integrations/github/                                        @getsentry/enterprise
+/src/sentry/integrations/github/                                        @getsentry/enterprise @getsentry/scm
 /src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
 /static/app/components/superuserStaffAccessForm.tsx                     @getsentry/enterprise
 /static/app/constants/superuserAccessErrors.tsx                         @getsentry/enterprise
@@ -470,7 +470,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/auth/test_staff.py                                        @getsentry/enterprise
 /tests/sentry/auth/test_superuser.py                                    @getsentry/enterprise
 /tests/sentry/middleware/test_staff.py                                  @getsentry/enterprise
-/tests/sentry/integrations/github/                                      @getsentry/enterprise
+/tests/sentry/integrations/github/                                      @getsentry/enterprise @getsentry/scm
 /tests/sentry/models/releases/                                          @getsentry/replay-backend
 ## End of Enterprise
 
@@ -731,6 +731,27 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/coding-workflows
 /src/sentry/seer/code_review/                                                @getsentry/coding-workflows
 /tests/sentry/seer/code_review/                                              @getsentry/coding-workflows
+
+## SCM
+/src/sentry/integrations/source_code_management/                        @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/repository/                                    @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/github_enterprise/                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/gitlab/                                        @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/bitbucket/                                     @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/bitbucket_server/                              @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/vsts/                                          @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/vsts_extension/                                @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/perforce/                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/source_code_management/                      @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/repository/                                  @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/github_enterprise/                           @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/gitlab/                                      @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/bitbucket/                                   @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/bitbucket_server/                            @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/vsts/                                        @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/vsts_extension/                              @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/perforce/                                    @getsentry/ecosystem @getsentry/scm
+## End of SCM
 
 # End of Coding Workflows
 

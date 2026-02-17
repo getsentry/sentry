@@ -26,10 +26,17 @@ export function SwitchField({
         const switchElement = (
           <Flex gap="sm" align="center" justify="between">
             <Switch
+              size="lg"
               {...fieldProps}
               {...props}
               disabled={isDisabled}
-              onChange={e => onChange(e.target.checked)}
+              onChange={e => {
+                onChange(e.target.checked);
+                // Trigger onBlur for auto-saving when the switch is toggled
+                if (autoSaveContext) {
+                  fieldProps.onBlur();
+                }
+              }}
             />
             {indicator}
           </Flex>

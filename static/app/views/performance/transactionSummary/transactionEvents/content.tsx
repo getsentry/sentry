@@ -257,7 +257,7 @@ function Search(props: Props) {
   return (
     <FilterActions>
       {shouldUseOTelFriendlyUI ? (
-        <SpanCategoryFilter serviceEntrySpanName={transactionName} />
+        <SpanCategoryFilter segmentSpanName={transactionName} />
       ) : (
         <Filter
           organization={organization}
