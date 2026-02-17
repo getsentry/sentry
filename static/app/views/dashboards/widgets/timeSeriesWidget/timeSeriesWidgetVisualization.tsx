@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
@@ -33,6 +33,7 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useGlobalTimestampAnnotations} from 'sentry/views/dashboards/contexts/globalTimestampAnnotationsContext';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
@@ -48,6 +49,7 @@ import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
 import type {Plottable} from './plottables/plottable';
+import {TimestampAnnotations} from './plottables/timestampAnnotations';
 import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
@@ -129,6 +131,18 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
 
+  const globalAnnotations = useGlobalTimestampAnnotations();
+
+  const plottables: Plottable[] = useMemo(() => {
+    if (globalAnnotations.length === 0) {
+      return props.plottables;
+    }
+    return [
+      ...props.plottables,
+      new TimestampAnnotations({annotations: globalAnnotations}),
+    ];
+  }, [props.plottables, globalAnnotations]);
+
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const {register: registerWithWidgetSyncContext, groupName} = useWidgetSyncContext();
 
@@ -152,16 +166,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {brush, onBrushEnd, onBrushStart, toolBox, ActionMenu} = useChartXRangeSelection({
     chartRef,
-    deps: [props.plottables],
+    deps: [plottables],
     disabled: true,
     chartsGroupName: groupName,
     ...props.chartXRangeSelection,
   });
 
-  const plottablesByType = groupBy(props.plottables, plottable => plottable.dataType);
+  const plottablesByType = groupBy(plottables, p => p.dataType);
 
   // Count up the field types of all the plottables
-  const fieldTypeCounts = mapValues(plottablesByType, plottables => plottables.length);
+  const fieldTypeCounts = mapValues(plottablesByType, items => items.length);
 
   // Sort the field types by how many plottables use each one
   const axisTypes = Object.keys(fieldTypeCounts)
@@ -210,8 +224,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         : FALLBACK_TYPE;
 
   // Create a map of used units by plottable data type
-  const unitsByType = mapValues(plottablesByType, plottables =>
-    uniq(plottables.map(plottable => plottable.dataUnit))
+  const unitsByType = mapValues(plottablesByType, items =>
+    uniq(items.map(item => item.dataUnit))
   );
 
   // Narrow down to just one unit for each plottable data type
@@ -265,16 +279,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     : undefined;
 
   // Set up a fallback palette for any plottable without a color
-  const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
+  const paletteSize = plottables.filter(p => p.needsColor).length;
 
   const palette = paletteSize > 0 ? theme.chart.getColorPalette(paletteSize - 1) : [];
 
   // Create a lookup of series names (given to ECharts) to labels (from
   // Plottable). This makes it easier to look up alises when rendering tooltips
   // and legends
-  const aliases = Object.fromEntries(
-    props.plottables.map(plottable => [plottable.name, plottable.label])
-  );
+  const aliases = Object.fromEntries(plottables.map(p => [p.name, p.label]));
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
@@ -367,7 +379,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
   // find min/max timestamp of *all* timeSeries
-  const allBoundaries = props.plottables
+  const allBoundaries = plottables
     .flatMap(plottable => [plottable.start, plottable.end])
     .toSorted();
   const earliestTimeStamp = allBoundaries.at(0);
@@ -421,15 +433,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         return;
       }
 
-      for (const plottable of props.plottables) {
-        plottable.handleChartRef?.(e);
+      for (const p of plottables) {
+        p.handleChartRef?.(e);
       }
 
       if (hasReleaseBubblesSeries) {
         connectReleaseBubbleChartRef(e);
       }
     },
-    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, props.plottables]
+    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, plottables]
   );
 
   const handleChartReady = useCallback(
@@ -463,7 +475,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // that label, add some grid padding.
   const xAxisGrid = showXAxis ? {} : {bottom: 5};
 
-  let visibleSeriesCount = props.plottables.length;
+  let visibleSeriesCount = plottables.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
   }
@@ -483,7 +495,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // Keep track of what color in the chosen palette we're assigning
   let seriesColorIndex = 0;
-  const seriesFromPlottables: SeriesOption[] = props.plottables.flatMap(plottable => {
+  const seriesFromPlottables: SeriesOption[] = plottables.flatMap(plottable => {
     let color: string | undefined;
 
     if (plottable.needsColor) {
