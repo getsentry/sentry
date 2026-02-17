@@ -429,7 +429,9 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
-                    {state.displayType === DisplayType.BIG_NUMBER && (
+                    {(state.displayType === DisplayType.BIG_NUMBER ||
+                      (usesTimeSeriesData(state.displayType) &&
+                        (state.query?.length ?? 1) <= 1)) && (
                       <Section>
                         <ThresholdsSection
                           dataType={thresholdMetaState?.dataType}
