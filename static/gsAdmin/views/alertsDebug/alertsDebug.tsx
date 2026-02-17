@@ -3,22 +3,23 @@ import {useRef, useState} from 'react';
 import {Input} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import type {Automation} from 'sentry/types/workflowEngine/automations';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 
 import PageHeader from 'admin/components/pageHeader';
 import {AlertDebugForm} from 'admin/views/alertsDebug/components/alertDebugForm';
 import {AlertDebugResults} from 'admin/views/alertsDebug/components/alertDebugResults';
 import {AlertDetails} from 'admin/views/alertsDebug/components/alertDetails';
-import {MOCK_WORKFLOW} from 'admin/views/alertsDebug/fixtures';
+import {useAdminWorkflow} from 'admin/views/alertsDebug/hooks/useAdminWorkflow';
 import type {AlertDebugFormData} from 'admin/views/alertsDebug/types';
 
 export function AlertsDebug() {
   const [results, setResults] = useState<AlertDebugFormData>();
   const workflowRef = useRef<HTMLInputElement>(null);
-  const [workflowId, setWorkflowId] = useState<number>();
-  const [workflow, setWorkflow] = useState<Automation>();
+  const [workflowId, setWorkflowId] = useState<string>();
+
+  const {data: workflow, isPending, isError} = useAdminWorkflow(workflowId);
 
   const updateApi = (data: AlertDebugFormData) => {
     setResults(data);
@@ -27,10 +28,8 @@ export function AlertsDebug() {
   const getAlert = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (workflowRef.current) {
-      const currentWorkflowId = workflowRef.current.value;
-      setWorkflowId(Number(currentWorkflowId));
-      setWorkflow({...MOCK_WORKFLOW, id: currentWorkflowId});
+    if (workflowRef.current?.value) {
+      setWorkflowId(workflowRef.current.value);
     }
   };
 
@@ -48,6 +47,14 @@ export function AlertsDebug() {
         />
       </form>
 
+      {workflowId && isPending && <LoadingIndicator />}
+
+      {workflowId && isError && (
+        <Text variant="danger">
+          Error loading workflow. Please check the ID and try again.
+        </Text>
+      )}
+
       {workflow && (
         <Stack gap="lg">
           <AlertDetails workflow={workflow} />
@@ -57,7 +64,9 @@ export function AlertsDebug() {
         </Stack>
       )}
 
-      {workflowId && <AlertDebugForm onSubmit={updateApi} workflowId={workflowId} />}
+      {workflowId && workflow && (
+        <AlertDebugForm onSubmit={updateApi} workflowId={Number(workflowId)} />
+      )}
       {results && <AlertDebugResults results={results} />}
     </Stack>
   );

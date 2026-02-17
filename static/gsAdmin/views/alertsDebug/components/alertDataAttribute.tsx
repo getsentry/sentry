@@ -22,8 +22,12 @@ export function AlertDataAttribute({dataKey, value}: AlertDataAttributeProps) {
     case 'string':
       displayValue = <Text monospace>{value}</Text>;
       break;
+    case 'number':
+    case 'bigint':
+      displayValue = <InlineCode>{String(value)}</InlineCode>;
+      break;
     default:
-      displayValue = <InlineCode>{value.toString()}</InlineCode>;
+      return null;
   }
 
   return (
