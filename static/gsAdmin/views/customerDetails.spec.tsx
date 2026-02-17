@@ -2228,10 +2228,6 @@ describe('Customer Details', () => {
         method: 'PUT',
         body: Subscription,
       });
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${sub.slug}/`,
-        body: sub,
-      });
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
@@ -2277,7 +2273,7 @@ describe('Customer Details', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${sub.slug}/`,
+        url: `/customers/${sub.slug}/`,
         body: sub,
       });
 

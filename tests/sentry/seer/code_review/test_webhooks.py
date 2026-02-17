@@ -54,9 +54,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         retry_state = RetryState(attempts=0, max_attempts=3)
         http_error = MaxRetryError(None, "test")  # type: ignore[arg-type]
-        assert task.retry.should_retry(
-            retry_state, http_error
-        ), "Task should retry on HTTPError exceptions"
+        assert task.retry.should_retry(retry_state, http_error), (
+            "Task should retry on HTTPError exceptions"
+        )
 
     def _mock_response(self, status: int, data: bytes) -> BaseHTTPResponse:
         """Helper to create mock urllib3 response."""
@@ -94,9 +94,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "HTTPError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -120,9 +120,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "HTTPError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -146,9 +146,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "HTTPError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
@@ -170,9 +170,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         outcome_call = outcome_calls[0]
         assert "seer.code_review.task.error" in str(outcome_call)
 
@@ -199,9 +199,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "MaxRetryError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -227,9 +227,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "TimeoutError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -255,9 +255,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "SSLError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -283,9 +283,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "NewConnectionError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -311,9 +311,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "TimeoutError" in str(outcome_calls[0])
 
         # Verify latency is NOT recorded on early retries (retries remaining)
@@ -339,9 +339,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         outcome_call = outcome_calls[0]
         assert "ValueError" in str(outcome_call)
 
@@ -413,9 +413,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         # With MAX_RETRIES=5, there are 4 delays: (5-1) * 60s = 240s
         # Allow tolerance for test execution time (5 attempts add overhead)
         expected_latency_ms = (MAX_RETRIES - 1) * DELAY_BETWEEN_RETRIES * 1000  # 240,000ms
-        assert (
-            expected_latency_ms - 1000 <= call_args[1] <= expected_latency_ms + 5000
-        ), f"Expected latency ~{expected_latency_ms}ms, got {call_args[1]}ms"
+        assert expected_latency_ms - 1000 <= call_args[1] <= expected_latency_ms + 5000, (
+            f"Expected latency ~{expected_latency_ms}ms, got {call_args[1]}ms"
+        )
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_check_run_and_pr_events_processed_separately(self, mock_request: MagicMock) -> None:

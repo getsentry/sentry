@@ -525,9 +525,9 @@ class _RemoteSiloCall:
         retry_key = f"{self.service_name}.{self.method_name}"
         try:
             retry_counts_map = options.get("hybridcloud.rpc.method_retry_overrides")
-            assert isinstance(
-                retry_counts_map, dict
-            ), "An invalid RPC retry override option was set"
+            assert isinstance(retry_counts_map, dict), (
+                "An invalid RPC retry override option was set"
+            )
             if retry_key in retry_counts_map:
                 return int(retry_counts_map[retry_key])
         except Exception:
@@ -541,9 +541,9 @@ class _RemoteSiloCall:
         timeout_key = f"{self.service_name}.{self.method_name}"
         try:
             timeout_overrides_map = options.get("hybridcloud.rpc.method_timeout_overrides")
-            assert isinstance(
-                timeout_overrides_map, dict
-            ), "An invalid RPC timeout override option was set"
+            assert isinstance(timeout_overrides_map, dict), (
+                "An invalid RPC timeout override option was set"
+            )
 
             if timeout_key in timeout_overrides_map:
                 return float(timeout_overrides_map[timeout_key])

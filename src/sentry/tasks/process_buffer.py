@@ -40,26 +40,6 @@ def process_pending() -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.process_buffer.process_pending_batch",
-    namespace=buffer_tasks,
-    processing_deadline_duration=40,
-)
-def process_pending_batch() -> None:
-    """
-    Process pending buffers in a batch.
-    """
-    from sentry.rules.processing.buffer_processing import process_buffer
-
-    lock = get_process_lock("process_pending_batch")
-
-    try:
-        with lock.acquire():
-            process_buffer()
-    except UnableToAcquireLock as error:
-        logger.warning("process_pending_batch.fail", extra={"error": error})
-
-
-@instrumented_task(
     name="sentry.tasks.process_buffer.process_incr",
     namespace=buffer_tasks,
 )

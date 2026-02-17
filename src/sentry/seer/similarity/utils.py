@@ -197,7 +197,9 @@ def generate_stacktrace_string(
             "html_frames": (
                 "none"
                 if frame_metrics["html_frame_count"] == 0
-                else "all" if frame_metrics["html_frame_count"] == final_frame_count else "some"
+                else "all"
+                if frame_metrics["html_frame_count"] == final_frame_count
+                else "some"
             )
         },
     )

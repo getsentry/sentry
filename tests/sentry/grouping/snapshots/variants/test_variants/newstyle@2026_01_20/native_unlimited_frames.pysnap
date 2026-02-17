@@ -41,6 +41,6 @@ system:
           frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (ignored by built-in stack trace rule (category:indirection -group))
+          frame (ignored by built-in stacktrace rule (category:indirection -group))
             function*
               "<lambda>::operator()"

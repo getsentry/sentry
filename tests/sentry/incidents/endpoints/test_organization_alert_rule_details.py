@@ -673,9 +673,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
 
-        assert (
-            resp.data["aggregate"] == "count()"
-        ), "GET should return count() to user, hiding internal upsampled_count() storage"
+        assert resp.data["aggregate"] == "count()", (
+            "GET should return count() to user, hiding internal upsampled_count() storage"
+        )
 
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
@@ -744,9 +744,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         # But internally it should be stored as upsampled_count()
         alert_rule.refresh_from_db()
-        assert (
-            alert_rule.snuba_query.aggregate == "upsampled_count()"
-        ), "UPDATE should convert count() to upsampled_count() internally for upsampled projects"
+        assert alert_rule.snuba_query.aggregate == "upsampled_count()", (
+            "UPDATE should convert count() to upsampled_count() internally for upsampled projects"
+        )
 
     @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
     def test_update_non_aggregate_field_preserves_transparency_on_upsampled_project(
@@ -777,9 +777,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
 
         # User should see count() even though it's stored as upsampled_count()
-        assert (
-            resp.data["aggregate"] == "count()"
-        ), "UPDATE response should show count() to user, hiding internal upsampled_count() storage"
+        assert resp.data["aggregate"] == "count()", (
+            "UPDATE response should show count() to user, hiding internal upsampled_count() storage"
+        )
         assert resp.data["name"] == "Updated Name Only"
 
         # Internal storage should be unchanged

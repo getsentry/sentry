@@ -17,7 +17,7 @@ export function useGenerateIssueViewTitle({
 }: GenerateIssueViewTitleParams) {
   const organization = useOrganization();
   const hasGenerateIssueViewTitleFeature =
-    organization.features.includes('issue-view-ai-title');
+    !organization.hideAiFeatures && organization.features.includes('issue-view-ai-title');
   return useApiQuery<GenerateIssueViewTitleResponse>(
     [
       getApiUrl(`/organizations/$organizationIdOrSlug/issue-view-title/generate/`, {

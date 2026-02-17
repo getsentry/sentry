@@ -76,7 +76,7 @@ def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
         title = ev_metadata["type"]
 
     elif ev_type == "csp":
-        title = f'{ev_metadata["directive"]} - {ev_metadata["uri"]}'
+        title = f"{ev_metadata['directive']} - {ev_metadata['uri']}"
     else:
         if isinstance(obj, GroupEvent):
             if obj.occurrence is not None:

@@ -83,6 +83,5 @@ export type KnownGetsentryApiUrls =
   | '/promocodes/$code/'
   | '/promocodes/$code/claimants/'
   | '/signup/'
-  | '/subscriptions/$organizationIdOrSlug/'
   | '/users/$userId/customers/'
   | '/users/$userId/merge-accounts/';

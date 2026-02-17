@@ -32,7 +32,6 @@ describe('NoDataMessage', () => {
       isReady: true,
       shouldPersist: true,
       pinnedFilters: new Set(),
-      desyncedFilters: new Set(),
     }));
   });
 

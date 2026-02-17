@@ -14,37 +14,30 @@ exclude: >
 
 repos:
   # Many of these hooks are local because people use a variety of IDEs
-  # with autoformatters that need to call out to things like `black` directly.
+  # with autoformatters that need to call out to things like `ruff` directly.
   # pre-commit run is not the same, and something like pre-commit exec does
   # not exist yet.
   - repo: local
     hooks:
-      - id: pyupgrade
-        name: pyupgrade
-        entry: pyupgrade
-        args: ['--py313-plus']
+      # Configuration for ruff exists in pyproject.toml.
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check --force-exclude --fix
         language: system
         types: [python]
-      # Configuration for black exists in pyproject.toml,
-      # but we let pre-commit take care of the file filtering.
-      - id: black
-        name: black
-        entry: black
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format --force-exclude
         language: system
         types_or: [python, pyi]
         require_serial: true
-      # Configuration for isort exists in pyproject.toml,
-      # but we let pre-commit take care of the file filtering.
-      - id: isort
-        name: isort
-        entry: isort
-        language: system
-        types: [python]
-      # Configuration for flake8 exists in setup.cfg,
-      # but we let pre-commit take care of the file filtering.
-      - id: flake8
-        name: flake8
-        entry: flake8
+      # Keep flake8 ONLY for custom Sentry S* rules.
+      # Ruff doesn't support custom AST-based plugins.
+      # Configuration for flake8 S* rules exists in setup.cfg.
+      - id: flake8-sentry
+        name: flake8 (sentry rules)
+        entry: flake8 --select=S
         language: system
         types: [python]
         log_file: '.artifacts/flake8.pycodestyle.log'

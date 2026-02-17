@@ -39,6 +39,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_attributes_for_span,
     get_organization_project_ids,
     get_organization_slug,
+    has_repo_code_mappings,
 )
 from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id_param
 from sentry.seer.explorer.index_data import (
@@ -79,6 +80,7 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_organization_slug": map_org_id_param(get_organization_slug),
     #
     # Bug prediction
+    "has_repo_code_mappings": has_repo_code_mappings,
     "get_issues_by_function_name": by_function_name.fetch_issues,
     "get_issues_related_to_exception_type": by_error_type.fetch_issues,
     "get_issues_by_raw_query": by_text_query.fetch_issues,

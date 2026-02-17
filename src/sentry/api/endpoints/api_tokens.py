@@ -69,7 +69,6 @@ class ApiTokensEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def get(self, request: Request) -> Response:
-
         user_id = get_appropriate_user_id(request=request)
 
         token_list = list(
@@ -110,7 +109,6 @@ class ApiTokensEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def delete(self, request: Request):
-
         user_id = get_appropriate_user_id(request=request)
 
         token_id = request.data.get("tokenId", None)

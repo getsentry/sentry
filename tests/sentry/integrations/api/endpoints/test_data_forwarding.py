@@ -24,7 +24,6 @@ class DataForwardingIndexEndpointTest(APITestCase):
 
 @region_silo_test
 class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
-
     def test_without_data_forwarding_feature_flag_access(self) -> None:
         with self.feature({"organizations:data-forwarding": False}):
             response = self.client.get(reverse(self.endpoint, args=(self.organization.slug,)))

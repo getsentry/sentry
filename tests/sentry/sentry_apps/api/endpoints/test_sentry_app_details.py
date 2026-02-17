@@ -339,9 +339,9 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             )
         self.published_app.refresh_from_db()
         assert set(self.published_app.scope_list) == {"event:write", "event:read"}
-        assert (
-            self.published_app.webhook_url == "https://newurl.com"
-        ), f"Unexpected webhook URL: {self.published_app.webhook_url}"
+        assert self.published_app.webhook_url == "https://newurl.com", (
+            f"Unexpected webhook URL: {self.published_app.webhook_url}"
+        )
         # Check service hooks for each organization
         with assume_test_silo_mode(SiloMode.REGION):
             service_hooks_org1 = ServiceHook.objects.filter(

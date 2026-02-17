@@ -1,13 +1,19 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {Badge} from '@sentry/scraps/badge';
-import {Container} from '@sentry/scraps/layout';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {
+  HybridFilter,
+  HybridFilterComponents,
+  useStagedCompactSelect,
+  type HybridFilterRef,
+} from 'sentry/components/pageFilters/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,6 +27,7 @@ export function TestSuiteDropdown() {
   const [dropdownSearch, setDropdownSearch] = useState<string>('');
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
   const {data: testSuites} = useTestSuites();
+  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
 
   const handleChange = useCallback(
     (newTestSuites: string[]) => {
@@ -50,6 +57,15 @@ export function TestSuiteDropdown() {
       label: suite,
       value: suite,
       isSelected: selectedSet.has(suite.toLowerCase()),
+      leadingItems: ({isSelected}: {isSelected: boolean}) => (
+        <Checkbox
+          size="sm"
+          checked={isSelected}
+          onChange={() => hybridFilterRef.current?.toggleOption(suite)}
+          aria-label={t('Select %s', suite)}
+          tabIndex={-1}
+        />
+      ),
     }));
 
     const sorted = sortBy(mapped, [option => !option.isSelected]);
@@ -79,18 +95,42 @@ export function TestSuiteDropdown() {
     return urlTestSuites.filter(suite => testSuites?.includes(suite));
   }, [urlSearchParams, testSuites]);
 
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    defaultValue: [],
+    options,
+    onChange: handleChange,
+    multiple: true,
+  });
+
   return (
     <HybridFilter
-      checkboxPosition="leading"
+      ref={hybridFilterRef}
+      stagedSelect={stagedSelect}
       searchable
-      multiple
       options={options}
-      value={value}
-      defaultValue={[]}
-      onChange={handleChange}
       onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
+      menuHeaderTrailingItems={
+        stagedSelect.shouldShowReset ? (
+          <HybridFilterComponents.ResetButton
+            onClick={() => stagedSelect.handleReset()}
+          />
+        ) : null
+      }
+      menuFooter={
+        stagedSelect.hasStagedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <HybridFilterComponents.CancelButton
+              onClick={() => stagedSelect.removeStagedChanges()}
+            />
+            <HybridFilterComponents.ApplyButton
+              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            />
+          </Flex>
+        ) : null
+      }
       trigger={triggerProps => {
         const areAllSuitesSelected =
           value.length === 0 || testSuites?.every(suite => value.includes(suite));

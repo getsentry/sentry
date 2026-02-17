@@ -33,8 +33,7 @@ function SubscribeAction({
     <Button
       className={className}
       disabled={disabled || disabledNotifications}
-      title={getSubscriptionReason(group)}
-      tooltipProps={{delay: 300}}
+      tooltipProps={{title: getSubscriptionReason(group), delay: 300}}
       priority={!disablePriority && group.isSubscribed ? 'primary' : 'default'}
       size={size}
       aria-label={t('Subscribe')}

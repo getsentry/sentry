@@ -5901,17 +5901,17 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         profile_id = uuid.uuid4().hex
         transaction_profile = load_data("transaction", timestamp=self.ten_mins_ago)
-        transaction_profile.setdefault("contexts", {}).setdefault("profile", {})[
-            "profile_id"
-        ] = profile_id
+        transaction_profile.setdefault("contexts", {}).setdefault("profile", {})["profile_id"] = (
+            profile_id
+        )
         transaction_profile["event_id"] = uuid.uuid4().hex
         self.store_event(transaction_profile, project_id=self.project.id)
 
         profiler_id = uuid.uuid4().hex
         continuous_profile = load_data("transaction", timestamp=self.ten_mins_ago)
-        continuous_profile.setdefault("contexts", {}).setdefault("profile", {})[
-            "profiler_id"
-        ] = profiler_id
+        continuous_profile.setdefault("contexts", {}).setdefault("profile", {})["profiler_id"] = (
+            profiler_id
+        )
         continuous_profile.setdefault("contexts", {}).setdefault("trace", {}).setdefault(
             "data", {}
         )["thread.id"] = "12345"
@@ -7042,20 +7042,20 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
 
                 if expected_a_first:
                     # A should come first (higher upsampled values)
-                    assert (
-                        data[0]["issue.id"] == group_a_id
-                    ), f"Field {field}: Expected group A ({group_a_id}) first, but got {data[0]['issue.id']}"
-                    assert (
-                        data[1]["issue.id"] == group_b_id
-                    ), f"Field {field}: Expected group B ({group_b_id}) second, but got {data[1]['issue.id']}"
+                    assert data[0]["issue.id"] == group_a_id, (
+                        f"Field {field}: Expected group A ({group_a_id}) first, but got {data[0]['issue.id']}"
+                    )
+                    assert data[1]["issue.id"] == group_b_id, (
+                        f"Field {field}: Expected group B ({group_b_id}) second, but got {data[1]['issue.id']}"
+                    )
                 else:
                     # B should come first (higher raw values)
-                    assert (
-                        data[0]["issue.id"] == group_b_id
-                    ), f"Field {field}: Expected group B ({group_b_id}) first, but got {data[0]['issue.id']}"
-                    assert (
-                        data[1]["issue.id"] == group_a_id
-                    ), f"Field {field}: Expected group A ({group_a_id}) second, but got {data[1]['issue.id']}"
+                    assert data[0]["issue.id"] == group_b_id, (
+                        f"Field {field}: Expected group B ({group_b_id}) first, but got {data[0]['issue.id']}"
+                    )
+                    assert data[1]["issue.id"] == group_a_id, (
+                        f"Field {field}: Expected group A ({group_a_id}) second, but got {data[1]['issue.id']}"
+                    )
 
     def test_is_status(self) -> None:
         self.store_event(
