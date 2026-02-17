@@ -9,7 +9,12 @@ from django.test import Client, RequestFactory
 
 from sentry import audit_log
 from sentry.analytics.events.user_signup import UserSignUpEvent
-from sentry.auth.helper import OK_LINK_IDENTITY, AuthHelper, AuthIdentityHandler
+from sentry.auth.helper import (
+    ERR_IDENTITY_CONFLICT,
+    OK_LINK_IDENTITY,
+    AuthHelper,
+    AuthIdentityHandler,
+)
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -541,6 +546,22 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert not mock_create_key.called
         assert context["existing_user"] == existing_user
         assert "login_form" in context
+
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_new_user_duplicate_email_shows_error(
+        self, mock_render: mock.MagicMock, mock_messages: mock.MagicMock
+    ) -> None:
+        self.create_user(email=self.email, is_test_user=False)
+        self.request.POST = {"op": "newuser"}
+        response = self.handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        mock_messages.add_message.assert_called_once_with(
+            self.request,
+            mock_messages.ERROR,
+            ERR_IDENTITY_CONFLICT,
+        )
 
     # TODO: More test cases for various values of request.POST.get("op")
 

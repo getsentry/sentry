@@ -83,6 +83,11 @@ ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 
 ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
 
+ERR_IDENTITY_CONFLICT = _(
+    "An account already exists for this email address."
+    " Try logging in with your existing credentials instead."
+)
+
 
 @dataclass
 class AuthIdentityHandler:
@@ -572,28 +577,44 @@ class AuthIdentityHandler:
         elif not self._has_usable_password():
             is_new_account = True
 
-        if op == "confirm" and (self.request.user.id == self.user.id) or is_account_verified:
-            auth_identity = self.handle_attach_identity()
-        elif op == "newuser":
-            auth_identity = self.handle_new_user()
-        elif op == "login" and not self._logged_in_user:
-            # confirm authentication, login
-            if self._login_form.is_valid():
-                # This flow is special.  If we are going through a 2FA
-                # flow here (login returns False) we want to instruct the
-                # system to return upon completion of the 2fa flow to the
-                # current URL and continue with the dialog.
-                #
-                # If there is no 2fa we don't need to do this and can just
-                # go on.
-                try:
-                    self._login(self._login_form.get_user())
-                except self._NotCompletedSecurityChecks:
-                    return self._post_login_redirect()
+        try:
+            if op == "confirm" and (self.request.user.id == self.user.id) or is_account_verified:
+                auth_identity = self.handle_attach_identity()
+            elif op == "newuser":
+                auth_identity = self.handle_new_user()
+            elif op == "login" and not self._logged_in_user:
+                # confirm authentication, login
+                if self._login_form.is_valid():
+                    # This flow is special.  If we are going through a 2FA
+                    # flow here (login returns False) we want to instruct the
+                    # system to return upon completion of the 2fa flow to the
+                    # current URL and continue with the dialog.
+                    #
+                    # If there is no 2fa we don't need to do this and can just
+                    # go on.
+                    try:
+                        self._login(self._login_form.get_user())
+                    except self._NotCompletedSecurityChecks:
+                        return self._post_login_redirect()
+                else:
+                    auth.log_auth_failure(self.request, self.request.POST.get("username"))
+                return self._build_confirmation_response(is_new_account)
             else:
-                auth.log_auth_failure(self.request, self.request.POST.get("username"))
-            return self._build_confirmation_response(is_new_account)
-        else:
+                return self._build_confirmation_response(is_new_account)
+        except IntegrityError:
+            logger.info(
+                "sso.login-pipeline.integrity-error",
+                extra={
+                    "organization_id": self.organization.id,
+                    "email": self.identity.get("email"),
+                    "op": op,
+                },
+            )
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                ERR_IDENTITY_CONFLICT,
+            )
             return self._build_confirmation_response(is_new_account)
 
         user = auth_identity.user
