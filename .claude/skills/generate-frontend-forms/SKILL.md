@@ -254,6 +254,33 @@ Label on left (~50%), field on right. Compact layout for settings pages.
 </field.Layout.Row>
 ```
 
+### Compact Variant
+
+Both Stack and Row layouts support a `variant="compact"` prop. In compact mode, the hint text appears as a tooltip on the label instead of being displayed below. This saves vertical space while still providing the hint information.
+
+```tsx
+// Default: hint text appears below the label
+<field.Layout.Row label="Email" hintText="We'll never share your email">
+  <field.Input ... />
+</field.Layout.Row>
+
+// Compact: hint text appears in tooltip when hovering the label
+<field.Layout.Row label="Email" hintText="We'll never share your email" variant="compact">
+  <field.Input ... />
+</field.Layout.Row>
+
+// Also works with Stack layout
+<field.Layout.Stack label="Email" hintText="We'll never share your email" variant="compact">
+  <field.Input ... />
+</field.Layout.Stack>
+```
+
+**When to Use Compact**:
+
+- Settings pages with many fields where vertical space is limited
+- Forms where hint text is supplementary, not essential
+- Dashboards or panels with constrained height
+
 ### Custom Layouts
 
 You are allowed to create new layouts if necessary, or not use any layouts at all. Without a layout, you _should_ render `field.meta.Label` and optionally `field.meta.HintText` for a11y.
@@ -271,11 +298,12 @@ You are allowed to create new layouts if necessary, or not use any layouts at al
 
 ### Layout Props
 
-| Prop       | Type      | Description              |
-| ---------- | --------- | ------------------------ |
-| `label`    | `string`  | Field label text         |
-| `hintText` | `string`  | Helper text below label  |
-| `required` | `boolean` | Shows required indicator |
+| Prop       | Type        | Description                                                   |
+| ---------- | ----------- | ------------------------------------------------------------- |
+| `label`    | `string`    | Field label text                                              |
+| `hintText` | `string`    | Helper text (below label by default, tooltip in compact mode) |
+| `required` | `boolean`   | Shows required indicator                                      |
+| `variant`  | `"compact"` | Shows hint text in tooltip instead of below label             |
 
 ---
 
