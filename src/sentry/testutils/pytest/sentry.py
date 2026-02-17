@@ -133,6 +133,52 @@ def _configure_test_env_regions() -> None:
     monkey_patch_single_process_silo_mode_state()
 
 
+# ── G1: Skip irrelevant test files during collection ──────────────────
+# When SELECTED_TESTS_FILE is set, pytest_ignore_collect prevents pytest from
+# importing files that aren't in the selected list. This runs *before* module
+# import, avoiding the ~1m45s full-collection overhead on each shard.
+_COLLECT_ALLOWED_FILES: frozenset[str] | None = None
+
+
+def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
+    global _COLLECT_ALLOWED_FILES
+    selected_file = os.environ.get("SELECTED_TESTS_FILE")
+    if not selected_file:
+        return None
+
+    if _COLLECT_ALLOWED_FILES is None:
+        sel_path = Path(selected_file)
+        if not sel_path.exists():
+            return None
+        with sel_path.open() as f:
+            _COLLECT_ALLOWED_FILES = frozenset(
+                line.strip().split("::")[0] for line in f if line.strip()
+            )
+
+    # Let directories through so pytest can descend into them.
+    if collection_path.is_dir():
+        return None
+
+    # Only gate .py files — let conftest, plugins, etc. through.
+    if collection_path.suffix != ".py":
+        return None
+
+    try:
+        rel = str(collection_path.relative_to(config.rootpath))
+    except ValueError:
+        return None
+
+    # Don't skip conftest files — they set up fixtures needed by child tests.
+    if collection_path.name == "conftest.py":
+        return None
+
+    # Only filter files under tests/
+    if not rel.startswith("tests/"):
+        return None
+
+    return rel not in _COLLECT_ALLOWED_FILES
+
+
 def pytest_configure(config: pytest.Config) -> None:
     import warnings
 
