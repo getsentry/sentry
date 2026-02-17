@@ -150,7 +150,7 @@ function AccountSubscriptions() {
                       const labelId = `subscription-${subscription.email}-${subscription.listId}`;
 
                       return (
-                        <Flex align="center" justify="between" gap="sm">
+                        <Flex align="start" justify="between" gap="sm">
                           <Stack gap="xs" flex="1">
                             <Text as="label" id={labelId} htmlFor={labelId}>
                               {subscription.listName}
