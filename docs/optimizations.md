@@ -74,6 +74,11 @@ Incremental optimizations to the backend test CI pipeline. Each entry describes 
 - `_requires_snuba` reads the `SNUBA` env var to check the per-worker port (1230+N) instead of hardcoded 1218.
 - Without this, the fixture checks the shared Snuba and may pass even if the per-worker instance is down.
 
+**pytest-rerunfailures socket deadlock** (`tests/conftest.py`):
+- `pytest-rerunfailures` 15.0 auto-detects xdist and creates a TCP socket server (controller) + client (each worker) for crash recovery — tracking rerun counts centrally so the controller can rerun tests whose worker was killed by a segfault.
+- The socket protocol uses single-byte `recv(1)` with a timeout. During heavy xdist startup (Django, plugins, per-worker Snuba), workers haven't connected by the time the controller threads time out. All threads die, and the controller deadlocks waiting for status updates that never arrive. Every shard freezes.
+- **Fix:** `pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False` in `conftest.py`. Forces the in-memory `StatusDB` fallback. Normal `--reruns=5` still works — each worker retries locally. Only segfault crash recovery is lost (rare edge case).
+
 **Quirks:**
 - The module-level env var + session fixture is belt-and-suspenders: the env var covers Django settings load, the fixture covers the `_snuba_pool` singleton in case of unexpected import ordering.
 - `--dist=loadfile` groups tests from the same file onto one worker, maximizing fixture reuse (module/class-scoped fixtures run once instead of per-worker).
