@@ -6,8 +6,9 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Separator} from '@sentry/scraps/separator';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
@@ -175,7 +176,7 @@ SecondaryNav.Section = function SecondaryNavSection({
 
   return (
     <Section className={className} layout={layout} data-nav-section>
-      <SectionSeparator />
+      <Separator orientation="horizontal" margin="xs 0" padding="0 md" />
       {title ? (
         <SectionTitle
           title={title}
@@ -247,17 +248,8 @@ SecondaryNav.Item = function SecondaryNavItem({
 
 SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNode}) {
   const {layout} = useNavContext();
-
   return <Footer layout={layout}>{children}</Footer>;
 };
-
-function SectionSeparator() {
-  return (
-    <SeparatorWrapper data-separator>
-      <Separator />
-    </SeparatorWrapper>
-  );
-}
 
 const Wrapper = styled('div')`
   display: grid;
@@ -297,17 +289,14 @@ const Section = styled('div')<{layout: NavLayout}>`
 
   &:first-child {
     padding-top: ${space(1)};
+
+    > hr:first-child {
+      display: none;
+    }
   }
 
   &:last-child {
     padding-bottom: ${space(1)};
-  }
-
-  /* Hide separators if there is not a previous section */
-  [data-nav-section] + & {
-    > [data-separator] {
-      display: block;
-    }
   }
 `;
 
@@ -350,19 +339,6 @@ const SectionTitleLabelWrap = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
-`;
-
-const SeparatorWrapper = styled('div')`
-  margin: ${space(1.5)} 0;
-  display: none;
-`;
-
-const Separator = styled('hr')`
-  height: 1px;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background: ${p => p.theme.tokens.border.secondary};
-  margin: 0 ${space(1)};
-  border: none;
 `;
 
 interface ItemProps extends LinkProps {

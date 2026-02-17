@@ -4,6 +4,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName, Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
@@ -12,6 +13,7 @@ import type {NavigationSection} from 'sentry/views/settings/types';
 
 type Props = {
   organization: Organization;
+  project?: Project;
 };
 
 type State = {
@@ -75,7 +77,7 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
 
   render() {
     const {hooks, hookConfigs} = this.state;
-    const {organization} = this.props as Props;
+    const {organization, project} = this.props as Props;
     const access = new Set(organization.access);
     const features = new Set(organization.features);
     const isSelfHosted = ConfigStore.get('isSelfHosted');
@@ -86,6 +88,7 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
         access={access}
         features={features}
         organization={organization}
+        project={project}
         hooks={hooks}
         hookConfigs={hookConfigs}
         isSelfHosted={isSelfHosted}

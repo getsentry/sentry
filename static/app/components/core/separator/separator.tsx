@@ -41,7 +41,7 @@ export const Separator = styled(
   ${p =>
     rc(
       p.orientation === 'horizontal' ? 'border-bottom' : 'border-left',
-      p.border ?? 'primary',
+      p.border ?? 'muted',
       p.theme,
       (...args) => `${getBorder(...args)} !important`
     )};

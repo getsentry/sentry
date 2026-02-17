@@ -1,5 +1,6 @@
 import {Component} from 'react';
 
+import {IconStats} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {Scope} from 'sentry/types/core';
@@ -72,6 +73,7 @@ class GSBillingNavigationConfig extends Component<Props> {
     return {
       id: 'settings-usage-billing',
       name: t('Usage & Billing'),
+      icon: IconStats,
       items,
     };
   };

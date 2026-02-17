@@ -1,17 +1,26 @@
+import {OrganizationAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {FeatureBadge} from '@sentry/scraps/badge';
 
+import {IconCode, IconProject, IconSliders, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
+import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 const organizationSettingsPathPrefix = '/settings/:orgId';
+const projectSettingsPathPrefix = '/settings/:orgId/projects/:projectId';
 const userSettingsPathPrefix = '/settings/account';
 
 export function getUserOrgNavigationConfiguration(): NavigationSection[] {
   return [
     {
       id: 'settings-organization',
-      name: t('Organization'),
+      name: t('Organization Settings'),
+      renderIcon: ({organization}) =>
+        organization ? (
+          <OrganizationAvatar organization={organization} size={16} />
+        ) : null,
       items: [
         {
           path: `${organizationSettingsPathPrefix}/`,
@@ -144,8 +153,169 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
       ],
     },
     {
+      id: 'settings-project',
+      name: t('Project Settings'),
+      renderIcon: ({project}) =>
+        project ? (
+          <ProjectAvatar project={project} size={16} />
+        ) : (
+          <IconProject size="sm" />
+        ),
+      items: [
+        {
+          path: `${projectSettingsPathPrefix}/`,
+          index: true,
+          title: t('General Settings'),
+          description: t('Configure general settings for a project'),
+        },
+        {
+          path: `${projectSettingsPathPrefix}/teams/`,
+          title: t('Project Teams'),
+          description: t('Manage team access for a project'),
+        },
+        {
+          path: `${projectSettingsPathPrefix}/alerts/`,
+          title: t('Alert Settings'),
+          description: t('Project alert settings'),
+        },
+        {
+          path: `${projectSettingsPathPrefix}/tags/`,
+          title: t('Tags & Context'),
+          description: t("View and manage a project's tags and context"),
+        },
+        {
+          path: `${projectSettingsPathPrefix}/environments/`,
+          title: t('Environments'),
+          description: t('Manage environments in a project'),
+        },
+        {
+          path: `${projectSettingsPathPrefix}/ownership/`,
+          title: t('Ownership Rules'),
+          description: t('Manage ownership rules for a project'),
+        },
+        {
+          path: `${projectSettingsPathPrefix}/seer/`,
+          title: t('Seer'),
+          show: ({organization}) => !organization?.hideAiFeatures,
+        },
+        {
+          path: `${projectSettingsPathPrefix}/user-feedback/`,
+          title: t('User Feedback'),
+          show: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
+        },
+        {
+          path: `${projectSettingsPathPrefix}/toolbar/`,
+          title: t('Dev Toolbar'),
+          show: ({organization}) =>
+            !!organization?.features?.includes('sentry-toolbar-ui'),
+          badge: () => 'beta',
+        },
+        {
+          path: `${projectSettingsPathPrefix}/plugins/`,
+          title: t('Legacy Integrations'),
+          description: t('View, enable, and disable all integrations for a project'),
+          id: 'legacy_integrations',
+          recordAnalytics: true,
+        },
+      ],
+      subsections: [
+        {
+          id: 'settings-processing',
+          name: t('Processing'),
+          icon: IconSliders,
+          items: [
+            {
+              path: `${projectSettingsPathPrefix}/filters/`,
+              title: t('Inbound Filters'),
+              description: t(
+                "Configure a project's inbound filters (e.g. browsers, messages)"
+              ),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/security-and-privacy/`,
+              title: t('Security & Privacy'),
+              description: t(
+                'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
+              ),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/issue-grouping/`,
+              title: t('Issue Grouping'),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/debug-symbols/`,
+              title: t('Debug Files'),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/proguard/`,
+              title: t('ProGuard'),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/source-maps/`,
+              title: t('Source Maps'),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/performance/`,
+              title: t('Performance'),
+              show: ({organization}) =>
+                !!organization?.features?.includes('performance-view') &&
+                !ConfigStore.get('isSelfHostedErrorsOnly'),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/replays/`,
+              title: t('Replays'),
+              show: ({organization}) =>
+                !!organization?.features?.includes('session-replay-ui') &&
+                !ConfigStore.get('isSelfHostedErrorsOnly'),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/playstation/`,
+              title: t('PlayStation'),
+              show: ({organization}) =>
+                !!(organization && hasTempestAccess(organization)) &&
+                !ConfigStore.get('isSelfHosted'),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/mobile-builds/`,
+              title: t('Mobile Builds'),
+              show: ({organization}) =>
+                !!organization?.features?.includes('preprod-frontend-routes'),
+              badge: () => 'new',
+              description: t('Size analysis and build distribution configuration.'),
+            },
+          ],
+        },
+        {
+          id: 'settings-sdk',
+          name: t('SDK Setup'),
+          icon: IconTerminal,
+          items: [
+            {
+              path: `${projectSettingsPathPrefix}/keys/`,
+              title: t('Client Keys (DSN)'),
+              description: t("View and manage the project's client keys (DSN)"),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/loader-script/`,
+              title: t('Loader Script'),
+              description: t("View and manage the project's Loader Script"),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/release-tracking/`,
+              title: t('Releases'),
+            },
+            {
+              path: `${projectSettingsPathPrefix}/security-headers/`,
+              title: t('Security Headers'),
+            },
+          ],
+        },
+      ],
+    },
+    {
       id: 'settings-developer',
       name: t('Developer Settings'),
+      icon: IconCode,
       items: [
         {
           path: `${organizationSettingsPathPrefix}/auth-tokens/`,
@@ -175,7 +345,11 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
     },
     {
       id: 'settings-account',
-      name: t('Account'),
+      name: t('User Settings'),
+      renderIcon: () => {
+        const user = ConfigStore.get('user');
+        return user ? <UserAvatar user={user} size={16} /> : null;
+      },
       items: [
         {
           path: `${userSettingsPathPrefix}/details/`,

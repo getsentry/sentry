@@ -1,5 +1,6 @@
-import type {ReactElement} from 'react';
+import type {ComponentType, ReactElement, ReactNode} from 'react';
 
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -52,6 +53,22 @@ export type NavigationItem = {
   show?: boolean | ((opts: NavigationGroupProps) => boolean);
 };
 
+export type NavigationSubSection = {
+  /**
+   * Unique identifier for the subsection
+   */
+  id: string;
+  items: NavigationItem[];
+  /**
+   * Heading of the subsection
+   */
+  name: string;
+  /**
+   * Icon displayed before the subsection title
+   */
+  icon?: ComponentType<SVGIconProps>;
+};
+
 export type NavigationSection = {
   /**
    * Unique identifier for the navigation section, used to save collapsed state
@@ -62,4 +79,17 @@ export type NavigationSection = {
    * Heading of the navigation section
    */
   name: string;
+  /**
+   * Static icon component displayed before the section title
+   */
+  icon?: ComponentType<SVGIconProps>;
+  /**
+   * Render function for dynamic icons (e.g. avatars) that need access to navigation props.
+   * Takes precedence over `icon` when both are provided.
+   */
+  renderIcon?: (opts: NavigationProps) => ReactNode;
+  /**
+   * Nested subsections rendered within this section
+   */
+  subsections?: NavigationSubSection[];
 };
