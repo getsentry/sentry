@@ -53,13 +53,22 @@ export function bootIntercom(
 /**
  * Update Intercom with new user data.
  * Call this when user data changes without a page refresh.
+ *
+ * @param userData - Partial user data to update
+ * @param userHash - Optional new JWT for identity verification refresh
  */
-export function updateIntercom(userData: Partial<IntercomUserData>): void {
+export function updateIntercom(
+  userData: Partial<IntercomUserData>,
+  userHash?: string
+): void {
   if (!hasIntercom()) {
     return;
   }
 
   const updateData: Record<string, unknown> = {};
+  if (userHash) {
+    updateData.user_hash = userHash;
+  }
   if (userData.email) {
     updateData.email = userData.email;
   }
