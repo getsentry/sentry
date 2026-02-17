@@ -289,7 +289,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
             )
 
         assert suggestions is None
-        assert "not available" in debug
+        assert debug is not None and "not available" in debug
 
     def test_hide_ai_features_opt_out(self):
         self.organization.update_option("sentry:hide_ai_features", True)
@@ -302,7 +302,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
             )
 
         assert suggestions is None
-        assert "not available" in debug
+        assert debug is not None and "not available" in debug
 
     def test_no_status_code(self):
         with self.feature({"organizations:gen-ai-features": True}):
@@ -313,7 +313,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
             )
 
         assert suggestions is None
-        assert "No status_code" in debug
+        assert debug is not None and "No status_code" in debug
 
     @patch("sentry.uptime.seer_assertions.requests.post")
     def test_seer_request_failure(self, mock_post):
@@ -340,7 +340,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
             )
 
         assert suggestions is None
-        assert "request failed" in debug
+        assert debug is not None and "request failed" in debug
 
     @patch("sentry.uptime.seer_assertions.requests.post")
     def test_successful_generation(self, mock_post):
@@ -398,4 +398,4 @@ class GenerateAssertionSuggestionsTest(TestCase):
             )
 
         assert suggestions is None
-        assert "empty content" in debug
+        assert debug is not None and "empty content" in debug

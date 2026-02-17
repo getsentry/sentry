@@ -12,6 +12,7 @@ from typing import Any
 import orjson
 import requests
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel, Field
 
 from sentry.models.organization import Organization
@@ -193,8 +194,8 @@ def build_assertion_prompt(response_data: dict[str, Any]) -> str:
 HTTP Response:
 - Status Code: {response_data.get("status_code")}
 - Response Time: {response_data.get("response_time_ms")}ms
-- Headers: {json.dumps(response_data.get("headers", {}), indent=2)}
-- Body: {json.dumps(response_data.get("body"), indent=2) if response_data.get("body") else "N/A"}"""
+- Headers: {orjson.dumps(response_data.get("headers", {}), option=orjson.OPT_INDENT_2).decode()}
+- Body: {orjson.dumps(response_data.get("body"), option=orjson.OPT_INDENT_2).decode() if response_data.get("body") else "N/A"}"""
 
 
 def suggestion_to_assertion_json(suggestion: SuggestedAssertion) -> dict[str, Any]:
@@ -289,7 +290,7 @@ def suggestions_to_combined_assertion(
 
 def generate_assertion_suggestions(
     organization: Organization,
-    user: User,
+    user: User | AnonymousUser,
     preview_result: dict[str, Any],
 ) -> tuple[AssertionSuggestions | None, str | None]:
     """
