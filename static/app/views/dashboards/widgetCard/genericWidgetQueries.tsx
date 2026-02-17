@@ -78,7 +78,7 @@ export type HookWidgetQueryResult = GenericWidgetQueriesResult & {
   rawData: any[];
 };
 
-export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
+type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   config: DatasetConfig<SeriesResponse, TableResponse>;
   widget: Widget;
   afterFetchSeriesData?: (result: SeriesResponse) => void;

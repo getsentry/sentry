@@ -54,7 +54,7 @@ interface MultipleSelectFieldProps extends BaseSelectFieldProps {
   value: string[];
 }
 
-export type SelectFieldProps = SingleSelectFieldProps | MultipleSelectFieldProps;
+type SelectFieldProps = SingleSelectFieldProps | MultipleSelectFieldProps;
 
 export function SelectField({
   onChange,
