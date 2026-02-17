@@ -29,6 +29,7 @@ import {CompactSelect, ControlContext} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
+import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 
 export interface HybridFilterRef<Value extends SelectKey> {
   toggleOption: (val: Value) => void;
@@ -55,12 +56,7 @@ export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
   // Props that can be spread directly into CompactSelect
   compactSelectProps: Pick<
     MultipleSelectProps<Value>,
-    | 'value'
-    | 'onChange'
-    | 'onSectionToggle'
-    | 'onInteractOutside'
-    | 'onKeyDown'
-    | 'onKeyUp'
+    'value' | 'onChange' | 'onSectionToggle' | 'onInteractOutside' | 'onKeyDown'
   > & {
     closeOnSelect: boolean;
   };
@@ -148,8 +144,14 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     commit(stagedValue);
   }, [disableCommit, removeStagedChanges, commit, stagedValue]);
 
-  const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
-  const [shiftKeyPressed, setShiftKeyPressed] = useState(false);
+  // Use refs so callbacks always read the current key state without stale closures.
+  // window listeners are required (not onKeyDown on the CompactSelect wrapper) because
+  // the dropdown overlay is rendered in a portal — keyboard events there don't bubble
+  // back up to the outer wrapper div.
+  const shiftKeyRef = useRef(false);
+  const modifierKeyRef = useRef(false);
+  // State is still needed for the reactive closeOnSelect prop.
+  const [modifierActive, setModifierActive] = useState(false);
 
   const getFlatOptions = useCallback(
     (opts: Array<SelectOptionOrSection<Value>>): Array<SelectOption<Value>> => {
@@ -218,33 +220,39 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   const toggleOption = useCallback(
     (val: Value) => {
-      if (shiftKeyPressed) {
+      if (shiftKeyRef.current) {
         shiftToggleRange(val);
         return;
       }
 
       performSingleToggle(val);
     },
-    [shiftKeyPressed, shiftToggleRange, performSingleToggle]
+    [shiftToggleRange, performSingleToggle]
   );
-
-  const handleKeyUp = useCallback(() => {
-    setModifierKeyPressed(false);
-    setShiftKeyPressed(false);
-  }, []);
 
   const handleKeyDown = useCallback(
     (e: any) => {
       if (e.key === 'Escape') {
         commitStagedChanges();
       }
-      setShiftKeyPressed(e.shiftKey);
-      setModifierKeyPressed(
-        (isAppleDevice() ? e.altKey : e.ctrlKey) || (isMac() ? e.metaKey : e.ctrlKey)
-      );
     },
     [commitStagedChanges]
   );
+
+  useEffect(() => {
+    const onKeyChange = (e: KeyboardEvent) => {
+      shiftKeyRef.current = e.shiftKey;
+      modifierKeyRef.current =
+        (isAppleDevice() ? e.altKey : e.ctrlKey) || (isMac() ? e.metaKey : e.ctrlKey);
+      setModifierActive(isModifierKeyPressed(e));
+    };
+    window.addEventListener('keydown', onKeyChange);
+    window.addEventListener('keyup', onKeyChange);
+    return () => {
+      window.removeEventListener('keydown', onKeyChange);
+      window.removeEventListener('keyup', onKeyChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (uncommittedStagedValue === null && hasExternalChanges) {
@@ -282,12 +290,12 @@ export function useStagedCompactSelect<Value extends SelectKey>({
         return;
       }
 
-      if (multiple && shiftKeyPressed) {
+      if (multiple && shiftKeyRef.current) {
         shiftToggleRange(diff[0]!);
         return;
       }
 
-      if (multiple && modifierKeyPressed) {
+      if (multiple && modifierKeyRef.current) {
         toggleOption(diff[0]!);
         return;
       }
@@ -296,16 +304,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       commit(diff);
       lastSelectedRef.current = diff[0]!;
     },
-    [
-      commit,
-      stagedValue,
-      toggleOption,
-      onReplace,
-      multiple,
-      modifierKeyPressed,
-      shiftKeyPressed,
-      shiftToggleRange,
-    ]
+    [commit, stagedValue, toggleOption, onReplace, multiple, shiftToggleRange]
   );
 
   // Don't show reset button if current value is already equal to the default one.
@@ -323,14 +322,13 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       onSectionToggle: handleSectionToggle,
       onInteractOutside: commitStagedChanges,
       onKeyDown: handleKeyDown,
-      onKeyUp: handleKeyUp,
-      closeOnSelect: !(multiple && (modifierKeyPressed || shiftKeyPressed)),
+      closeOnSelect: !(multiple && modifierActive),
     },
     defaultValue,
     handleReset,
     stagedValue,
     hasStagedChanges,
-    modifierKeyPressed,
+    modifierKeyPressed: modifierActive,
     commit,
     removeStagedChanges,
     shouldShowReset,
