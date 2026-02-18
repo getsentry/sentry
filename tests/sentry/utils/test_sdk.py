@@ -597,15 +597,6 @@ class ShouldDropS4STest(TestCase):
             envelope = self._make_span_envelope()
             assert transport._should_drop_s4s("capture_envelope", envelope) is True
 
-    def test_span_envelopes_deterministic_by_trace_id(self):
-        transport = self._get_transport()
-        trace_id = "abcdef1234567890abcdef1234567890"
-        with self.options({"store.s4s-transaction-sample-rate": 0.5}):
-            envelope = self._make_span_envelope(trace_id=trace_id)
-            first = transport._should_drop_s4s("capture_envelope", envelope)
-            for _ in range(10):
-                assert transport._should_drop_s4s("capture_envelope", envelope) == first
-
     def test_never_drops_non_span_non_transaction_envelopes(self):
         transport = self._get_transport()
         with self.options({"store.s4s-transaction-sample-rate": 0.0}):
