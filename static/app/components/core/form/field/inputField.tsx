@@ -8,14 +8,14 @@ import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseFiel
 export function InputField({
   onChange,
   disabled,
-  trailingAction,
+  trailingItems,
   ...props
 }: BaseFieldProps &
   Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled'> & {
     onChange: (value: string) => void;
     value: string;
     disabled?: boolean | string;
-    trailingAction?: React.ReactNode;
+    trailingItems?: React.ReactNode;
   }) {
   const autoSaveContext = useAutoSaveContext();
   const indicator = useFieldStateIndicator();
@@ -35,7 +35,7 @@ export function InputField({
               onChange={e => onChange(e.target.value)}
             />
             <InputGroup.TrailingItems>
-              {trailingAction}
+              {trailingItems}
               {indicator}
             </InputGroup.TrailingItems>
           </InputGroup>

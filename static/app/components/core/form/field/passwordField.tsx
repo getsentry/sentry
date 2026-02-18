@@ -24,7 +24,7 @@ export function PasswordField(
     <InputField
       {...props}
       type={isFieldVisible ? 'text' : 'password'}
-      trailingAction={
+      trailingItems={
         <Button
           size="xs"
           priority="transparent"
