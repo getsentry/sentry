@@ -355,7 +355,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     interval = serializers.CharField(required=False, max_length=10)
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
     widget_type = serializers.ChoiceField(
-        choices=DashboardWidgetTypes.as_text_choices(), required=False
+        choices=DashboardWidgetTypes.as_text_choices(), required=False, allow_null=True
     )
     limit = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
@@ -378,9 +378,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return display_type_id
 
-    def validate_widget_type(self, widget_type):
+    def _validate_widget_type(self, data):
+        widget_type = data.get("widget_type")
+        display_type = data.get("display_type")
         widget_type = DashboardWidgetTypes.get_id_for_type_name(widget_type)
-        if widget_type == DashboardWidgetTypes.DISCOVER or widget_type is None:
+        if widget_type == DashboardWidgetTypes.DISCOVER or (
+            widget_type is None and display_type != DashboardWidgetDisplayTypes.TEXT
+        ):
             sentry_sdk.set_context(
                 "dashboard",
                 {
@@ -430,6 +434,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         organization = self.context["organization"]
 
         self._validate_interval(data)
+        data["widget_type"] = self._validate_widget_type(data)
 
         ondemand_feature = features.has(
             "organizations:on-demand-metrics-extraction-widgets", organization
