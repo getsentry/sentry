@@ -40,18 +40,18 @@ type BaseSelectFieldProps = BaseFieldProps &
     disabled?: boolean | string;
   };
 
-// Single select (default)
+// Single select (default) - TValue must NOT be an array
 interface SingleSelectFieldProps<TValue> extends BaseSelectFieldProps {
-  onChange: (value: TValue) => void;
-  value: TValue | null;
+  onChange: (value: TValue extends readonly unknown[] ? never : TValue) => void;
+  value: TValue extends readonly unknown[] ? never : TValue | null;
   multiple?: false;
 }
 
-// Multiple select
+// Multiple select - TValue must be an array
 interface MultipleSelectFieldProps<TValue> extends BaseSelectFieldProps {
   multiple: true;
-  onChange: (value: TValue[]) => void;
-  value: TValue[];
+  onChange: (value: TValue extends readonly unknown[] ? TValue : never) => void;
+  value: TValue extends readonly unknown[] ? TValue : never;
 }
 
 export type SelectFieldProps<TValue = string> =
