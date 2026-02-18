@@ -622,21 +622,22 @@ class _RemoteSiloCall:
         scope.set_tag("rpc_method", rpc_method)
         scope.set_tag("rpc_status_code", response.status_code)
 
+        if response.status_code == 422:
+            # Validation/Operation errors that should be shown to end user behave the same
+            # in test/production mode.
+            body = response.json()
+            raise RpcValidationException(
+                detail=body["detail"],
+                code=body["code"],
+                service_name=self.service_name,
+                method_name=self.method_name,
+            )
+
         if in_test_environment():
             if response.status_code == 500:
                 raise self._remote_exception(
                     f"Error invoking rpc at {self.path!r}: check error logs for more details"
                 )
-            if response.status_code == 422:
-                # Validation/Operation errors that should be shown to end user.
-                body = response.json()
-                raise RpcValidationException(
-                    detail=body["detail"],
-                    code=body["code"],
-                    service_name=self.service_name,
-                    method_name=self.method_name,
-                )
-
             detail = response.json()["detail"]
             raise self._remote_exception(
                 f"Error ({response.status_code} status) invoking rpc at {self.path!r}: {detail}"
@@ -645,15 +646,6 @@ class _RemoteSiloCall:
         # Careful not to reveal too much information in production
         if response.status_code == 403:
             raise self._remote_exception("Unauthorized service access")
-        if response.status_code == 422:
-            # Validation/Operation errors that should be shown to end user.
-            body = response.json()
-            raise RpcValidationException(
-                detail=body["detail"],
-                code=body["code"],
-                service_name=self.service_name,
-                method_name=self.method_name,
-            )
         if response.status_code == 400:
             logger.warning(
                 "rpc.bad_request",
