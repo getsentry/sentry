@@ -3,7 +3,16 @@ import {createRoot} from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
+import * as GuideActionCreator from 'sentry/actionCreators/guides';
+import * as Modal from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import FormState from 'sentry/components/forms/state';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconArrow} from 'sentry/icons/iconArrow';
 import plugins from 'sentry/plugins';
+import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
+import getModalPortal from 'sentry/utils/getModalPortal';
 
 const globals: Record<string, any> = {
   // The following globals are used in sentry-plugins webpack externals
@@ -21,8 +30,8 @@ const globals: Record<string, any> = {
 // modules that are not compiled with the sentry bundle.
 const SentryApp = {
   // The following components are used in sentry-plugins.
-  FormState: require('sentry/components/forms/state').default,
-  LoadingIndicator: require('sentry/components/loadingIndicator').default,
+  FormState,
+  LoadingIndicator,
   plugins: {
     add: plugins.add,
     addContext: plugins.addContext,
@@ -32,14 +41,14 @@ const SentryApp = {
 
   // The following components are used in legacy django HTML views
   // or in the Sentry sandbox
-  ConfigStore: require('sentry/stores/configStore').default,
-  HookStore: require('sentry/stores/hookStore').default,
-  GuideActionCreator: require('sentry/actionCreators/guides'),
-  Modal: require('sentry/actionCreators/modal'),
-  getModalPortal: require('sentry/utils/getModalPortal').default,
-  Client: require('sentry/api').Client,
+  ConfigStore,
+  HookStore,
+  GuideActionCreator,
+  Modal,
+  getModalPortal,
+  Client,
   // This is used in the Email Modal in the Sandbox
-  IconArrow: require('sentry/icons/iconArrow').IconArrow,
+  IconArrow,
 };
 
 globals.SentryApp = SentryApp;
