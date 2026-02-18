@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -157,7 +158,14 @@ export function AITraceSection({event}: AITraceSectionProps) {
         <InfoGrid>
           <InfoRow>
             <Label>{t('Session ID')}</Label>
-            <Value>{metadata.session_id.substring(0, 16)}...</Value>
+            <SessionIdValue>
+              <SessionIdText>{metadata.session_id}</SessionIdText>
+              <StyledCopyButton
+                text={metadata.session_id}
+                size="xs"
+                aria-label={t('Copy Session ID')}
+              />
+            </SessionIdValue>
           </InfoRow>
           <InfoRow>
             <Label>{t('Model')}</Label>
@@ -215,6 +223,7 @@ const InfoRow = styled('div')`
   display: grid;
   grid-template-columns: 120px 1fr;
   gap: ${space(2)};
+  align-items: start;
 `;
 
 const Label = styled('div')`
@@ -224,6 +233,24 @@ const Label = styled('div')`
 
 const Value = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const SessionIdValue = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const SessionIdText = styled('code')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  word-break: break-all;
+`;
+
+const StyledCopyButton = styled(CopyToClipboardButton)`
+  min-width: auto;
+  height: 20px;
+  flex-shrink: 0;
 `;
 
 const ToggleButton = styled('div')`
