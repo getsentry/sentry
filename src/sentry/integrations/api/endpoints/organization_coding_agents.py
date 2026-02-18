@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -25,10 +25,11 @@ from sentry.seer.autofix.utils import AutofixTriggerSource
 logger = logging.getLogger(__name__)
 
 
-class LaunchFailure(TypedDict, total=False):
+class LaunchFailure(TypedDict):
     repo_name: str
     error_message: str
-    failure_type: str
+    failure_type: NotRequired[str]
+    github_installation_id: NotRequired[str]
 
 
 class LaunchResponse(TypedDict, total=False):
