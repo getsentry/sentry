@@ -79,7 +79,7 @@ function getDefaultHourUtc(): number {
   return (((9 + userTimezoneOffset / 60) % 24) + 24) % 24;
 }
 
-export type ScheduleReportModalProps = ModalRenderProps & {
+type ScheduleReportModalProps = ModalRenderProps & {
   organization: Organization;
   sourceId: number;
   sourceName: string;
