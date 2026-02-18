@@ -45,6 +45,7 @@ import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
 import {HTTPSnippet} from './httpSnippet';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
+import {useUptimeAssertionFeatures} from './useUptimeAssertionFeatures';
 
 interface Props {
   handleDelete?: () => void;
@@ -102,13 +103,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
   const queryClient = useQueryClient();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const hasRuntimeAssertions = organization.features.includes(
-    'uptime-runtime-assertions'
-  );
-  const hasAiAssertionSuggestions =
-    organization.features.includes('uptime-ai-assertion-suggestions') &&
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures;
+  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??

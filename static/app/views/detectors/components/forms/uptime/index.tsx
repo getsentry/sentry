@@ -5,8 +5,8 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
 import {mapAssertionFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
+import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
@@ -65,14 +65,7 @@ function UptimeDetectorForm() {
 }
 
 export function NewUptimeDetectorForm() {
-  const organization = useOrganization();
-  const hasRuntimeAssertions = organization.features.includes(
-    'uptime-runtime-assertions'
-  );
-  const hasAiAssertionSuggestions =
-    organization.features.includes('uptime-ai-assertion-suggestions') &&
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures;
+  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
 
   return (
     <NewDetectorLayout
@@ -96,14 +89,7 @@ export function NewUptimeDetectorForm() {
 }
 
 export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDetector}) {
-  const organization = useOrganization();
-  const hasRuntimeAssertions = organization.features.includes(
-    'uptime-runtime-assertions'
-  );
-  const hasAiAssertionSuggestions =
-    organization.features.includes('uptime-ai-assertion-suggestions') &&
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures;
+  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
 
   return (
     <EditDetectorLayout
