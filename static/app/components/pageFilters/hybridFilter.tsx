@@ -548,21 +548,23 @@ export const HybridFilterComponents = {
     );
   },
 
-  Checkbox(
-    props: DistributedOmit<CheckboxProps, 'size'> & {
-      withIncreasedHitArea?: boolean;
-    } & CheckboxProps
-  ) {
-    return <CheckboxWithIncreasedHitArea {...props} />;
+  Checkbox(props: CheckboxProps) {
+    return (
+      <CheckboxHitAreaWrapper>
+        <Checkbox {...props} />
+      </CheckboxHitAreaWrapper>
+    );
   },
 };
 
-const CheckboxWithIncreasedHitArea = styled(Checkbox)`
-  input[type='checkbox']::after {
-    content: '';
-    position: absolute;
-    inset: -${p => p.theme.space.md};
-  }
+const CheckboxHitAreaWrapper = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  /* Expand clickable area using wrapper padding and negative margin */
+  padding: ${p => p.theme.space.md};
+  margin: -${p => p.theme.space.md};
 `;
 
 const ResetButton = styled(Button)`

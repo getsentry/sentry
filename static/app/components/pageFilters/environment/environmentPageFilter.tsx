@@ -242,7 +242,9 @@ export function EnvironmentPageFilter({
           <InfoTip
             size="xs"
             variant="muted"
-            title="Shift + click to select a range of environments or cmd + click to select multiple environments at once."
+            title={t(
+              'Shift + click to select a range of environments or cmd + click to select multiple environments at once.'
+            )}
           />
         </Flex>
       }
