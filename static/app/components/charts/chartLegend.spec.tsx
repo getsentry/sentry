@@ -1,17 +1,7 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {LegendItem} from './chartLegend';
 import {ChartLegend} from './chartLegend';
-
-// Mock useOverflowItems since IntersectionObserver is not available in JSDOM
-jest.mock('./useOverflowItems', () => ({
-  useOverflowItems: jest.fn((_containerRef, items) => ({
-    visibleItems: items,
-    overflowItems: [],
-  })),
-}));
-
-const {useOverflowItems} = jest.requireMock('./useOverflowItems');
 
 const ITEMS: LegendItem[] = [
   {name: 'series-a', label: 'Series A', color: '#ff0000'},
@@ -19,16 +9,74 @@ const ITEMS: LegendItem[] = [
   {name: 'series-c', label: 'Series C', color: '#0000ff'},
 ];
 
-describe('ChartLegend', () => {
-  beforeEach(() => {
-    useOverflowItems.mockImplementation((_containerRef: unknown, items: unknown[]) => ({
-      visibleItems: items,
-      overflowItems: [],
-    }));
-  });
+// Stub ResizeObserver — JSDOM doesn't provide it
+let resizeCallbacks: Array<() => void> = [];
+class MockResizeObserver {
+  constructor(cb: () => void) {
+    resizeCallbacks.push(cb);
+  }
+  observe() {}
+  disconnect() {}
+}
 
-  it('renders all legend items', () => {
+beforeEach(() => {
+  resizeCallbacks = [];
+  window.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+function makeComputedStyleMock() {
+  const style = {
+    columnGap: '8',
+    getPropertyValue: (prop: string) => (style as Record<string, string>)[prop] ?? '',
+  } as unknown as CSSStyleDeclaration;
+  return style;
+}
+
+function mockAllItemsFit() {
+  const itemsContainer = screen.getByTestId('legend-items');
+  Object.defineProperty(itemsContainer, 'offsetWidth', {
+    value: 1000,
+    configurable: true,
+  });
+  jest.spyOn(window, 'getComputedStyle').mockReturnValue(makeComputedStyleMock());
+  Array.from(itemsContainer.children).forEach(child => {
+    jest.spyOn(child, 'getBoundingClientRect').mockReturnValue({
+      width: 80,
+    } as DOMRect);
+  });
+}
+
+function mockFirstItemOnly() {
+  const itemsContainer = screen.getByTestId('legend-items');
+  Object.defineProperty(itemsContainer, 'offsetWidth', {
+    value: 100,
+    configurable: true,
+  });
+  jest.spyOn(window, 'getComputedStyle').mockReturnValue(makeComputedStyleMock());
+  Array.from(itemsContainer.children).forEach(child => {
+    jest.spyOn(child, 'getBoundingClientRect').mockReturnValue({
+      width: 80,
+    } as DOMRect);
+  });
+}
+
+async function triggerResize() {
+  await act(async () => {
+    resizeCallbacks.forEach(cb => cb());
+    await Promise.resolve(); // flush scheduleMicroTask
+  });
+}
+
+describe('ChartLegend', () => {
+  it('renders all legend items', async () => {
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
+
+    mockAllItemsFit();
+    await triggerResize();
 
     expect(screen.getByText('Series A')).toBeInTheDocument();
     expect(screen.getByText('Series B')).toBeInTheDocument();
@@ -53,7 +101,9 @@ describe('ChartLegend', () => {
       />
     );
 
-    // Click "Series B" toggle button
+    mockAllItemsFit();
+    await triggerResize();
+
     await userEvent.click(screen.getByRole('button', {name: 'Toggle Series B'}));
 
     expect(onSelectionChange).toHaveBeenCalledWith({
@@ -73,6 +123,9 @@ describe('ChartLegend', () => {
       />
     );
 
+    mockAllItemsFit();
+    await triggerResize();
+
     await userEvent.click(screen.getByRole('button', {name: 'Toggle Series B'}));
 
     expect(onSelectionChange).toHaveBeenCalledWith({
@@ -82,34 +135,34 @@ describe('ChartLegend', () => {
     });
   });
 
-  it('treats missing keys in selected as true (visible)', () => {
+  it('treats missing keys in selected as true (visible)', async () => {
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
 
-    // All checkboxes should be checked when selected is empty
+    mockAllItemsFit();
+    await triggerResize();
+
     const checkboxes = screen.getAllByRole('checkbox');
     checkboxes.forEach(cb => {
       expect(cb).toBeChecked();
     });
   });
 
-  it('shows overflow trigger when items overflow', () => {
-    // CompactSelect uses react-popper which triggers async state updates
+  it('shows overflow trigger when items overflow', async () => {
     jest.spyOn(console, 'error').mockImplementation();
 
-    useOverflowItems.mockImplementation(
-      (_containerRef: unknown, items: LegendItem[]) => ({
-        visibleItems: items.slice(0, 1),
-        overflowItems: items.slice(1),
-      })
-    );
-
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
+
+    mockFirstItemOnly();
+    await triggerResize();
 
     expect(screen.getByText('2 more')).toBeInTheDocument();
   });
 
-  it('does not show overflow trigger when nothing overflows', () => {
+  it('does not show overflow trigger when nothing overflows', async () => {
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
+
+    mockAllItemsFit();
+    await triggerResize();
 
     expect(screen.queryByText(/more/)).not.toBeInTheDocument();
   });

@@ -549,7 +549,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
-  const hasChartLegend = organization.features.includes('chart-legend-component');
+  const usesChartLegendComponent = organization.features.includes(
+    'chart-legend-component'
+  );
 
   // Local legend selection state used when the parent doesn't manage it
   const [localLegendSelection, setLocalLegendSelection] = useState<
@@ -570,7 +572,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // Build legend items from plottables using their assigned colors
   const chartLegendItems: LegendItem[] = useMemo(() => {
-    if (!hasChartLegend) {
+    if (!usesChartLegendComponent) {
       return [];
     }
     let colorIndex = 0;
@@ -594,7 +596,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       });
     }
     return items;
-  }, [hasChartLegend, props.plottables, palette, aliases, releaseSeries]);
+  }, [usesChartLegendComponent, props.plottables, palette, aliases, releaseSeries]);
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
@@ -650,7 +652,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   return (
     <Flex direction="column" height="100%">
       {ActionMenu}
-      {hasChartLegend && showLegend && (
+      {usesChartLegendComponent && showLegend && (
         <ChartLegend
           items={chartLegendItems}
           selected={legendSelection}
@@ -667,7 +669,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             // incorrectly truncating long labels. See
             // https://github.com/apache/echarts/issues/15562
             left: 2,
-            top: showLegend && !hasChartLegend ? 25 : 10,
+            top: showLegend && !usesChartLegendComponent ? 25 : 10,
             right: 8,
             bottom: 0,
             containLabel: true,
@@ -675,12 +677,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             ...xAxisGrid,
           }}
           legend={
-            hasChartLegend && showLegend
+            usesChartLegendComponent && showLegend
               ? {
                   show: false,
                   selected: legendSelection,
                 }
-              : !hasChartLegend && showLegend
+              : !usesChartLegendComponent && showLegend
                 ? {
                     top: 0,
                     left: 0,

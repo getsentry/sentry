@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,9 +9,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 
 import {LegendCheckbox} from './components/legendCheckbox';
-import {useOverflowItems} from './useOverflowItems';
 
 export interface LegendItem {
   color: string;
@@ -29,16 +29,103 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const outerGap = parseInt(theme.space.xs, 10);
-  const {overflowItems} = useOverflowItems(containerRef, items, {
-    triggerRef,
-    gap: outerGap,
-  });
 
+  // --- Overflow detection ---
+  // Measures child widths against the container to determine which items
+  // don't fit. A ResizeObserver re-computes when the container or trigger
+  // changes size. The trigger width is measured dynamically so translations
+  // or content changes are handled automatically.
+
+  const [firstOverflowIndex, setFirstOverflowIndex] = useState<number | null>(null);
+  const outerGap = parseInt(theme.space.xs, 10);
+
+  const computeOverflow = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const containerWidth = container.offsetWidth;
+    const triggerWidth = triggerRef.current?.offsetWidth ?? 0;
+    const containerGap = parseFloat(getComputedStyle(container).columnGap) || 0;
+
+    const children = Array.from(container.children);
+    let usedWidth = 0;
+    let newFirstOverflowIndex: number | null = null;
+
+    for (let i = 0; i < children.length; i++) {
+      const childWidth = children[i]!.getBoundingClientRect().width;
+      if (i > 0) {
+        usedWidth += containerGap;
+      }
+      usedWidth += childWidth;
+
+      // Reserve space for the trigger + the gap between container and trigger
+      const remainingItems = children.length - i - 1;
+      const reservedSpace = remainingItems > 0 ? triggerWidth + outerGap : 0;
+
+      if (usedWidth > containerWidth - reservedSpace) {
+        newFirstOverflowIndex = i;
+        break;
+      }
+    }
+
+    setFirstOverflowIndex(newFirstOverflowIndex);
+  }, [outerGap]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return () => {};
+    }
+
+    computeOverflow();
+
+    // Re-compute when the container resizes. ResizeObserver callbacks are
+    // already coalesced per-frame by the spec, but we defer measurement to a
+    // microtask as a precaution against forced reflows if the resulting
+    // state update synchronously changes layout.
+    const resizeObserver = new ResizeObserver(() => {
+      scheduleMicroTask(computeOverflow);
+    });
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [computeOverflow, items.length]);
+
+  // Re-compute when the trigger appears or resizes
+  useEffect(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) {
+      return () => {};
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      scheduleMicroTask(computeOverflow);
+    });
+    resizeObserver.observe(trigger);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [computeOverflow, firstOverflowIndex !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const overflowItems = useMemo(
+    () => (firstOverflowIndex === null ? [] : items.slice(firstOverflowIndex)),
+    [firstOverflowIndex, items]
+  );
+
+  // Pre-computed set for O(1) lookups when deciding visibility of each item.
+  // Items that overflow are kept in the DOM (with visibility: hidden) so they
+  // still contribute to width measurement.
   const overflowSet = useMemo(
     () => new Set(overflowItems.map(item => item.name)),
     [overflowItems]
   );
+
+  // --- Selection ---
 
   const toggleItem = useCallback(
     (name: string) => {
@@ -50,22 +137,32 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     [selected, onSelectionChange]
   );
 
+  // --- Overflow dropdown ---
+
+  const renderLeadingCheckbox = useCallback(
+    (item: LegendItem) =>
+      function ({isSelected}: {isSelected: boolean}) {
+        return (
+          <LegendCheckbox
+            color={item.color}
+            checked={isSelected}
+            onChange={() => {}}
+            aria-label={item.label}
+          />
+        );
+      },
+    []
+  );
+
   const overflowOptions: Array<SelectOption<string>> = useMemo(
     () =>
       overflowItems.map(item => ({
         value: item.name,
         label: item.label,
         hideCheck: true,
-        leadingItems: (
-          <LegendCheckbox
-            color={item.color}
-            checked={selected[item.name] !== false}
-            onChange={() => {}}
-            aria-label={t('Toggle %s', item.label)}
-          />
-        ),
+        leadingItems: renderLeadingCheckbox(item),
       })),
-    [overflowItems, selected]
+    [overflowItems, renderLeadingCheckbox]
   );
 
   const overflowValues = useMemo(
@@ -90,10 +187,12 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     return null;
   }
 
-  // Determine the aggregate checked state of overflow items
+  // --- Overflow trigger state ---
+
   const overflowCheckedCount = overflowItems.filter(
     item => selected[item.name] !== false
   ).length;
+
   const overflowCheckState: boolean | 'indeterminate' =
     overflowCheckedCount === 0
       ? false
@@ -101,16 +200,26 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
         ? true
         : 'indeterminate';
 
-  const overflowColors = overflowItems.map(item => item.color).filter(Boolean);
+  const overflowColors = overflowItems.map(item => item.color).filter(Boolean) as [
+    string,
+    ...string[],
+  ];
+
+  // --- Render ---
 
   return (
     <Flex align="center" gap="xs" wrap="nowrap">
-      <ItemsContainer ref={containerRef} align="center" gap="md" wrap="nowrap">
+      <Flex
+        ref={containerRef}
+        align="center"
+        gap="md"
+        wrap="nowrap"
+        data-test-id="legend-items"
+        style={{overflow: 'hidden', minWidth: 0, flex: 1}}
+      >
         {items.map(item => (
           <LegendItemButton
             key={item.name}
-            align="center"
-            gap="xs"
             style={{
               visibility: overflowSet.has(item.name) ? 'hidden' : 'visible',
             }}
@@ -125,14 +234,16 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
                 e.stopPropagation();
                 toggleItem(item.name);
               }}
-              aria-label={t('Toggle %s', item.label)}
+              aria-label={item.label}
             />
+
             <Text size="xs" ellipsis>
               {item.label}
             </Text>
           </LegendItemButton>
         ))}
-      </ItemsContainer>
+      </Flex>
+
       {overflowItems.length > 0 && (
         <CompactSelect
           multiple
@@ -143,11 +254,13 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
           size="xs"
           trigger={triggerProps => (
             <OverflowTrigger ref={triggerRef} {...triggerProps}>
-              <LegendCheckbox
-                color={overflowColors}
-                checked={overflowCheckState}
-                onChange={() => {}}
-              />
+              {overflowColors.length > 0 && (
+                <LegendCheckbox
+                  color={overflowColors}
+                  checked={overflowCheckState}
+                  onChange={() => {}}
+                />
+              )}
               {t('%s more', overflowItems.length)}
             </OverflowTrigger>
           )}
@@ -157,13 +270,10 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   );
 }
 
-const ItemsContainer = styled(Flex)`
-  overflow: hidden;
-  min-width: 0;
-  flex: 1;
-`;
-
-const LegendItemButton = styled(Flex)`
+const LegendItemButton = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;

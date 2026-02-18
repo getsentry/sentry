@@ -6,28 +6,11 @@ import {Flex} from '@sentry/scraps/layout';
 
 const CHECKBOX_SIZE = '12px';
 const ICON_SIZE = '7px';
-
 const MAX_GRADIENT_COLORS = 4;
-
-function colorToBackground(colors: string | string[]): string {
-  if (typeof colors === 'string') {
-    return colors;
-  }
-  if (colors.length === 0) {
-    return 'transparent';
-  }
-  if (colors.length === 1) {
-    return colors[0]!;
-  }
-
-  // Diagonal linear gradient with smooth transitions between up to 4 colors
-  const limited = colors.slice(0, MAX_GRADIENT_COLORS);
-  return `linear-gradient(135deg, ${limited.join(', ')})`;
-}
 
 interface LegendCheckboxProps {
   checked: boolean | 'indeterminate';
-  color: string | string[];
+  color: string | [string, ...string[]];
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   'aria-label'?: string;
 }
@@ -51,12 +34,13 @@ export function LegendCheckbox({
       radius="2xs"
       style={{cursor: 'pointer', height: '1.4em'}}
     >
-      <NativeCheckbox
+      <HiddenInput
         type="checkbox"
         checked={checked !== 'indeterminate' && checked}
         onChange={onChange}
         aria-label={ariaLabel}
       />
+
       <Flex
         position="relative"
         align="center"
@@ -85,7 +69,20 @@ export function LegendCheckbox({
   );
 }
 
-const NativeCheckbox = styled('input')`
+function colorToBackground(colors: string | [string, ...string[]]): string {
+  if (typeof colors === 'string') {
+    return colors;
+  }
+  if (colors.length === 1) {
+    return colors[0];
+  }
+
+  // Diagonal linear gradient with smooth transitions between colors
+  const limited = colors.slice(0, MAX_GRADIENT_COLORS);
+  return `linear-gradient(135deg, ${limited.join(', ')})`;
+}
+
+const HiddenInput = styled('input')`
   position: absolute;
   opacity: 0;
   width: 100%;
