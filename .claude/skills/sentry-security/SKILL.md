@@ -137,9 +137,13 @@ For each potential finding, trace the **complete** request flow end-to-end. Do n
 7. Serializer             → do validate_*() methods enforce it?
 ```
 
-**A check at ANY layer is enforcement.** Before marking HIGH, confirm the check is absent from all 7 layers using the checklist in `enforcement-layers.md`.
+**A check at ANY layer is enforcement.** Before marking HIGH, confirm the check is absent from all layers using the checklist in `enforcement-layers.md`.
 
 If you cannot confirm the check is absent from every layer, mark the finding as **MEDIUM** (needs verification), not HIGH.
+
+**Cross-flow enforcement for token issuance:** For token/credential issuance flows, also check whether the issued credential is blocked at **usage time** (e.g., `determine_access()` rejects it at all DRF endpoints). If the credential is effectively inert, cap the finding at **MEDIUM** regardless of the issuance-time gap. See `enforcement-layers.md` "Cross-Flow Enforcement."
+
+**Non-DRF views:** OAuth views are plain Django views — the 7-layer DRF model does not apply to the view itself. Check the view's own decorators and handler logic. But tokens issued by these views are later used at DRF endpoints where the full enforcement chain applies.
 
 ## Step 4: Report Findings
 

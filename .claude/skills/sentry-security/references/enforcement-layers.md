@@ -69,9 +69,26 @@ Classes like `Validator`, `ManualTokenRefresher`, `GrantExchanger`, and `Refresh
 
 `validate_*()` methods and field-level validators may enforce org/project scoping on FK references.
 
+## Non-DRF Views
+
+OAuth views (`OAuthAuthorizeView`, `OAuthDeviceView`, `OAuthTokenView`) are plain Django views, **not** DRF endpoints. Layers 1–4 do not apply to the view itself. Check the view's own authentication decorators, `dispatch()`, and handler logic directly.
+
+However, tokens issued by these views are later used at DRF API endpoints where layers 1–7 **do** apply. See "Cross-Flow Enforcement" below.
+
+## Cross-Flow Enforcement
+
+For token and credential issuance, enforcement may exist in a **different request flow** than the one being reviewed:
+
+- **Issuance flow**: The OAuth authorize/token view that creates the credential
+- **Usage flow**: The DRF API endpoints where the credential is subsequently used
+
+If the issued credential cannot be used because a separate enforcement point blocks it (e.g., `determine_access()` raises `MemberDisabledOverLimit` for all DRF endpoints), the credential is effectively inert. This is still a defense-in-depth gap worth noting, but it is **not** a HIGH finding — classify as **MEDIUM** at most.
+
+**Example:** OAuth authorize view issues a token to a `member-limit:restricted` member. The token exists, but every DRF endpoint rejects it via `is_member_disabled_from_limit()` in `api/permissions.py`. Severity: MEDIUM (defense-in-depth), not HIGH.
+
 ## Tracing Requirements
 
-Before marking a finding as **HIGH**, confirm the check is absent from **all** layers:
+Before marking a finding as **HIGH**, confirm the check is absent from **all** layers AND from cross-flow enforcement:
 
 ```
 □ Authentication class does not enforce it
@@ -81,6 +98,7 @@ Before marking a finding as **HIGH**, confirm the check is absent from **all** l
 □ Handler method does not enforce it
 □ Business logic classes do not enforce it
 □ Serializer does not enforce it
+□ Cross-flow: the issued credential is not blocked at usage time
 ```
 
-If the check exists in any layer, the finding is either invalid or at most **MEDIUM** (if the enforcement is indirect or fragile).
+If the check exists in any layer or in a cross-flow enforcement point, the finding is either invalid or at most **MEDIUM** (if the enforcement is indirect or fragile).
