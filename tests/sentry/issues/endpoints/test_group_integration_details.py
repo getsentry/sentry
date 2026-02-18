@@ -3,12 +3,13 @@ from unittest import mock
 
 from django.db.utils import IntegrityError
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -253,12 +254,77 @@ class GroupIntegrationDetailsTest(APITestCase):
         description_field = next(field for field in fields if field["name"] == "description")
 
         assert title_field["default"] == "Error Rate Alert"
-        assert "Summary: Critical: Number of events in the last 5 minutes above 100" in description_field[
-            "default"
-        ]
+        assert (
+            "Summary: Critical: Number of events in the last 5 minutes above 100"
+            in description_field["default"]
+        )
         assert "Details:" in description_field["default"]
         assert "- alert_id: 42" in description_field["default"]
         assert "Evidence:" not in description_field["default"]
+
+    def test_get_create_with_enhanced_defaults_for_n_plus_one_issue(self) -> None:
+        self.login_as(user=self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+        )
+
+        long_query = (
+            "SELECT users.id, users.email, users.created_at, organizations.slug, plans.tier "
+            "FROM users "
+            "INNER JOIN organizations ON organizations.id = users.organization_id "
+            "LEFT JOIN plans ON plans.organization_id = organizations.id "
+            "WHERE users.organization_id = 12345 "
+            "AND users.status = 'active' "
+            "ORDER BY users.created_at DESC LIMIT 200"
+        )
+        offending_span_value = f"db - {long_query}"
+
+        group_event = self.event.for_group(self.group)
+        group_event.occurrence = IssueOccurrence(
+            id="n-plus-one-occurrence-id",
+            project_id=self.project.id,
+            event_id=self.event.event_id,
+            fingerprint=["performance-n-plus-one"],
+            issue_title="N+1 DB Query",
+            subtitle="Repeated DB queries detected in a single transaction.",
+            resource_id=None,
+            evidence_data={"num_repeating_spans": "12"},
+            evidence_display=[
+                IssueEvidence(name="Offending Spans", value=offending_span_value, important=True)
+            ],
+            type=PerformanceNPlusOneGroupType,
+            detection_time=self.min_ago,
+            level="error",
+            culprit="",
+        )
+
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/?action=create"
+
+        with (
+            self.feature(
+                {
+                    "organizations:integrations-issue-basic": True,
+                    "organizations:integrations-issue-defaults-enhanced": True,
+                }
+            ),
+            mock.patch.object(Group, "get_latest_event", return_value=group_event),
+        ):
+            response = self.client.get(path)
+
+        assert response.status_code == 200
+        fields = response.data["createIssueConfig"]
+        description_field = next(field for field in fields if field["name"] == "description")
+
+        assert "Evidence:" in description_field["default"]
+        assert "Offending Spans:" in description_field["default"]
+        assert "```" in description_field["default"]
+        assert "Offending Spans:\n```" in description_field["default"]
+        assert f"{offending_span_value}\n```" in description_field["default"]
+        assert "- Offending Spans:" not in description_field["default"]
+        assert long_query in description_field["default"]
 
     def test_get_create_with_error(self) -> None:
         self.login_as(user=self.user)

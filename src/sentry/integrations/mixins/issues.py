@@ -41,6 +41,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.integrations.issues")
 ENHANCED_DEFAULTS_FEATURE = "organizations:integrations-issue-defaults-enhanced"
 MARKDOWN_TEXT_CLEANUP_RE = re.compile(r"[*`#]")
+SQL_EVIDENCE_PREFIX_RE = re.compile(
+    r"^(db|database)\s*-\s*(select|insert|update|delete|with)\b", re.I
+)
+FULL_EVIDENCE_NAME_PARTS = frozenset({"query", "offending spans"})
 MAX_CHAR = 50
 MAX_TITLE_LENGTH = 255
 MAX_EVIDENCE_ITEMS = 8
@@ -180,6 +184,23 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 break
         return lines
 
+    def _is_query_like_evidence(self, evidence_name: str, evidence_value: Any) -> bool:
+        cleaned_name = self._clean_text(evidence_name).lower()
+        if any(name_part in cleaned_name for name_part in FULL_EVIDENCE_NAME_PARTS):
+            return True
+
+        cleaned_value = self._clean_text(evidence_value)
+        return bool(SQL_EVIDENCE_PREFIX_RE.search(cleaned_value))
+
+    def _get_formatted_evidence_lines(self, evidence_name: str, evidence_value: Any) -> list[str]:
+        cleaned_name = self._clean_text(evidence_name)
+        if self._is_query_like_evidence(evidence_name, evidence_value):
+            return [f"{cleaned_name}:", "```", self._clean_text(evidence_value), "```"]
+
+        return [
+            f"- {cleaned_name}: {self._clean_text(evidence_value, max_length=MAX_EVIDENCE_VALUE_LENGTH)}"
+        ]
+
     def _get_plain_issue_link(self, group: Group, **kwargs: Any) -> str:
         params = {}
         if kwargs.get("link_referrer"):
@@ -223,9 +244,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             if evidence_items:
                 output.extend(["", "Evidence:"])
                 for evidence in evidence_items:
-                    evidence_name = self._clean_text(evidence.name)
-                    evidence_value = self._clean_text(evidence.value, MAX_EVIDENCE_VALUE_LENGTH)
-                    output.append(f"- {evidence_name}: {evidence_value}")
+                    output.extend(self._get_formatted_evidence_lines(evidence.name, evidence.value))
             else:
                 detail_lines = self._get_occurrence_detail_lines(event.occurrence.evidence_data)
                 if detail_lines:
