@@ -473,7 +473,7 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
             path: {organizationIdOrSlug: organization.slug},
           }),
         ]
-      : ([''] as ApiQueryKey),
+      : ([''] as unknown as ApiQueryKey),
     {
       enabled: !!email,
       staleTime: 0,
@@ -490,7 +490,7 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
           }),
           {query: {query: name}},
         ]
-      : ([''] as ApiQueryKey),
+      : ([''] as unknown as ApiQueryKey),
     {
       enabled: !!shouldTryNameMatch,
       staleTime: 0,
