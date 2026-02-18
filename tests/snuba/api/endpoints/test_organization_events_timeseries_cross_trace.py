@@ -14,13 +14,10 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
 
     def setUp(self) -> None:
         super().setUp()
-        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.now = self.day_ago + timedelta(minutes=20)
-        self.ten_mins_ago = self.now - timedelta(minutes=10)
-        self.nine_mins_ago = self.now - timedelta(minutes=9)
-        self.start = (self.day_ago - timedelta(days=1)).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
+        self.day_ago = before_now(days=1).replace(hour=0, minute=0, second=0, microsecond=0)
+        self.ten_mins_ago = self.day_ago
+        self.nine_mins_ago = self.day_ago + timedelta(minutes=1)
+        self.start = self.day_ago - timedelta(days=1)
         self.end = self.start + timedelta(days=2)
 
     def test_cross_trace_query_with_logs(self) -> None:
