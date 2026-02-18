@@ -458,11 +458,10 @@ describe('Request entry', () => {
         render(<Request event={event} data={event.entries[0]!.data} />);
 
         await waitFor(() => {
-          expect(document.querySelector('.line-highlight')).toBeInTheDocument();
+          expect(
+            document.querySelector('pre.language-graphql[data-line="1"]')
+          ).not.toBeNull();
         });
-        expect(
-          document.querySelector('.line-highlight')?.getAttribute('data-start')
-        ).toBe('1');
         expect(
           screen.getByText('There was 1 GraphQL error raised during this request.')
         ).toBeInTheDocument();

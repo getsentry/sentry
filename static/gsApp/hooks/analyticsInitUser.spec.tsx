@@ -10,11 +10,30 @@ import sessionStorageWrapper from 'sentry/utils/sessionStorage';
 import analyticsInitUser from 'getsentry/hooks/analyticsInitUser';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 
+vi.mock('@amplitude/analytics-browser', async () => {
+  const identifyInstance: any = {
+    set: vi.fn(() => identifyInstance),
+  };
+
+  return {
+    Identify: vi.fn(function Identify() {
+      return identifyInstance;
+    }),
+    setUserId: vi.fn(),
+    identify: vi.fn(),
+    init: vi.fn(),
+    track: vi.fn(),
+    setGroup: vi.fn(),
+    Types: (await vi.importActual<any>('@amplitude/analytics-browser')).Types,
+    _identifyInstance: identifyInstance,
+  };
+});
+
 jest.mock('getsentry/utils/trackMarketingEvent');
 
 describe('analyticsInitUser', () => {
   const user = UserFixture({});
-  const _identifyInstance = new Amplitude.Identify();
+  const _identifyInstance = (Amplitude as any)._identifyInstance;
 
   beforeEach(() => {
     sessionStorageWrapper.clear();

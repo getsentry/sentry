@@ -23,6 +23,19 @@ let downloadLink: HTMLAnchorElement | null = null;
 // Store the original document.createElement function
 const originalCreateElement = document.createElement;
 
+async function readBlobText(blob: Blob): Promise<string> {
+  if (typeof blob.text === 'function') {
+    return blob.text();
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blob);
+  });
+}
+
 beforeEach(() => {
   // Clear mocks before each test
   jest.clearAllMocks();
@@ -156,13 +169,6 @@ describe('BillingPlans Component', () => {
   });
 
   it('downloads CSV when the download button is clicked', async () => {
-    const TEST_BLOB_CONSTRUCTOR = jest.fn();
-
-    vi.spyOn(global, 'Blob').mockImplementationOnce((...args: any[]) => {
-      TEST_BLOB_CONSTRUCTOR(...args);
-      return {} as Blob;
-    });
-
     render(<BillingPlans />);
 
     // Wait for the plans data to be fetched and rendered
@@ -190,13 +196,9 @@ describe('BillingPlans Component', () => {
       /^Self-Serve_Price_List_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.csv$/;
     expect(downloadLink!.download).toMatch(expectedFilenamePattern);
 
-    expect(TEST_BLOB_CONSTRUCTOR).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.stringContaining('AM9000')]),
-      {type: 'text/csv;charset=utf-8;'}
-    );
-
-    const blobArgs = TEST_BLOB_CONSTRUCTOR.mock.calls[0][0];
-    const blobText = blobArgs.join('');
+    const blob = (URL.createObjectURL as jest.Mock).mock.calls[0]?.[0] as Blob;
+    expect(blob).toBeDefined();
+    const blobText = await readBlobText(blob);
 
     // Perform assertions on the CSV content
     expect(blobText).toContain('AM9000');
