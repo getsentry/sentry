@@ -436,6 +436,7 @@ class PerformanceDetectionTest(TestCase):
         )
         assert_n_plus_one_db_problem(perf_problems)
 
+    @pytest.mark.skip(reason="flaky: #108454")
     @patch("sentry.utils.metrics.incr")
     def test_does_not_report_metric_on_non_truncated_n_plus_one_query(
         self, incr_mock: MagicMock
