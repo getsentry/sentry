@@ -42,6 +42,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
+from sentry.api.serializers.models.project import get_has_logs, get_has_trace_metrics
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
@@ -52,6 +53,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
@@ -272,8 +274,6 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 def get_organization_project_ids(*, org_id: int) -> dict:
     """Get all active projects (IDs and slugs) for an organization"""
-    from sentry.models.project import Project
-
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
@@ -290,9 +290,6 @@ def get_organization_project_ids(*, org_id: int) -> dict:
 
 def get_organization_projects_with_instrumentation(*, org_id: int) -> dict:
     """Get all active projects for an organization with instrumentation feature flags."""
-    from sentry.api.serializers.models.project import get_has_logs, get_has_trace_metrics
-    from sentry.models.project import Project
-
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
