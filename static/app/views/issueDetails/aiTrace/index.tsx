@@ -38,7 +38,7 @@ interface AITraceSectionProps {
 const MCP_SERVER_URL = 'http://localhost:8080';
 
 // Demo mode: set to true to use hardcoded data for UI testing
-const USE_DEMO_DATA = true;
+const USE_DEMO_DATA = false;
 
 const DEMO_DATA: AITraceData = {
   metadata: {
