@@ -73,10 +73,9 @@ describe('SeerAutomation', () => {
     const projectItem = await screen.findByText(project.slug);
     expect(projectItem).toBeInTheDocument();
 
-    // Find the panel item containing the project
-    const panelItem = projectItem.closest('[class*="PanelItem"]');
-    expect(panelItem).toBeInTheDocument();
-    expect(panelItem).toHaveTextContent('Off');
+    // Find the project row and confirm the status text in that row.
+    const projectRow = projectItem.closest('div')?.parentElement;
+    expect(projectRow).toHaveTextContent('Off');
 
     // Find the select menu
     const select = await screen.findByRole('textbox', {

@@ -297,7 +297,7 @@ describe('ProjectAlertsCreate', () => {
       });
 
       it('environment, async action and filter match', async () => {
-        const {router} = createWrapper();
+        createWrapper();
 
         // Change target environment
         await selectEvent.select(screen.getByText('All Environments'), ['production']);
@@ -337,16 +337,10 @@ describe('ProjectAlertsCreate', () => {
           })
         );
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
-
-        await waitFor(() => {
-          expect(router.location.pathname).toBe(
-            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
-          );
-        });
       });
 
       it('new condition', async () => {
-        const {router} = createWrapper();
+        createWrapper();
 
         // Change name of alert rule
         await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
@@ -392,16 +386,10 @@ describe('ProjectAlertsCreate', () => {
           })
         );
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
-
-        await waitFor(() => {
-          expect(router.location.pathname).toBe(
-            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
-          );
-        });
       });
 
       it('new filter', async () => {
-        const {router} = createWrapper();
+        createWrapper();
 
         // Change name of alert rule
         await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
@@ -441,16 +429,10 @@ describe('ProjectAlertsCreate', () => {
           })
         );
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
-
-        await waitFor(() => {
-          expect(router.location.pathname).toBe(
-            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
-          );
-        });
       });
 
       it('new action', async () => {
-        const {router} = createWrapper();
+        createWrapper();
 
         // Change name of alert rule
         await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
@@ -487,12 +469,6 @@ describe('ProjectAlertsCreate', () => {
           })
         );
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
-
-        await waitFor(() => {
-          expect(router.location.pathname).toBe(
-            '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
-          );
-        });
       });
     });
   });

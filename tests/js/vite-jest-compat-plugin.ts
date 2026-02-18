@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import type {Plugin} from 'vite';
 
 /**
@@ -13,6 +14,19 @@ import type {Plugin} from 'vite';
  *
  * Additionally handles `jest.requireActual` → `await vi.importActual`
  * and makes vi.mock factory callbacks async when they contain await.
+ *
+ * Also fixes two Vitest v4 incompatibilities that apply to both migrated
+ * and hand-written vi.* code:
+ *
+ * 1. Arrow functions in vi.fn() implementations — Vitest v4 calls
+ *    `Reflect.construct(implementation, args, new.target)` when a mock is
+ *    used as a constructor. Arrow functions are not constructable, so this
+ *    throws. Block-body arrow implementations are rewritten to regular
+ *    functions so they work both as constructors and as plain functions.
+ *
+ * 2. vi.importActual() without await — vi.importActual() is async and must
+ *    be awaited. Bare calls are rewritten to `await vi.importActual()` and
+ *    the containing vi.mock factory is made async automatically.
  */
 
 const JEST_TO_VI: Array<[RegExp, string]> = [
@@ -64,8 +78,8 @@ export default function jestCompatPlugin(): Plugin {
       if (!TEST_FILE_RE.test(id)) {
         return undefined;
       }
-      // Quick check — skip files with no jest references
-      if (!code.includes('jest.')) {
+      // Quick check — skip files with nothing to transform
+      if (!code.includes('jest.') && !code.includes('vi.importActual(')) {
         return undefined;
       }
 
@@ -89,6 +103,26 @@ export default function jestCompatPlugin(): Plugin {
         /\bjest\.requireMock\(([^)]+)\)/g,
         '(await import($1))'
       );
+
+      // Rewrite block-body arrow function implementations in vi.fn() calls to
+      // regular functions. Vitest v4 uses Reflect.construct(implementation, ...)
+      // when a mock is called with `new`, and arrow functions are not
+      // constructable. Regular functions work in both constructor and call
+      // contexts so this is always safe.
+      // Handles params without nested parens (e.g. typed callbacks like
+      // `callback: () => void` contain a `)` and are left as-is; they produce
+      // a Vitest warning but don't silently break).
+      transformed = transformed.replace(
+        /\bvi\.fn\(\s*\(([^)]*)\)\s*=>\s*\{/g,
+        (_, params) => `vi.fn(function (${params}) {`
+      );
+
+      // Ensure vi.importActual() is always awaited. Uses a callback rather
+      // than a lookbehind assertion for broad engine compatibility.
+      transformed = transformed.replace(/\bvi\.importActual\(/g, (match, offset, str) => {
+        const before = str.slice(Math.max(0, offset - 6), offset);
+        return /await\s*$/.test(before) ? match : 'await vi.importActual(';
+      });
 
       // If we introduced `await vi.importActual` or `await import` inside
       // vi.mock factories, make those factories async so the await is valid.

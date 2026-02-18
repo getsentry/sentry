@@ -70,7 +70,7 @@ describe('useFetchParallelPages', () => {
 
     // Wait for the query to resolve
     await waitFor(() => expect(result.current.status).toBe('pending'));
-    expect(result.current.isFetching).toBeTruthy();
+    await waitFor(() => expect(result.current.isFetching).toBeTruthy());
   });
 
   it('should call the queryFn zero times, when hits is 0', () => {

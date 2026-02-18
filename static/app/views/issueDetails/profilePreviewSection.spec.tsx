@@ -9,10 +9,13 @@ import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSec
 
 let mockProfilesState: any;
 
-jest.mock('sentry/views/issueDetails/utils', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/utils'),
-  useHasStreamlinedUI: () => false,
-}));
+vi.mock('sentry/views/issueDetails/utils', () => {
+  const actual = vi.importActual('sentry/views/issueDetails/utils');
+  return {
+    ...actual,
+    useHasStreamlinedUI: () => false,
+  };
+});
 
 jest.mock('sentry/components/profiling/flamegraph/flamegraphPreview', () => ({
   FlamegraphPreview: jest.fn(() => <div data-test-id="flamegraph-preview" />),
@@ -24,8 +27,8 @@ jest.mock('sentry/utils/profiling/flamegraph', () => ({
   }),
 }));
 
-jest.mock('sentry/views/profiling/profileGroupProvider', () => {
-  const React = require('react');
+vi.mock('sentry/views/profiling/profileGroupProvider', async () => {
+  const React = await import('react');
 
   const mockProfileGroup = {
     activeProfileIndex: 0,
@@ -47,8 +50,8 @@ jest.mock('sentry/views/profiling/profileGroupProvider', () => {
   };
 });
 
-jest.mock('sentry/views/profiling/profilesProvider', () => {
-  const React = require('react');
+vi.mock('sentry/views/profiling/profilesProvider', async () => {
+  const React = await import('react');
 
   return {
     __esModule: true,

@@ -271,7 +271,8 @@ vi.mock('@sentry/react', async () => {
     browserTracingIntegration: vi.fn().mockReturnValue({}),
     browserProfilingIntegration: vi.fn().mockReturnValue({}),
     addEventProcessor: vi.fn(),
-    BrowserClient: vi.fn(() => {
+    // eslint-disable-next-line prefer-arrow-callback
+    BrowserClient: vi.fn(function () {
       return {captureEvent: vi.fn()};
     }),
     startInactiveSpan: () => ({
