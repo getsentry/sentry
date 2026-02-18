@@ -1,6 +1,7 @@
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Region} from 'sentry/types/system';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -10,7 +11,7 @@ export function useOrganizationsWithRegion() {
   const api = useApi();
 
   return useQuery<OrganizationWithRegion[], RequestError>({
-    queryKey: ['/organizations/'],
+    queryKey: [getApiUrl('/organizations/')],
     queryFn: async () => {
       const regions = ConfigStore.get('memberRegions');
       const results = await Promise.all(
