@@ -469,3 +469,37 @@ Two optimization experiments run in parallel worktrees on top of the Step 5 + Ka
 | Balanced (seed)| 12.6m      | 232m       | 167s      | 0        |
 
 G1 is the clear winner. Collection-time savings are the largest remaining lever after H1. Balanced sharding needs a follow-up run with cached durations to show its potential — ideally combined with G1.
+
+### Reverting to 2-Tier Layout
+
+3-tier (5T1/16T2/1T3) consistently produced more total runner-minutes than 2-tier (5T1/17T2) because every T2 shard still pulled heavy images via `backend-ci` anyway, while T3 added an extra shard's overhead. Reverting to 2-tier with `--dist=loadfile`.
+
+### LPT Second Run Analysis — Why Flat LPT Wrecks Intra-Shard Parallelism
+
+**Run** `22120525740` (second balanced run, cached durations from seed run).
+
+LPT was active with 13,372 tests of timing data. All 16 T2 shards predicted exactly `1077s` total duration with `spread: 0s` — mathematically perfect balance. Yet actual wall-clocks ranged from **568s to 857s**, a 289s spread:
+
+| Shard   | Scopes assigned | Predicted total | Actual wall-clock |
+| ------- | --------------- | --------------- | ----------------- |
+| T2(0)   | 67 (heavy)      | 1077s           | **819s**          |
+| T2(1)   | 77              | 1077s           | **857s**          |
+| T2(11)  | 95 (light)      | 1077s           | **568s**          |
+
+**Root cause:** LPT optimises **total duration per shard**, but each shard runs N=3 xdist workers in parallel. Actual wall-clock = `max(worker_loads)`, not `sum(worker_loads)`. By assigning the heaviest scopes to the lightest bin, LPT concentrated heavy scopes together: shard 0 got 67 large scopes, shard 11 got 95 small ones. Both sum to ~1077s, but shard 0's workers are severely imbalanced (one worker gets stuck on a 60s scope while others idle), giving ~1.3x parallelism. Shard 11's many small scopes spread evenly, giving ~1.9x parallelism.
+
+### Fix: Worker-Simulated LPT
+
+Instead of tracking one number per shard (total duration), track the load on **each of the N workers** inside each shard. When placing a scope, simulate: "if I add this scope, it goes to the lightest worker — what would the resulting max-worker-time (wall-clock) be?" Assign to the shard that minimises the global maximum wall-clock.
+
+Algorithm:
+1. Sort scopes by duration descending (heaviest first, same as before).
+2. For each scope, for each candidate shard:
+   - Find the lightest worker in that shard.
+   - Compute `predicted_wallclock = max(worker_loads after adding scope to lightest worker)`.
+3. Assign the scope to the shard with the lowest `predicted_wallclock`.
+4. Update that shard's worker loads.
+
+Complexity: O(scopes × shards × workers) = ~1460 × 17 × 3 ≈ 74K ops. Trivial.
+
+This directly optimises the metric that determines actual run time, rather than a proxy (total duration) that ignores intra-shard parallelism.
