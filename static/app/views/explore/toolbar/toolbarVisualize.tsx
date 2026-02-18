@@ -231,6 +231,24 @@ function VisualizeDropdown({
           return typeof selected.value === 'string' ? [selected.value] : [];
         });
 
+        const previousAxesByAggregate = new Map(
+          parsedFunctions.flatMap((func, index) => {
+            if (!func) {
+              return [];
+            }
+            return [[func.name, visualize.yAxes[index] ?? ''] as const];
+          })
+        );
+
+        const previousFunctionsByAggregate = new Map(
+          parsedFunctions.flatMap(func => {
+            if (!func) {
+              return [];
+            }
+            return [[func.name, func] as const];
+          })
+        );
+
         const previousAggregates = new Set(parsedAggregates);
         const newlyAdded = selectedAggregates.find(
           aggregate => !previousAggregates.has(aggregate)
@@ -256,12 +274,19 @@ function VisualizeDropdown({
           return;
         }
 
-        const yAxes = selectedAggregates.map(aggregate =>
-          updateVisualizeAggregate({
-            newAggregate: aggregate,
-            oldAggregate: parsedFunction?.name,
-            oldArguments: parsedFunction?.arguments,
-          })
+        const baselineFunction =
+          selectedAggregates
+            .map(aggregate => previousFunctionsByAggregate.get(aggregate))
+            .find(Boolean) ?? parsedFunction;
+
+        const yAxes = selectedAggregates.map(
+          aggregate =>
+            previousAxesByAggregate.get(aggregate) ??
+            updateVisualizeAggregate({
+              newAggregate: aggregate,
+              oldAggregate: baselineFunction?.name,
+              oldArguments: baselineFunction?.arguments,
+            })
         );
         onReplace(visualize.replace({yAxes}));
         return;
@@ -276,13 +301,7 @@ function VisualizeDropdown({
         onReplace(visualize.replace({yAxis}));
       }
     },
-    [
-      onReplace,
-      parsedAggregates,
-      parsedFunction?.arguments,
-      parsedFunction?.name,
-      visualize,
-    ]
+    [onReplace, parsedAggregates, parsedFunction, parsedFunctions, visualize]
   );
 
   const getFieldValueType = useCallback(
