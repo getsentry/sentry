@@ -184,7 +184,7 @@ describe('SpansTabContent', () => {
 
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
@@ -207,7 +207,7 @@ describe('SpansTabContent', () => {
     await userEvent.click(samples);
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',

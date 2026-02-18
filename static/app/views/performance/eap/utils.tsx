@@ -5,14 +5,14 @@ import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
-export function getOTelTransactionsListSort(
+export function getEAPSegmentSpansListSort(
   location: Location,
   spanCategory?: string
 ): {
   options: DropdownOption[];
   selected: DropdownOption;
 } {
-  const sortOptions = getOTelFilterOptions(spanCategory);
+  const sortOptions = getEAPFilterOptions(spanCategory);
   const urlParam = decodeScalar(
     location.query.showTransactions,
     TransactionFilterOptions.SLOW
@@ -21,7 +21,7 @@ export function getOTelTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-function getOTelFilterOptions(spanCategory?: string): DropdownOption[] {
+function getEAPFilterOptions(spanCategory?: string): DropdownOption[] {
   return [
     {
       sort: {kind: 'asc', field: 'span.duration'},
