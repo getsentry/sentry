@@ -1,3 +1,4 @@
+import {useCallback, useEffect, useRef} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
@@ -28,10 +29,7 @@ declare global {
   }
 }
 
-const scrollToFieldRef = (node: HTMLLabelElement | null) => {
-  if (!node) {
-    return;
-  }
+function scrollToField(node: HTMLLabelElement) {
   let hash: string;
   try {
     hash = decodeURIComponent(window.location.hash.slice(1));
@@ -71,7 +69,7 @@ const scrollToFieldRef = (node: HTMLLabelElement | null) => {
   };
 
   requestAnimationFrame(tryScrollAndFocus);
-};
+}
 
 function Label(props: {
   children: React.ReactNode;
@@ -81,6 +79,24 @@ function Label(props: {
   const {name: fieldName} = useFieldContext();
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
+  const labelRef = useRef<HTMLLabelElement | null>(null);
+
+  const scrollToFieldCallbackRef = useCallback((node: HTMLLabelElement | null) => {
+    labelRef.current = node;
+    if (node) {
+      scrollToField(node);
+    }
+  }, []);
+
+  useEffect(() => {
+    const node = labelRef.current;
+    if (!node) {
+      return undefined;
+    }
+    const onHashChange = () => scrollToField(node);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const labelContent = props.description ? (
     <InfoText title={props.description}>{props.children}</InfoText>
@@ -98,7 +114,7 @@ function Label(props: {
             data-field={fieldName}
             htmlFor={fieldId}
             bold={false}
-            ref={scrollToFieldRef}
+            ref={scrollToFieldCallbackRef}
           >
             {labelContent}
           </Text>
