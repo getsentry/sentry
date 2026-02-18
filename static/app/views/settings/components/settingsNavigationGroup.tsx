@@ -152,7 +152,7 @@ const StyledSection = styled(SecondaryNav.Section)`
 const SubSectionGroup = styled('div')`
   margin-top: ${space(0.5)};
 
-  a {
+  && a {
     padding-left: calc(${space(1.5)} + 2 * 16px + ${space(1)} + ${space(0.5)});
   }
 `;
