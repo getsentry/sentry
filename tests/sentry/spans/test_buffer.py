@@ -8,7 +8,8 @@ import orjson
 import pytest
 from sentry_redis_tools.clients import StrictRedis
 
-from sentry.spans.buffer import FlushedSegment, OutputSpan, SegmentKey, Span, SpansBuffer
+from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
+from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
 DEFAULT_OPTIONS = {
