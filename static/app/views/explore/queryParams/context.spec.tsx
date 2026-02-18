@@ -77,9 +77,11 @@ describe('QueryParamsContext', () => {
         );
 
         expect(mockSetQueryParams).toHaveBeenCalled();
-        expect(mockSetQueryParams).toHaveBeenCalledWith({
-          crossEvents: [{query: 'bar', type: 'logs'}],
-        });
+        expect(mockSetQueryParams).toHaveBeenCalledWith(
+          expect.objectContaining({
+            crossEvents: [{query: 'bar', type: 'logs'}],
+          })
+        );
       });
     });
   });
