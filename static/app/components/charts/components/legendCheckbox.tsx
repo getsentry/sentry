@@ -20,6 +20,7 @@ export function LegendCheckbox({
   const theme = useTheme();
   const isActive = checked === true || checked === 'indeterminate';
   const background = isActive ? colorToBackground(color) : 'transparent';
+  const needsBorder = !isActive || blendsIntoBackground(color, theme.type === 'dark');
 
   return (
     <Flex
@@ -46,7 +47,7 @@ export function LegendCheckbox({
         radius="2xs"
         style={{
           background,
-          border: `1px solid ${isActive ? 'transparent' : theme.tokens.border.primary}`,
+          border: `1px solid ${needsBorder ? theme.tokens.border.primary : 'transparent'}`,
           pointerEvents: 'none',
         }}
         aria-hidden
@@ -68,6 +69,34 @@ export function LegendCheckbox({
 const CHECKBOX_SIZE = '12px';
 const ICON_SIZE = '7px';
 const MAX_GRADIENT_COLORS = 4;
+
+/**
+ * Returns true if any of the colors would be invisible against the page
+ * background — very light colors in light mode, very dark colors in dark mode.
+ */
+function blendsIntoBackground(
+  color: string | [string, ...string[]],
+  isDark: boolean
+): boolean {
+  const colors = typeof color === 'string' ? [color] : color;
+  return colors.some(c => {
+    const rgb = parseHexRgb(c);
+    if (!rgb) {
+      return false;
+    }
+    const [r, g, b] = rgb;
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return isDark ? luminance < 0.1 : luminance > 0.9;
+  });
+}
+
+function parseHexRgb(hex: string): [number, number, number] | null {
+  const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!match) {
+    return null;
+  }
+  return [parseInt(match[1]!, 16), parseInt(match[2]!, 16), parseInt(match[3]!, 16)];
+}
 
 function colorToBackground(colors: string | [string, ...string[]]): string {
   if (typeof colors === 'string') {
