@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import re
-import warnings
 from collections import defaultdict, namedtuple
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
@@ -125,6 +124,11 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         }
     else:
         short_id = None
+        # Validate that the numeric ID doesn't exceed the max value for the
+        # bounded field, otherwise the ORM will raise an AssertionError.
+        max_id = Group._meta.get_field("id").MAX_VALUE
+        if int(id_or_qualified_short_id) > max_id:
+            raise Group.DoesNotExist()
         params = {"id": id_or_qualified_short_id}
 
     try:
