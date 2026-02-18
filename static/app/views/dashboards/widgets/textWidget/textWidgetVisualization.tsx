@@ -31,6 +31,8 @@ export function TextWidgetVisualization({description}: TextWidgetProps) {
 
 const TextContainer = styled('div')`
   padding: ${space(2)};
+  height: 100%;
+  overflow-y: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: break-word;
