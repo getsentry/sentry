@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useEffect, useState} from 'react';
 
-interface TimestampAnnotationEntry {
+export interface TimestampAnnotationEntry {
   timestamp: number;
   color?: string;
   label?: string;

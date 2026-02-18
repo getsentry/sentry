@@ -34,7 +34,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import {GlobalTimestampAnnotationsProvider} from 'sentry/views/dashboards/contexts/globalTimestampAnnotationsContext';
-import {GlobalTimestampAnnotationsDevPanel} from 'sentry/views/dashboards/contexts/globalTimestampAnnotationsDevPanel';
 import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
@@ -251,7 +250,6 @@ function App() {
                         <ExplorerPanelProvider>
                           <GlobalModal onClose={handleModalClose} />
                           <ExplorerPanel />
-                          <GlobalTimestampAnnotationsDevPanel />
                           <Indicators className="indicators-container" />
                           <ErrorBoundary>{renderBody()}</ErrorBoundary>
                         </ExplorerPanelProvider>

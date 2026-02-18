@@ -53,6 +53,7 @@ import {TimestampAnnotations} from './plottables/timestampAnnotations';
 import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
+import {useChartClickAnnotation} from './useChartClickAnnotation';
 
 const {error, warn} = Sentry.logger;
 
@@ -171,6 +172,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     chartsGroupName: groupName,
     ...props.chartXRangeSelection,
   });
+
+  const {AnnotationMenu, connectAnnotationChartRef} = useChartClickAnnotation();
 
   // Use `props.plottables` (not `plottables`) to avoid global annotations
   // influencing axis type assignment. Annotations only render vertical marker
@@ -444,8 +447,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       if (hasReleaseBubblesSeries) {
         connectReleaseBubbleChartRef(e);
       }
+
+      connectAnnotationChartRef(e);
     },
-    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, plottables]
+    [
+      hasReleaseBubblesSeries,
+      connectReleaseBubbleChartRef,
+      connectAnnotationChartRef,
+      plottables,
+    ]
   );
 
   const handleChartReady = useCallback(
@@ -610,6 +620,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   return (
     <Fragment>
       {ActionMenu}
+      {AnnotationMenu}
       <BaseChart
         ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
         autoHeightResize
