@@ -590,7 +590,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         const seriesColor =
           (series as {color?: unknown})?.color ??
           (series as {itemStyle?: {color?: unknown}})?.itemStyle?.color;
-        color = typeof seriesColor === 'string' ? seriesColor : theme.gray300;
+        color = typeof seriesColor === 'string' ? seriesColor : theme.colors.gray300;
       }
       return {
         name: plottable.name,
@@ -616,7 +616,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     palette,
     seriesFromPlottables,
     releaseSeries,
-    theme.gray300,
+    theme.colors.gray300,
   ]);
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
