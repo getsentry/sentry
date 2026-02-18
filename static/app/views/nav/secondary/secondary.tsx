@@ -22,7 +22,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Collapsible} from 'sentry/views/nav/collapsible';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
-import {NavLayout} from 'sentry/views/nav/types';
+import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
+import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
 type SecondaryNavProps = {
@@ -61,6 +62,7 @@ export function SecondaryNav({children, className}: SecondaryNavProps) {
 
 SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactNode}) {
   const {isCollapsed, setIsCollapsed, layout} = useNavContext();
+  const activeNavGroup = useActiveNavGroup();
 
   if (layout === NavLayout.MOBILE) {
     return null;
@@ -69,20 +71,22 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
   return (
     <Header>
       <div>{children}</div>
-      <div>
-        <Button
-          size="xs"
-          icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-          aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          priority={isCollapsed ? 'primary' : 'transparent'}
-          analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-          analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-          analyticsParams={{
-            is_collapsed: isCollapsed,
-          }}
-        />
-      </div>
+      {activeNavGroup !== PrimaryNavGroup.SETTINGS && (
+        <div>
+          <Button
+            size="xs"
+            icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            priority={isCollapsed ? 'primary' : 'transparent'}
+            analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+            analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+            analyticsParams={{
+              is_collapsed: isCollapsed,
+            }}
+          />
+        </div>
+      )}
     </Header>
   );
 };

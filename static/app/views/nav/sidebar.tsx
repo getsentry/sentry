@@ -20,11 +20,14 @@ import {OrganizationDropdown} from 'sentry/views/nav/organizationDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
 import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
 import {useStackedNavigationTour, useTourModal} from 'sentry/views/nav/tour/tour';
+import {PrimaryNavGroup} from 'sentry/views/nav/types';
+import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 import {useCollapsedNav} from 'sentry/views/nav/useCollapsedNav';
 
 export function Sidebar() {
   const organization = useOrganization();
   const {isCollapsed: isCollapsedState} = useNavContext();
+  const activeNavGroup = useActiveNavGroup();
 
   // Avoid showing superuser UI on certain organizations
   const isExcludedOrg = HookStore.get('component:superuser-warning-excluded')[0]?.(
@@ -36,7 +39,7 @@ export function Sidebar() {
   const {currentStepId: currentStepId} = useStackedNavigationTour();
 
   const tourIsActive = currentStepId !== null;
-  const forceExpanded = tourIsActive;
+  const forceExpanded = tourIsActive || activeNavGroup === PrimaryNavGroup.SETTINGS;
   const isCollapsed = forceExpanded ? false : isCollapsedState;
   const {isOpen} = useCollapsedNav();
 
