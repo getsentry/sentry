@@ -1,38 +1,38 @@
 from __future__ import annotations
 
-from functools import cached_property
-
 from django.http import HttpRequest
 
 from sentry.middleware.proxy import SetRemoteAddrFromForwardedFor
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 
 
-class SetRemoteAddrFromForwardedForTestCase(TestCase):
-    middleware = cached_property(SetRemoteAddrFromForwardedFor)
+def test_set_remote_addr_ipv4() -> None:
+    middleware = SetRemoteAddrFromForwardedFor(get_response=lambda r: r)
+    request = HttpRequest()
+    request.META["HTTP_X_FORWARDED_FOR"] = "8.8.8.8:80,8.8.4.4"
+    middleware.process_request(request)
+    assert request.META["REMOTE_ADDR"] == "8.8.8.8"
 
-    def test_ipv4(self) -> None:
-        request = HttpRequest()
-        request.META["HTTP_X_FORWARDED_FOR"] = "8.8.8.8:80,8.8.4.4"
-        self.middleware.process_request(request)
-        assert request.META["REMOTE_ADDR"] == "8.8.8.8"
 
-    def test_ipv4_whitespace(self) -> None:
-        request = HttpRequest()
-        request.META["HTTP_X_FORWARDED_FOR"] = "8.8.8.8:80 "
-        self.middleware.process_request(request)
-        assert request.META["REMOTE_ADDR"] == "8.8.8.8"
+def test_set_remote_addr_ipv4_whitespace() -> None:
+    middleware = SetRemoteAddrFromForwardedFor(get_response=lambda r: r)
+    request = HttpRequest()
+    request.META["HTTP_X_FORWARDED_FOR"] = "8.8.8.8:80 "
+    middleware.process_request(request)
+    assert request.META["REMOTE_ADDR"] == "8.8.8.8"
 
-    def test_ipv6(self) -> None:
-        request = HttpRequest()
-        request.META["HTTP_X_FORWARDED_FOR"] = "2001:4860:4860::8888,2001:4860:4860::8844"
-        self.middleware.process_request(request)
-        assert request.META["REMOTE_ADDR"] == "2001:4860:4860::8888"
+
+def test_set_remote_addr_ipv6() -> None:
+    middleware = SetRemoteAddrFromForwardedFor(get_response=lambda r: r)
+    request = HttpRequest()
+    request.META["HTTP_X_FORWARDED_FOR"] = "2001:4860:4860::8888,2001:4860:4860::8844"
+    middleware.process_request(request)
+    assert request.META["REMOTE_ADDR"] == "2001:4860:4860::8888"
 
 
 test_region = Region(
