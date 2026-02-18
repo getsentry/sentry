@@ -82,6 +82,7 @@ import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/us
 import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
+import {AITraceSection} from 'sentry/views/issueDetails/aiTrace';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -388,6 +389,9 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
+      <ErrorBoundary mini message={t('There was a problem loading AI trace.')}>
+        <AITraceSection event={event} group={group} project={project} />
+      </ErrorBoundary>
       <BreadcrumbsDataSection event={event} group={group} project={project} />
       <ErrorBoundary mini message={t('There was a problem loading logs.')}>
         <Feature features="ourlogs-enabled" organization={organization}>
