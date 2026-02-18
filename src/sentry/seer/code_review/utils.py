@@ -404,33 +404,32 @@ def extract_github_info(
 
     Returns:
         Dictionary containing:
+            - github_actor_id: The GitHub user ID (as string)
+            - github_actor_login: The GitHub username who triggered the action
             - github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
             - github_event_action: The event action (e.g., "opened", "closed", "created")
-            - github_actor_login: The GitHub username who triggered the action
-            - github_actor_id: The GitHub user ID (as string)
-            - scm_provider: Always "github"
-            - scm_owner: The repository owner/organization name
-            - scm_repo_name: The repository name
-            - scm_repo_full_name: The repository full name (owner/repo)
             - scm_event_url: URL to the specific event (check_run, pull_request, or comment)
+            - scm_owner: The repository owner/organization name
+            - scm_provider: Always "github"
+            - scm_repo_full_name: The repository full name (owner/repo)
+            - scm_repo_name: The repository name
+            - sentry_integration_id: The Sentry integration ID
             - sentry_organization_id: Sentry organization ID (if available)
             - sentry_organization_slug: Sentry organization slug (if available)
-            - sentry_integration_id: The Sentry integration ID
-            - trigger: Trigger type (if config available)
     """
     result: dict[str, str | None] = {
+        "github_actor_id": None,
+        "github_actor_login": None,
         "github_event": github_event,
         "github_event_action": None,
-        "github_actor_login": None,
-        "github_actor_id": None,
-        "scm_provider": "github",
-        "scm_owner": None,
-        "scm_repo_name": None,
-        "scm_repo_full_name": None,
         "scm_event_url": None,
+        "scm_owner": None,
+        "scm_provider": "github",
+        "scm_repo_full_name": None,
+        "scm_repo_name": None,
+        "sentry_integration_id": str(integration_id) if integration_id is not None else None,
         "sentry_organization_id": str(organization_id) if organization_id is not None else None,
         "sentry_organization_slug": organization_slug,
-        "sentry_integration_id": str(integration_id) if integration_id is not None else None,
     }
 
     repository = event.get("repository", {})
