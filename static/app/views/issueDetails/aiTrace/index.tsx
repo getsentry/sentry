@@ -87,17 +87,32 @@ const DEMO_DATA: AITraceData = {
   ],
 };
 
-export function AITraceSection({event}: AITraceSectionProps) {
+export function AITraceSection({event, group}: AITraceSectionProps) {
   const [traceData, setTraceData] = useState<AITraceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showConversation, setShowConversation] = useState(false);
 
-  // Extract commit hash from git_commit tag or release field
+  // Extract commit hash with priority order:
+  // 1. Sentry's suspect commits (automatic detection via repository integration)
+  // 2. Manual git_commit tag (backward compatibility)
+  // 3. Release field format (backward compatibility)
   let commitHash: string | undefined;
-  const gitCommitTag = event.tags?.find(tag => tag.key === 'git_commit');
-  if (gitCommitTag?.value) {
-    commitHash = gitCommitTag.value;
-  } else if (typeof event.release === 'string') {
+
+  // Priority 1: Use Sentry's suspect commits (most reliable)
+  if (group.suspectCommits && group.suspectCommits.length > 0) {
+    commitHash = group.suspectCommits[0].id;
+  }
+
+  // Priority 2: Fall back to manual git_commit tag
+  if (!commitHash) {
+    const gitCommitTag = event.tags?.find(tag => tag.key === 'git_commit');
+    if (gitCommitTag?.value) {
+      commitHash = gitCommitTag.value;
+    }
+  }
+
+  // Priority 3: Fall back to release field
+  if (!commitHash && typeof event.release === 'string') {
     const releaseString = event.release as string;
     const parts = releaseString.split('+');
     if (parts.length > 1) {
