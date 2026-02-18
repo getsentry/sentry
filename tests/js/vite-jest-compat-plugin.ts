@@ -110,6 +110,43 @@ export default function jestCompatPlugin(): Plugin {
         '(await import($1))'
       );
 
+      // Normalize common vi.mock factory shapes to ESM default-export objects
+      // when they return a bare value.
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*(['"][^'"]*['"])\s*,\s*(\{\s*\})\s*\)/g,
+        'vi.mock($1, () => ({default: $2}), $3)'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*(['"][^'"]*['"])\s*\)/g,
+        'vi.mock($1, () => ({default: $2}))'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*\}\s*,\s*(\{\s*\})\s*\)/g,
+        'vi.mock($1, () => ({}), $2)'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*\}\s*\)/g,
+        'vi.mock($1, () => ({}))'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{([\s\S]*?)return\s+((?!\{)[^;]+);\s*\}\s*,\s*(\{\s*\})\s*\)/g,
+        (_match, moduleName, prefix, returnExpr, options) =>
+          `vi.mock(${moduleName}, () => {${prefix}return {default: ${returnExpr}};}, ${options})`
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{([\s\S]*?)return\s+((?!\{)[^;]+);\s*\}\s*\)/g,
+        (_match, moduleName, prefix, returnExpr) =>
+          `vi.mock(${moduleName}, () => {${prefix}return {default: ${returnExpr}};})`
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*return\s+((?!\{)[^;]+);\s*\}\s*,\s*(\{\s*\})\s*\)/g,
+        'vi.mock($1, () => ({default: $2}), $3)'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*return\s+((?!\{)[^;]+);\s*\}\s*\)/g,
+        'vi.mock($1, () => ({default: $2}))'
+      );
+
       // Rewrite block-body arrow function implementations in vi.fn() calls to
       // regular functions. Vitest v4 uses Reflect.construct(implementation, ...)
       // when a mock is called with `new`, and arrow functions are not
@@ -144,45 +181,6 @@ export default function jestCompatPlugin(): Plugin {
         /\.mockImplementation(Once)?\(\s*\(\s*\)\s*=>\s*\(\s*(\{(?:[^{}]|\{[^{}]*\})*\})\s*\)\s*\)/g,
         (_match, once, objectLiteral) =>
           `.mockImplementation${once ?? ''}(function () { return (${objectLiteral}); })`
-      );
-
-      // Vitest ESM mocks for static assets must return `{default: ...}`.
-      transformed = transformed.replace(
-        /vi\.mock\(\s*(['"][^'"]+\.(?:svg|png|jpe?g|gif|webp)['"])\s*,\s*\(\)\s*=>\s*(['"][^'"]*['"])\s*,\s*(\{\s*\})\s*\)/g,
-        'vi.mock($1, () => ({default: $2}), $3)'
-      );
-      transformed = transformed.replace(
-        /vi\.mock\(\s*(['"][^'"]+\.(?:svg|png|jpe?g|gif|webp)['"])\s*,\s*\(\)\s*=>\s*(['"][^'"]*['"])\s*\)/g,
-        'vi.mock($1, () => ({default: $2}))'
-      );
-      transformed = transformed.replace(
-        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*(['"][^'"]*['"])\s*,\s*(\{\s*\})\s*\)/g,
-        'vi.mock($1, () => ({default: $2}), $3)'
-      );
-      transformed = transformed.replace(
-        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*(['"][^'"]*['"])\s*\)/g,
-        'vi.mock($1, () => ({default: $2}))'
-      );
-      transformed = transformed.replace(
-        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*\}\s*,\s*(\{\s*\})\s*\)/g,
-        'vi.mock($1, () => ({}), $2)'
-      );
-      transformed = transformed.replace(
-        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*\}\s*\)/g,
-        'vi.mock($1, () => ({}))'
-      );
-      transformed = transformed.replace(
-        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*return\s+((?!\{)[^;]+);\s*\}\s*,\s*(\{\s*\})\s*\)/g,
-        'vi.mock($1, () => ({default: $2}), $3)'
-      );
-      transformed = transformed.replace(
-        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*return\s+((?!\{)[^;]+);\s*\}\s*\)/g,
-        'vi.mock($1, () => ({default: $2}))'
-      );
-      transformed = transformed.replace(
-        /vi\.mock\(\s*['"]lodash\/debounce['"]\s*,\s*\(\)\s*=>\s*\{([\s\S]*?)return\s+([^;]+);\s*\}\s*\)/g,
-        (_match, prefix, returnExpr) =>
-          `vi.mock('lodash/debounce', () => {${prefix}return {default: ${returnExpr}};})`
       );
 
       // Ensure vi.importActual() is always awaited. Uses a callback rather
