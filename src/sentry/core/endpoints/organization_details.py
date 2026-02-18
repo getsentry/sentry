@@ -1196,9 +1196,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     organization_provisioning_service.change_organization_slug(
                         organization_id=organization.id, slug=slug
                     )
-                except OrganizationSlugCollisionException:
+                except OrganizationSlugCollisionException as e:
                     return self.respond(
-                        {"slug": ["An organization with this slug already exists."]},
+                        {
+                            "slug": [
+                                str(e)
+                                if str(e)
+                                else "An organization with this slug already exists."
+                            ]
+                        },
                         status=status.HTTP_409_CONFLICT,
                     )
             with transaction.atomic(router.db_for_write(Organization)):

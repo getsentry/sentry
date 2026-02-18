@@ -1218,6 +1218,38 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.create_organization(slug="taken")
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
+    def test_slug_collision_from_control_silo(self) -> None:
+        """Test that slug collisions raised during the Control Silo RPC call
+        are surfaced as 409 responses instead of 500 errors."""
+        from sentry.services.organization.provisioning import OrganizationSlugCollisionException
+
+        with patch(
+            "sentry.services.organization.provisioning.OrganizationProvisioningService._control_based_slug_change",
+            side_effect=OrganizationSlugCollisionException("The slug is not available."),
+        ):
+            response = self.get_error_response(
+                self.organization.slug, slug="colliding-slug", status_code=409
+            )
+            assert response.data["slug"] == ["The slug is not available."]
+
+    def test_slug_swap_in_progress(self) -> None:
+        """Test that an in-progress slug swap is surfaced as a 409 with
+        an appropriate message."""
+        from sentry.services.organization.provisioning import OrganizationSlugCollisionException
+
+        with patch(
+            "sentry.services.organization.provisioning.OrganizationProvisioningService._control_based_slug_change",
+            side_effect=OrganizationSlugCollisionException(
+                "A slug change is already in progress. Please try again later."
+            ),
+        ):
+            response = self.get_error_response(
+                self.organization.slug, slug="new-slug", status_code=409
+            )
+            assert response.data["slug"] == [
+                "A slug change is already in progress. Please try again later."
+            ]
+
     def test_target_sample_rate_feature(self) -> None:
         with self.feature("organizations:dynamic-sampling-custom"):
             data = {"targetSampleRate": 0.1}

@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.dispatch import receiver
 from pydantic import ValidationError
 from sentry_sdk import capture_exception
@@ -101,18 +101,33 @@ class OrganizationProvisioningService:
     ) -> None:
         destination_region_name = self._validate_or_default_region(region_name=region_name)
 
+        from sentry.hybridcloud.rpc.service import RpcRemoteException
         from sentry.hybridcloud.services.control_organization_provisioning import (
             control_organization_provisioning_rpc_service,
         )
-
-        rpc_slug_reservation = (
-            control_organization_provisioning_rpc_service.update_organization_slug(
-                organization_id=organization_id,
-                desired_slug=slug,
-                require_exact=True,
-                region_name=destination_region_name,
-            )
+        from sentry.hybridcloud.services.control_organization_provisioning.impl import (
+            InvalidOrganizationProvisioningException,
         )
+
+        try:
+            rpc_slug_reservation = (
+                control_organization_provisioning_rpc_service.update_organization_slug(
+                    organization_id=organization_id,
+                    desired_slug=slug,
+                    require_exact=True,
+                    region_name=destination_region_name,
+                )
+            )
+        except (IntegrityError, RpcRemoteException) as e:
+            raise OrganizationSlugCollisionException("The slug is not available.") from e
+        except InvalidOrganizationProvisioningException as e:
+            raise OrganizationSlugCollisionException("The slug is not available.") from e
+        except Exception as e:
+            if "another swap is in progress" in str(e):
+                raise OrganizationSlugCollisionException(
+                    "A slug change is already in progress. Please try again later."
+                ) from e
+            raise
 
         rpc_org = organization_service.get(id=rpc_slug_reservation.organization_id)
 
