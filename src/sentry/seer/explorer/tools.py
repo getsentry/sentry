@@ -802,14 +802,14 @@ def _get_recommended_event(
     max_date_range = timedelta(days=14)  # Clamp date range as the query loop can be very expensive.
     timeout = 50  # Sentry API timeout is 60s - 10s buffer.
     event_query_limit = 50  # Events/trace IDs to query in each window.
-    w_size = timedelta(days=3)
+    window_size = timedelta(days=3)
 
     start, end = get_group_date_range(group, organization, start, end)
     unclamped_start = start
     start = max(start, end - max_date_range)
     retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
-    w_start = max(end - w_size, start)
-    w_end = end
+    window_start = max(end - window_size, start)
+    window_end = end
     # Fallback to first event we find (most recommended in most recent window).
     fallback_event: GroupEvent | None = None
 
@@ -818,23 +818,9 @@ def _get_recommended_event(
     else:
         dataset = Dataset.IssuePlatform
 
-    def get_default_event() -> GroupEvent | None:
+    def get_latest_event() -> GroupEvent | None:
         """If no events are found in the clamped range, use this query to return most recent event in the full range."""
-        events = eventstore.backend.get_events(
-            filter=eventstore.Filter(
-                start=unclamped_start,
-                end=end,
-                project_ids=[group.project.id],
-                group_ids=[group.id],
-            ),
-            limit=1,
-            referrer=Referrer.SEER_EXPLORER_TOOLS,
-            dataset=dataset,
-            tenant_ids={"organization_id": group.project.organization_id},
-        )
-        if events:
-            return events[0].for_group(group)
-        return None
+        return group.get_latest_event(start=unclamped_start, end=end)
 
     logger.info(
         "_get_recommended_event: starting query loop",
@@ -849,7 +835,7 @@ def _get_recommended_event(
         },
     )
 
-    while w_start >= start:
+    while window_start >= start:
         if time.time() - start_time > timeout:
             logger.warning(
                 "_get_recommended_event: timeout reached",
@@ -864,7 +850,7 @@ def _get_recommended_event(
                     "timeout": timeout,
                 },
             )
-            return fallback_event or get_default_event()
+            return fallback_event or get_latest_event()
 
         # Get candidate events with the standard recommended ordering.
         # This is an expensive orderby, hence the inner limit and sliding window.
@@ -872,8 +858,8 @@ def _get_recommended_event(
             events: list[Event] = eventstore.backend.get_events_snql(
                 organization_id=organization.id,
                 group_id=group.id,
-                start=w_start,
-                end=w_end,
+                start=window_start,
+                end=window_end,
                 conditions=[
                     Condition(Column("project_id"), Op.IN, [group.project.id]),
                     Condition(Column("group_id"), Op.IN, [group.id]),
@@ -895,7 +881,7 @@ def _get_recommended_event(
                     "dataset": dataset.value,
                 },
             )
-            return fallback_event or get_default_event()
+            return fallback_event or get_latest_event()
 
         if events and not fallback_event:
             fallback_event = events[0].for_group(group)
@@ -906,8 +892,8 @@ def _get_recommended_event(
             # Query EAP to get the span count of each trace.
             # Extend the time range by +-1 day to account for min/max trace start/end times.
             # Clamp spans_start to retention boundary to avoid QueryOutsideRetentionError.
-            spans_start = max(w_start - timedelta(days=1), retention_boundary)
-            spans_end = w_end + timedelta(days=1)
+            spans_start = max(window_start - timedelta(days=1), retention_boundary)
+            spans_end = window_end + timedelta(days=1)
             count_field = "count(span.duration)"
 
             try:
@@ -930,7 +916,7 @@ def _get_recommended_event(
                         "num_trace_ids": len(trace_ids),
                     },
                 )
-                return fallback_event or get_default_event()
+                return fallback_event or get_latest_event()
 
             if result and result.get("data"):
                 # Return the first event with a span count greater than 0.
@@ -944,11 +930,11 @@ def _get_recommended_event(
                     if e.trace_id in traces_with_spans:
                         return e.for_group(group)
 
-        if w_start == start:
+        if window_start == start:
             break
 
-        w_end = w_start
-        w_start = max(w_start - w_size, start)
+        window_end = window_start
+        window_start = max(window_start - window_size, start)
 
     logger.warning(
         "_get_recommended_event: no event with a span found",
@@ -963,7 +949,7 @@ def _get_recommended_event(
             "has_fallback_event": bool(fallback_event),
         },
     )
-    return fallback_event or get_default_event()
+    return fallback_event or get_latest_event()
 
 
 # Activity types to include in issue details for Seer Explorer (manual actions only)
