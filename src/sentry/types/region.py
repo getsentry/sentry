@@ -182,7 +182,7 @@ class RegionDirectory:
         for region in self.regions:
             region.validate()
 
-        # Ensure that a cell cannot be registed to more than one locality
+        # Ensure that a cell cannot be registered to more than one locality
         all_cell_refs = [cell_name for loc in self.localities for cell_name in loc.cells]
         assigned_cells = set(all_cell_refs)
         defined_cells = set(self._by_name.keys())
