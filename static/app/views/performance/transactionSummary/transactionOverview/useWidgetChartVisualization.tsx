@@ -127,10 +127,11 @@ function useDurationBreakdownVisualization({
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
 
-  const plottables = spanSeriesData?.timeSeries.map(series => {
-    const name = `${parseFunction(series.yAxis)?.name}()`;
-    return new Area(series, {name, alias: name});
-  });
+  const plottables =
+    spanSeriesData?.timeSeries.map(series => {
+      const name = `${parseFunction(series.yAxis)?.name}()`;
+      return new Area(series, {name, alias: name});
+    }) ?? [];
 
   return (
     <TimeSeriesWidgetVisualization
