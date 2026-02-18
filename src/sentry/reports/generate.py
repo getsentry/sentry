@@ -28,7 +28,7 @@ def generate_csv_for_explore_query(
     """
     saved_query = ExploreSavedQuery.objects.get(
         id=scheduled_report.source_id,
-        organization_id=scheduled_report.organization_id,
+        organization_id=organization.id,
     )
 
     # saved_query.query is a top-level dict; per-query objects are at ["query"]
