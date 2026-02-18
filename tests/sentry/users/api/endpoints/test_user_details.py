@@ -948,3 +948,23 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
 
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
+
+    @override_options({"staff.ga-rollout": True})
+    def test_deactivation_deletes_auth_identities(self) -> None:
+        from sentry.models.authidentity import AuthIdentity
+        from sentry.models.authprovider import AuthProvider
+
+        auth_provider = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
+        auth_identity = AuthIdentity.objects.create(
+            user=self.user,
+            auth_provider=auth_provider,
+            ident="test-ident",
+        )
+
+        self.get_success_response(self.user.id, organizations=[], status_code=204)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
+        assert not AuthIdentity.objects.filter(id=auth_identity.id).exists()

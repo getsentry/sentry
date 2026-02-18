@@ -31,7 +31,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-sentry: 1029_delete_group_open_period_event_id
+sentry: 1030_add_commitcomparison_extras
 
 social_auth: 0003_social_auth_json_field
 

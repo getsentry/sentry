@@ -1,12 +1,14 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
+import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -16,7 +18,11 @@ import type {
   HybridFilterProps,
   HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
-import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {
+  HybridFilter,
+  HybridFilterComponents,
+  useStagedCompactSelect,
+} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
@@ -41,14 +47,23 @@ export interface ProjectPageFilterProps extends Partial<
     | 'value'
     | 'defaultValue'
     | 'onReplace'
+    | 'onReset'
     | 'onToggle'
     | 'menuBody'
     | 'menuFooter'
-    | 'menuFooterMessage'
     | 'shouldCloseOnInteractOutside'
     | 'sizeLimitMessage'
+    | 'stagedSelect'
   >
 > {
+  /**
+   * Called when the selection changes
+   */
+  onChange?: (selected: number[]) => void;
+  /**
+   * Called when the reset button is clicked
+   */
+  onReset?: () => void;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -93,6 +108,15 @@ export function ProjectPageFilter({
     useState<Set<string>>(
       () => new Set(projects.filter(p => p.isBookmarked).map(p => p.id))
     );
+
+  // Snapshot of bookmarked projects when menu opens - used for sorting to prevent
+  // re-sorting while menu is open
+  const bookmarkedSnapshotRef = useRef<Set<string> | undefined>(undefined);
+
+  if (!bookmarkedSnapshotRef.current) {
+    bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+  }
+
   const [memberProjects, otherProjects] = useMemo(
     () => partition(projects, project => project.isMember),
     [projects]
@@ -252,25 +276,29 @@ export function ProjectPageFilter({
         value: parseInt(project.id, 10),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
-          <Checkbox
-            size="sm"
-            checked={isSelected}
-            onChange={() =>
-              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
-            }
-            aria-label={t('Select %s', project.slug)}
-            tabIndex={-1}
-          />
+          <Flex align="center" gap="sm" flex="1 1 100%">
+            <Checkbox
+              size="sm"
+              checked={isSelected}
+              onChange={() =>
+                hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+              }
+              aria-label={t('Select %s', project.slug)}
+              tabIndex={-1}
+            />
+          </Flex>
         ),
         label: (
-          <Flex align="center" gap="sm">
+          <Flex align="center" gap="sm" flex="1 1 100%">
             <ProjectBadge project={project} avatarSize={16} hideName disableLink />
             <Text ellipsis>{project.slug}</Text>
           </Flex>
         ),
         trailingItems: (props: {isFocused: boolean}) => {
           return (
-            <Flex align="center">
+            // This is nasty, but because CompactSelect's menuListItem has a padding around the entire item and a height
+            // that is smaller than the height of an xs button, they end up being misaligned and we need to manually adjust them.
+            <Flex align="center" style={{marginTop: '-4px'}}>
               {props.isFocused ? (
                 <Fragment>
                   <LinkButton
@@ -327,11 +355,14 @@ export function ProjectPageFilter({
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
-    const listSort = (project: Project) => [
-      !lastSelected.includes(parseInt(project.id, 10)),
-      !project.isBookmarked,
-      project.slug,
-    ];
+    const listSort = (project: Project) =>
+      bookmarkedSnapshotRef.current
+        ? [
+            !lastSelected.includes(parseInt(project.id, 10)),
+            !bookmarkedSnapshotRef.current.has(project.id),
+            project.slug,
+          ]
+        : [!lastSelected.includes(parseInt(project.id, 10)), project.slug];
 
     return nonMemberProjects.length > 0
       ? [
@@ -384,19 +415,18 @@ export function ProjectPageFilter({
     return mappedValue.length > SELECTION_COUNT_LIMIT;
   }, [stagedValue, mapNormalValueToURLValue]);
 
-  const menuFooterMessage = useMemo(() => {
-    if (selectionLimitExceeded) {
-      return (hasStagedChanges: any) =>
-        hasStagedChanges
-          ? tct(
-              'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',
-              {limit: SELECTION_COUNT_LIMIT}
-            )
-          : undefined;
-    }
-
-    return undefined;
-  }, [selectionLimitExceeded]);
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    defaultValue,
+    options,
+    onChange: handleChange,
+    onStagedValueChange: setStagedValue,
+    onToggle,
+    onReplace,
+    onReset: handleReset,
+    multiple: true,
+    disableCommit: selectionLimitExceeded,
+  });
 
   const hasProjectWrite = organization.access.includes('project:write');
 
@@ -404,35 +434,65 @@ export function ProjectPageFilter({
     <HybridFilter
       ref={hybridFilterRef}
       {...selectProps}
+      stagedSelect={stagedSelect}
       searchable
-      multiple
       options={options}
-      value={value}
-      defaultValue={defaultValue}
-      onChange={handleChange}
-      onStagedValueChange={setStagedValue}
-      onReset={handleReset}
-      onReplace={onReplace}
-      onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
-      disableCommit={selectionLimitExceeded}
       sizeLimit={sizeLimit ?? 25}
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
-      menuFooter={
-        hasProjectWrite ? (
-          <LinkButton
-            size="xs"
-            aria-label={t('Create Project')}
-            to={makeProjectsPathname({path: '/new/', organization})}
-            icon={<IconAdd />}
-          >
-            {t('Create Project')}
-          </LinkButton>
-        ) : undefined
+      onOpenChange={() => {
+        bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+      }}
+      menuHeaderTrailingItems={
+        stagedSelect.shouldShowReset ? (
+          <HybridFilterComponents.ResetButton
+            onClick={() => stagedSelect.handleReset()}
+          />
+        ) : null
       }
-      menuFooterMessage={menuFooterMessage}
+      menuFooter={
+        selectionLimitExceeded || hasProjectWrite || stagedSelect.hasStagedChanges ? (
+          <Stack gap="md" direction="column">
+            {selectionLimitExceeded && (
+              <CondensedAlert variant="warning" showIcon={false}>
+                <Text size="sm">
+                  {tct(
+                    `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
+                    {
+                      limit: SELECTION_COUNT_LIMIT,
+                      count: stagedValue.length,
+                    }
+                  )}
+                </Text>
+              </CondensedAlert>
+            )}
+            <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
+              {hasProjectWrite ? (
+                <HybridFilterComponents.LinkButton
+                  icon={<IconAdd />}
+                  to={makeProjectsPathname({path: '/new/', organization})}
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                >
+                  {t('Create Project')}
+                </HybridFilterComponents.LinkButton>
+              ) : undefined}
+              {stagedSelect.hasStagedChanges ? (
+                <Flex gap="md" align="center" justify="end">
+                  <HybridFilterComponents.CancelButton
+                    onClick={() => stagedSelect.removeStagedChanges()}
+                  />
+                  <HybridFilterComponents.ApplyButton
+                    disabled={stagedSelect.disableCommit}
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </Flex>
+              ) : null}
+            </Flex>
+          </Stack>
+        ) : null
+      }
       trigger={
         trigger ??
         (triggerProps => (
@@ -449,6 +509,11 @@ export function ProjectPageFilter({
     />
   );
 }
+
+const CondensedAlert = styled(Alert)`
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+  text-wrap: balance;
+`;
 
 function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard

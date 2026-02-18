@@ -9,12 +9,17 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix import trigger_autofix as _trigger_autofix
 from sentry.seer.autofix.autofix import update_autofix
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
     AutofixSelectRootCausePayload,
     AutofixSelectSolutionPayload,
 )
-from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, get_autofix_state
+from sentry.seer.autofix.utils import (
+    AutofixState,
+    AutofixStoppingPoint,
+    get_autofix_state,
+)
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -60,7 +65,10 @@ class SeerOperator[CachePayloadT]:
 
     @classmethod
     def has_access(
-        cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey | None = None
+        cls,
+        *,
+        organization: Organization,
+        entrypoint_key: SeerEntrypointKey | None = None,
     ) -> bool:
         """
         Checks if the organization has access to Seer, and atleast one entrypoint.
@@ -174,6 +182,7 @@ class SeerOperator[CachePayloadT]:
                 raw_response = _trigger_autofix(
                     group=group,
                     user=user,
+                    referrer=AutofixReferrer.SLACK,
                     instruction=instruction,
                     stopping_point=stopping_point,
                 )
@@ -186,7 +195,8 @@ class SeerOperator[CachePayloadT]:
                 ) = None
                 if stopping_point == AutofixStoppingPoint.SOLUTION:
                     payload = AutofixSelectRootCausePayload(
-                        type="select_root_cause", cause_id=get_latest_cause_id(existing_state)
+                        type="select_root_cause",
+                        cause_id=get_latest_cause_id(existing_state),
                     )
                 elif stopping_point == AutofixStoppingPoint.CODE_CHANGES:
                     payload = AutofixSelectSolutionPayload(type="select_solution")
@@ -204,7 +214,9 @@ class SeerOperator[CachePayloadT]:
                     return
 
                 raw_response = update_autofix(
-                    organization_id=group.organization.id, run_id=run_id, payload=payload
+                    organization_id=group.organization.id,
+                    run_id=run_id,
+                    payload=payload,
                 )
 
             error_message = raw_response.data.get("detail")
@@ -266,7 +278,10 @@ class SeerOperator[CachePayloadT]:
     retry=None,
 )
 def process_autofix_updates(
-    *, event_type: SentryAppEventType, event_payload: dict[str, Any], organization_id: int
+    *,
+    event_type: SentryAppEventType,
+    event_payload: dict[str, Any],
+    organization_id: int,
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id

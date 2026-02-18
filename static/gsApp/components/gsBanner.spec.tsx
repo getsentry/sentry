@@ -54,7 +54,7 @@ function setUpTests() {
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/subscriptions/org-slug/`,
+    url: `/customers/org-slug/`,
     body: {},
   });
   MockApiClient.addMockResponse({

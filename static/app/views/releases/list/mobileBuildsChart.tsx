@@ -24,7 +24,7 @@ import {
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
-export enum SizeMetric {
+enum SizeMetric {
   INSTALL_SIZE = 'install_size',
   DOWNLOAD_SIZE = 'download_size',
 }

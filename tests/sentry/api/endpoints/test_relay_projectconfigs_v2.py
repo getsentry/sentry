@@ -122,6 +122,12 @@ def test_internal_relays_should_receive_full_configs(
     else:
         assert safe.get_path(cfg, "config", "retentions") is None
 
+    trimming_configs = quotas.backend.get_trimming_configs(default_project.organization)
+    if trimming_configs:
+        assert safe.get_path(cfg, "config", "trimming") == trimming_configs
+    else:
+        assert safe.get_path(cfg, "config", "trimming") is None
+
 
 @django_db_all
 def test_relays_dyamic_sampling(call_endpoint, default_projectkey) -> None:

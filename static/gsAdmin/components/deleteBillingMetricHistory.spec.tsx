@@ -38,7 +38,7 @@ describe('DeleteBillingMetricHistory', () => {
   it('renders modal with billing config data', async () => {
     // Mock the billing config API call
     const billingConfigMock = MockApiClient.addMockResponse({
-      url: '/api/0/billing-config/',
+      url: '/billing-config/',
       body: {
         category_info: {
           '1': {
@@ -104,7 +104,7 @@ describe('DeleteBillingMetricHistory', () => {
   it('successfully deletes billing metric history when form is submitted', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
-      url: '/api/0/billing-config/',
+      url: '/billing-config/',
       body: {
         category_info: {
           '1': {
@@ -188,7 +188,7 @@ describe('DeleteBillingMetricHistory', () => {
   it('shows error message when API request fails', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
-      url: '/api/0/billing-config/',
+      url: '/billing-config/',
       body: {
         category_info: {
           '1': {
@@ -255,7 +255,7 @@ describe('DeleteBillingMetricHistory', () => {
   it('disables Submit button when no data category is selected', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
-      url: '/api/0/billing-config/',
+      url: '/billing-config/',
       body: {
         category_info: {
           '1': {
@@ -302,7 +302,7 @@ describe('DeleteBillingMetricHistory', () => {
   it('closes modal when Cancel button is clicked', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
-      url: '/api/0/billing-config/',
+      url: '/billing-config/',
       body: {
         category_info: {
           '1': {

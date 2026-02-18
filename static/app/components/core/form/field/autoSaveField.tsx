@@ -1,4 +1,4 @@
-import {useId} from 'react';
+import {useId, useRef} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import type {DeepKeys, DeepValue, FieldApi} from '@tanstack/react-form';
 import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
@@ -6,6 +6,25 @@ import {type z} from 'zod';
 
 import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
 import {useScrapsForm, type BoundFieldComponents} from '@sentry/scraps/form/scrapsForm';
+
+import {openConfirmModal} from 'sentry/components/confirm';
+
+/**
+ * Configuration for confirmation dialogs before applying changes.
+ * Used for dangerous operations like security settings.
+ * Always focuses the Cancel button for safety.
+ *
+ * @example
+ * // Simple string - always show this message
+ * confirm="Are you sure you want to save?"
+ *
+ * @example
+ * // Function - return message based on new value, or undefined to skip
+ * confirm={(value) => value ? "Enable this feature?" : "Disable this feature?"}
+ */
+type ConfirmConfig<TValue = unknown> =
+  | React.ReactNode
+  | ((value: TValue) => React.ReactNode | undefined);
 
 /** Form data type coming from the schema */
 type SchemaFieldName<TSchema extends z.ZodObject<z.ZodRawShape>> = Extract<
@@ -95,7 +114,7 @@ interface AutoSaveFieldProps<
    * TanStack Query mutation options - mutationFn receives single-field data
    */
   mutationOptions: UseMutationOptions<
-    z.infer<TSchema>,
+    any, // it doesn't matter here what the mutation returns
     Error,
     Record<TFieldName, z.infer<TSchema>[TFieldName]>
   >;
@@ -109,16 +128,36 @@ interface AutoSaveFieldProps<
    * Zod schema for validation
    */
   schema: TSchema;
+
+  /**
+   * Optional confirmation dialog before saving.
+   * Shows a modal and requires user confirmation before applying changes.
+   *
+   * @example
+   * // Simple string - always show this message
+   * confirm="Are you sure you want to save this change?"
+   *
+   * @example
+   * // Function - return message based on new value, or undefined to skip
+   * confirm={(value) => value ? "Enable this feature?" : "Disable this feature?"}
+   *
+   * @example
+   * // Function with conditional confirmation
+   * confirm={(value) => value === 'dangerous' ? "This is irreversible!" : undefined}
+   */
+  confirm?: ConfirmConfig<z.infer<TSchema>[TFieldName]>;
 }
 
 export function AutoSaveField<
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
 >(props: AutoSaveFieldProps<TSchema, TFieldName>) {
-  const {name, schema, initialValue, mutationOptions, children} = props;
+  const {name, schema, initialValue, mutationOptions, confirm, children} = props;
 
   const id = useId();
   const mutation = useMutation(mutationOptions);
+  // Track pending confirmation to prevent duplicate modals
+  const pendingConfirmRef = useRef(false);
 
   const form = useScrapsForm({
     formId: `${name}-${id}-(auto-save)`,
@@ -137,10 +176,45 @@ export function AutoSaveField<
       },
     },
     onSubmit: ({value}) => {
-      if (mutation.status === 'pending') {
+      if (mutation.status === 'pending' || pendingConfirmRef.current) {
         return Promise.resolve();
       }
-      return mutation.mutateAsync(value);
+
+      const fieldValue = value[name];
+
+      // Determine confirmation message
+      const confirmMessage =
+        typeof confirm === 'function' ? confirm(fieldValue) : confirm;
+
+      if (confirmMessage) {
+        pendingConfirmRef.current = true;
+        return new Promise<void>(resolve => {
+          openConfirmModal({
+            message: confirmMessage,
+            isDangerous: true,
+            onConfirm: () => {
+              pendingConfirmRef.current = false;
+              // Resolve on both success and failure - error handling is done by
+              // TanStack Query (onError callback, mutation.isError state)
+              mutation.mutateAsync(value).then(() => resolve(), resolve);
+            },
+            onClose: () => {
+              // onClose is always called, even after confirming,
+              // so we check pendingConfirmRef to avoid resetting the form
+              // after a successful confirm
+              if (pendingConfirmRef.current) {
+                form.reset();
+                resolve();
+              }
+              pendingConfirmRef.current = false;
+            },
+          });
+        });
+      }
+
+      // Resolve on both success and failure - error handling is done by
+      // TanStack Query (onError callback, mutation.isError state)
+      return mutation.mutateAsync(value).catch(() => {});
     },
   });
 

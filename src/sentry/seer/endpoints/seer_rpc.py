@@ -42,15 +42,18 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
+from sentry.api.serializers.models.project import get_has_logs, get_has_trace_metrics
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
@@ -74,7 +77,7 @@ from sentry.seer.assisted_query.traces_tools import (
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
@@ -102,6 +105,7 @@ from sentry.seer.explorer.tools import (
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.utils import filter_repo_by_provider
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -271,8 +275,6 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 def get_organization_project_ids(*, org_id: int) -> dict:
     """Get all active projects (IDs and slugs) for an organization"""
-    from sentry.models.project import Project
-
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
@@ -285,6 +287,28 @@ def get_organization_project_ids(*, org_id: int) -> dict:
     )
 
     return {"projects": projects}
+
+
+def get_organization_projects_with_instrumentation(*, org_id: int) -> dict:
+    """Get all active projects for an organization with instrumentation feature flags."""
+    organization = Organization.objects.get(id=org_id)
+
+    projects = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+
+    return {
+        "projects": [
+            {
+                "id": project.id,
+                "slug": project.slug,
+                "hasSessions": bool(project.flags.has_sessions),
+                "hasReplays": bool(project.flags.has_replays),
+                "hasProfiles": bool(project.flags.has_profiles),
+                "hasTraceMetrics": get_has_trace_metrics(project),
+                "hasLogs": get_has_logs(project),
+            }
+            for project in projects
+        ]
+    }
 
 
 class SentryOrganizaionIdsAndSlugs(TypedDict):
@@ -521,8 +545,6 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         dict: Status of the webhook sending operation
     """
     # Validate event_name by constructing the full event type and checking if it's valid
-    from sentry.sentry_apps.metrics import SentryAppEventType
-
     event_type = f"seer.{event_name}"
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
@@ -604,6 +626,35 @@ def trigger_coding_agent_launch(
             },
         )
         return {"success": False}
+
+
+def has_repo_code_mappings(
+    *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
+) -> dict[str, bool]:
+    """
+    Validate that a repository exists and belongs to the given organization.
+
+    Args:
+        organization_id: The Sentry organization ID
+        provider: The SCM provider (e.g., "github", "github_enterprise", w/ or w/o "integrations:" prefix)
+        external_id: The repository's external ID in the provider's system
+        owner: The repository owner (e.g., "getsentry")
+        name: The repository name (e.g., "sentry")
+
+    Returns:
+        dict: {"has_code_mappings": bool}
+    """
+    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+
+    if not repo:
+        return {"has_code_mappings": False}
+
+    has_mappings = RepositoryProjectPathConfig.objects.filter(
+        organization_id=organization_id,
+        repository_id=repo.id,
+    ).exists()
+
+    return {"has_code_mappings": has_mappings}
 
 
 def validate_repo(
@@ -734,6 +785,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
+    "get_organization_projects_with_instrumentation": get_organization_projects_with_instrumentation,
     "check_repository_integrations_status": check_repository_integrations_status,
     "validate_repo": validate_repo,
     #
@@ -747,6 +799,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "trigger_coding_agent_launch": trigger_coding_agent_launch,
     #
     # Bug prediction
+    "has_repo_code_mappings": has_repo_code_mappings,
     "get_issues_by_function_name": by_function_name.fetch_issues,
     "get_issues_related_to_exception_type": by_error_type.fetch_issues,
     "get_issues_by_raw_query": by_text_query.fetch_issues,

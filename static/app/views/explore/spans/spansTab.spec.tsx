@@ -80,7 +80,7 @@ describe('SpansTabContent', () => {
       datetime: {period: '7d', start: null, end: null, utc: null},
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -214,7 +214,7 @@ describe('SpansTabContent', () => {
 
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
@@ -237,7 +237,7 @@ describe('SpansTabContent', () => {
     await userEvent.click(samples);
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
