@@ -273,6 +273,24 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
             )
 
 
+def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
+    """Record delivery time metrics for a successfully delivered webhook payload."""
+    duration = timezone.now() - payload.date_added
+    region_sent_to = (
+        payload.region_name
+        if payload.destination_type == DestinationType.SENTRY_REGION
+        else "codecov"
+    )
+    tags = {"region_sent_to": region_sent_to}
+    metrics.distribution(
+        "hybridcloud.deliver_webhooks.delivery_time_ms",
+        # e.g. 0.123 seconds → 123 milliseconds
+        duration.total_seconds() * 1000,
+        tags=tags,
+        unit="millisecond",
+    )
+
+
 def _handle_parallel_delivery_result(
     payload_record: WebhookPayload, err: Exception | None
 ) -> tuple[bool, bool]:
@@ -300,10 +318,9 @@ def _handle_parallel_delivery_result(
         return (request_failed, not isinstance(err, DeliveryFailed))
     date_added = payload_record.date_added
     payload_record.delete()
-    duration = timezone.now() - date_added
+    _record_delivery_time_metrics(payload_record)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
-    metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
-    if duration >= SLOW_DELIVERY_THRESHOLD:
+    if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
         logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
     return (False, False)
 
@@ -420,10 +437,8 @@ def deliver_message(payload: WebhookPayload) -> None:
     perform_request(payload)
     date_added = payload.date_added
     payload.delete()
-
-    duration = timezone.now() - date_added
-    metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
-    if duration >= SLOW_DELIVERY_THRESHOLD:
+    _record_delivery_time_metrics(payload)
+    if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
         logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
 

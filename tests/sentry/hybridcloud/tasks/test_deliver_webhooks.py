@@ -941,8 +941,7 @@ class DrainMailboxParallelTest(TestCase):
 class SlowDeliveryLoggingTest(TestCase):
     @responses.activate
     @override_regions(region_config)
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_slow_delivery_logged(self, mock_metrics: MagicMock) -> None:
+    def test_slow_delivery_logged(self) -> None:
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -977,8 +976,70 @@ class SlowDeliveryLoggingTest(TestCase):
         assert log_extra.date_added == expected_date_added
         assert log_extra.attempts == 0
 
-        # delivery_time metric should be ~660 seconds (11 minutes)
-        mock_metrics.timing.assert_called_once()
-        assert mock_metrics.timing.call_args[0][0] == "hybridcloud.deliver_webhooks.delivery_time"
-        reported_seconds = mock_metrics.timing.call_args[0][1]
-        assert 660 <= reported_seconds <= 680
+
+@control_silo_test
+class DeliveryTimeMetricsTest(TestCase):
+    @responses.activate
+    @override_regions(region_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_region_sent_to(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+        )
+        drain_mailbox(webhook.id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        assert delivery_time_ms_calls[0][1].get("tags", {}).get("region_sent_to") == "us"
+
+        incr_calls = [
+            c
+            for c in mock_metrics.incr.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery"
+        ]
+        assert len(incr_calls) == 1
+        assert incr_calls[0][1].get("tags", {}).get("outcome") == "ok"
+
+    @responses.activate
+    @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_regions(region_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_codecov_region_sent_to(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.codecov.io/webhooks/sentry",
+            status=200,
+            body="",
+        )
+        records = create_payloads_with_destination_type(
+            1, "github:codecov:123", DestinationType.CODECOV
+        )
+        drain_mailbox(records[0].id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        assert delivery_time_ms_calls[0][1].get("tags", {}).get("region_sent_to") == "codecov"
+
+        incr_calls = [
+            c
+            for c in mock_metrics.incr.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery"
+        ]
+        assert len(incr_calls) == 1
+        assert incr_calls[0][1].get("tags", {}).get("outcome") == "ok"

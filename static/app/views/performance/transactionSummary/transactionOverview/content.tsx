@@ -45,7 +45,7 @@ import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
-import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
+import {SegmentSpansTable} from 'sentry/views/performance/eap/segmentSpansTable';
 import Filter, {
   decodeFilterFromLocation,
   filterToField,
@@ -96,9 +96,9 @@ type Props = {
   transactionName: string;
 };
 
-export const SERVICE_ENTRY_SPANS_CURSOR_NAME = 'serviceEntrySpansCursor';
+export const SEGMENT_SPANS_CURSOR_NAME = 'segmentSpansCursor';
 
-function OTelSummaryContentInner({
+function EAPSummaryContentInner({
   eventView,
   location,
   totalValues,
@@ -137,7 +137,7 @@ function OTelSummaryContentInner({
       query: {
         ...location.query,
         showTransactions: value,
-        [SERVICE_ENTRY_SPANS_CURSOR_NAME]: undefined,
+        [SEGMENT_SPANS_CURSOR_NAME]: undefined,
       },
     };
 
@@ -253,7 +253,7 @@ function OTelSummaryContentInner({
     <Fragment>
       <Layout.Main>
         <FilterActions>
-          <SpanCategoryFilter serviceEntrySpanName={transactionName} />
+          <SpanCategoryFilter segmentSpanName={transactionName} />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter {...datePageFilterProps} />
@@ -265,7 +265,7 @@ function OTelSummaryContentInner({
         </EAPChartsWidgetContainer>
 
         <PerformanceAtScaleContextProvider>
-          <ServiceEntrySpansTable
+          <SegmentSpansTable
             eventView={transactionsListEventView}
             handleDropdownChange={handleTransactionsListSortChange}
             totalValues={totalValues}
@@ -812,4 +812,4 @@ const EAPChartsWidgetContainer = styled('div')`
 
 export default withProjects(SummaryContent);
 
-export const OTelSummaryContent = withProjects(OTelSummaryContentInner);
+export const EAPSummaryContent = withProjects(EAPSummaryContentInner);

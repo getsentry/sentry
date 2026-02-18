@@ -94,38 +94,37 @@ class DatabaseBackedHookService(HookService):
     ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             if webhook_url:
-                hook, created = ServiceHook.objects.update_or_create(
+                hooks = ServiceHook.objects.filter(
                     installation_id=installation_id,
                     application_id=application_id,
-                    defaults={
-                        "application_id": application_id,
-                        "actor_id": installation_id,
-                        "installation_id": installation_id,
-                        "url": webhook_url,
-                        "events": expand_events(events),
-                    },
+                )
+                deletions.exec_sync_many(list(hooks))
+
+                new_hook = ServiceHook.objects.create(
+                    installation_id=installation_id,
+                    application_id=application_id,
+                    actor_id=installation_id,
+                    organization_id=organization_id,
+                    url=webhook_url,
+                    events=expand_events(events),
                 )
                 logger.info(
                     "create_or_update_webhook_and_events_for_installation.created_or_updated_hook",
                     extra={
-                        "hook_id": hook.id,
-                        "created_hook": created,
+                        "hook_id": new_hook.id,
                         "organization_id": organization_id,
                         "installation_id": installation_id,
                         "application_id": application_id,
                         "events": events,
                     },
                 )
-                return [serialize_service_hook(hook)]
+                return [serialize_service_hook(new_hook)]
             else:
-                # If no webhook_url, try to find and delete existing hook
-                try:
-                    hook = ServiceHook.objects.get(
-                        installation_id=installation_id, application_id=application_id
-                    )
-                    deletions.exec_sync(hook)
-                except ServiceHook.DoesNotExist:
-                    pass
+                # If no webhook_url, try to find and delete existing hooks
+                hooks = ServiceHook.objects.filter(
+                    installation_id=installation_id, application_id=application_id
+                )
+                deletions.exec_sync_many(list(hooks))
                 return []
 
     def create_service_hook(

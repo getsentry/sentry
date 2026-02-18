@@ -1126,3 +1126,22 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
         assert resp.status_code == 400
         assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
+
+    @with_feature("organizations:team-roles")
+    def test_member_cannot_downgrade_org_admin_without_explicit_team_role(self) -> None:
+        """VULN-734: A contributor must not be able to downgrade an org admin
+        who has no explicit team role (their effective role comes from their
+        org role's minimum team role mapping)."""
+        # Access cached_property to create the user attribute
+        _ = self.member_on_team
+        self.login_as(self.member_on_team_user)
+
+        resp = self.get_response(
+            self.org.slug,
+            self.admin_on_team.id,
+            self.team.slug,
+            teamRole="contributor",
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE

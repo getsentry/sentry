@@ -21,6 +21,7 @@ from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autof
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
+    AutofixReferrer,
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
@@ -52,6 +53,12 @@ auto_run_source_map = {
     SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
     SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
+}
+
+referrer_map = {
+    SeerAutomationSource.ISSUE_DETAILS: AutofixReferrer.ISSUE_SUMMARY_FIXABILITY,
+    SeerAutomationSource.ALERT: AutofixReferrer.ISSUE_SUMMARY_ALERT_FIXABILITY,
+    SeerAutomationSource.POST_PROCESS: AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
 }
 
 STOPPING_POINT_HIERARCHY = {
@@ -148,6 +155,7 @@ def _trigger_autofix_task(
     event_id: str,
     user_id: int | None,
     auto_run_source: str,
+    referrer: AutofixReferrer = AutofixReferrer.UNKNOWN,
     stopping_point: AutofixStoppingPoint | None = None,
 ):
     """
@@ -188,6 +196,7 @@ def _trigger_autofix_task(
                 group=group,
                 event_id=event_id,
                 user=user,
+                referrer=referrer,
                 auto_run_source=auto_run_source,
                 stopping_point=stopping_point,
             )
@@ -363,6 +372,7 @@ def run_automation(
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
+    referrer = referrer_map.get(source, AutofixReferrer.UNKNOWN)
 
     sentry_sdk.set_tags(
         {
@@ -395,6 +405,7 @@ def run_automation(
         event_id=event.event_id,
         user_id=user_id,
         auto_run_source=auto_run_source,
+        referrer=referrer,
         stopping_point=stopping_point,
     )
 

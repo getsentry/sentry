@@ -186,6 +186,34 @@ mutationOptions={{
 }}
 ```
 
+**Important: Typing mutations with mixed-type schemas**
+
+When using `AutoSaveField` with schemas that have mixed types (e.g., strings and booleans), the mutation function must be typed using the schema-inferred type. Using generic types like `Record<string, unknown>` breaks TanStack Form's ability to narrow field types based on the field name.
+
+```tsx
+const preferencesSchema = z.object({
+  theme: z.string(),
+  language: z.string(),
+  notifications: z.boolean(),
+});
+
+type Preferences = z.infer<typeof preferencesSchema>;
+
+// ❌ Don't use generic types - breaks field type narrowing
+mutationOptions={{
+  mutationFn: (data: Record<string, unknown>) => {
+    return fetchMutation({url: '/user/', method: 'PUT', data: {options: data}});
+  },
+}}
+
+// ✅ Use schema-inferred type for proper type narrowing
+mutationOptions={{
+  mutationFn: (data: Partial<Preferences>) => {
+    return fetchMutation({url: '/user/', method: 'PUT', data: {options: data}});
+  },
+}}
+```
+
 ### mapFormErrors → `setFieldErrors`
 
 The `mapFormErrors` function transformed API error responses into field-specific errors. In the new system, handle this in the catch block using `setFieldErrors`.
@@ -472,3 +500,4 @@ function SlugForm({project}: {project: Project}) {
 - [ ] Handle `mapFormErrors` with setFieldErrors in catch
 - [ ] Handle `saveMessage` in onSuccess callback
 - [ ] Convert `saveOnBlur: false` fields to regular forms with Save button
+- [ ] Verify `onSuccess` cache updates merge with existing data (use updater function) — some API endpoints may return partial objects

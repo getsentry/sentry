@@ -8,6 +8,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -93,7 +94,9 @@ export function useErrorsSeriesQuery(
       }
 
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -266,7 +269,9 @@ export function useErrorsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,

@@ -20,6 +20,13 @@ FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     re.compile(r"/migrations/\d{4}_[^/]+\.py$"),
 ]
 
+# These test files are excluded if they aren't explicitly modified.
+EXCLUDED_TEST_FILES: set[str] = {
+    # this is selected very frequently since it covers the majority of
+    # app warmup, and is almost never actually relevant to changed files
+    "tests/sentry/test_wsgi.py",
+}
+
 
 def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
     if isinstance(trigger, re.Pattern):
@@ -127,6 +134,8 @@ def main() -> int:
         except sqlite3.Error as e:
             print(f"Error querying coverage database: {e}", file=sys.stderr)
             return 1
+
+        affected_test_files -= EXCLUDED_TEST_FILES
 
         # Also include any test files that were directly changed/added in the PR
         changed_test_files = get_changed_test_files(changed_files)

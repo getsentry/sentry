@@ -3538,6 +3538,115 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Linked dashboard does not appear in the fields of the query" in response.content
 
+    def test_rejects_cross_org_linked_dashboard(self) -> None:
+        other_org = self.create_organization(name="other-org")
+        other_dashboard = Dashboard.objects.create(
+            title="Other Org Dashboard",
+            created_by_id=self.user.id,
+            organization=other_org,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Cross-Org Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": other_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not exist" in response.content
+
+        # Verify no DashboardFieldLink was created
+        assert DashboardFieldLink.objects.count() == 0
+
+    def test_allows_same_org_linked_dashboard_after_fix(self) -> None:
+        same_org_dashboard = Dashboard.objects.create(
+            title="Same Org Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Same-Org Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": same_org_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data.get("widgets")[0].get("queries")[0].get("linkedDashboards") == [
+            {
+                "field": "project",
+                "dashboardId": same_org_dashboard.id,
+            }
+        ]
+
+    def test_rejects_nonexistent_linked_dashboard(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Nonexistent Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [{"field": "project", "dashboardId": 999999999}],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not exist" in response.content
+
     def test_cannot_delete_prebuilt_insights_dashboard(self) -> None:
         dashboard = Dashboard.objects.create(
             title="Frontend Session Health",

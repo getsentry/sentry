@@ -1052,11 +1052,6 @@ class Group(Model):
         except KeyError:
             return None
 
-    @property
-    def checksum(self):
-        warnings.warn("Group.checksum is no longer used", DeprecationWarning)
-        return ""
-
     def get_email_subject(self) -> str:
         return f"{self.qualified_short_id} - {self.title}"
 
