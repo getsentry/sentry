@@ -453,6 +453,68 @@ describe('SpanQueryParamsProvider', () => {
     );
   });
 
+  it('correctly updates sort bys in aggregates mode with known y axis from a multi-yAxes visualize', () => {
+    renderTestComponent({
+      mode: Mode.AGGREGATE,
+      aggregateFields: [
+        {groupBy: 'span.op'},
+        {
+          chartType: ChartType.AREA,
+          yAxes: ['min(span.self_time)', 'max(span.duration)'],
+        },
+      ],
+    });
+
+    act(() => setAggregateSortBys([{field: 'max(span.duration)', kind: 'desc'}]));
+
+    expect(queryParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'max(span.duration)', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new VisualizeFunction(['min(span.self_time)', 'max(span.duration)'], {
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
+  });
+
+  it('correctly falls back aggregate sort by in aggregates mode with unknown y axis for a multi-yAxes visualize', () => {
+    renderTestComponent({
+      mode: Mode.AGGREGATE,
+      aggregateFields: [
+        {groupBy: 'span.op'},
+        {
+          chartType: ChartType.AREA,
+          yAxes: ['min(span.self_time)', 'max(span.duration)'],
+        },
+      ],
+    });
+
+    act(() => setAggregateSortBys([{field: 'avg(span.duration)', kind: 'desc'}]));
+
+    expect(queryParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new VisualizeFunction(['min(span.self_time)', 'max(span.duration)'], {
+            chartType: ChartType.AREA,
+          }),
+        ],
+      })
+    );
+  });
+
   it('correctly updates sort bys in aggregates mode with known group by', () => {
     renderTestComponent({
       mode: Mode.AGGREGATE,
@@ -611,6 +673,52 @@ describe('SpanQueryParamsProvider', () => {
     expect(queryParams).toEqual(
       expect.objectContaining({
         fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
+      })
+    );
+  });
+
+  it('manages inserting and deleting columns when a single visualize has multiple yAxes', () => {
+    renderTestComponent();
+
+    act(() =>
+      setVisualizes([
+        {
+          chartType: ChartType.LINE,
+          yAxes: ['avg(span.duration)', 'p95(span.self_time)'],
+        },
+      ])
+    );
+
+    expect(queryParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new VisualizeFunction(['avg(span.duration)', 'p95(span.self_time)'], {
+            chartType: ChartType.LINE,
+          }),
+        ],
+      })
+    );
+
+    act(() =>
+      setVisualizes([
+        {
+          chartType: ChartType.LINE,
+          yAxes: ['p95(span.self_time)'],
+        },
+      ])
+    );
+
+    expect(queryParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
+        aggregateFields: [
+          {groupBy: 'span.op'},
+          new VisualizeFunction(['p95(span.self_time)'], {
+            chartType: ChartType.LINE,
+          }),
+        ],
       })
     );
   });
