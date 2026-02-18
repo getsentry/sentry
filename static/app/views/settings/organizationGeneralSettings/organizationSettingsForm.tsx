@@ -12,7 +12,7 @@ import {
   FieldGroup,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -146,24 +146,34 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 </field.Layout.Row>
               )}
             </slugForm.AppField>
-            <Alert variant="info" showIcon={false}>
-              {tct(
-                'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
-                {
-                  link: (
-                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
-                  ),
-                }
-              )}
-            </Alert>
-            <SlugFormFooter gap="sm" justify="end">
-              <Button onClick={() => slugForm.reset()} disabled={!hasWriteAccess}>
-                {t('Cancel')}
-              </Button>
-              <slugForm.SubmitButton disabled={!hasWriteAccess}>
-                {t('Save')}
-              </slugForm.SubmitButton>
-            </SlugFormFooter>
+            <slugForm.Subscribe
+              selector={state => state.values.slug !== initialData.slug}
+            >
+              {isDirty =>
+                isDirty && (
+                  <Container paddingTop="lg">
+                    <Alert variant="info" showIcon={false}>
+                      {tct(
+                        'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
+                        {
+                          link: (
+                            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
+                          ),
+                        }
+                      )}
+                    </Alert>
+                    <Flex gap="sm" justify="end" paddingTop="lg">
+                      <Button onClick={() => slugForm.reset()} disabled={!hasWriteAccess}>
+                        {t('Cancel')}
+                      </Button>
+                      <slugForm.SubmitButton disabled={!hasWriteAccess}>
+                        {t('Save')}
+                      </slugForm.SubmitButton>
+                    </Flex>
+                  </Container>
+                )
+              }
+            </slugForm.Subscribe>
           </slugForm.FormWrapper>
         </slugForm.AppForm>
 
@@ -446,8 +456,4 @@ const PoweredByCodecov = styled('div')`
     display: flex;
     align-items: center;
   }
-`;
-
-const SlugFormFooter = styled(Flex)`
-  padding: ${space(2)} ${space(2)} 0;
 `;

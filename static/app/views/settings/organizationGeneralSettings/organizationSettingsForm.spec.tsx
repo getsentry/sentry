@@ -66,6 +66,28 @@ describe('OrganizationSettingsForm', () => {
     });
   });
 
+  it('hides slug alert and save/cancel until slug is modified', async () => {
+    render(
+      <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />
+    );
+
+    expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Learn more'})).not.toBeInTheDocument();
+
+    const input = screen.getByRole('textbox', {name: 'Organization Slug'});
+    await userEvent.type(input, '-changed');
+
+    expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Learn more'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
+  });
+
   it('can change slug', async () => {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
@@ -132,14 +154,10 @@ describe('OrganizationSettingsForm', () => {
   });
 
   it('can enable "Show Generative AI Features"', async () => {
-    // initialData.hideAiFeatures: false → switch is OFF (AI hidden)
-    const hiddenAiOrg = OrganizationFixture({
-      hideAiFeatures: true,
-      features: ['gen-ai-features'],
-    });
+    // initialData.hideAiFeatures = false (default) → switch starts OFF
     render(
       <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
-      {organization: hiddenAiOrg}
+      {organization: {...organization, features: ['gen-ai-features']}}
     );
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
@@ -150,10 +168,9 @@ describe('OrganizationSettingsForm', () => {
       name: 'Show Generative AI Features',
     });
 
-    // initialData.hideAiFeatures = false → switch is OFF
     expect(checkbox).not.toBeChecked();
 
-    // Click to enable → switch ON (form value = true) → API receives hideAiFeatures: !true = false
+    // Click to enable: form value → true, API receives hideAiFeatures: !true = false
     await userEvent.click(checkbox);
 
     await waitFor(() => {
@@ -169,17 +186,13 @@ describe('OrganizationSettingsForm', () => {
   });
 
   it('can disable "Show Generative AI Features"', async () => {
-    // initialData.hideAiFeatures: true → switch is ON (AI shown)
-    const aiEnabledOrg = OrganizationFixture({
-      hideAiFeatures: false,
-      features: ['gen-ai-features'],
-    });
+    // initialData.hideAiFeatures = true → switch starts ON
     render(
       <OrganizationSettingsForm
         initialData={OrganizationFixture({hideAiFeatures: true})}
         onSave={onSave}
       />,
-      {organization: aiEnabledOrg}
+      {organization: {...organization, features: ['gen-ai-features']}}
     );
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
@@ -190,10 +203,9 @@ describe('OrganizationSettingsForm', () => {
       name: 'Show Generative AI Features',
     });
 
-    // initialData.hideAiFeatures = true → switch is ON
     expect(checkbox).toBeChecked();
 
-    // Click to disable → switch OFF (form value = false) → API receives hideAiFeatures: !false = true
+    // Click to disable: form value → false, API receives hideAiFeatures: !false = true
     await userEvent.click(checkbox);
 
     await waitFor(() => {
@@ -206,7 +218,7 @@ describe('OrganizationSettingsForm', () => {
     expect(checkbox).not.toBeChecked();
   });
 
-  it('shows hideAiFeatures togglefor DE region', async () => {
+  it('shows hideAiFeatures toggle for DE region', async () => {
     // Mock the region util to return DE region
     jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
       name: 'de',
@@ -304,9 +316,7 @@ describe('OrganizationSettingsForm', () => {
 
       expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
       expect(
-        screen.queryByText(
-          'Use AI to review, find bugs, and generate tests in pull requests'
-        )
+        screen.queryByText('Use AI to review and find bugs in pull requests')
       ).not.toBeInTheDocument();
     });
 
@@ -368,7 +378,7 @@ describe('OrganizationSettingsForm', () => {
       expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
     });
 
-    describe('AI Code Review field', () => {
+    describe('region and access behavior', () => {
       it('is enabled when US region', async () => {
         jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
           name: 'us',
