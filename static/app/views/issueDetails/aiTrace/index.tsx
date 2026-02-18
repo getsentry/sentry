@@ -36,10 +36,11 @@ interface AITraceSectionProps {
 }
 
 const MCP_SERVER_URL = 'http://localhost:8080';
+const MCP_API_KEY = 'mwu18CWSSa7jSGHi53ZkcyoG9Z9s3S6B2uCX7FPPRy4'; // For local testing only
 
 // Demo mode: set to true to use hardcoded data for UI testing
 // Use true for Vercel deployment since MCP server is not publicly accessible
-const USE_DEMO_DATA = true;
+const USE_DEMO_DATA = false;
 
 const DEMO_DATA: AITraceData = {
   metadata: {
@@ -119,7 +120,11 @@ export function AITraceSection({event}: AITraceSectionProps) {
       return;
     }
 
-    fetch(`${MCP_SERVER_URL}/v2/traces/by-commit/${commitHash}/conversation`)
+    fetch(`${MCP_SERVER_URL}/v2/traces/by-commit/${commitHash}/conversation`, {
+      headers: {
+        'X-API-Key': MCP_API_KEY,
+      },
+    })
       .then(response => response.json())
       .then(data => {
         if (data.found) {
