@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
+import {unshiftTimestampFromFakeUtc} from 'sentry/components/charts/timezoneShift';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -53,6 +54,11 @@ interface Props {
    * Sets the pageStart and pageEnd query params
    */
   usePageDate?: boolean;
+  /**
+   * Whether chart is displaying UTC. When false, chart data is timezone-shifted
+   * and zoom coordinates need to be unshifted back to real UTC.
+   */
+  utc?: boolean;
   xAxisIndex?: number | number[];
 }
 
@@ -127,6 +133,7 @@ export function useChartZoom({
   usePageDate,
   saveOnZoom,
   xAxisIndex,
+  utc,
 }: Omit<Props, 'children'>): ZoomRenderProps {
   const {handleChartReady} = useChartZoomCancel();
   const location = useLocation();
@@ -198,6 +205,13 @@ export function useChartZoom({
 
       // if `rangeStart` and `rangeEnd` are null, then we are going back
       if (startValue && endValue) {
+        // When !utc, chart data is timezone-shifted ("fake UTC").
+        // Unshift zoom coordinates back to real UTC before updating filters.
+        if (!utc) {
+          startValue = unshiftTimestampFromFakeUtc(startValue);
+          endValue = unshiftTimestampFromFakeUtc(endValue);
+        }
+
         // round off the bounds to the minute
         startValue = Math.floor(startValue / 60_000) * 60_000;
         endValue = Math.ceil(endValue / 60_000) * 60_000;
@@ -212,7 +226,7 @@ export function useChartZoom({
         });
       }
     },
-    [setPeriod]
+    [setPeriod, utc]
   );
 
   /**

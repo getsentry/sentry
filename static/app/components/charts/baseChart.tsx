@@ -59,6 +59,7 @@ import {
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
+import {shiftSeriesData, shiftTimestampToFakeUtc} from './timezoneShift';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -490,6 +491,14 @@ function BaseChart({
   const chartId = useId();
 
   const chartOption = useMemo(() => {
+    // When utc is false, we shift all timestamps into "fake UTC" so that
+    // ECharts (with useUTC: true) places tick boundaries at nice values
+    // in the user's configured timezone. Formatters then read the shifted
+    // UTC wall-clock, which matches user-timezone wall-clock.
+    const shouldShift = !utc;
+
+    const finalSeries = shouldShift ? shiftSeriesData(resolvedSeries) : resolvedSeries;
+
     const seriesData =
       Array.isArray(series?.[0]?.data) && series[0].data.length > 1
         ? series[0].data
@@ -516,7 +525,7 @@ function BaseChart({
           );
 
     const aria = computeEchartsAriaLabels(
-      {series: resolvedSeries, useUTC: utc},
+      {series: finalSeries, useUTC: utc},
       isGroupedByDate
     );
     const defaultAxesProps = {theme};
@@ -529,11 +538,45 @@ function BaseChart({
         ? undefined
         : YAxis({theme, ...yAxis});
 
+    // Shift xAxis min/max if explicitly provided and we're shifting timestamps
+    const shiftXAxisBounds = (axisConfig: XAXisComponentOption): XAXisComponentOption => {
+      if (!shouldShift) {
+        return axisConfig;
+      }
+      const shifted = {...axisConfig};
+      if (typeof shifted.min === 'number') {
+        shifted.min = shiftTimestampToFakeUtc(shifted.min);
+      }
+      if (typeof shifted.max === 'number') {
+        shifted.max = shiftTimestampToFakeUtc(shifted.max);
+      }
+      return shifted;
+    };
+
     const xAxisOrCustom = xAxes
       ? Array.isArray(xAxes)
         ? xAxes.map(axis =>
+            shiftXAxisBounds(
+              XAxis({
+                ...axis,
+                theme,
+                useShortDate,
+                useMultilineDate,
+                start,
+                end,
+                period,
+                isGroupedByDate,
+                addSecondsToTimeFormat,
+                utc,
+              })
+            )
+          )
+        : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)]
+      : xAxis === null
+        ? undefined
+        : shiftXAxisBounds(
             XAxis({
-              ...axis,
+              ...xAxis,
               theme,
               useShortDate,
               useMultilineDate,
@@ -544,34 +587,19 @@ function BaseChart({
               addSecondsToTimeFormat,
               utc,
             })
-          )
-        : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)]
-      : xAxis === null
-        ? undefined
-        : XAxis({
-            ...xAxis,
-            theme,
-            useShortDate,
-            useMultilineDate,
-            start,
-            end,
-            period,
-            isGroupedByDate,
-            addSecondsToTimeFormat,
-            utc,
-          });
+          );
 
     return {
       ...options,
       animation,
-      useUTC: utc,
+      useUTC: true,
       color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
       legend: legend ? Legend({theme, ...legend}) : undefined,
       yAxis: yAxisOrCustom,
       xAxis: xAxisOrCustom,
-      series: resolvedSeries,
+      series: finalSeries,
       toolbox: toolBox,
       axisPointer,
       dataZoom,

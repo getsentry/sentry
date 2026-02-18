@@ -27,7 +27,7 @@ function XAxis({
   start,
   end,
   period,
-  utc,
+  utc: _utc,
   addSecondsToTimeFormat = false,
   ...props
 }: XAxisProps): XAXisComponentOption {
@@ -38,10 +38,12 @@ function XAxis({
 
     if (isGroupedByDate) {
       const dateFormat = useShortDate ? 'MMM Do' : `MMM D`;
-      const dateString = getFormattedDate(value, dateFormat, {local: !utc});
+      // With timezone shifting in BaseChart, UTC wall-clock already matches
+      // the user's configured timezone. Always parse as UTC.
+      const dateString = getFormattedDate(value, dateFormat, {local: false});
 
       const timeFormat = getTimeFormat({seconds: addSecondsToTimeFormat});
-      const timeString = getFormattedDate(value, timeFormat, {local: !utc});
+      const timeString = getFormattedDate(value, timeFormat, {local: false});
 
       const delimiter = useMultilineDate ? '\n' : ' ';
 

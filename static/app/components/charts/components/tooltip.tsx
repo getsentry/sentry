@@ -7,11 +7,12 @@ import moment from 'moment-timezone';
 
 import type BaseChart from 'sentry/components/charts/baseChart';
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import {unshiftTimestampFromFakeUtc} from 'sentry/components/charts/timezoneShift';
 import {truncationFormatter} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DataPoint} from 'sentry/types/echarts';
 import toArray from 'sentry/utils/array/toArray';
-import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
+import {getFormattedDate, getTimeFormat, getUserTimezone} from 'sentry/utils/dates';
 
 export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
 
@@ -29,20 +30,28 @@ export function defaultFormatAxisLabel(
     return value;
   }
 
-  const formatOptions = {local: !utc};
+  // With timezone shifting in BaseChart, UTC wall-clock matches
+  // the user's configured timezone. Always parse as UTC.
+  const formatOptions = {local: false};
 
   const timeFormat = showTimeInTooltip
     ? getTimeFormat({seconds: addSecondsToTimeFormat})
     : '';
 
+  // Compute timezone abbreviation from the real (unshifted) timestamp
+  const tzAbbr = utc
+    ? 'UTC'
+    : moment.tz(unshiftTimestampFromFakeUtc(value), getUserTimezone()).format('z');
+
   if (!bucketSize) {
-    const format = `MMM D, YYYY ${timeFormat} z`.trim();
-    return getFormattedDate(value, format, formatOptions);
+    const format = `MMM D, YYYY ${timeFormat}`.trim();
+    const formatted = getFormattedDate(value, format, formatOptions);
+    return `${formatted} ${tzAbbr}`.trim();
   }
 
-  const now = moment();
-  const bucketStart = moment(value);
-  const bucketEnd = moment(value + bucketSize);
+  const now = moment.utc();
+  const bucketStart = moment.utc(value);
+  const bucketEnd = moment.utc(value + bucketSize);
 
   const showYear = now.year() !== bucketStart.year() || now.year() !== bucketEnd.year();
   const showEndDate = bucketStart.date() !== bucketEnd.date();
@@ -54,9 +63,8 @@ export function defaultFormatAxisLabel(
 
   const start = getFormattedDate(bucketStart, formatStart, formatOptions);
   const end = getFormattedDate(bucketEnd, formatEnd, formatOptions);
-  const timezone = getFormattedDate(bucketEnd, 'z', formatOptions);
 
-  return `${start} — ${end} (${timezone})`;
+  return `${start} — ${end} (${tzAbbr})`;
 }
 
 function defaultValueFormatter(value: string | number) {
