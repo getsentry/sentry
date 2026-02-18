@@ -570,7 +570,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     [onLegendSelectionChange]
   );
 
-  // Build legend items from plottables using their assigned colors
+  // Build legend items from plottables using their assigned colors.
+  // For plottables with pre-configured colors (needsColor=false), we extract
+  // the color from the generated ECharts series since the Plottable interface
+  // doesn't expose it directly.
   const chartLegendItems: LegendItem[] = useMemo(() => {
     if (!usesChartLegendComponent) {
       return [];
@@ -581,10 +584,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       if (plottable.needsColor) {
         color = palette[colorIndex % palette.length]!;
         colorIndex += 1;
+      } else {
+        // Extract color from the generated series for this plottable
+        const series = seriesFromPlottables.find(s => s.name === plottable.name);
+        const seriesColor =
+          (series as {color?: unknown})?.color ??
+          (series as {itemStyle?: {color?: unknown}})?.itemStyle?.color;
+        color = typeof seriesColor === 'string' ? seriesColor : '';
       }
       return {
         name: plottable.name,
-        label: aliases[plottable.name] ?? plottable.name,
+        label: plottable.label ?? plottable.name,
         color,
       };
     });
@@ -600,7 +610,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       });
     }
     return items;
-  }, [usesChartLegendComponent, props.plottables, palette, aliases, releaseSeries]);
+  }, [
+    usesChartLegendComponent,
+    props.plottables,
+    palette,
+    seriesFromPlottables,
+    releaseSeries,
+  ]);
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
