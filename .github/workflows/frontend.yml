@@ -219,7 +219,14 @@ jobs:
           #
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
-        run: pnpm run test:vitest-shard
+        run: |
+          pnpm run test:vitest-shard > /tmp/vitest-shard-files.txt
+          mapfile -t shard_files < /tmp/vitest-shard-files.txt
+          if [ "${#shard_files[@]}" -eq 0 ]; then
+            echo "No test files selected for this shard"
+            exit 1
+          fi
+          pnpm exec vitest run --maxWorkers=100% "${shard_files[@]}"
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)

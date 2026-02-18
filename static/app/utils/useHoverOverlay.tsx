@@ -206,6 +206,14 @@ function useHoverOverlay({
 
   const [isVisible, setIsVisible] = useState(forceVisible ?? false);
   const isOpen = forceVisible ?? isVisible;
+  const isMountedRef = useRef(true);
+
+  const setVisibleIfMounted = useCallback((visible: boolean) => {
+    if (!isMountedRef.current) {
+      return;
+    }
+    setIsVisible(visible);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -237,6 +245,7 @@ function useHoverOverlay({
   // No need to reset value of refs to undefined since they will be garbage collected anyways
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       maybeClearRefTimeout(delayHideTimeoutRef);
       maybeClearRefTimeout(delayOpenTimeoutRef);
     };
@@ -252,29 +261,29 @@ function useHoverOverlay({
     maybeClearRefTimeout(delayOpenTimeoutRef);
 
     if (delay === 0) {
-      setIsVisible(true);
+      setVisibleIfMounted(true);
       return;
     }
 
     delayOpenTimeoutRef.current = setTimeout(
-      () => setIsVisible(true),
+      () => setVisibleIfMounted(true),
       delay ?? OPEN_DELAY
     ) as unknown as number;
-  }, [delay, showOnlyOnOverflow, triggerElement]);
+  }, [delay, showOnlyOnOverflow, triggerElement, setVisibleIfMounted]);
 
   const handleMouseLeave = useCallback(() => {
     maybeClearRefTimeout(delayHideTimeoutRef);
     maybeClearRefTimeout(delayOpenTimeoutRef);
 
     if (!isHoverable && !displayTimeout) {
-      setIsVisible(false);
+      setVisibleIfMounted(false);
       return;
     }
 
     delayHideTimeoutRef.current = setTimeout(() => {
-      setIsVisible(false);
+      setVisibleIfMounted(false);
     }, displayTimeout ?? CLOSE_DELAY) as unknown as number;
-  }, [isHoverable, displayTimeout]);
+  }, [isHoverable, displayTimeout, setVisibleIfMounted]);
 
   /**
    * Wraps the passed in react elements with a container that has the proper
@@ -358,10 +367,10 @@ function useHoverOverlay({
   );
 
   const reset = useCallback(() => {
-    setIsVisible(false);
+    setVisibleIfMounted(false);
     maybeClearRefTimeout(delayHideTimeoutRef);
     maybeClearRefTimeout(delayOpenTimeoutRef);
-  }, []);
+  }, [setVisibleIfMounted]);
 
   const overlayProps = useMemo(() => {
     return {

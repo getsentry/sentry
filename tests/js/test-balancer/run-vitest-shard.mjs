@@ -1,5 +1,5 @@
 /* eslint-disable no-undef, import/no-nodejs-modules */
-import {execFileSync} from 'node:child_process';
+import {spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -13,7 +13,7 @@ const BALANCE_RESULTS_PATH = path.resolve(__dirname, 'vitest-balance.json');
  * @returns {string[]}
  */
 function listVitestTests() {
-  const stdout = execFileSync(
+  const result = spawnSync(
     'pnpm',
     ['exec', 'vitest', 'list', '--json', '--filesOnly', '--run'],
     {
@@ -21,7 +21,16 @@ function listVitestTests() {
       encoding: 'utf-8',
     }
   );
-  const listed = JSON.parse(stdout);
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error(
+      `vitest list failed with exit code ${result.status ?? 'unknown'}:\n${result.stderr ?? ''}`
+    );
+  }
+
+  const listed = JSON.parse(result.stdout);
   if (!Array.isArray(listed)) {
     throw new Error('Unexpected output from `vitest list --json --filesOnly`');
   }
@@ -77,24 +86,15 @@ function main() {
 
   const absoluteSelected = selected.map(test => path.resolve(process.cwd(), `.${test}`));
   const shardLabel = `${nodeIndex + 1}/${nodeTotal}`;
-  process.stdout.write(
-    `Running Vitest shard ${shardLabel} with ${absoluteSelected.length} test files\n`
+  process.stderr.write(
+    `Selected Vitest shard ${shardLabel} with ${absoluteSelected.length} test files\n`
   );
-
-  execFileSync(
-    'pnpm',
-    [
-      'exec',
-      'vitest',
-      'run',
-      '--maxWorkers=75%',
-      '--reporter=default',
-      '--reporter=junit',
-      '--outputFile=.artifacts/vitest.junit.xml',
-      ...absoluteSelected,
-    ],
-    {stdio: 'inherit'}
-  );
+  process.stdout.write(`${absoluteSelected.join('\n')}\n`);
 }
 
-main();
+try {
+  main();
+} catch (error) {
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.exitCode = 1;
+}

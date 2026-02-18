@@ -22,7 +22,7 @@ function runVitestForTiming() {
       'exec',
       'vitest',
       'run',
-      '--maxWorkers=75%',
+      '--maxWorkers=100%',
       '--reporter=json',
       `--outputFile=${REPORT_PATH}`,
       ...extraArgs,
