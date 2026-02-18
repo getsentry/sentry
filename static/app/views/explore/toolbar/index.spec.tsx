@@ -371,6 +371,40 @@ describe('ExploreToolbar', () => {
     expect(visualizes[0]!.yAxes).toEqual(['p50(span.duration)']);
   });
 
+  it('does not apply invalid field choices to every aggregate in multi-select mode', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        features: ['dashboards-edit', 'traces-overlay-charts-ui'],
+      }),
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'sum'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count'}));
+
+    expect(visualizes[0]!.yAxes).toEqual(['count_unique(span.op)', 'sum(span.duration)']);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
+    await userEvent.click(
+      within(section).getByRole('option', {name: 'span.description'})
+    );
+
+    expect(visualizes[0]!.yAxes).toEqual([
+      'count_unique(span.description)',
+      'sum(span.duration)',
+    ]);
+  });
+
   it('shows count as the default aggregate option', async () => {
     function Component() {
       return <ExploreToolbar />;
