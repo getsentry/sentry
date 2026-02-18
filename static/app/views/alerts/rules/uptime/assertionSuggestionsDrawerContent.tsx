@@ -8,6 +8,7 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import LoadingError from 'sentry/components/loadingError';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -41,7 +42,9 @@ export function AssertionSuggestionsDrawerContent({
 
   const {data, isPending, isError, refetch} = useApiQuery<AssertionSuggestionsResponse>(
     [
-      `/organizations/${organization.slug}/uptime-assertion-suggestions/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/uptime-assertion-suggestions/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         method: 'POST',
         data: {...payload},
