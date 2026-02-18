@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import type {InputActionMeta} from 'react-select/src/types';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
@@ -65,7 +66,11 @@ export function SelectAsyncField<TData, TValue = string>({
       value={value}
       options={options}
       isLoading={isPending || inputValue !== debouncedInput}
-      onInputChange={setInputValue}
+      onInputChange={(newInputValue: string, actionMeta: InputActionMeta) => {
+        if (actionMeta.action === 'input-change') {
+          setInputValue(newInputValue);
+        }
+      }}
     />
   );
 }
