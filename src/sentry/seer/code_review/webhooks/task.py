@@ -172,11 +172,11 @@ def _set_tags(event_payload: Mapping[str, Any], github_event: str) -> None:
             if owner and name
             else None,
         }
-    extract_github_info(synthetic_event, github_event=github_event)
+    trigger = config.get("trigger")
+    extract_github_info(synthetic_event, github_event=github_event, trigger=trigger)
 
     # Override scm_event_url based on trigger type (default PR URL is already set above).
     # ON_NEW_COMMIT → commit URL; ON_COMMAND_PHRASE → comment URL.
-    trigger = config.get("trigger")
     commit_sha = repo_data.get("base_commit_sha")
     comment_id = config.get("trigger_comment_id")
     if trigger == "on_new_commit" and owner and name and commit_sha:

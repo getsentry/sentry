@@ -388,6 +388,7 @@ def extract_github_info(
     organization_id: int | None = None,
     organization_slug: str | None = None,
     integration_id: int | None = None,
+    trigger: str | None = None,
 ) -> dict[str, str | None]:
     """
     Extract GitHub-related information from a webhook event payload.
@@ -401,6 +402,7 @@ def extract_github_info(
         organization_id: Sentry organization ID
         organization_slug: Sentry organization slug
         integration_id: Sentry integration ID
+        trigger: Trigger type (e.g., "on_new_commit", "on_command_phrase", "on_ready_for_review")
 
     Returns:
         Dictionary containing:
@@ -416,6 +418,7 @@ def extract_github_info(
             - sentry_integration_id: The Sentry integration ID
             - sentry_organization_id: Sentry organization ID (if available)
             - sentry_organization_slug: Sentry organization slug (if available)
+            - trigger: Trigger type (if available)
     """
     result: dict[str, str | None] = {
         "github_actor_id": None,
@@ -430,6 +433,7 @@ def extract_github_info(
         "sentry_integration_id": str(integration_id) if integration_id is not None else None,
         "sentry_organization_id": str(organization_id) if organization_id is not None else None,
         "sentry_organization_slug": organization_slug,
+        "trigger": trigger,
     }
 
     repository = event.get("repository", {})
