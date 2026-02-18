@@ -85,7 +85,11 @@ def execute_scheduled_report(scheduled_report_id: int) -> None:
     try:
         empty_result = False
         if report.source_type == ScheduledReportSourceType.DASHBOARD:
-            raise NotImplementedError("Dashboard PDF scheduled reports are not yet supported")
+            logger.info(
+                "scheduled_report.dashboard_not_supported",
+                extra={"report_id": report.id},
+            )
+            return
         elif report.source_type == ScheduledReportSourceType.EXPLORE_SAVED_QUERY:
             filename, file_bytes, empty_result = generate_csv_for_explore_query(
                 report, organization
