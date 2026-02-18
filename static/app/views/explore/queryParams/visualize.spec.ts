@@ -69,6 +69,18 @@ describe('VisualizeFunction', () => {
     expect(vis2.yAxis).toBe('avg(span.duration)');
   });
 
+  it('ignores empty yAxes when replacing', () => {
+    const vis1 = new VisualizeFunction('count(span.duration)', {
+      chartType: ChartType.AREA,
+    });
+    const vis2 = vis1.replace({yAxes: []});
+    expect(vis2).toEqual(
+      new VisualizeFunction('count(span.duration)', {chartType: ChartType.AREA})
+    );
+    expect(vis2.yAxis).toBe('count(span.duration)');
+    expect(vis2.parsedFunction).not.toBeNull();
+  });
+
   it('replaces chart type', () => {
     const vis1 = new VisualizeFunction('count(span.duration)', {
       chartType: ChartType.AREA,

@@ -133,7 +133,9 @@ export class VisualizeFunction extends Visualize {
     yAxes?: readonly string[];
     yAxis?: string;
   }): VisualizeFunction {
-    return new VisualizeFunction(yAxes ?? yAxis ?? this.yAxes, {
+    const nextYAxes = yAxes && yAxes.length > 0 ? yAxes : yAxis ? [yAxis] : this.yAxes;
+
+    return new VisualizeFunction(nextYAxes, {
       chartType: chartType ?? this.selectedChartType,
       visible: visible ?? this.visible,
     });
