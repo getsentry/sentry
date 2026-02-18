@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from requests import HTTPError
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
@@ -158,7 +159,7 @@ def launch_coding_agents(
                     if github_integrations:
                         github_installation_id = github_integrations[0].external_id
                 except Exception:
-                    pass
+                    sentry_sdk.capture_exception(level="warning")
 
             failure: dict = {
                 "repo_name": repo_name,

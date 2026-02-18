@@ -6,6 +6,7 @@ import string
 from typing import Any
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
@@ -338,7 +339,7 @@ def _launch_agents_for_repos(
                             if sentry_integration:
                                 github_installation_id = sentry_integration.external_id
                         except Exception:
-                            pass
+                            sentry_sdk.capture_exception(level="warning")
                 elif e.code == 401:
                     error_message = f"Failed to make request to coding agent{url_part}. Please check that your API credentials are correct: {e.code} Error: {e.text}"
                 else:
