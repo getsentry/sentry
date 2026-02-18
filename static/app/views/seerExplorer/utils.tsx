@@ -33,9 +33,9 @@ type ToolFormatter = (
 
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
-  runId?: number
+  runId: number | null
 ): ApiQueryKey => [
-  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+  `/organizations/${orgSlug}/seer/explorer-chat/${runId === null ? '' : `${runId}/`}`,
   {},
 ];
 
