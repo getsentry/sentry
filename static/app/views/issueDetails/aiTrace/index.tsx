@@ -40,7 +40,8 @@ const MCP_SERVER_URL = 'https://unpargeted-superextreme-kenna.ngrok-free.dev';
 const MCP_API_KEY = 'mwu18CWSSa7jSGHi53ZkcyoG9Z9s3S6B2uCX7FPPRy4';
 
 // Demo mode: set to false to use real data from MCP server
-const USE_DEMO_DATA = false;
+// Using demo mode because ngrok free tier blocks browser requests
+const USE_DEMO_DATA = true;
 
 const DEMO_DATA: AITraceData = {
   metadata: {
