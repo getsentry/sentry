@@ -619,7 +619,7 @@ def query_trace_data(
                 errors = id_to_error.pop(span["id"])
                 span["errors"].extend(errors)
             if span["id"] in id_to_occurrence:
-                occurrence_events: list[TraceOccurrenceEvent] = [
+                occurrences: list[TraceOccurrenceEvent] = [
                     {
                         "event_type": "occurrence",
                         "event_data": {
@@ -632,7 +632,7 @@ def query_trace_data(
                     }
                     for occurrence in id_to_occurrence[span["id"]]
                 ]
-                span["occurrences"].extend(occurrence_events)
+                span["occurrences"].extend(occurrences)
 
         # These are offset from the params start & end
         if span_min_ts is not None:
