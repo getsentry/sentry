@@ -152,6 +152,11 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         except NoProjects:
             raise NoProjects("No projects available")
 
+        # Use validated project IDs from get_filter_params instead of raw user input.
+        # The raw project_slug_list could contain slugs for projects the user doesn't
+        # have access to, bypassing the permission checks in get_projects().
+        validated_project_ids = set(filter_params["project_id"])
+
         start: datetime | None = filter_params["start"]
         end: datetime | None = filter_params["end"]
         logger.info(
@@ -173,7 +178,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             )
         if project_slug_list:
             release_query &= Q(
-                projects__slug__in=project_slug_list,
+                projects__id__in=validated_project_ids,
             )
         if releases_list:
             release_query &= Q(
@@ -215,7 +220,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             project_list = [
                 p
                 for p in release.projects.all()
-                if (project_slug_list and p.slug in project_slug_list) or (not project_slug_list)
+                if (project_slug_list and p.id in validated_project_ids) or (not project_slug_list)
             ]
 
             for project in project_list:
