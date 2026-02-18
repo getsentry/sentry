@@ -384,7 +384,11 @@ describe('SpanQueryParamsProvider', () => {
         {groupBy: 'span.op'},
         {
           chartType: ChartType.AREA,
-          yAxes: ['min(span.self_time)', 'max(span.duration)'],
+          yAxes: ['min(span.self_time)'],
+        },
+        {
+          chartType: ChartType.AREA,
+          yAxes: ['max(span.duration)'],
         },
       ],
     });
@@ -400,10 +404,10 @@ describe('SpanQueryParamsProvider', () => {
         aggregateSortBys: [{field: 'max(span.duration)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new VisualizeFunction('min(span.self_time)', {
+          new VisualizeFunction(['min(span.self_time)'], {
             chartType: ChartType.AREA,
           }),
-          new VisualizeFunction('max(span.duration)', {
+          new VisualizeFunction(['max(span.duration)'], {
             chartType: ChartType.AREA,
           }),
         ],
@@ -418,7 +422,11 @@ describe('SpanQueryParamsProvider', () => {
         {groupBy: 'span.op'},
         {
           chartType: ChartType.AREA,
-          yAxes: ['min(span.self_time)', 'max(span.duration)'],
+          yAxes: ['min(span.self_time)'],
+        },
+        {
+          chartType: ChartType.AREA,
+          yAxes: ['max(span.duration)'],
         },
       ],
     });
@@ -434,10 +442,10 @@ describe('SpanQueryParamsProvider', () => {
         aggregateSortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
-          new VisualizeFunction('min(span.self_time)', {
+          new VisualizeFunction(['min(span.self_time)'], {
             chartType: ChartType.AREA,
           }),
-          new VisualizeFunction('max(span.duration)', {
+          new VisualizeFunction(['max(span.duration)'], {
             chartType: ChartType.AREA,
           }),
         ],
@@ -538,7 +546,11 @@ describe('SpanQueryParamsProvider', () => {
         },
         {
           chartType: ChartType.LINE,
-          yAxes: ['avg(span.duration)', 'avg(span.self_time)'],
+          yAxes: ['avg(span.duration)'],
+        },
+        {
+          chartType: ChartType.LINE,
+          yAxes: ['avg(span.self_time)'],
         },
       ])
     );
@@ -555,10 +567,10 @@ describe('SpanQueryParamsProvider', () => {
           new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
-          new VisualizeFunction('avg(span.duration)', {
+          new VisualizeFunction(['avg(span.duration)'], {
             chartType: ChartType.LINE,
           }),
-          new VisualizeFunction('avg(span.self_time)', {
+          new VisualizeFunction(['avg(span.self_time)'], {
             chartType: ChartType.LINE,
           }),
         ],
