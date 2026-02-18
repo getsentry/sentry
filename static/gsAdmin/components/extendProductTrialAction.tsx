@@ -50,7 +50,7 @@ function ExtendProductTrialAction({
   const handleDaysChange = (value: string) => {
     const days = parseInt(value, 10) || 0;
     setExtendDays(days);
-    disableConfirmButton(days < 1 || days > 90);
+    disableConfirmButton(days < 1 || days > 180);
   };
 
   const currentEndDate = moment.utc(activeProductTrial.endDate);
@@ -76,7 +76,7 @@ function ExtendProductTrialAction({
         }
         name="extendDays"
         min={1}
-        max={90}
+        max={180}
         value={extendDays}
         onChange={handleDaysChange}
       />

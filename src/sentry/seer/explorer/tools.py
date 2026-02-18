@@ -19,7 +19,7 @@ from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.api.utils import default_start_end_dates, get_date_range_from_params
+from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
@@ -1420,7 +1420,8 @@ def get_log_attributes_for_trace(
     """
 
     start_dt, end_dt = get_date_range_from_params(
-        {"start": start, "end": end, "statsPeriod": stats_period}, optional=True
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        default_stats_period=MAX_STATS_PERIOD,
     )
 
     try:
@@ -1496,7 +1497,8 @@ def get_metric_attributes_for_trace(
     """
 
     start_dt, end_dt = get_date_range_from_params(
-        {"start": start, "end": end, "statsPeriod": stats_period}, optional=True
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        default_stats_period=MAX_STATS_PERIOD,
     )
 
     try:

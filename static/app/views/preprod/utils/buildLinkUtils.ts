@@ -1,3 +1,5 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+
 interface BuildLinkParams {
   organizationSlug: string;
   projectId: string;
@@ -53,9 +55,19 @@ export function getCompareApiUrl(params: {
   headArtifactId: string;
   organizationSlug: string;
   projectId: string;
-}): string {
+}) {
   const {organizationSlug, projectId, headArtifactId, baseArtifactId} = params;
-  return `/projects/${organizationSlug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`;
+  return getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        projectIdOrSlug: projectId,
+        headArtifactId,
+        baseArtifactId,
+      },
+    }
+  );
 }
 
 export function formatBuildName(
