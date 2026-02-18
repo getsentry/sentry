@@ -201,6 +201,7 @@ export default function FiltersBar({
     'dashboards-interval-selection'
   );
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [intervalMenuOpen, setIntervalMenuOpen] = useState(false);
 
   return (
     <Wrapper>
@@ -329,11 +330,15 @@ export default function FiltersBar({
       <ToggleOnDemand />
       {hasIntervalSelection && (
         <IntervalSection>
-          <Tooltip title={t('Time interval displayed in chart visualizations (ex. 5m)')}>
-            <CompactSelect
-              value={interval}
-              onChange={option => setInterval(option.value)}
-              trigger={triggerProps => (
+          <CompactSelect
+            value={interval}
+            onChange={option => setInterval(option.value)}
+            onOpenChange={setIntervalMenuOpen}
+            trigger={triggerProps => (
+              <Tooltip
+                title={t('Time interval used by chart visualizations (e.g., 5m)')}
+                disabled={intervalMenuOpen}
+              >
                 <OverlayTrigger.Button
                   {...triggerProps}
                   icon={<IconClock />}
@@ -341,11 +346,11 @@ export default function FiltersBar({
                   showChevron={false}
                   size="xs"
                 />
-              )}
-              menuTitle={t('Interval')}
-              options={intervalOptions}
-            />
-          </Tooltip>
+              </Tooltip>
+            )}
+            menuTitle={t('Interval')}
+            options={intervalOptions}
+          />
         </IntervalSection>
       )}
     </Wrapper>
