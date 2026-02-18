@@ -405,6 +405,40 @@ describe('ExploreToolbar', () => {
     ]);
   });
 
+  it('preserves remaining aggregate arguments when deselecting count_unique in multi-select mode', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        features: ['dashboards-edit', 'traces-overlay-charts-ui'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            visualize: '{"yAxes":["count_unique(span.self_time)","sum(span.self_time)"]}',
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+    expect(visualizes[0]!.yAxes).toEqual([
+      'count_unique(span.self_time)',
+      'sum(span.self_time)',
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: /count_unique/i}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+
+    expect(visualizes[0]!.yAxes).toEqual(['sum(span.self_time)']);
+  });
+
   it('shows count as the default aggregate option', async () => {
     function Component() {
       return <ExploreToolbar />;
