@@ -205,6 +205,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         assert data[0]["per_minute(value)"] == 0.6
         assert meta["fields"]["per_minute(value)"] == "rate"
+        assert meta["units"]["per_minute(value)"] == "1/minute"
         assert meta["dataset"] == "tracemetrics"
 
     def test_per_second_formula(self) -> None:
@@ -231,6 +232,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             data[0]["per_second(value)"] == 0.01
         )  # Over ten minute period, 6 events / 600 seconds = 0.01 events per second
         assert meta["fields"]["per_second(value)"] == "rate"
+        assert meta["units"]["per_second(value)"] == "1/second"
         assert meta["dataset"] == "tracemetrics"
 
     def test_per_second_formula_with_counter_metric_type(self) -> None:
