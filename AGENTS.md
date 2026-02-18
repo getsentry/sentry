@@ -166,6 +166,8 @@ When using multiple working trees (e.g. `git worktree add` or Cursor Parallel Ag
 - **Backend-only**: Set `SENTRY_DEVENV_SKIP_FRONTEND=1` in the worktree `.env` to skip Node/node_modules checks.
 - **Full isolation**: Run `devenv sync` and `direnv allow` in the worktree to give it its own venv and node_modules.
 
+**Validating worktree setup:** From the primary clone run `git worktree add ../sentry-worktree-validate HEAD`, then `cd ../sentry-worktree-validate`. To test full isolation: run `devenv sync`, then `direnv allow`; in a new shell run `sentry --version` to confirm. To test shared venv: in that worktree add a `.env` with `VIRTUAL_ENV=<absolute-path-to-primary-sentry>/.venv`, run `direnv allow` again, then in a new shell run `sentry --version`. Remove the worktree with `git worktree remove ../sentry-worktree-validate` from the primary clone.
+
 > For detailed development patterns, see nested AGENTS.md files:
 >
 > - **Backend patterns**: `src/AGENTS.md`

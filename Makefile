@@ -212,6 +212,9 @@ test-tools:
 	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools --reuse-db -vv --junit-xml=.artifacts/tools.junit.xml -o junit_suite_name=tools
 	@echo ""
 
+validate-worktree:
+	@./scripts/validate-worktree-env.sh
+
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 # Running Locally: Run `devservices up` before starting these tests
 test-symbolicator:
