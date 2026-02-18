@@ -1011,9 +1011,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 )
                 invalid_ids = linked_dashboard_ids - valid_ids
                 if invalid_ids:
-                    raise serializers.ValidationError(
-                        "Linked dashboard does not belong to this organization"
-                    )
+                    raise serializers.ValidationError("Linked dashboard does not exist")
 
             for link_data in linked_dashboards:
                 field = link_data.get("field")

@@ -3573,7 +3573,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         with self.feature("organizations:dashboards-drilldown-flow"):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Linked dashboard does not belong to this organization" in response.content
+        assert b"Linked dashboard does not exist" in response.content
 
         # Verify no DashboardFieldLink was created
         assert DashboardFieldLink.objects.count() == 0
@@ -3645,7 +3645,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         with self.feature("organizations:dashboards-drilldown-flow"):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Linked dashboard does not belong to this organization" in response.content
+        assert b"Linked dashboard does not exist" in response.content
 
     def test_cannot_delete_prebuilt_insights_dashboard(self) -> None:
         dashboard = Dashboard.objects.create(
