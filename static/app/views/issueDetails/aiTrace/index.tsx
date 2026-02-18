@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import {DataSection} from 'sentry/components/events/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron, IconOpen} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface AITraceData {
   conversation: Array<{
@@ -87,7 +87,6 @@ const DEMO_DATA: AITraceData = {
 export function AITraceSection({event}: AITraceSectionProps) {
   const [traceData, setTraceData] = useState<AITraceData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(true);
   const [showConversation, setShowConversation] = useState(false);
 
   // Extract commit hash from git_commit tag or release field
@@ -135,14 +134,9 @@ export function AITraceSection({event}: AITraceSectionProps) {
 
   if (loading) {
     return (
-      <DataSection>
-        <SectionHeader>
-          <span>🤖 {t('AI Trace')}</span>
-        </SectionHeader>
-        <ContentBox>
-          <LoadingIndicator mini />
-        </ContentBox>
-      </DataSection>
+      <InterimSection type="agent-trace" title={t('Agent Trace')}>
+        <LoadingIndicator mini />
+      </InterimSection>
     );
   }
 
@@ -158,80 +152,56 @@ export function AITraceSection({event}: AITraceSectionProps) {
   const toolName = metadata.tool_name === 'cursor' ? 'Cursor' : 'Claude Code';
 
   return (
-    <DataSection>
-      <SectionHeader onClick={() => setIsExpanded(!isExpanded)}>
-        <ChevronIcon isExpanded={isExpanded} />
-        <span>🤖 {t('AI Trace')}</span>
-      </SectionHeader>
+    <InterimSection type="agent-trace" title={t('Agent Trace')}>
+      <ContentBox>
+        <InfoGrid>
+          <InfoRow>
+            <Label>{t('Session ID')}</Label>
+            <Value>{metadata.session_id.substring(0, 16)}...</Value>
+          </InfoRow>
+          <InfoRow>
+            <Label>{t('Model')}</Label>
+            <Value>{metadata.model_id}</Value>
+          </InfoRow>
+          <InfoRow>
+            <Label>{t('Summary')}</Label>
+            <Value>{metadata.summary}</Value>
+          </InfoRow>
+        </InfoGrid>
 
-      {isExpanded && (
-        <ContentBox>
-          <InfoGrid>
-            <InfoRow>
-              <Label>{t('Session ID')}</Label>
-              <Value>{metadata.session_id.substring(0, 16)}...</Value>
-            </InfoRow>
-            <InfoRow>
-              <Label>{t('Model')}</Label>
-              <Value>{metadata.model_id}</Value>
-            </InfoRow>
-            <InfoRow>
-              <Label>{t('Summary')}</Label>
-              <Value>{metadata.summary}</Value>
-            </InfoRow>
-          </InfoGrid>
+        <Button
+          size="sm"
+          icon={<IconOpen />}
+          onClick={() => {
+            window.location.href = deepLink;
+          }}
+        >
+          {t('Open in')} {toolName}
+        </Button>
 
-          <Button
-            size="sm"
-            icon={<IconOpen />}
-            onClick={() => {
-              window.location.href = deepLink;
-            }}
-          >
-            {t('Open in')} {toolName}
-          </Button>
+        <ToggleButton onClick={() => setShowConversation(!showConversation)}>
+          {showConversation ? '▼' : '▶'} {t('View Conversation')} ({conversation.length})
+        </ToggleButton>
 
-          <ToggleButton onClick={() => setShowConversation(!showConversation)}>
-            {showConversation ? '▼' : '▶'} {t('View Conversation')} ({conversation.length}
-            )
-          </ToggleButton>
-
-          {showConversation && (
-            <ConversationBox>
-              {conversation.slice(0, 10).map((turn, i) => (
-                <Turn key={i}>
-                  <TurnLabel>
-                    {turn.role === 'user' ? '👤 User' : '🤖 Assistant'}
-                  </TurnLabel>
-                  <TurnText>{turn.content.substring(0, 300)}...</TurnText>
-                </Turn>
-              ))}
-            </ConversationBox>
-          )}
-        </ContentBox>
-      )}
-    </DataSection>
+        {showConversation && (
+          <ConversationBox>
+            {conversation.slice(0, 10).map((turn, i) => (
+              <Turn key={i}>
+                <TurnLabel>{turn.role === 'user' ? '👤 User' : '🤖 Assistant'}</TurnLabel>
+                <TurnText>{turn.content.substring(0, 300)}...</TurnText>
+              </Turn>
+            ))}
+          </ConversationBox>
+        )}
+      </ContentBox>
+    </InterimSection>
   );
 }
 
-const SectionHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  cursor: pointer;
-  padding: ${space(2)} 0;
-  font-weight: 600;
-`;
-
-const ChevronIcon = styled(IconChevron)<{isExpanded: boolean}>`
-  transform: ${p => (p.isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)')};
-  transition: transform 0.15s;
-`;
-
 const ContentBox = styled('div')`
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
 `;
 
 const InfoGrid = styled('div')`
