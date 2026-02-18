@@ -492,11 +492,14 @@ class ReleaseThresholdStatusProjectAccessTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.user = self.create_user(is_staff=False, is_superuser=False)
-
-        # Disable open membership so project access is enforced by team membership
+        # Create a separate owner so self.user doesn't get the owner role,
+        # which has global project access and would bypass team-based filtering.
+        owner = self.create_user("owner@example.com")
+        self.organization = self.create_organization(owner=owner)
         self.organization.flags.allow_joinleave = False
         self.organization.save()
+
+        self.user = self.create_user(is_staff=False, is_superuser=False)
 
         self.team1 = self.create_team(organization=self.organization)
         self.team2 = self.create_team(organization=self.organization)
@@ -508,7 +511,7 @@ class ReleaseThresholdStatusProjectAccessTest(APITestCase):
             name="inaccessible", organization=self.organization, teams=[self.team2]
         )
 
-        # User only belongs to team1 (user is already a member from APITestCase setUp)
+        # User only belongs to team1, giving access to accessible_project only
         self.create_team_membership(team=self.team1, user=self.user)
 
         self.environment = Environment.objects.create(
