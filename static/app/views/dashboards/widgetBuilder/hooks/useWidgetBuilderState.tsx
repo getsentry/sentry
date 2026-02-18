@@ -417,6 +417,7 @@ function useWidgetBuilderState(): {
             setSort([], options);
             setLimit(undefined, options);
             setLegendAlias([], options);
+            setDataset(undefined, options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [

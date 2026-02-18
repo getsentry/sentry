@@ -70,7 +70,10 @@ export function convertWidgetToBuilderStateParams(
   return {
     title: widget.title,
     description: widget.description ?? '',
-    dataset: widget.widgetType ?? WidgetType.ERRORS,
+    dataset:
+      widget.displayType === DisplayType.TEXT
+        ? undefined
+        : (widget.widgetType ?? WidgetType.ERRORS),
     displayType: widget.displayType ?? DisplayType.TABLE,
     limit: widget.limit,
     field,
