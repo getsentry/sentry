@@ -5,7 +5,7 @@ import {createParser, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -329,7 +329,7 @@ export default function FiltersBar({
         )}
       <ToggleOnDemand />
       {hasIntervalSelection && (
-        <IntervalSection>
+        <Flex align="center" marginLeft="auto">
           <CompactSelect
             value={interval}
             onChange={option => setInterval(option.value)}
@@ -351,7 +351,7 @@ export default function FiltersBar({
             menuTitle={t('Interval')}
             options={intervalOptions}
           />
-        </IntervalSection>
+        </Flex>
       )}
     </Wrapper>
   );
@@ -378,10 +378,4 @@ const Wrapper = styled('div')`
     height: 100%;
     width: 100%;
   }
-`;
-
-const IntervalSection = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-left: auto;
 `;
