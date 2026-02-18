@@ -30,8 +30,8 @@ async function readBlobText(blob: Blob): Promise<string> {
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ''));
-    reader.onerror = () => reject(reader.error);
+    reader.onload = () => resolve(String(reader.result as string));
+    reader.onerror = () => reject(reader.error as Error);
     reader.readAsText(blob);
   });
 }

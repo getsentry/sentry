@@ -1,3 +1,4 @@
+/* eslint-disable import/no-nodejs-modules */
 /// <reference types="vitest/globals" />
 /**
  * Compatibility shims for running shared test utilities under Vitest.
