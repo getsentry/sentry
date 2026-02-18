@@ -60,7 +60,7 @@ export function shiftSeriesData(
         if (typeof obj.name === 'number') {
           const shifted: Record<string, unknown> = {
             ...obj,
-            name: shiftTimestampToFakeUtc(obj.name as number, timezone),
+            name: shiftTimestampToFakeUtc(obj.name, timezone),
           };
 
           // Also shift value[0] if it's a tuple with a timestamp
