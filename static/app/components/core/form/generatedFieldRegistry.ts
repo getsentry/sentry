@@ -33,7 +33,7 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('User ID'),
     hintText: t('The unique identifier for your account. It cannot be modified.'),
   },
-  'a  ccount-details.theme': {
+  'account-details.theme': {
     name: 'theme',
     formId: 'account-details',
     route: '/settings/account/details/',
