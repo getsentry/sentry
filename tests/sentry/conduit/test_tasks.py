@@ -139,7 +139,8 @@ def test_publish_data_success():
     CONDUIT_PUBLISH_JWT_AUDIENCE="conduit",
     CONDUIT_PUBLISH_URL="http://localhost:9093",
 )
-def test_publish_data_retry_on_failure():
+@patch("sentry.utils.retries.time.sleep")
+def test_publish_data_retry_on_failure(mock_sleep):
     """Test that publish_data retries on RequestException."""
     org_id = 123
     channel_id = str(uuid4())
@@ -188,7 +189,8 @@ def test_publish_data_retry_on_failure():
     CONDUIT_PUBLISH_JWT_AUDIENCE="conduit",
     CONDUIT_PUBLISH_URL="http://localhost:9093",
 )
-def test_publish_data_max_retries_exceeded():
+@patch("sentry.utils.retries.time.sleep")
+def test_publish_data_max_retries_exceeded(mock_sleep):
     """Test that publish_data raises after max retries."""
     org_id = 123
     channel_id = str(uuid4())
