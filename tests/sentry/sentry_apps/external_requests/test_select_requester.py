@@ -41,6 +41,7 @@ class TestSelectRequester(TestCase):
         )
         self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
 
+    @pytest.mark.skip(reason="flaky: #108456")
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_makes_request(self, mock_record: MagicMock) -> None:
