@@ -73,7 +73,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
     {type: DisplayType.LINE, label: t('Line')},
     {type: DisplayType.TABLE, label: t('Table')},
     {type: DisplayType.BIG_NUMBER, label: t('Big Number')},
-    ...(hasTextWidget ? [{type: DisplayType.TEXT, label: t('Text')}] : []),
+    ...(hasTextWidget ? [{type: DisplayType.TEXT, label: t('Text (Markdown)')}] : []),
     ...(hasDetailsWidget ? [{type: DisplayType.DETAILS, label: t('Details')}] : []),
   ];
 
