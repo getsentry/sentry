@@ -67,6 +67,9 @@ The most common vulnerability. An endpoint accepts an ID from the request but do
 - Query includes `organization_id=organization.id` where `organization` comes from `convert_args()`
 - Uses `self.get_projects()` which scopes by org internally
 - Object is fetched via URL kwargs resolved by `convert_args()`
+- Unscoped query is a guard that only raises an error (never returns data), AND
+  a downstream query in the same flow IS org-scoped and raises the same error —
+  no differential behavior means no information leak
 
 ### Check 2: Missing Authorization Checks — 10 patches last year
 
