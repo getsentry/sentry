@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import enum
 import logging
+import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -38,7 +39,13 @@ if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcIntegration
 
 logger = logging.getLogger("sentry.integrations.issues")
+ENHANCED_DEFAULTS_FEATURE = "organizations:integrations-issue-defaults-enhanced"
+MARKDOWN_TEXT_CLEANUP_RE = re.compile(r"[*`#]")
 MAX_CHAR = 50
+MAX_TITLE_LENGTH = 255
+MAX_EVIDENCE_ITEMS = 8
+MAX_EVIDENCE_VALUE_LENGTH = 140
+MAX_EVENT_CONTEXT_LENGTH = 1200
 
 
 class ResolveSyncAction(enum.Enum):
@@ -143,6 +150,99 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
+    def _has_enhanced_defaults_flag(self, group: Group, user: User | RpcUser) -> bool:
+        return features.has(
+            ENHANCED_DEFAULTS_FEATURE,
+            group.organization,
+            actor=user,
+        )
+
+    def _clean_text(self, value: Any, max_length: int | None = None) -> str:
+        if value is None:
+            return ""
+
+        text = MARKDOWN_TEXT_CLEANUP_RE.sub("", str(value))
+        text = " ".join(text.split())
+        if max_length and len(text) > max_length:
+            return f"{text[: max_length - 3]}..."
+        return text
+
+    def _get_occurrence_detail_lines(self, evidence_data: Mapping[str, Any]) -> list[str]:
+        lines: list[str] = []
+        for key, value in evidence_data.items():
+            if value is None:
+                continue
+            if isinstance(value, (str, int, float, bool)):
+                lines.append(
+                    f"- {key}: {self._clean_text(value, max_length=MAX_EVIDENCE_VALUE_LENGTH)}"
+                )
+            if len(lines) >= MAX_EVIDENCE_ITEMS:
+                break
+        return lines
+
+    def _get_plain_issue_link(self, group: Group, **kwargs: Any) -> str:
+        params = {}
+        if kwargs.get("link_referrer"):
+            params["referrer"] = kwargs.get("link_referrer")
+        issue_url = absolute_uri(group.get_absolute_url(params=params))
+
+        if group.issue_category == GroupCategory.FEEDBACK:
+            return f"Sentry Feedback: {group.qualified_short_id} ({issue_url})"
+
+        return f"Sentry Issue: {group.qualified_short_id} ({issue_url})"
+
+    def _get_enhanced_title_description(
+        self, group: Group, event: GroupEvent, **kwargs: Any
+    ) -> tuple[str, str]:
+        title = self._clean_text(self.get_group_title(group, event, **kwargs), MAX_TITLE_LENGTH)
+        output = [self._get_plain_issue_link(group, **kwargs)]
+
+        if event.occurrence is not None:
+            issue_title = self._clean_text(event.occurrence.issue_title)
+            if issue_title:
+                title = self._clean_text(issue_title, MAX_TITLE_LENGTH)
+                output.extend(["", f"Issue Type: {issue_title}"])
+
+            subtitle = self._clean_text(event.occurrence.subtitle, MAX_EVENT_CONTEXT_LENGTH)
+            if subtitle:
+                output.append(f"Summary: {subtitle}")
+
+            important_evidence = event.occurrence.important_evidence_display
+            if important_evidence:
+                important_value = self._clean_text(
+                    important_evidence.value, MAX_EVIDENCE_VALUE_LENGTH
+                )
+                title = self._clean_text(
+                    f"{title}: {important_value}" if important_value else title,
+                    MAX_TITLE_LENGTH,
+                )
+
+            evidence_items = sorted(
+                event.occurrence.evidence_display, key=attrgetter("important"), reverse=True
+            )[:MAX_EVIDENCE_ITEMS]
+            if evidence_items:
+                output.extend(["", "Evidence:"])
+                for evidence in evidence_items:
+                    evidence_name = self._clean_text(evidence.name)
+                    evidence_value = self._clean_text(evidence.value, MAX_EVIDENCE_VALUE_LENGTH)
+                    output.append(f"- {evidence_name}: {evidence_value}")
+            else:
+                detail_lines = self._get_occurrence_detail_lines(event.occurrence.evidence_data)
+                if detail_lines:
+                    output.extend(["", "Details:", *detail_lines])
+        else:
+            body = self.get_group_body(group, event)
+            if body:
+                output.extend(
+                    [
+                        "",
+                        "Event Context:",
+                        self._clean_text(body, max_length=MAX_EVENT_CONTEXT_LENGTH),
+                    ]
+                )
+
+        return title, "\n".join(output)
+
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User | RpcUser, **kwargs
@@ -160,19 +260,27 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             return []
 
         event = group.get_latest_event()
+        if event is None:
+            return []
+
+        if self._has_enhanced_defaults_flag(group, user):
+            title, description = self._get_enhanced_title_description(group, event, **kwargs)
+        else:
+            title = self.get_group_title(group, event, **kwargs)
+            description = self.get_group_description(group, event, **kwargs)
 
         return [
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.get_group_title(group, event, **kwargs),
+                "default": title,
                 "type": "string",
                 "required": True,
             },
             {
                 "name": "description",
                 "label": "Description",
-                "default": self.get_group_description(group, event, **kwargs),
+                "default": description,
                 "type": "textarea",
                 "autosize": True,
                 "maxRows": 10,

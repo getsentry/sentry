@@ -7,6 +7,8 @@ from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -174,6 +176,89 @@ class GroupIntegrationDetailsTest(APITestCase):
                     },
                 ],
             }
+
+    def test_get_create_with_enhanced_defaults(self) -> None:
+        self.login_as(user=self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+        )
+
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/?action=create"
+
+        with self.feature(
+            {
+                "organizations:integrations-issue-basic": True,
+                "organizations:integrations-issue-defaults-enhanced": True,
+            }
+        ):
+            response = self.client.get(path)
+
+        assert response.status_code == 200
+        fields = response.data["createIssueConfig"]
+        title_field = next(field for field in fields if field["name"] == "title")
+        description_field = next(field for field in fields if field["name"] == "description")
+
+        assert title_field["default"] == "message"
+        assert description_field["default"].startswith(
+            f"Sentry Issue: {self.group.qualified_short_id} ("
+        )
+        assert "Event Context:" in description_field["default"]
+        assert "Stacktrace (most recent call first)" in description_field["default"]
+
+    def test_get_create_with_enhanced_defaults_for_metric_issue(self) -> None:
+        self.login_as(user=self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+        )
+
+        group_event = self.event.for_group(self.group)
+        group_event.occurrence = IssueOccurrence(
+            id="metric-occurrence-id",
+            project_id=self.project.id,
+            event_id=self.event.event_id,
+            fingerprint=["metric-issue"],
+            issue_title="Error Rate Alert",
+            subtitle="Critical: Number of events in the last 5 minutes above 100",
+            resource_id=None,
+            evidence_data={"alert_id": 42},
+            evidence_display=[],
+            type=MetricIssue,
+            detection_time=self.min_ago,
+            level="error",
+            culprit="",
+        )
+
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/?action=create"
+
+        with (
+            self.feature(
+                {
+                    "organizations:integrations-issue-basic": True,
+                    "organizations:integrations-issue-defaults-enhanced": True,
+                }
+            ),
+            mock.patch.object(Group, "get_latest_event", return_value=group_event),
+        ):
+            response = self.client.get(path)
+
+        assert response.status_code == 200
+        fields = response.data["createIssueConfig"]
+        title_field = next(field for field in fields if field["name"] == "title")
+        description_field = next(field for field in fields if field["name"] == "description")
+
+        assert title_field["default"] == "Error Rate Alert"
+        assert "Summary: Critical: Number of events in the last 5 minutes above 100" in description_field[
+            "default"
+        ]
+        assert "Details:" in description_field["default"]
+        assert "- alert_id: 42" in description_field["default"]
+        assert "Evidence:" not in description_field["default"]
 
     def test_get_create_with_error(self) -> None:
         self.login_as(user=self.user)
