@@ -41,28 +41,30 @@ type BaseSelectFieldProps = BaseFieldProps &
   };
 
 // Single select (default)
-interface SingleSelectFieldProps extends BaseSelectFieldProps {
-  onChange: (value: string) => void;
-  value: string;
+interface SingleSelectFieldProps<TValue> extends BaseSelectFieldProps {
+  onChange: (value: TValue) => void;
+  value: TValue | null;
   multiple?: false;
 }
 
 // Multiple select
-interface MultipleSelectFieldProps extends BaseSelectFieldProps {
+interface MultipleSelectFieldProps<TValue> extends BaseSelectFieldProps {
   multiple: true;
-  onChange: (value: string[]) => void;
-  value: string[];
+  onChange: (value: TValue[]) => void;
+  value: TValue[];
 }
 
-type SelectFieldProps = SingleSelectFieldProps | MultipleSelectFieldProps;
+export type SelectFieldProps<TValue = string> =
+  | SingleSelectFieldProps<TValue>
+  | MultipleSelectFieldProps<TValue>;
 
-export function SelectField({
+export function SelectField<TValue = string>({
   onChange,
   disabled,
   multiple,
   value,
   ...props
-}: SelectFieldProps) {
+}: SelectFieldProps<TValue>) {
   const autoSaveContext = useAutoSaveContext();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
   const disabledReason = typeof disabled === 'string' ? disabled : undefined;
