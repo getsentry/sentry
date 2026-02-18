@@ -198,6 +198,38 @@ class CursorAgentClientTest(TestCase):
         assert "ref" not in payload["source"]
 
     @patch.object(CursorAgentClient, "post")
+    def test_launch_response_without_optional_target_fields(self, mock_post: Mock) -> None:
+        """Test that launch() succeeds when Cursor omits optional target fields like branchName and autoCreatePr"""
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "agent_123",
+            "status": "CREATING",
+            "name": "Test Agent",
+            "createdAt": "2023-01-01T00:00:00Z",
+            "source": {
+                "repository": "https://github.com/getsentry/sentry",
+            },
+            "target": {
+                "url": "https://cursor.com/agent/123",
+                # branchName and autoCreatePr intentionally absent
+            },
+        }
+        mock_post.return_value = mock_response
+
+        request = CodingAgentLaunchRequest(
+            prompt="Fix this bug",
+            repository=self.repo_definition,
+            branch_name="fix-bug-123",
+            auto_create_pr=True,
+        )
+
+        result = self.cursor_client.launch(webhook_url=self.webhook_url, request=request)
+
+        assert result is not None
+        assert result.id == "agent_123"
+        assert result.agent_url == "https://cursor.com/agent/123"
+
+    @patch.object(CursorAgentClient, "post")
     def test_launch_with_none_branch_name_uses_default(self, mock_post: Mock) -> None:
         """Test that launch() excludes ref when branch_name is None, allowing Cursor to use repo default"""
         # Setup mock response
