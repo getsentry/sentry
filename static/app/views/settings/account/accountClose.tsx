@@ -1,6 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
 
-import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
@@ -146,28 +145,17 @@ function AccountClose() {
 
       <TextBlock>
         {t(
-          'This will permanently remove all associated data for your user. Any specified organizations will also be deleted.'
+          'This will permanently remove all associated data for your user. Any specified organizations will also be deleted. '
         )}
+        <strong>{t('Closing your account is permanent and cannot be undone')}!</strong>
       </TextBlock>
-
-      <Alert.Container>
-        <Alert variant="danger">
-          {t('Closing your account is permanent and cannot be undone')}!
-        </Alert>
-      </Alert.Container>
 
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
         <PanelBody>
           <PanelAlert variant="warning">
-            {t('Organizations with checked boxes will be deleted!')}
-            <br />
             {t(
-              'Ownership will remain with other organization owners if an organization is not deleted.'
-            )}
-            <br />
-            {t(
-              "Boxes which can't be unchecked mean that you are the only organization owner and the organization will be deleted."
+              `Organizations with checked boxes will be deleted. Boxes which can't be unchecked mean that you are the only organization owner and the organization will be deleted. If an organization is not deleted, its ownership will persist among other organization owners.`
             )}
           </PanelAlert>
 
