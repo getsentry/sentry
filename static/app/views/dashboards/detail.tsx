@@ -73,6 +73,7 @@ import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetB
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
@@ -142,6 +143,7 @@ type Props = {
   children?: React.ReactNode;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   useTimeseriesVisualization?: boolean;
+  validatedWidgetInterval?: string;
 };
 
 type State = {
@@ -1315,11 +1317,7 @@ class DashboardDetail extends Component<Props, State> {
                                         organization.features.includes(
                                           'dashboards-interval-selection'
                                         )
-                                          ? location.query.interval === 'auto'
-                                            ? undefined
-                                            : (location.query.interval as
-                                                | string
-                                                | undefined)
+                                          ? this.props.validatedWidgetInterval
                                           : undefined
                                       }
                                     />
@@ -1406,6 +1404,16 @@ export default function DashboardDetailWithInjectedProps(
   const location = useLocation();
   const params = useParams<RouteParams>();
   const router = useRouter();
+  const [chartInterval] = useChartInterval();
+
+  // Validate the URL interval against the current page filter period so widgets
+  // never make requests with an interval that is too granular (e.g. 1m over 30d).
+  const rawInterval = location.query.interval as string | undefined;
+  const validatedWidgetInterval =
+    organization.features.includes('dashboards-interval-selection') &&
+    rawInterval !== 'auto'
+      ? chartInterval
+      : undefined;
 
   return (
     <DashboardDetail
@@ -1418,6 +1426,7 @@ export default function DashboardDetailWithInjectedProps(
       location={location}
       params={params}
       router={router}
+      validatedWidgetInterval={validatedWidgetInterval}
     />
   );
 }
