@@ -99,7 +99,7 @@ class ScheduledReportDetailEndpoint(ScheduledReportDetailBase):
 
         serializer = ScheduledReportInputSerializer(
             data=request.data,
-            context={"organization": organization},
+            context={"organization": organization, "request": request},
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

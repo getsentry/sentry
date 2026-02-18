@@ -88,6 +88,13 @@ class ScheduledReportInputSerializer(serializers.Serializer):
                     {"sourceId": "Saved query must have at least one project selected."}
                 )
 
+            request = self.context.get("request")
+            if request and saved_query.projects.exists():
+                if not request.access.has_projects_access(saved_query.projects.all()):
+                    raise serializers.ValidationError(
+                        {"sourceId": "You do not have access to this saved query's projects."}
+                    )
+
         elif source_type == ScheduledReportSourceType.DASHBOARD:
             try:
                 Dashboard.objects.get(id=source_id, organization_id=organization.id)
