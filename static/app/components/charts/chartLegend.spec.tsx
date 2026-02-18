@@ -19,15 +19,6 @@ class MockResizeObserver {
   disconnect() {}
 }
 
-beforeEach(() => {
-  resizeCallbacks = [];
-  window.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
-});
-
-afterEach(() => {
-  jest.restoreAllMocks();
-});
-
 function makeComputedStyleMock() {
   const style = {
     columnGap: '8',
@@ -72,6 +63,15 @@ async function triggerResize() {
 }
 
 describe('ChartLegend', () => {
+  beforeEach(() => {
+    resizeCallbacks = [];
+    window.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders all legend items', async () => {
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
 

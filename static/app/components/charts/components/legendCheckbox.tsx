@@ -4,10 +4,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-const CHECKBOX_SIZE = '12px';
-const ICON_SIZE = '7px';
-const MAX_GRADIENT_COLORS = 4;
-
 interface LegendCheckboxProps {
   checked: boolean | 'indeterminate';
   color: string | [string, ...string[]];
@@ -68,6 +64,10 @@ export function LegendCheckbox({
     </Flex>
   );
 }
+
+const CHECKBOX_SIZE = '12px';
+const ICON_SIZE = '7px';
+const MAX_GRADIENT_COLORS = 4;
 
 function colorToBackground(colors: string | [string, ...string[]]): string {
   if (typeof colors === 'string') {
