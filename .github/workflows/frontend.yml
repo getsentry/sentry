@@ -196,7 +196,7 @@ jobs:
           #
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
-        run: pnpm exec vitest run --maxWorkers=100% --shard=${{ matrix.instance }}/4
+        run: pnpm exec vitest run --shard=${{ matrix.instance }}/4
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
