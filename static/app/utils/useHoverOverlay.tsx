@@ -153,9 +153,9 @@ export function isOverflown(el: Element): boolean {
   );
 }
 
-function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
+function maybeClearRefTimeout(ref: React.RefObject<number | undefined>) {
   if (typeof ref.current === 'number') {
-    window.clearTimeout(ref.current);
+    clearTimeout(ref.current);
     ref.current = undefined;
   }
 }
@@ -256,10 +256,10 @@ function useHoverOverlay({
       return;
     }
 
-    delayOpenTimeoutRef.current = window.setTimeout(
+    delayOpenTimeoutRef.current = setTimeout(
       () => setIsVisible(true),
       delay ?? OPEN_DELAY
-    );
+    ) as unknown as number;
   }, [delay, showOnlyOnOverflow, triggerElement]);
 
   const handleMouseLeave = useCallback(() => {
@@ -271,9 +271,9 @@ function useHoverOverlay({
       return;
     }
 
-    delayHideTimeoutRef.current = window.setTimeout(() => {
+    delayHideTimeoutRef.current = setTimeout(() => {
       setIsVisible(false);
-    }, displayTimeout ?? CLOSE_DELAY);
+    }, displayTimeout ?? CLOSE_DELAY) as unknown as number;
   }, [isHoverable, displayTimeout]);
 
   /**
