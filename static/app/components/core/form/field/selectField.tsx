@@ -100,22 +100,28 @@ export function SelectField<TValue = string>({
                 fieldProps.onBlur();
               }
             }}
-            onChange={(option: SelectValue<string> | Array<SelectValue<string>>) => {
+            onChange={(
+              option: SelectValue<TValue> | Array<SelectValue<TValue>> | null
+            ) => {
               if (multiple) {
                 // For multi-select, option is an array
-                const values = Array.isArray(option)
-                  ? option.map(o => o?.value ?? '').filter(Boolean)
-                  : [];
-                (onChange as (value: string[]) => void)(values);
+                (onChange as (value: TValue[]) => void)(
+                  Array.isArray(option) ? option.map(o => o.value) : []
+                );
                 // For multi-select in auto-save context, trigger save when menu is closed
                 // (e.g., clicking X on a tag or clear all while menu is not open)
                 if (autoSaveContext && !isMenuOpenRef.current) {
                   fieldProps.onBlur();
                 }
               } else {
+                if (!option) {
+                  // todo single-select with clearable needs to be able to allow null as value
+                  onChange(null as any);
+                }
                 // For single-select, option is a single value
-                const val = (option as SelectValue<string>)?.value ?? '';
-                (onChange as (value: string) => void)(val);
+                (onChange as (value: TValue) => void)(
+                  (option as SelectValue<TValue>).value
+                );
               }
             }}
           />
