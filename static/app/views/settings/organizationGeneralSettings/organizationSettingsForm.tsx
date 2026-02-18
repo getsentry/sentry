@@ -45,12 +45,10 @@ const HookCodecovSettingsLink = HookOrDefault({
 
 const HookOrganizationMembershipSettings = HookOrDefault({
   hookName: 'component:organization-membership-settings',
-  defaultComponent: defaultMembershipSettings,
+  defaultComponent: (p: MembershipSettingsProps) => (
+    <JsonForm {...p.jsonFormSettings} forms={p.forms} />
+  ),
 });
-
-function defaultMembershipSettings({jsonFormSettings, forms}: MembershipSettingsProps) {
-  return <JsonForm {...jsonFormSettings} forms={forms} />;
-}
 
 interface Props {
   initialData: Organization;
