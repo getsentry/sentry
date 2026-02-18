@@ -143,11 +143,15 @@ runs:
       if: ${{ inputs.skip-devservices != 'true' && steps.docker-cache.outputs.cache-hit == 'true' }}
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       run: |
-        if [ -f /tmp/docker-images/images.tar.zst ]; then
-          zstd -d -o /tmp/docker-images/images.tar /tmp/docker-images/images.tar.zst
-          docker load -i /tmp/docker-images/images.tar
-          rm /tmp/docker-images/images.tar
-        fi
+        pids=()
+        for f in /tmp/docker-images/*.tar.zst; do
+          [ -f "$f" ] || continue
+          (zstd -dc "$f" | docker load) &
+          pids+=($!)
+        done
+        for pid in "${pids[@]}"; do
+          wait "$pid"
+        done
 
     - name: Start new devservices
       if: ${{ inputs.skip-devservices != 'true' }}
@@ -173,10 +177,15 @@ runs:
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       run: |
         mkdir -p /tmp/docker-images
-        docker save $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>') \
-          -o /tmp/docker-images/images.tar
-        zstd -T0 /tmp/docker-images/images.tar -o /tmp/docker-images/images.tar.zst
-        rm /tmp/docker-images/images.tar
+        pids=()
+        while read img; do
+          name=$(echo "$img" | tr '/:' '__')
+          docker save "$img" | zstd -T0 > "/tmp/docker-images/${name}.tar.zst" &
+          pids+=($!)
+        done < <(docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>')
+        for pid in "${pids[@]}"; do
+          wait "$pid"
+        done
 
     - name: Upload Docker image cache
       if: ${{ inputs.skip-devservices != 'true' && steps.docker-cache.outputs.cache-hit != 'true' }}
