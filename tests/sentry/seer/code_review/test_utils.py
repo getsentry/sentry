@@ -20,6 +20,7 @@ from sentry.seer.code_review.utils import (
     _get_trigger_metadata_for_pull_request,
     convert_enum_keys_to_strings,
     extract_github_info,
+    get_seer_repo_provider_name,
     is_org_enabled_for_code_review_experiments,
     transform_webhook_to_codegen_request,
 )
@@ -109,6 +110,34 @@ class TestGetTriggerMetadata:
         assert isinstance(result["trigger_at"], str)
         # Verify it's a valid ISO datetime string
         datetime.fromisoformat(result["trigger_at"])
+
+
+class TestGetSeerRepoProviderName(TestCase):
+    """Tests for get_seer_repo_provider_name (Repository.provider -> Seer payload provider)."""
+
+    def test_returns_github_for_integrations_github(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            name="owner/repo",
+            provider="integrations:github",
+        )
+        assert get_seer_repo_provider_name(repo) == "github"
+
+    def test_returns_github_enterprise_for_integrations_github_enterprise(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            name="owner/repo",
+            provider="integrations:github_enterprise",
+        )
+        assert get_seer_repo_provider_name(repo) == "github_enterprise"
+
+    def test_returns_not_supported_for_other_provider(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            name="owner/repo",
+            provider="integrations:gitlab",
+        )
+        assert get_seer_repo_provider_name(repo) == "not_supported"
 
 
 class GetTargetCommitShaTest(TestCase):

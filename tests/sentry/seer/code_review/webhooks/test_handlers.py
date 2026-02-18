@@ -16,11 +16,12 @@ class TestHandleWebhookEvent(TestCase):
     """Unit tests for handle_webhook_event."""
 
     @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
-    def test_skips_github_enterprise_on_prem(self, mock_preflight: MagicMock) -> None:
+    def test_skips_github_enterprise_when_org_lacks_feature_flag(
+        self, mock_preflight: MagicMock
+    ) -> None:
         """
-        Test that GitHub Enterprise on-prem webhooks are skipped.
-
-        Code review is only supported for GitHub Cloud, not GitHub Enterprise Server.
+        Test that GitHub Enterprise webhooks are skipped when the org does not have
+        the code-review-allow-ghe feature flag.
         """
         integration = MagicMock()
         integration.provider = IntegrationProviderSlug.GITHUB_ENTERPRISE
@@ -33,8 +34,37 @@ class TestHandleWebhookEvent(TestCase):
             integration=integration,
         )
 
-        # Preflight should never be called for GitHub Enterprise
+        # Preflight should not be called when GHE and org lacks the flag
         mock_preflight.assert_not_called()
+
+    def test_processes_github_enterprise_when_org_has_feature_flag(self) -> None:
+        """
+        Test that GitHub Enterprise webhooks are processed when the org has
+        the code-review-allow-ghe feature flag.
+        """
+        from sentry.testutils.helpers.features import with_feature
+
+        integration = MagicMock()
+        integration.provider = IntegrationProviderSlug.GITHUB_ENTERPRISE
+        integration.id = 456
+
+        with with_feature("organizations:code-review-allow-ghe"):
+            with patch(
+                "sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService"
+            ) as mock_preflight:
+                mock_preflight.return_value.check.return_value.allowed = False
+                mock_preflight.return_value.check.return_value.denial_reason = None
+
+                handle_webhook_event(
+                    github_event=GithubWebhookType.PULL_REQUEST,
+                    event={"action": "opened", "pull_request": {}},
+                    organization=self.organization,
+                    repo=MagicMock(),
+                    integration=integration,
+                )
+
+                # Preflight should be called for GHE when org has the flag
+                mock_preflight.assert_called_once()
 
     @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
     def test_processes_github_com(self, mock_preflight: MagicMock) -> None:

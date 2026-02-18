@@ -331,6 +331,15 @@ def transform_pull_request_to_codegen_request(
     return payload
 
 
+def get_seer_repo_provider_name(repo: Repository) -> str:
+    if repo.provider == "integrations:github_enterprise":
+        return "github_enterprise"
+    elif repo.provider == "integrations:github":
+        return "github"
+    else:
+        return "not_supported"
+
+
 def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str, Any]:
     """
     Build the repository definition for the CodecovTaskRequest.
@@ -341,7 +350,7 @@ def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str
         raise ValueError(f"Invalid repository name format: {repo.name}")
 
     repo_definition = {
-        "provider": "github",  # All GitHub webhooks use "github" provider
+        "provider": get_seer_repo_provider_name(repo),
         "owner": repo_name_sections[0],
         "name": "/".join(repo_name_sections[1:]),
         "external_id": repo.external_id,

@@ -18,13 +18,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
+    CheckRunEventWebhook,
     GitHubWebhook,
     InstallationEventWebhook,
+    IssueCommentEventWebhook,
     IssuesEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
     get_github_external_id,
 )
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.utils import metrics
@@ -113,6 +116,14 @@ class GitHubEnterprisePullRequestEventWebhook(GitHubEnterpriseWebhook, PullReque
 
 
 class GitHubEnterpriseIssuesEventWebhook(GitHubEnterpriseWebhook, IssuesEventWebhook):
+    pass
+
+
+class GitHubEnterpriseCheckRunEventWebhook(GitHubEnterpriseWebhook, CheckRunEventWebhook):
+    pass
+
+
+class GitHubEnterpriseIssueCommentEventWebhook(GitHubEnterpriseWebhook, IssueCommentEventWebhook):
     pass
 
 
@@ -287,23 +298,40 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             sentry_sdk.capture_exception(e)
             return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
+        try:
+            github_event_enum = GithubWebhookType(github_event)
+        except ValueError:
+            logger.warning(
+                "github_enterprise.webhook.unknown_event_type",
+                extra={"github_event": github_event},
+            )
+            return HttpResponse(status=204)
+
         event_handler = handler()
 
-        # Create a new transaction for each webhook event to ensure separate traces
-        transaction_name = f"github_enterprise.webhook.{github_event}"
+        transaction_name = f"github_enterprise.webhook.{github_event_enum.value}"
         with sentry_sdk.start_transaction(
             op="webhook",
             name=transaction_name,
             source="component",
         ) as transaction:
-            transaction.set_tag("github_event", github_event)
+            transaction.set_tag("github_event", github_event_enum.value)
+
+            github_delivery_id = request.headers.get("X-GitHub-Delivery")
+            if github_delivery_id is not None:
+                github_delivery_id = str(github_delivery_id)
 
             with IntegrationWebhookEvent(
                 interaction_type=event_handler.event_type,
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=event_handler.provider,
             ).capture():
-                event_handler(event, host=host, github_event=github_event)
+                event_handler(
+                    event,
+                    host=host,
+                    github_event=github_event_enum,
+                    github_delivery_id=github_delivery_id,
+                )
 
         return HttpResponse(status=204)
 
@@ -319,6 +347,8 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
         "pull_request": GitHubEnterprisePullRequestEventWebhook,
         "installation": GitHubEnterpriseInstallationEventWebhook,
         "issues": GitHubEnterpriseIssuesEventWebhook,
+        "check_run": GitHubEnterpriseCheckRunEventWebhook,
+        "issue_comment": GitHubEnterpriseIssueCommentEventWebhook,
     }
 
     @method_decorator(csrf_exempt)

@@ -7,6 +7,7 @@ from typing import Any
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
+from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
@@ -60,9 +61,10 @@ def handle_webhook_event(
         integration: The GitHub integration
         **kwargs: Additional keyword arguments
     """
-    # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
+    # GitHub Enterprise code review is only enabled for orgs with the feature flag
     if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
-        return
+        if not features.has("organizations:code-review-allow-ghe", organization):
+            return
 
     # The extracted important key values are used for debugging with logs
     extra = extract_github_info(event, github_event=github_event.value)
