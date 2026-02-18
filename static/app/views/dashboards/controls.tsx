@@ -31,6 +31,7 @@ import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDu
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import DashboardHistoryButton from './dashboardHistory';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
@@ -50,6 +51,7 @@ type Props = {
   hasUnsavedFilters?: boolean;
   isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
+  onRestore?: (restoredDashboard: DashboardDetails) => void;
 };
 
 function Controls({
@@ -64,6 +66,7 @@ function Controls({
   onDelete,
   onCancel,
   onAddWidget,
+  onRestore,
   isSaving,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
@@ -313,6 +316,9 @@ function Controls({
                   }}
                 />
               </Tooltip>
+            )}
+            {hasFeature && !isPrebuiltDashboard && onRestore && (
+              <DashboardHistoryButton dashboard={dashboard} onRestore={onRestore} />
             )}
             {renderEditButton(hasFeature)}
             {hasFeature && !isPrebuiltDashboard && (

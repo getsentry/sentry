@@ -26,6 +26,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import DashboardParams, GlobalParams
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
+from sentry.dashboards.history import capture_dashboard_snapshot
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -195,6 +196,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         try:
+            if isinstance(dashboard, Dashboard):
+                capture_dashboard_snapshot(dashboard, user_id=request.user.id)
+
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
                 serializer.save()
                 if tombstone:

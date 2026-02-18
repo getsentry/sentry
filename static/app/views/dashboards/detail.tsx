@@ -757,6 +757,17 @@ class DashboardDetail extends Component<Props, State> {
     }
   };
 
+  onRestoreDashboard = (restoredDashboard: DashboardDetails) => {
+    const {onDashboardUpdate} = this.props;
+    if (onDashboardUpdate) {
+      onDashboardUpdate(restoredDashboard);
+    }
+    this.setState({
+      dashboardState: DashboardState.VIEW,
+      modifiedDashboard: null,
+    });
+  };
+
   /* Handles POST request for Edit Access Selector Changes */
   onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
     const {dashboard, api, organization} = this.props;
@@ -1171,6 +1182,7 @@ class DashboardDetail extends Component<Props, State> {
                           onAddWidget={this.onAddWidget}
                           onDelete={this.onDelete(dashboard)}
                           onChangeEditAccess={this.onChangeEditAccess}
+                          onRestore={this.onRestoreDashboard}
                           dashboardState={dashboardState}
                           widgetLimitReached={widgetLimitReached}
                           isSaving={isCommittingChanges}

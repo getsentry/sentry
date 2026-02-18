@@ -21,6 +21,7 @@ from .commitcomparison import *  # NOQA
 from .commitfilechange import *  # noqa
 from .counter import *  # NOQA
 from .dashboard import *  # NOQA
+from .dashboard_history import *  # NOQA
 from .dashboard_permissions import *  # NOQA
 from .dashboard_widget import *  # NOQA
 from .debugfile import *  # NOQA
