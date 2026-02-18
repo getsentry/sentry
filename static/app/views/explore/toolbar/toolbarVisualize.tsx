@@ -9,7 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {IconHide} from 'sentry/icons/iconHide';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
+import {AggregationKey, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -332,6 +332,50 @@ function VisualizeDropdown({
     [aggregateOptions, onReplace, parsedAggregates, parsedFunction, visualize]
   );
 
+  const getFieldValueType = useCallback(
+    (field: string): FieldValueType => {
+      const tag = numberTags[field] ?? stringTags[field] ?? booleanTags[field];
+      const fieldDefinition = tag
+        ? getFieldDefinition(field, 'span', tag.kind)
+        : getFieldDefinition(field, 'span');
+
+      if (fieldDefinition?.valueType) {
+        return fieldDefinition.valueType;
+      }
+
+      if (Object.hasOwn(numberTags, field)) {
+        return FieldValueType.NUMBER;
+      }
+      if (Object.hasOwn(booleanTags, field)) {
+        return FieldValueType.BOOLEAN;
+      }
+      return FieldValueType.STRING;
+    },
+    [booleanTags, numberTags, stringTags]
+  );
+
+  const canApplyArgumentToAggregate = useCallback(
+    (aggregate: string, index: number, nextArgument: string): boolean => {
+      const aggregateDefinition = getFieldDefinition(aggregate, 'span');
+      const parameter = aggregateDefinition?.parameters?.[index];
+
+      if (!parameter || parameter.kind !== 'column') {
+        return false;
+      }
+
+      const valueType = getFieldValueType(nextArgument);
+      if (typeof parameter.columnTypes === 'function') {
+        return parameter.columnTypes({
+          key: nextArgument,
+          valueType,
+        });
+      }
+
+      return parameter.columnTypes.includes(valueType);
+    },
+    [getFieldValueType]
+  );
+
   const onChangeArgument = useCallback(
     (index: number, option: SelectOption<SelectKey>) => {
       if (typeof option.value === 'string') {
@@ -341,6 +385,17 @@ function VisualizeDropdown({
             if (!func) {
               return [];
             }
+
+            if (!canApplyArgumentToAggregate(func.name, index, nextArgument)) {
+              return [
+                updateVisualizeAggregate({
+                  newAggregate: func.name,
+                  oldAggregate: func.name,
+                  oldArguments: func.arguments,
+                }),
+              ];
+            }
+
             let args = cloneDeep(func.arguments);
             if (args) {
               args[index] = nextArgument;
@@ -363,7 +418,14 @@ function VisualizeDropdown({
         onReplace(visualize.replace({yAxis}));
       }
     },
-    [hasMultiSelect, onReplace, parsedFunction, parsedFunctions, visualize]
+    [
+      canApplyArgumentToAggregate,
+      hasMultiSelect,
+      onReplace,
+      parsedFunction,
+      parsedFunctions,
+      visualize,
+    ]
   );
 
   const aggregateValue = hasMultiSelect ? parsedAggregates : (parsedFunction?.name ?? '');
