@@ -111,7 +111,7 @@ export default defineConfig({
     ],
   },
   test: {
-    maxWorkers: '100%',
+    maxWorkers: '50%',
     // Limit Vitest's crawl to the frontend app tree.
     dir: 'static',
     globals: true,
@@ -131,7 +131,6 @@ export default defineConfig({
     ],
     include: ['./**/*.spec.{ts,tsx}'],
     css: false,
-    pool: 'threads',
     experimental: {
       fsModuleCache: !IS_GITHUB_ACTION_ENV,
     },
