@@ -208,7 +208,8 @@ describe('getReadableQueryParamsFromLocation', () => {
       aggregateField: [
         {yAxes: ['count(message)'], chartType: ChartType.AREA},
         {groupBy: 'message.template'},
-        {yAxes: ['p50(foo)', 'p75(bar)']},
+        {yAxes: ['p50(foo)']},
+        {yAxes: ['p75(bar)']},
       ].map(aggregateField => JSON.stringify(aggregateField)),
     });
     const queryParams = getReadableQueryParamsFromLocation(location);
@@ -218,7 +219,32 @@ describe('getReadableQueryParamsFromLocation', () => {
           aggregateFields: [
             new VisualizeFunction('count(message)', {chartType: ChartType.AREA}),
             {groupBy: 'message.template'},
-            new VisualizeFunction(['p50(foo)', 'p75(bar)']),
+            new VisualizeFunction(['p50(foo)']),
+            new VisualizeFunction(['p75(bar)']),
+          ],
+        })
+      )
+    );
+  });
+
+  it('decodes aggregate fields with multiple yAxes into one visualize', () => {
+    const location = locationFixture({
+      aggregateField: [
+        {yAxes: ['count(message)'], chartType: ChartType.AREA},
+        {groupBy: 'message.template'},
+        {yAxes: ['p50(foo)', 'p75(bar)'], chartType: ChartType.LINE},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          aggregateFields: [
+            new VisualizeFunction('count(message)', {chartType: ChartType.AREA}),
+            {groupBy: 'message.template'},
+            new VisualizeFunction(['p50(foo)', 'p75(bar)'], {
+              chartType: ChartType.LINE,
+            }),
           ],
         })
       )
@@ -261,6 +287,50 @@ describe('getReadableQueryParamsFromLocation', () => {
             {groupBy: 'message.template'},
             new VisualizeFunction('count(message)'),
           ],
+        })
+      )
+    );
+  });
+
+  it('decodes custom aggregate sort bys with a secondary yAxis from a multi-yAxes visualize', () => {
+    const location = locationFixture({
+      logsAggregateSortBys: '-p75(bar)',
+      aggregateField: [
+        {groupBy: 'message.template'},
+        {yAxes: ['p50(foo)', 'p75(bar)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          aggregateFields: [
+            {groupBy: 'message.template'},
+            new VisualizeFunction(['p50(foo)', 'p75(bar)']),
+          ],
+          aggregateSortBys: [{field: 'p75(bar)', kind: 'desc'}],
+        })
+      )
+    );
+  });
+
+  it('falls back aggregate sort by for invalid sort field with a multi-yAxes visualize', () => {
+    const location = locationFixture({
+      logsAggregateSortBys: '-avg(baz)',
+      aggregateField: [
+        {groupBy: 'message.template'},
+        {yAxes: ['p50(foo)', 'p75(bar)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          aggregateFields: [
+            {groupBy: 'message.template'},
+            new VisualizeFunction(['p50(foo)', 'p75(bar)']),
+          ],
+          aggregateSortBys: [{field: 'p50(foo)', kind: 'desc'}],
         })
       )
     );
