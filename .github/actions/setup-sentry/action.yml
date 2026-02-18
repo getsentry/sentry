@@ -125,30 +125,6 @@ runs:
         # We need to install editable otherwise things like check migration will fail.
         python3 -m tools.fast_editable --path .
 
-    - name: Restore Docker image cache
-      if: ${{ inputs.skip-devservices != 'true' }}
-      uses: actions/cache/restore@v5
-      id: docker-cache
-      with:
-        path: /tmp/docker-images
-        # TODO: this is a pretty terrible cache key but it's the best
-        # we have today. devservices needs the ability to compile its
-        # configuration and spit out what images it expects to download,
-        # but in a way that is not constantly invalidated
-        key: docker-devservices-${{ inputs.mode }}-${{ hashFiles('devservices/config.yml') }}
-        restore-keys: |
-          docker-devservices-${{ inputs.mode }}-
-
-    - name: Load cached Docker images
-      if: ${{ inputs.skip-devservices != 'true' && steps.docker-cache.outputs.cache-hit == 'true' }}
-      shell: bash --noprofile --norc -eo pipefail -ux {0}
-      run: |
-        if [ -f /tmp/docker-images/images.tar.zst ]; then
-          zstd -d -o /tmp/docker-images/images.tar /tmp/docker-images/images.tar.zst
-          docker load -i /tmp/docker-images/images.tar
-          rm /tmp/docker-images/images.tar
-        fi
-
     - name: Start new devservices
       if: ${{ inputs.skip-devservices != 'true' }}
       shell: bash --noprofile --norc -eo pipefail -ux {0}
@@ -167,24 +143,3 @@ runs:
         echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
 
         docker ps -a
-
-    - name: Save Docker images to cache
-      if: ${{ inputs.skip-devservices != 'true' && steps.docker-cache.outputs.cache-hit != 'true' }}
-      shell: bash --noprofile --norc -eo pipefail -ux {0}
-      run: |
-        mkdir -p /tmp/docker-images
-        docker save $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>') \
-          -o /tmp/docker-images/images.tar
-        zstd -T0 /tmp/docker-images/images.tar -o /tmp/docker-images/images.tar.zst
-        rm /tmp/docker-images/images.tar
-
-    - name: Upload Docker image cache
-      if: ${{ inputs.skip-devservices != 'true' && steps.docker-cache.outputs.cache-hit != 'true' }}
-      uses: actions/cache/save@v5
-      with:
-        path: /tmp/docker-images
-        # TODO: this is a pretty terrible cache key but it's the best
-        # we have today. devservices needs the ability to compile its
-        # configuration and spit out what images it expects to download,
-        # but in a way that is not constantly invalidated
-        key: docker-devservices-${{ inputs.mode }}-${{ hashFiles('devservices/config.yml') }}
