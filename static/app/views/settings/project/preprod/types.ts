@@ -78,11 +78,11 @@ export const ARTIFACT_TYPE_OPTIONS: Array<{label: string; value: ArtifactType}> 
   }));
 
 export function getMetricLabel(metric: MetricType): string {
-  return METRIC_LABELS[toMetricType(metric)];
+  return METRIC_LABELS[metric];
 }
 
 export function getMeasurementLabel(measurement: MeasurementType): string {
-  return MEASUREMENT_LABELS[toMeasurementType(measurement)];
+  return MEASUREMENT_LABELS[measurement];
 }
 
 export function getSafeValue<T>(
@@ -115,7 +115,7 @@ export function toArtifactType(
 }
 
 export function getArtifactTypeLabel(artifactType: ArtifactType | undefined): string {
-  return ARTIFACT_TYPE_LABELS[toArtifactType(artifactType)];
+  return ARTIFACT_TYPE_LABELS[artifactType ?? DEFAULT_ARTIFACT_TYPE];
 }
 
 export function getDisplayUnit(measurement: MeasurementType): string {
