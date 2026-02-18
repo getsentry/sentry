@@ -10,15 +10,15 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function useDsnLookupActions(query: string): CommandPaletteActionWithKey[] {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const debouncedQuery = useDebouncedValue(query, 300);
   const isDsn = DSN_PATTERN.test(debouncedQuery);
 
   const {data} = useApiQuery<DsnLookupResponse>(
-    [`/organizations/${organization.slug}/dsn-lookup/`, {query: {dsn: debouncedQuery}}],
+    [`/organizations/${organization?.slug}/dsn-lookup/`, {query: {dsn: debouncedQuery}}],
     {
       staleTime: 30_000,
-      enabled: isDsn,
+      enabled: isDsn && !!organization,
     }
   );
 
