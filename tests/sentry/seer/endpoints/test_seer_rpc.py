@@ -1380,7 +1380,3 @@ class TestGetOrganizationProjectsWithInstrumentation(APITestCase):
         project_ids = [p["id"] for p in result["projects"]]
         assert active_project.id in project_ids
         assert inactive_project.id not in project_ids
-
-    def test_org_not_found_returns_empty(self) -> None:
-        result = get_organization_projects_with_instrumentation(org_id=999999999)
-        assert result == {"projects": []}

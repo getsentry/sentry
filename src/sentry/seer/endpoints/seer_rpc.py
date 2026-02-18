@@ -290,10 +290,7 @@ def get_organization_project_ids(*, org_id: int) -> dict:
 
 def get_organization_projects_with_instrumentation(*, org_id: int) -> dict:
     """Get all active projects for an organization with instrumentation feature flags."""
-    try:
-        organization = Organization.objects.get(id=org_id)
-    except Organization.DoesNotExist:
-        return {"projects": []}
+    organization = Organization.objects.get(id=org_id)
 
     projects = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
 
