@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,7 +18,6 @@ from sentry.seer.code_review.webhooks.task import (
     DELAY_BETWEEN_RETRIES,
     MAX_RETRIES,
     PREFIX,
-    _set_tags,
     process_github_webhook_event,
 )
 from sentry.testutils.cases import TestCase
@@ -791,86 +789,71 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert mock_request.call_count == 1
 
 
-def _collect_all_set_tags(*mocks: MagicMock) -> dict[str, Any]:
-    """Merge all set_tags call args across multiple sentry_sdk mocks into one dict."""
-    all_tags: dict[str, Any] = {}
-    for mock in mocks:
-        for call in mock.set_tags.call_args_list:
-            all_tags.update(call[0][0])
-        for call in mock.set_tag.call_args_list:
-            all_tags[call[0][0]] = call[0][1]
-    return all_tags
-
-
-class TestSetTags:
-    @patch("sentry.seer.code_review.utils.sentry_sdk")
+class TestProcessGitHubWebhookEventSetsTags:
     @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
-    def test_sets_tags_for_pr_event(
-        self, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
-    ) -> None:
-        event_payload = {
-            "request_type": "pr-review",
-            "external_owner_id": "456",
-            "data": {
-                "repo": {
-                    "provider": "github",
-                    "owner": "getsentry",
-                    "name": "sentry",
-                    "external_id": "123456",
-                    "base_commit_sha": "abc123",
-                    "organization_id": 789,
-                    "integration_id": "99999",
-                },
-                "pr_id": 42,
-            },
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_tags_are_applied_to_scope(self, mock_request: MagicMock, mock_sdk: MagicMock) -> None:
+        """Tags passed to the task are forwarded to sentry_sdk.set_tags."""
+        mock_request.return_value = MagicMock(status=200, data=b"{}")
+
+        tags = {
+            "github_event": "pull_request",
+            "scm_provider": "github",
+            "scm_owner": "getsentry",
+            "scm_repo_name": "sentry",
+            "pr_id": 42,
         }
 
-        _set_tags(event_payload, GithubWebhookType.PULL_REQUEST.value)
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.CHECK_RUN,
+            event_payload={"original_run_id": "123"},
+            enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+            tags=tags,
+        )
 
-        tags = _collect_all_set_tags(mock_utils_sdk, mock_task_sdk)
-        assert tags["scm_provider"] == "github"
-        assert tags["scm_owner"] == "getsentry"
-        assert tags["scm_repo_name"] == "sentry"
-        assert tags["scm_repo_full_name"] == "getsentry/sentry"
-        assert tags["pr_id"] == 42
-        assert tags["sentry_organization_id"] == 789
-        assert tags["sentry_integration_id"] == "99999"
-        assert tags["github_event"] == "pull_request"
+        mock_sdk.set_tags.assert_called_once_with(tags)
 
-    @patch("sentry.seer.code_review.utils.sentry_sdk")
     @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
-    def test_handles_check_run_minimal_payload(
-        self, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_none_values_filtered_from_tags(
+        self, mock_request: MagicMock, mock_sdk: MagicMock
     ) -> None:
-        """check_run events have a minimal payload without repo data; None values are omitted."""
-        event_payload = {"original_run_id": "4663713"}
+        """None values in the tags dict are not forwarded to sentry_sdk."""
+        mock_request.return_value = MagicMock(status=200, data=b"{}")
 
-        _set_tags(event_payload, GithubWebhookType.CHECK_RUN.value)
-
-        tags = _collect_all_set_tags(mock_utils_sdk, mock_task_sdk)
-        assert tags["github_event"] == "check_run"
-        assert tags["scm_provider"] == "github"
-        assert "scm_repo_full_name" not in tags
-
-    @patch("sentry.seer.code_review.utils.sentry_sdk")
-    @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
-    def test_handles_missing_owner_and_name(
-        self, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
-    ) -> None:
-        event_payload = {
-            "data": {
-                "repo": {"provider": "github"},
-                "pr_id": 10,
-            },
+        tags = {
+            "github_event": "pull_request",
+            "scm_owner": None,
+            "pr_id": 42,
         }
 
-        _set_tags(event_payload, "pull_request")
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.CHECK_RUN,
+            event_payload={"original_run_id": "123"},
+            enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+            tags=tags,
+        )
 
-        tags = _collect_all_set_tags(mock_utils_sdk, mock_task_sdk)
-        assert tags["scm_provider"] == "github"
-        assert "scm_repo_full_name" not in tags
-        assert "scm_owner" not in tags
-        assert "scm_repo_name" not in tags
+        applied = mock_sdk.set_tags.call_args[0][0]
+        assert "scm_owner" not in applied
+        assert applied["github_event"] == "pull_request"
+        assert applied["pr_id"] == 42
+
+    @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_no_tags_param_skips_set_tags(
+        self, mock_request: MagicMock, mock_sdk: MagicMock
+    ) -> None:
+        """When tags is not provided (e.g. legacy callers), set_tags is not called."""
+        mock_request.return_value = MagicMock(status=200, data=b"{}")
+
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.CHECK_RUN,
+            event_payload={"original_run_id": "123"},
+            enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        )
+
+        mock_sdk.set_tags.assert_not_called()
 
 
 class TestIsPrReviewCommand:

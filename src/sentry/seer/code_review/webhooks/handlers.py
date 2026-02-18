@@ -17,7 +17,7 @@ from sentry.utils.redis import redis_clusters
 
 from ..metrics import record_webhook_filtered
 from ..preflight import CodeReviewPreflightService
-from ..utils import extract_github_info
+from ..utils import get_tags
 from .check_run import handle_check_run_event
 from .issue_comment import handle_issue_comment_event
 from .pull_request import handle_pull_request_event
@@ -66,13 +66,15 @@ def handle_webhook_event(
         return
 
     # Set Sentry scope tags so all logs, errors, and spans in this scope carry them automatically.
-    extract_github_info(
+    tags = get_tags(
         event,
         github_event=github_event.value,
         organization_id=organization.id,
         organization_slug=organization.slug,
         integration_id=integration.id if integration else None,
     )
+    sentry_sdk.set_tags(tags)
+    sentry_sdk.set_context("code_review_context", tags)
     if github_delivery_id:
         sentry_sdk.set_tag("github_delivery_id", github_delivery_id)
 

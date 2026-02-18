@@ -8,7 +8,6 @@ from enum import Enum, StrEnum
 from typing import Any
 
 import orjson
-import sentry_sdk
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
@@ -382,35 +381,42 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
     return None
 
 
-def extract_github_info(
+def get_tags(
     event: Mapping[str, Any],
     github_event: str | None = None,
+    github_event_action: str | None = None,
     organization_id: int | None = None,
     organization_slug: str | None = None,
     integration_id: int | None = None,
     trigger: str | None = None,
-) -> dict[str, str | None]:
+    target_commit_sha: str | None = None,
+) -> dict[str, str]:
     """
     Extract GitHub-related information from a webhook event payload.
 
     Key names use the scm_* prefix to match Seer's extract_context() so tags are
-    consistent and searchable across both projects.
+    consistent and searchable across both projects. Repository fields (scm_owner,
+    scm_repo_name, scm_repo_full_name) are taken from the event payload only.
 
     Args:
         event: The GitHub webhook event payload
         github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
+        github_event_action: The event action; takes precedence over event["action"] and is used
+            to derive trigger when trigger is not explicitly provided
         organization_id: Sentry organization ID
         organization_slug: Sentry organization slug
         integration_id: Sentry integration ID
-        trigger: Trigger type (e.g., "on_new_commit", "on_command_phrase", "on_ready_for_review")
+        trigger: Trigger type; when omitted, derived from github_event + github_event_action
+        target_commit_sha: When provided, used to build a precise commit URL for on_new_commit
 
     Returns:
-        Dictionary containing:
+        Dictionary containing (only keys with non-None values are included):
             - github_actor_id: The GitHub user ID (as string)
             - github_actor_login: The GitHub username who triggered the action
             - github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
             - github_event_action: The event action (e.g., "opened", "closed", "created")
-            - scm_event_url: URL to the specific event (check_run, pull_request, or comment)
+            - pr_id: The pull request number (when available in the event)
+            - scm_event_url: URL to the specific event (check_run, pull_request, comment, or commit)
             - scm_owner: The repository owner/organization name
             - scm_provider: Always "github"
             - scm_repo_full_name: The repository full name (owner/repo)
@@ -421,11 +427,8 @@ def extract_github_info(
             - trigger: Trigger type (if available)
     """
     result: dict[str, str | None] = {
-        "github_actor_id": None,
-        "github_actor_login": None,
         "github_event": github_event,
-        "github_event_action": None,
-        "scm_event_url": None,
+        "pr_id": None,
         "scm_owner": None,
         "scm_provider": "github",
         "scm_repo_full_name": None,
@@ -445,7 +448,10 @@ def extract_github_info(
         if owner_repo_name := repository.get("full_name"):
             result["scm_repo_full_name"] = owner_repo_name
 
-    if action := event.get("action"):
+    # Explicit param takes precedence over event["action"].
+    if github_event_action:
+        result["github_event_action"] = github_event_action
+    elif action := event.get("action"):
         result["github_event_action"] = action
 
     if pull_request := event.get("pull_request"):
@@ -463,7 +469,7 @@ def extract_github_info(
     if issue := event.get("issue"):
         if pull_request_data := issue.get("pull_request"):
             if html_url := pull_request_data.get("html_url"):
-                if result["scm_event_url"] is None:
+                if result.get("scm_event_url") is None:
                     result["scm_event_url"] = html_url
 
     if sender := event.get("sender"):
@@ -472,9 +478,33 @@ def extract_github_info(
         if actor_id := sender.get("id"):
             result["github_actor_id"] = str(actor_id)
 
-    sentry_sdk.set_tags({k: v for k, v in result.items() if v is not None})
+    # Derive trigger from event type + action when not explicitly provided.
+    if result["trigger"] is None and github_event and github_event_action:
+        if github_event == "issue_comment":
+            result["trigger"] = "on_command_phrase"
+        elif github_event == "pull_request":
+            if github_event_action in ("opened", "ready_for_review"):
+                result["trigger"] = "on_ready_for_review"
+            elif github_event_action == "synchronize":
+                result["trigger"] = "on_new_commit"
 
-    return result
+    # Extract pr_id from the event.
+    pr_id = event.get("pull_request", {}).get("number") or event.get("issue", {}).get("number")
+    if pr_id:
+        result["pr_id"] = str(pr_id)
+
+    # Override scm_event_url with the most specific URL based on trigger type.
+    owner = result.get("scm_owner")
+    repo = result.get("scm_repo_name")
+    comment_id = event.get("comment", {}).get("id")
+    if result["trigger"] == "on_new_commit" and owner and repo and target_commit_sha:
+        result["scm_event_url"] = f"https://github.com/{owner}/{repo}/commit/{target_commit_sha}"
+    elif result["trigger"] == "on_command_phrase" and owner and repo and pr_id and comment_id:
+        result["scm_event_url"] = (
+            f"https://github.com/{owner}/{repo}/pull/{pr_id}#issuecomment-{comment_id}"
+        )
+
+    return {k: v for k, v in result.items() if v is not None}
 
 
 def delete_existing_reactions_and_add_reaction(

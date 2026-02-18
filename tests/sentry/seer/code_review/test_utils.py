@@ -19,7 +19,7 @@ from sentry.seer.code_review.utils import (
     _get_trigger_metadata_for_issue_comment,
     _get_trigger_metadata_for_pull_request,
     convert_enum_keys_to_strings,
-    extract_github_info,
+    get_tags,
     is_org_enabled_for_code_review_experiments,
     transform_webhook_to_codegen_request,
 )
@@ -513,7 +513,7 @@ class TestTransformWebhookToCodegenRequest:
 class TestExtractGithubInfo:
     def test_extract_from_pull_request_event(self) -> None:
         event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-        result = extract_github_info(event, github_event="pull_request")
+        result = get_tags(event, github_event="pull_request")
 
         assert result["scm_owner"] == "baxterthehacker"
         assert result["scm_repo_name"] == "public-repo"
@@ -526,7 +526,7 @@ class TestExtractGithubInfo:
 
     def test_extract_from_check_run_event(self) -> None:
         event = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
-        result = extract_github_info(event, github_event="check_run")
+        result = get_tags(event, github_event="check_run")
 
         assert result["scm_owner"] == "getsentry"
         assert result["scm_repo_name"] == "sentry"
@@ -539,7 +539,7 @@ class TestExtractGithubInfo:
 
     def test_extract_from_check_run_completed_event(self) -> None:
         event = orjson.loads(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
-        result = extract_github_info(event, github_event="check_run")
+        result = get_tags(event, github_event="check_run")
 
         assert result["scm_owner"] == "getsentry"
         assert result["scm_repo_name"] == "sentry"
@@ -573,7 +573,7 @@ class TestExtractGithubInfo:
                 "id": 98765,
             },
         }
-        result = extract_github_info(event, github_event="issue_comment")
+        result = get_tags(event, github_event="issue_comment")
 
         assert result["scm_owner"] == "comment-owner"
         assert result["scm_repo_name"] == "comment-repo"
@@ -593,7 +593,7 @@ class TestExtractGithubInfo:
             "pull_request": {"html_url": "https://github.com/owner/repo/pull/1"},
             "comment": {"html_url": "https://github.com/owner/repo/pull/1#issuecomment-999"},
         }
-        result = extract_github_info(event)
+        result = get_tags(event)
 
         assert result["scm_event_url"] == "https://github.com/owner/repo/pull/1#issuecomment-999"
         assert result["github_event_action"] == "created"
@@ -604,7 +604,7 @@ class TestExtractGithubInfo:
             "pull_request": {"html_url": "https://github.com/owner/repo/pull/1"},
             "check_run": {"html_url": "https://github.com/owner/repo/runs/123"},
         }
-        result = extract_github_info(event)
+        result = get_tags(event)
 
         assert result["scm_event_url"] == "https://github.com/owner/repo/runs/123"
         assert result["github_event_action"] == "completed"
@@ -614,7 +614,7 @@ class TestExtractGithubInfo:
             "action": "opened",
             "issue": {"pull_request": {"html_url": "https://github.com/owner/repo/pull/5"}},
         }
-        result = extract_github_info(event)
+        result = get_tags(event)
 
         assert result["scm_event_url"] == "https://github.com/owner/repo/pull/5"
         assert result["github_event_action"] == "opened"
@@ -625,32 +625,32 @@ class TestExtractGithubInfo:
             "check_run": {"html_url": "https://github.com/owner/repo/runs/999"},
             "issue": {"pull_request": {"html_url": "https://github.com/owner/repo/pull/1"}},
         }
-        result = extract_github_info(event)
+        result = get_tags(event)
 
         assert result["scm_event_url"] == "https://github.com/owner/repo/runs/999"
         assert result["github_event_action"] == "rerequested"
 
-    def test_empty_event_returns_all_none(self) -> None:
-        result = extract_github_info({})
+    def test_empty_event_returns_no_none_values(self) -> None:
+        result = get_tags({})
 
-        assert result["scm_owner"] is None
-        assert result["scm_repo_name"] is None
-        assert result["scm_repo_full_name"] is None
-        assert result["scm_event_url"] is None
-        assert result["github_event"] is None
-        assert result["github_event_action"] is None
-        assert result["github_actor_login"] is None
-        assert result["github_actor_id"] is None
+        assert "scm_owner" not in result
+        assert "scm_repo_name" not in result
+        assert "scm_repo_full_name" not in result
+        assert "scm_event_url" not in result
+        assert "github_event" not in result
+        assert "github_event_action" not in result
+        assert "github_actor_login" not in result
+        assert "github_actor_id" not in result
 
-    def test_missing_repository_owner_returns_none(self) -> None:
+    def test_missing_repository_owner_omits_owner_keys(self) -> None:
         event = {"repository": {"name": "repo-without-owner"}}
-        result = extract_github_info(event)
+        result = get_tags(event)
 
-        assert result["scm_owner"] is None
+        assert "scm_owner" not in result
         assert result["scm_repo_name"] == "repo-without-owner"
-        assert result["scm_repo_full_name"] is None
+        assert "scm_repo_full_name" not in result
 
-    def test_missing_html_urls_returns_none(self) -> None:
+    def test_missing_html_urls_omits_event_url(self) -> None:
         event = {
             "repository": {
                 "name": "test-repo",
@@ -660,11 +660,11 @@ class TestExtractGithubInfo:
             "check_run": {"id": 123},
             "comment": {"id": 456},
         }
-        result = extract_github_info(event)
+        result = get_tags(event)
 
         assert result["scm_owner"] == "test-owner"
         assert result["scm_repo_name"] == "test-repo"
-        assert result["scm_event_url"] is None
+        assert "scm_event_url" not in result
 
     def test_issue_without_pull_request_link_returns_comment_url(self) -> None:
         event = {
@@ -672,7 +672,7 @@ class TestExtractGithubInfo:
             "issue": {"number": 42},
             "comment": {"html_url": "https://github.com/owner/repo/issues/42#comment"},
         }
-        result = extract_github_info(event)
+        result = get_tags(event)
 
         assert result["scm_event_url"] == "https://github.com/owner/repo/issues/42#comment"
         assert result["github_event_action"] == "created"
@@ -685,7 +685,7 @@ class TestExtractGithubInfo:
                 "owner": {"login": "my-org"},
             }
         }
-        result = extract_github_info(event)
+        result = get_tags(event)
 
         assert result["scm_owner"] == "my-org"
         assert result["scm_repo_name"] == "my-repo"
@@ -698,11 +698,11 @@ class TestExtractGithubInfo:
                 "owner": {"login": "solo-owner"},
             }
         }
-        result = extract_github_info(event)
+        result = get_tags(event)
 
         assert result["scm_owner"] == "solo-owner"
         assert result["scm_repo_name"] == "solo-repo"
-        assert result["scm_repo_full_name"] is None
+        assert "scm_repo_full_name" not in result
 
 
 class TestConvertEnumKeysToStrings:

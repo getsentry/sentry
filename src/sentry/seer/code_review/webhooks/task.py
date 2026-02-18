@@ -26,8 +26,8 @@ from sentry.utils import metrics
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import (
     convert_enum_keys_to_strings,
-    extract_github_info,
     get_seer_endpoint_for_event,
+    get_tags,
     make_seer_request,
 )
 
@@ -67,11 +67,21 @@ def schedule_task(
         )
         return
 
-    # Convert enum to string for Celery serialization
+    tags = get_tags(
+        event,
+        github_event=github_event.value,
+        github_event_action=github_event_action,
+        organization_id=organization.id,
+        organization_slug=organization.slug,
+        integration_id=repo.integration_id,
+        target_commit_sha=target_commit_sha,
+    )
+
     process_github_webhook_event.delay(
         github_event=github_event.value,
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        tags=tags,
     )
     record_webhook_enqueued(github_event, github_event_action)
 
@@ -87,6 +97,7 @@ def process_github_webhook_event(
     enqueued_at_str: str,
     github_event: str,
     event_payload: Mapping[str, Any],
+    tags: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -96,12 +107,14 @@ def process_github_webhook_event(
         enqueued_at_str: The timestamp when the task was enqueued
         github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
         event_payload: The payload of the webhook event
+        tags: Sentry SDK tags to set on this task's scope for error correlation
         **kwargs: Parameters to pass to webhook handler functions
     """
     status = "success"
     should_record_latency = True
     try:
-        _set_tags(event_payload, github_event)
+        if tags:
+            sentry_sdk.set_tags({k: v for k, v in tags.items() if v is not None})
         path = get_seer_endpoint_for_event(github_event).value
 
         # Validate payload with Pydantic (except for CHECK_RUN events which use minimal payload)
@@ -140,67 +153,6 @@ def process_github_webhook_event(
             metrics.incr(f"{PREFIX}.error", tags={"error_status": status}, sample_rate=1.0)
         if should_record_latency:
             record_latency(status, enqueued_at_str)
-
-
-def _set_tags(event_payload: Mapping[str, Any], github_event: str) -> None:
-    """Set Sentry SDK tags for error correlation.
-
-    Builds a synthetic GitHub-event-like dict from the Seer task payload so that
-    extract_github_info can be used. extract_github_info sets the scm_* tags;
-    this function adds the task-payload-specific extras and overrides scm_event_url
-    based on trigger type, mirroring Seer's extract_context().
-    """
-    data = event_payload.get("data", {})
-    repo_data = data.get("repo", {})
-    config = data.get("config", {}) or {}
-    owner = repo_data.get("owner")
-    name = repo_data.get("name")
-    pr_id = data.get("pr_id")
-
-    # Build a minimal GitHub-event-like dict so extract_github_info can parse it.
-    # extract_github_info also calls sentry_sdk.set_tags() for the scm_* fields.
-    synthetic_event: dict[str, Any] = {}
-    if owner or name:
-        synthetic_event["repository"] = {
-            "owner": {"login": owner},
-            "name": name,
-            "full_name": f"{owner}/{name}" if owner and name else None,
-        }
-    if pr_id:
-        synthetic_event["pull_request"] = {
-            "html_url": f"https://github.com/{owner}/{name}/pull/{pr_id}"
-            if owner and name
-            else None,
-        }
-    trigger = config.get("trigger")
-    extract_github_info(synthetic_event, github_event=github_event, trigger=trigger)
-
-    # Override scm_event_url based on trigger type (default PR URL is already set above).
-    # ON_NEW_COMMIT → commit URL; ON_COMMAND_PHRASE → comment URL.
-    commit_sha = repo_data.get("base_commit_sha")
-    comment_id = config.get("trigger_comment_id")
-    if trigger == "on_new_commit" and owner and name and commit_sha:
-        sentry_sdk.set_tag(
-            "scm_event_url", f"https://github.com/{owner}/{name}/commit/{commit_sha}"
-        )
-    elif trigger == "on_command_phrase" and owner and name and pr_id and comment_id:
-        sentry_sdk.set_tag(
-            "scm_event_url",
-            f"https://github.com/{owner}/{name}/pull/{pr_id}#issuecomment-{comment_id}",
-        )
-
-    # Extra tags from the Seer payload not in the raw webhook event.
-    sentry_sdk.set_tags(
-        {
-            k: v
-            for k, v in {
-                "pr_id": pr_id,
-                "sentry_organization_id": repo_data.get("organization_id"),
-                "sentry_integration_id": repo_data.get("integration_id"),
-            }.items()
-            if v is not None
-        }
-    )
 
 
 def record_latency(status: str, enqueued_at_str: str) -> None:

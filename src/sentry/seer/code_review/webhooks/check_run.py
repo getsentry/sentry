@@ -118,6 +118,13 @@ def handle_check_run_event(
     # Import here to avoid circular dependency with webhook_task
     from .task import process_github_webhook_event
 
+    tags = {
+        "github_event": github_event.value,
+        "github_event_action": validated_event.action,
+        "scm_provider": "github",
+        "scm_event_url": validated_event.check_run.html_url,
+    }
+
     # Scheduling the work as a task allows us to retry the request if it fails.
     # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
@@ -127,6 +134,7 @@ def handle_check_run_event(
         action=validated_event.action,
         html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        tags=tags,
     )
     record_webhook_enqueued(github_event, action)
 
