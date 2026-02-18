@@ -35,14 +35,12 @@ interface AITraceSectionProps {
   project: Project;
 }
 
-// For Vercel deployment, update this to your ngrok URL:
-// const MCP_SERVER_URL = 'https://your-ngrok-url.ngrok-free.app';
-const MCP_SERVER_URL = 'http://localhost:8080';
+// ngrok URL for Vercel deployment (real data)
+const MCP_SERVER_URL = 'https://unpargeted-superextreme-kenna.ngrok-free.dev';
 const MCP_API_KEY = 'mwu18CWSSa7jSGHi53ZkcyoG9Z9s3S6B2uCX7FPPRy4';
 
 // Demo mode: set to false to use real data from MCP server
-// Set to true for Vercel demo (no ngrok needed)
-const USE_DEMO_DATA = true;
+const USE_DEMO_DATA = false;
 
 const DEMO_DATA: AITraceData = {
   metadata: {
