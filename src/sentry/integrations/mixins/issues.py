@@ -40,11 +40,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("sentry.integrations.issues")
 ENHANCED_DEFAULTS_FEATURE = "organizations:integrations-issue-defaults-enhanced"
-MARKDOWN_TEXT_CLEANUP_RE = re.compile(r"[*`#]")
+MARKDOWN_TEXT_CLEANUP_RE = re.compile(r"[*`]")
 SQL_EVIDENCE_PREFIX_RE = re.compile(
     r"^(db|database)\s*-\s*(select|insert|update|delete|with)\b", re.I
 )
 FULL_EVIDENCE_NAME_PARTS = frozenset({"query", "offending spans"})
+FULL_EVIDENCE_CODE_BLOCK_NAME_PARTS = frozenset({"selector path"})
+FULL_EVIDENCE_CODE_BLOCK_PARTS = FULL_EVIDENCE_NAME_PARTS | FULL_EVIDENCE_CODE_BLOCK_NAME_PARTS
 MAX_CHAR = 50
 MAX_TITLE_LENGTH = 255
 MAX_EVIDENCE_ITEMS = 8
@@ -173,20 +175,41 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
     def _get_occurrence_detail_lines(self, evidence_data: Mapping[str, Any]) -> list[str]:
         lines: list[str] = []
+        added_items = 0
         for key, value in evidence_data.items():
             if value is None:
                 continue
             if isinstance(value, (str, int, float, bool)):
-                lines.append(
-                    f"- {key}: {self._clean_text(value, max_length=MAX_EVIDENCE_VALUE_LENGTH)}"
-                )
-            if len(lines) >= MAX_EVIDENCE_ITEMS:
+                lines.extend(self._get_formatted_evidence_lines(str(key), value))
+                added_items += 1
+            if added_items >= MAX_EVIDENCE_ITEMS:
                 break
         return lines
 
+    def _get_occurrence_category(self, occurrence: IssueOccurrence) -> int:
+        return occurrence.type.category_v2
+
+    def _get_occurrence_evidence_section_title(self, occurrence: IssueOccurrence) -> str:
+        category = self._get_occurrence_category(occurrence)
+        if category == GroupCategory.DB_QUERY.value:
+            return "Query Evidence"
+        if category == GroupCategory.HTTP_CLIENT.value:
+            return "Request Evidence"
+        if category == GroupCategory.FRONTEND.value:
+            return "Interaction Evidence"
+        return "Evidence"
+
+    def _get_occurrence_details_section_title(self, occurrence: IssueOccurrence) -> str:
+        category = self._get_occurrence_category(occurrence)
+        if category == GroupCategory.METRIC.value:
+            return "Metric Details"
+        if category == GroupCategory.FRONTEND.value:
+            return "Interaction Details"
+        return "Details"
+
     def _is_query_like_evidence(self, evidence_name: str, evidence_value: Any) -> bool:
         cleaned_name = self._clean_text(evidence_name).lower()
-        if any(name_part in cleaned_name for name_part in FULL_EVIDENCE_NAME_PARTS):
+        if any(name_part in cleaned_name for name_part in FULL_EVIDENCE_CODE_BLOCK_PARTS):
             return True
 
         cleaned_value = self._clean_text(evidence_value)
@@ -198,7 +221,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             return [f"{cleaned_name}:", "```", self._clean_text(evidence_value), "```"]
 
         return [
-            f"- {cleaned_name}: {self._clean_text(evidence_value, max_length=MAX_EVIDENCE_VALUE_LENGTH)}"
+            f"{cleaned_name}: {self._clean_text(evidence_value, max_length=MAX_EVIDENCE_VALUE_LENGTH)}"
         ]
 
     def _get_plain_issue_link(self, group: Group, **kwargs: Any) -> str:
@@ -242,13 +265,15 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 event.occurrence.evidence_display, key=attrgetter("important"), reverse=True
             )[:MAX_EVIDENCE_ITEMS]
             if evidence_items:
-                output.extend(["", "Evidence:"])
+                section_title = self._get_occurrence_evidence_section_title(event.occurrence)
+                output.extend(["", f"{section_title}:"])
                 for evidence in evidence_items:
                     output.extend(self._get_formatted_evidence_lines(evidence.name, evidence.value))
             else:
                 detail_lines = self._get_occurrence_detail_lines(event.occurrence.evidence_data)
                 if detail_lines:
-                    output.extend(["", "Details:", *detail_lines])
+                    details_title = self._get_occurrence_details_section_title(event.occurrence)
+                    output.extend(["", f"{details_title}:", *detail_lines])
         else:
             body = self.get_group_body(group, event)
             if body:

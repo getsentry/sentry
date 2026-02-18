@@ -8,7 +8,11 @@ from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneAPICallsGroupType,
+    PerformanceNPlusOneGroupType,
+    ReplayRageClickType,
+)
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -258,8 +262,8 @@ class GroupIntegrationDetailsTest(APITestCase):
             "Summary: Critical: Number of events in the last 5 minutes above 100"
             in description_field["default"]
         )
-        assert "Details:" in description_field["default"]
-        assert "- alert_id: 42" in description_field["default"]
+        assert "Metric Details:" in description_field["default"]
+        assert "alert_id: 42" in description_field["default"]
         assert "Evidence:" not in description_field["default"]
 
     def test_get_create_with_enhanced_defaults_for_n_plus_one_issue(self) -> None:
@@ -318,13 +322,129 @@ class GroupIntegrationDetailsTest(APITestCase):
         fields = response.data["createIssueConfig"]
         description_field = next(field for field in fields if field["name"] == "description")
 
-        assert "Evidence:" in description_field["default"]
+        assert "Query Evidence:" in description_field["default"]
         assert "Offending Spans:" in description_field["default"]
         assert "```" in description_field["default"]
         assert "Offending Spans:\n```" in description_field["default"]
         assert f"{offending_span_value}\n```" in description_field["default"]
         assert "- Offending Spans:" not in description_field["default"]
         assert long_query in description_field["default"]
+
+    def test_get_create_with_enhanced_defaults_for_replay_issue(self) -> None:
+        self.login_as(user=self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+        )
+
+        selector_path = (
+            "div.app-3wdkg3.et1gehn2 > div.e1cp5mh30.app-1u5xyz > "
+            'button.app-tm5jtp.eyredpk0[aria="click me"]'
+        )
+
+        group_event = self.event.for_group(self.group)
+        group_event.occurrence = IssueOccurrence(
+            id="replay-rage-click-occurrence-id",
+            project_id=self.project.id,
+            event_id=self.event.event_id,
+            fingerprint=["replay-click-rage"],
+            issue_title="Rage Click",
+            subtitle=selector_path,
+            resource_id=None,
+            evidence_data={"selector": selector_path},
+            evidence_display=[
+                IssueEvidence(name="Clicked Element", value="button#signup", important=False),
+                IssueEvidence(name="Selector Path", value=selector_path, important=False),
+                IssueEvidence(name="React Component Name", value="StyledButton", important=True),
+            ],
+            type=ReplayRageClickType,
+            detection_time=self.min_ago,
+            level="error",
+            culprit="",
+        )
+
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/?action=create"
+
+        with (
+            self.feature(
+                {
+                    "organizations:integrations-issue-basic": True,
+                    "organizations:integrations-issue-defaults-enhanced": True,
+                }
+            ),
+            mock.patch.object(Group, "get_latest_event", return_value=group_event),
+        ):
+            response = self.client.get(path)
+
+        assert response.status_code == 200
+        fields = response.data["createIssueConfig"]
+        title_field = next(field for field in fields if field["name"] == "title")
+        description_field = next(field for field in fields if field["name"] == "description")
+
+        assert title_field["default"] == "Rage Click: StyledButton"
+        assert "Interaction Evidence:" in description_field["default"]
+        assert "Clicked Element: button#signup" in description_field["default"]
+        assert "Selector Path:\n```" in description_field["default"]
+        assert f"{selector_path}\n```" in description_field["default"]
+        assert "- Clicked Element:" not in description_field["default"]
+
+    def test_get_create_with_enhanced_defaults_for_http_issue(self) -> None:
+        self.login_as(user=self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+        )
+
+        group_event = self.event.for_group(self.group)
+        group_event.occurrence = IssueOccurrence(
+            id="n-plus-one-api-occurrence-id",
+            project_id=self.project.id,
+            event_id=self.event.event_id,
+            fingerprint=["performance-n-plus-one-api"],
+            issue_title="N+1 API Calls",
+            subtitle="Repeated API calls detected in a single transaction.",
+            resource_id=None,
+            evidence_data={"num_repeating_spans": "8"},
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value="http.client - GET https://api.example.com/v1/users",
+                    important=True,
+                )
+            ],
+            type=PerformanceNPlusOneAPICallsGroupType,
+            detection_time=self.min_ago,
+            level="error",
+            culprit="",
+        )
+
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/?action=create"
+
+        with (
+            self.feature(
+                {
+                    "organizations:integrations-issue-basic": True,
+                    "organizations:integrations-issue-defaults-enhanced": True,
+                }
+            ),
+            mock.patch.object(Group, "get_latest_event", return_value=group_event),
+        ):
+            response = self.client.get(path)
+
+        assert response.status_code == 200
+        fields = response.data["createIssueConfig"]
+        description_field = next(field for field in fields if field["name"] == "description")
+
+        assert "Request Evidence:" in description_field["default"]
+        assert "Offending Spans:\n```" in description_field["default"]
+        assert (
+            "http.client - GET https://api.example.com/v1/users\n```"
+            in description_field["default"]
+        )
 
     def test_get_create_with_error(self) -> None:
         self.login_as(user=self.user)
