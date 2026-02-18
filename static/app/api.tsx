@@ -49,6 +49,7 @@ export class Request {
   }
 }
 
+// @deprecated Use ApiResponse instead
 export type ApiResult<Data = any> = [
   data: Data,
   statusText: string | undefined,

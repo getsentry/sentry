@@ -9,11 +9,17 @@ import type {
 } from '@tanstack/react-query';
 import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
 
-import type {APIRequestMethod, ApiResult, ResponseMeta} from 'sentry/api';
+import type {ApiResult, ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
-import type getApiUrl from 'sentry/utils/api/getApiUrl';
+import type {
+  ApiQueryKey,
+  InfiniteApiQueryKey,
+  QueryKeyEndpointOptions,
+} from 'sentry/utils/api/queryKey';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type RequestError from 'sentry/utils/requestError/requestError';
+
+export type {ApiQueryKey, InfiniteApiQueryKey, QueryKeyEndpointOptions};
 
 // Overrides to the default react-query options.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
@@ -26,41 +32,7 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   },
 };
 
-const QUERY_API_CLIENT = new Client();
-
-export type QueryKeyEndpointOptions<
-  Headers = Record<string, string>,
-  Query = Record<string, any>,
-  Data = Record<string, any>,
-> = {
-  data?: Data;
-  headers?: Headers;
-  host?: string;
-  method?: APIRequestMethod;
-  query?: Query;
-};
-
-export type ApiQueryKey =
-  | readonly [url: ReturnType<typeof getApiUrl>]
-  | readonly [
-      url: ReturnType<typeof getApiUrl>,
-      options: QueryKeyEndpointOptions<
-        Record<string, string>,
-        Record<string, any>,
-        Record<string, any>
-      >,
-    ];
-export type InfiniteApiQueryKey =
-  | readonly ['infinite', url: ReturnType<typeof getApiUrl>]
-  | readonly [
-      'infinite',
-      url: ReturnType<typeof getApiUrl>,
-      options: QueryKeyEndpointOptions<
-        Record<string, string>,
-        Record<string, any>,
-        Record<string, any>
-      >,
-    ];
+export const QUERY_API_CLIENT = new Client();
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError> extends Omit<
   UseQueryOptions<ApiResult<TApiResponse>, TError, ApiResult<TApiResponse>, ApiQueryKey>,
