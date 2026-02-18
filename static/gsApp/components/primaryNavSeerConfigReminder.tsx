@@ -229,7 +229,7 @@ export default function PrimaryNavSeerConfigReminder() {
             <Text>{copy.description}</Text>
             <Flex justify="end">
               <LinkButton
-                to={{pathname: copy.pathname}}
+                to={copy.pathname}
                 priority="primary"
                 onClick={() => state.close()}
                 analyticsEventName="Seer Config Reminder: Configure Now Clicked"
