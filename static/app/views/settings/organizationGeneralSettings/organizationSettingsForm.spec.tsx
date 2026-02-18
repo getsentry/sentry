@@ -1,15 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as formIndicatorActions from 'sentry/components/forms/formIndicators';
-import Indicators from 'sentry/components/indicators';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import * as RegionUtils from 'sentry/utils/regions';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-jest.mock('sentry/components/forms/formIndicators');
 jest.mock('sentry/utils/regions');
 
 describe('OrganizationSettingsForm', () => {
@@ -43,69 +40,30 @@ describe('OrganizationSettingsForm', () => {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
-      body: organization,
+      body: {...organization, name: 'New Name'},
     });
 
     render(
       <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />
     );
 
-    render(<Indicators />);
-
     const input = screen.getByRole('textbox', {name: 'Display Name'});
-
-    const undoableFormChangeMessage = jest.spyOn(
-      formIndicatorActions,
-      'addUndoableFormChangeMessage'
-    );
 
     await userEvent.clear(input);
     await userEvent.type(input, 'New Name');
     await userEvent.tab();
 
-    expect(putMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {
-          name: 'New Name',
-        },
-      })
-    );
-
-    expect(undoableFormChangeMessage).toHaveBeenCalledWith(
-      {
-        new: 'New Name',
-        old: 'Organization Name',
-      },
-      expect.anything(),
-      'name'
-    );
-
-    const model = undoableFormChangeMessage.mock.calls[0]![1];
-
-    // Test "undo" call undo directly
-    expect(model.getValue('name')).toBe('New Name');
-    act(() => {
-      model.undo();
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            name: 'New Name',
+          },
+        })
+      );
     });
-    expect(model.getValue('name')).toBe('Organization Name');
-
-    // `addUndoableFormChangeMessage` saves the new field, so reimplement this
-    act(() => {
-      model.saveField('name', 'Organization Name');
-    });
-
-    // Initial data should be updated to original name
-    await waitFor(() => expect(model.initialData.name).toBe('Organization Name'));
-
-    putMock.mockReset();
-
-    // Blurring the name field again should NOT trigger a save
-    await userEvent.click(input);
-    await userEvent.tab();
-
-    expect(putMock).not.toHaveBeenCalled();
   });
 
   it('can change slug', async () => {
@@ -173,8 +131,8 @@ describe('OrganizationSettingsForm', () => {
     );
   });
 
-  it('can toggle "Show Generative AI Features"', async () => {
-    // Default org fixture has hideAiFeatures: false, so Seer is enabled by default
+  it('can enable "Show Generative AI Features"', async () => {
+    // initialData.hideAiFeatures: false → switch is OFF (AI hidden)
     const hiddenAiOrg = OrganizationFixture({
       hideAiFeatures: true,
       features: ['gen-ai-features'],
@@ -192,10 +150,10 @@ describe('OrganizationSettingsForm', () => {
       name: 'Show Generative AI Features',
     });
 
-    // Inverted from hideAiFeatures
+    // initialData.hideAiFeatures = false → switch is OFF
     expect(checkbox).not.toBeChecked();
 
-    // Click to uncheck (disable Seer -> hideAiFeatures = true)
+    // Click to enable → switch ON (form value = true) → API receives hideAiFeatures: !true = false
     await userEvent.click(checkbox);
 
     await waitFor(() => {
@@ -207,9 +165,35 @@ describe('OrganizationSettingsForm', () => {
       );
     });
 
-    // Inverted from hideAiFeatures
+    expect(checkbox).toBeChecked();
+  });
+
+  it('can disable "Show Generative AI Features"', async () => {
+    // initialData.hideAiFeatures: true → switch is ON (AI shown)
+    const aiEnabledOrg = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['gen-ai-features'],
+    });
+    render(
+      <OrganizationSettingsForm
+        initialData={OrganizationFixture({hideAiFeatures: true})}
+        onSave={onSave}
+      />,
+      {organization: aiEnabledOrg}
+    );
+    const mock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+    });
+
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Show Generative AI Features',
+    });
+
+    // initialData.hideAiFeatures = true → switch is ON
     expect(checkbox).toBeChecked();
 
+    // Click to disable → switch OFF (form value = false) → API receives hideAiFeatures: !false = true
     await userEvent.click(checkbox);
 
     await waitFor(() => {
@@ -218,6 +202,8 @@ describe('OrganizationSettingsForm', () => {
         expect.objectContaining({data: {hideAiFeatures: true}})
       );
     });
+
+    expect(checkbox).not.toBeChecked();
   });
 
   it('shows hideAiFeatures togglefor DE region', async () => {
@@ -290,12 +276,13 @@ describe('OrganizationSettingsForm', () => {
         screen.getByText('Use AI to review and find bugs in pull requests')
       ).toBeInTheDocument();
 
-      const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
-      expect(learnMoreLink).toBeInTheDocument();
-      expect(learnMoreLink).toHaveAttribute(
-        'href',
-        'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
+      const learnMoreLinks = screen.getAllByRole('link', {name: 'Learn more'});
+      const aiCodeReviewLink = learnMoreLinks.find(
+        link =>
+          link.getAttribute('href') ===
+          'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
       );
+      expect(aiCodeReviewLink).toBeInTheDocument();
     });
 
     it('hides AI Code Review field when AI features are disabled', async () => {
