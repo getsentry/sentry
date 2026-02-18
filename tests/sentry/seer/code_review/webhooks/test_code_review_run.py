@@ -75,7 +75,7 @@ class CreateCodeReviewRunTest(TestCase):
 class UpdateCodeReviewRunTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.run = CodeReviewRun.objects.create(
+        self.cr_run = CodeReviewRun.objects.create(
             organization_id=self.organization.id,
             repository_id=1,
             pull_request_number=42,
@@ -85,38 +85,38 @@ class UpdateCodeReviewRunTest(TestCase):
         )
 
     def test_updates_status(self) -> None:
-        _update_code_review_run(self.run.id, CodeReviewRunStatus.SEER_REQUEST_SENT)
-        self.run.refresh_from_db()
-        assert self.run.status == CodeReviewRunStatus.SEER_REQUEST_SENT
+        _update_code_review_run(self.cr_run.id, CodeReviewRunStatus.SEER_REQUEST_SENT)
+        self.cr_run.refresh_from_db()
+        assert self.cr_run.status == CodeReviewRunStatus.SEER_REQUEST_SENT
 
     def test_updates_status_with_error_message(self) -> None:
         _update_code_review_run(
-            self.run.id,
+            self.cr_run.id,
             CodeReviewRunStatus.SEER_REQUEST_FAILED,
             error_message="Connection refused",
         )
-        self.run.refresh_from_db()
-        assert self.run.status == CodeReviewRunStatus.SEER_REQUEST_FAILED
-        assert self.run.error_message == "Connection refused"
+        self.cr_run.refresh_from_db()
+        assert self.cr_run.status == CodeReviewRunStatus.SEER_REQUEST_FAILED
+        assert self.cr_run.error_message == "Connection refused"
 
     def test_no_op_when_run_id_is_none(self) -> None:
         _update_code_review_run(None, CodeReviewRunStatus.SEER_REQUEST_SUCCEEDED)
-        self.run.refresh_from_db()
-        assert self.run.status == CodeReviewRunStatus.TASK_ENQUEUED
+        self.cr_run.refresh_from_db()
+        assert self.cr_run.status == CodeReviewRunStatus.TASK_ENQUEUED
 
     def test_silently_ignores_db_error(self) -> None:
         with patch("sentry.seer.code_review.webhooks.task.CodeReviewRun.objects") as mock_manager:
             mock_manager.filter.side_effect = Exception("DB error")
-            _update_code_review_run(self.run.id, CodeReviewRunStatus.SEER_REQUEST_SENT)
-        self.run.refresh_from_db()
-        assert self.run.status == CodeReviewRunStatus.TASK_ENQUEUED
+            _update_code_review_run(self.cr_run.id, CodeReviewRunStatus.SEER_REQUEST_SENT)
+        self.cr_run.refresh_from_db()
+        assert self.cr_run.status == CodeReviewRunStatus.TASK_ENQUEUED
 
 
 class ProcessGitHubWebhookEventRunTrackingTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.enqueued_at_str = datetime.now(tz=timezone.utc).isoformat()
-        self.run = CodeReviewRun.objects.create(
+        self.cr_run = CodeReviewRun.objects.create(
             organization_id=self.organization.id,
             repository_id=1,
             pull_request_number=42,
@@ -164,11 +164,11 @@ class ProcessGitHubWebhookEventRunTrackingTest(TestCase):
             github_event=GithubWebhookType.PULL_REQUEST,
             event_payload=self.event_payload,
             enqueued_at_str=self.enqueued_at_str,
-            code_review_run_id=self.run.id,
+            code_review_run_id=self.cr_run.id,
         )
 
-        self.run.refresh_from_db()
-        assert self.run.status == CodeReviewRunStatus.SEER_REQUEST_SUCCEEDED
+        self.cr_run.refresh_from_db()
+        assert self.cr_run.status == CodeReviewRunStatus.SEER_REQUEST_SUCCEEDED
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_client_error_updates_status_to_failed(self, mock_request: MagicMock) -> None:
@@ -183,11 +183,11 @@ class ProcessGitHubWebhookEventRunTrackingTest(TestCase):
                 github_event=GithubWebhookType.PULL_REQUEST,
                 event_payload=self.event_payload,
                 enqueued_at_str=self.enqueued_at_str,
-                code_review_run_id=self.run.id,
+                code_review_run_id=self.cr_run.id,
             )
 
-        self.run.refresh_from_db()
-        assert self.run.status == CodeReviewRunStatus.SEER_REQUEST_FAILED
+        self.cr_run.refresh_from_db()
+        assert self.cr_run.status == CodeReviewRunStatus.SEER_REQUEST_FAILED
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
@@ -208,11 +208,11 @@ class ProcessGitHubWebhookEventRunTrackingTest(TestCase):
                 github_event=GithubWebhookType.PULL_REQUEST,
                 event_payload=self.event_payload,
                 enqueued_at_str=self.enqueued_at_str,
-                code_review_run_id=self.run.id,
+                code_review_run_id=self.cr_run.id,
             )
 
-        self.run.refresh_from_db()
-        assert self.run.status == CodeReviewRunStatus.SEER_REQUEST_FAILED
+        self.cr_run.refresh_from_db()
+        assert self.cr_run.status == CodeReviewRunStatus.SEER_REQUEST_FAILED
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
@@ -233,11 +233,11 @@ class ProcessGitHubWebhookEventRunTrackingTest(TestCase):
                 github_event=GithubWebhookType.PULL_REQUEST,
                 event_payload=self.event_payload,
                 enqueued_at_str=self.enqueued_at_str,
-                code_review_run_id=self.run.id,
+                code_review_run_id=self.cr_run.id,
             )
 
-        self.run.refresh_from_db()
-        assert self.run.status == CodeReviewRunStatus.SEER_REQUEST_SENT
+        self.cr_run.refresh_from_db()
+        assert self.cr_run.status == CodeReviewRunStatus.SEER_REQUEST_SENT
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_no_run_id_still_processes_request(self, mock_request: MagicMock) -> None:
