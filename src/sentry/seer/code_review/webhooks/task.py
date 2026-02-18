@@ -93,7 +93,7 @@ def process_github_webhook_event(
         event_payload: The payload of the webhook event
         **kwargs: Parameters to pass to webhook handler functions
     """
-    _set_sentry_tags(event_payload, github_event)
+    _set_tags_and_log(event_payload, github_event)
 
     status = "success"
     should_record_latency = True
@@ -121,7 +121,6 @@ def process_github_webhook_event(
         else:
             payload = event_payload
 
-        log_seer_request(event_payload, github_event)
         make_seer_request(path=path, payload=payload)
     except Exception as e:
         status = e.__class__.__name__
@@ -138,40 +137,47 @@ def process_github_webhook_event(
             record_latency(status, enqueued_at_str)
 
 
-def _set_sentry_tags(event_payload: Mapping[str, Any], github_event: str) -> None:
-    """Set Sentry SDK tags for error correlation.
+def _set_tags_and_log(event_payload: Mapping[str, Any], github_event: str) -> None:
+    """Set Sentry SDK tags for error correlation and log the outgoing request.
 
-    Uses the same tag names as Seer's extract_context() so errors can be
+    Tags use the same names as Seer's extract_context() so errors can be
     searched consistently across both projects.
     """
     repo_data = event_payload.get("data", {}).get("repo", {})
     owner = repo_data.get("owner")
     name = repo_data.get("name")
+    provider = repo_data.get("provider")
+    pr_id = event_payload.get("data", {}).get("pr_id")
+    organization_id = repo_data.get("organization_id")
+    integration_id = repo_data.get("integration_id")
+    full_name = f"{owner}/{name}" if owner and name else None
+
     sentry_sdk.set_tags(
         {
-            "scm_provider": repo_data.get("provider"),
-            "scm_owner": owner,
-            "scm_repo_name": name,
-            "scm_repo_full_name": f"{owner}/{name}" if owner and name else None,
-            "pr_id": event_payload.get("data", {}).get("pr_id"),
-            "sentry_organization_id": repo_data.get("organization_id"),
-            "sentry_integration_id": repo_data.get("integration_id"),
-            "github_event": github_event,
+            k: v
+            for k, v in {
+                "scm_provider": provider,
+                "scm_owner": owner,
+                "scm_repo_name": name,
+                "scm_repo_full_name": full_name,
+                "pr_id": pr_id,
+                "sentry_organization_id": organization_id,
+                "sentry_integration_id": integration_id,
+                "github_event": github_event,
+            }.items()
+            if v is not None
         }
     )
 
-
-def log_seer_request(event_payload: Mapping[str, Any], github_event: str) -> None:
-    repo_data = event_payload.get("data", {}).get("repo", {})
     trigger_at_str = event_payload.get("data", {}).get("config", {}).get("trigger_at")
     logger.info(
         "%s.sending_request_to_seer",
         PREFIX,
         extra={
-            "provider": repo_data.get("provider"),
-            "repo_owner": repo_data.get("owner"),
-            "repo_name": repo_data.get("name"),
-            "pr_id": event_payload.get("data", {}).get("pr_id"),
+            "provider": provider,
+            "repo_owner": owner,
+            "repo_name": name,
+            "pr_id": pr_id,
             "commit_sha": repo_data.get("base_commit_sha"),
             "request_type": event_payload.get("request_type"),
             "github_event": github_event,
