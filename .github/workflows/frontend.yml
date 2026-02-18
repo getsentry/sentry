@@ -226,7 +226,7 @@ jobs:
             echo "No test files selected for this shard"
             exit 1
           fi
-          pnpm exec vitest run --maxWorkers=100% "${shard_files[@]}"
+          pnpm exec vitest "${shard_files[@]}"
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)

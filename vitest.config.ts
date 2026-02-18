@@ -9,6 +9,8 @@ import pegjsPlugin from './tests/js/vite-pegjs-plugin';
 
 const ROOT = import.meta.dirname;
 
+const IS_GITHUB_ACTION_ENV = !!process.env.GITHUB_ACTIONS;
+
 export default defineConfig({
   plugins: [
     react({
@@ -102,6 +104,7 @@ export default defineConfig({
     ],
   },
   test: {
+    maxWorkers: '100%',
     globals: true,
     environment: 'jsdom',
     env: {
@@ -123,16 +126,9 @@ export default defineConfig({
     ],
     include: ['static/**/*.spec.{ts,tsx}'],
     css: false,
-    deps: {
-      optimizer: {
-        web: {
-          include: ['screenfull', 'cbor2', 'nuqs', 'color'],
-        },
-      },
-    },
     pool: 'forks',
     experimental: {
-      fsModuleCache: true,
+      fsModuleCache: !IS_GITHUB_ACTION_ENV,
     },
   },
 });
