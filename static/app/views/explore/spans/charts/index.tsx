@@ -206,7 +206,7 @@ function Chart({
       confidence: combineConfidenceForSeries(confidenceSeries),
       series,
       timeseriesResult,
-      yAxis: visualize.yAxis,
+      yAxes: visualize.yAxes,
       dataScanned: samplingMeta.dataScanned,
       isSampled: samplingMeta.isSampled,
       sampleCount: samplingMeta.sampleCount,

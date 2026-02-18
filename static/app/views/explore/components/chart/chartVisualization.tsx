@@ -47,7 +47,7 @@ export function ChartVisualization({
       //
       // We can't do this in top N mode as the series name uses the row
       // values instead of the aggregate function.
-      if (s.yAxis === chartInfo.yAxis) {
+      if (chartInfo.yAxes.includes(s.yAxis)) {
         return new DataPlottableConstructor(markDelayedData(s, INGESTION_DELAY), {
           color: s.meta.isOther ? theme.tokens.content.secondary : undefined,
           stack: 'all',

@@ -26,7 +26,7 @@ describe('ConfidenceFooter', () => {
       chartType: ChartType.LINE,
       series: [],
       timeseriesResult: {} as any,
-      yAxis: '',
+      yAxes: [],
       ...info,
     };
   }

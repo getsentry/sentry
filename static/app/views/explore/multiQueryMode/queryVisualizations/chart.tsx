@@ -77,7 +77,7 @@ export function MultiQueryModeChart({
       confidence: combineConfidenceForSeries(series),
       series,
       timeseriesResult,
-      yAxis: yAxes[0]!,
+      yAxes,
       dataScanned: samplingMeta.dataScanned,
       isSampled: samplingMeta.isSampled,
       sampleCount: samplingMeta.sampleCount,

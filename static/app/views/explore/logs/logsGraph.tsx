@@ -144,7 +144,7 @@ function Graph({
         ...timeseriesResult,
         isPending: timeseriesResult.isPending || tableIsPending,
       } as ChartInfo['timeseriesResult'],
-      yAxis: aggregate,
+      yAxes: [aggregate],
       confidence: combineConfidenceForSeries(series),
       dataScanned: samplingMeta.dataScanned,
       isSampled: samplingMeta.isSampled,

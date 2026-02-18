@@ -8,7 +8,7 @@ export interface ChartInfo {
   chartType: ChartType;
   series: TimeSeries[];
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  yAxis: string;
+  yAxes: readonly string[];
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
