@@ -218,8 +218,7 @@ describe('getReadableQueryParamsFromLocation', () => {
           aggregateFields: [
             new VisualizeFunction('count(message)', {chartType: ChartType.AREA}),
             {groupBy: 'message.template'},
-            new VisualizeFunction('p50(foo)'),
-            new VisualizeFunction('p75(bar)'),
+            new VisualizeFunction(['p50(foo)', 'p75(bar)']),
           ],
         })
       )
