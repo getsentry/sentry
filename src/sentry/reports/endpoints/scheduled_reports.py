@@ -34,8 +34,12 @@ class ScheduledReportsEndpoint(OrganizationEndpoint):
         source_type = request.query_params.get("sourceType")
         if source_type is not None:
             source_type_id = ScheduledReportSourceType.get_id_for_type_name(source_type)
-            if source_type_id is not None:
-                queryset = queryset.filter(source_type=source_type_id)
+            if source_type_id is None:
+                return Response(
+                    {"detail": "Invalid value for sourceType parameter."},
+                    status=400,
+                )
+            queryset = queryset.filter(source_type=source_type_id)
 
         source_id = request.query_params.get("sourceId")
         if source_id is not None:
