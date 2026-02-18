@@ -118,4 +118,6 @@ def handle_issue_comment_event(
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
+        pull_request_number=pr_number,
+        github_delivery_id=str(extra.get("github_delivery_id") or "") or None,
     )

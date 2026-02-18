@@ -1164,6 +1164,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": task_crontab("0", "*", "*", "*", "*"),
     },
+    "cleanup-old-code-review-runs": {
+        "task": "seer:sentry.seer.code_review.tasks.cleanup.cleanup_old_code_review_runs",
+        # Runs every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
+        "schedule": task_crontab("0", "*/6", "*", "*", "*"),
+    },
     "web-vitals-issue-detection": {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
         "schedule": task_crontab("0", "0", "*", "1,15", "*"),

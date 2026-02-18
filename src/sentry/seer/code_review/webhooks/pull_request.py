@@ -176,4 +176,6 @@ def handle_pull_request_event(
         organization=organization,
         repo=repo,
         target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
+        pull_request_number=pr_number,
+        github_delivery_id=str(extra.get("github_delivery_id") or "") or None,
     )

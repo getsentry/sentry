@@ -5,9 +5,11 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
+import sentry_sdk
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.models.codereviewrun import CodeReviewRun, CodeReviewRunStatus
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.seer.code_review.models import (
@@ -42,6 +44,8 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    pull_request_number: int | None = None,
+    github_delivery_id: str | None = None,
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
@@ -61,13 +65,55 @@ def schedule_task(
         )
         return
 
+    code_review_run_id = _create_code_review_run(
+        organization_id=organization.id,
+        repository_id=repo.id,
+        pull_request_number=pull_request_number,
+        commit_sha=target_commit_sha,
+        github_delivery_id=github_delivery_id,
+    )
+
     # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
         github_event=github_event.value,
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        code_review_run_id=code_review_run_id,
     )
     record_webhook_enqueued(github_event, github_event_action)
+
+
+def _create_code_review_run(
+    organization_id: int,
+    repository_id: int,
+    pull_request_number: int | None,
+    commit_sha: str,
+    github_delivery_id: str | None,
+) -> int | None:
+    """Create a CodeReviewRun record, returning its ID or None on failure."""
+    if pull_request_number is None or github_delivery_id is None:
+        return None
+    try:
+        run = CodeReviewRun.objects.create(
+            organization_id=organization_id,
+            repository_id=repository_id,
+            pull_request_number=pull_request_number,
+            commit_sha=commit_sha,
+            github_delivery_id=github_delivery_id,
+            status=CodeReviewRunStatus.TASK_ENQUEUED,
+        )
+        return run.id
+    except Exception:
+        logger.warning(
+            "seer.code_review.task.create_run_failed",
+            extra={
+                "organization_id": organization_id,
+                "repository_id": repository_id,
+                "pull_request_number": pull_request_number,
+                "github_delivery_id": github_delivery_id,
+            },
+        )
+        return None
 
 
 @instrumented_task(
@@ -81,6 +127,7 @@ def process_github_webhook_event(
     enqueued_at_str: str,
     github_event: str,
     event_payload: Mapping[str, Any],
+    code_review_run_id: int | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -90,8 +137,11 @@ def process_github_webhook_event(
         enqueued_at_str: The timestamp when the task was enqueued
         github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
         event_payload: The payload of the webhook event
+        code_review_run_id: Optional ID of the CodeReviewRun record to update
         **kwargs: Parameters to pass to webhook handler functions
     """
+    _set_tags_and_log(event_payload, github_event)
+
     status = "success"
     should_record_latency = True
     try:
@@ -118,8 +168,9 @@ def process_github_webhook_event(
         else:
             payload = event_payload
 
-        log_seer_request(event_payload, github_event)
+        _update_code_review_run(code_review_run_id, CodeReviewRunStatus.SEER_REQUEST_SENT)
         make_seer_request(path=path, payload=payload)
+        _update_code_review_run(code_review_run_id, CodeReviewRunStatus.SEER_REQUEST_SUCCEEDED)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.
@@ -127,6 +178,18 @@ def process_github_webhook_event(
             task = current_task()
             if task and task.retries_remaining:
                 should_record_latency = False
+            else:
+                _update_code_review_run(
+                    code_review_run_id,
+                    CodeReviewRunStatus.SEER_REQUEST_FAILED,
+                    error_message=str(e),
+                )
+        else:
+            _update_code_review_run(
+                code_review_run_id,
+                CodeReviewRunStatus.SEER_REQUEST_FAILED,
+                error_message=str(e),
+            )
         raise
     finally:
         if status != "success":
@@ -135,17 +198,70 @@ def process_github_webhook_event(
             record_latency(status, enqueued_at_str)
 
 
-def log_seer_request(event_payload: Mapping[str, Any], github_event: str) -> None:
+def _update_code_review_run(
+    code_review_run_id: int | None,
+    status: CodeReviewRunStatus,
+    error_message: str | None = None,
+    seer_response_status: int | None = None,
+) -> None:
+    """Update the status of a CodeReviewRun record. Silently ignores failures."""
+    if code_review_run_id is None:
+        return
+    try:
+        update_fields: dict[str, Any] = {"status": status}
+        if error_message is not None:
+            update_fields["error_message"] = error_message
+        if seer_response_status is not None:
+            update_fields["seer_response_status"] = seer_response_status
+        CodeReviewRun.objects.filter(id=code_review_run_id).update(**update_fields)
+    except Exception:
+        logger.warning(
+            "seer.code_review.task.update_run_failed",
+            extra={"code_review_run_id": code_review_run_id, "status": status},
+        )
+
+
+def _set_tags_and_log(event_payload: Mapping[str, Any], github_event: str) -> None:
+    """Set Sentry SDK tags for error correlation and log the outgoing request.
+
+    Tags use the same names as Seer's extract_context() so errors can be
+    searched consistently across both projects.
+    """
     repo_data = event_payload.get("data", {}).get("repo", {})
+    owner = repo_data.get("owner")
+    name = repo_data.get("name")
+    provider = repo_data.get("provider")
+    pr_id = event_payload.get("data", {}).get("pr_id")
+    organization_id = repo_data.get("organization_id")
+    integration_id = repo_data.get("integration_id")
+    full_name = f"{owner}/{name}" if owner and name else None
+
+    sentry_sdk.set_tags(
+        {
+            k: v
+            for k, v in {
+                "scm_provider": provider,
+                "scm_owner": owner,
+                "scm_repo_name": name,
+                "scm_repo_full_name": full_name,
+                "pr_id": pr_id,
+                "sentry_organization_id": organization_id,
+                "sentry_integration_id": integration_id,
+                "github_event": github_event,
+            }.items()
+            if v is not None
+        }
+    )
+
     trigger_at_str = event_payload.get("data", {}).get("config", {}).get("trigger_at")
     logger.info(
         "%s.sending_request_to_seer",
         PREFIX,
         extra={
-            "provider": repo_data.get("provider"),
-            "repo_owner": repo_data.get("owner"),
-            "repo_name": repo_data.get("name"),
-            "pr_id": event_payload.get("data", {}).get("pr_id"),
+            "provider": provider,
+            "repo_owner": owner,
+            "repo_name": name,
+            "pr_id": pr_id,
             "commit_sha": repo_data.get("base_commit_sha"),
             "request_type": event_payload.get("request_type"),
             "github_event": github_event,

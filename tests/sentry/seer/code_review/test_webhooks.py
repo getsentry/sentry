@@ -18,6 +18,7 @@ from sentry.seer.code_review.webhooks.task import (
     DELAY_BETWEEN_RETRIES,
     MAX_RETRIES,
     PREFIX,
+    _set_tags_and_log,
     process_github_webhook_event,
 )
 from sentry.testutils.cases import TestCase
@@ -719,6 +720,88 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
 
         assert mock_request.call_count == 1
+
+
+class TestSetTagsAndLog:
+    @patch("sentry.seer.code_review.webhooks.task.logger")
+    @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
+    def test_sets_tags_for_pr_event(
+        self, mock_sentry_sdk: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        event_payload = {
+            "request_type": "pr-review",
+            "external_owner_id": "456",
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "123456",
+                    "base_commit_sha": "abc123",
+                    "organization_id": 789,
+                    "integration_id": "99999",
+                },
+                "pr_id": 42,
+            },
+        }
+
+        _set_tags_and_log(event_payload, GithubWebhookType.PULL_REQUEST.value)
+
+        mock_sentry_sdk.set_tags.assert_called_once()
+        tags = mock_sentry_sdk.set_tags.call_args[0][0]
+        assert tags["scm_provider"] == "github"
+        assert tags["scm_owner"] == "getsentry"
+        assert tags["scm_repo_name"] == "sentry"
+        assert tags["scm_repo_full_name"] == "getsentry/sentry"
+        assert tags["pr_id"] == 42
+        assert tags["sentry_organization_id"] == 789
+        assert tags["sentry_integration_id"] == "99999"
+        assert tags["github_event"] == "pull_request"
+
+        mock_logger.info.assert_called_once()
+        log_extra = mock_logger.info.call_args[1]["extra"]
+        assert log_extra["provider"] == "github"
+        assert log_extra["repo_owner"] == "getsentry"
+        assert log_extra["repo_name"] == "sentry"
+        assert log_extra["pr_id"] == 42
+        assert log_extra["github_event"] == "pull_request"
+
+    @patch("sentry.seer.code_review.webhooks.task.logger")
+    @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
+    def test_handles_check_run_minimal_payload(
+        self, mock_sentry_sdk: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        """check_run events have a minimal payload without repo data; None values are omitted."""
+        event_payload = {"original_run_id": "4663713"}
+
+        _set_tags_and_log(event_payload, GithubWebhookType.CHECK_RUN.value)
+
+        mock_sentry_sdk.set_tags.assert_called_once()
+        tags = mock_sentry_sdk.set_tags.call_args[0][0]
+        assert tags["github_event"] == "check_run"
+        assert "scm_provider" not in tags
+        assert "scm_repo_full_name" not in tags
+
+    @patch("sentry.seer.code_review.webhooks.task.logger")
+    @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
+    def test_handles_missing_owner_and_name(
+        self, mock_sentry_sdk: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        event_payload = {
+            "data": {
+                "repo": {"provider": "github"},
+                "pr_id": 10,
+            },
+        }
+
+        _set_tags_and_log(event_payload, "pull_request")
+
+        mock_sentry_sdk.set_tags.assert_called_once()
+        tags = mock_sentry_sdk.set_tags.call_args[0][0]
+        assert tags["scm_provider"] == "github"
+        assert "scm_repo_full_name" not in tags
+        assert "scm_owner" not in tags
+        assert "scm_repo_name" not in tags
 
 
 class TestIsPrReviewCommand:
