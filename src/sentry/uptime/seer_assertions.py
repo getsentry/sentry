@@ -81,8 +81,8 @@ is unhealthy or behaving incorrectly.
 ## Assertion Types
 
 ### status_code
-Check the HTTP status code.
-- comparison: "equals", expected_value: "200"
+Check the HTTP status code. Use the observed status code from the response.
+- comparison: "equals", expected_value: "<observed status code>"
 
 ### json_path
 Check values in a JSON response body using JSONPath expressions. You can:
