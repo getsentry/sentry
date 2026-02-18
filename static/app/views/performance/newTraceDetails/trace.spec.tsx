@@ -85,7 +85,7 @@ function mockTraceResponse(resp?: Partial<ResponseType>) {
 
 function mockPerformanceSubscriptionDetailsResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: '/subscriptions/org-slug/',
+    url: '/customers/org-slug/',
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {body: {}}),

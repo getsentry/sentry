@@ -19,7 +19,7 @@ import type {Project} from 'sentry/types/project';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {parseAsSort} from 'sentry/utils/queryString';
+import parseAsSort from 'sentry/utils/url/parseAsSort';
 import useProjects from 'sentry/utils/useProjects';
 
 import ProjectTableHeader from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';

@@ -10,6 +10,7 @@ import {EventOrGroupType} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
 import {GroupStatus, PriorityLevel} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 
 jest.mock('sentry/utils/analytics');
 
@@ -131,7 +132,11 @@ describe('StreamGroup', () => {
   });
 
   it('can select row', async () => {
-    render(<StreamGroup id="1337" query="is:unresolved" />);
+    render(
+      <IssueSelectionProvider visibleGroupIds={['1337']}>
+        <StreamGroup id="1337" query="is:unresolved" />
+      </IssueSelectionProvider>
+    );
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
     const checkbox = screen.getByRole('checkbox', {name: 'Select Issue'});
@@ -172,7 +177,6 @@ describe('StreamGroup', () => {
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        issueLinkExtraQuery={{extraParam: '1'}}
       />
     );
 
@@ -184,14 +188,17 @@ describe('StreamGroup', () => {
       project: '13',
       query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
       referrer: 'issue-stream',
-      extraParam: '1',
     });
   });
 
   it('displays unread indicator when issue is unread', async () => {
     GroupStore.loadInitialData([GroupFixture({id: '1337', hasSeen: false})]);
 
-    render(<StreamGroup id="1337" query="is:unresolved" />);
+    render(
+      <IssueSelectionProvider visibleGroupIds={['1337']}>
+        <StreamGroup id="1337" query="is:unresolved" />
+      </IssueSelectionProvider>
+    );
 
     expect(await screen.findByTestId('unread-issue-indicator')).toBeInTheDocument();
   });

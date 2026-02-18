@@ -87,7 +87,7 @@ function useDurationBreakdownVisualization({
   newQuery.addFilterValue('transaction', transactionName);
   newQuery.addFilterValue('is_transaction', '1');
 
-  // If a span category is selected, the chart will focus on that span category rather than just the service entry span
+  // If a span category is selected, the chart will focus on that span category rather than just the segment span
   if (spanCategoryUrlParam) {
     newQuery.addFilterValue('span.category', spanCategoryUrlParam);
     newQuery.removeFilterValue('is_transaction', '1');

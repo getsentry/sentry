@@ -1040,11 +1040,6 @@ class Group(Model):
         return et.get_location(self.get_event_metadata())
 
     @property
-    def message_short(self):
-        warnings.warn("Group.message_short is deprecated, use Group.title", DeprecationWarning)
-        return self.title
-
-    @property
     def organization(self):
         return self.project.organization
 
@@ -1056,11 +1051,6 @@ class Group(Model):
             return self.get_event_metadata()["sdk"]["name_normalized"]
         except KeyError:
             return None
-
-    @property
-    def checksum(self):
-        warnings.warn("Group.checksum is no longer used", DeprecationWarning)
-        return ""
 
     def get_email_subject(self) -> str:
         return f"{self.qualified_short_id} - {self.title}"

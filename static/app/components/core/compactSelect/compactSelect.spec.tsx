@@ -517,9 +517,6 @@ describe('CompactSelect', () => {
         screen.queryByRole('option', {name: 'Option Three'})
       ).not.toBeInTheDocument();
 
-      // there's a message prompting the user to use search to find more options
-      expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
-
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
       });
@@ -536,9 +533,6 @@ describe('CompactSelect', () => {
       // Option Three is still available via search
       await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
       expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
-
-      // the size limit message is gone during search
-      expect(screen.queryByText('Use search for more options…')).not.toBeInTheDocument();
     });
 
     it('can toggle sections', async () => {
@@ -870,9 +864,6 @@ describe('CompactSelect', () => {
       expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('row', {name: 'Option Three'})).not.toBeInTheDocument();
 
-      // there's a message prompting the user to use search to find more options
-      expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
-
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
       });
@@ -885,9 +876,6 @@ describe('CompactSelect', () => {
       // Option Three is still available via search
       await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
       expect(screen.getByRole('row', {name: 'Option Three'})).toBeInTheDocument();
-
-      // the size limit message is gone during search
-      expect(screen.queryByText('Use search for more options…')).not.toBeInTheDocument();
     });
 
     it('can toggle sections', async () => {

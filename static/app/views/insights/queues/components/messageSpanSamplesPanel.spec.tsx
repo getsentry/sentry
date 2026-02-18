@@ -114,7 +114,7 @@ describe('messageSpanSamplesPanel', () => {
     });
 
     samplesRequestMock = MockApiClient.addMockResponse({
-      url: `/api/0/organizations/${organization.slug}/spans-samples/`,
+      url: `/organizations/${organization.slug}/spans-samples/`,
       method: 'GET',
       body: {
         data: [
@@ -207,7 +207,7 @@ describe('messageSpanSamplesPanel', () => {
       })
     );
     expect(samplesRequestMock).toHaveBeenCalledWith(
-      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      `/organizations/${organization.slug}/spans-samples/`,
       expect.objectContaining({
         query: expect.objectContaining({
           additionalFields: [
@@ -319,7 +319,7 @@ describe('messageSpanSamplesPanel', () => {
       })
     );
     expect(samplesRequestMock).toHaveBeenCalledWith(
-      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      `/organizations/${organization.slug}/spans-samples/`,
       expect.objectContaining({
         query: expect.objectContaining({
           additionalFields: [

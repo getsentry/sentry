@@ -47,8 +47,8 @@ export default function RelatedIssues({
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Add environment to the query parameters to be picked up by GlobalSelectionLink
-  // GlobalSelectionLink uses the current query parameters to build links to issue details
+  // Add environment to the query parameters to be picked up by extractSelectionParameters
+  // Links using extractSelectionParameters will preserve these query parameters when navigating to issue details
   useEffect(() => {
     const env = rule.environment ?? '';
     if (env !== (location.query.environment ?? '')) {

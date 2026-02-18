@@ -16,6 +16,7 @@ export const RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE: WidgetTemplate = {
       aggregates: [],
       columns: [],
       orderby: '',
+      fields: [],
     },
   ],
 };
