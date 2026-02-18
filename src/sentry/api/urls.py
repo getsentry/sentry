@@ -511,6 +511,9 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
 from sentry.replays.endpoints.project_replay_summary import ProjectReplaySummaryEndpoint
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
+from sentry.reports.endpoints.scheduled_report_detail import ScheduledReportDetailEndpoint
+from sentry.reports.endpoints.scheduled_report_test import ScheduledReportTestEndpoint
+from sentry.reports.endpoints.scheduled_reports import ScheduledReportsEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -1532,6 +1535,22 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/starred/order/$",
         ExploreSavedQueryStarredOrderEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-starred-order",
+    ),
+    # Scheduled Reports
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/scheduled-reports/$",
+        ScheduledReportsEndpoint.as_view(),
+        name="sentry-api-0-organization-scheduled-reports",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/scheduled-reports/test/$",
+        ScheduledReportTestEndpoint.as_view(),
+        name="sentry-api-0-organization-scheduled-report-test",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/scheduled-reports/(?P<report_id>\d+)/$",
+        ScheduledReportDetailEndpoint.as_view(),
+        name="sentry-api-0-organization-scheduled-report-detail",
     ),
     # Attribute Mappings
     re_path(
