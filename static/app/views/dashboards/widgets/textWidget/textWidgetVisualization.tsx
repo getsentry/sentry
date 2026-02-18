@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Text} from '@sentry/scraps/text';
-
 import {space} from 'sentry/styles/space';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 
 const EMPTY_PLACEHOLDER = '\u2014'; // em dash
 
@@ -23,7 +22,7 @@ export function TextWidgetVisualization({description}: TextWidgetProps) {
   return (
     <Fragment>
       <TextContainer>
-        <Text>{description}</Text>
+        <MarkedText text={description} />
       </TextContainer>
     </Fragment>
   );
