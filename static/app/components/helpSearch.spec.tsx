@@ -66,9 +66,9 @@ jest.mock('@sentry-internal/global-search', () => {
   const mockQuery = jest.fn(() => Promise.resolve(mockResults));
 
   return {
-    SentryGlobalSearch: jest.fn(() => {
-      return {query: mockQuery};
-    }),
+    SentryGlobalSearch: jest.fn().mockImplementation(() => ({
+      query: mockQuery,
+    })),
   };
 });
 
