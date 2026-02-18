@@ -324,8 +324,8 @@ def _perf_issues_query(snuba_params: SnubaParams, trace_id: str) -> DiscoverQuer
 def _run_perf_issues_query(
     occurrence_query: DiscoverQueryBuilder,
 ) -> list[TraceIssueOccurrenceData]:
-    result = occurrence_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
-    occurrence_data = occurrence_query.process_results(result)["data"]
+    snuba_result = occurrence_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
+    occurrence_data = occurrence_query.process_results(snuba_result)["data"]
 
     occurrence_ids = defaultdict(list)
     occurrence_issue_ids = defaultdict(list)
@@ -458,7 +458,7 @@ def _serialize_columnar_uptime_item(
                 },
                 "issue_data": issue_data,
             }
-            for issue_data in check_id_to_occurrences.get(check_id, [])
+            for issue_data in (check_id_to_occurrences or {}).get(check_id or "", [])
         ]
         if check_id
         else []
