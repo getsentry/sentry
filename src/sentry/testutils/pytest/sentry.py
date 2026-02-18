@@ -22,7 +22,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
-from sentry.types.region import Locality, Region, RegionCategory
+from sentry.types.region import Region, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -74,7 +74,6 @@ def _configure_test_env_regions() -> None:
     default_region = Region(
         region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
     )
-    default_locality = Locality(name=default_region.name, cells=frozenset([default_region.name]))
 
     settings.SENTRY_REGION = region_name
     settings.SENTRY_MONOLITH_REGION = region_name
@@ -82,7 +81,7 @@ def _configure_test_env_regions() -> None:
     # This not only populates the environment with the default region, but also
     # ensures that a TestEnvRegionDirectory instance is injected into global state.
     # See sentry.testutils.region.get_test_env_directory, which relies on it.
-    region.set_global_directory(TestEnvRegionDirectory([default_region], [default_locality]))
+    region.set_global_directory(TestEnvRegionDirectory([default_region]))
 
     settings.SENTRY_SUBNET_SECRET = "secret"
     settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"
