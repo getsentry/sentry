@@ -6,7 +6,6 @@ import {mergeRefs} from '@react-aria/utils';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -41,8 +40,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const [firstOverflowIndex, setFirstOverflowIndex] = useState<number | null>(null);
-  const outerGap = parseInt(theme.space.xs, 10);
-  const innerGap = parseInt(theme.space.md, 10);
+  const itemGap = parseInt(theme.space.md, 10);
 
   const computeOverflowIndex = useCallback(() => {
     const container = containerRef.current;
@@ -60,13 +58,13 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     for (let i = 0; i < children.length; i++) {
       const childWidth = children[i]!.getBoundingClientRect().width;
       if (i > 0) {
-        usedWidth += innerGap;
+        usedWidth += itemGap;
       }
       usedWidth += childWidth;
 
       // Reserve space for the trigger + the gap between container and trigger
       const remainingItems = children.length - i - 1;
-      const reservedSpace = remainingItems > 0 ? triggerWidth + outerGap : 0;
+      const reservedSpace = remainingItems > 0 ? triggerWidth + itemGap : 0;
 
       if (usedWidth > containerWidth - reservedSpace) {
         newFirstOverflowIndex = i;
@@ -75,7 +73,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     }
 
     setFirstOverflowIndex(newFirstOverflowIndex);
-  }, [outerGap, innerGap]);
+  }, [itemGap]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -191,14 +189,14 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   }
 
   return (
-    <Flex align="center" gap="xs" wrap="nowrap">
+    <Flex align="center" gap="md" wrap="nowrap">
       <Flex
         ref={containerRef}
         align="center"
         gap="md"
         wrap="nowrap"
         data-test-id="legend-items"
-        style={{overflow: 'hidden', minWidth: 0, flex: 1}}
+        style={{overflow: 'hidden', minWidth: 0}}
       >
         {items.map(item => (
           <LegendItemButton
@@ -262,7 +260,7 @@ const LegendItemButton = styled(Flex)`
   }
 `;
 
-const OverflowTrigger = styled(OverlayTrigger.Button)`
+const OverflowTrigger = styled('button')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
@@ -270,6 +268,7 @@ const OverflowTrigger = styled(OverlayTrigger.Button)`
   border: none;
   border-radius: ${p => p.theme.radius.sm};
   padding: 2px ${p => p.theme.space.xs};
+  color: inherit;
   font-size: ${p => p.theme.font.size.xs};
   cursor: pointer;
   white-space: nowrap;
