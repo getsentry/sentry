@@ -111,7 +111,7 @@ class OrganizationUptimeAssertionSuggestionsEndpoint(OrganizationEndpoint):
 
         check_config: CheckConfig = validator.save()
 
-        # Get region config
+        # We made it through validation, so active_regions is non-empty
         region = get_region_config(check_config["active_regions"][0])
         if region is None:
             return self.respond({"detail": "No uptime region configured"}, status=400)
