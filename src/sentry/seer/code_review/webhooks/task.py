@@ -24,7 +24,12 @@ from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
-from ..utils import convert_enum_keys_to_strings, get_seer_endpoint_for_event, make_seer_request
+from ..utils import (
+    convert_enum_keys_to_strings,
+    extract_github_info,
+    get_seer_endpoint_for_event,
+    make_seer_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -140,41 +145,62 @@ def process_github_webhook_event(
 def _set_tags_and_log(event_payload: Mapping[str, Any], github_event: str) -> None:
     """Set Sentry SDK tags for error correlation and log the outgoing request.
 
-    Tags use the same names as Seer's extract_context() so errors can be
-    searched consistently across both projects.
+    Builds a synthetic GitHub-event-like dict from the Seer task payload so that
+    extract_github_info can be used, keeping tag names consistent with Seer's
+    extract_context() and with the tags set on raw webhook events in handlers.py.
     """
-    repo_data = event_payload.get("data", {}).get("repo", {})
+    data = event_payload.get("data", {})
+    repo_data = data.get("repo", {})
+    config = data.get("config", {}) or {}
     owner = repo_data.get("owner")
     name = repo_data.get("name")
-    provider = repo_data.get("provider")
-    pr_id = event_payload.get("data", {}).get("pr_id")
-    organization_id = repo_data.get("organization_id")
-    integration_id = repo_data.get("integration_id")
-    full_name = f"{owner}/{name}" if owner and name else None
+    pr_id = data.get("pr_id")
 
-    sentry_sdk.set_tags(
-        {
-            k: v
-            for k, v in {
-                "scm_provider": provider,
-                "scm_owner": owner,
-                "scm_repo_name": name,
-                "scm_repo_full_name": full_name,
-                "pr_id": pr_id,
-                "sentry_organization_id": organization_id,
-                "sentry_integration_id": integration_id,
-                "github_event": github_event,
-            }.items()
-            if v is not None
+    # Build a minimal GitHub-event-like dict so extract_github_info can parse it.
+    synthetic_event: dict[str, Any] = {}
+    if owner or name:
+        synthetic_event["repository"] = {
+            "owner": {"login": owner},
+            "name": name,
+            "full_name": f"{owner}/{name}" if owner and name else None,
         }
-    )
+    if pr_id:
+        synthetic_event["pull_request"] = {
+            "html_url": f"https://github.com/{owner}/{name}/pull/{pr_id}"
+            if owner and name
+            else None,
+        }
 
-    trigger_at_str = event_payload.get("data", {}).get("config", {}).get("trigger_at")
+    tags = extract_github_info(synthetic_event, github_event=github_event)
+
+    # Override scm_event_url to match the specific trigger, mirroring Seer's extract_context().
+    # Default is the PR URL; for ON_NEW_COMMIT link to the commit, for ON_COMMAND_PHRASE
+    # link to the comment.
+    trigger = config.get("trigger")
+    commit_sha = repo_data.get("base_commit_sha")
+    comment_id = config.get("trigger_comment_id")
+    if trigger == "on_new_commit" and owner and name and commit_sha:
+        tags["scm_event_url"] = f"https://github.com/{owner}/{name}/commit/{commit_sha}"
+    elif trigger == "on_command_phrase" and owner and name and pr_id and comment_id:
+        tags["scm_event_url"] = (
+            f"https://github.com/{owner}/{name}/pull/{pr_id}#issuecomment-{comment_id}"
+        )
+
+    # Extra tags from the Seer payload not available from the raw webhook event.
+    extra_tags: dict[str, Any] = {
+        "pr_id": pr_id,
+        "sentry_organization_id": repo_data.get("organization_id"),
+        "sentry_integration_id": repo_data.get("integration_id"),
+    }
+
+    sentry_sdk.set_tags({k: v for k, v in {**tags, **extra_tags}.items() if v is not None})
+
+    trigger_at_str = config.get("trigger_at")
     logger.info(
         "%s.sending_request_to_seer",
         PREFIX,
         extra={
-            "commit_sha": repo_data.get("base_commit_sha"),
+            "commit_sha": commit_sha,
             "request_type": event_payload.get("request_type"),
             "github_to_seer_latency_ms": (
                 calculate_latency_ms(trigger_at_str) if trigger_at_str else None

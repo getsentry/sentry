@@ -783,7 +783,7 @@ class TestSetTagsAndLog:
         mock_sentry_sdk.set_tags.assert_called_once()
         tags = mock_sentry_sdk.set_tags.call_args[0][0]
         assert tags["github_event"] == "check_run"
-        assert "scm_provider" not in tags
+        assert tags["scm_provider"] == "github"
         assert "scm_repo_full_name" not in tags
 
     @patch("sentry.seer.code_review.webhooks.task.logger")

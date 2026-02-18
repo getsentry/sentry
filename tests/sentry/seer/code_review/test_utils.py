@@ -515,10 +515,10 @@ class TestExtractGithubInfo:
         event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
         result = extract_github_info(event, github_event="pull_request")
 
-        assert result["github_owner"] == "baxterthehacker"
-        assert result["github_repo_name"] == "public-repo"
-        assert result["github_repo_full_name"] == "baxterthehacker/public-repo"
-        assert result["github_event_url"] == "https://github.com/baxterthehacker/public-repo/pull/1"
+        assert result["scm_owner"] == "baxterthehacker"
+        assert result["scm_repo_name"] == "public-repo"
+        assert result["scm_repo_full_name"] == "baxterthehacker/public-repo"
+        assert result["scm_event_url"] == "https://github.com/baxterthehacker/public-repo/pull/1"
         assert result["github_event"] == "pull_request"
         assert result["github_event_action"] == "opened"
         assert result["github_actor_login"] == "baxterthehacker"
@@ -528,10 +528,10 @@ class TestExtractGithubInfo:
         event = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
         result = extract_github_info(event, github_event="check_run")
 
-        assert result["github_owner"] == "getsentry"
-        assert result["github_repo_name"] == "sentry"
-        assert result["github_repo_full_name"] == "getsentry/sentry"
-        assert result["github_event_url"] == "https://github.com/getsentry/sentry/runs/4"
+        assert result["scm_owner"] == "getsentry"
+        assert result["scm_repo_name"] == "sentry"
+        assert result["scm_repo_full_name"] == "getsentry/sentry"
+        assert result["scm_event_url"] == "https://github.com/getsentry/sentry/runs/4"
         assert result["github_event"] == "check_run"
         assert result["github_event_action"] == "rerequested"
         assert result["github_actor_login"] == "test-user"
@@ -541,10 +541,10 @@ class TestExtractGithubInfo:
         event = orjson.loads(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
         result = extract_github_info(event, github_event="check_run")
 
-        assert result["github_owner"] == "getsentry"
-        assert result["github_repo_name"] == "sentry"
-        assert result["github_repo_full_name"] == "getsentry/sentry"
-        assert result["github_event_url"] == "https://github.com/getsentry/sentry/runs/9876543"
+        assert result["scm_owner"] == "getsentry"
+        assert result["scm_repo_name"] == "sentry"
+        assert result["scm_repo_full_name"] == "getsentry/sentry"
+        assert result["scm_event_url"] == "https://github.com/getsentry/sentry/runs/9876543"
         assert result["github_event"] == "check_run"
         assert result["github_event_action"] == "completed"
         assert result["github_actor_login"] == "test-user"
@@ -575,11 +575,11 @@ class TestExtractGithubInfo:
         }
         result = extract_github_info(event, github_event="issue_comment")
 
-        assert result["github_owner"] == "comment-owner"
-        assert result["github_repo_name"] == "comment-repo"
-        assert result["github_repo_full_name"] == "comment-owner/comment-repo"
+        assert result["scm_owner"] == "comment-owner"
+        assert result["scm_repo_name"] == "comment-repo"
+        assert result["scm_repo_full_name"] == "comment-owner/comment-repo"
         assert (
-            result["github_event_url"]
+            result["scm_event_url"]
             == "https://github.com/comment-owner/comment-repo/pull/42#issuecomment-123456"
         )
         assert result["github_event"] == "issue_comment"
@@ -595,7 +595,7 @@ class TestExtractGithubInfo:
         }
         result = extract_github_info(event)
 
-        assert result["github_event_url"] == "https://github.com/owner/repo/pull/1#issuecomment-999"
+        assert result["scm_event_url"] == "https://github.com/owner/repo/pull/1#issuecomment-999"
         assert result["github_event_action"] == "created"
 
     def test_check_run_url_takes_precedence_over_pr_url(self) -> None:
@@ -606,7 +606,7 @@ class TestExtractGithubInfo:
         }
         result = extract_github_info(event)
 
-        assert result["github_event_url"] == "https://github.com/owner/repo/runs/123"
+        assert result["scm_event_url"] == "https://github.com/owner/repo/runs/123"
         assert result["github_event_action"] == "completed"
 
     def test_issue_pr_fallback_for_event_url(self) -> None:
@@ -616,7 +616,7 @@ class TestExtractGithubInfo:
         }
         result = extract_github_info(event)
 
-        assert result["github_event_url"] == "https://github.com/owner/repo/pull/5"
+        assert result["scm_event_url"] == "https://github.com/owner/repo/pull/5"
         assert result["github_event_action"] == "opened"
 
     def test_issue_pr_does_not_override_existing_event_url(self) -> None:
@@ -627,16 +627,16 @@ class TestExtractGithubInfo:
         }
         result = extract_github_info(event)
 
-        assert result["github_event_url"] == "https://github.com/owner/repo/runs/999"
+        assert result["scm_event_url"] == "https://github.com/owner/repo/runs/999"
         assert result["github_event_action"] == "rerequested"
 
     def test_empty_event_returns_all_none(self) -> None:
         result = extract_github_info({})
 
-        assert result["github_owner"] is None
-        assert result["github_repo_name"] is None
-        assert result["github_repo_full_name"] is None
-        assert result["github_event_url"] is None
+        assert result["scm_owner"] is None
+        assert result["scm_repo_name"] is None
+        assert result["scm_repo_full_name"] is None
+        assert result["scm_event_url"] is None
         assert result["github_event"] is None
         assert result["github_event_action"] is None
         assert result["github_actor_login"] is None
@@ -646,9 +646,9 @@ class TestExtractGithubInfo:
         event = {"repository": {"name": "repo-without-owner"}}
         result = extract_github_info(event)
 
-        assert result["github_owner"] is None
-        assert result["github_repo_name"] == "repo-without-owner"
-        assert result["github_repo_full_name"] is None
+        assert result["scm_owner"] is None
+        assert result["scm_repo_name"] == "repo-without-owner"
+        assert result["scm_repo_full_name"] is None
 
     def test_missing_html_urls_returns_none(self) -> None:
         event = {
@@ -662,9 +662,9 @@ class TestExtractGithubInfo:
         }
         result = extract_github_info(event)
 
-        assert result["github_owner"] == "test-owner"
-        assert result["github_repo_name"] == "test-repo"
-        assert result["github_event_url"] is None
+        assert result["scm_owner"] == "test-owner"
+        assert result["scm_repo_name"] == "test-repo"
+        assert result["scm_event_url"] is None
 
     def test_issue_without_pull_request_link_returns_comment_url(self) -> None:
         event = {
@@ -674,7 +674,7 @@ class TestExtractGithubInfo:
         }
         result = extract_github_info(event)
 
-        assert result["github_event_url"] == "https://github.com/owner/repo/issues/42#comment"
+        assert result["scm_event_url"] == "https://github.com/owner/repo/issues/42#comment"
         assert result["github_event_action"] == "created"
 
     def test_repository_with_full_name(self) -> None:
@@ -687,9 +687,9 @@ class TestExtractGithubInfo:
         }
         result = extract_github_info(event)
 
-        assert result["github_owner"] == "my-org"
-        assert result["github_repo_name"] == "my-repo"
-        assert result["github_repo_full_name"] == "my-org/my-repo"
+        assert result["scm_owner"] == "my-org"
+        assert result["scm_repo_name"] == "my-repo"
+        assert result["scm_repo_full_name"] == "my-org/my-repo"
 
     def test_repository_without_full_name(self) -> None:
         event = {
@@ -700,9 +700,9 @@ class TestExtractGithubInfo:
         }
         result = extract_github_info(event)
 
-        assert result["github_owner"] == "solo-owner"
-        assert result["github_repo_name"] == "solo-repo"
-        assert result["github_repo_full_name"] is None
+        assert result["scm_owner"] == "solo-owner"
+        assert result["scm_repo_name"] == "solo-repo"
+        assert result["scm_repo_full_name"] is None
 
 
 class TestConvertEnumKeysToStrings:

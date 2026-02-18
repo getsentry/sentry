@@ -386,26 +386,31 @@ def extract_github_info(
     """
     Extract GitHub-related information from a webhook event payload.
 
+    Key names use the scm_* prefix to match Seer's extract_context() so tags are
+    consistent and searchable across both projects.
+
     Args:
         event: The GitHub webhook event payload
         github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
 
     Returns:
         Dictionary containing:
-            - github_owner: The repository owner/organization name
-            - github_repo_name: The repository name
-            - github_repo_full_name: The repository full name (owner/repo)
-            - github_event_url: URL to the specific event (check_run, pull_request, or comment)
-            - github_event: The GitHub event type
+            - scm_provider: Always "github"
+            - scm_owner: The repository owner/organization name
+            - scm_repo_name: The repository name
+            - scm_repo_full_name: The repository full name (owner/repo)
+            - scm_event_url: URL to the specific event (check_run, pull_request, or comment)
+            - github_event: The GitHub event type header value
             - github_event_action: The event action (e.g., "opened", "closed", "created")
             - github_actor_login: The GitHub username who triggered the action
             - github_actor_id: The GitHub user ID (as string)
     """
     result: dict[str, str | None] = {
-        "github_owner": None,
-        "github_repo_name": None,
-        "github_repo_full_name": None,
-        "github_event_url": None,
+        "scm_provider": "github",
+        "scm_owner": None,
+        "scm_repo_name": None,
+        "scm_repo_full_name": None,
+        "scm_event_url": None,
         "github_event": github_event,
         "github_event_action": None,
         "github_actor_login": None,
@@ -415,32 +420,32 @@ def extract_github_info(
     repository = event.get("repository", {})
     if repository:
         if owner := repository.get("owner", {}).get("login"):
-            result["github_owner"] = owner
+            result["scm_owner"] = owner
         if repo_name := repository.get("name"):
-            result["github_repo_name"] = repo_name
+            result["scm_repo_name"] = repo_name
         if owner_repo_name := repository.get("full_name"):
-            result["github_repo_full_name"] = owner_repo_name
+            result["scm_repo_full_name"] = owner_repo_name
 
     if action := event.get("action"):
         result["github_event_action"] = action
 
     if pull_request := event.get("pull_request"):
         if html_url := pull_request.get("html_url"):
-            result["github_event_url"] = html_url
+            result["scm_event_url"] = html_url
 
     if check_run := event.get("check_run"):
         if html_url := check_run.get("html_url"):
-            result["github_event_url"] = html_url
+            result["scm_event_url"] = html_url
 
     if comment := event.get("comment"):
         if html_url := comment.get("html_url"):
-            result["github_event_url"] = html_url
+            result["scm_event_url"] = html_url
 
     if issue := event.get("issue"):
         if pull_request_data := issue.get("pull_request"):
             if html_url := pull_request_data.get("html_url"):
-                if result["github_event_url"] is None:
-                    result["github_event_url"] = html_url
+                if result["scm_event_url"] is None:
+                    result["scm_event_url"] = html_url
 
     if sender := event.get("sender"):
         if actor_login := sender.get("login"):
