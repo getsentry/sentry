@@ -7,7 +7,7 @@ import sortBy from 'lodash/sortBy';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -265,7 +265,7 @@ export function ProjectPageFilter({
     });
   }, [onReset, routes, organization]);
 
-  const options = useMemo<Array<SelectOptionOrSection<number>>>(() => {
+  const options = useMemo<Array<SelectOption<number>>>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
     if (!hasProjects) {
       return [];
@@ -351,7 +351,7 @@ export function ProjectPageFilter({
             </Flex>
           );
         },
-      } satisfies SelectOptionOrSection<number>;
+      } satisfies SelectOption<number>;
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
@@ -359,27 +359,19 @@ export function ProjectPageFilter({
       bookmarkedSnapshotRef.current
         ? [
             !lastSelected.includes(parseInt(project.id, 10)),
+            !project.isMember,
             !bookmarkedSnapshotRef.current.has(project.id),
             project.slug,
           ]
-        : [!lastSelected.includes(parseInt(project.id, 10)), project.slug];
+        : [
+            !lastSelected.includes(parseInt(project.id, 10)),
+            !project.isMember,
+            project.slug,
+          ];
 
-    return nonMemberProjects.length > 0
-      ? [
-          {
-            key: 'my-projects',
-            label: t('My Projects'),
-            options: sortBy(memberProjects, listSort).map(getProjectItem),
-            showToggleAllButton: true,
-          },
-          {
-            key: 'no-membership-header',
-            label:
-              memberProjects.length > 0 ? t('Other') : t("Projects I Don't Belong To"),
-            options: sortBy(nonMemberProjects, listSort).map(getProjectItem),
-          },
-        ]
-      : sortBy(memberProjects, listSort).map(getProjectItem);
+    return sortBy([...memberProjects, ...nonMemberProjects], listSort).map(
+      getProjectItem
+    );
   }, [
     organization,
     memberProjects,
@@ -390,12 +382,8 @@ export function ProjectPageFilter({
   ]);
 
   const defaultMenuWidth = useMemo(() => {
-    const flatOptions: Array<SelectOption<number>> = options.flatMap(item =>
-      'options' in item ? item.options : [item]
-    );
-
     // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = flatOptions.slice(0, 25).reduce((acc, cur) => {
+    const longestSlugLength = options.reduce((acc, cur) => {
       const length = cur.textValue?.length ?? 0;
       return length > acc ? length : acc;
     }, 0);
@@ -438,7 +426,7 @@ export function ProjectPageFilter({
       searchable
       options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
-      sizeLimit={sizeLimit ?? 25}
+      sizeLimit={sizeLimit}
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
