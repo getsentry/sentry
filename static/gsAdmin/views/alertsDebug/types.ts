@@ -11,7 +11,7 @@ export const workflowIdSchema = z.object({
 
 export const workflowEventDebugForm = z.object({
   workflowId: z.number().int().positive(),
-  issueIds: z.array(z.number().int().positive()),
+  eventIds: z.array(z.string()),
 });
 
 export type WorkflowIdFormData = z.infer<typeof workflowIdSchema>;

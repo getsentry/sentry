@@ -1,139 +1,122 @@
 import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconClose} from 'sentry/icons';
-
-import {type WorkflowEventDebugFormData} from 'admin/views/alertsDebug/types';
+import {EventCard} from 'admin/views/alertsDebug/components/eventCard';
+import type {WorkflowEventDebugFormData} from 'admin/views/alertsDebug/types';
 
 interface AlertDebugFormProps {
   workflowId: number;
-  onBack?: () => void;
-  onSubmit?: (data: WorkflowEventDebugFormData) => void;
 }
 
-export function AlertDebugForm({workflowId, onSubmit, onBack}: AlertDebugFormProps) {
-  // Local state for the issue ID input (not the accumulated list)
-  const [issueIdInput, setIssueIdInput] = useState('');
+export function AlertDebugForm({workflowId}: AlertDebugFormProps) {
+  const [eventIdInput, setEventIdInput] = useState('');
+  const [eventIds, setEventIds] = useState<string[]>([]);
+  const [results, setResults] = useState<WorkflowEventDebugFormData | null>(null);
 
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {
-      issueIds: [] as number[],
-    },
-    onSubmit: ({value}) => {
-      if (value.issueIds.length === 0) {
-        return;
-      }
-
-      onSubmit?.({
-        workflowId,
-        issueIds: value.issueIds,
-      });
-    },
-  });
-
-  const addIssueId = (e: React.MouseEvent) => {
+  const addEventId = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.preventDefault();
 
-    const id = parseInt(issueIdInput, 10);
-    if (id > 0) {
-      const current = form.getFieldValue('issueIds') ?? [];
-      if (!current.includes(id)) {
-        form.setFieldValue('issueIds', [...current, id]);
-      }
-      setIssueIdInput('');
+    const id = eventIdInput.trim();
+    if (id && !eventIds.includes(id)) {
+      setEventIds(prev => [...prev, id]);
+      setEventIdInput('');
+      // Clear results when adding new events
+      setResults(null);
     }
   };
 
-  const removeIssueId = (idToRemove: number) => {
-    const current = form.getFieldValue('issueIds') ?? [];
+  const removeEventId = (idToRemove: string) => {
+    setEventIds(prev => prev.filter(id => id !== idToRemove));
+    // Clear results when removing events
+    setResults(null);
+  };
 
-    form.setFieldValue(
-      'issueIds',
-      current.filter(id => id !== idToRemove)
-    );
+  const handleEvaluate = () => {
+    if (eventIds.length === 0) {
+      return;
+    }
+    setResults({
+      workflowId,
+      eventIds,
+    });
+  };
+
+  const clearResults = () => {
+    setResults(null);
   };
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <Stack gap="lg">
-          <Heading as="h2">Lookup Related Events</Heading>
+    <Stack gap="lg">
+      <Stack gap="sm">
+        <Heading as="h2">Add Events to Evaluate</Heading>
+        <Text as="p">
+          Add events by their ID to evaluate the workflow's fast conditions. Each event
+          will be looked up and displayed below.
+        </Text>
+      </Stack>
 
-          <form.AppField name="issueIds">
-            {field => (
-              <Stack gap="sm">
-                <Text as="p">
-                  This form takes a list of events, and will evaluate the fast conditions
-                  to determine if the alert would pass.
-                </Text>
+      <Stack gap="md">
+        <Flex gap="sm">
+          <Input
+            type="text"
+            placeholder="Event ID (e.g., abc123)"
+            value={eventIdInput}
+            onChange={e => setEventIdInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                addEventId(e);
+              }
+            }}
+          />
+          <Button onClick={addEventId}>Add Event</Button>
+        </Flex>
 
-                {field.state.value && field.state.value.length > 0 && (
-                  <Stack gap="xs">
-                    <Text bold>Selected Issue ID(s):</Text>
-                    <Flex gap="xs" wrap="wrap">
-                      {field.state.value.map(issueId => (
-                        <Flex
-                          key={issueId}
-                          gap="xs"
-                          align="center"
-                          padding="xs sm"
-                          background="secondary"
-                          radius="sm"
-                        >
-                          <Text>{issueId}</Text>
-                          <Button
-                            size="xs"
-                            priority="transparent"
-                            icon={<IconClose size="xs" />}
-                            aria-label={`Remove issue ${issueId}`}
-                            onClick={() => removeIssueId(issueId)}
-                          />
-                        </Flex>
-                      ))}
-                    </Flex>
-                  </Stack>
-                )}
+        {eventIds.length > 0 && (
+          <Stack gap="sm">
+            <Text bold>Events to Evaluate:</Text>
+            <Stack gap="sm">
+              {eventIds.map(eventId => (
+                <EventCard key={eventId} eventId={eventId} onRemove={removeEventId} />
+              ))}
+            </Stack>
+          </Stack>
+        )}
 
-                <Flex gap="sm">
-                  <Input
-                    type="number"
-                    placeholder="Issue ID"
-                    value={issueIdInput}
-                    onChange={e => setIssueIdInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addIssueId(e as unknown as React.MouseEvent);
-                      }
-                    }}
-                  />
-                  <Button onClick={addIssueId}>Add Issue</Button>
-                </Flex>
-                <field.Meta />
+        <Text as="p" variant="muted" size="sm">
+          <Text italic bold>
+            Note:&nbsp;
+          </Text>
+          Slow conditions do not evaluate, as they require state + time to evaluate
+          correctly.
+        </Text>
+      </Stack>
 
-                <Text as="p">
-                  <Text italic bold>
-                    Note:&nbsp;
-                  </Text>
-                  Slow conditions do not evaluate, as they require state + time to
-                  evaluate correctly.
-                </Text>
-              </Stack>
-            )}
-          </form.AppField>
+      {/* Evaluate button */}
+      {eventIds.length > 0 && !results && (
+        <Flex justify="end">
+          <Button priority="primary" onClick={handleEvaluate}>
+            Evaluate Events
+          </Button>
+        </Flex>
+      )}
 
-          <Flex gap="md" justify="end">
-            {onBack && <Button onClick={onBack}>Back</Button>}
-            <form.SubmitButton>Evaluate Events</form.SubmitButton>
+      {/* Results section */}
+      {results && (
+        <Stack gap="md">
+          <Heading as="h3">Evaluation Results</Heading>
+          <Container background="tertiary" padding="md" radius="md">
+            <CodeBlock language="json">{JSON.stringify(results, null, 2)}</CodeBlock>
+          </Container>
+          <Flex justify="end">
+            <Button onClick={clearResults}>Clear Results</Button>
           </Flex>
         </Stack>
-      </form.FormWrapper>
-    </form.AppForm>
+      )}
+    </Stack>
   );
 }

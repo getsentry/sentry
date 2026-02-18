@@ -1,3 +1,5 @@
+import type {Event} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {
   DataConditionGroupLogicType,
@@ -19,7 +21,7 @@ export const MOCK_WORKFLOW: Automation = {
   environment: 'DEBUGGING -- TEST FIXTURE',
   actionFilters: [
     {
-      id: 'mock-action-filter',
+      id: 'mock-action-filter-1',
       logicType: DataConditionGroupLogicType.ANY,
       conditions: [
         {
@@ -37,17 +39,17 @@ export const MOCK_WORKFLOW: Automation = {
       ],
     },
     {
-      id: 'mock-action-filter',
+      id: 'mock-action-filter-2',
       logicType: DataConditionGroupLogicType.ANY,
       conditions: [
         {
-          id: 'Condition 1',
+          id: 'Condition 3',
           comparison: 10,
           type: DataConditionType.EVENT_FREQUENCY_COUNT,
           conditionResult: true,
         },
         {
-          id: 'Condition 2',
+          id: 'Condition 4',
           comparison: 100,
           type: DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
           conditionResult: true,
@@ -67,4 +69,63 @@ export const MOCK_WORKFLOW: Automation = {
       },
     ],
   },
+};
+
+/**
+ * Creates a mock Event for testing and development fallback.
+ * Based on the Event type from sentry/types/event.
+ */
+export function EventFixture(params: Partial<Event> = {}): Event {
+  return {
+    id: '1',
+    eventID: 'abc123',
+    title: 'TypeError: Cannot read property "foo" of undefined',
+    message: 'Cannot read property "foo" of undefined',
+    dateCreated: '2024-01-15T10:30:00.000Z',
+    dateReceived: '2024-01-15T10:30:00.000Z',
+    platform: 'javascript',
+    projectID: '1',
+    groupID: '100',
+    type: EventOrGroupType.ERROR,
+    tags: [{key: 'browser', value: 'Chrome 120'}],
+    metadata: {},
+    entries: [],
+    errors: [],
+    crashFile: null,
+    size: 0,
+    dist: null,
+    fingerprints: [],
+    culprit: '',
+    user: null,
+    location: '',
+    occurrence: null,
+    resolvedWith: [],
+    contexts: {},
+    ...params,
+  };
+}
+
+/**
+ * Mock events for development when backend endpoint is not available.
+ */
+export const MOCK_EVENTS: Record<string, Event> = {
+  abc123: EventFixture({eventID: 'abc123'}),
+  def456: EventFixture({
+    id: '2',
+    eventID: 'def456',
+    title: 'ValueError: Invalid input parameter',
+    message: 'Invalid input parameter',
+    platform: 'python',
+    dateCreated: '2024-01-14T15:45:00.000Z',
+    tags: [{key: 'environment', value: 'production'}],
+  }),
+  ghi789: EventFixture({
+    id: '3',
+    eventID: 'ghi789',
+    title: 'NullPointerException in UserService',
+    message: 'NullPointerException in UserService.getUser()',
+    platform: 'java',
+    dateCreated: '2024-01-13T09:20:00.000Z',
+    tags: [{key: 'level', value: 'error'}],
+  }),
 };
