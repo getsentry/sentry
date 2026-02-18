@@ -34,13 +34,21 @@ def test_accumulates_batches_and_tracks_cumulative_latency(mock_time):
         )
 
         # Verify cumulative latency is tracked (50 + 150 + 200 = 400)
-        assert buffer_logger._data["project1:trace1"] == (3, 400)
-        assert buffer_logger._data["project2:trace2"] == (1, 120)
+        project1 = buffer_logger._metrics_per_trace["project1:trace1"]
+        project2 = buffer_logger._metrics_per_trace["project2:trace2"]
+        assert project1.operation_count == 3
+        assert project1.cumulative_latency_ms == 400
+        assert project2.operation_count == 1
+        assert project2.cumulative_latency_ms == 120
 
         buffer_logger.log([("project1:trace1", 180), ("project2:trace2", 80)])
 
-        assert buffer_logger._data["project1:trace1"] == (4, 580)  # 400 + 180
-        assert buffer_logger._data["project2:trace2"] == (2, 200)  # 120 + 80
+        project1 = buffer_logger._metrics_per_trace["project1:trace1"]
+        project2 = buffer_logger._metrics_per_trace["project2:trace2"]
+        assert project1.operation_count == 4  # 400 + 180
+        assert project1.cumulative_latency_ms == 580
+        assert project2.operation_count == 2  # 120 + 80
+        assert project2.cumulative_latency_ms == 200
 
         # Test trimming: add 1100 entries to exceed MAX_ENTRIES
         entries_to_add = []
@@ -53,13 +61,13 @@ def test_accumulates_batches_and_tracks_cumulative_latency(mock_time):
         buffer_logger.log(entries_to_add)
 
         # Verify trimming occurred - should be exactly 1000 entries
-        assert len(buffer_logger._data) == 50
+        assert len(buffer_logger._metrics_per_trace) == 50
 
-        assert "project0:trace0" in buffer_logger._data
-        assert "project10:trace10" in buffer_logger._data
+        assert "project0:trace0" in buffer_logger._metrics_per_trace
+        assert "project10:trace10" in buffer_logger._metrics_per_trace
 
         # Verify low-latency entries from the end were removed
-        assert "project1099:trace1099" not in buffer_logger._data
+        assert "project1099:trace1099" not in buffer_logger._metrics_per_trace
 
 
 @mock.patch("sentry.spans.buffer_logger.logger")
@@ -84,7 +92,7 @@ def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
         entries = [(f"project{i}:trace{i}", 100) for i in range(1000)]
         buffer_logger.log(entries)
 
-        assert len(buffer_logger._data) == 50
+        assert len(buffer_logger._metrics_per_trace) == 50
 
         buffer_logger.log([("trigger:trace", 50)])
 
@@ -101,17 +109,17 @@ def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
 
         assert extra["num_tracked_keys"] == 50
 
-        assert len(buffer_logger._data) == 0
+        assert len(buffer_logger._metrics_per_trace) == 0
         assert buffer_logger._last_log_time is None
 
 
 @mock.patch("sentry.spans.buffer_logger.logger")
 def test_no_logging_when_no_data(mock_logger):
-    """Test that nothing is logged when _data is empty."""
+    """Test that nothing is logged when tracked metrics are empty."""
     buffer_logger = BufferLogger()
 
     # Internal state check - no data
-    assert len(buffer_logger._data) == 0
+    assert len(buffer_logger._metrics_per_trace) == 0
 
     # Even if we somehow trigger the logging path, it should not log
     # This is testing the internal behavior, but we can't easily trigger
@@ -142,8 +150,14 @@ def test_flusher_logger_accumulates_segments_and_spans(mock_time):
             decompress_latency_ms=3,
         )
 
-        assert flusher_logger._data["project1:trace1"] == (2, 30, 1300)
-        assert flusher_logger._data["project2:trace2"] == (1, 5, 200)
+        project1 = flusher_logger._metrics_per_trace["project1:trace1"]
+        project2 = flusher_logger._metrics_per_trace["project2:trace2"]
+        assert project1.segment_count == 2
+        assert project1.span_count == 30
+        assert project1.bytes_flushed == 1300
+        assert project2.segment_count == 1
+        assert project2.span_count == 5
+        assert project2.bytes_flushed == 200
         assert flusher_logger._cumulative_load_ids_latency_ms == 5
         assert flusher_logger._cumulative_load_data_latency_ms == 10
         assert flusher_logger._cumulative_decompress_latency_ms == 3
@@ -155,7 +169,10 @@ def test_flusher_logger_accumulates_segments_and_spans(mock_time):
             decompress_latency_ms=2,
         )
 
-        assert flusher_logger._data["project1:trace1"] == (3, 45, 1900)
+        project1 = flusher_logger._metrics_per_trace["project1:trace1"]
+        assert project1.segment_count == 3
+        assert project1.span_count == 45
+        assert project1.bytes_flushed == 1900
         assert flusher_logger._cumulative_load_ids_latency_ms == 8
         assert flusher_logger._cumulative_load_data_latency_ms == 17
         assert flusher_logger._cumulative_decompress_latency_ms == 5
@@ -177,11 +194,11 @@ def test_flusher_logger_prunes_to_top_50_by_bytes(mock_time):
             entries, load_ids_latency_ms=20, load_data_latency_ms=30, decompress_latency_ms=10
         )
 
-        assert len(flusher_logger._data) == 50
-        assert "project0:trace0" in flusher_logger._data
-        assert "project49:trace49" in flusher_logger._data
-        assert "project50:trace50" not in flusher_logger._data
-        assert "project499:trace499" not in flusher_logger._data
+        assert len(flusher_logger._metrics_per_trace) == 50
+        assert "project0:trace0" in flusher_logger._metrics_per_trace
+        assert "project49:trace49" in flusher_logger._metrics_per_trace
+        assert "project50:trace50" not in flusher_logger._metrics_per_trace
+        assert "project499:trace499" not in flusher_logger._metrics_per_trace
 
 
 @mock.patch("sentry.spans.buffer_logger.logger")
@@ -232,7 +249,7 @@ def test_flusher_logger_logs_and_resets_after_interval(mock_time, mock_logger):
         assert extra["cumulative_load_data_latency_ms"] == 50
         assert extra["cumulative_decompress_latency_ms"] == 13
 
-        assert len(flusher_logger._data) == 0
+        assert len(flusher_logger._metrics_per_trace) == 0
         assert flusher_logger._cumulative_load_ids_latency_ms == 0
         assert flusher_logger._cumulative_load_data_latency_ms == 0
         assert flusher_logger._cumulative_decompress_latency_ms == 0

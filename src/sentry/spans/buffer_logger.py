@@ -15,13 +15,36 @@ LOGGING_INTERVAL = 60  # 1 minute in seconds
 
 
 class FlusherLogEntry(NamedTuple):
+    """
+    Represents a single flush operation for a given project and trace.
+    """
+
     project_and_trace: str
     span_count: int
     bytes_flushed: int
 
 
+class BufferAggregate(NamedTuple):
+    """
+    Tracks the number of operations and cumulative latency for a given project and trace.
+    """
+
+    operation_count: int
+    cumulative_latency_ms: int
+
+
+class FlusherAggregate(NamedTuple):
+    """
+    Tracks the number of segments, spans, and bytes flushed for a given project and trace.
+    """
+
+    segment_count: int
+    span_count: int
+    bytes_flushed: int
+
+
 def _prune_and_maybe_log(
-    data: dict[str, tuple[Any, ...]],
+    metrics_per_trace: dict[str, BufferAggregate | FlusherAggregate],
     last_log_time: float | None,
     sort_index: int,
     log_message: str,
@@ -40,29 +63,33 @@ def _prune_and_maybe_log(
     if not last_log_time:
         last_log_time = time.time()
 
-    if len(data) > MAX_ENTRIES:
-        sorted_items = sorted(data.items(), key=lambda x: x[1][sort_index], reverse=True)
+    if len(metrics_per_trace) > MAX_ENTRIES:
+        sorted_items = sorted(
+            metrics_per_trace.items(), key=lambda x: x[1][sort_index], reverse=True
+        )
         keys_to_remove = [key for key, _ in sorted_items[MAX_ENTRIES:]]
         for key in keys_to_remove:
-            del data[key]
+            del metrics_per_trace[key]
 
     if time.time() - last_log_time >= LOGGING_INTERVAL:
-        sorted_items = sorted(data.items(), key=lambda x: x[1][sort_index], reverse=True)
+        sorted_items = sorted(
+            metrics_per_trace.items(), key=lambda x: x[1][sort_index], reverse=True
+        )
 
         if len(sorted_items) > 0:
             entries_str = [format_entry(key, value) for key, value in sorted_items]
 
             log_extra: dict[str, Any] = {
                 entries_key: entries_str,
-                "num_tracked_keys": len(data),
-                "pruned_list": len(data) == MAX_ENTRIES,
+                "num_tracked_keys": len(metrics_per_trace),
+                "pruned_list": len(metrics_per_trace) == MAX_ENTRIES,
             }
             if extra:
                 log_extra.update(extra)
 
             logger.info(log_message, extra=log_extra)
 
-        data.clear()
+        metrics_per_trace.clear()
         return None
 
     return last_log_time
@@ -79,7 +106,7 @@ class BufferLogger:
     """
 
     def __init__(self) -> None:
-        self._data: dict[str, tuple[int, int]] = {}
+        self._metrics_per_trace: dict[str, BufferAggregate] = {}
         self._last_log_time: float | None = None
 
     def log(self, entries: list[tuple[str, int]]) -> None:
@@ -93,19 +120,23 @@ class BufferLogger:
             return
 
         for project_and_trace, latency_ms in entries:
-            if project_and_trace in self._data:
-                count, cumulative_latency = self._data[project_and_trace]
-                self._data[project_and_trace] = (count + 1, cumulative_latency + latency_ms)
+            if project_and_trace in self._metrics_per_trace:
+                aggregate = self._metrics_per_trace[project_and_trace]
+                self._metrics_per_trace[project_and_trace] = BufferAggregate(
+                    aggregate.operation_count + 1,
+                    aggregate.cumulative_latency_ms + latency_ms,
+                )
             else:
-                self._data[project_and_trace] = (1, latency_ms)
+                self._metrics_per_trace[project_and_trace] = BufferAggregate(1, latency_ms)
 
         self._last_log_time = _prune_and_maybe_log(
-            self._data,
+            self._metrics_per_trace,
             self._last_log_time,
             sort_index=1,
             log_message="spans.buffer.slow_evalsha_operations",
             entries_key="top_slow_operations",
-            format_entry=lambda key, val: f"{key}:{val[0]}:{val[1]}",
+            format_entry=lambda key,
+            val: f"{key}:{val.operation_count}:{val.cumulative_latency_ms}",
         )
 
 
@@ -121,7 +152,7 @@ class FlusherLogger:
     """
 
     def __init__(self) -> None:
-        self._data: dict[str, tuple[int, int, int]] = {}
+        self._metrics_per_trace: dict[str, FlusherAggregate] = {}
         self._cumulative_load_ids_latency_ms: int = 0
         self._cumulative_load_data_latency_ms: int = 0
         self._cumulative_decompress_latency_ms: int = 0
@@ -147,27 +178,29 @@ class FlusherLogger:
         self._cumulative_decompress_latency_ms += decompress_latency_ms
 
         for entry in entries:
-            if entry.project_and_trace in self._data:
-                prev_segments, prev_spans, prev_bytes = self._data[entry.project_and_trace]
-                self._data[entry.project_and_trace] = (
-                    prev_segments + 1,
-                    prev_spans + entry.span_count,
-                    prev_bytes + entry.bytes_flushed,
+            if entry.project_and_trace in self._metrics_per_trace:
+                aggregate = self._metrics_per_trace[entry.project_and_trace]
+                self._metrics_per_trace[entry.project_and_trace] = FlusherAggregate(
+                    aggregate.segment_count + 1,
+                    aggregate.span_count + entry.span_count,
+                    aggregate.bytes_flushed + entry.bytes_flushed,
                 )
             else:
-                self._data[entry.project_and_trace] = (
+                self._metrics_per_trace[entry.project_and_trace] = FlusherAggregate(
                     1,
                     entry.span_count,
                     entry.bytes_flushed,
                 )
 
         self._last_log_time = _prune_and_maybe_log(
-            self._data,
+            self._metrics_per_trace,
             self._last_log_time,
             sort_index=2,
             log_message="spans.buffer.top_flush_operations_by_bytes",
             entries_key="top_flush_operations",
-            format_entry=lambda key, val: f"{key}:{val[0]}:{val[1]}:{val[2]}",
+            format_entry=lambda key, val: (
+                f"{key}:{val.segment_count}:{val.span_count}:{val.bytes_flushed}"
+            ),
             extra={
                 "cumulative_load_ids_latency_ms": self._cumulative_load_ids_latency_ms,
                 "cumulative_load_data_latency_ms": self._cumulative_load_data_latency_ms,

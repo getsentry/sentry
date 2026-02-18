@@ -491,12 +491,10 @@ class SpansBuffer:
         queue_keys = []
         shard_factor = max(1, len(self.assigned_shards))
         max_flush_segments = options.get("spans.buffer.max-flush-segments")
+        flusher_logger_enabled = options.get("spans.buffer.flusher-cumulative-logger-enabled")
         max_segments_per_shard = math.ceil(max_flush_segments / shard_factor)
 
-        logger_enabled = options.get("spans.buffer.flusher-cumulative-logger-enabled")
-
-        if logger_enabled:
-            ids_start = time.monotonic()
+        ids_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
@@ -505,26 +503,22 @@ class SpansBuffer:
                     queue_keys.append(key)
 
                 result = p.execute()
-        if logger_enabled:
-            load_ids_latency_ms = int((time.monotonic() - ids_start) * 1000)
+        load_ids_latency_ms = int((time.monotonic() - ids_start) * 1000)
 
         segment_keys: list[tuple[int, QueueKey, SegmentKey]] = []
         for shard, queue_key, keys in zip(self.assigned_shards, queue_keys, result):
             for segment_key in keys:
                 segment_keys.append((shard, queue_key, segment_key))
 
-        if logger_enabled:
-            data_start = time.monotonic()
+        data_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
             segments = self._load_segment_data([k for _, _, k in segment_keys])
-        if logger_enabled:
-            load_data_latency_ms = int((time.monotonic() - data_start) * 1000)
+        load_data_latency_ms = int((time.monotonic() - data_start) * 1000)
 
         return_segments = {}
         num_has_root_spans = 0
         any_shard_at_limit = False
-        if logger_enabled:
-            flusher_log_entries: list[FlusherLogEntry] = []
+        flusher_log_entries: list[FlusherLogEntry] = []
 
         for shard, queue_key, segment_key in segment_keys:
             segment_span_id = _segment_key_to_span_id(segment_key).decode("ascii")
@@ -560,21 +554,18 @@ class SpansBuffer:
             return_segments[segment_key] = FlushedSegment(queue_key=queue_key, spans=output_spans)
             num_has_root_spans += int(has_root_span)
 
-            if logger_enabled and segment:
-                try:
-                    project_id, trace_id, _ = parse_segment_key(segment_key)
-                    project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
-                    flusher_log_entries.append(
-                        FlusherLogEntry(
-                            project_and_trace,
-                            len(segment),
-                            sum(len(s) for s in segment),
-                        )
+            if flusher_logger_enabled and segment:
+                project_id, trace_id, _ = parse_segment_key(segment_key)
+                project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+                flusher_log_entries.append(
+                    FlusherLogEntry(
+                        project_and_trace,
+                        len(segment),
+                        sum(len(s) for s in segment),
                     )
-                except Exception:
-                    pass
+                )
 
-        if logger_enabled and flusher_log_entries:
+        if flusher_logger_enabled and flusher_log_entries:
             self._flusher_logger.log(
                 flusher_log_entries,
                 load_ids_latency_ms,
@@ -603,7 +594,6 @@ class SpansBuffer:
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
         sizes = {key: 0 for key in segment_keys}
-        logger_enabled = options.get("spans.buffer.flusher-cumulative-logger-enabled")
         self._last_decompress_latency_ms = 0
         decompress_latency_ms = 0.0
 
@@ -620,11 +610,9 @@ class SpansBuffer:
                 decompressed_spans = []
 
                 for scan_value in scan_values:
-                    if logger_enabled:
-                        t0 = time.monotonic()
+                    decompress_start = time.monotonic()
                     decompressed_spans.extend(self._decompress_batch(scan_value))
-                    if logger_enabled:
-                        decompress_latency_ms += (time.monotonic() - t0) * 1000
+                    decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
 
                 sizes[key] += sum(len(span) for span in decompressed_spans)
                 if sizes[key] > max_segment_bytes:
@@ -701,8 +689,7 @@ class SpansBuffer:
                 # worst-case.
                 metrics.incr("spans.buffer.empty_segments")
 
-        if logger_enabled:
-            self._last_decompress_latency_ms = int(decompress_latency_ms)
+        self._last_decompress_latency_ms = int(decompress_latency_ms)
 
         return payloads
 
