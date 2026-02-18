@@ -6,9 +6,7 @@ from django.urls import URLPattern, URLResolver, re_path
 from sentry.api.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
-from sentry.api.endpoints.organization_ai_conversations import (
-    OrganizationAIConversationsEndpoint,
-)
+from sentry.api.endpoints.organization_ai_conversations import OrganizationAIConversationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
@@ -17,22 +15,14 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
-from sentry.api.endpoints.organization_insights_tree import (
-    OrganizationInsightsTreeEndpoint,
-)
-from sentry.api.endpoints.organization_missing_org_members import (
-    OrganizationMissingMembersEndpoint,
-)
+from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
+from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_plugin_deprecation_info import (
     OrganizationPluginDeprecationInfoEndpoint,
 )
-from sentry.api.endpoints.organization_plugins_configs import (
-    OrganizationPluginsConfigsEndpoint,
-)
+from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
-from sentry.api.endpoints.organization_project_keys import (
-    OrganizationProjectKeysEndpoint,
-)
+from sentry.api.endpoints.organization_project_keys import OrganizationProjectKeysEndpoint
 from sentry.api.endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
     OrganizationReleasesStatsEndpoint,
@@ -46,9 +36,7 @@ from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
-from sentry.api.endpoints.organization_stats_summary import (
-    OrganizationStatsSummaryEndpoint,
-)
+from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
     OrganizationTraceItemAttributeValuesEndpoint,
@@ -56,32 +44,18 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
     OrganizationTraceItemsAttributesRankedEndpoint,
 )
-from sentry.api.endpoints.organization_trace_item_stats import (
-    OrganizationTraceItemsStatsEndpoint,
-)
+from sentry.api.endpoints.organization_trace_item_stats import OrganizationTraceItemsStatsEndpoint
 from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
-from sentry.api.endpoints.project_stacktrace_coverage import (
-    ProjectStacktraceCoverageEndpoint,
-)
-from sentry.api.endpoints.project_statistical_detectors import (
-    ProjectStatisticalDetectors,
-)
-from sentry.api.endpoints.project_template_detail import (
-    OrganizationProjectTemplateDetailEndpoint,
-)
-from sentry.api.endpoints.project_templates_index import (
-    OrganizationProjectTemplatesIndexEndpoint,
-)
-from sentry.api.endpoints.project_web_vitals_detection import (
-    ProjectWebVitalsDetectionEndpoint,
-)
-from sentry.api.endpoints.release_thresholds.release_threshold import (
-    ReleaseThresholdEndpoint,
-)
+from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
+from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
+from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
+from sentry.api.endpoints.project_templates_index import OrganizationProjectTemplatesIndexEndpoint
+from sentry.api.endpoints.project_web_vitals_detection import ProjectWebVitalsDetectionEndpoint
+from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
 )
@@ -102,31 +76,21 @@ from sentry.codecov.endpoints.repository.repository import RepositoryEndpoint
 from sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate import (
     RepositoryTokenRegenerateEndpoint,
 )
-from sentry.codecov.endpoints.repository_tokens.repository_tokens import (
-    RepositoryTokensEndpoint,
-)
+from sentry.codecov.endpoints.repository_tokens.repository_tokens import RepositoryTokensEndpoint
 from sentry.codecov.endpoints.sync_repos.sync_repos import SyncReposEndpoint
 from sentry.codecov.endpoints.test_results.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
 )
 from sentry.codecov.endpoints.test_suites.test_suites import TestSuitesEndpoint
-from sentry.conduit.endpoints.organization_conduit_demo import (
-    OrganizationConduitDemoEndpoint,
-)
+from sentry.conduit.endpoints.organization_conduit_demo import OrganizationConduitDemoEndpoint
 from sentry.core.endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
 from sentry.core.endpoints.organization_details import OrganizationDetailsEndpoint
-from sentry.core.endpoints.organization_environments import (
-    OrganizationEnvironmentsEndpoint,
-)
+from sentry.core.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
-from sentry.core.endpoints.organization_member_details import (
-    OrganizationMemberDetailsEndpoint,
-)
-from sentry.core.endpoints.organization_member_index import (
-    OrganizationMemberIndexEndpoint,
-)
+from sentry.core.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
+from sentry.core.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from sentry.core.endpoints.organization_member_invite.details import (
     OrganizationMemberInviteDetailsEndpoint,
 )
@@ -142,9 +106,7 @@ from sentry.core.endpoints.organization_member_requests_invite_details import (
 from sentry.core.endpoints.organization_member_requests_invite_index import (
     OrganizationInviteRequestIndexEndpoint,
 )
-from sentry.core.endpoints.organization_member_requests_join import (
-    OrganizationJoinRequestEndpoint,
-)
+from sentry.core.endpoints.organization_member_requests_join import OrganizationJoinRequestEndpoint
 from sentry.core.endpoints.organization_member_team_details import (
     OrganizationMemberTeamDetailsEndpoint,
 )
@@ -160,15 +122,11 @@ from sentry.core.endpoints.organization_request_project_creation import (
     OrganizationRequestProjectCreation,
 )
 from sentry.core.endpoints.organization_teams import OrganizationTeamsEndpoint
-from sentry.core.endpoints.organization_user_details import (
-    OrganizationUserDetailsEndpoint,
-)
+from sentry.core.endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from sentry.core.endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from sentry.core.endpoints.organization_users import OrganizationUsersEndpoint
 from sentry.core.endpoints.project_details import ProjectDetailsEndpoint
-from sentry.core.endpoints.project_environment_details import (
-    ProjectEnvironmentDetailsEndpoint,
-)
+from sentry.core.endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from sentry.core.endpoints.project_environments import ProjectEnvironmentsEndpoint
 from sentry.core.endpoints.project_index import ProjectIndexEndpoint
 from sentry.core.endpoints.project_key_details import ProjectKeyDetailsEndpoint
@@ -184,19 +142,14 @@ from sentry.core.endpoints.scim.members import (
     OrganizationSCIMMemberIndex,
 )
 from sentry.core.endpoints.scim.schemas import OrganizationSCIMSchemaIndex
-from sentry.core.endpoints.scim.teams import (
-    OrganizationSCIMTeamDetails,
-    OrganizationSCIMTeamIndex,
-)
+from sentry.core.endpoints.scim.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
 from sentry.core.endpoints.team_members import TeamMembersEndpoint
 from sentry.core.endpoints.team_projects import TeamProjectsEndpoint
 from sentry.core.endpoints.team_release_count import TeamReleaseCountEndpoint
 from sentry.core.endpoints.team_stats import TeamStatsEndpoint
 from sentry.core.endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
-from sentry.core.endpoints.team_unresolved_issue_age import (
-    TeamUnresolvedIssueAgeEndpoint,
-)
+from sentry.core.endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
 from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
     OrganizationDashboardFavoriteEndpoint,
@@ -205,9 +158,7 @@ from sentry.dashboards.endpoints.organization_dashboard_details import (
 from sentry.dashboards.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
-from sentry.dashboards.endpoints.organization_dashboards import (
-    OrganizationDashboardsEndpoint,
-)
+from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from sentry.dashboards.endpoints.organization_dashboards_starred import (
     OrganizationDashboardsStarredEndpoint,
     OrganizationDashboardsStarredOrderEndpoint,
@@ -215,16 +166,12 @@ from sentry.dashboards.endpoints.organization_dashboards_starred import (
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
-from sentry.discover.endpoints.discover_homepage_query import (
-    DiscoverHomepageQueryEndpoint,
-)
+from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
 )
-from sentry.discover.endpoints.discover_saved_queries import (
-    DiscoverSavedQueriesEndpoint,
-)
+from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
@@ -234,9 +181,7 @@ from sentry.explore.endpoints.explore_saved_query_detail import (
     ExploreSavedQueryDetailEndpoint,
     ExploreSavedQueryVisitEndpoint,
 )
-from sentry.explore.endpoints.explore_saved_query_starred import (
-    ExploreSavedQueryStarredEndpoint,
-)
+from sentry.explore.endpoints.explore_saved_query_starred import ExploreSavedQueryStarredEndpoint
 from sentry.explore.endpoints.explore_saved_query_starred_order import (
     ExploreSavedQueryStarredOrderEndpoint,
 )
@@ -246,9 +191,7 @@ from sentry.feedback.endpoints.organization_feedback_categories import (
 from sentry.feedback.endpoints.organization_feedback_summary import (
     OrganizationFeedbackSummaryEndpoint,
 )
-from sentry.feedback.endpoints.organization_user_reports import (
-    OrganizationUserReportsEndpoint,
-)
+from sentry.feedback.endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from sentry.feedback.endpoints.project_user_reports import ProjectUserReportsEndpoint
 from sentry.flags.endpoints.hooks import OrganizationFlagsHooksEndpoint
 from sentry.flags.endpoints.logs import (
@@ -273,15 +216,9 @@ from sentry.incidents.endpoints.organization_alert_rule_index import (
 from sentry.incidents.endpoints.organization_incident_details import (
     OrganizationIncidentDetailsEndpoint,
 )
-from sentry.incidents.endpoints.organization_incident_index import (
-    OrganizationIncidentIndexEndpoint,
-)
-from sentry.incidents.endpoints.project_alert_rule_details import (
-    ProjectAlertRuleDetailsEndpoint,
-)
-from sentry.incidents.endpoints.project_alert_rule_index import (
-    ProjectAlertRuleIndexEndpoint,
-)
+from sentry.incidents.endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
+from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
+from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
@@ -290,35 +227,17 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredTotalsEndpoint,
 )
 from sentry.insights.endpoints.starred_segments import InsightsStarredSegmentsEndpoint
-from sentry.integrations.api.endpoints.data_forwarding_details import (
-    DataForwardingDetailsEndpoint,
-)
-from sentry.integrations.api.endpoints.data_forwarding_index import (
-    DataForwardingIndexEndpoint,
-)
-from sentry.integrations.api.endpoints.doc_integration_avatar import (
-    DocIntegrationAvatarEndpoint,
-)
-from sentry.integrations.api.endpoints.doc_integration_details import (
-    DocIntegrationDetailsEndpoint,
-)
-from sentry.integrations.api.endpoints.doc_integrations_index import (
-    DocIntegrationsEndpoint,
-)
-from sentry.integrations.api.endpoints.external_team_details import (
-    ExternalTeamDetailsEndpoint,
-)
+from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
+from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
+from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
+from sentry.integrations.api.endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
+from sentry.integrations.api.endpoints.doc_integrations_index import DocIntegrationsEndpoint
+from sentry.integrations.api.endpoints.external_team_details import ExternalTeamDetailsEndpoint
 from sentry.integrations.api.endpoints.external_team_index import ExternalTeamEndpoint
-from sentry.integrations.api.endpoints.external_user_details import (
-    ExternalUserDetailsEndpoint,
-)
+from sentry.integrations.api.endpoints.external_user_details import ExternalUserDetailsEndpoint
 from sentry.integrations.api.endpoints.external_user_index import ExternalUserEndpoint
-from sentry.integrations.api.endpoints.integration_features import (
-    IntegrationFeaturesEndpoint,
-)
-from sentry.integrations.api.endpoints.integration_proxy import (
-    InternalIntegrationProxyEndpoint,
-)
+from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
+from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
@@ -415,12 +334,8 @@ from sentry.issues.endpoints.event_owners import EventOwnersEndpoint
 from sentry.issues.endpoints.event_reprocessable import EventReprocessableEndpoint
 from sentry.issues.endpoints.group_attachments import GroupAttachmentsEndpoint
 from sentry.issues.endpoints.group_current_release import GroupCurrentReleaseEndpoint
-from sentry.issues.endpoints.group_first_last_release import (
-    GroupFirstLastReleaseEndpoint,
-)
-from sentry.issues.endpoints.group_integration_details import (
-    GroupIntegrationDetailsEndpoint,
-)
+from sentry.issues.endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
+from sentry.issues.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.issues.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.issues.endpoints.group_reprocessing import GroupReprocessingEndpoint
 from sentry.issues.endpoints.group_stats import GroupStatsEndpoint
@@ -431,9 +346,7 @@ from sentry.issues.endpoints.group_user_reports import GroupUserReportsEndpoint
 from sentry.issues.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
-from sentry.issues.endpoints.organization_event_details import (
-    OrganizationEventDetailsEndpoint,
-)
+from sentry.issues.endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
@@ -443,22 +356,16 @@ from sentry.issues.endpoints.organization_group_suspect_flags import (
 from sentry.issues.endpoints.organization_group_suspect_tags import (
     OrganizationGroupSuspectTagsEndpoint,
 )
-from sentry.issues.endpoints.organization_issue_metrics import (
-    OrganizationIssueMetricsEndpoint,
-)
+from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from sentry.issues.endpoints.organization_issue_timeseries import (
     OrganizationIssueTimeSeriesEndpoint,
 )
 from sentry.issues.endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
-from sentry.issues.endpoints.project_codeowners_details import (
-    ProjectCodeOwnersDetailsEndpoint,
-)
+from sentry.issues.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from sentry.issues.endpoints.project_codeowners_index import ProjectCodeOwnersEndpoint
-from sentry.issues.endpoints.project_grouping_configs import (
-    ProjectGroupingConfigsEndpoint,
-)
+from sentry.issues.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.issues.endpoints.project_issues_resolved_in_release import (
     ProjectIssuesResolvedInReleaseEndpoint,
 )
@@ -467,9 +374,7 @@ from sentry.issues.endpoints.project_performance_issue_settings import (
     ProjectPerformanceIssueSettingsEndpoint,
 )
 from sentry.issues.endpoints.project_user_issue import ProjectUserIssueEndpoint
-from sentry.issues.endpoints.team_all_unresolved_issues import (
-    TeamAllUnresolvedIssuesEndpoint,
-)
+from sentry.issues.endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from sentry.issues.endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
     OrganizationMonitorCheckInIndexEndpoint,
@@ -480,9 +385,7 @@ from sentry.monitors.endpoints.organization_monitor_details import (
 from sentry.monitors.endpoints.organization_monitor_environment_details import (
     OrganizationMonitorEnvironmentDetailsEndpoint,
 )
-from sentry.monitors.endpoints.organization_monitor_index import (
-    OrganizationMonitorIndexEndpoint,
-)
+from sentry.monitors.endpoints.organization_monitor_index import OrganizationMonitorIndexEndpoint
 from sentry.monitors.endpoints.organization_monitor_index_count import (
     OrganizationMonitorIndexCountEndpoint,
 )
@@ -501,15 +404,11 @@ from sentry.monitors.endpoints.organization_monitor_schedule_sample_data import 
 from sentry.monitors.endpoints.organization_monitor_schedule_sample_window import (
     OrganizationMonitorScheduleSampleWindowEndpoint,
 )
-from sentry.monitors.endpoints.organization_monitor_stats import (
-    OrganizationMonitorStatsEndpoint,
-)
+from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.monitors.endpoints.project_monitor_checkin_index import (
     ProjectMonitorCheckInIndexEndpoint,
 )
-from sentry.monitors.endpoints.project_monitor_details import (
-    ProjectMonitorDetailsEndpoint,
-)
+from sentry.monitors.endpoints.project_monitor_details import ProjectMonitorDetailsEndpoint
 from sentry.monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
 )
@@ -532,15 +431,11 @@ from sentry.notifications.api.endpoints.notification_actions_details import (
 from sentry.notifications.api.endpoints.notification_actions_index import (
     NotificationActionsIndexEndpoint,
 )
-from sentry.notifications.api.endpoints.notification_defaults import (
-    NotificationDefaultsEndpoints,
-)
+from sentry.notifications.api.endpoints.notification_defaults import NotificationDefaultsEndpoints
 from sentry.notifications.api.endpoints.user_notification_details import (
     UserNotificationDetailsEndpoint,
 )
-from sentry.notifications.api.endpoints.user_notification_email import (
-    UserNotificationEmailEndpoint,
-)
+from sentry.notifications.api.endpoints.user_notification_email import UserNotificationEmailEndpoint
 from sentry.notifications.api.endpoints.user_notification_settings_options import (
     UserNotificationSettingsOptionsEndpoint,
 )
@@ -550,9 +445,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
-from sentry.notifications.platform.api.endpoints import (
-    urls as notification_platform_urls,
-)
+from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
 from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.releases.endpoints.organization_release_assemble import (
@@ -567,44 +460,24 @@ from sentry.releases.endpoints.organization_release_details import (
 from sentry.releases.endpoints.organization_release_file_details import (
     OrganizationReleaseFileDetailsEndpoint,
 )
-from sentry.releases.endpoints.organization_release_files import (
-    OrganizationReleaseFilesEndpoint,
-)
+from sentry.releases.endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
 from sentry.releases.endpoints.organization_release_health_data import (
     OrganizationReleaseHealthDataEndpoint,
 )
-from sentry.releases.endpoints.organization_release_meta import (
-    OrganizationReleaseMetaEndpoint,
-)
-from sentry.releases.endpoints.project_release_commits import (
-    ProjectReleaseCommitsEndpoint,
-)
-from sentry.releases.endpoints.project_release_details import (
-    ProjectReleaseDetailsEndpoint,
-)
-from sentry.releases.endpoints.project_release_file_details import (
-    ProjectReleaseFileDetailsEndpoint,
-)
+from sentry.releases.endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
+from sentry.releases.endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
+from sentry.releases.endpoints.project_release_details import ProjectReleaseDetailsEndpoint
+from sentry.releases.endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
 from sentry.releases.endpoints.project_release_files import ProjectReleaseFilesEndpoint
-from sentry.releases.endpoints.project_release_repositories import (
-    ProjectReleaseRepositories,
-)
-from sentry.releases.endpoints.project_release_setup import (
-    ProjectReleaseSetupCompletionEndpoint,
-)
+from sentry.releases.endpoints.project_release_repositories import ProjectReleaseRepositories
+from sentry.releases.endpoints.project_release_setup import ProjectReleaseSetupCompletionEndpoint
 from sentry.releases.endpoints.project_release_stats import ProjectReleaseStatsEndpoint
 from sentry.releases.endpoints.project_releases import ProjectReleasesEndpoint
-from sentry.releases.endpoints.project_releases_token import (
-    ProjectReleasesTokenEndpoint,
-)
+from sentry.releases.endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from sentry.releases.endpoints.release_deploys import ReleaseDeploysEndpoint
 from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
-from sentry.relocation.api.endpoints.artifacts.details import (
-    RelocationArtifactDetailsEndpoint,
-)
-from sentry.relocation.api.endpoints.artifacts.index import (
-    RelocationArtifactIndexEndpoint,
-)
+from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
+from sentry.relocation.api.endpoints.artifacts.index import RelocationArtifactIndexEndpoint
 from sentry.relocation.api.endpoints.cancel import RelocationCancelEndpoint
 from sentry.relocation.api.endpoints.details import RelocationDetailsEndpoint
 from sentry.relocation.api.endpoints.index import RelocationIndexEndpoint
@@ -613,27 +486,17 @@ from sentry.relocation.api.endpoints.public_key import RelocationPublicKeyEndpoi
 from sentry.relocation.api.endpoints.recover import RelocationRecoverEndpoint
 from sentry.relocation.api.endpoints.retry import RelocationRetryEndpoint
 from sentry.relocation.api.endpoints.unpause import RelocationUnpauseEndpoint
-from sentry.replays.endpoints.data_export_notifications import (
-    DataExportNotificationsEndpoint,
-)
-from sentry.replays.endpoints.organization_replay_count import (
-    OrganizationReplayCountEndpoint,
-)
-from sentry.replays.endpoints.organization_replay_details import (
-    OrganizationReplayDetailsEndpoint,
-)
+from sentry.replays.endpoints.data_export_notifications import DataExportNotificationsEndpoint
+from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
+from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
-from sentry.replays.endpoints.organization_replay_index import (
-    OrganizationReplayIndexEndpoint,
-)
+from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.replays.endpoints.organization_replay_selector_index import (
     OrganizationReplaySelectorIndexEndpoint,
 )
-from sentry.replays.endpoints.project_replay_clicks_index import (
-    ProjectReplayClicksIndexEndpoint,
-)
+from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
 from sentry.replays.endpoints.project_replay_jobs_delete import (
     ProjectReplayDeletionJobDetailEndpoint,
@@ -646,31 +509,21 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
     ProjectReplayRecordingSegmentIndexEndpoint,
 )
 from sentry.replays.endpoints.project_replay_summary import ProjectReplaySummaryEndpoint
-from sentry.replays.endpoints.project_replay_video_details import (
-    ProjectReplayVideoDetailsEndpoint,
-)
-from sentry.replays.endpoints.project_replay_viewed_by import (
-    ProjectReplayViewedByEndpoint,
-)
+from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
+from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
-from sentry.rules.history.endpoints.project_rule_stats import (
-    ProjectRuleStatsIndexEndpoint,
-)
+from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
-from sentry.seer.endpoints.issue_view_title_generate import (
-    IssueViewTitleGenerateEndpoint,
-)
+from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
     OrganizationAutofixAutomationSettingsEndpoint,
 )
-from sentry.seer.endpoints.organization_events_anomalies import (
-    OrganizationEventsAnomaliesEndpoint,
-)
+from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
 )
@@ -680,33 +533,21 @@ from sentry.seer.endpoints.organization_seer_explorer_runs import (
 from sentry.seer.endpoints.organization_seer_explorer_update import (
     OrganizationSeerExplorerUpdateEndpoint,
 )
-from sentry.seer.endpoints.organization_seer_onboarding_check import (
-    OrganizationSeerOnboardingCheck,
-)
+from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
-from sentry.seer.endpoints.organization_seer_setup_check import (
-    OrganizationSeerSetupCheckEndpoint,
-)
-from sentry.seer.endpoints.organization_trace_summary import (
-    OrganizationTraceSummaryEndpoint,
-)
-from sentry.seer.endpoints.project_seer_preferences import (
-    ProjectSeerPreferencesEndpoint,
-)
+from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
+from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
+from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.search_agent_start import SearchAgentStartEndpoint
 from sentry.seer.endpoints.search_agent_state import SearchAgentStateEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.seer.endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
 from sentry.seer.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
-from sentry.seer.endpoints.trace_explorer_ai_translate_agentic import (
-    SearchAgentTranslateEndpoint,
-)
+from sentry.seer.endpoints.trace_explorer_ai_translate_agentic import SearchAgentTranslateEndpoint
 from sentry.sentry_apps.api.endpoints.group_external_issue_details import (
     GroupExternalIssueDetailsEndpoint,
 )
-from sentry.sentry_apps.api.endpoints.group_external_issues import (
-    GroupExternalIssuesEndpoint,
-)
+from sentry.sentry_apps.api.endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from sentry.sentry_apps.api.endpoints.installation_details import (
     SentryAppInstallationDetailsEndpoint,
 )
@@ -725,9 +566,7 @@ from sentry.sentry_apps.api.endpoints.installation_external_requests import (
 from sentry.sentry_apps.api.endpoints.installation_service_hook_projects import (
     SentryAppInstallationServiceHookProjectsEndpoint,
 )
-from sentry.sentry_apps.api.endpoints.organization_sentry_apps import (
-    OrganizationSentryAppsEndpoint,
-)
+from sentry.sentry_apps.api.endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_authorizations import (
     SentryAppAuthorizationsEndpoint,
 )
@@ -737,24 +576,14 @@ from sentry.sentry_apps.api.endpoints.sentry_app_components import (
     SentryAppComponentsEndpoint,
 )
 from sentry.sentry_apps.api.endpoints.sentry_app_details import SentryAppDetailsEndpoint
-from sentry.sentry_apps.api.endpoints.sentry_app_features import (
-    SentryAppFeaturesEndpoint,
-)
-from sentry.sentry_apps.api.endpoints.sentry_app_installations import (
-    SentryAppInstallationsEndpoint,
-)
-from sentry.sentry_apps.api.endpoints.sentry_app_interaction import (
-    SentryAppInteractionEndpoint,
-)
+from sentry.sentry_apps.api.endpoints.sentry_app_features import SentryAppFeaturesEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
     SentryAppPublishRequestEndpoint,
 )
-from sentry.sentry_apps.api.endpoints.sentry_app_rotate_secret import (
-    SentryAppRotateSecretEndpoint,
-)
-from sentry.sentry_apps.api.endpoints.sentry_app_stats_details import (
-    SentryAppStatsEndpoint,
-)
+from sentry.sentry_apps.api.endpoints.sentry_app_rotate_secret import SentryAppRotateSecretEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_stats_details import SentryAppStatsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_webhook_requests import (
     SentryAppWebhookRequestsEndpoint,
 )
@@ -768,9 +597,7 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
 )
 from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
-from sentry.tempest.endpoints.tempest_credentials_details import (
-    TempestCredentialsDetailsEndpoint,
-)
+from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
 from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
@@ -781,21 +608,13 @@ from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
 from sentry.uptime.endpoints.organization_uptime_alert_preview_check import (
     OrganizationUptimeAlertPreviewCheckEndpoint,
 )
-from sentry.uptime.endpoints.organization_uptime_stats import (
-    OrganizationUptimeStatsEndpoint,
-)
-from sentry.uptime.endpoints.organization_uptime_summary import (
-    OrganizationUptimeSummaryEndpoint,
-)
+from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
+from sentry.uptime.endpoints.organization_uptime_summary import OrganizationUptimeSummaryEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
     ProjectUptimeAlertCheckIndexEndpoint,
 )
-from sentry.uptime.endpoints.project_uptime_alert_details import (
-    ProjectUptimeAlertDetailsEndpoint,
-)
-from sentry.uptime.endpoints.project_uptime_alert_index import (
-    ProjectUptimeAlertIndexEndpoint,
-)
+from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
+from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 from sentry.uptime.endpoints.project_uptime_response_capture import (
     ProjectUptimeResponseCaptureEndpoint,
 )
@@ -804,15 +623,9 @@ from sentry.uptime.endpoints.project_uptime_response_captures_index import (
 )
 from sentry.uptime.endpoints.uptime_ips import UptimeIpsEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
-from sentry.users.api.endpoints.user_authenticator_details import (
-    UserAuthenticatorDetailsEndpoint,
-)
-from sentry.users.api.endpoints.user_authenticator_enroll import (
-    UserAuthenticatorEnrollEndpoint,
-)
-from sentry.users.api.endpoints.user_authenticator_index import (
-    UserAuthenticatorIndexEndpoint,
-)
+from sentry.users.api.endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
+from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
+from sentry.users.api.endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
 from sentry.users.api.endpoints.user_avatar import UserAvatarEndpoint
 from sentry.users.api.endpoints.user_details import UserDetailsEndpoint
 from sentry.users.api.endpoints.user_emails import UserEmailsEndpoint
@@ -826,13 +639,9 @@ from sentry.users.api.endpoints.user_identity_details import UserIdentityDetails
 from sentry.users.api.endpoints.user_index import UserIndexEndpoint
 from sentry.users.api.endpoints.user_ips import UserIPsEndpoint
 from sentry.users.api.endpoints.user_password import UserPasswordEndpoint
-from sentry.users.api.endpoints.user_permission_details import (
-    UserPermissionDetailsEndpoint,
-)
+from sentry.users.api.endpoints.user_permission_details import UserPermissionDetailsEndpoint
 from sentry.users.api.endpoints.user_permissions import UserPermissionsEndpoint
-from sentry.users.api.endpoints.user_permissions_config import (
-    UserPermissionsConfigEndpoint,
-)
+from sentry.users.api.endpoints.user_permissions_config import UserPermissionsConfigEndpoint
 from sentry.users.api.endpoints.user_regions import UserRegionsEndpoint
 from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndpoint
 from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
@@ -862,9 +671,7 @@ from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
 from .endpoints.custom_rules import CustomRulesEndpoint
-from .endpoints.data_scrubbing_selector_suggestions import (
-    DataScrubbingSelectorSuggestionsEndpoint,
-)
+from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
     DebugFilesEndpoint,
@@ -891,24 +698,16 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.internal_ea_features import InternalEAFeaturesEndpoint
-from .endpoints.organization_access_request_details import (
-    OrganizationAccessRequestDetailsEndpoint,
-)
+from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
 from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
 from .endpoints.organization_artifactbundle_assemble import (
     OrganizationArtifactBundleAssembleEndpoint,
 )
-from .endpoints.organization_attribute_mappings import (
-    OrganizationAttributeMappingsEndpoint,
-)
-from .endpoints.organization_auth_provider_details import (
-    OrganizationAuthProviderDetailsEndpoint,
-)
+from .endpoints.organization_attribute_mappings import OrganizationAttributeMappingsEndpoint
+from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from .endpoints.organization_config_repositories import (
-    OrganizationConfigRepositoriesEndpoint,
-)
+from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
@@ -925,18 +724,14 @@ from .endpoints.organization_events_meta import (
     OrganizationSpansSamplesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
-from .endpoints.organization_events_spans_histogram import (
-    OrganizationEventsSpansHistogramEndpoint,
-)
+from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
     OrganizationEventsSpansStatsEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
-from .endpoints.organization_events_timeseries import (
-    OrganizationEventsTimeseriesEndpoint,
-)
+from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from .endpoints.organization_events_trace import (
     OrganizationEventsTraceEndpoint,
     OrganizationEventsTraceLightEndpoint,
@@ -946,9 +741,7 @@ from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
     OrganizationEventsTrendsStatsEndpoint,
 )
-from .endpoints.organization_events_trends_v2 import (
-    OrganizationEventsNewTrendsStatsEndpoint,
-)
+from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
 from .endpoints.organization_metrics_meta import (
@@ -963,9 +756,7 @@ from .endpoints.organization_onboarding_continuation_email import (
 )
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
-from .endpoints.organization_profiling_functions import (
-    OrganizationProfilingFunctionTrendsEndpoint,
-)
+from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
@@ -976,9 +767,7 @@ from .endpoints.organization_projects_sent_first_event import (
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
-from .endpoints.organization_sampling_project_rates import (
-    OrganizationSamplingProjectRatesEndpoint,
-)
+from .endpoints.organization_sampling_project_rates import OrganizationSamplingProjectRatesEndpoint
 from .endpoints.organization_sdk_deprecations import OrganizationSdkDeprecationsEndpoint
 from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
@@ -990,9 +779,7 @@ from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
 )
-from .endpoints.organization_spans_fields_stats import (
-    OrganizationSpansFieldsStatsEndpoint,
-)
+from .endpoints.organization_spans_fields_stats import OrganizationSpansFieldsStatsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
@@ -1001,15 +788,11 @@ from .endpoints.organization_trace import OrganizationTraceEndpoint
 from .endpoints.organization_trace_logs import OrganizationTraceLogsEndpoint
 from .endpoints.organization_trace_meta import OrganizationTraceMetaEndpoint
 from .endpoints.organization_traces import OrganizationTracesEndpoint
-from .endpoints.project_artifact_bundle_file_details import (
-    ProjectArtifactBundleFileDetailsEndpoint,
-)
+from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
-from .endpoints.project_create_sample_transaction import (
-    ProjectCreateSampleTransactionEndpoint,
-)
+from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
@@ -1060,9 +843,7 @@ from .endpoints.seer_models import SeerModelsEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.user_organizationintegrations import (
-    UserOrganizationIntegrationsEndpoint,
-)
+from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 
