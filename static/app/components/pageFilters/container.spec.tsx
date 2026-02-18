@@ -118,7 +118,6 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
-        desyncedFilters: new Set(),
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -150,7 +149,6 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
-        desyncedFilters: new Set(),
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -185,7 +183,6 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
-        desyncedFilters: new Set(),
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -231,7 +228,6 @@ describe('PageFiltersContainer', () => {
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       shouldPersist: true,
       selection: {
@@ -332,37 +328,6 @@ describe('PageFiltersContainer', () => {
 
     // Router does not update because params have not changed
     expect(router.location.query).toEqual({});
-  });
-
-  it('updates store with desynced values when url params do not match local storage', async () => {
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
-      JSON.stringify({
-        projects: [1],
-        pinnedFilters: ['projects'],
-      })
-    );
-
-    const testOrg = OrganizationFixture();
-    OrganizationStore.onUpdate(testOrg);
-
-    render(<PageFiltersContainer />, {
-      organization: testOrg,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/test/',
-          query: {project: ['2']},
-        },
-        route: '/organizations/:orgId/test/',
-      },
-    });
-
-    // reflux tick
-    expect(PageFiltersStore.getState().selection.projects).toEqual([2]);
-
-    // Wait for desynced filters to update
-    await waitFor(() =>
-      expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']))
-    );
   });
 
   it('does not update local storage when disablePersistence is true', async () => {

@@ -58,7 +58,6 @@ class SentryAppAlertRuleActionRequester:
                 "sentry_app_slug": self.sentry_app.slug,
             }
             try:
-
                 response = send_and_save_sentry_app_request(
                     url=self._build_url(),
                     sentry_app=self.sentry_app,

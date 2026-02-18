@@ -24,6 +24,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
 )
 from sentry.preprod.api.validators import PreprodListBuildsValidator
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.quotas import get_size_retention_cutoff
 from sentry.preprod.utils import parse_release_version
 
 logger = logging.getLogger(__name__)
@@ -85,12 +86,14 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
         except InvalidParams:
             raise ParseError(detail="Invalid date range")
 
+        cutoff = get_size_retention_cutoff(organization)
+
         queryset = (
             PreprodArtifact.objects.select_related(
                 "project", "build_configuration", "commit_comparison", "mobile_app_info"
             )
             .prefetch_related("preprodartifactsizemetrics_set")
-            .filter(project_id__in=project_ids)
+            .filter(project_id__in=project_ids, date_added__gte=cutoff)
         )
 
         if start and end:

@@ -651,11 +651,12 @@ export const widgetFetchesOwnData = (widgetType: DisplayType) => {
   return widgetTypesThatFetchOwnData.includes(widgetType);
 };
 
-// Custom widgets for prebuilt dashboards are not editable at this time
+// Custom widgets from the widget library that are not editable but still have menu options
 export const isWidgetEditable = (widgetType: DisplayType) => {
   const nonEditableWidgetTypes = [
     DisplayType.SERVER_TREE,
     DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.WHEEL,
   ];
   return !nonEditableWidgetTypes.includes(widgetType);
 };

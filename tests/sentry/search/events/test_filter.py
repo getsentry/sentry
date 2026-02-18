@@ -1471,7 +1471,9 @@ class DetectorFilterTest(TestCase):
             projects=[self.project],
             search_filters=[
                 SearchFilter(
-                    SearchKey("detector"), "=", SearchValue([99999])  # Invalid detector ID
+                    SearchKey("detector"),
+                    "=",
+                    SearchValue([99999]),  # Invalid detector ID
                 )
             ],
             referrer=Referrer.TESTING_TEST,

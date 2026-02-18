@@ -135,6 +135,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.seer_opened': {
     autofix_exists: boolean;
     autofix_step_type: string | null;
+    group_id: string;
     has_coded_solution: boolean;
     has_pr: boolean;
     has_root_cause: boolean;

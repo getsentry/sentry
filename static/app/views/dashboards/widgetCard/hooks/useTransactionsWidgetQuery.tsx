@@ -9,6 +9,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -32,6 +33,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TransactionsSeriesResponse =
@@ -123,7 +125,9 @@ export function useTransactionsSeriesQuery(
 
       // Build the API query key for events-stats endpoint
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -200,7 +204,7 @@ export function useTransactionsSeriesQuery(
     queries: queryKeys.map((queryKey, queryIndex) => ({
       queryKey,
       queryFn: createQueryFn(queryIndex),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       // Retry on 429 status codes up to 10 times, unless queue handles it
       retry: hasQueueFeature
@@ -367,7 +371,9 @@ export function useTransactionsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -412,7 +418,7 @@ export function useTransactionsTableQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       // Retry on 429 status codes up to 10 times, unless queue handles it
       retry: hasQueueFeature

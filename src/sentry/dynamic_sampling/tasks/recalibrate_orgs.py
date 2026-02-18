@@ -22,8 +22,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     set_guarded_adjusted_project_factor,
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.options.organization_option import OrganizationOption
@@ -144,16 +143,6 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
         default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
     )
 
-    sample_function(
-        function=log_sample_rate_source,
-        _sample_rate=0.1,
-        org_id=org_id,
-        project_id=None,
-        used_for="recalibrate_orgs",
-        source="sliding_window_org" if success else "blended_sample_rate",
-        sample_rate=target_sample_rate,
-    )
-
     # If we didn't find any sample rate, we can't recalibrate the organization.
     if target_sample_rate is None:
         sentry_sdk.capture_message("Sample rate of org not found when trying to recalibrate it")
@@ -217,17 +206,6 @@ def recalibrate_project(
 ) -> None:
     if target_sample_rate is None:
         target_sample_rate = TARGET_SAMPLE_RATE_DEFAULT
-
-    sample_function(
-        function=log_sample_rate_source,
-        _sample_rate=0.1,
-        org_id=org_id,
-        project_id=project_id,
-        used_for="recalibrate_orgs",
-        source="project_setting",
-        sample_rate=target_sample_rate,
-    )
-
     # We compute the effective sample rate that we had in the last considered time window.
     effective_sample_rate = indexed / total
     # We get the previous factor that was used for the recalibration.

@@ -7,10 +7,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-TESTS_PER_SHARD = 1200
+TESTS_PER_SHARD = 300
 MIN_SHARDS = 1
 MAX_SHARDS = 22
-DEFAULT_SHARDS = 22
+DEFAULT_SHARDS = MAX_SHARDS
 
 
 def collect_test_count() -> int | None:
@@ -96,19 +96,20 @@ def calculate_shards(test_count: int | None) -> int:
         print(f"No tests to run, using minimum: {MIN_SHARDS}", file=sys.stderr)
         return MIN_SHARDS
 
+    if test_count > MAX_SHARDS * TESTS_PER_SHARD:
+        print(
+            f"Test count {test_count} exceeds {MAX_SHARDS * TESTS_PER_SHARD}, using max shards: {MAX_SHARDS}",
+            file=sys.stderr,
+        )
+        return MAX_SHARDS
+
     calculated = math.ceil(test_count / TESTS_PER_SHARD)
     bounded = max(MIN_SHARDS, min(calculated, MAX_SHARDS))
 
-    if bounded != calculated:
-        print(
-            f"Calculated {calculated} shards, bounded to {bounded}",
-            file=sys.stderr,
-        )
-    else:
-        print(
-            f"Calculated {bounded} shards ({test_count} tests ÷ {TESTS_PER_SHARD})",
-            file=sys.stderr,
-        )
+    print(
+        f"Calculated {bounded} shards ({test_count} tests ÷ {TESTS_PER_SHARD})",
+        file=sys.stderr,
+    )
 
     return bounded
 

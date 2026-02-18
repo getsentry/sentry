@@ -647,8 +647,8 @@ class SqlFormatEventSerializerTest(TestCase):
                 == 1
             ), "SQL_QUERY_OK should have been formatted a single time"
 
-            assert not any(
-                SQL_QUERY_TOO_LARGE in args[0] for args in mock_format.call_args_list
-            ), "SQL_QUERY_TOO_LARGE should not have been formatted"
+            assert not any(SQL_QUERY_TOO_LARGE in args[0] for args in mock_format.call_args_list), (
+                "SQL_QUERY_TOO_LARGE should not have been formatted"
+            )
 
             assert mock_format.call_count == 20, "Format should have been called 20 times"

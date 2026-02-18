@@ -12,10 +12,6 @@ interface OrganizationSeerSetupResponse {
     hasAutofixQuota: boolean;
     hasScannerQuota: boolean;
   };
-  setupAcknowledgement: {
-    orgHasAcknowledged: boolean;
-    userHasAcknowledged: boolean;
-  };
 }
 
 export function makeOrganizationSeerSetupQueryKey(orgSlug: string): ApiQueryKey {
@@ -53,10 +49,5 @@ export function useOrganizationSeerSetup(
       hasScannerQuota: Boolean(queryData.data?.billing?.hasScannerQuota),
     },
     areAiFeaturesAllowed,
-    setupAcknowledgement: {
-      orgHasAcknowledged: Boolean(
-        queryData.data?.setupAcknowledgement?.orgHasAcknowledged
-      ),
-    },
   };
 }

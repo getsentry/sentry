@@ -65,7 +65,9 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], 
         "profile"
     )  # transaction profiles are formatted as {"profile": {"frames": [], "samples": [], "stacks": []}}
     if not profile:
-        profile = profile_data.get("chunk", {}).get(
+        profile = profile_data.get(
+            "chunk", {}
+        ).get(
             "profile"
         )  # continuous profiles are wrapped as {"chunk": {"profile": {"frames": [], "samples": [], "stacks": []}}}
         if not profile:

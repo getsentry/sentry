@@ -150,7 +150,12 @@ function Search({
               ...item.to,
               pathname: replaceRouterParams(item.to.pathname, params),
             };
-      navigateTo(nextTo, router, item.configUrl);
+      if (item.configUrl) {
+        // @ts-expect-error TODO(ryan953): Invalid useApiQuery path (comes from api response)
+        navigateTo(nextTo, router, [item.configUrl]);
+      } else {
+        navigateTo(nextTo, router);
+      }
     },
     [entryPoint, router, params, onAction]
   );

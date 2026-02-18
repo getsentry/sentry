@@ -131,8 +131,9 @@ describe('IssueRuleEditor', () => {
       body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
+      url: `/projects/org-slug/project-slug/`,
       body: {},
+      match: [MockApiClient.matchQuery({expand: 'hasAlertIntegration'})],
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/preview/',
@@ -141,13 +142,15 @@ describe('IssueRuleEditor', () => {
     });
     ProjectsStore.loadInitialData([ProjectFixture()]);
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      url: `/organizations/org-slug/integrations/`,
       body: [],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
     const providerKeys = ['slack', 'discord', 'msteams'];
     providerKeys.forEach(providerKey => {
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/config/integrations/?provider_key=${providerKey}`,
+        url: `/organizations/org-slug/config/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: providerKey})],
         body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
       });
     });

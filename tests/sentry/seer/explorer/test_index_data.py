@@ -109,7 +109,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
                         "description": f"span-{i}-{trace_suffix}",
                         "sentry_tags": {"transaction": transaction_name},
                         "trace_id": trace_id,
-                        "parent_span_id": None if i == 0 else f"parent-{i-1}",
+                        "parent_span_id": None if i == 0 else f"parent-{i - 1}",
                         "is_segment": i == 0,  # First span is the transaction span
                     },
                     start_ts=self.ten_mins_ago + timedelta(minutes=start_offset_minutes + i),
@@ -797,9 +797,9 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         for group in groups:
             latest_event = group.get_latest_event()
             transaction_tag = latest_event.get_tag("transaction")
-            assert (
-                transaction_tag == transaction_name
-            ), f"Expected transaction tag '{transaction_name}', got '{transaction_tag}'"
+            assert transaction_tag == transaction_name, (
+                f"Expected transaction tag '{transaction_name}', got '{transaction_tag}'"
+            )
 
         result = get_issues_for_transaction(transaction_name, self.project.id)
 

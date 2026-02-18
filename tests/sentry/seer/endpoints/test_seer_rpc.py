@@ -13,12 +13,15 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
     check_repository_integrations_status,
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_organization_projects_with_instrumentation,
+    has_repo_code_mappings,
     validate_repo,
 )
 from sentry.seer.explorer.tools import get_trace_item_attributes
@@ -1021,6 +1024,72 @@ class TestSeerRpcMethods(APITestCase):
 
         assert result == {"integration_ids": [integration.id]}
 
+    def test_has_repo_code_mappings_repo_not_found(self) -> None:
+        """Test when repository does not exist"""
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="nonexistent",
+            owner="nonexistent",
+            name="nonexistent",
+        )
+        assert result == {"has_code_mappings": False}
+
+    def test_has_repo_code_mappings_no_mappings(self) -> None:
+        """Test when repository exists but has no code mappings"""
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            owner="test",
+            name="repo",
+        )
+        assert result == {"has_code_mappings": False}
+
+    def test_has_repo_code_mappings_with_mappings(self) -> None:
+        """Test when repository exists and has code mappings"""
+        project = self.create_project(organization=self.organization)
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        org_integration = integration.organizationintegration_set.first()
+        assert org_integration is not None
+
+        repo = Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="456",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        RepositoryProjectPathConfig.objects.create(
+            repository=repo,
+            project=project,
+            organization_integration_id=org_integration.id,
+            integration_id=org_integration.integration_id,
+            organization_id=self.organization.id,
+            stack_root="/",
+            source_root="/",
+        )
+
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="456",
+            owner="test",
+            name="repo",
+        )
+        assert result == {"has_code_mappings": True}
+
     def test_validate_repo_valid(self) -> None:
         """Test when repository exists and matches all fields"""
         integration = self.create_integration(
@@ -1279,3 +1348,35 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"valid": True, "integration_id": integration.id}
+
+
+class TestGetOrganizationProjectsWithInstrumentation(APITestCase):
+    def test_returns_projects_with_flags(self) -> None:
+        project = self.project
+        project.flags.has_sessions = True
+        project.flags.has_replays = True
+        project.flags.has_profiles = False
+        project.save()
+
+        result = get_organization_projects_with_instrumentation(org_id=self.organization.id)
+
+        assert len(result["projects"]) >= 1
+        matching = next(p for p in result["projects"] if p["id"] == project.id)
+        assert matching["slug"] == project.slug
+        assert matching["hasSessions"] is True
+        assert matching["hasReplays"] is True
+        assert matching["hasProfiles"] is False
+        assert "hasTraceMetrics" in matching
+        assert "hasLogs" in matching
+
+    def test_excludes_inactive_projects(self) -> None:
+        active_project = self.project
+        inactive_project = self.create_project(organization=self.organization)
+        inactive_project.status = ObjectStatus.PENDING_DELETION
+        inactive_project.save()
+
+        result = get_organization_projects_with_instrumentation(org_id=self.organization.id)
+
+        project_ids = [p["id"] for p in result["projects"]]
+        assert active_project.id in project_ids
+        assert inactive_project.id not in project_ids

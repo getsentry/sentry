@@ -638,6 +638,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for moving accepted outcome emission from Relay to EAP.
+register(
+    "relay.eap-outcomes.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout rate for double writing sessions to EAP.
 register(
     "relay.sessions-eap.rollout-rate",
@@ -700,6 +708,13 @@ register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIOR
 register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to codecov
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# GitHub owners whose webhooks we skip forwarding to Codecov (payload is still deleted)
+register(
+    "codecov.forward-webhooks.skip-github-owners",
+    type=Sequence,
+    default=["getsentry"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # GitHub Integration
@@ -1400,6 +1415,16 @@ register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODI
 
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# When True, schedule_invalidate_project_config calls the invalidation callback
+# directly when outside an atomic block, instead of going through
+# transaction.on_commit(). This fixes TransactionManagementError in the
+# taskworker where autocommit is off.
+register(
+    "relay.invalidation-direct-outside-atomic",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
 # In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
@@ -3206,23 +3231,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# ZSET to SET migration options.
-register(
-    "spans.buffer.write-to-zset",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.buffer.write-to-set",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.buffer.read-from-set",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
@@ -3391,6 +3399,7 @@ register(
 )
 
 # Controls the rate of using the sentry api shared secret for communicating to sentry.
+# DEPRECATED: will be removed after the shared secret is confirmed to always be set.
 register(
     "seer.api.use-shared-secret",
     default=0.0,
@@ -3859,6 +3868,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Lists all the consumers we need verbose multiprocess logs for.
+# We observed some consumers hanging after restarts. We narrowed down the
+# issue to the shared memory manager initialization. Specifically,
+# the consumer hangs when the shared memory manager initializes a subprocess.
+register(
+    "consumer.verbose_multiprocessing_logs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
@@ -4010,4 +4030,12 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TODO(telkins): Remove once we no longer need integration_id on SLO metrics
+register(
+    "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

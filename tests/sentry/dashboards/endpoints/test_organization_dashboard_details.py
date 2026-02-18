@@ -1357,7 +1357,62 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Ensure this value is less than or equal to 10" in response.content
+        assert b"The maximum limit for this display type is 10" in response.content
+
+    def test_add_categorical_bar_widget_with_valid_limit(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Categorical Bar Widget",
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 20,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        assert widgets[0].limit == 20
+
+    def test_add_categorical_bar_widget_with_invalid_limit_above_maximum(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Categorical Bar Widget",
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 26,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"The maximum limit for this display type is 25" in response.content
 
     def test_add_widget_with_invalid_limit_below_minimum(self) -> None:
         data = {
@@ -2492,7 +2547,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
     def test_update_dashboard_permissions_with_put(self) -> None:
-
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
@@ -3682,12 +3736,13 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_ondemand_hits_card_limit(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {
-            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
-        }, [
-            "sometag",
-            "someothertag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]},
+            [
+                "sometag",
+                "someothertag",
+            ],
+        )
         data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
@@ -3727,9 +3782,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_ondemand_updates_existing_widget(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
-            "sometag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000}]},
+            [
+                "sometag",
+            ],
+        )
         data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
@@ -3789,9 +3847,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             ],
         }
 
-        mock_query.return_value = {"data": [{"count_unique(someothertag)": 0}]}, [
-            "someothertag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(someothertag)": 0}]},
+            [
+                "someothertag",
+            ],
+        )
         with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
@@ -3811,9 +3872,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_ondemand_updates_new_widget(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
-            "sometag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000}]},
+            [
+                "sometag",
+            ],
+        )
         data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
@@ -3873,9 +3937,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             ],
         }
 
-        mock_query.return_value = {"data": [{"count_unique(someotherothertag)": 0}]}, [
-            "someotherothertag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(someotherothertag)": 0}]},
+            [
+                "someotherothertag",
+            ],
+        )
         with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
@@ -3895,9 +3962,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_cardinality_check_with_feature_flag(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
-            "sometag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000}]},
+            [
+                "sometag",
+            ],
+        )
         data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
@@ -3939,9 +4009,12 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
     def test_feature_check_takes_precedence_over_cardinality(
         self, mock_query: mock.MagicMock
     ) -> None:
-        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
-            "sometag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000}]},
+            [
+                "sometag",
+            ],
+        )
         data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [

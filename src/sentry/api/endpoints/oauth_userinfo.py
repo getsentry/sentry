@@ -90,7 +90,7 @@ class OAuthUserInfoEndpoint(Endpoint):
             raise BearerTokenInsufficientScope()
 
         user = token_details.user
-        user_output: dict[str, object] = {"sub": user.id}
+        user_output: dict[str, object] = {"sub": str(user.id)}
         if "profile" in scopes:
             user_output.update(
                 {

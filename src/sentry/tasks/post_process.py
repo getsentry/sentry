@@ -71,7 +71,7 @@ class PostProcessJob(TypedDict, total=False):
     group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
-    has_alert: bool
+    # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool
 
 
@@ -542,7 +542,6 @@ def post_process_group(
             # need to rewind history.
             data = event_processing_store.get(cache_key)
             if not data:
-
                 logger.info(
                     "post_process.skipped",
                     extra={"cache_key": cache_key, "reason": "missing_cache"},
@@ -649,7 +648,6 @@ def post_process_group(
                     "group_state": group_state,
                     "is_reprocessed": is_reprocessed,
                     "has_reappeared": bool(not group_state["is_new"]),
-                    "has_alert": False,
                     "has_escalated": kwargs.get("has_escalated", False),
                 }
             )
@@ -802,8 +800,9 @@ def process_inbox_adds(job: PostProcessJob) -> None:
 def process_snoozes(job: PostProcessJob) -> None:
     """
     Set has_reappeared to True if the group is transitioning from "resolved" to "unresolved" and
-    set has_escalated to True if the group is transitioning from "archived until escalating" to "unresolved"
-    otherwise set to False.
+    set has_escalated to True if the group is transitioning from "archived until escalating" to
+    "escalating" (forecast-based) or from "archived until condition met" to "escalating"
+    (count/user-count-based snooze expiry), otherwise set to False.
     """
     # we process snoozes before rules as it might create a regression
     # but not if it's new because you can't immediately snooze a new group
@@ -905,6 +904,8 @@ def process_snoozes(job: PostProcessJob) -> None:
                 sender="process_snoozes",
             )
 
+            if reason == GroupInboxReason.ESCALATING:
+                job["has_escalated"] = True
             job["has_reappeared"] = True
             return
 
@@ -1559,7 +1560,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
         generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
-        # Triage signals V0 behaviour
+        # Seat-based tier behaviour
         # If event count < 10, only generate summary (no automation)
         if group.times_seen_with_pending < 10:
             # Check if summary exists in cache
@@ -1591,7 +1592,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if group.first_seen < (timezone.now() - timedelta(days=14)):
                 return
 
-            # Triage signals will not run issues if they are not fixable at MEDIUM threshold
+            # Will not run issues if they are not fixable at MEDIUM threshold
             if group.seer_fixability_score is not None:
                 if (
                     group.seer_fixability_score < FixabilityScoreThresholds.MEDIUM.value

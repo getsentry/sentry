@@ -29,238 +29,238 @@ contributing variants:
       app*
         threads*
           stacktrace*
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "__main__"
               function*
                 "<module>"
               context_line*
                 "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=<int>, pipe_handle=<int>)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "multiprocessing.spawn"
               function*
                 "spawn_main"
               context_line*
                 "exitcode = _main(fd, parent_sentinel)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "multiprocessing.spawn"
               function*
                 "_main"
               context_line*
                 "return self._bootstrap(parent_sentinel)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "multiprocessing.process"
               function*
                 "_bootstrap"
               context_line*
                 "self.run()"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "multiprocessing.process"
               function*
                 "run"
               context_line*
                 "self._target(*self._args, **self._kwargs)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "uvicorn._subprocess"
               function*
                 "subprocess_started"
               context_line*
                 "target(sockets=sockets)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "uvicorn.server"
               function*
                 "run"
               context_line*
                 "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "asyncio.runners"
               function*
                 "run"
               context_line*
                 "return runner.run(main)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "asyncio.runners"
               function*
                 "run"
               context_line*
                 "return self._loop.run_until_complete(task)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "asyncio.base_events"
               function*
                 "run_until_complete"
               context_line*
                 "self.run_forever()"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "asyncio.base_events"
               function*
                 "run_forever"
               context_line*
                 "self._run_once()"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "asyncio.base_events"
               function*
                 "_run_once"
               context_line*
                 "handle._run()"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "asyncio.events"
               function*
                 "_run"
               context_line*
                 "self._context.run(self._callback, *self._args)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "uvicorn.lifespan.on"
               function*
                 "main"
               context_line*
                 "await app(scope, self.receive, self.send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "uvicorn.middleware.proxy_headers"
               function*
                 "__call__"
               context_line*
                 "return await self.app(scope, receive, send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "fastapi.applications"
               function*
                 "__call__"
               context_line*
                 "await super().__call__(scope, receive, send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "starlette.applications"
               function*
                 "__call__"
               context_line*
                 "await self.middleware_stack(scope, receive, send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "starlette.middleware.errors"
               function*
                 "__call__"
               context_line*
                 "await self.app(scope, receive, send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "starlette.middleware.base"
               function*
                 "__call__"
               context_line*
                 "await self.app(scope, receive, send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "starlette.middleware.cors"
               function*
                 "__call__"
               context_line*
                 "await self.app(scope, receive, send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "starlette.middleware.exceptions"
               function*
                 "__call__"
               context_line*
                 "await self.app(scope, receive, send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "fastapi.middleware.asyncexitstack"
               function*
                 "__call__"
               context_line*
                 "await self.app(scope, receive, send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "starlette.routing"
               function*
                 "__call__"
               context_line*
                 "await self.middleware_stack(scope, receive, send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "starlette.routing"
               function*
                 "app"
               context_line*
                 "await self.lifespan(scope, receive, send)"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "starlette.routing"
               function*
                 "lifespan"
               context_line*
                 "async with self.lifespan_context(app) as maybe_state:"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app) and un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            frame* (marked in-app by custom stacktrace rule (function:run_app +app v+app))
               module*
                 "app.main"
               function*
@@ -275,7 +275,7 @@ contributing variants:
       system*
         threads*
           stacktrace*
-            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "__main__"
               function*
@@ -331,7 +331,7 @@ contributing variants:
                 "run"
               context_line*
                 "return runner.run(main)"
-            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "asyncio.runners"
               function*
@@ -457,49 +457,49 @@ contributing variants:
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*
                 "merged_lifespan"
               context_line*
                 "async with original_context(app) as maybe_original_state:"
-            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            frame* (un-ignored by custom stacktrace rule (function:run_app +group v+group))
               module*
                 "fastapi.routing"
               function*

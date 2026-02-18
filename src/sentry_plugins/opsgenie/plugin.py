@@ -91,7 +91,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
                 "Triggering Rules": json.dumps(triggering_rules),
             },
             "entity": group.culprit,
-            "tags": [f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags],
+            "tags": [f"{str(x).replace(',', '')}:{str(y).replace(',', '')}" for x, y in event.tags],
         }
 
     def notify_users(self, group, event, triggering_rules) -> None:

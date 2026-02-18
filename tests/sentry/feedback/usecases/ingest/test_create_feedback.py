@@ -896,7 +896,6 @@ def test_create_feedback_adds_ai_labels(
             "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
             mock_generate_labels,
         ):
-
             create_feedback_issue(
                 event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
@@ -966,9 +965,9 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
         }
     ):
         event = mock_feedback_event(default_project.id)
-        event["contexts"]["feedback"][
-            "message"
-        ] = "This is a very complex feedback with many issues"
+        event["contexts"]["feedback"]["message"] = (
+            "This is a very complex feedback with many issues"
+        )
 
         alphabet = "abcdefghijklmnopqrstuvwxyz"
 
@@ -1002,9 +1001,9 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
         ai_labels = [
             value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
         ]
-        assert (
-            len(ai_labels) == labels_list_length
-        ), "Should be truncated to exactly labels_list_length"
+        assert len(ai_labels) == labels_list_length, (
+            "Should be truncated to exactly labels_list_length"
+        )
 
         for i in range(labels_list_length):
             assert tags[f"{AI_LABEL_TAG_PREFIX}.label.{i}"] == expected_labels[i]
@@ -1029,9 +1028,9 @@ def test_create_feedback_truncates_ai_labels_max_json_length(
     ):
         event = mock_feedback_event(default_project.id)
 
-        event["contexts"]["feedback"][
-            "message"
-        ] = "This is a very complex feedback with many issues"
+        event["contexts"]["feedback"]["message"] = (
+            "This is a very complex feedback with many issues"
+        )
 
         # The serialized list of labels should be longer than MAX_AI_LABELS_JSON_LENGTH characters, so we should only take the first item
         def mock_generate_labels(*args, **kwargs):

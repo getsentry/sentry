@@ -254,7 +254,9 @@ def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> CleanupStats:
             ).delete()
 
         if file_ids_to_delete:
-            stats.files_total_deleted, _ = File.objects.filter(id__in=file_ids_to_delete).delete()
+            for file in File.objects.filter(id__in=file_ids_to_delete):
+                file.delete()
+                stats.files_total_deleted += 1
 
     PreprodArtifactSizeMetrics.objects.create(
         preprod_artifact=preprod_artifact,

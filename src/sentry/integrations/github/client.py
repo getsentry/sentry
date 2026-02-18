@@ -25,6 +25,10 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+)
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.source_code_management.status_check import StatusCheckClient
@@ -410,7 +414,12 @@ class GitHubBaseClient(
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_RATE_LIMIT,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture():
+            return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
     # This method is used by RepoTreesIntegration
     def get_remaining_api_requests(self) -> int:
@@ -453,11 +462,14 @@ class GitHubBaseClient(
             "Bad credentials",  # No permission granted for this repo
         ):
             logger.warning(error_message, extra=extra)
-        elif error_message in (
-            "Server Error",  # Github failed to respond
-            "Connection reset by peer",  # Connection reset by GitHub
-            "Connection broken: invalid chunk length",  # Connection broken by chunk with invalid length
-            "Unable to reach host:",  # Unable to reach host at the moment
+        elif (
+            error_message
+            in (
+                "Server Error",  # Github failed to respond
+                "Connection reset by peer",  # Connection reset by GitHub
+                "Connection broken: invalid chunk length",  # Connection broken by chunk with invalid length
+                "Unable to reach host:",  # Unable to reach host at the moment
+            )
         ):
             should_count_error = True
         elif error_message and error_message.startswith(
