@@ -243,7 +243,11 @@ describe('Performance > TransactionSummary', () => {
     expect(tableHeader[4]).toHaveTextContent('trace id');
     expect(tableHeader[5]).toHaveTextContent('timestamp');
 
-    const tableFirstRowColumns = await screen.findAllByRole('cell');
+    let tableFirstRowColumns!: HTMLElement[];
+    await waitFor(async () => {
+      tableFirstRowColumns = await screen.findAllByRole('cell');
+      expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
+    });
     expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
     expect(tableFirstRowColumns[1]).toHaveTextContent('uhoh@example.com');
     expect(tableFirstRowColumns[2]).toHaveTextContent('(no value)');

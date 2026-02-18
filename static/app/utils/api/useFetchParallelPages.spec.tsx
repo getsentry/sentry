@@ -68,9 +68,9 @@ describe('useFetchParallelPages', () => {
     expect(result.current.isFetching).toBeTruthy();
     expect(getQueryKey).toHaveBeenCalled();
 
-    // Wait for the query to resolve
-    await waitFor(() => expect(result.current.status).toBe('pending'));
-    await waitFor(() => expect(result.current.isFetching).toBeTruthy());
+    // Eventually the parallel fetches resolve.
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
   });
 
   it('should call the queryFn zero times, when hits is 0', () => {

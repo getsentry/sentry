@@ -32,7 +32,7 @@ describe('processInitQueue', () => {
         </div>
       );
 
-      processInitQueue();
+      await processInitQueue();
 
       // Assert that password strength renders and reacts to user input
       await userEvent.type(screen.getByPlaceholderText('password'), '!');
