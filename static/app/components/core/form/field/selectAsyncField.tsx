@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import type {DistributedOmit} from 'type-fest';
 
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -17,10 +18,7 @@ export type SelectAsyncOption<TData> = {
 };
 
 type SelectAsyncFieldProps<TData> = BaseFieldProps &
-  Omit<
-    SelectFieldProps<TData>,
-    'options' | 'isLoading' | 'onInputChange' | 'multiple' | 'value' | 'onChange'
-  > & {
+  DistributedOmit<SelectFieldProps<TData>, 'options' | 'isLoading' | 'onInputChange'> & {
     /**
      * Called when selection changes with the full data object
      */
@@ -48,21 +46,17 @@ type SelectAsyncFieldProps<TData> = BaseFieldProps &
       select: (data: unknown) => Array<SelectAsyncOption<TData>>;
       staleTime?: number;
     };
-
-    /**
-     * Current value - the full data object or null
-     */
-    value: TData | null;
   };
-
-export type {SelectAsyncFieldProps};
 
 const DEBOUNCE_MS = 250;
 
-export function SelectAsyncField<TData>({
+export function SelectAsyncField<TValue = string>({
   queryOptions,
+  multiple,
+  onChange,
+  value,
   ...props
-}: SelectAsyncFieldProps<TData>) {
+}: SelectAsyncFieldProps<TValue>) {
   // Internal state for search input
   const [inputValue, setInputValue] = useState('');
   const debouncedInput = useDebouncedValue(inputValue, DEBOUNCE_MS);
@@ -73,6 +67,9 @@ export function SelectAsyncField<TData>({
   return (
     <SelectField
       {...props}
+      multiple={multiple}
+      onChange={onChange}
+      value={value}
       options={options}
       isLoading={isPending}
       onInputChange={setInputValue}
