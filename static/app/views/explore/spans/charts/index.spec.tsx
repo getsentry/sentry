@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -9,6 +10,14 @@ import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <ChartSelectionProvider>{children}</ChartSelectionProvider>
+    </SpansQueryParamsProvider>
+  );
+}
+
 describe('ExploreCharts', () => {
   it('renders the high accuracy message when the widget is loading more data', async () => {
     const mockTimeseriesResult = {
@@ -19,26 +28,23 @@ describe('ExploreCharts', () => {
     } as any;
 
     render(
-      <SpansQueryParamsProvider>
-        <ChartSelectionProvider>
-          <ExploreCharts
-            extrapolate
-            setTab={() => {}}
-            confidences={[]}
-            query=""
-            timeseriesResult={mockTimeseriesResult}
-            visualizes={defaultVisualizes()}
-            setVisualizes={() => {}}
-            samplingMode={SAMPLING_MODE.HIGH_ACCURACY}
-            rawSpanCounts={{
-              highAccuracy: {count: 0, isLoading: true},
-              normal: {count: 0, isLoading: true},
-            }}
-          />
-        </ChartSelectionProvider>
-      </SpansQueryParamsProvider>,
+      <ExploreCharts
+        extrapolate
+        setTab={() => {}}
+        confidences={[]}
+        query=""
+        timeseriesResult={mockTimeseriesResult}
+        visualizes={defaultVisualizes()}
+        setVisualizes={() => {}}
+        samplingMode={SAMPLING_MODE.HIGH_ACCURACY}
+        rawSpanCounts={{
+          highAccuracy: {count: 0, isLoading: true},
+          normal: {count: 0, isLoading: true},
+        }}
+      />,
       {
         organization: OrganizationFixture(),
+        additionalWrapper: Wrapper,
       }
     );
 
@@ -51,37 +57,29 @@ describe('ExploreCharts', () => {
 
   it('renders one chart with combined series for multi-yAxis visualize', async () => {
     const mockTimeseriesResult = {
-      data: {
-        'avg(span.duration)': [],
-        'p95(span.duration)': [],
-      },
+      data: {'avg(span.duration)': [], 'p95(span.duration)': []},
       isLoading: false,
       isPending: false,
       isFetching: false,
     } as any;
 
     render(
-      <SpansQueryParamsProvider>
-        <ChartSelectionProvider>
-          <ExploreCharts
-            extrapolate
-            setTab={() => {}}
-            confidences={[]}
-            query=""
-            timeseriesResult={mockTimeseriesResult}
-            visualizes={[
-              new VisualizeFunction(['avg(span.duration)', 'p95(span.duration)']),
-            ]}
-            setVisualizes={() => {}}
-            rawSpanCounts={{
-              highAccuracy: {count: 0, isLoading: false},
-              normal: {count: 0, isLoading: false},
-            }}
-          />
-        </ChartSelectionProvider>
-      </SpansQueryParamsProvider>,
+      <ExploreCharts
+        extrapolate
+        setTab={() => {}}
+        confidences={[]}
+        query=""
+        timeseriesResult={mockTimeseriesResult}
+        visualizes={[new VisualizeFunction(['avg(span.duration)', 'p95(span.duration)'])]}
+        setVisualizes={() => {}}
+        rawSpanCounts={{
+          highAccuracy: {count: 0, isLoading: false},
+          normal: {count: 0, isLoading: false},
+        }}
+      />,
       {
         organization: OrganizationFixture(),
+        additionalWrapper: Wrapper,
       }
     );
 
