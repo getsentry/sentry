@@ -70,7 +70,6 @@ def handle_check_run_event(
     *,
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
-    extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
     """
@@ -90,7 +89,7 @@ def handle_check_run_event(
     action = event.get("action")
 
     if action is None:
-        logger.error(Log.MISSING_ACTION.value, extra=extra)
+        logger.error(Log.MISSING_ACTION.value)
         record_webhook_handler_error(
             github_event,
             action or "",
@@ -108,7 +107,7 @@ def handle_check_run_event(
         validated_event = _validate_github_check_run_event(event)
     except (ValidationError, ValueError):
         # Prevent sending a 500 error to GitHub which would trigger a retry
-        logger.exception(Log.INVALID_PAYLOAD.value, extra=extra)
+        logger.exception(Log.INVALID_PAYLOAD.value)
         record_webhook_handler_error(
             github_event,
             action,

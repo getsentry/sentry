@@ -383,7 +383,11 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
 
 
 def extract_github_info(
-    event: Mapping[str, Any], github_event: str | None = None
+    event: Mapping[str, Any],
+    github_event: str | None = None,
+    organization_id: int | None = None,
+    organization_slug: str | None = None,
+    integration_id: int | None = None,
 ) -> dict[str, str | None]:
     """
     Extract GitHub-related information from a webhook event payload.
@@ -394,29 +398,39 @@ def extract_github_info(
     Args:
         event: The GitHub webhook event payload
         github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
+        organization_id: Sentry organization ID
+        organization_slug: Sentry organization slug
+        integration_id: Sentry integration ID
 
     Returns:
         Dictionary containing:
+            - github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
+            - github_event_action: The event action (e.g., "opened", "closed", "created")
+            - github_actor_login: The GitHub username who triggered the action
+            - github_actor_id: The GitHub user ID (as string)
             - scm_provider: Always "github"
             - scm_owner: The repository owner/organization name
             - scm_repo_name: The repository name
             - scm_repo_full_name: The repository full name (owner/repo)
             - scm_event_url: URL to the specific event (check_run, pull_request, or comment)
-            - github_event: The GitHub event type header value
-            - github_event_action: The event action (e.g., "opened", "closed", "created")
-            - github_actor_login: The GitHub username who triggered the action
-            - github_actor_id: The GitHub user ID (as string)
+            - sentry_organization_id: Sentry organization ID (if available)
+            - sentry_organization_slug: Sentry organization slug (if available)
+            - sentry_integration_id: The Sentry integration ID
+            - trigger: Trigger type (if config available)
     """
     result: dict[str, str | None] = {
+        "github_event": github_event,
+        "github_event_action": None,
+        "github_actor_login": None,
+        "github_actor_id": None,
         "scm_provider": "github",
         "scm_owner": None,
         "scm_repo_name": None,
         "scm_repo_full_name": None,
         "scm_event_url": None,
-        "github_event": github_event,
-        "github_event_action": None,
-        "github_actor_login": None,
-        "github_actor_id": None,
+        "sentry_organization_id": str(organization_id) if organization_id is not None else None,
+        "sentry_organization_slug": organization_slug,
+        "sentry_integration_id": str(integration_id) if integration_id is not None else None,
     }
 
     repository = event.get("repository", {})
@@ -470,7 +484,6 @@ def delete_existing_reactions_and_add_reaction(
     comment_id: str | None,
     reactions_to_delete: list[GitHubReaction],
     reaction_to_add: GitHubReaction | None,
-    extra: Mapping[str, str | None],
 ) -> None:
     """
     Delete existing reactions on the PR description and add reaction on the originating issue comment or PR description.
@@ -481,7 +494,7 @@ def delete_existing_reactions_and_add_reaction(
             github_event_action,
             CodeReviewErrorType.MISSING_INTEGRATION,
         )
-        logger.warning(Log.MISSING_INTEGRATION.value, extra=extra)
+        logger.warning(Log.MISSING_INTEGRATION.value)
         return
 
     try:
@@ -505,7 +518,7 @@ def delete_existing_reactions_and_add_reaction(
                     github_event_action,
                     CodeReviewErrorType.REACTION_FAILED,
                 )
-                logger.warning(Log.REACTION_FAILED.value, extra=extra, exc_info=True)
+                logger.warning(Log.REACTION_FAILED.value, exc_info=True)
 
         if reaction_to_add:
             # Add reaction on the originating issue comment or pr description
@@ -519,7 +532,7 @@ def delete_existing_reactions_and_add_reaction(
             github_event_action,
             CodeReviewErrorType.REACTION_FAILED,
         )
-        logger.warning(Log.REACTION_FAILED.value, extra=extra, exc_info=True)
+        logger.warning(Log.REACTION_FAILED.value, exc_info=True)
 
 
 def is_org_enabled_for_code_review_experiments(organization: Organization) -> bool:

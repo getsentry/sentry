@@ -100,10 +100,8 @@ class TestHandleWebhookEventWebhookSeen(TestCase):
         )
 
         self.mock_pull_request_handler.assert_called_once()
-        assert (
-            self.mock_pull_request_handler.call_args[1]["extra"]["github_delivery_id"]
-            == delivery_id
-        )
+        # github_delivery_id is now set as a scope tag instead of passed in extra
+        assert "extra" not in self.mock_pull_request_handler.call_args[1]
 
     def test_same_delivery_id_second_seen_skipped(self) -> None:
         """
@@ -135,10 +133,7 @@ class TestHandleWebhookEventWebhookSeen(TestCase):
         )
 
         assert self.mock_pull_request_handler.call_count == 1
-        assert (
-            self.mock_pull_request_handler.call_args[1]["extra"]["github_delivery_id"]
-            == delivery_id
-        )
+        assert "extra" not in self.mock_pull_request_handler.call_args[1]
 
     def test_same_delivery_id_after_ttl_expires_handler_invoked_twice(self) -> None:
         """
@@ -177,10 +172,7 @@ class TestHandleWebhookEventWebhookSeen(TestCase):
         )
 
         assert self.mock_pull_request_handler.call_count == 2
-        assert (
-            self.mock_pull_request_handler.call_args[1]["extra"]["github_delivery_id"]
-            == delivery_id
-        )
+        assert "extra" not in self.mock_pull_request_handler.call_args[1]
 
     def test_missing_delivery_id_handler_invoked(self) -> None:
         """When github_delivery_id is None, the event is handled without a webhook seen check."""

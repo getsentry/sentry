@@ -125,6 +125,7 @@ def process_github_webhook_event(
         else:
             payload = event_payload
 
+        record_github_to_seer_latency(event_payload)
         make_seer_request(path=path, payload=payload)
     except Exception as e:
         status = e.__class__.__name__
@@ -206,6 +207,16 @@ def record_latency(status: str, enqueued_at_str: str) -> None:
     latency_ms = calculate_latency_ms(enqueued_at_str)
     if latency_ms > 0:
         metrics.timing(f"{PREFIX}.e2e_latency", latency_ms, tags={"status": status})
+
+
+def record_github_to_seer_latency(event_payload: Mapping[str, Any]) -> None:
+    """Record the latency from when GitHub triggered the event to when Seer is called."""
+    trigger_at_str = (event_payload.get("data", {}).get("config") or {}).get("trigger_at")
+    if not trigger_at_str:
+        return
+    latency_ms = calculate_latency_ms(trigger_at_str)
+    if latency_ms > 0:
+        metrics.timing(f"{PREFIX}.github_to_seer_latency", latency_ms, sample_rate=1.0)
 
 
 def calculate_latency_ms(timestamp_str: str) -> int:
