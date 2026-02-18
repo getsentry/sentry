@@ -47,6 +47,7 @@ enum ReceiptStatus {
 function PaymentHistory() {
   const organization = useOrganization();
   const location = useLocation();
+  const hasBillingPerms = organization.access?.includes('org:billing');
 
   const {
     data: payments,
@@ -64,10 +65,10 @@ function PaymentHistory() {
     ],
     {
       staleTime: 0,
+      enabled: hasBillingPerms,
     }
   );
 
-  const hasBillingPerms = organization.access?.includes('org:billing');
   const paymentsPageLinks = getResponseHeader?.('Link');
 
   return (
