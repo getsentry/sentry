@@ -848,4 +848,28 @@ describe('ExploreToolbar', () => {
       'true'
     );
   });
+
+  it('disables save as and compare when overlay charts are present', async () => {
+    render(<ExploreToolbar />, {
+      organization,
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            visualize: JSON.stringify({
+              yAxes: ['count(span.duration)', 'avg(span.duration)'],
+            }),
+          },
+        },
+      },
+    });
+
+    const section = await screen.findByTestId('section-save-as');
+    expect(within(section).getByRole('button', {name: 'Save as'})).toBeDisabled();
+    expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
 });
