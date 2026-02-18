@@ -589,10 +589,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       };
     });
     if (releaseSeries) {
+      const releaseName =
+        typeof releaseSeries.name === 'string' ? releaseSeries.name : '';
+      const releaseColor =
+        typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
       items.push({
-        name: String(releaseSeries.name),
-        label: String(releaseSeries.name),
-        color: String(releaseSeries.color),
+        name: releaseName,
+        label: releaseName,
+        color: releaseColor,
       });
     }
     return items;
