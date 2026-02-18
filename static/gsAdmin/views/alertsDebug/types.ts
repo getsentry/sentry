@@ -1,13 +1,18 @@
-export enum AlertDebugSelectionType {
-  ISSUE_ID = 'Issue ID(s)',
-  TIME_RANGE = 'Date Range',
-}
+import {z} from 'zod';
 
-export interface AlertDebugFormData {
-  workflowId: number;
-  dateRange?: {
-    end: Date;
-    start: Date;
-  };
-  issueIds?: number[];
-}
+export const workflowIdSchema = z.object({
+  workflowId: z
+    .number({message: 'Workflow ID is required'})
+    .int('Workflow ID must be an integer')
+    .positive('Workflow ID must be positive')
+    .optional()
+    .refine(val => val !== undefined, {message: 'Workflow ID is required'}),
+});
+
+export const workflowEventDebugForm = z.object({
+  workflowId: z.number().int().positive(),
+  issueIds: z.array(z.number().int().positive()),
+});
+
+export type WorkflowIdFormData = z.infer<typeof workflowIdSchema>;
+export type WorkflowEventDebugFormData = z.infer<typeof workflowEventDebugForm>;

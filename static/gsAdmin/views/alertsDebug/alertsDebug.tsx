@@ -1,150 +1,138 @@
-import {useRef, useState} from 'react';
+import {useState} from 'react';
 
-import {Input} from '@sentry/scraps/input';
-import {Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {
-  DataConditionGroupLogicType,
-  DataConditionType,
-} from 'sentry/types/workflowEngine/dataConditions';
 
 import PageHeader from 'admin/components/pageHeader';
 import {AlertDebugForm} from 'admin/views/alertsDebug/components/alertDebugForm';
 import {AlertDebugResults} from 'admin/views/alertsDebug/components/alertDebugResults';
 import {AlertDetails} from 'admin/views/alertsDebug/components/alertDetails';
+import {MOCK_WORKFLOW} from 'admin/views/alertsDebug/fixtures';
 import {useAdminWorkflow} from 'admin/views/alertsDebug/hooks/useAdminWorkflow';
-import type {AlertDebugFormData} from 'admin/views/alertsDebug/types';
+import type {WorkflowEventDebugFormData} from 'admin/views/alertsDebug/types';
 
-const defaultWorkflow: Automation = {
-  id: '1234',
-  name: 'Mock Alert',
-  createdBy: 'Josh',
-  dateCreated: Date.now().toLocaleString(),
-  dateUpdated: Date.now().toLocaleString(),
-  lastTriggered: Date.now().toLocaleString(),
-  config: {
-    frequency: 10,
-  },
-  detectorIds: ['33', '732', '8'],
-  enabled: true,
-  environment: 'DEBUGGING -- TEST FIXTURE',
-  actionFilters: [
-    {
-      id: 'mock-action-filter',
-      logicType: DataConditionGroupLogicType.ANY,
-      conditions: [
-        {
-          id: 'Condition 1',
-          comparison: 10,
-          type: DataConditionType.EVENT_FREQUENCY_COUNT,
-          conditionResult: true,
-        },
-        {
-          id: 'Condition 2',
-          comparison: 100,
-          type: DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
-          conditionResult: true,
-        },
-      ],
-    },
-    {
-      id: 'mock-action-filter',
-      logicType: DataConditionGroupLogicType.ANY,
-      conditions: [
-        {
-          id: 'Condition 1',
-          comparison: 10,
-          type: DataConditionType.EVENT_FREQUENCY_COUNT,
-          conditionResult: true,
-        },
-        {
-          id: 'Condition 2',
-          comparison: 100,
-          type: DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
-          conditionResult: true,
-        },
-      ],
-    },
-  ],
-  triggers: {
-    id: 'mock-data-condition-group',
-    logicType: DataConditionGroupLogicType.ANY,
-    conditions: [
-      {
-        id: 'mock-data-condition',
-        comparison: 'comparison',
-        type: DataConditionType.GREATER_OR_EQUAL,
-        conditionResult: 75,
-      },
-    ],
-  },
-};
+type Step = 'workflow' | 'selection' | 'results';
 
 export function AlertsDebug() {
-  const [results, setResults] = useState<AlertDebugFormData>();
-  const workflowRef = useRef<HTMLInputElement>(null);
-  const [workflowId, setWorkflowId] = useState<string>();
+  const [step, setStep] = useState<Step>('workflow');
+  const [workflowId, setWorkflowId] = useState<number>();
+  const [results, setResults] = useState<WorkflowEventDebugFormData>();
 
-  const {data: asyncWorkflow, isPending, isError} = useAdminWorkflow(workflowId);
-  let useDefaultWorkflow = false;
+  const {
+    data: asyncWorkflow,
+    isPending,
+    isError,
+  } = useAdminWorkflow(workflowId?.toString());
 
-  const updateApi = (data: AlertDebugFormData) => {
+  // Use mock workflow if there's an error fetching (for dev purposes)
+  const workflow = isError ? MOCK_WORKFLOW : asyncWorkflow;
+
+  const workflowForm = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {workflowId: undefined as number | undefined},
+    onSubmit: ({value}) => {
+      if (value.workflowId !== undefined && value.workflowId > 0) {
+        setWorkflowId(value.workflowId);
+        setStep('selection');
+      }
+    },
+  });
+
+  const handleSelectionSubmit = (data: WorkflowEventDebugFormData) => {
     setResults(data);
+    setStep('results');
   };
 
-  const getAlert = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (workflowRef.current?.value) {
-      setWorkflowId(workflowRef.current.value);
+  const handleBack = () => {
+    if (step === 'selection') {
+      setStep('workflow');
+    } else if (step === 'results') {
+      setStep('selection');
     }
   };
 
-  if (workflowId && isError) {
-    useDefaultWorkflow = true;
-  }
-
-  const workflow = useDefaultWorkflow && !asyncWorkflow ? defaultWorkflow : asyncWorkflow;
+  const handleReset = () => {
+    setStep('workflow');
+    setWorkflowId(undefined);
+    setResults(undefined);
+    workflowForm.reset();
+  };
 
   return (
     <Stack gap="lg">
       <PageHeader title="Alerts Debug" />
 
-      <form onSubmit={getAlert}>
-        <Input
-          name="workflowId"
-          type="number"
-          placeholder="Alert ID"
-          onBlur={getAlert}
-          ref={workflowRef}
-        />
-      </form>
+      {step === 'workflow' && (
+        <workflowForm.AppForm>
+          <workflowForm.FormWrapper>
+            <Stack gap="md">
+              <Heading as="h2">Enter Workflow ID</Heading>
 
-      {workflowId && isPending && <LoadingIndicator />}
+              <workflowForm.AppField name="workflowId">
+                {field => (
+                  <field.Input
+                    type="number"
+                    value={field.state.value?.toString() ?? ''}
+                    onChange={value => {
+                      const num = parseInt(value, 10);
+                      field.handleChange(Number.isNaN(num) ? undefined : num);
+                    }}
+                    placeholder="Workflow ID"
+                    required
+                  />
+                )}
+              </workflowForm.AppField>
 
-      {workflowId && isError && (
-        <Text variant="danger">
-          Error loading workflow. Please check the ID and try again.
-        </Text>
+              <Flex justify="end">
+                <workflowForm.SubmitButton>Continue</workflowForm.SubmitButton>
+              </Flex>
+            </Stack>
+          </workflowForm.FormWrapper>
+        </workflowForm.AppForm>
       )}
 
-      {workflow && (
+      {step === 'selection' && workflowId && (
         <Stack gap="lg">
-          <AlertDetails workflow={workflow} />
-          <Separator orientation="horizontal" />
-          <Heading as="h2">History</Heading>
-          <Separator orientation="horizontal" />
+          {isPending && <LoadingIndicator />}
+
+          {isError && (
+            <Text variant="danger">
+              Error loading workflow. Using mock data for debugging.
+            </Text>
+          )}
+
+          {workflow && (
+            <Stack gap="lg">
+              <AlertDetails workflow={workflow} />
+              <Separator orientation="horizontal" />
+            </Stack>
+          )}
+
+          <AlertDebugForm
+            workflowId={workflowId}
+            onSubmit={handleSelectionSubmit}
+            onBack={handleBack}
+          />
         </Stack>
       )}
 
-      {workflowId && workflow && (
-        <AlertDebugForm onSubmit={updateApi} workflowId={Number(workflowId)} />
+      {step === 'results' && results && (
+        <Stack gap="lg">
+          <AlertDebugResults results={results} />
+
+          <Flex gap="md" justify="end">
+            <Button onClick={handleBack}>Back</Button>
+            <Button priority="primary" onClick={handleReset}>
+              Start Over
+            </Button>
+          </Flex>
+        </Stack>
       )}
-      {results && <AlertDebugResults results={results} />}
     </Stack>
   );
 }

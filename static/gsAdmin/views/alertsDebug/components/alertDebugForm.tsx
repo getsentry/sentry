@@ -1,135 +1,139 @@
-import {useRef, useState} from 'react';
+import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Radio} from '@sentry/scraps/radio';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {TimeInput} from 'admin/views/alertsDebug/components/timeInput';
-import {
-  AlertDebugSelectionType,
-  type AlertDebugFormData,
-} from 'admin/views/alertsDebug/types';
+import {IconClose} from 'sentry/icons';
+
+import {type WorkflowEventDebugFormData} from 'admin/views/alertsDebug/types';
 
 interface AlertDebugFormProps {
   workflowId: number;
-  onSubmit?: (data: AlertDebugFormData) => void;
+  onBack?: () => void;
+  onSubmit?: (data: WorkflowEventDebugFormData) => void;
 }
 
-export function AlertDebugForm({workflowId, onSubmit}: AlertDebugFormProps) {
-  const issueIdInputRef = useRef<HTMLInputElement>(null);
-  const [selectedInputType, setInputType] = useState<AlertDebugSelectionType>(
-    AlertDebugSelectionType.ISSUE_ID
-  );
-  const [issueIds, setIssueIds] = useState<number[]>([]);
+export function AlertDebugForm({workflowId, onSubmit, onBack}: AlertDebugFormProps) {
+  // Local state for the issue ID input (not the accumulated list)
+  const [issueIdInput, setIssueIdInput] = useState('');
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    const data: AlertDebugFormData = {workflowId};
-    const formData = new FormData(e.currentTarget);
-
-    switch (selectedInputType) {
-      case AlertDebugSelectionType.ISSUE_ID:
-        data.issueIds = issueIds;
-        break;
-      case AlertDebugSelectionType.TIME_RANGE: {
-        const startDate = formData.get('start_date') as string;
-        const startTime = formData.get('start_time') as string;
-        const endDate = formData.get('end_date') as string;
-        const endTime = formData.get('end_time') as string;
-        data.dateRange = {
-          start: new Date(`${startDate} ${startTime}`),
-          end: new Date(`${endDate} ${endTime}`),
-        };
-        break;
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      issueIds: [] as number[],
+    },
+    onSubmit: ({value}) => {
+      if (value.issueIds.length === 0) {
+        return;
       }
-      default:
-        throw new Error(`Unknown Replay Type ${selectedInputType}`);
-    }
 
-    onSubmit?.(data);
-  };
+      onSubmit?.({
+        workflowId,
+        issueIds: value.issueIds,
+      });
+    },
+  });
 
-  const addId = (e: React.MouseEvent) => {
+  const addIssueId = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (issueIdInputRef.current) {
-      const issueId = Number(issueIdInputRef.current.value);
-      setIssueIds([...issueIds, issueId]);
-      issueIdInputRef.current.value = '';
+
+    const id = parseInt(issueIdInput, 10);
+    if (id > 0) {
+      const current = form.getFieldValue('issueIds') ?? [];
+      if (!current.includes(id)) {
+        form.setFieldValue('issueIds', [...current, id]);
+      }
+      setIssueIdInput('');
     }
   };
 
-  const updateInputType = (inputType: AlertDebugSelectionType) => {
-    setInputType(inputType);
-    setIssueIds([]);
-    if (issueIdInputRef.current) {
-      issueIdInputRef.current.value = '';
-    }
+  const removeIssueId = (idToRemove: number) => {
+    const current = form.getFieldValue('issueIds') ?? [];
+
+    form.setFieldValue(
+      'issueIds',
+      current.filter(id => id !== idToRemove)
+    );
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Stack gap="lg">
-        <Input name="workflowId" type="hidden" required />
+    <form.AppForm>
+      <form.FormWrapper>
+        <Stack gap="lg">
+          <Heading as="h2">Lookup Related Events</Heading>
 
-        <Stack gap="sm">
-          <Heading as="h3">Alert Replay</Heading>
-          <fieldset>
-            <Stack gap="sm">
-              {Object.entries(AlertDebugSelectionType).map(([key, value]) => (
-                <Flex as="label" key={key} gap="xs" align="center">
-                  <Radio
-                    name={key}
-                    value={key}
-                    checked={value === selectedInputType}
-                    onChange={() => updateInputType(value)}
-                  />
-                  <Text>{value}</Text>
-                </Flex>
-              ))}
-            </Stack>
-          </fieldset>
-        </Stack>
-
-        {selectedInputType === AlertDebugSelectionType.ISSUE_ID && (
-          <Stack gap="sm">
-            {issueIds.length > 0 && (
+          <form.AppField name="issueIds">
+            {field => (
               <Stack gap="sm">
                 <Text as="p">
-                  This evaluation will take a list of Issue IDs then replay each, in
-                  order.
+                  This form takes a list of events, and will evaluate the fast conditions
+                  to determine if the alert would pass.
                 </Text>
-                <Text bold>Selected Issue ID(s):</Text>
-                <Stack as="ul" gap="xs">
-                  {issueIds.map(issueId => (
-                    <li key={issueId}>
-                      <Text>{issueId}</Text>
-                    </li>
-                  ))}
-                </Stack>
+
+                {field.state.value && field.state.value.length > 0 && (
+                  <Stack gap="xs">
+                    <Text bold>Selected Issue ID(s):</Text>
+                    <Flex gap="xs" wrap="wrap">
+                      {field.state.value.map(issueId => (
+                        <Flex
+                          key={issueId}
+                          gap="xs"
+                          align="center"
+                          padding="xs sm"
+                          background="secondary"
+                          radius="sm"
+                        >
+                          <Text>{issueId}</Text>
+                          <Button
+                            size="xs"
+                            priority="transparent"
+                            icon={<IconClose size="xs" />}
+                            aria-label={`Remove issue ${issueId}`}
+                            onClick={() => removeIssueId(issueId)}
+                          />
+                        </Flex>
+                      ))}
+                    </Flex>
+                  </Stack>
+                )}
+
+                <Flex gap="sm">
+                  <Input
+                    type="number"
+                    placeholder="Issue ID"
+                    value={issueIdInput}
+                    onChange={e => setIssueIdInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addIssueId(e as unknown as React.MouseEvent);
+                      }
+                    }}
+                  />
+                  <Button onClick={addIssueId}>Add Issue</Button>
+                </Flex>
+                <field.Meta />
+
+                <Text as="p">
+                  <Text italic bold>
+                    Note:&nbsp;
+                  </Text>
+                  Slow conditions do not evaluate, as they require state + time to
+                  evaluate correctly.
+                </Text>
               </Stack>
             )}
+          </form.AppField>
 
-            <Flex gap="sm">
-              <Input
-                name="issueId"
-                type="number"
-                placeholder="Issue ID"
-                ref={issueIdInputRef}
-              />
-              <Button onClick={addId}>Add Issue</Button>
-            </Flex>
-          </Stack>
-        )}
-
-        {selectedInputType === AlertDebugSelectionType.TIME_RANGE && <TimeInput />}
-
-        <Button priority="primary" type="submit">
-          Execute Alert Evaluation
-        </Button>
-      </Stack>
-    </form>
+          <Flex gap="md" justify="end">
+            {onBack && <Button onClick={onBack}>Back</Button>}
+            <form.SubmitButton>Evaluate Events</form.SubmitButton>
+          </Flex>
+        </Stack>
+      </form.FormWrapper>
+    </form.AppForm>
   );
 }
