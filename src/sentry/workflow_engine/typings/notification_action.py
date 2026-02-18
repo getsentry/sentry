@@ -217,7 +217,8 @@ class BaseActionTranslator(ABC):
         """Return the integration ID for this action, if any"""
         if mapping := ACTION_FIELD_MAPPINGS.get(self.action_type):
             if ActionFieldMappingKeys.INTEGRATION_ID_KEY.value in mapping:
-                return self.action.get(mapping[ActionFieldMappingKeys.INTEGRATION_ID_KEY.value])
+                value = self.action.get(mapping[ActionFieldMappingKeys.INTEGRATION_ID_KEY.value])
+                return int(value) if value is not None else None
         return None
 
     @property
