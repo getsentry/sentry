@@ -8,6 +8,7 @@ from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models.utils import slugify_instance
 from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.hybridcloud.services.control_organization_provisioning import (
     ControlOrganizationProvisioningRpcService,
     RpcOrganizationSlugReservation,
@@ -26,16 +27,6 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.utils.snowflake import generate_snowflake_id
-
-
-class SlugMismatchException(Exception):
-    pass
-
-
-class SlugCollisionRpcException(Exception):
-    """Raised when a slug collision is detected during organization slug update."""
-
-    pass
 
 
 def create_post_provision_outbox(
@@ -64,10 +55,6 @@ def create_organization_provisioning_outbox(
         object_identifier=organization_id,
         payload=payload,
     )
-
-
-class InvalidOrganizationProvisioningException(Exception):
-    pass
 
 
 class DatabaseBackedControlOrganizationProvisioningService(
@@ -249,8 +236,11 @@ class DatabaseBackedControlOrganizationProvisioningService(
         except IntegrityError as e:
             # Check if this is a unique constraint violation on the slug
             if "sentry_organizationslugreservation_slug_key" in str(e):
-                raise SlugCollisionRpcException(
-                    f"Organization slug '{slug_base}' is already in use"
+                raise RpcValidationException(
+                    detail=f"Organization slug '{slug_base}' is already in use",
+                    code="slug_conflict",
+                    service_name="control_organization_provisioning",
+                    method_name="update_organization_slug",
                 ) from e
             raise
 
@@ -269,8 +259,11 @@ class DatabaseBackedControlOrganizationProvisioningService(
         )
 
         if not primary_slug or primary_slug.slug != slug_base:
-            raise InvalidOrganizationProvisioningException(
-                "Failed to swap slug for organization, likely due to conflict on the region"
+            raise RpcValidationException(
+                detail=f"Organization slug '{slug_base}' is already in use",
+                code="slug_swap",
+                service_name="control_organization_provisioning",
+                method_name="update_organization_slug",
             )
 
         return primary_slug
