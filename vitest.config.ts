@@ -10,17 +10,24 @@ import pegjsPlugin from './tests/js/vite-pegjs-plugin';
 const ROOT = import.meta.dirname;
 
 const IS_GITHUB_ACTION_ENV = !!process.env.GITHUB_ACTIONS;
+// Must be set before Vitest workers initialize so plain `vitest run ...` uses
+// the same timezone as Jest.
+process.env.TZ = 'America/New_York';
 
 export default defineConfig({
   plugins: [
     react({
       jsxImportSource: '@emotion/react',
       plugins: [['@swc/plugin-emotion', {}]],
+      devTarget: 'esnext',
     }),
     pegjsPlugin(),
     jestCompatPlugin(),
   ],
   resolve: {
+    // Reduce extension probing work for extensionless imports.
+    // Keep common JS/TS extensions used in this repo and node deps.
+    extensions: ['.tsx', '.ts', '.json'],
     alias: [
       // Mirror moduleNameMapper from jest.config.ts
       {find: /^sentry\/(.*)/, replacement: path.resolve(ROOT, 'static/app/$1')},
@@ -105,12 +112,10 @@ export default defineConfig({
   },
   test: {
     maxWorkers: '100%',
+    // Limit Vitest's crawl to the frontend app tree.
+    dir: 'static',
     globals: true,
     environment: 'jsdom',
-    env: {
-      // Mirror scripts/test.js — tests hardcode Eastern timezone values
-      TZ: 'America/New_York',
-    },
     environmentOptions: {
       jsdom: {
         url: 'http://localhost/',
@@ -124,9 +129,9 @@ export default defineConfig({
       'tests/js/vitest-setup.ts',
       'tests/js/vitest-setupFramework.ts',
     ],
-    include: ['static/**/*.spec.{ts,tsx}'],
+    include: ['./**/*.spec.{ts,tsx}'],
     css: false,
-    pool: 'forks',
+    pool: 'threads',
     experimental: {
       fsModuleCache: !IS_GITHUB_ACTION_ENV,
     },
