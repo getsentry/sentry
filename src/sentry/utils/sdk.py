@@ -407,6 +407,9 @@ def configure_sdk():
                 envelope = args[0]
                 # Drop envelopes containing transactions or standalone spans, not errors
                 has_transaction = envelope.get_transaction_event() is not None
+                # The Python SDK doesn't currently send standalone span items
+                # (spans are embedded in transaction envelopes), but the envelope
+                # spec defines a "span" item type for future SDK versions.
                 has_spans = any(item.type == "span" for item in envelope.items)
                 if not has_transaction and not has_spans:
                     return False
