@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -29,7 +29,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import slugify from 'sentry/utils/slugify';
@@ -433,6 +432,8 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     ? (initialData.hideAiFeatures ?? false)
     : false;
   const [aiEnabled, setAiEnabled] = useState(hideAiFeaturesInitialValue);
+  // Tracks the committed (last successfully saved or initial) value so we can revert on error.
+  const committedAiEnabled = useRef(hideAiFeaturesInitialValue);
 
   // Shared mutation options for most general fields
   const orgMutationOptions = mutationOptions({
@@ -600,9 +601,14 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 data: {hideAiFeatures: !data.hideAiFeatures},
               }),
             onSuccess: updated => {
+              // Sync the committed ref from server truth (API hideAiFeatures is inverted from form value)
+              committedAiEnabled.current = !updated.hideAiFeatures;
               onSave(initialData, updated);
             },
-            onError: () => addErrorMessage(t('Unable to save change')),
+            onError: () => {
+              setAiEnabled(committedAiEnabled.current);
+              addErrorMessage(t('Unable to save change'));
+            },
           })}
         >
           {field => (
@@ -638,10 +644,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
             mutationFn: (data: Partial<GeneralSchema>) =>
               fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
             onSuccess: updated => {
-              trackAnalytics('organization_settings.codecov_access_updated', {
-                organization: updated,
-                has_access: updated.codecovAccess,
-              });
               onSave(initialData, updated);
             },
             onError: () => addErrorMessage(t('Unable to save change')),
