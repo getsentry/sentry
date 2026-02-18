@@ -1,4 +1,6 @@
-type MetricType = 'install_size' | 'download_size';
+export const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
+
+type MetricType = (typeof ALL_METRIC_TYPES)[number];
 
 export const ALL_MEASUREMENT_TYPES = [
   'absolute',
@@ -35,10 +37,18 @@ export interface StatusCheckRule {
   filterQuery?: string;
 }
 
-export const METRIC_OPTIONS: Array<{label: string; value: MetricType}> = [
-  {label: 'Install/Uncompressed Size', value: 'install_size'},
-  {label: 'Download Size', value: 'download_size'},
-];
+export const DEFAULT_METRIC_TYPE: MetricType = 'install_size';
+
+export const METRIC_LABELS: Record<MetricType, string> = {
+  install_size: 'Install/Uncompressed Size',
+  download_size: 'Download Size',
+};
+
+export const METRIC_OPTIONS: Array<{label: string; value: MetricType}> =
+  ALL_METRIC_TYPES.map(value => ({
+    label: METRIC_LABELS[value],
+    value,
+  }));
 
 export const DEFAULT_MEASUREMENT_TYPE: MeasurementType = 'absolute';
 
@@ -68,7 +78,7 @@ export const ARTIFACT_TYPE_OPTIONS: Array<{label: string; value: ArtifactType}> 
   }));
 
 export function getMetricLabel(metric: MetricType): string {
-  return METRIC_OPTIONS.find(o => o.value === metric)?.label ?? metric;
+  return METRIC_LABELS[toMetricType(metric)];
 }
 
 export function getMeasurementLabel(measurement: MeasurementType): string {
@@ -81,6 +91,13 @@ export function getSafeValue<T>(
   fallback: T
 ): T {
   return validOptions.includes(value as T) ? (value as T) : fallback;
+}
+
+export function toMetricType(
+  value: unknown,
+  fallback: MetricType = DEFAULT_METRIC_TYPE
+): MetricType {
+  return getSafeValue(value, ALL_METRIC_TYPES, fallback);
 }
 
 export function toMeasurementType(

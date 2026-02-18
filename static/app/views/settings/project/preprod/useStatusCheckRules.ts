@@ -13,20 +13,18 @@ import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {
   ALL_ARTIFACTS_ARTIFACT_TYPE,
   DEFAULT_MEASUREMENT_TYPE,
-  getSafeValue,
-  METRIC_OPTIONS,
+  DEFAULT_METRIC_TYPE,
   toArtifactType,
   toMeasurementType,
+  toMetricType,
   type StatusCheckRule,
 } from './types';
 
 const ENABLED_KEY = 'sentry:preprod_size_status_checks_enabled';
 const RULES_KEY = 'sentry:preprod_size_status_checks_rules';
 
-const DEFAULT_METRIC = METRIC_OPTIONS[0]!.value;
+const DEFAULT_METRIC = DEFAULT_METRIC_TYPE;
 const DEFAULT_MEASUREMENT = DEFAULT_MEASUREMENT_TYPE;
-
-const VALID_METRICS: Array<StatusCheckRule['metric']> = METRIC_OPTIONS.map(o => o.value);
 
 function parseRules(raw: unknown): StatusCheckRule[] {
   if (!Array.isArray(raw)) {
@@ -35,7 +33,7 @@ function parseRules(raw: unknown): StatusCheckRule[] {
   return raw
     .filter((r): r is Record<string, unknown> => !!r && typeof r.id === 'string')
     .map(r => {
-      const metric = getSafeValue(r.metric, VALID_METRICS, DEFAULT_METRIC);
+      const metric = toMetricType(r.metric, DEFAULT_METRIC);
       const measurement = toMeasurementType(r.measurement, DEFAULT_MEASUREMENT);
       const artifactType = toArtifactType(r.artifactType);
       return {
