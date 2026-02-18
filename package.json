@@ -271,8 +271,6 @@
     "test:vitest": "vitest",
     "test:vitest-run": "vitest run",
     "test:vitest-ci": "vitest run --reporter=default --reporter=junit --outputFile=.artifacts/vitest.junit.xml",
-    "test:vitest-shard": "node tests/js/test-balancer/run-vitest-shard.mjs",
-    "test:vitest-balance": "node tests/js/test-balancer/run-vitest-balance.mjs",
     "test-ci": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --ci --maxWorkers=75% --colors",
     "test-debug": "NODE_OPTIONS='--experimental-transform-types' node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --bail --findRelatedTests -u",
