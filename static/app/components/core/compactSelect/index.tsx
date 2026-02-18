@@ -45,3 +45,5 @@ export {SelectFilterContext} from './list';
 export {TriggerLabel} from './control';
 
 export {ListBox} from './listBox';
+
+export {useVirtualizedItems} from './useVirtualizedItems';
