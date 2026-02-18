@@ -87,7 +87,7 @@ def manage_default_super_admin_role(**kwargs: Any) -> None:
         name="Super Admin", defaults={"permissions": settings.SENTRY_USER_PERMISSIONS}
     )
     if role.permissions != list(settings.SENTRY_USER_PERMISSIONS):
-        role.permissions = settings.SENTRY_USER_PERMISSIONS
+        role.permissions = list(settings.SENTRY_USER_PERMISSIONS)
         role.save(update_fields=["permissions"])
 
 
