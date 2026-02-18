@@ -1,6 +1,8 @@
 import {Button} from '@sentry/scraps/button';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import ScheduleReportModal from 'sentry/components/modals/scheduleReportModal';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -30,9 +32,32 @@ export function SavedQueryEditMenu() {
     return null;
   }
 
+  const hasScheduledReports = organization.features.includes('scheduled-reports');
+  const isMultiQuery = savedQuery.query.length > 1;
+
   return (
     <DropdownMenu
       items={[
+        ...(hasScheduledReports
+          ? [
+              {
+                key: 'schedule-report',
+                label: t('Schedule Report'),
+                onAction: () => {
+                  openModal(deps => (
+                    <ScheduleReportModal
+                      {...deps}
+                      organization={organization}
+                      sourceType="explore_saved_query"
+                      sourceId={savedQuery.id}
+                      sourceName={savedQuery.name}
+                      isMultiQuery={isMultiQuery}
+                    />
+                  ));
+                },
+              },
+            ]
+          : []),
         {
           key: 'delete',
           label: t('Delete Query'),
