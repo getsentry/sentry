@@ -152,6 +152,7 @@ export class VisualizeEquation extends Visualize {
   clone(): Visualize {
     return new VisualizeEquation(this.yAxis, {
       chartType: this.selectedChartType,
+      visible: this.visible,
     });
   }
 

@@ -178,3 +178,20 @@ describe('VisualizeFunction', () => {
     ]);
   });
 });
+
+describe('VisualizeEquation', () => {
+  it('clones and preserves visible', () => {
+    const vis1 = new VisualizeEquation('equation|a+b', {
+      chartType: ChartType.LINE,
+      visible: false,
+    });
+    const vis2 = vis1.clone();
+    expect(vis2).toEqual(
+      new VisualizeEquation('equation|a+b', {
+        chartType: ChartType.LINE,
+        visible: false,
+      })
+    );
+    expect(vis2.visible).toBe(false);
+  });
+});
