@@ -26,6 +26,9 @@ export function AlertDataAttribute({dataKey, value}: AlertDataAttributeProps) {
     case 'bigint':
       displayValue = <InlineCode>{String(value)}</InlineCode>;
       break;
+    case 'object':
+      displayValue = <InlineCode>{String(value)}</InlineCode>;
+      break;
     default:
       return null;
   }
