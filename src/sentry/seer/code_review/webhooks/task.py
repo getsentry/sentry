@@ -98,11 +98,10 @@ def process_github_webhook_event(
         event_payload: The payload of the webhook event
         **kwargs: Parameters to pass to webhook handler functions
     """
-    _set_tags_and_log(event_payload, github_event)
-
     status = "success"
     should_record_latency = True
     try:
+        _set_tags(event_payload, github_event)
         path = get_seer_endpoint_for_event(github_event).value
 
         # Validate payload with Pydantic (except for CHECK_RUN events which use minimal payload)
@@ -142,12 +141,13 @@ def process_github_webhook_event(
             record_latency(status, enqueued_at_str)
 
 
-def _set_tags_and_log(event_payload: Mapping[str, Any], github_event: str) -> None:
-    """Set Sentry SDK tags for error correlation and log the outgoing request.
+def _set_tags(event_payload: Mapping[str, Any], github_event: str) -> None:
+    """Set Sentry SDK tags for error correlation.
 
     Builds a synthetic GitHub-event-like dict from the Seer task payload so that
-    extract_github_info can be used, keeping tag names consistent with Seer's
-    extract_context() and with the tags set on raw webhook events in handlers.py.
+    extract_github_info can be used. extract_github_info sets the scm_* tags;
+    this function adds the task-payload-specific extras and overrides scm_event_url
+    based on trigger type, mirroring Seer's extract_context().
     """
     data = event_payload.get("data", {})
     repo_data = data.get("repo", {})
@@ -157,6 +157,7 @@ def _set_tags_and_log(event_payload: Mapping[str, Any], github_event: str) -> No
     pr_id = data.get("pr_id")
 
     # Build a minimal GitHub-event-like dict so extract_github_info can parse it.
+    # extract_github_info also calls sentry_sdk.set_tags() for the scm_* fields.
     synthetic_event: dict[str, Any] = {}
     if owner or name:
         synthetic_event["repository"] = {
@@ -170,37 +171,42 @@ def _set_tags_and_log(event_payload: Mapping[str, Any], github_event: str) -> No
             if owner and name
             else None,
         }
+    extract_github_info(synthetic_event, github_event=github_event)
 
-    tags = extract_github_info(synthetic_event, github_event=github_event)
-
-    # Override scm_event_url to match the specific trigger, mirroring Seer's extract_context().
-    # Default is the PR URL; for ON_NEW_COMMIT link to the commit, for ON_COMMAND_PHRASE
-    # link to the comment.
+    # Override scm_event_url based on trigger type (default PR URL is already set above).
+    # ON_NEW_COMMIT → commit URL; ON_COMMAND_PHRASE → comment URL.
     trigger = config.get("trigger")
     commit_sha = repo_data.get("base_commit_sha")
     comment_id = config.get("trigger_comment_id")
     if trigger == "on_new_commit" and owner and name and commit_sha:
-        tags["scm_event_url"] = f"https://github.com/{owner}/{name}/commit/{commit_sha}"
+        sentry_sdk.set_tag(
+            "scm_event_url", f"https://github.com/{owner}/{name}/commit/{commit_sha}"
+        )
     elif trigger == "on_command_phrase" and owner and name and pr_id and comment_id:
-        tags["scm_event_url"] = (
-            f"https://github.com/{owner}/{name}/pull/{pr_id}#issuecomment-{comment_id}"
+        sentry_sdk.set_tag(
+            "scm_event_url",
+            f"https://github.com/{owner}/{name}/pull/{pr_id}#issuecomment-{comment_id}",
         )
 
-    # Extra tags from the Seer payload not available from the raw webhook event.
-    extra_tags: dict[str, Any] = {
-        "pr_id": pr_id,
-        "sentry_organization_id": repo_data.get("organization_id"),
-        "sentry_integration_id": repo_data.get("integration_id"),
-    }
-
-    sentry_sdk.set_tags({k: v for k, v in {**tags, **extra_tags}.items() if v is not None})
+    # Extra tags from the Seer payload not in the raw webhook event.
+    sentry_sdk.set_tags(
+        {
+            k: v
+            for k, v in {
+                "pr_id": pr_id,
+                "sentry_organization_id": repo_data.get("organization_id"),
+                "sentry_integration_id": repo_data.get("integration_id"),
+            }.items()
+            if v is not None
+        }
+    )
 
     trigger_at_str = config.get("trigger_at")
     logger.info(
         "%s.sending_request_to_seer",
         PREFIX,
         extra={
-            "commit_sha": commit_sha,
+            "commit_sha": repo_data.get("base_commit_sha"),
             "request_type": event_payload.get("request_type"),
             "github_to_seer_latency_ms": (
                 calculate_latency_ms(trigger_at_str) if trigger_at_str else None

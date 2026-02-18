@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,7 +19,7 @@ from sentry.seer.code_review.webhooks.task import (
     DELAY_BETWEEN_RETRIES,
     MAX_RETRIES,
     PREFIX,
-    _set_tags_and_log,
+    _set_tags,
     process_github_webhook_event,
 )
 from sentry.testutils.cases import TestCase
@@ -722,11 +723,23 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert mock_request.call_count == 1
 
 
-class TestSetTagsAndLog:
-    @patch("sentry.seer.code_review.webhooks.task.logger")
+def _collect_all_set_tags(*mocks: MagicMock) -> dict[str, Any]:
+    """Merge all set_tags call args across multiple sentry_sdk mocks into one dict."""
+    all_tags: dict[str, Any] = {}
+    for mock in mocks:
+        for call in mock.set_tags.call_args_list:
+            all_tags.update(call[0][0])
+        for call in mock.set_tag.call_args_list:
+            all_tags[call[0][0]] = call[0][1]
+    return all_tags
+
+
+class TestSetTags:
+    @patch("sentry.seer.code_review.utils.sentry_sdk")
     @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
+    @patch("sentry.seer.code_review.webhooks.task.logger")
     def test_sets_tags_for_pr_event(
-        self, mock_sentry_sdk: MagicMock, mock_logger: MagicMock
+        self, mock_logger: MagicMock, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
     ) -> None:
         event_payload = {
             "request_type": "pr-review",
@@ -745,10 +758,9 @@ class TestSetTagsAndLog:
             },
         }
 
-        _set_tags_and_log(event_payload, GithubWebhookType.PULL_REQUEST.value)
+        _set_tags(event_payload, GithubWebhookType.PULL_REQUEST.value)
 
-        mock_sentry_sdk.set_tags.assert_called_once()
-        tags = mock_sentry_sdk.set_tags.call_args[0][0]
+        tags = _collect_all_set_tags(mock_utils_sdk, mock_task_sdk)
         assert tags["scm_provider"] == "github"
         assert tags["scm_owner"] == "getsentry"
         assert tags["scm_repo_name"] == "sentry"
@@ -770,26 +782,27 @@ class TestSetTagsAndLog:
         assert "pr_id" not in log_extra
         assert "github_event" not in log_extra
 
-    @patch("sentry.seer.code_review.webhooks.task.logger")
+    @patch("sentry.seer.code_review.utils.sentry_sdk")
     @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
+    @patch("sentry.seer.code_review.webhooks.task.logger")
     def test_handles_check_run_minimal_payload(
-        self, mock_sentry_sdk: MagicMock, mock_logger: MagicMock
+        self, mock_logger: MagicMock, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
     ) -> None:
         """check_run events have a minimal payload without repo data; None values are omitted."""
         event_payload = {"original_run_id": "4663713"}
 
-        _set_tags_and_log(event_payload, GithubWebhookType.CHECK_RUN.value)
+        _set_tags(event_payload, GithubWebhookType.CHECK_RUN.value)
 
-        mock_sentry_sdk.set_tags.assert_called_once()
-        tags = mock_sentry_sdk.set_tags.call_args[0][0]
+        tags = _collect_all_set_tags(mock_utils_sdk, mock_task_sdk)
         assert tags["github_event"] == "check_run"
         assert tags["scm_provider"] == "github"
         assert "scm_repo_full_name" not in tags
 
-    @patch("sentry.seer.code_review.webhooks.task.logger")
+    @patch("sentry.seer.code_review.utils.sentry_sdk")
     @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
+    @patch("sentry.seer.code_review.webhooks.task.logger")
     def test_handles_missing_owner_and_name(
-        self, mock_sentry_sdk: MagicMock, mock_logger: MagicMock
+        self, mock_logger: MagicMock, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
     ) -> None:
         event_payload = {
             "data": {
@@ -798,10 +811,9 @@ class TestSetTagsAndLog:
             },
         }
 
-        _set_tags_and_log(event_payload, "pull_request")
+        _set_tags(event_payload, "pull_request")
 
-        mock_sentry_sdk.set_tags.assert_called_once()
-        tags = mock_sentry_sdk.set_tags.call_args[0][0]
+        tags = _collect_all_set_tags(mock_utils_sdk, mock_task_sdk)
         assert tags["scm_provider"] == "github"
         assert "scm_repo_full_name" not in tags
         assert "scm_owner" not in tags

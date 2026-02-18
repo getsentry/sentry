@@ -8,6 +8,7 @@ from enum import Enum, StrEnum
 from typing import Any
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
@@ -102,6 +103,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     Returns:
         The response data from the Seer API
     """
+    logger.info("seer.code_review.sending_request_to_seer")
     response = make_signed_seer_api_request(
         connection_pool=connection_from_url(settings.SEER_PREVENT_AI_URL),
         path=path,
@@ -452,6 +454,8 @@ def extract_github_info(
             result["github_actor_login"] = actor_login
         if actor_id := sender.get("id"):
             result["github_actor_id"] = str(actor_id)
+
+    sentry_sdk.set_tags({k: v for k, v in result.items() if v is not None})
 
     return result
 
