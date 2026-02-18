@@ -737,9 +737,8 @@ def _collect_all_set_tags(*mocks: MagicMock) -> dict[str, Any]:
 class TestSetTags:
     @patch("sentry.seer.code_review.utils.sentry_sdk")
     @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
-    @patch("sentry.seer.code_review.webhooks.task.logger")
     def test_sets_tags_for_pr_event(
-        self, mock_logger: MagicMock, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
+        self, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
     ) -> None:
         event_payload = {
             "request_type": "pr-review",
@@ -770,23 +769,10 @@ class TestSetTags:
         assert tags["sentry_integration_id"] == "99999"
         assert tags["github_event"] == "pull_request"
 
-        mock_logger.info.assert_called_once()
-        log_extra = mock_logger.info.call_args[1]["extra"]
-        # Redundant fields (provider, repo_owner, repo_name, pr_id, github_event) are omitted
-        # from extra since they're already set as sentry_sdk tags on the scope.
-        assert "commit_sha" in log_extra
-        assert "request_type" in log_extra
-        assert "github_to_seer_latency_ms" in log_extra
-        assert "provider" not in log_extra
-        assert "repo_owner" not in log_extra
-        assert "pr_id" not in log_extra
-        assert "github_event" not in log_extra
-
     @patch("sentry.seer.code_review.utils.sentry_sdk")
     @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
-    @patch("sentry.seer.code_review.webhooks.task.logger")
     def test_handles_check_run_minimal_payload(
-        self, mock_logger: MagicMock, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
+        self, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
     ) -> None:
         """check_run events have a minimal payload without repo data; None values are omitted."""
         event_payload = {"original_run_id": "4663713"}
@@ -800,9 +786,8 @@ class TestSetTags:
 
     @patch("sentry.seer.code_review.utils.sentry_sdk")
     @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
-    @patch("sentry.seer.code_review.webhooks.task.logger")
     def test_handles_missing_owner_and_name(
-        self, mock_logger: MagicMock, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
+        self, mock_task_sdk: MagicMock, mock_utils_sdk: MagicMock
     ) -> None:
         event_payload = {
             "data": {

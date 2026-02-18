@@ -201,19 +201,6 @@ def _set_tags(event_payload: Mapping[str, Any], github_event: str) -> None:
         }
     )
 
-    trigger_at_str = config.get("trigger_at")
-    logger.info(
-        "%s.sending_request_to_seer",
-        PREFIX,
-        extra={
-            "commit_sha": repo_data.get("base_commit_sha"),
-            "request_type": event_payload.get("request_type"),
-            "github_to_seer_latency_ms": (
-                calculate_latency_ms(trigger_at_str) if trigger_at_str else None
-            ),
-        },
-    )
-
 
 def record_latency(status: str, enqueued_at_str: str) -> None:
     latency_ms = calculate_latency_ms(enqueued_at_str)
