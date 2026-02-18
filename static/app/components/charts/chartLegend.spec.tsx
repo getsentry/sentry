@@ -19,35 +19,16 @@ class MockResizeObserver {
   disconnect() {}
 }
 
-function makeComputedStyleMock() {
-  const style = {
-    columnGap: '8',
-    getPropertyValue: (prop: string) => (style as Record<string, string>)[prop] ?? '',
-  } as unknown as CSSStyleDeclaration;
-  return style;
-}
-
-function mockAllItemsFit() {
+/**
+ * Mock the items container to have a given width, with each child taking 80px.
+ * This controls whether items overflow (container too narrow) or fit (wide).
+ */
+function mockContainerWidth(width: number) {
   const itemsContainer = screen.getByTestId('legend-items');
   Object.defineProperty(itemsContainer, 'offsetWidth', {
-    value: 1000,
+    value: width,
     configurable: true,
   });
-  jest.spyOn(window, 'getComputedStyle').mockReturnValue(makeComputedStyleMock());
-  Array.from(itemsContainer.children).forEach(child => {
-    jest.spyOn(child, 'getBoundingClientRect').mockReturnValue({
-      width: 80,
-    } as DOMRect);
-  });
-}
-
-function mockFirstItemOnly() {
-  const itemsContainer = screen.getByTestId('legend-items');
-  Object.defineProperty(itemsContainer, 'offsetWidth', {
-    value: 100,
-    configurable: true,
-  });
-  jest.spyOn(window, 'getComputedStyle').mockReturnValue(makeComputedStyleMock());
   Array.from(itemsContainer.children).forEach(child => {
     jest.spyOn(child, 'getBoundingClientRect').mockReturnValue({
       width: 80,
@@ -63,6 +44,8 @@ async function triggerResize() {
 }
 
 describe('ChartLegend', () => {
+  const originalResizeObserver = window.ResizeObserver;
+
   beforeEach(() => {
     resizeCallbacks = [];
     window.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
@@ -70,12 +53,13 @@ describe('ChartLegend', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    window.ResizeObserver = originalResizeObserver;
   });
 
   it('renders all legend items', async () => {
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
 
-    mockAllItemsFit();
+    mockContainerWidth(1000);
     await triggerResize();
 
     expect(screen.getByText('Series A')).toBeInTheDocument();
@@ -101,7 +85,7 @@ describe('ChartLegend', () => {
       />
     );
 
-    mockAllItemsFit();
+    mockContainerWidth(1000);
     await triggerResize();
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle Series B'}));
@@ -123,7 +107,7 @@ describe('ChartLegend', () => {
       />
     );
 
-    mockAllItemsFit();
+    mockContainerWidth(1000);
     await triggerResize();
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle Series B'}));
@@ -138,7 +122,7 @@ describe('ChartLegend', () => {
   it('treats missing keys in selected as true (visible)', async () => {
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
 
-    mockAllItemsFit();
+    mockContainerWidth(1000);
     await triggerResize();
 
     const checkboxes = screen.getAllByRole('checkbox');
@@ -152,7 +136,7 @@ describe('ChartLegend', () => {
 
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
 
-    mockFirstItemOnly();
+    mockContainerWidth(100);
     await triggerResize();
 
     expect(screen.getByText('2 more')).toBeInTheDocument();
@@ -161,9 +145,37 @@ describe('ChartLegend', () => {
   it('does not show overflow trigger when nothing overflows', async () => {
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
 
-    mockAllItemsFit();
+    mockContainerWidth(1000);
     await triggerResize();
 
     expect(screen.queryByText(/more/)).not.toBeInTheDocument();
+  });
+
+  it('fires callback when an overflow item is toggled via the dropdown', async () => {
+    jest.spyOn(console, 'error').mockImplementation();
+    const onSelectionChange = jest.fn();
+
+    render(
+      <ChartLegend
+        items={ITEMS}
+        selected={{'series-a': true, 'series-b': true, 'series-c': true}}
+        onSelectionChange={onSelectionChange}
+      />
+    );
+
+    mockContainerWidth(100);
+    await triggerResize();
+
+    // Open the overflow dropdown
+    await userEvent.click(screen.getByText('2 more'));
+
+    // Click "Series B" inside the dropdown
+    await userEvent.click(screen.getByRole('option', {name: 'Series B'}));
+
+    expect(onSelectionChange).toHaveBeenCalledWith({
+      'series-a': true,
+      'series-b': false,
+      'series-c': true,
+    });
   });
 });

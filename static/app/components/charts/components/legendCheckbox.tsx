@@ -1,6 +1,8 @@
 import type React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports -- need luminosity() to detect low-contrast colors
+import Color from 'color';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -71,31 +73,22 @@ const ICON_SIZE = '7px';
 const MAX_GRADIENT_COLORS = 4;
 
 /**
- * Returns true if any of the colors would be invisible against the page
- * background — very light colors in light mode, very dark colors in dark mode.
+ * Returns true if all colors would be invisible against the page background —
+ * very light colors in light mode, very dark colors in dark mode.
  */
 function blendsIntoBackground(
-  color: string | [string, ...string[]],
+  colors: string | [string, ...string[]],
   isDark: boolean
 ): boolean {
-  const colors = typeof color === 'string' ? [color] : color;
-  return colors.some(c => {
-    const rgb = parseHexRgb(c);
-    if (!rgb) {
+  const list = typeof colors === 'string' ? [colors] : colors;
+  return list.every(c => {
+    try {
+      const luminosity = Color(c).luminosity();
+      return isDark ? luminosity < 0.05 : luminosity > 0.9;
+    } catch {
       return false;
     }
-    const [r, g, b] = rgb;
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return isDark ? luminance < 0.1 : luminance > 0.9;
   });
-}
-
-function parseHexRgb(hex: string): [number, number, number] | null {
-  const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!match) {
-    return null;
-  }
-  return [parseInt(match[1]!, 16), parseInt(match[2]!, 16), parseInt(match[3]!, 16)];
 }
 
 function colorToBackground(colors: string | [string, ...string[]]): string {

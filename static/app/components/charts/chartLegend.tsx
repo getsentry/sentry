@@ -41,8 +41,9 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
 
   const [firstOverflowIndex, setFirstOverflowIndex] = useState<number | null>(null);
   const outerGap = parseInt(theme.space.xs, 10);
+  const innerGap = parseInt(theme.space.md, 10);
 
-  const computeOverflow = useCallback(() => {
+  const computeOverflowIndex = useCallback(() => {
     const container = containerRef.current;
     if (!container) {
       return;
@@ -50,7 +51,6 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
 
     const containerWidth = container.offsetWidth;
     const triggerWidth = triggerRef.current?.offsetWidth ?? 0;
-    const containerGap = parseFloat(getComputedStyle(container).columnGap) || 0;
 
     const children = Array.from(container.children);
     let usedWidth = 0;
@@ -59,7 +59,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     for (let i = 0; i < children.length; i++) {
       const childWidth = children[i]!.getBoundingClientRect().width;
       if (i > 0) {
-        usedWidth += containerGap;
+        usedWidth += innerGap;
       }
       usedWidth += childWidth;
 
@@ -74,7 +74,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     }
 
     setFirstOverflowIndex(newFirstOverflowIndex);
-  }, [outerGap]);
+  }, [outerGap, innerGap]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -82,21 +82,21 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       return () => {};
     }
 
-    computeOverflow();
+    computeOverflowIndex();
 
     // Re-compute when the container resizes. ResizeObserver callbacks are
     // already coalesced per-frame by the spec, but we defer measurement to a
     // microtask as a precaution against forced reflows if the resulting
     // state update synchronously changes layout.
     const resizeObserver = new ResizeObserver(() => {
-      scheduleMicroTask(computeOverflow);
+      scheduleMicroTask(computeOverflowIndex);
     });
     resizeObserver.observe(container);
 
     return () => {
       resizeObserver.disconnect();
     };
-  }, [computeOverflow, items.length]);
+  }, [computeOverflowIndex, items.length]);
 
   const hasTrigger = firstOverflowIndex !== null;
 
@@ -108,14 +108,14 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     }
 
     const resizeObserver = new ResizeObserver(() => {
-      scheduleMicroTask(computeOverflow);
+      scheduleMicroTask(computeOverflowIndex);
     });
     resizeObserver.observe(trigger);
 
     return () => {
       resizeObserver.disconnect();
     };
-  }, [computeOverflow, hasTrigger]);
+  }, [computeOverflowIndex, hasTrigger]);
 
   const overflowItems = useMemo(
     () => (firstOverflowIndex === null ? [] : items.slice(firstOverflowIndex)),
@@ -173,7 +173,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     [overflowItems, selected]
   );
 
-  const handleOverflowChange = useCallback(
+  const handleOverflowSelectChange = useCallback(
     (options: Array<{value: string}>) => {
       const selectedSet = new Set(options.map(opt => opt.value));
       const newSelected = {...selected};
@@ -250,7 +250,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
           multiple
           options={overflowOptions}
           value={overflowValues}
-          onChange={handleOverflowChange}
+          onChange={handleOverflowSelectChange}
           position="bottom-end"
           size="xs"
           trigger={triggerProps => (
