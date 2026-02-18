@@ -19,7 +19,7 @@ from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.api.utils import default_start_end_dates, get_date_range_from_params
+from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
@@ -531,8 +531,8 @@ def rpc_get_profile_flamegraph(
                 "span_description": span_description,
                 "query_string": query_string,
                 "data": data,
-                "window_start": window_start.isoformat(),
-                "window_end": window_end.isoformat(),
+                "window_start": window_start,
+                "window_end": window_end,
             },
         )
         if data:
@@ -549,8 +549,8 @@ def rpc_get_profile_flamegraph(
                     "profile_id": profile_id,
                     "organization_id": organization_id,
                     "data": data,
-                    "window_start": window_start.isoformat(),
-                    "window_end": window_end.isoformat(),
+                    "window_start": window_start,
+                    "window_end": window_end,
                     "full_profile_id": full_profile_id,
                     "full_profiler_id": full_profiler_id,
                     "project_id": project_id,
@@ -732,6 +732,16 @@ def _get_issue_event_timeseries(
     an interval based on the time range and EVENT_TIMESERIES_RESOLUTIONS.
     """
     start, end = get_group_date_range(group, organization, start, end)
+    logger.info(
+        "get_issue_and_event_details_v2: Querying event timeseries",
+        extra={
+            "organization_id": organization.id,
+            "issue_id": group.id,
+            "timedelta": end - start,
+            "start": start,
+            "end": end,
+        },
+    )
 
     # Round up to nearest supported period
     delta = end - start
@@ -796,6 +806,18 @@ def _get_recommended_event(
     w_end = end
     event_query_limit = 100
     fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
+
+    logger.info(
+        "get_issue_and_event_details_v2: Querying for recommended event with sliding window",
+        extra={
+            "organization_id": organization.id,
+            "issue_id": group.id,
+            "timedelta": end - start,
+            "start": start,
+            "end": end,
+            "window_size": w_size,
+        },
+    )
 
     while w_start >= start:
         # Get candidate events with the standard recommended ordering.
@@ -905,6 +927,17 @@ def get_issue_and_event_response(
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
 
+        logger.info(
+            "get_issue_and_event_details_v2: Querying for tags overview",
+            extra={
+                "organization_id": organization.id,
+                "issue_id": group.id,
+                "timedelta": (end - start) if start and end else None,
+                "start": start,
+                "end": end,
+            },
+        )
+
         try:
             tags_overview = get_all_tags_overview(group, start, end)
         except Exception:
@@ -913,8 +946,8 @@ def get_issue_and_event_response(
                 extra={
                     "organization_id": organization.id,
                     "issue_id": group.id,
-                    "start": start.isoformat() if start else None,
-                    "end": end.isoformat() if end else None,
+                    "start": start,
+                    "end": end,
                 },
             )
             tags_overview = None
@@ -932,8 +965,8 @@ def get_issue_and_event_response(
                 extra={
                     "organization_id": organization.id,
                     "issue_id": group.id,
-                    "start": start.isoformat() if start else None,
-                    "end": end.isoformat() if end else None,
+                    "start": start,
+                    "end": end,
                 },
             )
             ts_result = None
@@ -982,7 +1015,6 @@ def get_issue_and_event_details_v2(
     project_slug: str | None = None,
     include_issue: bool = True,
 ) -> dict[str, Any] | None:
-
     if bool(issue_id) == bool(event_id):
         raise BadRequest("Either issue_id or event_id must be provided, but not both.")
 
@@ -1023,18 +1055,30 @@ def get_issue_and_event_details_v2(
                 tenant_ids={"organization_id": organization_id},
             )
         else:
-            events_result = eventstore.backend.get_events(
-                filter=eventstore.Filter(
-                    event_ids=[event_id],
-                    organization_id=organization_id,
-                    project_ids=project_ids,
-                ),
-                limit=1,
-                tenant_ids={"organization_id": organization_id},
-            )
-            event = events_result[0] if events_result else None
+            # Error events live in Events, occurrence events in IssuePlatform;
+            # we don't know which dataset holds this event_id until we query.
+            event = None
+            for dataset in (Dataset.Events, Dataset.IssuePlatform):
+                events_result = eventstore.backend.get_events(
+                    filter=eventstore.Filter(
+                        event_ids=[event_id],
+                        organization_id=organization_id,
+                        project_ids=project_ids,
+                    ),
+                    limit=1,
+                    tenant_ids={"organization_id": organization_id},
+                    dataset=dataset,
+                )
+                if events_result:
+                    event = events_result[0]
+                    break
 
         group = event.group if event else None
+
+    # Convert Event to GroupEvent so the occurrence (if any) can be lazy-loaded
+    # from nodestore via the occurrence_id in snuba_data during serialization.
+    if event is not None and group is not None and isinstance(event, Event):
+        event = event.for_group(group)
 
     if group is None:
         logger.warning(
@@ -1376,7 +1420,8 @@ def get_log_attributes_for_trace(
     """
 
     start_dt, end_dt = get_date_range_from_params(
-        {"start": start, "end": end, "statsPeriod": stats_period}, optional=True
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        default_stats_period=MAX_STATS_PERIOD,
     )
 
     try:
@@ -1452,7 +1497,8 @@ def get_metric_attributes_for_trace(
     """
 
     start_dt, end_dt = get_date_range_from_params(
-        {"start": start, "end": end, "statsPeriod": stats_period}, optional=True
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        default_stats_period=MAX_STATS_PERIOD,
     )
 
     try:

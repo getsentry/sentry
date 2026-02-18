@@ -1,12 +1,14 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
-import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
+import {ReleasesSelectControl} from 'sentry/views/dashboards/releasesSelectControl';
 
 function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
   return (
@@ -22,6 +24,7 @@ function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
           isDisabled
           id="releases-select-control"
           selectedReleases={releases}
+          sortBy={ReleasesSortOption.DATE}
         />
       </StyledPageFilterBar>
     </Tooltip>

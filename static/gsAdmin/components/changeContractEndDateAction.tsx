@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
 import {Heading} from '@sentry/scraps/text';
 
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import InputField from 'sentry/components/forms/fields/inputField';
 import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';

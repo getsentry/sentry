@@ -190,8 +190,9 @@ export function IssueDiff({
 
   return (
     <StyledIssueDiff isLoading={loading}>
-      {loading && <LoadingIndicator />}
-      {!loading &&
+      {loading ? (
+        <LoadingIndicator />
+      ) : (
         baseArray.map((value: string, index: number) => (
           <LazyLoad
             key={index}
@@ -200,7 +201,8 @@ export function IssueDiff({
             target={targetArray[index] ?? ''}
             type="lines"
           />
-        ))}
+        ))
+      )}
     </StyledIssueDiff>
   );
 }
@@ -209,7 +211,6 @@ const StyledIssueDiff = styled('div')<{isLoading: boolean}>`
   background-color: ${p => p.theme.tokens.background.secondary};
   overflow: auto;
   padding: ${p => p.theme.space.md};
-  flex: 1;
   display: flex;
   flex-direction: column;
 

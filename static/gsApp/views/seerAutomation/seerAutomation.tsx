@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -13,6 +15,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/seerAutomationDefault';
 import {SeerAutomationProjectList} from 'getsentry/views/seerAutomation/components/seerAutomationProjectList';
+import SeerConnectGitHubBanner from 'getsentry/views/seerAutomation/components/seerConnectGitHubBanner';
 import SeerAutomationSettings from 'getsentry/views/seerAutomation/settings';
 
 export default function SeerAutomation() {
@@ -50,9 +53,13 @@ export default function SeerAutomation() {
       />
 
       <NoProjectMessage organization={organization}>
-        <SeerAutomationProjectList />
-        <br />
-        <SeerAutomationDefault />
+        <Stack gap="lg">
+          <SeerConnectGitHubBanner />
+
+          <SeerAutomationProjectList />
+          <br />
+          <SeerAutomationDefault />
+        </Stack>
       </NoProjectMessage>
     </Fragment>
   );

@@ -35,7 +35,7 @@ describe('getDetectorChartFormatters', () => {
     expect(result.unitSuffix).toBe('%');
     // But formatters should NOT append % since primary series shows actual metric values
     expect(result.formatTooltipValue(1000)).toBe('1,000');
-    expect(result.formatYAxisLabel(1000)).toBe('1k');
+    expect(result.formatYAxisLabel(1000)).toBe('1K');
   });
 
   it('percentage aggregate (crash_free_rate): returns percentage type', () => {

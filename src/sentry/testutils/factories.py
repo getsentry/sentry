@@ -1066,7 +1066,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_user(
-        email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs
+        email=None, is_superuser=False, is_staff=False, is_active=True, is_test_user=True, **kwargs
     ) -> User:
         if email is None:
             email = uuid4().hex + "@example.com"
@@ -1078,7 +1078,9 @@ class Factories:
         )
         if kwargs.get("password") is None:
             user.set_password("admin")
-        user.save()
+        # XXX: while we're using the email_unique field as a db-level constraint on new users with existing emails,
+        # we should ignore the email_unique field for any tests that require creating users with the same email
+        user.save(is_test_user=is_test_user)
 
         # UserEmail is created by a signal
         assert UserEmail.objects.filter(user=user, email=email).update(is_verified=True)
@@ -2173,6 +2175,7 @@ class Factories:
         body,
         date_updated: datetime,
         trace_sampling: bool = False,
+        assertion: Any | None = None,
     ):
         if url is None:
             url = petname.generate().title()
@@ -2194,6 +2197,7 @@ class Factories:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            assertion=assertion,
         )
 
     @staticmethod
@@ -2585,14 +2589,14 @@ class Factories:
         build_configuration_name: str | None = None,
     ) -> None:
         """Write a preprod size metric to EAP/Snuba for testing."""
-        from sentry.preprod.eap.constants import PREPROD_NAMESPACE
+        from sentry.preprod.eap.constants import PREPROD_NAMESPACE, get_preprod_trace_id
         from sentry.search.eap.rpc_utils import anyvalue
         from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, hex_to_item_id
 
         proto_timestamp = Timestamp()
         proto_timestamp.FromDatetime(timestamp)
 
-        trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(preprod_artifact_id)).hex
+        trace_id = get_preprod_trace_id(preprod_artifact_id)
         item_id_str = f"size_metric_{size_metric_id}"
         item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
 

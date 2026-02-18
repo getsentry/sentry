@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import {IconChevron} from 'sentry/icons';

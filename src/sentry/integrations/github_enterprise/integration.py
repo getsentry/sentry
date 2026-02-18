@@ -177,6 +177,10 @@ class GitHubEnterpriseIntegration(
     def integration_name(self) -> str:
         return IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
+
     def get_client(self):
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
@@ -234,7 +238,7 @@ class GitHubEnterpriseIntegration(
         ]
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith(f"https://{self.model.metadata["domain_name"]}")
+        return url.startswith(f"https://{self.model.metadata['domain_name']}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
@@ -371,7 +375,6 @@ class GitHubEnterpriseIntegration(
         if features.has(
             "organizations:integrations-github_enterprise-project-management", self.organization
         ):
-
             # Async lookup for integration external projects in the frontend
             # Get currently configured external projects to display their labels
             current_repo_items = []
@@ -496,14 +499,14 @@ class InstallationForm(forms.Form):
     url = forms.CharField(
         label="Installation Url",
         help_text=_(
-            'The "base URL" for your GitHub enterprise instance, ' "includes the host and protocol."
+            'The "base URL" for your GitHub enterprise instance, includes the host and protocol.'
         ),
         widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
     )
     id = forms.CharField(
         label="GitHub App ID",
         help_text=_(
-            "The App ID of your Sentry app. This can be " "found on your apps configuration page."
+            "The App ID of your Sentry app. This can be found on your apps configuration page."
         ),
         widget=forms.TextInput(attrs={"placeholder": "1"}),
     )
@@ -546,7 +549,7 @@ class InstallationForm(forms.Form):
     )
     private_key = forms.CharField(
         label="GitHub App Private Key",
-        help_text=_("The Private Key generated for your Sentry " "GitHub App."),
+        help_text=_("The Private Key generated for your Sentry GitHub App."),
         widget=forms.Textarea(
             attrs={
                 "rows": "60",

@@ -1,10 +1,13 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -14,14 +17,14 @@ const getInstallProfilingSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '4.3.0'
+  '6.0.0'
 )}`;
 
 const getInstallProfilingSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Profiling -v ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '4.3.0'
+  '6.0.0'
 )}`;
 
 enum DotNetPlatform {
@@ -76,6 +79,12 @@ SentrySdk.Init(options =>
         TimeSpan.FromMilliseconds(500)
     ));`
     }`
+        : ''
+    }${
+      params.isLogsSelected
+        ? `
+    // Enable logs to be sent to Sentry
+    options.EnableLogs = true;`
         : ''
     }
 });`;
@@ -222,6 +231,8 @@ export const onboarding: OnboardingConfig = {
           language: 'csharp',
           code: 'SentrySdk.CaptureMessage("Something went wrong");',
         },
+        logsVerify(params),
+        metricsVerify(params),
       ],
     },
     ...(params.isPerformanceSelected

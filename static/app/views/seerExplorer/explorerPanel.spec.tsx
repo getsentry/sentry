@@ -87,6 +87,7 @@ describe('ExplorerPanel', () => {
   const organization = OrganizationFixture({
     features: ['seer-explorer'],
     hideAiFeatures: false,
+    openMembership: true,
   });
 
   beforeEach(() => {
@@ -124,7 +125,7 @@ describe('ExplorerPanel', () => {
   });
 
   describe('Feature Flag and Organization Checks', () => {
-    it('renders when feature flag is enabled', () => {
+    it('renders when feature flag and open membership are enabled', () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
@@ -135,6 +136,8 @@ describe('ExplorerPanel', () => {
     it('does not render when feature flag is disabled', () => {
       const disabledOrg = OrganizationFixture({
         features: [],
+        hideAiFeatures: false,
+        openMembership: true,
       });
 
       const {container} = renderWithPanelContext(<ExplorerPanel />, true, {
@@ -148,6 +151,21 @@ describe('ExplorerPanel', () => {
       const disabledOrg = OrganizationFixture({
         features: ['seer-explorer'],
         hideAiFeatures: true,
+        openMembership: true,
+      });
+
+      const {container} = renderWithPanelContext(<ExplorerPanel />, true, {
+        organization: disabledOrg,
+      });
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('does not render when open membership is disabled', () => {
+      const disabledOrg = OrganizationFixture({
+        features: ['seer-explorer'],
+        hideAiFeatures: false,
+        openMembership: false,
       });
 
       const {container} = renderWithPanelContext(<ExplorerPanel />, true, {

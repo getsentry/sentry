@@ -3,17 +3,17 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import NotAvailable from 'sentry/components/notAvailable';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
@@ -194,15 +194,25 @@ function ReleaseCardProjectRow({
             <StyledPlaceholder width="30px" />
           ) : defined(crashCount) ? (
             <Tooltip title={t('Open in Issues')}>
-              <GlobalSelectionLink
-                to={getReleaseUnhandledIssuesUrl(
-                  organization.slug,
-                  project.id,
-                  releaseVersion
-                )}
+              <Link
+                to={{
+                  ...getReleaseUnhandledIssuesUrl(
+                    organization.slug,
+                    project.id,
+                    releaseVersion
+                  ),
+                  query: {
+                    ...extractSelectionParameters(location.query),
+                    ...getReleaseUnhandledIssuesUrl(
+                      organization.slug,
+                      project.id,
+                      releaseVersion
+                    ).query,
+                  },
+                }}
               >
                 <Count value={crashCount} />
-              </GlobalSelectionLink>
+              </Link>
             </Tooltip>
           ) : (
             <NotAvailable />
@@ -211,11 +221,18 @@ function ReleaseCardProjectRow({
 
         <NewIssuesColumn>
           <Tooltip title={t('Open in Issues')}>
-            <GlobalSelectionLink
-              to={getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion)}
+            <Link
+              to={{
+                ...getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion),
+                query: {
+                  ...extractSelectionParameters(location.query),
+                  ...getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion)
+                    .query,
+                },
+              }}
             >
               <Count value={newGroups || 0} />
-            </GlobalSelectionLink>
+            </Link>
           </Tooltip>
         </NewIssuesColumn>
 

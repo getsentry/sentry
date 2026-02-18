@@ -2,7 +2,7 @@ import type {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';

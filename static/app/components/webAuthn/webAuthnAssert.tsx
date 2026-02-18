@@ -6,9 +6,10 @@ import noop from 'lodash/noop';
 
 import deviceAnimation from 'sentry-images/spot/u2f-small.gif';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -108,10 +109,19 @@ export function WebAuthnAssert({
   // submitted once the response is set.
   const shouldSubmitForm = !onWebAuthn && response !== null;
 
-  useEffect(
-    () => void (shouldSubmitForm && inputRef.current?.form?.submit()),
-    [shouldSubmitForm]
-  );
+  useEffect(() => {
+    if (shouldSubmitForm && inputRef.current?.form) {
+      const form = inputRef.current.form;
+      // Use requestSubmit() to fire the 'submit' event, allowing the global
+      // CSRF sync listener in auth.html to update the token for multi-tab scenarios.
+      // Falls back to submit() for Safari 15 (requestSubmit added in Safari 16).
+      if (form.requestSubmit) {
+        form.requestSubmit();
+      } else {
+        form.submit();
+      }
+    }
+  }, [shouldSubmitForm]);
 
   // Trigger the webAuthn flow immediately
   useEffect(() => {

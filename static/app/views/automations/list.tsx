@@ -1,8 +1,10 @@
 import {useCallback} from 'react';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
@@ -15,7 +17,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationListTable from 'sentry/views/automations/components/automationListTable';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';

@@ -1,15 +1,16 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
   getPreprodBuildsDisplay,
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
+import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {PreprodOnboardingPanel} from 'sentry/components/preprod/preprodOnboardingPanel';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -20,9 +21,10 @@ import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import PreprodBuildsSearchBar from 'sentry/views/preprod/components/preprodBuildsSearchBar';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
-import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+
+import {MobileBuildsChart} from './mobileBuildsChart';
 
 type Props = {
   organization: Organization;
@@ -53,8 +55,14 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
       query.cursor = cursor;
     }
 
-    if (searchQuery?.trim()) {
-      query.query = searchQuery.trim();
+    const sizeStateFilter =
+      activeDisplay === PreprodBuildsDisplay.SIZE ? '!size_state:not_ran' : '';
+    const combinedQuery = [searchQuery?.trim(), sizeStateFilter]
+      .filter(Boolean)
+      .join(' ');
+
+    if (combinedQuery) {
+      query.query = combinedQuery;
     }
 
     // Add project filter for multi-project endpoint
@@ -63,7 +71,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     }
 
     return query;
-  }, [cursor, location, searchQuery, selectedProjectIds]);
+  }, [activeDisplay, cursor, location, searchQuery, selectedProjectIds]);
 
   const {
     data: buildsData,
@@ -71,12 +79,11 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     error: buildsError,
     refetch,
     getResponseHeader,
-  }: UseApiQueryResult<
-    ListBuildsApiResponse,
-    RequestError
-  > = useApiQuery<ListBuildsApiResponse>(
+  }: UseApiQueryResult<BuildDetailsApiResponse[], RequestError> = useApiQuery<
+    BuildDetailsApiResponse[]
+  >(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+      getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: buildsQueryParams},
@@ -107,7 +114,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     [location, navigate]
   );
 
-  const builds = buildsData?.builds ?? [];
+  const builds = buildsData ?? [];
   const pageLinks = getResponseHeader?.('Link') ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
   const showProjectColumn = selectedProjectIds.length > 1;
@@ -161,23 +168,13 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
 
   return (
     <Stack gap="xl">
-      <Flex
-        align={{xs: 'stretch', sm: 'center'}}
-        direction={{xs: 'column', sm: 'row'}}
-        gap="md"
-        wrap="wrap"
-      >
-        <PreprodBuildsSearchBar
-          onSearch={handleSearch}
-          query={searchQuery ?? undefined}
-          disabled={isLoadingBuilds}
-          displayOptions={
-            hasDistributionFeature
-              ? {selected: activeDisplay, onSelect: handleDisplayChange}
-              : undefined
-          }
-        />
-      </Flex>
+      <PreprodBuildsSearchControls
+        initialQuery={searchQuery ?? ''}
+        display={activeDisplay}
+        projects={selectedProjectIds.map(Number)}
+        onSearch={handleSearch}
+        onDisplayChange={handleDisplayChange}
+      />
 
       {buildsError && <LoadingError onRetry={refetch} />}
 
@@ -187,16 +184,25 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
           onDocsClick={handleDocsClick}
         />
       ) : (
-        <PreprodBuildsTable
-          builds={builds}
-          display={activeDisplay}
-          isLoading={isLoadingBuilds}
-          error={!!buildsError}
-          pageLinks={pageLinks}
-          organizationSlug={organization.slug}
-          hasSearchQuery={hasSearchQuery}
-          showProjectColumn={showProjectColumn}
-        />
+        <Fragment>
+          {activeDisplay === PreprodBuildsDisplay.SIZE && (
+            <MobileBuildsChart
+              builds={builds}
+              isLoading={isLoadingBuilds}
+              organizationSlug={organization.slug}
+            />
+          )}
+          <PreprodBuildsTable
+            builds={builds}
+            display={activeDisplay}
+            isLoading={isLoadingBuilds}
+            error={buildsError}
+            pageLinks={pageLinks}
+            organizationSlug={organization.slug}
+            hasSearchQuery={hasSearchQuery}
+            showProjectColumn={showProjectColumn}
+          />
+        </Fragment>
       )}
     </Stack>
   );

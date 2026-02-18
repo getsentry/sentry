@@ -1,9 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

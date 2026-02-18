@@ -158,8 +158,8 @@ const formGroups: JsonFormObject[] = [
         saveMessage: t(
           'Changes to your scrubbing configuration will apply to all new events.'
         ),
-        getValue: val => extractMultilineFields(val),
-        setValue: val => convertMultilineFieldValue(val),
+        getValue: extractMultilineFields,
+        setValue: convertMultilineFieldValue,
       },
       {
         name: 'safeFields',
@@ -183,8 +183,8 @@ const formGroups: JsonFormObject[] = [
         saveMessage: t(
           'Changes to your scrubbing configuration will apply to all new events.'
         ),
-        getValue: val => extractMultilineFields(val),
-        setValue: val => convertMultilineFieldValue(val),
+        getValue: extractMultilineFields,
+        setValue: convertMultilineFieldValue,
       },
       {
         name: 'scrubIPAddresses',

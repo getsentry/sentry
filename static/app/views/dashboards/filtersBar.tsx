@@ -1,13 +1,21 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import {createParser, useQueryState} from 'nuqs';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {
+  DEFAULT_RELEASES_SORT,
+  RELEASES_SORT_OPTIONS,
+  ReleasesSortOption,
+} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
@@ -31,7 +39,7 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
-import ReleasesSelectControl from './releasesSelectControl';
+import {SortableReleasesSelect} from './sortableReleasesSelect';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -138,6 +146,18 @@ export default function FiltersBar({
   // Calculate maxPickableDays based on the data categories
   const maxPickableDaysOptions = useMaxPickableDays({dataCategories});
 
+  // Release sort state - validates and defaults to DATE via custom parser
+  const [releaseSort, setReleaseSort] = useQueryState('sortReleasesBy', parseReleaseSort);
+
+  // Reset sort to default if ADOPTION is selected but environment requirement isn't met
+  const {selection} = usePageFilters();
+  const {environments} = selection;
+  useEffect(() => {
+    if (releaseSort === ReleasesSortOption.ADOPTION && environments.length !== 1) {
+      setReleaseSort(DEFAULT_RELEASES_SORT);
+    }
+  }, [releaseSort, environments.length, setReleaseSort]);
+
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
     userTeams,
@@ -204,19 +224,17 @@ export default function FiltersBar({
           }}
         />
       </PageFilterBar>
-      <ReleasesSelectControl
+      <SortableReleasesSelect
+        sortBy={releaseSort}
+        selectedReleases={selectedReleases}
+        isDisabled={isEditingDashboard}
         handleChangeFilter={activeFilters => {
           onDashboardFilterChange({
             ...activeFilters,
             [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
           });
-          trackAnalytics('dashboards2.filter.change', {
-            organization,
-            filter_type: 'release',
-          });
         }}
-        selectedReleases={selectedReleases}
-        isDisabled={isEditingDashboard}
+        onSortChange={setReleaseSort}
       />
       {organization.features.includes('dashboards-global-filters') && (
         <Fragment>
@@ -269,11 +287,13 @@ export default function FiltersBar({
         !isEditingDashboard &&
         !isPreview &&
         !isPrebuiltDashboard && (
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
-              title={
-                !hasEditAccess && t('You do not have permission to edit this dashboard')
-              }
+              tooltipProps={{
+                title:
+                  !hasEditAccess &&
+                  t('You do not have permission to edit this dashboard'),
+              }}
               priority="primary"
               onClick={async () => {
                 await onSave?.();
@@ -294,12 +314,22 @@ export default function FiltersBar({
             >
               {t('Cancel')}
             </Button>
-          </ButtonBar>
+          </Grid>
         )}
       <ToggleOnDemand />
     </Wrapper>
   );
 }
+
+const parseReleaseSort = createParser({
+  parse: (value: string): ReleasesSortOption => {
+    if (value in RELEASES_SORT_OPTIONS) {
+      return value as ReleasesSortOption;
+    }
+    return DEFAULT_RELEASES_SORT;
+  },
+  serialize: (value: ReleasesSortOption): string => value,
+}).withDefault(DEFAULT_RELEASES_SORT);
 
 const Wrapper = styled('div')`
   display: flex;

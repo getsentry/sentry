@@ -1,5 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
@@ -14,14 +15,14 @@ const getInstallProfilingSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '4.3.0'
+  '6.0.0'
 )}`;
 
 const getInstallProfilingSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Profiling -v ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '4.3.0'
+  '6.0.0'
 )}`;
 
 const getProfilingConfigureSnippet = (

@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, DefaultDict
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, Subquery
@@ -72,7 +72,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
     def add_triggers_and_actions(
         self,
-        result: DefaultDict[Detector, dict[str, Any]],
+        result: defaultdict[Detector, dict[str, Any]],
         detectors: dict[int, Detector],
         sentry_app_installations_by_sentry_app_id: Mapping[str, RpcSentryAppComponentContext],
         serialized_data_conditions: list[dict[str, Any]],
@@ -129,7 +129,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             alert_rule_triggers.append(serialized)
 
     def add_projects(
-        self, result: DefaultDict[Detector, dict[str, Any]], detectors: dict[int, Detector]
+        self, result: defaultdict[Detector, dict[str, Any]], detectors: dict[int, Detector]
     ) -> None:
         detector_projects = set()
         for detector in detectors.values():
@@ -142,7 +142,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             rule_result.append(project_slug)
 
     def add_created_by(
-        self, result: DefaultDict[Detector, dict[str, Any]], detectors: Sequence[Detector]
+        self, result: defaultdict[Detector, dict[str, Any]], detectors: Sequence[Detector]
     ) -> None:
         user_by_user_id: MutableMapping[int, RpcUser] = {
             user.id: user
@@ -168,7 +168,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 result[detector]["created_by"] = created_by
 
     def add_owner(
-        self, result: DefaultDict[Detector, dict[str, Any]], detectors: Sequence[Detector]
+        self, result: defaultdict[Detector, dict[str, Any]], detectors: Sequence[Detector]
     ) -> None:
         for detector in detectors:
             if detector.owner_user_id or detector.owner_team_id:
@@ -178,7 +178,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
     def add_latest_incident(
         self,
-        result: DefaultDict[Detector, dict[str, Any]],
+        result: defaultdict[Detector, dict[str, Any]],
         user: User | RpcUser | AnonymousUser,
         detectors: dict[int, Detector],
         detector_to_action_ids: defaultdict[Detector, list[int]],
@@ -220,7 +220,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
     ) -> defaultdict[Detector, dict[str, Any]]:
         detectors = {item.id: item for item in item_list}
         detector_ids = [item.id for item in item_list]
-        result: DefaultDict[Detector, dict[str, Any]] = defaultdict(dict)
+        result: defaultdict[Detector, dict[str, Any]] = defaultdict(dict)
 
         detector_workflow_condition_group_ids = [
             detector.workflow_condition_group.id

@@ -1,13 +1,13 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {OP_LABELS as NATIVE_OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -299,7 +299,8 @@ function NumericFilterSelector({
           : () => (
               <StyledButton
                 aria-label={t('Remove Filter')}
-                size="zero"
+                size="xs"
+                priority="transparent"
                 onClick={() => onRemoveFilter(globalFilter)}
               >
                 {t('Remove Filter')}
@@ -332,7 +333,7 @@ function NumericFilterSelector({
           ? ({closeOverlay}: any) => (
               <FooterWrap>
                 <FooterInnerWrap>
-                  <Button borderless size="xs" onClick={closeOverlay}>
+                  <Button priority="transparent" size="xs" onClick={closeOverlay}>
                     {t('Cancel')}
                   </Button>
                   <Button
@@ -393,7 +394,7 @@ const StyledOperatorButton = styled(Button)`
 `;
 
 const StyledButton = styled(Button)`
-  font-size: inherit;
+  font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};

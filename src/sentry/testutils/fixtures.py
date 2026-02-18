@@ -790,6 +790,7 @@ class Fixtures:
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
         region_slugs: list[str] | None = None,
+        assertion: Any | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
@@ -814,6 +815,7 @@ class Fixtures:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            assertion=assertion,
         )
         for region_slug in region_slugs:
             self.create_uptime_subscription_region(subscription, region_slug)

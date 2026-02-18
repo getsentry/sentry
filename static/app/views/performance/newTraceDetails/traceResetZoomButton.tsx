@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';

@@ -176,66 +176,6 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         }
         assert action.data["settings"] == self.sentry_app_settings
 
-    @responses.activate
-    def test_update_add_sentry_app_installation_uuid_action(self) -> None:
-        """
-        Test that adding a sentry app action to a workflow works as expected when we pass the installation UUID instead of the sentry app id.
-        We do not create new actions like this today, but we have data like this in the DB and need to make sure it still works until we can migrate away from it
-        to use the sentry app id
-        """
-        responses.add(
-            method=responses.POST,
-            url="https://example.com/sentry/alert-rule",
-            status=200,
-        )
-        # update the settings
-        updated_sentry_app_settings = [
-            {"name": "alert_prefix", "value": "[Very Good]"},
-            {"name": "channel", "value": "#pay-attention-to-errors"},
-            {"name": "best_emoji", "value": ":ice:"},
-            {"name": "teamId", "value": "1"},
-            {"name": "assigneeId", "value": "3"},
-        ]
-        self.valid_workflow["actionFilters"] = [
-            {
-                "logicType": "any",
-                "conditions": [
-                    {
-                        "type": Condition.EQUAL.value,
-                        "comparison": 1,
-                        "conditionResult": True,
-                    }
-                ],
-                "actions": [
-                    {
-                        "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-                            "targetIdentifier": self.sentry_app_installation.uuid,
-                            "targetType": ActionType.SENTRY_APP,
-                        },
-                        "data": {"settings": updated_sentry_app_settings},
-                        "type": Action.Type.SENTRY_APP,
-                    },
-                ],
-            }
-        ]
-        response = self.get_success_response(
-            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
-        )
-        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
-        action_filter = WorkflowDataConditionGroup.objects.get(workflow=updated_workflow)
-        dcga = DataConditionGroupAction.objects.get(condition_group=action_filter.condition_group)
-        action = dcga.action
-
-        assert response.status_code == 200
-        assert action.type == Action.Type.SENTRY_APP
-        assert action.config == {
-            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
-            "target_identifier": str(self.sentry_app.id),
-            "target_type": ActionTarget.SENTRY_APP.value,
-        }
-        assert action.data["settings"] == updated_sentry_app_settings
-
     def test_update_triggers_with_empty_conditions(self) -> None:
         """Test that passing an empty list to triggers.conditions clears all conditions"""
         # Create a workflow with a trigger condition
@@ -244,7 +184,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             "enabled": True,
             "config": {},
             "triggers": {
-                "logicType": "any",
+                "logicType": "any-short",
                 "conditions": [
                     {"type": "first_seen_event", "comparison": True, "conditionResult": True},
                 ],
@@ -740,6 +680,88 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         other_action.refresh_from_db()
         assert other_action.config == original_config
+
+    def test_update_trigger_condition_from_different_organization(self) -> None:
+        """Test that conditionGroupId in trigger conditions cannot reference another org's group"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        original_condition_count = other_dcg.conditions.count()
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "conditionGroupId": other_dcg.id,
+                        "type": "first_seen_event",
+                        "comparison": True,
+                        "conditionResult": True,
+                    }
+                ],
+            },
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+        )
+
+        # Workflow should be updated successfully, but the conditionGroupId should be ignored
+        self.workflow.refresh_from_db()
+        assert self.workflow.when_condition_group is not None
+        assert self.workflow.when_condition_group.organization_id == self.organization.id
+
+        # Verify the other org's condition group was not modified
+        other_dcg.refresh_from_db()
+        assert other_dcg.conditions.count() == original_condition_count
+
+    def test_update_action_filter_condition_from_different_organization(self) -> None:
+        """Test that conditionGroupId in action filter conditions cannot reference another org's group"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        original_condition_count = other_dcg.conditions.count()
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "logicType": "any-short",
+                    "conditions": [
+                        {
+                            "conditionGroupId": other_dcg.id,
+                            "type": "first_seen_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        }
+                    ],
+                    "actions": [],
+                }
+            ],
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+        )
+
+        # Workflow should be updated successfully, but the conditionGroupId should be ignored
+        self.workflow.refresh_from_db()
+        action_filter_dcgs = self.workflow.workflowdataconditiongroup_set.all()
+        for dcg_wrapper in action_filter_dcgs:
+            assert dcg_wrapper.condition_group.organization_id == self.organization.id
+
+        # Verify the other org's condition group was not modified
+        other_dcg.refresh_from_db()
+        assert other_dcg.conditions.count() == original_condition_count
 
 
 @region_silo_test

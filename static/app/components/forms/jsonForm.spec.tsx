@@ -3,17 +3,31 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import JsonForm from 'sentry/components/forms/jsonForm';
-import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 
 import type {FieldObject, JsonFormObject} from './types';
 
 const user = UserFixture();
 
+const testFormFields: JsonFormObject[] = [
+  {
+    title: 'Test Form',
+    fields: [
+      {
+        name: 'testField',
+        type: 'string',
+        required: true,
+        label: 'Test Field',
+        placeholder: 'e.g. Test Value',
+      },
+    ],
+  },
+];
+
 describe('JsonForm', () => {
   describe('form prop', () => {
     it('default', () => {
-      render(<JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />);
+      render(<JsonForm forms={testFormFields} />);
     });
 
     it('initiallyCollapsed json form prop collapses forms', () => {
@@ -103,68 +117,56 @@ describe('JsonForm', () => {
       expect(screen.queryByText('Field Label 2')).toBeVisible();
     });
 
-    it('missing additionalFieldProps required in "valid" prop', () => {
-      jest.spyOn(console, 'error').mockImplementation(jest.fn());
-      expect(() => render(<JsonForm forms={accountDetailsFields} />)).toThrow(
-        "Cannot read properties of undefined (reading 'email')"
-      );
+    it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter', () => {
+      const hiddenFields: JsonFormObject[] = [
+        {
+          title: 'Hidden Form',
+          fields: [
+            {
+              name: 'hiddenField',
+              type: 'string',
+              label: 'Hidden Field',
+              visible: false,
+            },
+          ],
+        },
+      ];
+
+      render(<JsonForm forms={hiddenFields} />);
+
+      expect(screen.queryByText('Hidden Form')).not.toBeInTheDocument();
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false  AND there is no renderHeader & renderFooter -  visible prop is of type boolean', () => {
-      const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
-        ...accountDetailsField,
-        fields: accountDetailsField.fields.map(
-          field => ({...field, visible: false}) as FieldObject
-        ),
-      }));
+    it('should NOT hide panel, if at least one field has visible set to true', () => {
+      render(<JsonForm forms={testFormFields} />);
 
-      render(<JsonForm forms={modifiedAccountDetails} additionalFieldProps={{user}} />);
-
-      expect(screen.queryByText('Account Details')).not.toBeInTheDocument();
-    });
-
-    it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter -  visible prop is of type func', () => {
-      const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
-        ...accountDetailsField,
-        fields: accountDetailsField.fields.map(
-          field =>
-            ({
-              ...field,
-              visible: () => false,
-            }) as FieldObject
-        ),
-      }));
-
-      render(<JsonForm forms={modifiedAccountDetails} additionalFieldProps={{user}} />);
-
-      expect(screen.queryByText('Account Details')).not.toBeInTheDocument();
-    });
-
-    it('should NOT hide panel, if at least one field has visible set to true -  no visible prop (1 field) + visible prop is of type func (2 field)', () => {
-      // accountDetailsFields has two fields. The second field will always have visible set to false, because the username and the email are the same 'foo@example.com'
-      render(<JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />);
-
-      expect(screen.getByText('Account Details')).toBeInTheDocument();
+      expect(screen.getByText('Test Form')).toBeInTheDocument();
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
 
     it('should NOT hide panel, if all fields have visible set to false AND a prop renderHeader is passed', () => {
-      const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
-        ...accountDetailsField,
-        fields: accountDetailsField.fields.map(
-          field => ({...field, visible: false}) as FieldObject
-        ),
-      }));
+      const hiddenFields: JsonFormObject[] = [
+        {
+          title: 'Form With Header',
+          fields: [
+            {
+              name: 'hiddenField',
+              type: 'string',
+              label: 'Hidden Field',
+              visible: false,
+            },
+          ],
+        },
+      ];
 
       render(
         <JsonForm
-          forms={modifiedAccountDetails}
-          additionalFieldProps={{user}}
+          forms={hiddenFields}
           renderHeader={() => <div>this is a Header </div>}
         />
       );
 
-      expect(screen.getByText('Account Details')).toBeInTheDocument();
+      expect(screen.getByText('Form With Header')).toBeInTheDocument();
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
   });
@@ -191,9 +193,9 @@ describe('JsonForm', () => {
 
     it('should NOT hide panel, if at least one field has visible set to true - no visible prop', () => {
       // slug and platform have no visible prop, that means they will be always visible
-      render(<JsonForm title={accountDetailsFields[0]!.title} fields={jsonFormFields} />);
+      render(<JsonForm title="Test Form Title" fields={jsonFormFields} />);
 
-      expect(screen.getByText('Account Details')).toBeInTheDocument();
+      expect(screen.getByText('Test Form Title')).toBeInTheDocument();
       expect(screen.getAllByRole('textbox')).toHaveLength(2);
     });
 
@@ -201,12 +203,12 @@ describe('JsonForm', () => {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
-          title={accountDetailsFields[0]!.title}
+          title="Test Form Title"
           fields={jsonFormFields.map(field => ({...field, visible: true}) as FieldObject)}
         />
       );
 
-      expect(screen.getByText('Account Details')).toBeInTheDocument();
+      expect(screen.getByText('Test Form Title')).toBeInTheDocument();
       expect(screen.getAllByRole('textbox')).toHaveLength(2);
     });
 
@@ -214,14 +216,14 @@ describe('JsonForm', () => {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
-          title={accountDetailsFields[0]!.title}
+          title="Test Form Title"
           fields={jsonFormFields.map(
             field => ({...field, visible: () => true}) as FieldObject
           )}
         />
       );
 
-      expect(screen.getByText('Account Details')).toBeInTheDocument();
+      expect(screen.getByText('Test Form Title')).toBeInTheDocument();
       expect(screen.getAllByRole('textbox')).toHaveLength(2);
     });
 
@@ -229,28 +231,28 @@ describe('JsonForm', () => {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
-          title={accountDetailsFields[0]!.title}
+          title="Test Form Title"
           fields={jsonFormFields.map(
             field => ({...field, visible: false}) as FieldObject
           )}
         />
       );
 
-      expect(screen.queryByText('Account Details')).not.toBeInTheDocument();
+      expect(screen.queryByText('Test Form Title')).not.toBeInTheDocument();
     });
 
     it('should ALWAYS hide panel, if all fields have visible set to false - visible prop is of type function', () => {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
-          title={accountDetailsFields[0]!.title}
+          title="Test Form Title"
           fields={jsonFormFields.map(
             field => ({...field, visible: () => false}) as FieldObject
           )}
         />
       );
 
-      expect(screen.queryByText('Account Details')).not.toBeInTheDocument();
+      expect(screen.queryByText('Test Form Title')).not.toBeInTheDocument();
     });
   });
 });

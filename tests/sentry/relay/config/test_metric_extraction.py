@@ -2344,7 +2344,6 @@ def test_widget_modifed_after_on_demand(default_project: Project, widget_type: i
         )
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
-
             process_widget_specs([widget_query.id])
             config = get_metric_extraction_config(default_project)
 

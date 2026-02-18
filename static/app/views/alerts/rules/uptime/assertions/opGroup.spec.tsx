@@ -151,7 +151,7 @@ describe('AssertionOpGroup', () => {
       await userEvent.click(document.body);
 
       // Click to remove negation (same "Negate result" option toggles it off)
-      await userEvent.click(screen.getByRole('button', {name: 'Assert Not Any'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Assert None'}));
       await userEvent.click(await screen.findByRole('option', {name: 'Negate result'}));
       await userEvent.click(document.body);
 
@@ -164,9 +164,9 @@ describe('AssertionOpGroup', () => {
       await userEvent.click(await screen.findByRole('option', {name: 'Negate result'}));
       await userEvent.click(document.body);
 
-      // Verify label is "Assert None"
+      // Verify label is "Assert Not All"
       expect(
-        await screen.findByRole('button', {name: 'Assert None'})
+        await screen.findByRole('button', {name: 'Assert Not All'})
       ).toBeInTheDocument();
     });
 
@@ -241,7 +241,7 @@ describe('AssertionOpGroup', () => {
       );
 
       // Verify JSON path child rendered
-      expect(await screen.findByRole('textbox')).toBeInTheDocument();
+      expect(await screen.findByTestId('json-path-value-input')).toBeInTheDocument();
 
       // Remove JSON path
       await userEvent.click(screen.getByRole('button', {name: 'Remove assertion'}));
@@ -296,6 +296,8 @@ describe('AssertionOpGroup', () => {
         id: 'test-id-1',
         op: 'json_path',
         value: '',
+        operator: {cmp: 'equals'},
+        operand: {jsonpath_op: 'literal', value: ''},
       };
 
       const value: AndOp = {
@@ -306,8 +308,8 @@ describe('AssertionOpGroup', () => {
 
       await renderGroup(value);
 
-      // Wait for the json path child textbox to render
-      const input = await screen.findByRole('textbox');
+      // Wait for the json path child input to render
+      const input = screen.getByTestId('json-path-value-input');
       await userEvent.type(input, 'x');
 
       // Verify onChange was called with the updated value
@@ -319,6 +321,8 @@ describe('AssertionOpGroup', () => {
             id: 'test-id-1',
             op: 'json_path',
             value: 'x',
+            operator: {cmp: 'equals'},
+            operand: {jsonpath_op: 'literal', value: ''},
           },
         ],
       });
@@ -377,6 +381,8 @@ describe('AssertionOpGroup', () => {
         id: 'test-id-2',
         op: 'json_path',
         value: '$.status',
+        operator: {cmp: 'equals'},
+        operand: {jsonpath_op: 'literal', value: ''},
       };
 
       const headerOp: HeaderCheckOp = {

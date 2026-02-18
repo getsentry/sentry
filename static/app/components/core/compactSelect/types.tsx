@@ -38,8 +38,9 @@ export type SelectOptionOrSection<Value extends SelectKey> =
   | SelectOption<Value>
   | SelectSection<Value>;
 
-export interface SelectOptionWithKey<Value extends SelectKey>
-  extends SelectOption<Value> {
+export interface SelectOptionWithKey<
+  Value extends SelectKey,
+> extends SelectOption<Value> {
   /**
    * Key to identify this section. If not specified, the section's index will
    * be used.
@@ -47,8 +48,9 @@ export interface SelectOptionWithKey<Value extends SelectKey>
   key: SelectKey;
 }
 
-export interface SelectSectionWithKey<Value extends SelectKey>
-  extends SelectSection<Value> {
+export interface SelectSectionWithKey<
+  Value extends SelectKey,
+> extends SelectSection<Value> {
   /**
    * Key to identify this section. If not specified, the section's index will
    * be used.

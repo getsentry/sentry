@@ -162,7 +162,6 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                 b"".join(response.streaming_content)  # type: ignore[attr-defined]
 
     def test_full_cycle(self):
-
         config = asdict(test_region)
         config["address"] = self.live_server.url
         auth_header = self.create_basic_auth_header(self.api_key.key).decode()
@@ -230,7 +229,6 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                 b"".join(response.streaming_content)  # type: ignore[attr-defined]
 
     def test_roundtrip_compressed(self):
-
         config = asdict(test_region)
         config["address"] = self.live_server.url
         auth_header = self.create_basic_auth_header(self.api_key.key).decode()

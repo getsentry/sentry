@@ -4,15 +4,19 @@ import type {LegendComponentOption} from 'echarts';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
   AggregationOutputType,
   DataUnit,
   RateUnit,
 } from 'sentry/utils/discover/fields';
+import {ABYTE_UNITS, SizeUnit} from 'sentry/utils/discover/fields';
 import {axisDuration} from 'sentry/utils/duration/axisDuration';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {convertSize} from 'sentry/utils/unitConversion/convertSize';
+import {isASizeUnit} from 'sentry/views/dashboards/widgets/common/typePredicates';
 
 import {categorizeDuration} from './categorizeDuration';
 
@@ -50,8 +54,16 @@ export function tooltipFormatterUsingAggregateOutputType(
       return formatPercentage(value, 2);
     case 'duration':
       return getDuration(value / 1000, 2, true);
-    case 'size':
-      return formatBytesBase2(value);
+    case 'size': {
+      const unitString = unit ?? undefined;
+      const resolvedUnit = isASizeUnit(unitString) ? unitString : SizeUnit.BYTE;
+      const sizeInBytes = convertSize(value, resolvedUnit, SizeUnit.BYTE);
+      const formatter =
+        unitString && ABYTE_UNITS.includes(unitString)
+          ? formatBytesBase10
+          : formatBytesBase2;
+      return formatter(sizeInBytes);
+    }
     case 'rate':
       if (unit) {
         return formatRate(value, unit as RateUnit);
@@ -72,7 +84,8 @@ export function axisLabelFormatter(
   abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
-  decimalPlaces?: number
+  decimalPlaces?: number,
+  sizeUnit?: DataUnit
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
@@ -80,7 +93,8 @@ export function axisLabelFormatter(
     abbreviation,
     durationUnit,
     rateUnit,
-    decimalPlaces
+    decimalPlaces,
+    sizeUnit
   );
 }
 
@@ -93,7 +107,8 @@ export function axisLabelFormatterUsingAggregateOutputType(
   abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
-  decimalPlaces = 0
+  decimalPlaces = 0,
+  sizeUnit?: DataUnit
 ): string {
   switch (type) {
     case 'integer':
@@ -103,8 +118,16 @@ export function axisLabelFormatterUsingAggregateOutputType(
       return formatPercentage(value, decimalPlaces);
     case 'duration':
       return axisDuration(value, durationUnit);
-    case 'size':
-      return formatBytesBase2(value, 0);
+    case 'size': {
+      const unitString = sizeUnit ?? undefined;
+      const resolvedUnit = isASizeUnit(unitString) ? unitString : SizeUnit.BYTE;
+      const sizeInBytes = convertSize(value, resolvedUnit, SizeUnit.BYTE);
+      const formatter =
+        unitString && ABYTE_UNITS.includes(unitString)
+          ? formatBytesBase10
+          : formatBytesBase2;
+      return formatter(sizeInBytes, 0);
+    }
     case 'rate':
       return formatRate(value, rateUnit);
     default:

@@ -1,8 +1,8 @@
 import moment from 'moment-timezone';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
 
 import type {Policy} from 'getsentry/types';

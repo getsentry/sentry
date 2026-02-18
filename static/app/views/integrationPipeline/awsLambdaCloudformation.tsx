@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import List from 'sentry/components/list';

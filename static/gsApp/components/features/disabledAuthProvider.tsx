@@ -1,6 +1,7 @@
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

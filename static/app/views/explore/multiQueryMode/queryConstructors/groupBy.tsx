@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
@@ -21,6 +22,7 @@ type Props = {index: number; query: ReadableExploreQueryParts};
 export function GroupBySection({query, index}: Props) {
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const updateGroupBys = useUpdateQueryAtIndex(index);
 
@@ -28,6 +30,7 @@ export function GroupBySection({query, index}: Props) {
     groupBys: [],
     numberTags,
     stringTags,
+    booleanTags,
     traceItemType: TraceItemDataset.SPANS,
     hideEmptyOption: true,
   });

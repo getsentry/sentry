@@ -1,11 +1,14 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-interface MenuProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface MenuProps extends React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> {
   children: React.ReactNode;
   ref?: React.Ref<HTMLDivElement>;
 }
@@ -57,8 +60,10 @@ const MenuItemCheckboxLabel = styled('label')`
   flex: 1 1 100%;
 `;
 
-interface MenuItemCheckboxProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface MenuItemCheckboxProps extends React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> {
   checked?: boolean;
   ref?: React.Ref<HTMLDivElement>;
 }
@@ -83,11 +88,10 @@ function MenuItemCheckbox({ref, ...props}: MenuItemCheckboxProps) {
 
 export {MenuItemCheckbox as ProfilingContextMenuItemCheckbox};
 
-interface MenuItemButtonProps
-  extends React.DetailedHTMLProps<
-    React.HTMLAttributes<HTMLButtonElement>,
-    HTMLButtonElement
-  > {
+interface MenuItemButtonProps extends React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLButtonElement>,
+  HTMLButtonElement
+> {
   disabled?: boolean;
   icon?: React.ReactNode;
   ref?: React.Ref<HTMLButtonElement>;
@@ -185,8 +189,10 @@ const Input = styled('input')`
   }
 `;
 
-interface MenuItemProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface MenuItemProps extends React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> {
   children: React.ReactNode;
   ref?: React.Ref<HTMLDivElement>;
 }
@@ -243,8 +249,10 @@ const MenuGroup = styled('div')`
 
 export {MenuGroup as ProfilingContextMenuGroup};
 
-interface MenuHeadingProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface MenuHeadingProps extends React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> {
   children: React.ReactNode;
 }
 

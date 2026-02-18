@@ -6,7 +6,8 @@ import {css, useTheme} from '@emotion/react';
 import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import type {
   GroupedOptionsType,
   OptionsType,
@@ -23,7 +24,6 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Choices, SelectValue} from 'sentry/types/core';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
@@ -183,7 +183,7 @@ const getStylesConfig = ({
       alignItems: 'center',
       marginLeft: 0,
       marginRight: 0,
-      width: `calc(100% - ${theme.form[size].paddingLeft}px - ${space(0.5)})`,
+      width: `calc(100% - ${theme.form[size].paddingLeft}px - ${theme.space.xs})`,
     }),
     placeholder: (provided, state) => ({
       ...provided,
@@ -243,7 +243,7 @@ const getStylesConfig = ({
       fontWeight: 600,
       color: theme.tokens.content.secondary,
       marginBottom: 0,
-      padding: `${space(0.5)} ${space(1.5)}`,
+      padding: `${theme.space.xs} ${theme.space.lg}`,
       ':empty': {
         display: 'none',
       },
@@ -256,14 +256,14 @@ const getStylesConfig = ({
       },
       ':not(:last-of-type)': {
         position: 'relative',
-        marginBottom: space(1),
+        marginBottom: theme.space.md,
       },
       // Add divider between sections
       ':not(:last-of-type)::after': {
         content: '""',
         position: 'absolute',
-        left: space(1.5),
-        right: space(1.5),
+        left: theme.space.lg,
+        right: theme.space.lg,
         bottom: 0,
         borderBottom: `solid 1px ${theme.tokens.border.secondary}`,
       },
@@ -280,7 +280,7 @@ function ClearIndicator(
   return (
     <selectComponents.ClearIndicator {...props}>
       <Button
-        borderless
+        priority="transparent"
         icon={<IconClose legacySize="10px" />}
         size="zero"
         aria-label={t('Clear choices')}
@@ -323,7 +323,7 @@ export const CheckWrap = styled('div')<{
           ${p.isSelected &&
           css`
             background: ${p.theme.tokens.background.accent.vibrant};
-            border-color: ${p.theme.tokens.background.accent.vibrant};
+            border-color: ${p.theme.tokens.border.accent};
           `}
         `
       : css`
@@ -379,7 +379,7 @@ function SingleValue(props: React.ComponentProps<typeof selectComponents.SingleV
 const SingleValueWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
@@ -400,8 +400,9 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   );
 }
 
-export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
-  extends Omit<ReactSelectProps<OptionType>, 'onChange' | 'value' | 'menuPlacement'> {
+export interface ControlProps<
+  OptionType extends OptionTypeBase = GeneralSelectValue,
+> extends Omit<ReactSelectProps<OptionType>, 'onChange' | 'value' | 'menuPlacement'> {
   /**
    * Backwards compatible shim to work with select2 style choice type.
    */
@@ -585,8 +586,9 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-interface PickerProps<OptionType extends OptionTypeBase>
-  extends ControlProps<OptionType> {
+interface PickerProps<
+  OptionType extends OptionTypeBase,
+> extends ControlProps<OptionType> {
   /**
    * Enable async option loading.
    */

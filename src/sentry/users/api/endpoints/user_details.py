@@ -21,6 +21,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
 from sentry.models.organization import OrganizationStatus
@@ -42,6 +43,22 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 TIMEZONE_CHOICES = get_timezone_choices()
+
+
+def user_can_elevate(target_user: User) -> bool:
+    if settings.SUPERUSER_ORG_ID is None:
+        return False
+
+    try:
+        org_member_exists = OrganizationMemberMapping.objects.filter(
+            organization_id=settings.SUPERUSER_ORG_ID,
+            user=target_user,
+        ).exists()
+    except Exception:
+        # If anything goes wrong, default to not allowing elevation
+        return False
+
+    return org_member_exists
 
 
 def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None:
@@ -146,7 +163,8 @@ class BaseUserSerializer(CamelSnakeModelSerializer[User]):
             # Django throws an exception if `id` is `None`, which it will be when we're importing
             # new users via the relocation logic on the `User` model. So we cast `None` to `0` to
             # make Django happy here.
-            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0).exists()
+            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0)
+            .exists()
         ):
             raise serializers.ValidationError("That username is already in use.")
         return value
@@ -323,6 +341,26 @@ class UserDetailsEndpoint(UserEndpoint):
         # This serializer should NOT include privileged fields e.g. password
         if not serializer.is_valid() or not serializer_options.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # We want to do extra checks in SaaS mode for superuser/staff elevation.
+        # The users have to also be a member of the default organization to be able to elevate
+        # to superuser/staff.
+        if settings.SENTRY_MODE == SentryMode.SAAS:
+            validated_data = serializer.validated_data
+            requested_superuser = validated_data.get("is_superuser")
+            requested_staff = validated_data.get("is_staff")
+
+            is_updating_superuser = requested_superuser is not None
+            is_updating_staff = requested_staff is not None
+
+            if is_updating_superuser or is_updating_staff:
+                if not user_can_elevate(user):
+                    return Response(
+                        {
+                            "detail": "User must be a member to the default organization to enable SuperUser mode."
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
 
         # map API keys to keys in model
         key_map = {

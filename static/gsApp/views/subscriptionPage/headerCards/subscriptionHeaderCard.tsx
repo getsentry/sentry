@@ -1,7 +1,7 @@
 import React, {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 interface SubscriptionHeaderCardProps {
   sections: React.ReactNode[];

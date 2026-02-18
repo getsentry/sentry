@@ -1004,7 +1004,6 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
 
 
 def test_convert_rule_condition_to_snuba_condition() -> None:
-
     # Test non-TaggedEventFilter condition
     condition = {"id": "some.other.condition"}
     assert (

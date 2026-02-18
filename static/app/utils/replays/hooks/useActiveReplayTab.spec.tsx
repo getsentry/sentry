@@ -10,28 +10,11 @@ describe('useActiveReplayTab', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-        },
-      }),
+      body: AutofixSetupFixture({}),
     });
   });
 
   describe('when AI features are allowed', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
-        }),
-      });
-    });
-
     describe('AI summary tab is default', () => {
       it('should use AI summary as a default', () => {
         const {result} = renderHookWithProviders(useActiveReplayTab, {
@@ -99,18 +82,6 @@ describe('useActiveReplayTab', () => {
   });
 
   describe('when AI features are not allowed', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: false,
-            userHasAcknowledged: false,
-          },
-        }),
-      });
-    });
-
     describe('breadcrumbs tab is default', () => {
       it('should use Breadcrumbs as a default', () => {
         const {result} = renderHookWithProviders(useActiveReplayTab, {

@@ -16,6 +16,11 @@ type SupportedProfilingPlatformSDK =
   | 'flutter'
   | 'dart-flutter'
   | 'go'
+  | 'java'
+  | 'java-log4j2'
+  | 'java-logback'
+  | 'java-spring'
+  | 'java-spring-boot'
   | 'node'
   | 'python'
   | 'php'
@@ -101,6 +106,23 @@ export function getDocsPlatformSDKForPlatform(
     return 'javascript-solid';
   }
 
+  // Java
+  if (platform === 'java-spring-boot') {
+    return 'java-spring-boot';
+  }
+  if (platform === 'java-spring') {
+    return 'java-spring';
+  }
+  if (platform === 'java-log4j2') {
+    return 'java-log4j2';
+  }
+  if (platform === 'java-logback') {
+    return 'java-logback';
+  }
+  if (platform.startsWith('java')) {
+    return 'java';
+  }
+
   if (platform === 'dart-flutter') {
     return 'dart-flutter';
   }
@@ -156,6 +178,10 @@ export function getProfilingDocsForPlatform(platform: string | undefined): strin
 
   if (docsPlatform === 'react-native') {
     return `https://docs.sentry.io/platforms/react-native/profiling/`;
+  }
+
+  if (docsPlatform === 'java-spring-boot') {
+    return `https://docs.sentry.io/platforms/java/guides/spring-boot/profiling/`;
   }
 
   const [language, framework] = docsPlatform.split('-');

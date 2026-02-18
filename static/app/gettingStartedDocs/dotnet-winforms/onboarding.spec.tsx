@@ -14,6 +14,11 @@ describe('winforms onboarding docs', () => {
           version: '1.99.9',
         },
       },
+      selectedProducts: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.LOGS,
+        ProductSolution.METRICS,
+      ],
     });
 
     // Renders main headings
@@ -39,6 +44,16 @@ describe('winforms onboarding docs', () => {
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.TracesSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
     ).toBeInTheDocument();
   });
 });

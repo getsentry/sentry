@@ -61,6 +61,7 @@ export enum EventTypes {
   SESSION = 'session',
   TRACE_ITEM_SPAN = 'trace_item_span',
   TRACE_ITEM_LOG = 'trace_item_log',
+  TRACE_ITEM_METRIC = 'trace_item_metric',
 }
 
 export enum Datasource {

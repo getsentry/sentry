@@ -61,9 +61,9 @@ class BaseScheduledDeletion(Model):
         model = type(instance)
         silo_mode = SiloMode.get_current_mode()
         model_silo = getattr(model._meta, "silo_limit", None)
-        assert (
-            model_silo
-        ), "model._meta.silo_limit undefined. This model cannot be used with deletions"
+        assert model_silo, (
+            "model._meta.silo_limit undefined. This model cannot be used with deletions"
+        )
         if silo_mode not in model_silo.modes and silo_mode != SiloMode.MONOLITH:
             # Pre-empt the fact that our silo protections wouldn't fire for mismatched model <-> silo deletion objects.
             raise SiloLimit.AvailabilityError(

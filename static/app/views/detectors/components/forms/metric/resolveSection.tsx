@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Text} from 'sentry/components/core/text/text';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import RadioField from 'sentry/components/forms/fields/radioField';

@@ -1,7 +1,8 @@
+import type {ButtonProps} from '@sentry/scraps/button';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
+
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import type {ButtonProps} from 'sentry/components/core/button';
-import type {SelectKey} from 'sentry/components/core/compactSelect';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
@@ -40,7 +41,8 @@ import type {User} from './user';
  * the sentry frontend application.
  */
 export interface Hooks
-  extends RouteHooks,
+  extends
+    RouteHooks,
     ComponentHooks,
     CustomizationHooks,
     AnalyticsHooks,
@@ -302,6 +304,7 @@ type InterfaceChromeHooks = {
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
+  'sidebar:seer-config-reminder': GenericOrganizationComponentHook;
   'sidebar:try-business': SidebarTryBusinessHook;
 };
 

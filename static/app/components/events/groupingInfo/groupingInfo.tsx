@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
 import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';

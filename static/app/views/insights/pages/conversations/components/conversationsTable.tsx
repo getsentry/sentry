@@ -1,14 +1,15 @@
 import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
+import useDrawer from 'sentry/components/globalDrawer';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -25,21 +26,32 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
-import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
+import type {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
+import {ToolTags} from 'sentry/views/insights/pages/conversations/components/toolTags';
 import {
   useConversations,
   type Conversation,
   type ConversationUser,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversations';
 
-export function ConversationsTable() {
+interface ConversationsTableProps {
+  openConversationViewDrawer: ReturnType<
+    typeof useConversationViewDrawer
+  >['openConversationViewDrawer'];
+}
+
+export function ConversationsTable({
+  openConversationViewDrawer,
+}: ConversationsTableProps) {
   const organization = useOrganization();
   const showTable = hasGenAiConversationsFeature(organization);
 
   if (!showTable) {
     return null;
   }
-  return <ConversationsTableInner />;
+  return (
+    <ConversationsTableInner openConversationViewDrawer={openConversationViewDrawer} />
+  );
 }
 
 const EMPTY_ARRAY: never[] = [];
@@ -48,14 +60,15 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'conversationId', name: t('Conv. ID'), width: 0},
   {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'user', name: t('User'), width: 120},
-  {key: 'llmToolCalls', name: t('LLM/Tool Calls'), width: 140},
+  {key: 'steps', name: t('Steps'), width: 80},
+  {key: 'toolsUsed', name: t('Tools Used'), width: 200},
   {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
 
-const rightAlignColumns = new Set(['llmToolCalls', 'tokensAndCost', 'timestamp']);
+const rightAlignColumns = new Set(['steps', 'tokensAndCost', 'timestamp']);
 
-function ConversationsTableInner() {
+function ConversationsTableInner({openConversationViewDrawer}: ConversationsTableProps) {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
@@ -71,7 +84,13 @@ function ConversationsTableInner() {
         justify={rightAlignColumns.has(column.key) ? 'end' : 'start'}
       >
         {column.key === 'user' && <IconUser size="xs" />}
-        {column.name}
+        {column.key === 'steps' ? (
+          <Tooltip title={t('LLM calls + Tool calls')}>
+            <DashedUnderline>{column.name}</DashedUnderline>
+          </Tooltip>
+        ) : (
+          column.name
+        )}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
         {column.key === 'inputOutput' && <CellExpander />}
       </Flex>
@@ -80,9 +99,15 @@ function ConversationsTableInner() {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: Conversation) => {
-      return <BodyCell column={column} dataRow={dataRow} />;
+      return (
+        <BodyCell
+          column={column}
+          dataRow={dataRow}
+          openConversationViewDrawer={openConversationViewDrawer}
+        />
+      );
     },
-    []
+    [openConversationViewDrawer]
   );
 
   return (
@@ -162,23 +187,30 @@ function UserNotInstrumentedTooltip() {
 const BodyCell = memo(function BodyCell({
   column,
   dataRow,
+  openConversationViewDrawer,
 }: {
   column: GridColumnHeader<string>;
   dataRow: Conversation;
+  openConversationViewDrawer: ConversationsTableProps['openConversationViewDrawer'];
 }) {
-  const {openConversationViewDrawer} = useConversationViewDrawer();
+  const {isDrawerOpen} = useDrawer();
 
   switch (column.key) {
     case 'conversationId':
       return (
         <ConversationIdButton
           priority="link"
-          onClick={() => openConversationViewDrawer(dataRow)}
+          onClick={() =>
+            openConversationViewDrawer({
+              conversation: dataRow,
+              source: 'table_conversation_id',
+            })
+          }
         >
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
       );
-    case 'user':
+    case 'user': {
       if (!dataRow.user) {
         return (
           <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable>
@@ -186,29 +218,33 @@ const BodyCell = memo(function BodyCell({
           </Tooltip>
         );
       }
+      const displayName = getUserDisplayName(dataRow.user);
       return (
         <Flex align="center" gap="sm">
           <UserAvatar
             user={{
               id: dataRow.user.id ?? '',
-              name: getUserDisplayName(dataRow.user),
+              name: displayName,
               email: dataRow.user.email ?? '',
               username: dataRow.user.username ?? '',
               ip_address: dataRow.user.ip_address ?? '',
             }}
             size={20}
           />
-          <Tooltip title={getUserDisplayName(dataRow.user)} showOnlyOnOverflow>
-            <Text ellipsis>{getUserDisplayName(dataRow.user)}</Text>
+          <Tooltip title={displayName} showOnlyOnOverflow>
+            <Text ellipsis>{displayName}</Text>
           </Tooltip>
         </Flex>
       );
+    }
     case 'inputOutput': {
       return (
         <Stack width="100%">
           <InputOutputRow
             type="button"
-            onClick={() => openConversationViewDrawer(dataRow)}
+            onClick={() =>
+              openConversationViewDrawer({conversation: dataRow, source: 'table_input'})
+            }
           >
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
@@ -220,6 +256,8 @@ const BodyCell = memo(function BodyCell({
                   isHoverable
                   delay={500}
                   skipWrapper
+                  position="right"
+                  disabled={isDrawerOpen}
                 >
                   <CellContent text={dataRow.firstInput} />
                 </Tooltip>
@@ -230,7 +268,9 @@ const BodyCell = memo(function BodyCell({
           </InputOutputRow>
           <InputOutputRow
             type="button"
-            onClick={() => openConversationViewDrawer(dataRow)}
+            onClick={() =>
+              openConversationViewDrawer({conversation: dataRow, source: 'table_output'})
+            }
           >
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
@@ -242,6 +282,8 @@ const BodyCell = memo(function BodyCell({
                   isHoverable
                   delay={500}
                   skipWrapper
+                  position="right"
+                  disabled={isDrawerOpen}
                 >
                   <CellContent text={dataRow.lastOutput} />
                 </Tooltip>
@@ -253,11 +295,22 @@ const BodyCell = memo(function BodyCell({
         </Stack>
       );
     }
-    case 'llmToolCalls':
+    case 'steps':
       return (
         <TextAlignRight>
-          <Count value={dataRow.llmCalls} /> / <Count value={dataRow.toolCalls} />
+          <Count value={dataRow.llmCalls + dataRow.toolCalls} />
         </TextAlignRight>
+      );
+    case 'toolsUsed':
+      if (dataRow.toolNames.length === 0) {
+        return <Text variant="muted">&mdash;</Text>;
+      }
+      return (
+        <ToolTags
+          toolNames={dataRow.toolNames}
+          conversation={dataRow}
+          openConversationViewDrawer={openConversationViewDrawer}
+        />
       );
     case 'tokensAndCost':
       return (
@@ -268,7 +321,7 @@ const BodyCell = memo(function BodyCell({
     case 'timestamp':
       return (
         <TextAlignRight>
-          <TimeSince unitStyle="extraShort" date={new Date(dataRow.timestamp)} />
+          <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
         </TextAlignRight>
       );
     default:
@@ -278,6 +331,9 @@ const BodyCell = memo(function BodyCell({
 
 const TooltipTextContainer = styled('div')`
   text-align: left;
+  max-width: min(800px, 60vw);
+  max-height: 50vh;
+  overflow: hidden;
 
   h1,
   h2,
@@ -285,7 +341,7 @@ const TooltipTextContainer = styled('div')`
   h4,
   h5,
   h6 {
-    font-size: inherit; /* makes sure headings are not too large */
+    font-size: inherit;
     font-weight: bold;
     margin: 0;
   }
@@ -338,4 +394,10 @@ const InputOutputRow = styled('button')`
 
 const InputOutputLabel = styled(Text)`
   width: 4em;
+`;
+
+const DashedUnderline = styled('span')`
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
 `;

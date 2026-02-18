@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {CodeBlock} from '@sentry/scraps/code';
 import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {Link} from 'sentry/components/core/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

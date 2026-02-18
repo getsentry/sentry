@@ -7,11 +7,13 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
+import {widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
 import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
 import TraceMetricsWidgetQueries from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 
 import IssueWidgetQueries from './issueWidgetQueries';
+import MobileAppSizeWidgetQueries from './mobileAppSizeWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
 import WidgetQueries from './widgetQueries';
 
@@ -62,6 +64,10 @@ export function WidgetCardDataLoader({
   onWidgetSplitDecision,
   onDataFetchStart,
 }: Props) {
+  if (widgetFetchesOwnData(widget.displayType)) {
+    return children({loading: false});
+  }
+
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
@@ -142,6 +148,18 @@ export function WidgetCardDataLoader({
     );
   }
 
+  if (widget.widgetType === WidgetType.PREPROD_APP_SIZE) {
+    return (
+      <MobileAppSizeWidgetQueries
+        widget={widget}
+        selection={selection}
+        dashboardFilters={dashboardFilters}
+      >
+        {props => <Fragment>{children({...props})}</Fragment>}
+      </MobileAppSizeWidgetQueries>
+    );
+  }
+
   return (
     <WidgetQueries
       widget={widget}
@@ -158,6 +176,7 @@ export function WidgetCardDataLoader({
         errorMessage,
         loading,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
         confidence,
       }) => (
         <Fragment>
@@ -167,6 +186,7 @@ export function WidgetCardDataLoader({
             errorMessage,
             loading,
             timeseriesResultsTypes,
+            timeseriesResultsUnits,
             confidence,
           })}
         </Fragment>

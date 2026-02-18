@@ -1,10 +1,10 @@
 import {useCallback} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import parseAsSort from 'sentry/utils/url/parseAsSort';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -21,31 +21,31 @@ export default function useReplayTableSort({
 }: Props = {}) {
   const organization = useOrganization();
 
-  const {getParamValue, setParamValue} = useUrlParams(queryParamKey, '');
-  const sortQuery = getParamValue();
-  const sortType = decodeSorts(sortQuery).at(0) ?? defaultSort;
+  const [sort, setSort] = useQueryState(
+    queryParamKey,
+    parseAsSort.withDefault(defaultSort).withOptions({history: 'push', throttleMs: 0})
+  );
 
   const handleSortClick = useCallback(
     (key: string) => {
       const newSort = {
         field: key,
-        kind:
-          key === sortType.field ? (sortType.kind === 'asc' ? 'desc' : 'asc') : 'desc',
+        kind: key === sort.field ? (sort.kind === 'asc' ? 'desc' : 'asc') : 'desc',
       } satisfies Sort;
 
-      setParamValue(encodeSort(newSort));
+      setSort(newSort);
 
       trackAnalytics('replay.list-sorted', {
         organization,
         column: key,
       });
     },
-    [organization, setParamValue, sortType]
+    [organization, setSort, sort]
   );
 
   return {
-    sortType,
-    sortQuery,
+    sortType: sort,
+    sortQuery: encodeSort(sort),
     onSortClick: handleSortClick,
   };
 }

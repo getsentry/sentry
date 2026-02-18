@@ -6,14 +6,14 @@ import type {Location} from 'history';
 import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Collapsible from 'sentry/components/collapsible';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -122,19 +122,22 @@ function ReleaseCard({
       <ReleaseInfo>
         {/* Header/info is the table sidecard */}
         <ReleaseInfoHeader>
-          <GlobalSelectionLink
+          <Link
             to={{
               pathname: makeReleasesPathname({
                 organization,
                 path: `/${encodeURIComponent(version)}/`,
               }),
-              query: {project: getReleaseProjectId(release, selection)},
+              query: {
+                ...extractSelectionParameters(location.query),
+                project: getReleaseProjectId(release, selection),
+              },
             }}
           >
             <Flex align="center">
               <StyledVersion version={version} tooltipRawVersion anchor={false} />
             </Flex>
-          </GlobalSelectionLink>
+          </Link>
           {commitCount > 0 && (
             <ReleaseCardCommits release={release} withHeading={false} />
           )}

@@ -5,16 +5,16 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import ScreensOverviewTable, {
   type Row,
 } from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/common/utils/useModuleURL');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('ScreensOverviewTable', () => {
   const organization = OrganizationFixture({
