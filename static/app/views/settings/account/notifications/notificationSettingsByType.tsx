@@ -438,10 +438,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
           mutationOptions={optionMutationOptions(field.name)}
         >
           {fieldApi => (
-            <fieldApi.Layout.Row
-              label={field.label as string}
-              hintText={field.help as string}
-            >
+            <fieldApi.Layout.Row label={field.label} hintText={field.help}>
               <fieldApi.Select
                 value={fieldApi.state.value}
                 onChange={fieldApi.handleChange}
