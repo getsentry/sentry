@@ -280,6 +280,7 @@ def _handle_parallel_delivery_result(
     Process one result from the parallel delivery threadpool.
     Returns (request_failed, should_reraise).
     """
+    payload_data = payload_record.as_dict()
     if err:
         if payload_record.attempts >= MAX_ATTEMPTS:
             payload_record.delete()
@@ -289,7 +290,7 @@ def _handle_parallel_delivery_result(
             )
             logger.info(
                 "deliver_webhook_parallel.discard",
-                extra={**payload_record.as_dict()},
+                extra={**payload_data},
             )
             request_failed = False
         else:
@@ -297,12 +298,13 @@ def _handle_parallel_delivery_result(
             payload_record.schedule_next_attempt()
             request_failed = True
         return (request_failed, not isinstance(err, DeliveryFailed))
+    date_added = payload_record.date_added
     payload_record.delete()
-    duration = timezone.now() - payload_record.date_added
+    duration = timezone.now() - date_added
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
     metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
     if duration >= SLOW_DELIVERY_THRESHOLD:
-        logger.warning("deliver_webhook.slow_delivery", extra=payload_record.as_dict())
+        logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
     return (False, False)
 
 
@@ -406,21 +408,23 @@ def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, E
 
 def deliver_message(payload: WebhookPayload) -> None:
     """Deliver a message if it still has delivery attempts remaining"""
+    payload_data = payload.as_dict()
     if payload.attempts >= MAX_ATTEMPTS:
         payload.delete()
 
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "attempts_exceed"})
-        logger.info("deliver_webhook.discard", extra={**payload.as_dict()})
+        logger.info("deliver_webhook.discard", extra={**payload_data})
         return
 
     payload.schedule_next_attempt()
     perform_request(payload)
+    date_added = payload.date_added
     payload.delete()
 
-    duration = timezone.now() - payload.date_added
+    duration = timezone.now() - date_added
     metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
     if duration >= SLOW_DELIVERY_THRESHOLD:
-        logger.warning("deliver_webhook.slow_delivery", extra=payload.as_dict())
+        logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
 
 

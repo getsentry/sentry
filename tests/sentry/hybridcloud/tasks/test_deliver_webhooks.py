@@ -973,9 +973,9 @@ class SlowDeliveryLoggingTest(TestCase):
         assert log_extra.mailbox_name == "github:123"
         assert log_extra.provider == "github"
         assert log_extra.region_name == "us"
-        # date_added is logged as ISO string; payload.attempts is 1 after schedule_next_attempt
+        # date_added is logged as ISO string; attempts reflects the count before the successful attempt
         assert log_extra.date_added == expected_date_added
-        assert log_extra.attempts == 1
+        assert log_extra.attempts == 0
 
         # delivery_time metric should be ~660 seconds (11 minutes)
         mock_metrics.timing.assert_called_once()
