@@ -38,12 +38,39 @@ const scrollToFieldRef = (node: HTMLLabelElement | null) => {
   } catch {
     return;
   }
-  if (hash === node.dataset.field) {
-    requestAnimationFrame(() => {
-      node.scrollIntoView({block: 'center', behavior: 'smooth'});
-      node.control?.focus({focusVisible: true});
-    });
+  if (hash !== node.dataset.field) {
+    return;
   }
+
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  const tryScrollAndFocus = () => {
+    attempts++;
+    const control = node.control;
+
+    if (control) {
+      node.scrollIntoView({block: 'center', behavior: 'smooth'});
+      control.focus({focusVisible: true});
+
+      const fieldRow = node.closest<HTMLElement>(`[id="${CSS.escape(hash)}"]`);
+      if (fieldRow) {
+        fieldRow.dataset.highlight = '';
+        fieldRow.addEventListener(
+          'animationend',
+          () => delete fieldRow.dataset.highlight,
+          {once: true}
+        );
+      }
+      return;
+    }
+
+    if (attempts < maxAttempts) {
+      requestAnimationFrame(tryScrollAndFocus);
+    }
+  };
+
+  requestAnimationFrame(tryScrollAndFocus);
 };
 
 function Label(props: {
