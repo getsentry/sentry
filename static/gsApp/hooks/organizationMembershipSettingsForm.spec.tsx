@@ -1,7 +1,15 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 
@@ -155,5 +163,121 @@ describe('OrganizationMembershipSettings', () => {
     });
     renderComponent(organization);
     expect(screen.getByRole('checkbox', {name: 'Restrict Replay Access'})).toBeDisabled();
+  });
+
+  it('does not render replay access members field when hasGranularReplayPermissions is false', () => {
+    const organization = OrganizationFixture({
+      features: ['invite-members', 'granular-replay-permissions'],
+      access: ['org:write'],
+      hasGranularReplayPermissions: false,
+    });
+    renderComponent(organization);
+    expect(
+      screen.getByRole('checkbox', {name: 'Restrict Replay Access'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Replay Access Members'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders replay access members field when hasGranularReplayPermissions is true', () => {
+    const organization = OrganizationFixture({
+      features: ['invite-members', 'granular-replay-permissions'],
+      access: ['org:write'],
+      hasGranularReplayPermissions: true,
+    });
+    renderComponent(organization);
+    expect(
+      screen.getByRole('textbox', {name: 'Replay Access Members'})
+    ).toBeInTheDocument();
+  });
+
+  it('disables replay access members field if user does not have org:write access', () => {
+    const organization = OrganizationFixture({
+      features: ['invite-members', 'granular-replay-permissions'],
+      access: [],
+      hasGranularReplayPermissions: true,
+    });
+    renderComponent(organization);
+    expect(screen.getByRole('textbox', {name: 'Replay Access Members'})).toBeDisabled();
+  });
+
+  it('saves when Restrict Replay Access toggle is enabled', async () => {
+    const putMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      method: 'PUT',
+      body: OrganizationFixture({hasGranularReplayPermissions: true}),
+    });
+    const organization = OrganizationFixture({
+      features: ['invite-members', 'granular-replay-permissions'],
+      access: ['org:write'],
+      hasGranularReplayPermissions: false,
+    });
+    renderComponent(organization);
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Restrict Replay Access'}));
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/',
+        expect.objectContaining({data: {hasGranularReplayPermissions: true}})
+      );
+    });
+  });
+
+  it('shows confirmation and saves when Restrict Replay Access toggle is disabled', async () => {
+    renderGlobalModal();
+    const putMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      method: 'PUT',
+      body: OrganizationFixture({hasGranularReplayPermissions: false}),
+    });
+    const organization = OrganizationFixture({
+      features: ['invite-members', 'granular-replay-permissions'],
+      access: ['org:write'],
+      hasGranularReplayPermissions: true,
+    });
+    renderComponent(organization);
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Restrict Replay Access'}));
+
+    await screen.findByText(
+      'This will allow all members of your organization to access replay data. Do you want to continue?'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/',
+        expect.objectContaining({data: {hasGranularReplayPermissions: false}})
+      );
+    });
+  });
+
+  it('saves replayAccessMembers when a member is selected', async () => {
+    MemberListStore.loadInitialData([UserFixture()]);
+    const putMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      method: 'PUT',
+      body: OrganizationFixture({replayAccessMembers: [1]}),
+    });
+    const organization = OrganizationFixture({
+      features: ['invite-members', 'granular-replay-permissions'],
+      access: ['org:write'],
+      hasGranularReplayPermissions: true,
+    });
+    renderComponent(organization);
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Replay Access Members'}));
+    await userEvent.click(await screen.findByRole('menuitemcheckbox', {name: 'Foo Bar'}));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.tab();
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/',
+        expect.objectContaining({data: {replayAccessMembers: [1]}})
+      );
+    });
   });
 });
