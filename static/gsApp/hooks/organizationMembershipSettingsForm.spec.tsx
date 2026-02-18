@@ -102,7 +102,7 @@ describe('OrganizationMembershipSettings', () => {
   it('disables member project creation if org does not have team-roles', () => {
     const organization = OrganizationFixture({
       features: ['invite-members'],
-      access: ['org:write'],
+      access: [],
     });
     renderComponent(organization);
     expect(
@@ -252,6 +252,30 @@ describe('OrganizationMembershipSettings', () => {
         expect.objectContaining({data: {hasGranularReplayPermissions: false}})
       );
     });
+  });
+
+  it('keeps replay access members field visible when Restrict Replay Access cancel is dismissed', async () => {
+    renderGlobalModal();
+    const organization = OrganizationFixture({
+      features: ['invite-members', 'granular-replay-permissions'],
+      access: ['org:write'],
+      hasGranularReplayPermissions: true,
+    });
+    renderComponent(organization);
+
+    expect(
+      screen.getByRole('textbox', {name: 'Replay Access Members'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Restrict Replay Access'}));
+    await screen.findByText(
+      'This will allow all members of your organization to access replay data. Do you want to continue?'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    expect(
+      screen.getByRole('textbox', {name: 'Replay Access Members'})
+    ).toBeInTheDocument();
   });
 
   it('saves replayAccessMembers when a member is selected', async () => {

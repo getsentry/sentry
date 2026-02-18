@@ -343,6 +343,9 @@ function OrganizationMembershipSettingsForm({
                     'This will allow all members of your organization to access replay data. Do you want to continue?'
                   )
             }
+            onCancel={() =>
+              setHasGranularReplay(organization.hasGranularReplayPermissions ?? false)
+            }
           >
             {field => (
               <field.Layout.Row
