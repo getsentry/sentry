@@ -1,6 +1,5 @@
 /// <reference types="vitest/globals" />
 /* global process */
-// eslint-disable-next-line import/no-extraneous-dependencies
 import failOnConsole from 'vitest-fail-on-console';
 
 // Mirror Jest's static/app/__mocks__/prismjs.tsx — prevents syntax highlighting
