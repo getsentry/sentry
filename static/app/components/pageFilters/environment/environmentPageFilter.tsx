@@ -2,7 +2,6 @@ import {useCallback, useMemo, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -187,8 +186,7 @@ export function EnvironmentPageFilter({
         value: env,
         label: env,
         leadingItems: ({isSelected}: {isSelected: boolean}) => (
-          <Checkbox
-            size="sm"
+          <HybridFilterComponents.Checkbox
             checked={isSelected}
             onChange={() => hybridFilterRef.current?.toggleOption(env)}
             aria-label={t('Select %s', env)}

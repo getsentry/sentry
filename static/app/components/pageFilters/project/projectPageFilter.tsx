@@ -278,8 +278,7 @@ export function ProjectPageFilter({
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
           <Flex align="center" gap="sm" flex="1 1 100%">
-            <Checkbox
-              size="sm"
+            <HybridFilterComponents.Checkbox
               checked={isSelected}
               onChange={() =>
                 hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))

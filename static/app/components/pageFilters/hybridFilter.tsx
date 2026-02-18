@@ -18,6 +18,7 @@ import {
   type ButtonProps,
   type LinkButtonProps,
 } from '@sentry/scraps/button';
+import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
 import type {
   MultipleSelectProps,
   SelectKey,
@@ -63,10 +64,10 @@ export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
   defaultValue: Value[];
   handleReset: () => void;
   handleSearch: (value: string) => void;
-  resetAnchor: () => void;
   hasStagedChanges: boolean;
   modifierKeyPressed: boolean;
   removeStagedChanges: () => void;
+  resetAnchor: () => void;
   shouldShowReset: boolean;
   stagedValue: Value[];
   toggleOption: (val: Value) => void;
@@ -244,12 +245,15 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   // When the search/filter changes, clear the shift-click anchor so the next
   // shift+click starts a fresh range from the visible filtered list.
-  const handleSearch = useCallback((value: string) => {
-    if (value !== currentSearchRef.current) {
-      currentSearchRef.current = value;
-      lastSelectedRef.current = null;
-    }
-  }, []);
+  const handleSearch = useCallback(
+    (searchValue: string) => {
+      if (searchValue !== currentSearchRef.current) {
+        currentSearchRef.current = searchValue;
+        lastSelectedRef.current = null;
+      }
+    },
+    [currentSearchRef]
+  );
 
   // Clear the shift-click anchor when the menu opens so every new session
   // starts fresh — prevents a stale anchor from a previous open/close cycle
@@ -543,7 +547,31 @@ export const HybridFilterComponents = {
       </Button>
     );
   },
+
+  Checkbox(
+    props: DistributedOmit<CheckboxProps, 'size'> & {
+      withIncreasedHitArea?: boolean;
+    } & CheckboxProps
+  ) {
+    return <CheckboxWithIncreasedHitArea {...props} />;
+  },
 };
+
+const CheckboxWithIncreasedHitArea = styled(Checkbox)`
+  position: relative;
+
+  &:before {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    display: block;
+    top: -${p => p.theme.space.xs};
+    left: -${p => p.theme.space.xs};
+
+    width: ${p => p.theme.space['2xl']};
+    height: ${p => p.theme.space['2xl']};
+  }
+`;
 
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
