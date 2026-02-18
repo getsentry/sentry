@@ -17,6 +17,7 @@ import type {ArtifactType, StatusCheckRule} from './types';
 import {
   ARTIFACT_TYPE_OPTIONS,
   bytesToMB,
+  DEFAULT_ARTIFACT_TYPE,
   getDisplayUnit,
   getMeasurementLabel,
   getMetricLabel,
@@ -40,7 +41,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
   const [displayValue, setDisplayValue] = useState(initialDisplayValue);
   const [filterQuery, setFilterQuery] = useState(rule.filterQuery ?? '');
   const [artifactType, setArtifactType] = useState<ArtifactType>(
-    rule.artifactType ?? 'main_artifact'
+    rule.artifactType ?? DEFAULT_ARTIFACT_TYPE
   );
 
   const currentValueInBytes =
@@ -50,7 +51,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
     measurement !== rule.measurement ||
     currentValueInBytes !== rule.value ||
     filterQuery !== (rule.filterQuery ?? '') ||
-    artifactType !== (rule.artifactType ?? 'main_artifact');
+    artifactType !== (rule.artifactType ?? DEFAULT_ARTIFACT_TYPE);
 
   const handleSave = () => {
     onSave({

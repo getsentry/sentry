@@ -11,10 +11,11 @@ import {uniqueId} from 'sentry/utils/guid';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
 import {
-  ARTIFACT_TYPE_OPTIONS,
+  ALL_ARTIFACTS_ARTIFACT_TYPE,
+  getSafeValue,
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
-  type ArtifactType,
+  toArtifactType,
   type StatusCheckRule,
 } from './types';
 
@@ -24,9 +25,10 @@ const RULES_KEY = 'sentry:preprod_size_status_checks_rules';
 const DEFAULT_METRIC = METRIC_OPTIONS[0]!.value;
 const DEFAULT_MEASUREMENT = MEASUREMENT_OPTIONS[0]!.value;
 
-const VALID_METRICS: string[] = METRIC_OPTIONS.map(o => o.value);
-const VALID_MEASUREMENTS: string[] = MEASUREMENT_OPTIONS.map(o => o.value);
-const VALID_ARTIFACT_TYPES: string[] = ARTIFACT_TYPE_OPTIONS.map(o => o.value);
+const VALID_METRICS: Array<StatusCheckRule['metric']> = METRIC_OPTIONS.map(o => o.value);
+const VALID_MEASUREMENTS: Array<StatusCheckRule['measurement']> = MEASUREMENT_OPTIONS.map(
+  o => o.value
+);
 
 function parseRules(raw: unknown): StatusCheckRule[] {
   if (!Array.isArray(raw)) {
@@ -35,15 +37,13 @@ function parseRules(raw: unknown): StatusCheckRule[] {
   return raw
     .filter((r): r is Record<string, unknown> => !!r && typeof r.id === 'string')
     .map(r => {
-      const metric = VALID_METRICS.includes(r.metric as string)
-        ? (r.metric as StatusCheckRule['metric'])
-        : DEFAULT_METRIC;
-      const measurement = VALID_MEASUREMENTS.includes(r.measurement as string)
-        ? (r.measurement as StatusCheckRule['measurement'])
-        : DEFAULT_MEASUREMENT;
-      const artifactType = VALID_ARTIFACT_TYPES.includes(r.artifactType as string)
-        ? (r.artifactType as ArtifactType)
-        : 'main_artifact';
+      const metric = getSafeValue(r.metric, VALID_METRICS, DEFAULT_METRIC);
+      const measurement = getSafeValue(
+        r.measurement,
+        VALID_MEASUREMENTS,
+        DEFAULT_MEASUREMENT
+      );
+      const artifactType = toArtifactType(r.artifactType);
       return {
         id: r.id as string,
         metric,
@@ -149,7 +149,7 @@ export function useStatusCheckRules(project: Project) {
       measurement: DEFAULT_MEASUREMENT,
       value: 0,
       filterQuery: '',
-      artifactType: 'all_artifacts',
+      artifactType: ALL_ARTIFACTS_ARTIFACT_TYPE,
     };
   }, []);
 
