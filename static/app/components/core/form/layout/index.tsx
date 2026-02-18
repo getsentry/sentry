@@ -1,4 +1,5 @@
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
+import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 interface LayoutProps {
@@ -11,9 +12,10 @@ interface LayoutProps {
 
 function RowLayout(props: LayoutProps) {
   const isCompact = props.variant === 'compact';
+  const field = useFieldContext();
 
   return (
-    <Flex gap="sm" align="center" justify="between">
+    <Flex id={field.name} gap="sm" align="center" justify="between">
       <Stack width="50%" gap="xs">
         <Flex gap="xs" align="center">
           <FieldMeta.Label
@@ -35,9 +37,10 @@ function RowLayout(props: LayoutProps) {
 
 function StackLayout(props: LayoutProps) {
   const isCompact = props.variant === 'compact';
+  const field = useFieldContext();
 
   return (
-    <Stack gap="md">
+    <Stack id={field.name} gap="md">
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}

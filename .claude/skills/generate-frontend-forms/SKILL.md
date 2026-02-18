@@ -725,6 +725,32 @@ mutationOptions={{
 }}
 ```
 
+### Auto-Save Mutation Typing with Mixed-Type Schemas
+
+When using `AutoSaveField` with schemas that have mixed types (e.g., strings and booleans), the mutation options must be typed using the schema-inferred type. Using generic types like `Record<string, unknown>` breaks TanStack Form's ability to narrow field types.
+
+```tsx
+const preferencesSchema = z.object({
+  theme: z.string(),
+  language: z.string(),
+  notifications: z.boolean(),
+});
+
+type Preferences = z.infer<typeof preferencesSchema>;
+
+// ❌ Don't use generic types - breaks field type narrowing
+const mutationOptions = mutationOptions({
+  mutationFn: (data: Record<string, unknown>) => fetchMutation({...}),
+});
+
+// ✅ Use schema-inferred type for proper type narrowing
+const mutationOptions = mutationOptions({
+  mutationFn: (data: Partial<Preferences>) => fetchMutation({...}),
+});
+```
+
+This ensures that when you use `name="theme"`, the field correctly infers `string` type, and `name="notifications"` infers `boolean` type.
+
 ### Layout Choice
 
 ```tsx

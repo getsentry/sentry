@@ -114,7 +114,7 @@ interface AutoSaveFieldProps<
    * TanStack Query mutation options - mutationFn receives single-field data
    */
   mutationOptions: UseMutationOptions<
-    z.infer<TSchema>,
+    any, // it doesn't matter here what the mutation returns
     Error,
     Record<TFieldName, z.infer<TSchema>[TFieldName]>
   >;
