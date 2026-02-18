@@ -24,6 +24,7 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
+import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -46,7 +47,10 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isBaseVisualize,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -278,6 +282,20 @@ export function ToolbarSaveAs() {
   const crossEvents = useQueryParamsCrossEvents();
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
+  const hasOverlayCharts = useMemo(() => {
+    const rawVisualizes = decodeList(location.query?.visualize);
+    return rawVisualizes.some(raw => {
+      try {
+        const parsed = JSON.parse(raw);
+        return isBaseVisualize(parsed) && parsed.yAxes.length > 1;
+      } catch {
+        return false;
+      }
+    });
+  }, [location.query?.visualize]);
+
+  const isSaveDisabled = hasCrossEvents || hasOverlayCharts;
+
   if (items.length === 0) {
     return null;
   }
@@ -286,11 +304,15 @@ export function ToolbarSaveAs() {
     <StyledToolbarSection data-test-id="section-save-as">
       <Grid flow="column" align="center" gap="md">
         <Tooltip
-          disabled={!hasCrossEvents}
-          title={t('Saving cross event queries is not supported during early access.')}
+          disabled={!isSaveDisabled}
+          title={
+            hasCrossEvents
+              ? t('Saving cross event queries is not supported during early access.')
+              : t('Saving overlay chart queries is not supported during early access.')
+          }
         >
           <DropdownMenu
-            isDisabled={hasCrossEvents}
+            isDisabled={isSaveDisabled}
             items={items}
             trigger={triggerProps => (
               <SaveAsButton
@@ -310,12 +332,16 @@ export function ToolbarSaveAs() {
           />
         </Tooltip>
         <Tooltip
-          disabled={!hasCrossEvents}
-          title={t('Comparing cross event queries is not supported during early access.')}
+          disabled={!isSaveDisabled}
+          title={
+            hasCrossEvents
+              ? t('Comparing cross event queries is not supported during early access.')
+              : t('Comparing overlay chart queries is not supported during early access.')
+          }
         >
           <LinkButton
             aria-label={t('Compare')}
-            disabled={hasCrossEvents}
+            disabled={isSaveDisabled}
             onClick={() =>
               trackAnalytics('trace_explorer.compare', {
                 organization,
