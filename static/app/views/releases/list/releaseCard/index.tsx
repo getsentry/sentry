@@ -154,7 +154,10 @@ function ReleaseCard({
               </PackageName>
               <div>
                 {lastDeploy?.dateFinished ? t('Finished:') : t('Created:')}{' '}
-                <DateTime date={lastDeploy?.dateFinished || dateCreated} seconds={false} />
+                <DateTime
+                  date={lastDeploy?.dateFinished || dateCreated}
+                  seconds={false}
+                />
                 {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
               </div>
             </Container>
