@@ -432,7 +432,7 @@ export function HybridFilter<Value extends SelectKey>({
 }
 
 export const HybridFilterComponents = {
-  LinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
+  LinkButton(props: DistributedOmit<LinkButtonProps, 'size'>) {
     return <LinkButton size="xs" {...props} />;
   },
 
@@ -489,6 +489,10 @@ export const HybridFilterComponents = {
         {t('Cancel')}
       </Button>
     );
+  },
+
+  Button(props: DistributedOmit<ButtonProps, 'size'>) {
+    return <Button size="xs" {...props} />;
   },
 };
 

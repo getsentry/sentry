@@ -458,13 +458,15 @@ export function ProjectPageFilter({
             )}
             <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
               {hasProjectWrite ? (
-                <HybridFilterComponents.LinkButton
-                  icon={<IconAdd />}
-                  to={makeProjectsPathname({path: '/new/', organization})}
+                <HybridFilterComponents.Button
+                  priority="transparent"
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 >
-                  {t('Create Project')}
-                </HybridFilterComponents.LinkButton>
+                  <Flex align="center" gap="sm">
+                    {t('Create Project')}
+                    <IconAdd size="xs" />
+                  </Flex>
+                </HybridFilterComponents.Button>
               ) : undefined}
               {stagedSelect.hasStagedChanges ? (
                 <Flex gap="md" align="center" justify="end">
@@ -476,7 +478,25 @@ export function ProjectPageFilter({
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </Flex>
-              ) : null}
+              ) : (
+                <Flex gap="md" align="center" justify="end">
+                  <HybridFilterComponents.Button
+                    onClick={() =>
+                      stagedSelect.commit(nonMemberProjects.map(p => parseInt(p.id, 10)))
+                    }
+                  >
+                    {t('All Projects')}
+                  </HybridFilterComponents.Button>
+                  <HybridFilterComponents.Button
+                    onClick={() =>
+                      stagedSelect.commit(memberProjects.map(p => parseInt(p.id, 10)))
+                    }
+                    priority="primary"
+                  >
+                    {t('My Projects')}
+                  </HybridFilterComponents.Button>
+                </Flex>
+              )}
             </Flex>
           </Stack>
         ) : null
