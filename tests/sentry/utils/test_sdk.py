@@ -582,6 +582,41 @@ class ShouldDropS4STest(TestCase):
             event = {"type": "transaction", "contexts": {}}
             assert transport._should_drop_s4s("capture_event", event) is False
 
+    def _make_span_envelope(self, trace_id="a" * 32):
+        envelope = MagicMock()
+        envelope.get_transaction_event.return_value = None
+        envelope.headers = {"trace": {"trace_id": trace_id}}
+        span_item = MagicMock()
+        span_item.type = "span"
+        envelope.items = [span_item]
+        return envelope
+
+    def test_zero_rate_drops_span_envelopes(self):
+        transport = self._get_transport()
+        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
+            envelope = self._make_span_envelope()
+            assert transport._should_drop_s4s("capture_envelope", envelope) is True
+
+    def test_span_envelopes_deterministic_by_trace_id(self):
+        transport = self._get_transport()
+        trace_id = "abcdef1234567890abcdef1234567890"
+        with self.options({"store.s4s-transaction-sample-rate": 0.5}):
+            envelope = self._make_span_envelope(trace_id=trace_id)
+            first = transport._should_drop_s4s("capture_envelope", envelope)
+            for _ in range(10):
+                assert transport._should_drop_s4s("capture_envelope", envelope) == first
+
+    def test_never_drops_non_span_non_transaction_envelopes(self):
+        transport = self._get_transport()
+        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
+            envelope = MagicMock()
+            envelope.get_transaction_event.return_value = None
+            envelope.headers = {"trace": {"trace_id": "a" * 32}}
+            error_item = MagicMock()
+            error_item.type = "event"
+            envelope.items = [error_item]
+            assert transport._should_drop_s4s("capture_envelope", envelope) is False
+
 
 def test_before_send_error_level() -> None:
     event = {

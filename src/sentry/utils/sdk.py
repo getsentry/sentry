@@ -404,10 +404,13 @@ def configure_sdk():
 
             trace_id = None
             if method_name == "capture_envelope":
-                # Only drop envelopes containing transactions, not errors
-                if args[0].get_transaction_event() is None:
+                envelope = args[0]
+                # Drop envelopes containing transactions or standalone spans, not errors
+                has_transaction = envelope.get_transaction_event() is not None
+                has_spans = any(item.type == "span" for item in envelope.items)
+                if not has_transaction and not has_spans:
                     return False
-                trace_id = args[0].headers.get("trace", {}).get("trace_id")
+                trace_id = envelope.headers.get("trace", {}).get("trace_id")
             elif method_name == "capture_event":
                 # Only drop transaction events, not errors
                 if args[0].get("type") != "transaction":
