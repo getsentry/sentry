@@ -192,6 +192,7 @@ jobs:
 
       - name: Download vitest-balance.json
         id: download-artifact
+        continue-on-error: true
         uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
         with:
           workflow: vitest-balance.yml
