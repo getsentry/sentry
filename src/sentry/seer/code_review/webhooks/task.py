@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
+import sentry_sdk
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -92,6 +93,8 @@ def process_github_webhook_event(
         event_payload: The payload of the webhook event
         **kwargs: Parameters to pass to webhook handler functions
     """
+    _set_sentry_tags(event_payload, github_event)
+
     status = "success"
     should_record_latency = True
     try:
@@ -133,6 +136,29 @@ def process_github_webhook_event(
             metrics.incr(f"{PREFIX}.error", tags={"error_status": status}, sample_rate=1.0)
         if should_record_latency:
             record_latency(status, enqueued_at_str)
+
+
+def _set_sentry_tags(event_payload: Mapping[str, Any], github_event: str) -> None:
+    """Set Sentry SDK tags for error correlation.
+
+    Uses the same tag names as Seer's extract_context() so errors can be
+    searched consistently across both projects.
+    """
+    repo_data = event_payload.get("data", {}).get("repo", {})
+    owner = repo_data.get("owner")
+    name = repo_data.get("name")
+    sentry_sdk.set_tags(
+        {
+            "scm_provider": repo_data.get("provider"),
+            "scm_owner": owner,
+            "scm_repo_name": name,
+            "scm_repo_full_name": f"{owner}/{name}" if owner and name else None,
+            "pr_id": event_payload.get("data", {}).get("pr_id"),
+            "sentry_organization_id": repo_data.get("organization_id"),
+            "sentry_integration_id": repo_data.get("integration_id"),
+            "github_event": github_event,
+        }
+    )
 
 
 def log_seer_request(event_payload: Mapping[str, Any], github_event: str) -> None:
