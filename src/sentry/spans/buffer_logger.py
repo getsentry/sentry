@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, TypeVar
 
 from sentry import options
 from sentry.utils import metrics
@@ -43,13 +43,16 @@ class FlusherAggregate(NamedTuple):
     bytes_flushed: int
 
 
+TAggregate = TypeVar("TAggregate", bound=tuple[Any, ...])
+
+
 def _prune_and_maybe_log(
-    metrics_per_trace: dict[str, BufferAggregate | FlusherAggregate],
+    metrics_per_trace: dict[str, TAggregate],
     last_log_time: float | None,
     sort_index: int,
     log_message: str,
     entries_key: str,
-    format_entry: Callable[[str, tuple[Any, ...]], str],
+    format_entry: Callable[[str, TAggregate], str],
     extra: dict[str, Any] | None = None,
 ) -> float | None:
     """
