@@ -7,7 +7,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-function HintText(props: {children: string}) {
+function HintText(props: {children: React.ReactNode}) {
   const id = useHintTextId();
 
   return (
@@ -23,7 +23,7 @@ function HintText(props: {children: string}) {
 
 declare global {
   interface FocusOptions {
-    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus#focusvisible
+    /** https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus#focusvisible */
     focusVisible?: boolean;
   }
 }
@@ -39,12 +39,18 @@ const scrollToFieldRef = (node: HTMLLabelElement | null) => {
     return;
   }
   if (hash === node.dataset.field) {
-    node.scrollIntoView({block: 'center', behavior: 'smooth'});
-    node.control?.focus({focusVisible: true});
+    requestAnimationFrame(() => {
+      node.scrollIntoView({block: 'center', behavior: 'smooth'});
+      node.control?.focus({focusVisible: true});
+    });
   }
 };
 
-function Label(props: {children: string; description?: string; required?: boolean}) {
+function Label(props: {
+  children: React.ReactNode;
+  description?: React.ReactNode;
+  required?: boolean;
+}) {
   const {name: fieldName} = useFieldContext();
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();

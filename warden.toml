@@ -17,8 +17,7 @@ failOn = "high"
 reportOn = "medium"
 
 [[skills]]
-name = "django-access-review"
-remote = "getsentry/skills"
+name = "sentry-security"
 paths = ["src/sentry/**/*.py"]
 ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
 

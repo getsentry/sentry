@@ -327,11 +327,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def _get_rate_unit(self, field: str) -> str | None:
         """Get the rate unit for a field by checking for known rate functions."""
-        per_second_fns = {"eps()", "sps()", "tps()", "sample_eps()", "per_second()"}
-        per_minute_fns = {"epm()", "spm()", "tpm()", "sample_epm()", "per_minute()"}
-        if field in per_second_fns:
+        # Only use the opening parenthesis to identify rate functions because
+        # some functions may contain arguments, making a direct string match not work.
+        per_second_fns = {"eps(", "sps(", "tps(", "sample_eps(", "per_second("}
+        per_minute_fns = {"epm(", "spm(", "tpm(", "sample_epm(", "per_minute("}
+
+        if any(field.startswith(fn) for fn in per_second_fns):
             return "1/second"
-        if field in per_minute_fns:
+        if any(field.startswith(fn) for fn in per_minute_fns):
             return "1/minute"
         # For equation fields, check if any known rate function appears in the expression
         if field.startswith("equation|"):

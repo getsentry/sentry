@@ -11,6 +11,7 @@ import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
 
 import type {APIRequestMethod, ApiResult, ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
+import type getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
@@ -40,9 +41,9 @@ export type QueryKeyEndpointOptions<
 };
 
 export type ApiQueryKey =
-  | readonly [url: string]
+  | readonly [url: ReturnType<typeof getApiUrl>]
   | readonly [
-      url: string,
+      url: ReturnType<typeof getApiUrl>,
       options: QueryKeyEndpointOptions<
         Record<string, string>,
         Record<string, any>,
@@ -50,10 +51,10 @@ export type ApiQueryKey =
       >,
     ];
 export type InfiniteApiQueryKey =
-  | readonly ['infinite', url: string]
+  | readonly ['infinite', url: ReturnType<typeof getApiUrl>]
   | readonly [
       'infinite',
-      url: string,
+      url: ReturnType<typeof getApiUrl>,
       options: QueryKeyEndpointOptions<
         Record<string, string>,
         Record<string, any>,

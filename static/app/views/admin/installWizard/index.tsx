@@ -12,6 +12,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {Field} from 'sentry/views/admin/options';
 import {getForm, getOptionDefault, getOptionField} from 'sentry/views/admin/options';
@@ -33,9 +34,12 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
     data: options,
     isPending,
     isError,
-  } = useApiQuery<InstallWizardOptions>(['/internal/options/?query=is:required'], {
-    staleTime: 0,
-  });
+  } = useApiQuery<InstallWizardOptions>(
+    [getApiUrl('/internal/options/'), {query: {query: 'is:required'}}],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isPending) {
     return <LoadingIndicator />;
