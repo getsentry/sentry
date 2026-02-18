@@ -331,6 +331,30 @@ class WorkflowRuleSerializerTest(TestCase):
 
         self.assert_equal_serializers(issue_alert)
 
+    def test_discord_action(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = self.create_integration(
+                organization=self.organization,
+                name="discord",
+                provider="discord",
+                external_id="discord:1",
+                metadata={"guild_id": "1234567890"},
+            )
+        self.action_data = {
+            "server": self.integration.id,
+            "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+            "channel_id": "channel-id-123",
+            "tags": "",
+        }
+        self.rule = self.create_project_rule(
+            project=self.project,
+            action_data=[self.action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(self.rule)
+
     def test_slack_action(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = self.create_integration(
