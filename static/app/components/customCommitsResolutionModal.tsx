@@ -1,4 +1,3 @@
-import {useMemo, useState} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -12,14 +11,21 @@ import {t} from 'sentry/locale';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import useApi from 'sentry/utils/useApi';
 
 interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   onSelected: (x: ResolvedStatusDetails) => void;
   orgSlug: string;
   projectSlug: string;
 }
+
+// We use z.any() because the Commit type is complex and Zod's passthrough() adds index
+// signatures that don't match. The refine() ensures a commit is selected (non-null).
+const commitSchema = z.object({
+  commit: z
+    .any()
+    .refine((val): val is Commit => val !== null, t('Please select a commit')),
+});
 
 function CustomCommitsResolutionModal({
   onSelected,
@@ -30,58 +36,30 @@ function CustomCommitsResolutionModal({
   Body,
   Footer,
 }: CustomCommitsResolutionModalProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebouncedValue(searchQuery);
-
-  const {data: commits = [], isPending} = useApiQuery<Commit[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/commits/', {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          projectIdOrSlug: projectSlug,
-        },
-      }),
-      {
-        query: {
-          query: debouncedSearch,
-        },
-      },
-    ],
+  const api = useApi();
+  const commitsUrl = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/commits/',
     {
-      staleTime: 30_000,
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+      },
     }
-  );
-
-  const options = useMemo(
-    () =>
-      commits.map(c => ({
-        value: c.id,
-        label: <Version version={c.id} anchor={false} />,
-        details: (
-          <span>
-            {t('Created')} <TimeSince date={c.dateCreated} />
-          </span>
-        ),
-      })),
-    [commits]
   );
 
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
-      commit: '',
+      commit: null as Commit | null,
     },
     validators: {
-      onDynamic: z.object({
-        commit: z.string().min(1, t('Please select a commit')),
-      }),
+      onDynamic: commitSchema,
     },
     onSubmit: ({value}) => {
-      const selectedCommit = commits.find(c => c.id === value.commit);
       onSelected({
         inCommit: {
-          commit: selectedCommit?.id,
-          repository: selectedCommit?.repository?.name,
+          commit: value.commit?.id,
+          repository: value.commit?.repository?.name,
         },
       });
       closeModal();
@@ -98,12 +76,27 @@ function CustomCommitsResolutionModal({
           <form.AppField name="commit">
             {field => (
               <field.Layout.Stack label={t('Commit')} required>
-                <field.Select
+                <field.SelectAsync
                   value={field.state.value}
                   onChange={field.handleChange}
-                  options={options}
-                  onInputChange={setSearchQuery}
-                  isLoading={isPending}
+                  queryOptions={debouncedInput => ({
+                    queryKey: [commitsUrl, {query: {query: debouncedInput}}],
+                    queryFn: ({queryKey}) =>
+                      api.requestPromise(queryKey[0], {
+                        query: queryKey[1]?.query,
+                      }),
+                    select: data =>
+                      (data as Commit[]).map(c => ({
+                        value: c,
+                        label: <Version version={c.id} anchor={false} />,
+                        details: (
+                          <span>
+                            {t('Created')} <TimeSince date={c.dateCreated} />
+                          </span>
+                        ),
+                      })),
+                    staleTime: 30_000,
+                  })}
                   placeholder={t('e.g. d86b832')}
                 />
               </field.Layout.Stack>
