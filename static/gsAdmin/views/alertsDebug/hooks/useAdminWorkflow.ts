@@ -6,7 +6,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
  * This is only accessible to superusers.
  */
 export function useAdminWorkflow(workflowId: string | undefined) {
-  return useApiQuery<Automation>([`/internal/workflows/${workflowId}/`], {
+  return useApiQuery<Automation>([`/internal/_admin/workflows/${workflowId}/`], {
     staleTime: 0,
     enabled: !!workflowId,
   });
