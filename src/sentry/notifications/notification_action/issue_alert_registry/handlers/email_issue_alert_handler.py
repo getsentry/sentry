@@ -58,6 +58,6 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
 
     @classmethod
     def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
-        # TODO: is this ever anything other than 'mail'? If not, can just hard code that
-        label = "Send a notification via {}"
-        return label.format(blob.target_id.get("service"))
+        # TODO: beef this up
+        label = "Send a notification to Member and if none can be found then send a notification to ActiveMembers"
+        return label

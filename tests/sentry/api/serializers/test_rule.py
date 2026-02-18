@@ -334,11 +334,10 @@ class WorkflowRuleSerializerTest(TestCase):
     def test_discord_action(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = self.create_integration(
-                organization=self.organization,
-                name="discord",
                 provider="discord",
-                external_id="discord:1",
-                metadata={"guild_id": "1234567890"},
+                name="Cool server",
+                external_id="guild-id",
+                organization=self.organization,
             )
         self.action_data = {
             "server": self.integration.id,
