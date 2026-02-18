@@ -440,11 +440,7 @@ describe('ExploreToolbar', () => {
   });
 
   it('shows count as the default aggregate option', async () => {
-    function Component() {
-      return <ExploreToolbar />;
-    }
-
-    render(<Component />, {
+    render(<ExploreToolbar />, {
       additionalWrapper: Wrapper,
       organization: OrganizationFixture({
         features: ['dashboards-edit', 'traces-overlay-charts-ui'],
