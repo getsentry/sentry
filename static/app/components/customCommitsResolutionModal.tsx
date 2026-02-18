@@ -1,3 +1,4 @@
+import {queryOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -10,8 +11,7 @@ import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import useApi from 'sentry/utils/useApi';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   onSelected: (x: ResolvedStatusDetails) => void;
@@ -36,17 +36,6 @@ function CustomCommitsResolutionModal({
   Body,
   Footer,
 }: CustomCommitsResolutionModalProps) {
-  const api = useApi();
-  const commitsUrl = getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/commits/',
-    {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug,
-      },
-    }
-  );
-
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
@@ -79,24 +68,31 @@ function CustomCommitsResolutionModal({
                 <field.SelectAsync
                   value={field.state.value}
                   onChange={field.handleChange}
-                  queryOptions={debouncedInput => ({
-                    queryKey: [commitsUrl, {query: {query: debouncedInput}}],
-                    queryFn: ({queryKey}) =>
-                      api.requestPromise(queryKey[0], {
-                        query: queryKey[1]?.query,
-                      }),
-                    select: data =>
-                      (data as Commit[]).map(c => ({
-                        value: c,
-                        label: <Version version={c.id} anchor={false} />,
-                        details: (
-                          <span>
-                            {t('Created')} <TimeSince date={c.dateCreated} />
-                          </span>
-                        ),
-                      })),
-                    staleTime: 30_000,
-                  })}
+                  queryOptions={debouncedInput => {
+                    return queryOptions({
+                      ...apiOptions.as<Commit[]>()(
+                        '/projects/$organizationIdOrSlug/$projectIdOrSlug/commits/',
+                        {
+                          path: {
+                            organizationIdOrSlug: orgSlug,
+                            projectIdOrSlug: projectSlug,
+                          },
+                          query: {query: debouncedInput},
+                          staleTime: 30_000,
+                        }
+                      ),
+                      select: ([commits]) =>
+                        commits.map(c => ({
+                          value: c,
+                          label: <Version version={c.id} anchor={false} />,
+                          details: (
+                            <span>
+                              {t('Created')} <TimeSince date={c.dateCreated} />
+                            </span>
+                          ),
+                        })),
+                    });
+                  }}
                   placeholder={t('e.g. d86b832')}
                 />
               </field.Layout.Stack>
