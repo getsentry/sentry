@@ -9,7 +9,7 @@ import {
 
 import AccountEmails from 'sentry/views/settings/account/accountEmails';
 
-vi.mock('scroll-to-element', () => ({default: vi.fn()}));
+jest.mock('scroll-to-element', () => {});
 
 const ENDPOINT = '/users/me/emails/';
 

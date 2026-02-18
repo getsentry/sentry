@@ -154,8 +154,10 @@ export function isOverflown(el: Element): boolean {
 }
 
 function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
-  window.clearTimeout(ref.current);
-  ref.current = undefined;
+  if (typeof ref.current === 'number') {
+    window.clearTimeout(ref.current);
+    ref.current = undefined;
+  }
 }
 
 const tooltipUnderline = (

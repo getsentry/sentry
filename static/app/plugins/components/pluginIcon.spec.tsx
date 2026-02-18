@@ -5,7 +5,7 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 // For some reason jest only respects the last mocked, so we can't test
 // two different images here
 // jest.mock('images/logos/logo-default.svg', () => 'default', {});
-jest.mock('images/logos/logo-github.svg', () => ({default: 'github'}), {});
+jest.mock('images/logos/logo-github.svg', () => 'github', {});
 
 describe('PluginIcon', () => {
   it('renders', () => {

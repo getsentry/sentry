@@ -67,19 +67,25 @@ const JEST_TO_VI: Array<[RegExp, string]> = [
   [/\bjest\.stubGlobal\b/g, 'vi.stubGlobal'],
 ];
 
-// Only process spec/test files
+// Only process spec/test files and Vitest setup.
 const TEST_FILE_RE = /\.(spec|test)\.[jt]sx?$/;
+const VITEST_SETUP_RE = /\/tests\/js\/vitest-setup\.ts$/;
 
 export default function jestCompatPlugin(): Plugin {
   return {
     name: 'vitest-jest-compat',
     enforce: 'pre',
     transform(code, id) {
-      if (!TEST_FILE_RE.test(id)) {
+      if (!TEST_FILE_RE.test(id) && !VITEST_SETUP_RE.test(id)) {
         return undefined;
       }
       // Quick check — skip files with nothing to transform
-      if (!code.includes('jest.') && !code.includes('vi.importActual(')) {
+      if (
+        !code.includes('jest.') &&
+        !code.includes('vi.importActual(') &&
+        !code.includes('vi.fn(() =>') &&
+        !code.includes('vi.mock(')
+      ) {
         return undefined;
       }
 
@@ -115,6 +121,68 @@ export default function jestCompatPlugin(): Plugin {
       transformed = transformed.replace(
         /\bvi\.fn\(\s*\(([^)]*)\)\s*=>\s*\{/g,
         (_, params) => `vi.fn(function (${params}) {`
+      );
+      transformed = transformed.replace(
+        /\bvi\.fn\(\s*\(\s*\)\s*=>\s*([A-Za-z_$][\w$.]*)\s*\)/g,
+        (_, expression) => `vi.fn(function () { return ${expression}; })`
+      );
+      transformed = transformed.replace(
+        /\bvi\.fn\(\s*\(\s*\)\s*=>\s*\(\s*(\{(?:[^{}]|\{[^{}]*\})*\})\s*\)\s*\)/g,
+        (_, objectLiteral) => `vi.fn(function () { return (${objectLiteral}); })`
+      );
+      transformed = transformed.replace(
+        /\.mockImplementation(Once)?\(\s*\(([^)]*)\)\s*=>\s*\{/g,
+        (_match, once, params) =>
+          `.mockImplementation${once ?? ''}(function (${params}) {`
+      );
+      transformed = transformed.replace(
+        /\.mockImplementation(Once)?\(\s*\(\s*\)\s*=>\s*([A-Za-z_$][\w$.]*)\s*\)/g,
+        (_match, once, expression) =>
+          `.mockImplementation${once ?? ''}(function () { return ${expression}; })`
+      );
+      transformed = transformed.replace(
+        /\.mockImplementation(Once)?\(\s*\(\s*\)\s*=>\s*\(\s*(\{(?:[^{}]|\{[^{}]*\})*\})\s*\)\s*\)/g,
+        (_match, once, objectLiteral) =>
+          `.mockImplementation${once ?? ''}(function () { return (${objectLiteral}); })`
+      );
+
+      // Vitest ESM mocks for static assets must return `{default: ...}`.
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+\.(?:svg|png|jpe?g|gif|webp)['"])\s*,\s*\(\)\s*=>\s*(['"][^'"]*['"])\s*,\s*(\{\s*\})\s*\)/g,
+        'vi.mock($1, () => ({default: $2}), $3)'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+\.(?:svg|png|jpe?g|gif|webp)['"])\s*,\s*\(\)\s*=>\s*(['"][^'"]*['"])\s*\)/g,
+        'vi.mock($1, () => ({default: $2}))'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*(['"][^'"]*['"])\s*,\s*(\{\s*\})\s*\)/g,
+        'vi.mock($1, () => ({default: $2}), $3)'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*(['"][^'"]*['"])\s*\)/g,
+        'vi.mock($1, () => ({default: $2}))'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*\}\s*,\s*(\{\s*\})\s*\)/g,
+        'vi.mock($1, () => ({}), $2)'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*\}\s*\)/g,
+        'vi.mock($1, () => ({}))'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*return\s+((?!\{)[^;]+);\s*\}\s*,\s*(\{\s*\})\s*\)/g,
+        'vi.mock($1, () => ({default: $2}), $3)'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*(['"][^'"]+['"])\s*,\s*\(\)\s*=>\s*\{\s*return\s+((?!\{)[^;]+);\s*\}\s*\)/g,
+        'vi.mock($1, () => ({default: $2}))'
+      );
+      transformed = transformed.replace(
+        /vi\.mock\(\s*['"]lodash\/debounce['"]\s*,\s*\(\)\s*=>\s*\{([\s\S]*?)return\s+([^;]+);\s*\}\s*\)/g,
+        (_match, prefix, returnExpr) =>
+          `vi.mock('lodash/debounce', () => {${prefix}return {default: ${returnExpr}};})`
       );
 
       // Ensure vi.importActual() is always awaited. Uses a callback rather
