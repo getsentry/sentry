@@ -115,7 +115,7 @@ organization_urlpatterns = [
 # These URLs power /_admin/alerts
 admin_urlpatterns = [
     re_path(
-        r"^workflows/(?P<workflow_id>[^/]+)/$",
+        r"^_admin/workflows/(?P<workflow_id>[^/]+)/$",
         AdminWorkflowDetailEndpoint.as_view(),
         name="sentry-api-0-admin-workflow-details",
     ),
