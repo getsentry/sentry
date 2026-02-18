@@ -120,6 +120,7 @@ export type KnownSentryApiUrls =
   | '/internal/rpc/$serviceName/$methodName/'
   | '/internal/seer-rpc/$methodName/'
   | '/internal/warnings/'
+  | '/internal/workflows/$workflowId/'
   | '/issues/$issueId/'
   | '/issues/$issueId/activities/'
   | '/issues/$issueId/attachments/'
