@@ -64,7 +64,7 @@ export function SelectAsyncField<TData, TValue = string>({
       onChange={onChange}
       value={value}
       options={options}
-      isLoading={isPending}
+      isLoading={isPending || inputValue !== debouncedInput}
       onInputChange={setInputValue}
     />
   );
