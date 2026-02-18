@@ -6,72 +6,72 @@ import {t} from 'sentry/locale';
 interface FormFieldDefinition {
   formId: string;
   name: string;
+  /** Route pattern for SettingsSearch navigation */
+  route: string;
   hintText?: string;
   label?: string;
-  /** Route pattern for SettingsSearch navigation */
-  route?: string;
 }
 
 export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
   'account-details.name': {
     name: 'name',
     formId: 'account-details',
+    route: '/settings/account/details/',
     label: t('Name'),
     hintText: t('Your full name'),
-    route: '/settings/account/details/',
   },
   'account-details.username': {
     name: 'username',
     formId: 'account-details',
-    label: t('Username'),
     route: '/settings/account/details/',
+    label: t('Username'),
   },
   'account-details.id': {
     name: 'id',
     formId: 'account-details',
+    route: '/settings/account/details/',
     label: t('User ID'),
     hintText: t('The unique identifier for your account. It cannot be modified.'),
-    route: '/settings/account/details/',
   },
   'account-details.theme': {
     name: 'theme',
     formId: 'account-details',
+    route: '/settings/account/details/',
     label: t('Theme'),
     hintText: t(
       "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
     ),
-    route: '/settings/account/details/',
   },
   'account-details.language': {
     name: 'language',
     formId: 'account-details',
-    label: t('Language'),
     route: '/settings/account/details/',
+    label: t('Language'),
   },
   'account-details.timezone': {
     name: 'timezone',
     formId: 'account-details',
-    label: t('Timezone'),
     route: '/settings/account/details/',
+    label: t('Timezone'),
   },
   'account-details.clock24Hours': {
     name: 'clock24Hours',
     formId: 'account-details',
-    label: t('Use a 24-hour clock'),
     route: '/settings/account/details/',
+    label: t('Use a 24-hour clock'),
   },
   'account-details.stacktraceOrder': {
     name: 'stacktraceOrder',
     formId: 'account-details',
+    route: '/settings/account/details/',
     label: t('Stack Trace Order'),
     hintText: t('Choose the default ordering of frames in stack traces'),
-    route: '/settings/account/details/',
   },
   'account-details.defaultIssueEvent': {
     name: 'defaultIssueEvent',
     formId: 'account-details',
+    route: '/settings/account/details/',
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
-    route: '/settings/account/details/',
   },
 };

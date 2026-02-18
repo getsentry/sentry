@@ -355,18 +355,22 @@ function generateRegistryFile(fields: ExtractedField[], outputPath: string): voi
     const key = `${field.formId}.${field.name}`;
     fieldMap.set(key, field);
   }
-  const dedupedFields = Array.from(fieldMap.values());
+  // Only include fields that are within a FormSearch component (have a route)
+  const dedupedFields = Array.from(fieldMap.values()).filter(
+    (f): f is ExtractedField & {route: string} => Boolean(f.route)
+  );
 
-  const formatField = (field: ExtractedField): string => {
-    const lines = [`    name: '${field.name}',`, `    formId: '${field.formId}',`];
+  const formatField = (field: ExtractedField & {route: string}): string => {
+    const lines = [
+      `    name: '${field.name}',`,
+      `    formId: '${field.formId}',`,
+      `    route: '${field.route}',`,
+    ];
     if (field.label) {
       lines.push(`    label: t('${field.label.replace(/'/g, "\\'")}'),`);
     }
     if (field.hintText) {
       lines.push(`    hintText: t('${field.hintText.replace(/'/g, "\\'")}'),`);
-    }
-    if (field.route) {
-      lines.push(`    route: '${field.route}',`);
     }
     return lines.join('\n');
   };
@@ -383,10 +387,10 @@ import {t} from 'sentry/locale';
 interface FormFieldDefinition {
   formId: string;
   name: string;
+  /** Route pattern for SettingsSearch navigation */
+  route: string;
   hintText?: string;
   label?: string;
-  /** Route pattern for SettingsSearch navigation */
-  route?: string;
 }
 
 export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {

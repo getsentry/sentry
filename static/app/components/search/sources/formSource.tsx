@@ -55,21 +55,18 @@ function createSearchMap({
 
 /**
  * Get fields from the new Scraps form system (statically extracted)
- * Only includes fields that have a route defined via form.FormWrapper
  */
 function getNewFormFields(): FormSearchField[] {
-  return Object.values(FORM_FIELD_REGISTRY)
-    .filter(f => f.route) // Only include fields with routes
-    .map(f => ({
-      title: f.label ?? f.name,
-      description: f.hintText ?? '',
-      route: f.route!,
-      field: {
-        name: f.name,
-        label: f.label,
-        help: f.hintText,
-      } as FieldObject,
-    }));
+  return Object.values(FORM_FIELD_REGISTRY).map(f => ({
+    title: f.label ?? f.name,
+    description: f.hintText ?? '',
+    route: f.route,
+    field: {
+      name: f.name,
+      label: f.label,
+      help: f.hintText,
+    } as FieldObject,
+  }));
 }
 
 /**
