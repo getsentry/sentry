@@ -3,39 +3,41 @@ from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
 
-from sentry.testutils.cases import TestCase
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
     CircuitBreakerPassthrough,
     circuit_breaker_activated,
 )
 
+KEY = "test"
+ERROR_LIMIT = 5
 
-class TestCircuitBreaker(TestCase):
-    def setUp(self) -> None:
-        self.key = "test"
-        self.error_limit = 5
-        self.passthrough_data = CircuitBreakerPassthrough(limit=2, window=1)
-        cache.set(ERROR_COUNT_CACHE_KEY(self.key), self.error_limit)
 
-    def test_not_activated(self) -> None:
-        assert not circuit_breaker_activated(self.key, self.error_limit + 1)
+def test_circuit_breaker_not_activated() -> None:
+    cache.set(ERROR_COUNT_CACHE_KEY(KEY), ERROR_LIMIT)
+    assert not circuit_breaker_activated(KEY, ERROR_LIMIT + 1)
 
-    def test_activated_at_error_limit(self) -> None:
-        assert circuit_breaker_activated(key=self.key, error_limit=self.error_limit)
 
-    @patch("sentry.utils.circuit_breaker.metrics.incr")
-    def test_passthrough(self, mock_metrics: MagicMock) -> None:
-        assert not circuit_breaker_activated(self.key, self.error_limit, self.passthrough_data)
-        mock_metrics.assert_called_with(f"circuit_breaker.{self.key}.bypassed")
+def test_circuit_breaker_activated_at_error_limit() -> None:
+    cache.set(ERROR_COUNT_CACHE_KEY(KEY), ERROR_LIMIT)
+    assert circuit_breaker_activated(key=KEY, error_limit=ERROR_LIMIT)
 
-        assert not circuit_breaker_activated(self.key, self.error_limit, self.passthrough_data)
-        mock_metrics.assert_called_with(f"circuit_breaker.{self.key}.bypassed")
 
-        assert circuit_breaker_activated(self.key, self.error_limit, self.passthrough_data)
-        mock_metrics.assert_called_with(f"circuit_breaker.{self.key}.throttled")
+@patch("sentry.utils.circuit_breaker.metrics.incr")
+def test_circuit_breaker_passthrough(mock_metrics: MagicMock) -> None:
+    cache.set(ERROR_COUNT_CACHE_KEY(KEY), ERROR_LIMIT)
+    passthrough_data = CircuitBreakerPassthrough(limit=2, window=1)
 
-        # Wait for the passthrough window to expire and try again
-        time.sleep(1)
-        assert not circuit_breaker_activated(self.key, self.error_limit, self.passthrough_data)
-        mock_metrics.assert_called_with(f"circuit_breaker.{self.key}.bypassed")
+    assert not circuit_breaker_activated(KEY, ERROR_LIMIT, passthrough_data)
+    mock_metrics.assert_called_with(f"circuit_breaker.{KEY}.bypassed")
+
+    assert not circuit_breaker_activated(KEY, ERROR_LIMIT, passthrough_data)
+    mock_metrics.assert_called_with(f"circuit_breaker.{KEY}.bypassed")
+
+    assert circuit_breaker_activated(KEY, ERROR_LIMIT, passthrough_data)
+    mock_metrics.assert_called_with(f"circuit_breaker.{KEY}.throttled")
+
+    # Wait for the passthrough window to expire and try again
+    time.sleep(1)
+    assert not circuit_breaker_activated(KEY, ERROR_LIMIT, passthrough_data)
+    mock_metrics.assert_called_with(f"circuit_breaker.{KEY}.bypassed")
