@@ -7,6 +7,8 @@ import {
 
 import {CanvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
 
+jest.unmock('lodash/debounce');
+
 // Mock rrweb pieces used by the plugin
 jest.mock('@sentry-internal/rrweb', () => {
   return {
@@ -16,32 +18,6 @@ jest.mock('@sentry-internal/rrweb', () => {
     canvasMutation: jest.fn(() => Promise.resolve()),
   };
 });
-
-// debounce doesn't work with fake timers
-vi.mock('lodash/debounce', () => ({
-  default: vi.fn().mockImplementation((callback, timeout) => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const debounced = vi.fn((...args: any[]) => {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => callback(...args), timeout);
-    });
-
-    const cancel = vi.fn(() => {
-      if (timeoutId) clearTimeout(timeoutId);
-    });
-
-    const flush = vi.fn(() => {
-      if (timeoutId) clearTimeout(timeoutId);
-      callback();
-    });
-
-    // @ts-expect-error mock lodash debounce
-    debounced.cancel = cancel;
-    // @ts-expect-error mock lodash debounce
-    debounced.flush = flush;
-    return debounced;
-  }),
-}));
 
 type EventWithTime = {
   data: any;

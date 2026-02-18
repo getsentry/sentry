@@ -33,37 +33,3 @@ exports[`highlightFuseMatches > renders a highlighted string 1`] = `
   </span>,
 ]
 `;
-
-exports[`highlightFuseMatches matches whole word 1`] = `
-[
-  <Mark>
-    foo
-  </Mark>,
-]
-`;
-
-exports[`highlightFuseMatches renders a highlighted string 1`] = `
-[
-  <span>
-    Auth
-  </span>,
-  <Mark>
-    ent
-  </Mark>,
-  <span>
-    icati
-  </span>,
-  <Mark>
-    on
-  </Mark>,
-  <span>
-     
-  </span>,
-  <Mark>
-    to
-  </Mark>,
-  <span>
-    kens allow you to perform actions
-  </span>,
-]
-`;

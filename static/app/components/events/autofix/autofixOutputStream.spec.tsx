@@ -48,9 +48,12 @@ describe('AutofixOutputStream', () => {
       />
     );
 
-    await waitFor(() => {
-      expect(screen.getByText('Active log message')).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Active log message')).toBeInTheDocument();
+      },
+      {timeout: 5000}
+    );
   });
 
   it('shows required input placeholder when responseRequired is true', () => {

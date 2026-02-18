@@ -313,7 +313,10 @@ describe('DropdownMenu', () => {
     const onAction = jest.fn();
     const user = userEvent.setup();
 
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi
+      // @ts-expect-error _virtualConsole is not typed
+      .spyOn(window._virtualConsole, 'emit')
+      .mockImplementation(() => {});
 
     render(
       <DropdownMenu
