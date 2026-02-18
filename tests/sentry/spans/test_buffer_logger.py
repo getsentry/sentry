@@ -276,8 +276,8 @@ class TestEmitObservabilityMetrics:
             latency_metrics=[[]],
             gauge_metrics=[
                 [
-                    [b"parent_span_set_already_oversized", 1],
-                    [b"redirect_depth", 1],
+                    (b"parent_span_set_already_oversized", 1.0),
+                    (b"redirect_depth", 1.0),
                 ],
             ],
             longest_evalsha_data=(0, [], []),
