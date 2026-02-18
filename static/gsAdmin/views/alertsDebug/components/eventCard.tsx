@@ -21,57 +21,50 @@ interface EventCardProps {
 export function EventCard({eventId, onRemove}: EventCardProps) {
   const {data: apiEvent, isPending, isError} = useAdminEvent(eventId);
 
-  // Fall back to mock event when API errors (for dev when backend doesn't exist)
-  // Use known mock if available, otherwise generate one from the eventId
   const mockEvent = MOCK_EVENTS[eventId] ?? EventFixture({eventID: eventId});
   const event = isError ? mockEvent : apiEvent;
 
-  // Loading state
-  if (isPending) {
-    return (
-      <Container padding="md" background="secondary" radius="md" border="primary">
+  return (
+    <Container padding="md" background="secondary" radius="md" border="primary">
+      {isPending ? (
         <Flex gap="md" align="center">
           <LoadingIndicator mini />
           <Text>Loading event {eventId}...</Text>
         </Flex>
-      </Container>
-    );
-  }
-
-  // Success state
-  return (
-    <Container padding="md" background="secondary" radius="md" border="primary">
-      <Flex gap="md" justify="between" align="start">
-        <Stack gap="xs" flex="1">
-          <Flex gap="sm" align="center" wrap="wrap">
-            <Text bold>{event?.title || 'Untitled Event'}</Text>
-            {event?.platform && <Tag>{event.platform}</Tag>}
-            {isError && <Tag variant="warning">Mock Data</Tag>}
-          </Flex>
-          {event?.message && event.message !== event.title && (
-            <Text variant="muted" size="sm">
-              {event.message}
-            </Text>
-          )}
-          <Flex gap="md">
-            <Text size="sm" variant="muted">
-              ID: {event?.eventID}
-            </Text>
-            {event?.dateCreated && (
-              <Text size="sm" variant="muted">
-                Created: {new Date(event.dateCreated).toLocaleString()}
+      ) : (
+        <Flex gap="md" justify="between" align="start">
+          <Stack gap="xs" flex="1">
+            <Flex gap="sm" align="center" wrap="wrap">
+              <Text bold>{event?.title || 'Untitled Event'}</Text>
+              {event?.platform && <Tag>{event.platform}</Tag>}
+              {isError && <Tag variant="warning">Mock Data</Tag>}
+            </Flex>
+            {event?.message && event.message !== event.title && (
+              <Text variant="muted" size="sm">
+                {event.message}
               </Text>
             )}
-          </Flex>
-        </Stack>
-        <Button
-          size="xs"
-          priority="transparent"
-          icon={<IconClose />}
-          aria-label={`Remove event ${eventId}`}
-          onClick={() => onRemove(eventId)}
-        />
-      </Flex>
+            <Flex gap="md">
+              <Text size="sm" variant="muted">
+                ID: {event?.eventID}
+              </Text>
+              {event?.dateCreated && (
+                <Text size="sm" variant="muted">
+                  Created: {new Date(event.dateCreated).toLocaleString()}
+                </Text>
+              )}
+            </Flex>
+          </Stack>
+
+          <Button
+            size="xs"
+            priority="transparent"
+            icon={<IconClose />}
+            aria-label={`Remove event ${eventId}`}
+            onClick={() => onRemove(eventId)}
+          />
+        </Flex>
+      )}
     </Container>
   );
 }
