@@ -3,13 +3,11 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {SelectKey, SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
-import {Text} from '@sentry/scraps/text';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
 import {IconHide} from 'sentry/icons/iconHide';
-import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
-import {AggregationKey, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -39,6 +37,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {SPAN_AGGREGATE_OPTIONS} from 'sentry/views/explore/toolbar/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ToolbarVisualizeProps {
@@ -207,58 +206,6 @@ function VisualizeDropdown({
   const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags('boolean');
   const hasMultiSelect = organization.features.includes('traces-overlay-charts-ui');
 
-  const aggregateOptions: Array<SelectSection<string>> = useMemo(() => {
-    const toOption = (aggregate: AggregationKey, showDefault = false) => {
-      return {
-        label: aggregate,
-        value: aggregate,
-        textValue: aggregate,
-        trailingItems: showDefault ? <Text size="xs">{t('Default')}</Text> : undefined,
-      };
-    };
-
-    return [
-      {
-        key: 'count',
-        label: t('Count'),
-        options: [
-          toOption(AggregationKey.COUNT, true),
-          toOption(AggregationKey.COUNT_UNIQUE),
-          toOption(AggregationKey.SUM),
-        ],
-      },
-      {
-        key: 'percentiles',
-        label: t('Percentiles'),
-        options: [
-          AggregationKey.AVG,
-          AggregationKey.P50,
-          AggregationKey.P75,
-          AggregationKey.P90,
-          AggregationKey.P95,
-          AggregationKey.P99,
-          AggregationKey.P100,
-          AggregationKey.MIN,
-          AggregationKey.MAX,
-        ].map(aggregate => toOption(aggregate)),
-      },
-      {
-        key: 'rate',
-        label: t('Rate'),
-        options: [AggregationKey.EPM, AggregationKey.EPS].map(aggregate =>
-          toOption(aggregate)
-        ),
-      },
-      {
-        key: 'error',
-        label: t('Error'),
-        options: [AggregationKey.FAILURE_RATE, AggregationKey.FAILURE_COUNT].map(
-          aggregate => toOption(aggregate)
-        ),
-      },
-    ];
-  }, []);
-
   const parsedFunctions = useMemo(
     () => visualize.yAxes.map(yAxis => parseFunction(yAxis)),
     [visualize.yAxes]
@@ -289,7 +236,7 @@ function VisualizeDropdown({
           aggregate => !previousAggregates.has(aggregate)
         );
         if (newlyAdded) {
-          const targetGroup = aggregateOptions.find(section =>
+          const targetGroup = SPAN_AGGREGATE_OPTIONS.find(section =>
             section.options.some(opt => opt.value === newlyAdded)
           );
           if (targetGroup) {
@@ -329,7 +276,13 @@ function VisualizeDropdown({
         onReplace(visualize.replace({yAxis}));
       }
     },
-    [aggregateOptions, onReplace, parsedAggregates, parsedFunction, visualize]
+    [
+      onReplace,
+      parsedAggregates,
+      parsedFunction?.arguments,
+      parsedFunction?.name,
+      visualize,
+    ]
   );
 
   const getFieldValueType = useCallback(
@@ -433,7 +386,7 @@ function VisualizeDropdown({
   return (
     <ToolbarVisualizeDropdown
       aggregateMultiple={hasMultiSelect}
-      aggregateOptions={aggregateOptions}
+      aggregateOptions={SPAN_AGGREGATE_OPTIONS}
       aggregateValue={aggregateValue}
       fieldOptions={fieldOptions}
       canDelete={canDelete}
