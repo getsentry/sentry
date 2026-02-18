@@ -3879,6 +3879,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Forces ArroyoRunTaskWithMultiprocessing steps to instruct the SharedMemoryManager to
+# spawn processes rather than forking.
+# As this impacts the shared memory manager initialization, which happens during
+# the creation of the strategy, a rebalance or a restart is needed for this
+# option change to take effect.
+register(
+    "consumer.shared_memory_spawn_process",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
