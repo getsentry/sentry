@@ -1,6 +1,5 @@
 import unittest
 
-from sentry.testutils.cases import TestCase
 from sentry.utils.event_frames import (
     EventFrame,
     cocoa_frame_munger,
@@ -14,33 +13,27 @@ from sentry.utils.event_frames import (
 from sentry.utils.safe import get_path
 
 
-class SdkNameTestCase(TestCase):
-    def test_sdk_data_pathing(self) -> None:
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "Foo bar",
-                "sdk": {"name": "sentry.javascript.react-native", "version": "1.2.3"},
-            },
-            project_id=self.project.id,
-        )
+def test_sdk_data_pathing() -> None:
+    event_data = {
+        "event_id": "a" * 32,
+        "message": "Foo bar",
+        "sdk": {"name": "sentry.javascript.react-native", "version": "1.2.3"},
+    }
 
-        assert not get_sdk_name(None)
-        assert event.data["sdk"]["name"] == "sentry.javascript.react-native"
-        assert get_sdk_name(event.data) == "sentry.javascript.react-native"
-        assert str(get_path(event.data, "sdk", "version", filter=True)) == "1.2.3"
-        assert not get_path(event.data, "sdk", "does_not_exist", filter=True)
+    assert not get_sdk_name(None)
+    assert event_data["sdk"]["name"] == "sentry.javascript.react-native"
+    assert get_sdk_name(event_data) == "sentry.javascript.react-native"
+    assert str(get_path(event_data, "sdk", "version", filter=True)) == "1.2.3"
+    assert not get_path(event_data, "sdk", "does_not_exist", filter=True)
 
-    def test_sdk_data_not_exist(self) -> None:
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "Foo bar",
-            },
-            project_id=self.project.id,
-        )
 
-        assert not get_sdk_name(event.data)
+def test_sdk_data_not_exist() -> None:
+    event_data = {
+        "event_id": "a" * 32,
+        "message": "Foo bar",
+    }
+
+    assert not get_sdk_name(event_data)
 
 
 class CrashingThreadTestCase(unittest.TestCase):
@@ -454,462 +447,508 @@ def test_flutter_no_package_not_munged() -> None:
     )
 
 
-class CocoaWaterFallTestCase(TestCase):
-    def test_crashing_event_with_exception_interface_but_no_frame_should_waterfall_to_thread_frames(
-        self,
-    ) -> None:
-        event = self.store_event(
-            data={
-                "platform": "cocoa",
-                "exception": {
-                    "values": [
-                        {
-                            "type": "C++ Exception",
-                            "value": "NSt3__112system_errorE",
-                            "thread_id": 9,
-                            "mechanism": {
-                                "type": "cpp_exception",
-                                "handled": False,
-                                "meta": {
-                                    "signal": {"number": 6, "code": 0, "name": "SIGABRT"},
-                                    "mach_exception": {
-                                        "exception": 10,
-                                        "code": 0,
-                                        "subcode": 0,
-                                        "name": "EXC_CRASH",
-                                    },
+def test_cocoa_crashing_event_with_exception_interface_but_no_frame_should_waterfall_to_thread_frames() -> (
+    None
+):
+    event_data = {
+        "platform": "cocoa",
+        "exception": {
+            "values": [
+                {
+                    "type": "C++ Exception",
+                    "value": "NSt3__112system_errorE",
+                    "thread_id": 9,
+                    "mechanism": {
+                        "type": "cpp_exception",
+                        "handled": False,
+                        "meta": {
+                            "signal": {"number": 6, "code": 0, "name": "SIGABRT"},
+                            "mach_exception": {
+                                "exception": 10,
+                                "code": 0,
+                                "subcode": 0,
+                                "name": "EXC_CRASH",
+                            },
+                        },
+                    },
+                }
+            ]
+        },
+        "threads": {
+            "values": [
+                {
+                    "id": 0,
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "<redacted>",
+                                "in_app": False,
+                                "data": {"symbolicator_status": "unknown_image"},
+                                "image_addr": "0x0",
+                                "instruction_addr": "0x1028d5aa4",
+                                "symbol_addr": "0x0",
+                            },
+                            {
+                                "function": "main",
+                                "symbol": "main",
+                                "package": "Runner",
+                                "filename": "AppDelegate.swift",
+                                "abs_path": "/Users/denis/Repos/sentry/sentry-mobile/ios/Runner/AppDelegate.swift",
+                                "lineno": 5,
+                                "in_app": True,
+                                "data": {"symbolicator_status": "symbolicated"},
+                                "image_addr": "0x102684000",
+                                "instruction_addr": "0x10268ab9c",
+                                "symbol_addr": "0x102684000",
+                            },
+                            {
+                                "function": "UIApplicationMain",
+                                "symbol": "UIApplicationMain",
+                                "package": "UIKitCore",
+                                "in_app": False,
+                                "data": {
+                                    "category": "threadbase",
+                                    "symbolicator_status": "symbolicated",
                                 },
+                                "image_addr": "0x183f6b000",
+                                "instruction_addr": "0x184203954",
+                                "symbol_addr": "0x18420312c",
                             },
-                        }
-                    ]
+                            {
+                                "function": "-[UIApplication _run]",
+                                "symbol": "-[UIApplication _run]",
+                                "package": "UIKitCore",
+                                "in_app": False,
+                                "data": {
+                                    "category": "ui",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x183f6b000",
+                                "instruction_addr": "0x184485084",
+                                "symbol_addr": "0x184484c3c",
+                            },
+                            {
+                                "function": "GSEventRunModal",
+                                "symbol": "GSEventRunModal",
+                                "package": "GraphicsServices",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x19d66d000",
+                                "instruction_addr": "0x19d66e388",
+                                "symbol_addr": "0x19d66e2e8",
+                            },
+                            {
+                                "function": "CFRunLoopRunSpecific",
+                                "symbol": "CFRunLoopRunSpecific",
+                                "package": "CoreFoundation",
+                                "in_app": False,
+                                "data": {
+                                    "category": "indirection",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x181ac4000",
+                                "instruction_addr": "0x181ae3464",
+                                "symbol_addr": "0x181ae3210",
+                            },
+                            {
+                                "function": "__CFRunLoopRun",
+                                "symbol": "__CFRunLoopRun",
+                                "package": "CoreFoundation",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x181ac4000",
+                                "instruction_addr": "0x181acf8a0",
+                                "symbol_addr": "0x181acf570",
+                            },
+                            {
+                                "function": "__CFRunLoopDoSources0",
+                                "symbol": "__CFRunLoopDoSources0",
+                                "package": "CoreFoundation",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x181ac4000",
+                                "instruction_addr": "0x181aca094",
+                                "symbol_addr": "0x181ac9f8c",
+                            },
+                            {
+                                "function": "__CFRunLoopDoSource0",
+                                "symbol": "__CFRunLoopDoSource0",
+                                "package": "CoreFoundation",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x181ac4000",
+                                "instruction_addr": "0x181b8fd8c",
+                                "symbol_addr": "0x181b8fcc0",
+                            },
+                            {
+                                "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
+                                "symbol": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
+                                "package": "CoreFoundation",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x181ac4000",
+                                "instruction_addr": "0x181b7f0cc",
+                                "symbol_addr": "0x181b7f0b4",
+                            },
+                            {
+                                "function": "-[FBSSerialQueue _performNextFromRunLoopSource]",
+                                "symbol": "-[FBSSerialQueue _performNextFromRunLoopSource]",
+                                "package": "FrontBoardServices",
+                                "in_app": False,
+                                "data": {"symbolicator_status": "symbolicated"},
+                                "image_addr": "0x19378c000",
+                                "instruction_addr": "0x19379b410",
+                                "symbol_addr": "0x19379b3f8",
+                            },
+                            {
+                                "function": "-[FBSSerialQueue _targetQueue_performNextIfPossible]",
+                                "symbol": "-[FBSSerialQueue _targetQueue_performNextIfPossible]",
+                                "package": "FrontBoardServices",
+                                "in_app": False,
+                                "data": {"symbolicator_status": "symbolicated"},
+                                "image_addr": "0x19378c000",
+                                "instruction_addr": "0x193796d88",
+                                "symbol_addr": "0x193796cb0",
+                            },
+                            {
+                                "function": "__FBSSERIALQUEUE_IS_CALLING_OUT_TO_A_BLOCK__",
+                                "symbol": "__FBSSERIALQUEUE_IS_CALLING_OUT_TO_A_BLOCK__",
+                                "package": "FrontBoardServices",
+                                "in_app": False,
+                                "data": {"symbolicator_status": "symbolicated"},
+                                "image_addr": "0x19378c000",
+                                "instruction_addr": "0x1937979c0",
+                                "symbol_addr": "0x193797994",
+                            },
+                            {
+                                "function": "_dispatch_block_invoke_direct",
+                                "symbol": "_dispatch_block_invoke_direct",
+                                "package": "libdispatch.dylib",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x1817cb000",
+                                "instruction_addr": "0x1817d3124",
+                                "symbol_addr": "0x1817d3020",
+                            },
+                            {
+                                "function": "_dispatch_client_callout",
+                                "symbol": "_dispatch_client_callout",
+                                "package": "libdispatch.dylib",
+                                "in_app": False,
+                                "data": {
+                                    "category": "threadbase",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x1817cb000",
+                                "instruction_addr": "0x1817cf66c",
+                                "symbol_addr": "0x1817cf65c",
+                            },
+                            {
+                                "function": "__63-[FBSWorkspaceScenesClient willTerminateWithTransitionContext:]_block_invoke",
+                                "symbol": "__63-[FBSWorkspaceScenesClient willTerminateWithTransitionContext:]_block_invoke",
+                                "package": "FrontBoardServices",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x19378c000",
+                                "instruction_addr": "0x1937db714",
+                                "symbol_addr": "0x1937db694",
+                            },
+                            {
+                                "function": "-[FBSWorkspace _calloutQueue_executeCalloutFromSource:withBlock:]",
+                                "symbol": "-[FBSWorkspace _calloutQueue_executeCalloutFromSource:withBlock:]",
+                                "package": "FrontBoardServices",
+                                "in_app": False,
+                                "data": {"symbolicator_status": "symbolicated"},
+                                "image_addr": "0x19378c000",
+                                "instruction_addr": "0x193796068",
+                                "symbol_addr": "0x193795f7c",
+                            },
+                            {
+                                "function": "__63-[FBSWorkspaceScenesClient willTerminateWithTransitionContext:]_block_invoke_2",
+                                "symbol": "__63-[FBSWorkspaceScenesClient willTerminateWithTransitionContext:]_block_invoke_2",
+                                "package": "FrontBoardServices",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x19378c000",
+                                "instruction_addr": "0x1937db77c",
+                                "symbol_addr": "0x1937db730",
+                            },
+                            {
+                                "function": "-[UIApplication workspaceShouldExit:withTransitionContext:]",
+                                "symbol": "-[UIApplication workspaceShouldExit:withTransitionContext:]",
+                                "package": "UIKitCore",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x183f6b000",
+                                "instruction_addr": "0x184ebc298",
+                                "symbol_addr": "0x184ebc1c8",
+                            },
+                            {
+                                "function": "-[_UISceneLifecycleMultiplexer forceExitWithTransitionContext:scene:]",
+                                "symbol": "-[_UISceneLifecycleMultiplexer forceExitWithTransitionContext:scene:]",
+                                "package": "UIKitCore",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x183f6b000",
+                                "instruction_addr": "0x18479ca7c",
+                                "symbol_addr": "0x18479c9a0",
+                            },
+                            {
+                                "function": "-[_UISceneLifecycleMultiplexer _evalTransitionToSettings:fromSettings:forceExit:withTransitionStore:]",
+                                "symbol": "-[_UISceneLifecycleMultiplexer _evalTransitionToSettings:fromSettings:forceExit:withTransitionStore:]",
+                                "package": "UIKitCore",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x183f6b000",
+                                "instruction_addr": "0x1845a7b34",
+                                "symbol_addr": "0x1845a7ab8",
+                            },
+                            {
+                                "function": "-[UIApplication _terminateWithStatus:]",
+                                "symbol": "-[UIApplication _terminateWithStatus:]",
+                                "package": "UIKitCore",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x183f6b000",
+                                "instruction_addr": "0x184ebf71c",
+                                "symbol_addr": "0x184ebf528",
+                            },
+                            {
+                                "function": "exit",
+                                "symbol": "exit",
+                                "package": "libsystem_c.dylib",
+                                "in_app": False,
+                                "data": {
+                                    "category": "shutdown",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x18ca01000",
+                                "instruction_addr": "0x18ca1c224",
+                                "symbol_addr": "0x18ca1c208",
+                            },
+                            {
+                                "function": "__cxa_finalize_ranges",
+                                "symbol": "__cxa_finalize_ranges",
+                                "package": "libsystem_c.dylib",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x18ca01000",
+                                "instruction_addr": "0x18ca218c0",
+                                "symbol_addr": "0x18ca216f8",
+                            },
+                            {
+                                "function": "__cxa_finalize_ranges",
+                                "symbol": "__cxa_finalize_ranges",
+                                "package": "libsystem_c.dylib",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x18ca01000",
+                                "instruction_addr": "0x18ca218c0",
+                                "symbol_addr": "0x18ca216f8",
+                            },
+                            {
+                                "function": "<redacted>",
+                                "package": "MetalPerformanceShadersGraph",
+                                "in_app": False,
+                                "data": {"symbolicator_status": "missing_symbol"},
+                                "image_addr": "0x1bec7a000",
+                                "instruction_addr": "0x1bf179c98",
+                                "symbol_addr": "0x0",
+                            },
+                        ]
+                    },
+                    "crashed": False,
+                    "current": False,
                 },
-                "threads": {
-                    "values": [
-                        {
-                            "id": 0,
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "<redacted>",
-                                        "in_app": False,
-                                        "data": {"symbolicator_status": "unknown_image"},
-                                        "image_addr": "0x0",
-                                        "instruction_addr": "0x1028d5aa4",
-                                        "symbol_addr": "0x0",
-                                    },
-                                    {
-                                        "function": "main",
-                                        "symbol": "main",
-                                        "package": "Runner",
-                                        "filename": "AppDelegate.swift",
-                                        "abs_path": "/Users/denis/Repos/sentry/sentry-mobile/ios/Runner/AppDelegate.swift",
-                                        "lineno": 5,
-                                        "in_app": True,
-                                        "data": {"symbolicator_status": "symbolicated"},
-                                        "image_addr": "0x102684000",
-                                        "instruction_addr": "0x10268ab9c",
-                                        "symbol_addr": "0x102684000",
-                                    },
-                                    {
-                                        "function": "UIApplicationMain",
-                                        "symbol": "UIApplicationMain",
-                                        "package": "UIKitCore",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "threadbase",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x183f6b000",
-                                        "instruction_addr": "0x184203954",
-                                        "symbol_addr": "0x18420312c",
-                                    },
-                                    {
-                                        "function": "-[UIApplication _run]",
-                                        "symbol": "-[UIApplication _run]",
-                                        "package": "UIKitCore",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "ui",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x183f6b000",
-                                        "instruction_addr": "0x184485084",
-                                        "symbol_addr": "0x184484c3c",
-                                    },
-                                    {
-                                        "function": "GSEventRunModal",
-                                        "symbol": "GSEventRunModal",
-                                        "package": "GraphicsServices",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x19d66d000",
-                                        "instruction_addr": "0x19d66e388",
-                                        "symbol_addr": "0x19d66e2e8",
-                                    },
-                                    {
-                                        "function": "CFRunLoopRunSpecific",
-                                        "symbol": "CFRunLoopRunSpecific",
-                                        "package": "CoreFoundation",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "indirection",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x181ac4000",
-                                        "instruction_addr": "0x181ae3464",
-                                        "symbol_addr": "0x181ae3210",
-                                    },
-                                    {
-                                        "function": "__CFRunLoopRun",
-                                        "symbol": "__CFRunLoopRun",
-                                        "package": "CoreFoundation",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x181ac4000",
-                                        "instruction_addr": "0x181acf8a0",
-                                        "symbol_addr": "0x181acf570",
-                                    },
-                                    {
-                                        "function": "__CFRunLoopDoSources0",
-                                        "symbol": "__CFRunLoopDoSources0",
-                                        "package": "CoreFoundation",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x181ac4000",
-                                        "instruction_addr": "0x181aca094",
-                                        "symbol_addr": "0x181ac9f8c",
-                                    },
-                                    {
-                                        "function": "__CFRunLoopDoSource0",
-                                        "symbol": "__CFRunLoopDoSource0",
-                                        "package": "CoreFoundation",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x181ac4000",
-                                        "instruction_addr": "0x181b8fd8c",
-                                        "symbol_addr": "0x181b8fcc0",
-                                    },
-                                    {
-                                        "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
-                                        "symbol": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
-                                        "package": "CoreFoundation",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x181ac4000",
-                                        "instruction_addr": "0x181b7f0cc",
-                                        "symbol_addr": "0x181b7f0b4",
-                                    },
-                                    {
-                                        "function": "-[FBSSerialQueue _performNextFromRunLoopSource]",
-                                        "symbol": "-[FBSSerialQueue _performNextFromRunLoopSource]",
-                                        "package": "FrontBoardServices",
-                                        "in_app": False,
-                                        "data": {"symbolicator_status": "symbolicated"},
-                                        "image_addr": "0x19378c000",
-                                        "instruction_addr": "0x19379b410",
-                                        "symbol_addr": "0x19379b3f8",
-                                    },
-                                    {
-                                        "function": "-[FBSSerialQueue _targetQueue_performNextIfPossible]",
-                                        "symbol": "-[FBSSerialQueue _targetQueue_performNextIfPossible]",
-                                        "package": "FrontBoardServices",
-                                        "in_app": False,
-                                        "data": {"symbolicator_status": "symbolicated"},
-                                        "image_addr": "0x19378c000",
-                                        "instruction_addr": "0x193796d88",
-                                        "symbol_addr": "0x193796cb0",
-                                    },
-                                    {
-                                        "function": "__FBSSERIALQUEUE_IS_CALLING_OUT_TO_A_BLOCK__",
-                                        "symbol": "__FBSSERIALQUEUE_IS_CALLING_OUT_TO_A_BLOCK__",
-                                        "package": "FrontBoardServices",
-                                        "in_app": False,
-                                        "data": {"symbolicator_status": "symbolicated"},
-                                        "image_addr": "0x19378c000",
-                                        "instruction_addr": "0x1937979c0",
-                                        "symbol_addr": "0x193797994",
-                                    },
-                                    {
-                                        "function": "_dispatch_block_invoke_direct",
-                                        "symbol": "_dispatch_block_invoke_direct",
-                                        "package": "libdispatch.dylib",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x1817cb000",
-                                        "instruction_addr": "0x1817d3124",
-                                        "symbol_addr": "0x1817d3020",
-                                    },
-                                    {
-                                        "function": "_dispatch_client_callout",
-                                        "symbol": "_dispatch_client_callout",
-                                        "package": "libdispatch.dylib",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "threadbase",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x1817cb000",
-                                        "instruction_addr": "0x1817cf66c",
-                                        "symbol_addr": "0x1817cf65c",
-                                    },
-                                    {
-                                        "function": "__63-[FBSWorkspaceScenesClient willTerminateWithTransitionContext:]_block_invoke",
-                                        "symbol": "__63-[FBSWorkspaceScenesClient willTerminateWithTransitionContext:]_block_invoke",
-                                        "package": "FrontBoardServices",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x19378c000",
-                                        "instruction_addr": "0x1937db714",
-                                        "symbol_addr": "0x1937db694",
-                                    },
-                                    {
-                                        "function": "-[FBSWorkspace _calloutQueue_executeCalloutFromSource:withBlock:]",
-                                        "symbol": "-[FBSWorkspace _calloutQueue_executeCalloutFromSource:withBlock:]",
-                                        "package": "FrontBoardServices",
-                                        "in_app": False,
-                                        "data": {"symbolicator_status": "symbolicated"},
-                                        "image_addr": "0x19378c000",
-                                        "instruction_addr": "0x193796068",
-                                        "symbol_addr": "0x193795f7c",
-                                    },
-                                    {
-                                        "function": "__63-[FBSWorkspaceScenesClient willTerminateWithTransitionContext:]_block_invoke_2",
-                                        "symbol": "__63-[FBSWorkspaceScenesClient willTerminateWithTransitionContext:]_block_invoke_2",
-                                        "package": "FrontBoardServices",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x19378c000",
-                                        "instruction_addr": "0x1937db77c",
-                                        "symbol_addr": "0x1937db730",
-                                    },
-                                    {
-                                        "function": "-[UIApplication workspaceShouldExit:withTransitionContext:]",
-                                        "symbol": "-[UIApplication workspaceShouldExit:withTransitionContext:]",
-                                        "package": "UIKitCore",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x183f6b000",
-                                        "instruction_addr": "0x184ebc298",
-                                        "symbol_addr": "0x184ebc1c8",
-                                    },
-                                    {
-                                        "function": "-[_UISceneLifecycleMultiplexer forceExitWithTransitionContext:scene:]",
-                                        "symbol": "-[_UISceneLifecycleMultiplexer forceExitWithTransitionContext:scene:]",
-                                        "package": "UIKitCore",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x183f6b000",
-                                        "instruction_addr": "0x18479ca7c",
-                                        "symbol_addr": "0x18479c9a0",
-                                    },
-                                    {
-                                        "function": "-[_UISceneLifecycleMultiplexer _evalTransitionToSettings:fromSettings:forceExit:withTransitionStore:]",
-                                        "symbol": "-[_UISceneLifecycleMultiplexer _evalTransitionToSettings:fromSettings:forceExit:withTransitionStore:]",
-                                        "package": "UIKitCore",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x183f6b000",
-                                        "instruction_addr": "0x1845a7b34",
-                                        "symbol_addr": "0x1845a7ab8",
-                                    },
-                                    {
-                                        "function": "-[UIApplication _terminateWithStatus:]",
-                                        "symbol": "-[UIApplication _terminateWithStatus:]",
-                                        "package": "UIKitCore",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x183f6b000",
-                                        "instruction_addr": "0x184ebf71c",
-                                        "symbol_addr": "0x184ebf528",
-                                    },
-                                    {
-                                        "function": "exit",
-                                        "symbol": "exit",
-                                        "package": "libsystem_c.dylib",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "shutdown",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x18ca01000",
-                                        "instruction_addr": "0x18ca1c224",
-                                        "symbol_addr": "0x18ca1c208",
-                                    },
-                                    {
-                                        "function": "__cxa_finalize_ranges",
-                                        "symbol": "__cxa_finalize_ranges",
-                                        "package": "libsystem_c.dylib",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x18ca01000",
-                                        "instruction_addr": "0x18ca218c0",
-                                        "symbol_addr": "0x18ca216f8",
-                                    },
-                                    {
-                                        "function": "__cxa_finalize_ranges",
-                                        "symbol": "__cxa_finalize_ranges",
-                                        "package": "libsystem_c.dylib",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x18ca01000",
-                                        "instruction_addr": "0x18ca218c0",
-                                        "symbol_addr": "0x18ca216f8",
-                                    },
-                                    {
-                                        "function": "<redacted>",
-                                        "package": "MetalPerformanceShadersGraph",
-                                        "in_app": False,
-                                        "data": {"symbolicator_status": "missing_symbol"},
-                                        "image_addr": "0x1bec7a000",
-                                        "instruction_addr": "0x1bf179c98",
-                                        "symbol_addr": "0x0",
-                                    },
-                                ]
+                {
+                    "id": 1,
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "_pthread_wqthread",
+                                "symbol": "_pthread_wqthread",
+                                "package": "libsystem_pthread.dylib",
+                                "in_app": False,
+                                "data": {
+                                    "category": "threadbase",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x1f2532000",
+                                "instruction_addr": "0x1f253313c",
+                                "symbol_addr": "0x1f2532fd4",
                             },
-                            "crashed": False,
-                            "current": False,
-                        },
-                        {
-                            "id": 1,
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "_pthread_wqthread",
-                                        "symbol": "_pthread_wqthread",
-                                        "package": "libsystem_pthread.dylib",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "threadbase",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x1f2532000",
-                                        "instruction_addr": "0x1f253313c",
-                                        "symbol_addr": "0x1f2532fd4",
-                                    },
-                                    {
-                                        "function": "__workq_kernreturn",
-                                        "symbol": "__workq_kernreturn",
-                                        "package": "libsystem_kernel.dylib",
-                                        "in_app": False,
-                                        "data": {
-                                            "category": "internals",
-                                            "symbolicator_status": "symbolicated",
-                                        },
-                                        "image_addr": "0x1b9090000",
-                                        "instruction_addr": "0x1b9091b2c",
-                                        "symbol_addr": "0x1b9091b24",
-                                    },
-                                ]
+                            {
+                                "function": "__workq_kernreturn",
+                                "symbol": "__workq_kernreturn",
+                                "package": "libsystem_kernel.dylib",
+                                "in_app": False,
+                                "data": {
+                                    "category": "internals",
+                                    "symbolicator_status": "symbolicated",
+                                },
+                                "image_addr": "0x1b9090000",
+                                "instruction_addr": "0x1b9091b2c",
+                                "symbol_addr": "0x1b9091b24",
                             },
-                            "crashed": False,
-                            "current": False,
-                        },
-                    ]
+                        ]
+                    },
+                    "crashed": False,
+                    "current": False,
                 },
-            },
-            project_id=self.project.id,
-        )
+            ]
+        },
+    }
 
-        frames = find_stack_frames(event.data)
-        assert len(frames) == 0  # exception has no frames, no threads that are crashed, or current
+    frames = find_stack_frames(event_data)
+    assert len(frames) == 0  # exception has no frames, no threads that are crashed, or current
 
 
-class WaterFallTestCase(TestCase):
-    def test_only_exception_interface_with_no_stacktrace(self) -> None:
-        event = self.store_event(
-            data={
-                "exception": {
-                    "values": [
-                        {
-                            "type": "EXC_BAD_ACCESS",
-                            "value": "Attempted to dereference a null pointer",
-                        }
-                    ]
+def test_waterfall_only_exception_interface_with_no_stacktrace() -> None:
+    event_data = {
+        "exception": {
+            "values": [
+                {
+                    "type": "EXC_BAD_ACCESS",
+                    "value": "Attempted to dereference a null pointer",
                 }
-            },
-            project_id=self.project.id,
-        )
+            ]
+        }
+    }
 
-        frames = find_stack_frames(event.data)
-        assert len(frames) == 0
+    frames = find_stack_frames(event_data)
+    assert len(frames) == 0
 
-    def test_only_exception_interface_single_stacktrace(self) -> None:
-        event = self.store_event(
-            data={
-                "exception": {
-                    "values": [
-                        {
-                            "type": "EXC_BAD_ACCESS",
-                            "value": "Attempted to dereference a null pointer",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "invoke0",
-                                        "abs_path": "NativeMethodAccessorImpl.java",
-                                        "in_app": False,
-                                        "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
-                                        "filename": "NativeMethodAccessorImpl.java",
-                                    }
-                                ],
-                                "registers": {},
-                            },
-                        }
-                    ]
+
+def test_waterfall_only_exception_interface_single_stacktrace() -> None:
+    event_data = {
+        "exception": {
+            "values": [
+                {
+                    "type": "EXC_BAD_ACCESS",
+                    "value": "Attempted to dereference a null pointer",
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "invoke0",
+                                "abs_path": "NativeMethodAccessorImpl.java",
+                                "in_app": False,
+                                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                "filename": "NativeMethodAccessorImpl.java",
+                            }
+                        ],
+                        "registers": {},
+                    },
                 }
-            },
-            project_id=self.project.id,
-        )
+            ]
+        }
+    }
 
-        frames = find_stack_frames(event.data)
-        assert len(frames) == 1
-        assert frames[0]["function"] == "invoke0"
-        assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
+    frames = find_stack_frames(event_data)
+    assert len(frames) == 1
+    assert frames[0]["function"] == "invoke0"
+    assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
 
-    def test_only_stacktrace_interface(self) -> None:
-        event = self.store_event(
-            data={
+
+def test_waterfall_only_stacktrace_interface() -> None:
+    event_data = {
+        "stacktrace": {
+            "frames": [
+                {
+                    "function": "invoke0",
+                    "abs_path": "NativeMethodAccessorImpl.java",
+                    "in_app": False,
+                    "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                    "filename": "NativeMethodAccessorImpl.java",
+                }
+            ],
+            "registers": {},
+        },
+    }
+
+    frames = find_stack_frames(event_data)
+    assert len(frames) == 1
+    assert frames[0]["function"] == "invoke0"
+    assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
+
+
+def test_waterfall_only_thread_interface() -> None:
+    event_data = {
+        "threads": {
+            "values": [
+                {
+                    "id": 0,
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "invoke0",
+                                "abs_path": "NativeMethodAccessorImpl.java",
+                                "in_app": False,
+                                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                "filename": "NativeMethodAccessorImpl.java",
+                            }
+                        ],
+                        "registers": {},
+                    },
+                    "crashed": False,
+                    "current": False,
+                }
+            ]
+        }
+    }
+
+    frames = find_stack_frames(event_data)
+    assert len(frames) == 1
+    assert frames[0]["function"] == "invoke0"
+    assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
+
+
+def test_waterfall_only_thread_interface_flattened() -> None:
+    event_data = {
+        "threads": [
+            {
+                "id": 0,
                 "stacktrace": {
                     "frames": [
                         {
@@ -922,150 +961,85 @@ class WaterFallTestCase(TestCase):
                     ],
                     "registers": {},
                 },
-            },
-            project_id=self.project.id,
-        )
+                "crashed": False,
+                "current": False,
+            }
+        ]
+    }
 
-        frames = find_stack_frames(event.data)
-        assert len(frames) == 1
-        assert frames[0]["function"] == "invoke0"
-        assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
+    frames = find_stack_frames(event_data)
+    assert len(frames) == 1
+    assert frames[0]["function"] == "invoke0"
+    assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
 
-    def test_only_thread_interface(self) -> None:
-        event = self.store_event(
-            data={
-                "threads": {
-                    "values": [
-                        {
-                            "id": 0,
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "invoke0",
-                                        "abs_path": "NativeMethodAccessorImpl.java",
-                                        "in_app": False,
-                                        "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
-                                        "filename": "NativeMethodAccessorImpl.java",
-                                    }
-                                ],
-                                "registers": {},
-                            },
-                            "crashed": False,
-                            "current": False,
-                        }
-                    ]
+
+def test_waterfall_exception_and_stacktrace_interfaces() -> None:
+    exception_frame = {
+        "function": "invoke0",
+        "abs_path": "NativeMethodAccessorImpl.java",
+        "in_app": False,
+        "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+        "filename": "NativeMethodAccessorImpl.java",
+    }
+
+    # When both exception and stacktrace interfaces are present,
+    # find_stack_frames prioritizes exception interface frames
+    event_data = {
+        "exception": {
+            "values": [
+                {
+                    "type": "EXC_BAD_ACCESS",
+                    "value": "Attempted to dereference a null pointer",
+                    "stacktrace": {
+                        "frames": [exception_frame],
+                        "registers": {},
+                    },
                 }
-            },
-            project_id=self.project.id,
-        )
+            ]
+        },
+        "stacktrace": {
+            "frames": [{"different": "frame"}],
+            "registers": {},
+        },
+    }
 
-        frames = find_stack_frames(event.data)
-        assert len(frames) == 1
-        assert frames[0]["function"] == "invoke0"
-        assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
+    frames = find_stack_frames(event_data)
+    assert len(frames) == 1
+    assert exception_frame.items() <= frames[0].items()
 
-    def test_only_thread_interface_flattened(self) -> None:
-        event = self.store_event(
-            data={
-                "threads": [
-                    {
-                        "id": 0,
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "invoke0",
-                                    "abs_path": "NativeMethodAccessorImpl.java",
-                                    "in_app": False,
-                                    "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
-                                    "filename": "NativeMethodAccessorImpl.java",
-                                }
-                            ],
-                            "registers": {},
-                        },
-                        "crashed": False,
-                        "current": False,
-                    }
-                ]
-            },
-            project_id=self.project.id,
-        )
 
-        frames = find_stack_frames(event.data)
-        assert len(frames) == 1
-        assert frames[0]["function"] == "invoke0"
-        assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
-
-    def test_exception_and_stacktrace_interfaces(self) -> None:
-        exception_frame = {
-            "function": "invoke0",
-            "abs_path": "NativeMethodAccessorImpl.java",
-            "in_app": False,
-            "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
-            "filename": "NativeMethodAccessorImpl.java",
-        }
-
-        # event.stacktrace will get re-processed and moved over to event.exception.values[0].stacktrace
-        event = self.store_event(
-            data={
-                "exception": {
-                    "values": [
-                        {
-                            "type": "EXC_BAD_ACCESS",
-                            "value": "Attempted to dereference a null pointer",
-                            "stacktrace": {
-                                "frames": [{"doesn't": "matter"}],
-                                "registers": {},
+def test_waterfall_exception_and_stacktrace_and_thread_interfaces() -> None:
+    # no stacktrace frame in exception interface, so we waterfall to the threads interface
+    event_data = {
+        "exception": {
+            "values": [
+                {
+                    "type": "EXC_BAD_ACCESS",
+                    "value": "Attempted to dereference a null pointer",
+                }
+            ]
+        },
+        "threads": {
+            "values": [
+                {
+                    "id": 0,
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "module": "io.sentry.example.Application",
+                                "filename": "Application.java",
                             },
-                        }
-                    ]
-                },
-                "stacktrace": {
-                    "frames": [exception_frame],
-                    "registers": {},
-                },
-            },
-            project_id=self.project.id,
-        )
+                        ],
+                        "registers": {},
+                    },
+                    "crashed": False,
+                    "current": False,
+                }
+            ]
+        },
+    }
 
-        frames = find_stack_frames(event.data)
-        assert len(frames) == 1
-        assert exception_frame.items() <= frames[0].items()
-
-    def test_exception_and_stacktrace_and_thread_interfaces(self) -> None:
-        # no stacktrace frame in exception interface, so we waterfall to the threads interface
-        event = self.store_event(
-            data={
-                "exception": {
-                    "values": [
-                        {
-                            "type": "EXC_BAD_ACCESS",
-                            "value": "Attempted to dereference a null pointer",
-                        }
-                    ]
-                },
-                "threads": {
-                    "values": [
-                        {
-                            "id": 0,
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "module": "io.sentry.example.Application",
-                                        "filename": "Application.java",
-                                    },
-                                ],
-                                "registers": {},
-                            },
-                            "crashed": False,
-                            "current": False,
-                        }
-                    ]
-                },
-            },
-            project_id=self.project.id,
-        )
-
-        frames = find_stack_frames(event.data)
-        assert len(frames) == 1
-        assert frames[0]["module"] == "io.sentry.example.Application"
-        assert frames[0]["filename"] == "Application.java"
+    frames = find_stack_frames(event_data)
+    assert len(frames) == 1
+    assert frames[0]["module"] == "io.sentry.example.Application"
+    assert frames[0]["filename"] == "Application.java"

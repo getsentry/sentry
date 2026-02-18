@@ -9,7 +9,7 @@ from sentry.api.serializers.rest_framework.base import (
     convert_dict_key_case,
     snake_to_camel_case,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class PersonSerializer(CamelSnakeSerializer):
@@ -46,19 +46,21 @@ class ContentTypeSerializer(CamelSnakeModelSerializer):
         fields = ["app_label", "model"]
 
 
-class CamelSnakeModelSerializerTest(TestCase):
-    def test_simple(self) -> None:
-        serializer = ContentTypeSerializer(data={"appLabel": "hello", "model": "Something"})
-        assert serializer.is_valid()
-        assert serializer.data == {"model": "Something", "app_label": "hello"}
+@django_db_all
+def test_camel_snake_model_serializer_simple() -> None:
+    serializer = ContentTypeSerializer(data={"appLabel": "hello", "model": "Something"})
+    assert serializer.is_valid()
+    assert serializer.data == {"model": "Something", "app_label": "hello"}
 
-    def test_error(self) -> None:
-        serializer = ContentTypeSerializer(data={"appLabel": None})
-        assert not serializer.is_valid()
-        assert serializer.errors == {
-            "appLabel": ["This field may not be null."],
-            "model": ["This field is required."],
-        }
+
+@django_db_all
+def test_camel_snake_model_serializer_error() -> None:
+    serializer = ContentTypeSerializer(data={"appLabel": None})
+    assert not serializer.is_valid()
+    assert serializer.errors == {
+        "appLabel": ["This field may not be null."],
+        "model": ["This field is required."],
+    }
 
 
 def test_convert_dict_key_case() -> None:
