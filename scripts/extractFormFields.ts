@@ -361,6 +361,10 @@ function generateRegistryFile(fields: ExtractedField[], outputPath: string): voi
     (f): f is ExtractedField & {route: string} => Boolean(f.route)
   );
 
+  // Escape a string for embedding in a single-quoted JS literal
+  const escapeSingleQuotedString = (value: string): string =>
+    value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
   const formatField = (field: ExtractedField & {route: string}): string => {
     const lines = [
       `    name: '${field.name}',`,
@@ -368,10 +372,10 @@ function generateRegistryFile(fields: ExtractedField[], outputPath: string): voi
       `    route: '${field.route}',`,
     ];
     if (field.label) {
-      lines.push(`    label: t('${field.label.replace(/'/g, "\\'")}'),`);
+      lines.push(`    label: t('${escapeSingleQuotedString(field.label)}'),`);
     }
     if (field.hintText) {
-      lines.push(`    hintText: t('${field.hintText.replace(/'/g, "\\'")}'),`);
+      lines.push(`    hintText: t('${escapeSingleQuotedString(field.hintText)}'),`);
     }
     return lines.join('\n');
   };
