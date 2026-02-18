@@ -400,3 +400,24 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         )
         assert response.data["detail"] == "You do not have permission to perform this action."
         assert OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
+
+    def test_cannot_get_invite_from_another_organization(self):
+        """Fetching an invite by ID should be scoped to the organization in the URL."""
+        other_org = self.create_organization(name="Other Org", owner=self.create_user())
+        other_invite = self.create_member_invite(
+            organization=other_org, email="secret@other-org.com", role="owner"
+        )
+
+        self.get_error_response(self.organization.slug, other_invite.id, status_code=404)
+
+    def test_cannot_delete_invite_from_another_organization(self):
+        """Deleting an invite by ID should be scoped to the organization in the URL."""
+        other_org = self.create_organization(name="Other Org", owner=self.create_user())
+        other_invite = self.create_member_invite(
+            organization=other_org, email="secret@other-org.com", role="owner"
+        )
+
+        self.get_error_response(
+            self.organization.slug, other_invite.id, method="delete", status_code=404
+        )
+        assert OrganizationMemberInvite.objects.filter(id=other_invite.id).exists()
