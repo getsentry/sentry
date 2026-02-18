@@ -178,7 +178,6 @@ def test_flusher_waits_for_processes_to_start() -> None:
         backpressure_since,
         healthy_since,
         produce_to_pipe,
-        flusher_log_queue,
     ):
         # Don't set healthy_since.value, simulating a process that never becomes healthy
         return
