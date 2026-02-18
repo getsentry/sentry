@@ -8,6 +8,7 @@ from sentry.models.organization import Organization
 from sentry.reports.models import ScheduledReport, ScheduledReportFrequency
 from sentry.users.services.user.service import user_service
 from sentry.utils.email.message_builder import MessageBuilder
+from sentry.utils.email.send import send_messages
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ def send_report_email(
         try:
             msg = message.build(to=email)
             msg.attach(filename, file_bytes, mimetype)
-            msg.send()
+            send_messages([msg])
         except Exception:
             logger.exception(
                 "scheduled_report.email_send_failed",
