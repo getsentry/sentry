@@ -20,6 +20,7 @@ from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_organization_projects_with_instrumentation,
     has_repo_code_mappings,
     validate_repo,
 )
@@ -1347,3 +1348,35 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"valid": True, "integration_id": integration.id}
+
+
+class TestGetOrganizationProjectsWithInstrumentation(APITestCase):
+    def test_returns_projects_with_flags(self) -> None:
+        project = self.project
+        project.flags.has_sessions = True
+        project.flags.has_replays = True
+        project.flags.has_profiles = False
+        project.save()
+
+        result = get_organization_projects_with_instrumentation(org_id=self.organization.id)
+
+        assert len(result["projects"]) >= 1
+        matching = next(p for p in result["projects"] if p["id"] == project.id)
+        assert matching["slug"] == project.slug
+        assert matching["hasSessions"] is True
+        assert matching["hasReplays"] is True
+        assert matching["hasProfiles"] is False
+        assert "hasTraceMetrics" in matching
+        assert "hasLogs" in matching
+
+    def test_excludes_inactive_projects(self) -> None:
+        active_project = self.project
+        inactive_project = self.create_project(organization=self.organization)
+        inactive_project.status = ObjectStatus.PENDING_DELETION
+        inactive_project.save()
+
+        result = get_organization_projects_with_instrumentation(org_id=self.organization.id)
+
+        project_ids = [p["id"] for p in result["projects"]]
+        assert active_project.id in project_ids
+        assert inactive_project.id not in project_ids

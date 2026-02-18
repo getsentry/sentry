@@ -72,7 +72,7 @@ function AddBillingMetricUsageModal({
   const orgSlug = organization.slug;
 
   const {data: billingConfig = null, isPending: isLoadingBillingConfig} =
-    useApiQuery<BillingConfig>(['/api/0/billing-config/'], {
+    useApiQuery<BillingConfig>([getApiUrl('/billing-config/')], {
       staleTime: Infinity,
     });
 
