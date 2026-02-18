@@ -26,6 +26,7 @@ import type {UserEmail} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -51,10 +52,14 @@ function AccountEmails() {
         addSuccessMessage(response.detail);
       }
     },
-    onError: (error: any) => {
-      const errorMessage = error?.responseJSON?.detail;
-      if (errorMessage) {
-        addErrorMessage(errorMessage);
+    onError: error => {
+      if (error instanceof RequestError) {
+        const errorMessage = error.responseJSON?.detail;
+        if (typeof errorMessage === 'string') {
+          addErrorMessage(errorMessage);
+        } else {
+          addErrorMessage(errorMessage?.message ?? t('An unknown error occurred.'));
+        }
       }
     },
   });
