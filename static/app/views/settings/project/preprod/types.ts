@@ -1,12 +1,8 @@
-export const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
+const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
 
 type MetricType = (typeof ALL_METRIC_TYPES)[number];
 
-export const ALL_MEASUREMENT_TYPES = [
-  'absolute',
-  'absolute_diff',
-  'relative_diff',
-] as const;
+const ALL_MEASUREMENT_TYPES = ['absolute', 'absolute_diff', 'relative_diff'] as const;
 
 type MeasurementType = (typeof ALL_MEASUREMENT_TYPES)[number];
 
@@ -39,7 +35,7 @@ export interface StatusCheckRule {
 
 export const DEFAULT_METRIC_TYPE: MetricType = 'install_size';
 
-export const METRIC_LABELS: Record<MetricType, string> = {
+const METRIC_LABELS: Record<MetricType, string> = {
   install_size: 'Install/Uncompressed Size',
   download_size: 'Download Size',
 };
@@ -52,7 +48,7 @@ export const METRIC_OPTIONS: Array<{label: string; value: MetricType}> =
 
 export const DEFAULT_MEASUREMENT_TYPE: MeasurementType = 'absolute';
 
-export const MEASUREMENT_LABELS: Record<MeasurementType, string> = {
+const MEASUREMENT_LABELS: Record<MeasurementType, string> = {
   absolute: 'Absolute Size',
   absolute_diff: 'Absolute Diff',
   relative_diff: 'Relative Diff',
@@ -64,7 +60,7 @@ export const MEASUREMENT_OPTIONS: Array<{label: string; value: MeasurementType}>
     value,
   }));
 
-export const ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
+const ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
   all_artifacts: 'All Artifact Types',
   main_artifact: 'Main App',
   watch_artifact: 'Watch App',
@@ -85,11 +81,7 @@ export function getMeasurementLabel(measurement: MeasurementType): string {
   return MEASUREMENT_LABELS[measurement];
 }
 
-export function getSafeValue<T>(
-  value: unknown,
-  validOptions: readonly T[],
-  fallback: T
-): T {
+function getSafeValue<T>(value: unknown, validOptions: readonly T[], fallback: T): T {
   return validOptions.includes(value as T) ? (value as T) : fallback;
 }
 
