@@ -640,14 +640,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
           name="codecovAccess"
           schema={generalSchema}
           initialValue={initialData.codecovAccess}
-          mutationOptions={mutationOptions({
-            mutationFn: (data: Partial<GeneralSchema>) =>
-              fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
-            onSuccess: updated => {
-              onSave(initialData, updated);
-            },
-            onError: () => addErrorMessage(t('Unable to save change')),
-          })}
+          mutationOptions={orgMutationOptions}
         >
           {field => (
             <field.Layout.Row
