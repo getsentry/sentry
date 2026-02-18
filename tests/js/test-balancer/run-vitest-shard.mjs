@@ -86,6 +86,7 @@ function main() {
       'exec',
       'vitest',
       'run',
+      '--maxWorkers=75%',
       '--reporter=default',
       '--reporter=junit',
       '--outputFile=.artifacts/vitest.junit.xml',

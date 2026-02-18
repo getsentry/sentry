@@ -5,10 +5,16 @@ import XAxis from 'sentry/components/charts/components/xAxis';
 
 const theme = ThemeFixture();
 
-jest.mock('moment-timezone', () => {
-  const moment = jest.requireActual('moment-timezone');
-  moment.tz.setDefault('America/Los_Angeles'); // Whatever timezone you want
-  return moment;
+vi.mock('moment-timezone', async () => {
+  const actual =
+    await vi.importActual<typeof import('moment-timezone')>('moment-timezone');
+  const moment =
+    actual.default ?? (actual as unknown as typeof import('moment-timezone').default);
+  moment.tz.setDefault('America/Los_Angeles');
+  return {
+    ...actual,
+    default: moment,
+  };
 });
 
 describe('Chart XAxis', () => {
