@@ -629,7 +629,10 @@ describe('SpanQueryParamsProvider', () => {
           new VisualizeFunction('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
-          new VisualizeFunction(['avg(span.duration)', 'avg(span.self_time)'], {
+          new VisualizeFunction(['avg(span.duration)'], {
+            chartType: ChartType.LINE,
+          }),
+          new VisualizeFunction(['avg(span.self_time)'], {
             chartType: ChartType.LINE,
           }),
         ],
