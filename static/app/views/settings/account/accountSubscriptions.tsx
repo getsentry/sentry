@@ -1,9 +1,10 @@
+import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -119,9 +120,7 @@ function AccountSubscriptions() {
                     );
                     setApiQueryData<Subscription[]>(queryClient, [ENDPOINT], cachedSubs =>
                       cachedSubs?.map(sub =>
-                        sub.listId === subscription.listId
-                          ? {...subscription, ...variables}
-                          : sub
+                        sub.listId === subscription.listId ? {...sub, ...variables} : sub
                       )
                     );
                   },
@@ -146,36 +145,27 @@ function AccountSubscriptions() {
                         ? subscription.subscribedDate
                           ? `${subscription.email} on ${moment(subscription.subscribedDate).format('ll')}`
                           : undefined
-                        : t('Not currently subscribed');
-                      const labelId = `subscription-${subscription.email}-${subscription.listId}`;
-                      const switchId = `subscription-switch-${subscription.email}-${subscription.listId}`;
+                        : t('You are currently unsubscribed from this list.');
+
+                      const hintText =
+                        subscription.listDescription || statusText ? (
+                          <Fragment>
+                            {subscription.listDescription}
+                            {subscription.listDescription && statusText ? <br /> : null}
+                            {statusText}
+                          </Fragment>
+                        ) : undefined;
 
                       return (
-                        <Flex align="center" justify="between" gap="sm">
-                          <Stack gap="xs" width={{xs: '100%', sm: '75%', md: '65%'}}>
-                            <Text as="label" id={labelId} htmlFor={switchId}>
-                              {subscription.listName}
-                            </Text>
-                            {subscription.listDescription && (
-                              <Text size="sm" variant="muted">
-                                {subscription.listDescription}
-                              </Text>
-                            )}
-                            {statusText && (
-                              <Text size="sm" variant="muted">
-                                {statusText}
-                              </Text>
-                            )}
-                          </Stack>
-                          <Flex align="start" justify="start" flexGrow={1}>
-                            <field.Switch
-                              id={switchId}
-                              aria-labelledby={labelId}
-                              checked={field.state.value}
-                              onChange={field.handleChange}
-                            />
-                          </Flex>
-                        </Flex>
+                        <field.Layout.Row
+                          label={subscription.listName}
+                          hintText={hintText}
+                        >
+                          <field.Switch
+                            checked={field.state.value}
+                            onChange={field.handleChange}
+                          />
+                        </field.Layout.Row>
                       );
                     }}
                   </AutoSaveField>
