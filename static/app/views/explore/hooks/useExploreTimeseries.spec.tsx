@@ -170,24 +170,21 @@ describe('useExploreTimeseries', () => {
       ],
     });
 
-    renderHookWithProviders(
-      () =>
-        useExploreTimeseries({
-          query: 'test value',
-          enabled: true,
-        }),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              visualize: '{"yAxes":["avg(span.duration)","p95(span.duration)"]}',
-            },
+    renderHookWithProviders(useExploreTimeseries, {
+      additionalWrapper: Wrapper,
+      initialProps: {
+        query: 'test value',
+        enabled: true,
+      },
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            visualize: '{"yAxes":["avg(span.duration)","p95(span.duration)"]}',
           },
         },
-      }
-    );
+      },
+    });
 
     await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
   });
@@ -201,30 +198,14 @@ describe('useExploreTimeseries', () => {
           {
             ...mockTimeSeries,
             yAxis: 'avg(span.duration)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
           {
             ...mockTimeSeries,
             yAxis: 'p95(span.duration)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
         ],
       },
@@ -245,24 +226,21 @@ describe('useExploreTimeseries', () => {
       ],
     });
 
-    renderHookWithProviders(
-      () =>
-        useExploreTimeseries({
-          query: 'test value',
-          enabled: true,
-        }),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              visualize: '{"yAxes":["avg(span.duration)","p95(span.duration)"]}',
-            },
+    renderHookWithProviders(useExploreTimeseries, {
+      additionalWrapper: Wrapper,
+      initialProps: {
+        query: 'test value',
+        enabled: true,
+      },
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            visualize: '{"yAxes":["avg(span.duration)","p95(span.duration)"]}',
           },
         },
-      }
-    );
+      },
+    });
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);
     await waitFor(() => {
