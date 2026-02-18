@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -97,6 +95,8 @@ class WorkflowRuleSerializerTest(TestCase):
             action_match="any",
             filter_match="any",
             frequency=5,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
     def assert_equal_serializers(self, issue_alert):
@@ -325,6 +325,8 @@ class WorkflowRuleSerializerTest(TestCase):
             action_match="all",
             filter_match="all",
             frequency=30,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
         self.assert_equal_serializers(issue_alert)
@@ -340,16 +342,17 @@ class WorkflowRuleSerializerTest(TestCase):
             )
         self.uuid = "5bac5dcc-e201-4cb2-8da2-bac39788a13d"
         self.action_data = {
-            "workspace": str(self.integration.id),
+            "workspace": self.integration.id,
             "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
             "channel_id": "C0123456789",
             "tags": "",
             "channel": "test-notifications",
-            "uuid": self.uuid,
         }
         self.rule = self.create_project_rule(
             project=self.project,
-            action_data=[deepcopy(self.action_data)],
+            action_data=[self.action_data],
             condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         self.assert_equal_serializers(self.rule)

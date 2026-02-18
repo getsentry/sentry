@@ -491,11 +491,17 @@ class WorkflowEngineRuleSerializer(Serializer):
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
             serialized_actions = []
+            project = result[workflow]["projects"][0]
             for action in self._fetch_actions(workflow_dcg.condition_group):
                 handler = issue_alert_handler_registry.get(action.type)
                 action_data = handler.build_rule_action_blob(action, workflow.organization_id)
+                # XXX: I don't love using this but it's the only way to get the name
+                action_data["name"] = generate_rule_label(
+                    project=project, rule=None, data=action_data
+                )
+                # XXX: manually remove notes which would only apply to legacy metric alerts or single written alerts
+                action_data.pop("notes", None)
                 serialized_actions.append(action_data)
-                # this _sort of_ is the same data, but not exactly
 
             # Generate conditions and filters
             conditions, filters = self._generate_rule_conditions_filters(
