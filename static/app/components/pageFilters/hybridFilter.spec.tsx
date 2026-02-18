@@ -856,6 +856,67 @@ describe('HybridFilter', () => {
       expect(onChange).toHaveBeenLastCalledWith(['one', 'three']);
     });
 
+    it('resets anchor on menu open so shift+click never ranges across sessions', async () => {
+      const onChange = jest.fn();
+
+      function TestComponent() {
+        const [value, setValue] = useState<string[]>([]);
+        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+        const options = useTestOptions(hybridFilterRef);
+        const stagedSelect = useStagedCompactSelect({
+          value,
+          defaultValue: [],
+          options,
+          onChange: newValue => {
+            onChange(newValue);
+            setValue(newValue);
+          },
+          multiple: true,
+        });
+
+        return (
+          <HybridFilter
+            searchable
+            ref={hybridFilterRef}
+            options={options}
+            stagedSelect={stagedSelect}
+            menuFooter={
+              stagedSelect.hasStagedChanges ? (
+                <div>
+                  <HybridFilterComponents.ApplyButton
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </div>
+              ) : null
+            }
+          />
+        );
+      }
+
+      render(<TestComponent />);
+
+      // First session: open menu, ctrl+click Option One to set the anchor, apply
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Control}');
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // Second session: reopen menu — anchor should have been cleared on open
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+      // Shift-click Option Three — since anchor was cleared on open, this is a single toggle
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
+      await userEvent.keyboard('{/Shift}');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // Should select One (from first session) and Three (single-toggled), but NOT Two.
+      // Without the fix, the stale anchor 'one' would range-select [one, two, three].
+      expect(onChange).toHaveBeenLastCalledWith(['one', 'three']);
+    });
+
     it('resets anchor when search changes so next shift+click acts as single select', async () => {
       const onChange = jest.fn();
 

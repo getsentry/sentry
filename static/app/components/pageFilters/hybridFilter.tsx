@@ -63,6 +63,7 @@ export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
   defaultValue: Value[];
   handleReset: () => void;
   handleSearch: (value: string) => void;
+  resetAnchor: () => void;
   hasStagedChanges: boolean;
   modifierKeyPressed: boolean;
   removeStagedChanges: () => void;
@@ -250,6 +251,14 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     }
   }, []);
 
+  // Clear the shift-click anchor when the menu opens so every new session
+  // starts fresh — prevents a stale anchor from a previous open/close cycle
+  // from unexpectedly triggering range selection.
+  const resetAnchor = useCallback(() => {
+    lastSelectedRef.current = null;
+    currentSearchRef.current = '';
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: any) => {
       if (e.key === 'Escape') {
@@ -347,6 +356,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     defaultValue,
     handleReset,
     handleSearch,
+    resetAnchor,
     stagedValue,
     hasStagedChanges,
     modifierKeyPressed: modifierActive,
@@ -384,6 +394,7 @@ export function HybridFilter<Value extends SelectKey>({
   options,
   stagedSelect,
   onSearch: onSearchProp,
+  onOpenChange: onOpenChangeProp,
   ...selectProps
 }: HybridFilterProps<Value>) {
   useImperativeHandle(ref, () => ({toggleOption: stagedSelect.toggleOption}), [
@@ -396,6 +407,16 @@ export function HybridFilter<Value extends SelectKey>({
       onSearchProp?.(value);
     },
     [stagedSelect, onSearchProp]
+  );
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        stagedSelect.resetAnchor();
+      }
+      onOpenChangeProp?.(open);
+    },
+    [stagedSelect, onOpenChangeProp]
   );
 
   const mappedOptions = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
@@ -458,6 +479,7 @@ export function HybridFilter<Value extends SelectKey>({
       {...stagedSelect.compactSelectProps}
       {...selectProps}
       onSearch={handleSearch}
+      onOpenChange={handleOpenChange}
     />
   );
 }
