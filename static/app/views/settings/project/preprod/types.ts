@@ -1,6 +1,12 @@
 type MetricType = 'install_size' | 'download_size';
 
-type MeasurementType = 'absolute' | 'absolute_diff' | 'relative_diff';
+export const ALL_MEASUREMENT_TYPES = [
+  'absolute',
+  'absolute_diff',
+  'relative_diff',
+] as const;
+
+type MeasurementType = (typeof ALL_MEASUREMENT_TYPES)[number];
 
 export const ALL_ARTIFACT_TYPES = [
   'all_artifacts',
@@ -34,11 +40,19 @@ export const METRIC_OPTIONS: Array<{label: string; value: MetricType}> = [
   {label: 'Download Size', value: 'download_size'},
 ];
 
-export const MEASUREMENT_OPTIONS: Array<{label: string; value: MeasurementType}> = [
-  {label: 'Absolute Size', value: 'absolute'},
-  {label: 'Absolute Diff', value: 'absolute_diff'},
-  {label: 'Relative Diff', value: 'relative_diff'},
-];
+export const DEFAULT_MEASUREMENT_TYPE: MeasurementType = 'absolute';
+
+export const MEASUREMENT_LABELS: Record<MeasurementType, string> = {
+  absolute: 'Absolute Size',
+  absolute_diff: 'Absolute Diff',
+  relative_diff: 'Relative Diff',
+};
+
+export const MEASUREMENT_OPTIONS: Array<{label: string; value: MeasurementType}> =
+  ALL_MEASUREMENT_TYPES.map(value => ({
+    label: MEASUREMENT_LABELS[value],
+    value,
+  }));
 
 export const ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
   all_artifacts: 'All Artifact Types',
@@ -58,7 +72,7 @@ export function getMetricLabel(metric: MetricType): string {
 }
 
 export function getMeasurementLabel(measurement: MeasurementType): string {
-  return MEASUREMENT_OPTIONS.find(o => o.value === measurement)?.label ?? measurement;
+  return MEASUREMENT_LABELS[toMeasurementType(measurement)];
 }
 
 export function getSafeValue<T>(
@@ -67,6 +81,13 @@ export function getSafeValue<T>(
   fallback: T
 ): T {
   return validOptions.includes(value as T) ? (value as T) : fallback;
+}
+
+export function toMeasurementType(
+  value: unknown,
+  fallback: MeasurementType = DEFAULT_MEASUREMENT_TYPE
+): MeasurementType {
+  return getSafeValue(value, ALL_MEASUREMENT_TYPES, fallback);
 }
 
 export function toArtifactType(

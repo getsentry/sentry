@@ -12,10 +12,11 @@ import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
 import {
   ALL_ARTIFACTS_ARTIFACT_TYPE,
+  DEFAULT_MEASUREMENT_TYPE,
   getSafeValue,
-  MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
   toArtifactType,
+  toMeasurementType,
   type StatusCheckRule,
 } from './types';
 
@@ -23,12 +24,9 @@ const ENABLED_KEY = 'sentry:preprod_size_status_checks_enabled';
 const RULES_KEY = 'sentry:preprod_size_status_checks_rules';
 
 const DEFAULT_METRIC = METRIC_OPTIONS[0]!.value;
-const DEFAULT_MEASUREMENT = MEASUREMENT_OPTIONS[0]!.value;
+const DEFAULT_MEASUREMENT = DEFAULT_MEASUREMENT_TYPE;
 
 const VALID_METRICS: Array<StatusCheckRule['metric']> = METRIC_OPTIONS.map(o => o.value);
-const VALID_MEASUREMENTS: Array<StatusCheckRule['measurement']> = MEASUREMENT_OPTIONS.map(
-  o => o.value
-);
 
 function parseRules(raw: unknown): StatusCheckRule[] {
   if (!Array.isArray(raw)) {
@@ -38,11 +36,7 @@ function parseRules(raw: unknown): StatusCheckRule[] {
     .filter((r): r is Record<string, unknown> => !!r && typeof r.id === 'string')
     .map(r => {
       const metric = getSafeValue(r.metric, VALID_METRICS, DEFAULT_METRIC);
-      const measurement = getSafeValue(
-        r.measurement,
-        VALID_MEASUREMENTS,
-        DEFAULT_MEASUREMENT
-      );
+      const measurement = toMeasurementType(r.measurement, DEFAULT_MEASUREMENT);
       const artifactType = toArtifactType(r.artifactType);
       return {
         id: r.id as string,
