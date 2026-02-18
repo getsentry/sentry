@@ -15,6 +15,9 @@ from sentry.issues.constants import (
     get_issue_tsdb_user_group_model,
 )
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.rules.conditions.event_attribute import ATTR_CHOICES
 from sentry.rules.conditions.event_frequency import (
     MIN_SESSIONS_TO_FIRE,
@@ -24,6 +27,7 @@ from sentry.rules.conditions.event_frequency import (
 )
 from sentry.rules.match import MatchType
 from sentry.tsdb.base import SnubaCondition, TSDBKey, TSDBModel
+from sentry.types.id import Id
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
@@ -34,10 +38,10 @@ QueryResult = dict[int, int | float]
 
 
 class GroupValues(TypedDict):
-    id: int
+    id: Id[Group]
     type: int
-    project_id: int
-    project__organization_id: int
+    project_id: Id[Project]
+    project__organization_id: Id[Organization]
 
 
 class TSDBFunction(Protocol):
@@ -338,7 +342,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         category_group_ids = self.get_group_ids_by_category(groups)
         organization_id = self.get_value_from_groups(groups, "project__organization_id")
         # Build project_ids list from incoming groups
-        project_ids = list({g["project_id"] for g in groups}) if groups else []
+        project_ids: list[int] = list({g["project_id"] for g in groups}) if groups else []
 
         if not organization_id:
             return batch_sums

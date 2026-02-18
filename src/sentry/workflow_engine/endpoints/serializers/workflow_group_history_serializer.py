@@ -39,10 +39,12 @@ class _Result(TypedDict):
 
 
 def convert_results(results: Sequence[_Result]) -> Sequence[WorkflowGroupHistory]:
-    group_lookup = {g.id: g for g in Group.objects.filter(id__in=[r["group"] for r in results])}
+    group_lookup: dict[int, Group] = {
+        g.id: g for g in Group.objects.filter(id__in=[r["group"] for r in results])
+    }
 
     detector_ids = [r["group_detector_id"] for r in results if r["group_detector_id"] is not None]
-    detector_lookup = {}
+    detector_lookup: dict[int, Detector] = {}
     if detector_ids:
         detector_lookup = {d.id: d for d in Detector.objects.filter(id__in=detector_ids)}
 

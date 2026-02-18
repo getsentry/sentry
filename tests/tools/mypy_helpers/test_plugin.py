@@ -310,3 +310,41 @@ Found 1 error in 1 file (checked 1 source file)
     ret, out = call_mypy(src)
     assert ret
     assert out == expected
+
+
+def test_fk_id_attribute_hook_registration() -> None:
+    """The get_attribute_hook returns a callback for _id attrs on sentry classes."""
+    from tools.mypy_helpers.plugin import SentryMypyPlugin
+
+    plugin = SentryMypyPlugin.__new__(SentryMypyPlugin)
+
+    # FK _id attributes on sentry classes should get a callback.
+    assert plugin.get_attribute_hook("sentry.models.project.Project.organization_id") is not None
+    assert (
+        plugin.get_attribute_hook("sentry.workflow_engine.models.workflow.Workflow.environment_id")
+        is not None
+    )
+
+    # Non-_id attributes should not.
+    assert plugin.get_attribute_hook("sentry.models.project.Project.name") is None
+
+    # Non-sentry classes should not match.
+    assert plugin.get_attribute_hook("django.db.models.base.Model.some_id") is None
+
+    # LazyServiceWrapper should still work (not intercepted by the FK hook).
+    assert (
+        plugin.get_attribute_hook("sentry.utils.lazy_service_wrapper.LazyServiceWrapper.foo")
+        is not None
+    )
+
+
+def test_fk_field_cache_graceful_without_django() -> None:
+    """_get_fk_fields returns empty dict when Django isn't available."""
+    from tools.mypy_helpers.plugin import _fk_field_cache, _get_fk_fields
+
+    # Use a class name that definitely won't match any Django model.
+    result = _get_fk_fields("nonexistent.module.FakeModel")
+    assert result == {}
+    # Verify it was cached.
+    assert "nonexistent.module.FakeModel" in _fk_field_cache
+    _fk_field_cache.pop("nonexistent.module.FakeModel", None)

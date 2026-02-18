@@ -46,8 +46,10 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     EventInstance,
     EventKey,
     EventRedisData,
+    GroupId,
     GroupQueryParams,
     UniqueConditionQuery,
+    WorkflowId,
     bulk_fetch_events,
     cleanup_redis_buffer,
     fetch_project,
@@ -447,7 +449,7 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
             other_workflow_filters.id: current_time + timedelta(minutes=2),
             detector_dcg.id: current_time + timedelta(minutes=3),
         }
-        workflows_to_envs: dict[int, int | None] = {self.workflow.id: None}
+        workflows_to_envs = {self.workflow.id: None}
 
         # Create mock event data with just the required properties
         mock_event_data = Mock(spec=EventRedisData)
@@ -612,7 +614,7 @@ class TestGetSnubaResults(BaseWorkflowTest):
         )
 
         condition_groups = {
-            unique_query: GroupQueryParams(group_ids={1}, timestamp=None)
+            unique_query: GroupQueryParams(group_ids={GroupId(1)}, timestamp=None)
         }  # One group ID to query
 
         with pytest.raises(ValueError, match="Escaping exception"):
@@ -636,7 +638,7 @@ class TestGetSnubaResults(BaseWorkflowTest):
             environment_id=None,
         )
 
-        condition_groups = {unique_query: GroupQueryParams(group_ids={1}, timestamp=None)}
+        condition_groups = {unique_query: GroupQueryParams(group_ids={GroupId(1)}, timestamp=None)}
 
         # Should not raise, returns empty results
         result = get_condition_group_results(condition_groups)
@@ -1274,10 +1276,10 @@ class TestEventKeyAndInstance:
         }
         event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
 
-        filtered = event_data.filter_by_workflow_ids({1, 2})
+        filtered = event_data.filter_by_workflow_ids({WorkflowId(1), WorkflowId(2)})
 
         assert len(filtered.events) == 3
-        assert filtered.workflow_ids == {1, 2}
+        assert filtered.workflow_ids == {WorkflowId(1), WorkflowId(2)}
         assert 3 not in filtered.workflow_ids
 
     def test_filter_by_workflow_ids_empty_valid_ids(self) -> None:
@@ -1297,7 +1299,7 @@ class TestEventKeyAndInstance:
         }
         event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
 
-        filtered = event_data.filter_by_workflow_ids({999})
+        filtered = event_data.filter_by_workflow_ids({WorkflowId(999)})
 
         assert len(filtered.events) == 0
 
@@ -1308,9 +1310,9 @@ class TestEventKeyAndInstance:
         }
         event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
 
-        filtered = event_data.filter_by_workflow_ids({1})
+        filtered = event_data.filter_by_workflow_ids({WorkflowId(1)})
 
-        assert filtered.workflow_ids == {1}
+        assert filtered.workflow_ids == {WorkflowId(1)}
         assert filtered.group_ids == {100}
         assert filtered.dcg_ids == {10, 1, 2, 3}
         assert 20 not in filtered.dcg_ids

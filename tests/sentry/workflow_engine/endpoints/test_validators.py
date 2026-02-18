@@ -214,6 +214,7 @@ class DetectorValidatorTest(BaseValidatorTest):
         assert data_source.organization_id == self.project.organization_id
 
         # Verify condition group in DB
+        assert detector.workflow_condition_group_id is not None
         condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
         assert condition_group.logic_type == DataConditionGroup.Type.ANY
         assert condition_group.organization_id == self.project.organization_id

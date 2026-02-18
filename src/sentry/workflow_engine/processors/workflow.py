@@ -11,6 +11,7 @@ from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
+from sentry.types.id import Id
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
 from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorWorkflow, Workflow
@@ -83,7 +84,9 @@ def enqueue_workflows(
 
 
 @scopedstats.timer()
-def _get_data_conditions_for_group_by_dcg(dcg_ids: Sequence[int]) -> dict[int, list[DataCondition]]:
+def _get_data_conditions_for_group_by_dcg(
+    dcg_ids: Sequence[Id[DataConditionGroup]],
+) -> dict[Id[DataConditionGroup], list[DataCondition]]:
     """
     Given a list of DataConditionGroup IDs, return a dict mapping them to their DataConditions.
     Fetching them individually as needed is typically simple; this is for cases where the performance

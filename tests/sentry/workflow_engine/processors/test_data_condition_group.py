@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 from sentry.testutils.cases import TestCase
+from sentry.types.id import Id
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.processors.data_condition_group import (
@@ -18,7 +19,7 @@ from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 
 class TestGetDataConditionsForGroup(TestCase):
     def test_get_data_conditions_for_group(self) -> None:
-        assert get_data_conditions_for_group(0) == []
+        assert get_data_conditions_for_group(Id[DataConditionGroup](0)) == []
 
     def test_get_data_conditions_for_group__exists(self) -> None:
         data_condition_group = self.create_data_condition_group()

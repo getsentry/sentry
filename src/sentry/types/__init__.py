@@ -7,3 +7,5 @@ anywhere in this directory.
 There are going to naming collisions between classes like "Type" and "Status".
 The best way to resolve this is to prefix them with more context.
 """
+
+from sentry.types.id import Id as Id

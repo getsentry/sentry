@@ -21,6 +21,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models.fields.uuid import UUIDField
 from sentry.db.models.manager.base import BaseManager, create_silo_limited_copy
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.types.id import Id
 
 from .fields.bounded import BoundedBigAutoField
 from .query import update
@@ -314,7 +315,7 @@ class BaseModel(models.Model):
 
 
 class Model(BaseModel):
-    id: models.Field[int, int] = BoundedBigAutoField(primary_key=True)
+    id: models.Field[int, Id[Self]] = BoundedBigAutoField(primary_key=True)
 
     class Meta:
         abstract = True

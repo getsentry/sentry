@@ -154,7 +154,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status = WorkflowActionGroupStatus.objects.create(
             workflow=self.workflow, action=self.action, group=self.group
         )
-        workflow_ids = {self.workflow.id, workflow.id}
+        workflow_ids: set[int] = {self.workflow.id, workflow.id}
 
         action_to_statuses = get_workflow_action_group_statuses(
             {self.action.id: {self.workflow.id}}, self.group, workflow_ids
@@ -181,8 +181,14 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status_2.update(date_updated=timezone.now() - timedelta(days=1, minutes=1))
 
         workflows = Workflow.objects.all()
-        action_to_statuses = {self.action.id: [status], action.id: [status_2]}
-        action_to_workflows_ids = {self.action.id: {self.workflow.id}, action.id: {workflow.id}}
+        action_to_statuses: dict[int, list[WorkflowActionGroupStatus]] = {
+            self.action.id: [status],
+            action.id: [status_2],
+        }
+        action_to_workflows_ids: dict[int, set[int]] = {
+            self.action.id: {self.workflow.id},
+            action.id: {workflow.id},
+        }
 
         action_to_workflow_ids, statuses_to_update, missing_statuses = (
             process_workflow_action_group_statuses(

@@ -5,6 +5,7 @@ from typing import ClassVar, NoReturn, TypeVar
 
 import sentry_sdk
 
+from sentry.types.id import Id
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
@@ -185,7 +186,7 @@ DataConditionGroupResult = tuple[ProcessedDataConditionGroup, list[DataCondition
 
 # We use a defined function rather than a lambda below because otherwise
 # parameter type becomes Any.
-def _group_id_from_condition(condition: DataCondition) -> tuple[int]:
+def _group_id_from_condition(condition: DataCondition) -> tuple[Id[DataConditionGroup]]:
     return (condition.condition_group_id,)
 
 
@@ -193,12 +194,16 @@ def _group_id_from_condition(condition: DataCondition) -> tuple[int]:
     [(DataCondition, _group_id_from_condition)],
     recalculate=False,
 )
-def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:
+def get_data_conditions_for_group(
+    data_condition_group_id: Id[DataConditionGroup],
+) -> list[DataCondition]:
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
 @scopedstats.timer()
-def _get_data_conditions_for_group_shim(data_condition_group_id: int) -> list[DataCondition]:
+def _get_data_conditions_for_group_shim(
+    data_condition_group_id: Id[DataConditionGroup],
+) -> list[DataCondition]:
     """
     Wrapper for single item use case so we can easily time it.
     We can't timer() get_data_conditions_for_group because it's a CachedFunction, and
@@ -209,8 +214,8 @@ def _get_data_conditions_for_group_shim(data_condition_group_id: int) -> list[Da
 
 @sentry_sdk.trace
 def get_slow_conditions_for_groups(
-    data_condition_group_ids: list[int],
-) -> dict[int, list[DataCondition]]:
+    data_condition_group_ids: list[Id[DataConditionGroup]],
+) -> dict[Id[DataConditionGroup], list[DataCondition]]:
     """
     Takes a list of DataConditionGroup IDs and returns a dict with
     the slow conditions associated with each ID.

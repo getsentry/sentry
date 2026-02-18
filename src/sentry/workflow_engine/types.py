@@ -12,6 +12,7 @@ from sentry_sdk import logger as sentry_logger
 
 from sentry import features, options
 from sentry.types.group import PriorityLevel
+from sentry.types.id import Id
 
 if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
@@ -120,7 +121,7 @@ class WorkflowEvaluationSnapshot(TypedDict):
     associated_detector: DetectorSnapshot | None
     event_id: str | None  # ID in NodeStore
     group: Group | None
-    workflow_ids: list[int] | None
+    workflow_ids: list[Id[Workflow]] | None
     triggered_workflows: list[WorkflowSnapshot] | None
     delayed_conditions: list[str] | None
     action_filter_conditions: list[DataConditionGroupSnapshot] | None

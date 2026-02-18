@@ -129,7 +129,7 @@ def update_workflow_action_group_statuses(
     with connection.cursor() as cursor:
         # Build values for batch insert
         values_placeholders = []
-        values_data = []
+        values_data: list[int | datetime] = []
         for s in missing_statuses:
             values_placeholders.append("(%s, %s, %s, %s, %s)")
             values_data.extend([s.workflow_id, s.action_id, s.group_id, now, now])
@@ -146,7 +146,7 @@ def update_workflow_action_group_statuses(
         created_rows = set(cursor.fetchall())  # Only returns newly inserted rows
 
     # Figure out which ones conflicted (weren't returned)
-    conflicted_statuses = [
+    conflicted_statuses: ConflictedStatuses = [
         (s.workflow_id, s.action_id)
         for s in missing_statuses
         if (s.workflow_id, s.action_id) not in created_rows
@@ -241,10 +241,10 @@ def filter_recently_fired_workflow_actions(
     )
 
     # if statuses were not created for some reason, we should not fire for them
-    for workflow_id, action_id in conflicted_statuses:
-        action_to_workflows_ids[action_id].remove(workflow_id)
-        if not action_to_workflows_ids[action_id]:
-            action_to_workflows_ids.pop(action_id)
+    for conflicted_wf_id, conflicted_act_id in conflicted_statuses:
+        action_to_workflows_ids[conflicted_act_id].remove(conflicted_wf_id)
+        if not action_to_workflows_ids[conflicted_act_id]:
+            action_to_workflows_ids.pop(conflicted_act_id)
 
     actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
 

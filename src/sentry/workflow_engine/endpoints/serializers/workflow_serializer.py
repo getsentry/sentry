@@ -92,8 +92,9 @@ class WorkflowSerializer(Serializer):
             detectors_map[workflow_id].append(str(detector_id))
 
         for item in item_list:
-            attrs[item]["triggers"] = trigger_condition_map.get(
-                item.when_condition_group_id
+            wdcg_id = item.when_condition_group_id
+            attrs[item]["triggers"] = (
+                trigger_condition_map.get(wdcg_id) if wdcg_id is not None else None
             )  # when condition group
             attrs[item]["actionFilters"] = dcg_map.get(
                 item.id, []

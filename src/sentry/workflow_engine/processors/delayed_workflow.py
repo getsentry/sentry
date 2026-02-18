@@ -13,6 +13,7 @@ from pydantic import BaseModel, validator
 
 from sentry import features, nodestore
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -21,6 +22,7 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.retry import retry_task
 from sentry.taskworker.state import current_task
+from sentry.types.id import Id
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
@@ -58,9 +60,10 @@ logger = log_context.get_logger("sentry.workflow_engine.processors.delayed_workf
 EVENT_LIMIT = 100
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
 
-GroupId: TypeAlias = int
-DataConditionGroupId: TypeAlias = int
-WorkflowId: TypeAlias = int
+EnvironmentId: TypeAlias = Id[Environment]
+GroupId: TypeAlias = Id[Group]
+DataConditionGroupId: TypeAlias = Id[DataConditionGroup]
+WorkflowId: TypeAlias = Id[Workflow]
 
 
 class EventInstance(BaseModel):
@@ -113,11 +116,11 @@ class EventKey:
         if len(parts) != 5:
             raise ValueError(f"Invalid key: {key}")
         return cls(
-            workflow_id=int(parts[0]),
-            group_id=int(parts[1]),
-            when_dcg_id=int(parts[2]) if parts[2] else None,
-            if_dcg_ids=frozenset(int(dcg_id) for dcg_id in parts[3].split(",") if dcg_id),
-            passing_dcg_ids=frozenset(int(dcg_id) for dcg_id in parts[4].split(",") if dcg_id),
+            workflow_id=Id(int(parts[0])),
+            group_id=Id(int(parts[1])),
+            when_dcg_id=Id(int(parts[2])) if parts[2] else None,
+            if_dcg_ids=frozenset(Id(int(dcg_id)) for dcg_id in parts[3].split(",") if dcg_id),
+            passing_dcg_ids=frozenset(Id(int(dcg_id)) for dcg_id in parts[4].split(",") if dcg_id),
             original_key=key,
         )
 
@@ -273,7 +276,7 @@ class UniqueConditionQuery:
 
     handler: type[BaseEventFrequencyQueryHandler]
     interval: str
-    environment_id: int | None
+    environment_id: EnvironmentId | None
     comparison_interval: str | None = None
     # Hashable representation of the filters
     frozen_filters: Sequence[frozenset[tuple[str, Any]]] | None = None
@@ -313,13 +316,9 @@ def fetch_project(project_id: int) -> Project | None:
 
 def fetch_workflows_envs(
     workflow_ids: list[WorkflowId],
-) -> Mapping[WorkflowId, int | None]:
-    return {
-        workflow_id: env_id
-        for workflow_id, env_id in Workflow.objects.filter(id__in=workflow_ids).values_list(
-            "id", "environment_id"
-        )
-    }
+) -> Mapping[WorkflowId, EnvironmentId | None]:
+    rows = Workflow.objects.filter(id__in=workflow_ids).values_list("id", "environment_id")
+    return {workflow_id: env_id for workflow_id, env_id in rows}
 
 
 def fetch_data_condition_groups(
@@ -333,7 +332,7 @@ def fetch_data_condition_groups(
 
 
 def generate_unique_queries(
-    condition: DataCondition, environment_id: int | None
+    condition: DataCondition, environment_id: EnvironmentId | None
 ) -> list[UniqueConditionQuery]:
     """
     Returns a list of all unique condition queries that must be made for the
@@ -390,7 +389,7 @@ def generate_unique_queries(
 def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
     event_data: EventRedisData,
-    workflows_to_envs: Mapping[WorkflowId, int | None],
+    workflows_to_envs: Mapping[WorkflowId, EnvironmentId | None],
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
 ) -> dict[UniqueConditionQuery, GroupQueryParams]:
     """
@@ -472,7 +471,7 @@ def get_condition_group_results(
                 comparison_interval=comparison_interval,
                 filters=unique_condition.filters,
             )
-            absent_group_ids = group_ids - set(result.keys())
+            absent_group_ids = group_ids - result.keys()
             if absent_group_ids:
                 logger.warning(
                     "workflow_engine.delayed_workflow.absent_group_ids",
@@ -508,7 +507,7 @@ def _evaluate_group_result_for_dcg(
     dcg: DataConditionGroup,
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
     group_id: GroupId,
-    workflow_env: int | None,
+    workflow_env: EnvironmentId | None,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
 ) -> TriggerResult:
     slow_conditions = dcg_to_slow_conditions[dcg.id]
@@ -530,7 +529,7 @@ def _evaluate_group_result_for_dcg(
 def _group_result_for_dcg(
     group_id: GroupId,
     dcg: DataConditionGroup,
-    workflow_env: int | None,
+    workflow_env: EnvironmentId | None,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
     slow_conditions: list[DataCondition],
 ) -> TriggerResult:
@@ -559,7 +558,7 @@ class _ConditionEvaluationStats:
 @sentry_sdk.trace
 def get_groups_to_fire(
     data_condition_groups: list[DataConditionGroup],
-    workflows_to_envs: Mapping[WorkflowId, int | None],
+    workflows_to_envs: Mapping[WorkflowId, EnvironmentId | None],
     event_data: EventRedisData,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],

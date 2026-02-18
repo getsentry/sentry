@@ -6,7 +6,7 @@ from collections.abc import Callable
 from mypy.build import PRI_MYPY
 from mypy.errorcodes import ATTR_DEFINED
 from mypy.messages import format_type
-from mypy.nodes import ARG_POS, MypyFile, TypeInfo
+from mypy.nodes import ARG_POS, MypyFile, TypeInfo, Var
 from mypy.plugin import (
     AttributeContext,
     ClassDefContext,
@@ -27,6 +27,7 @@ from mypy.types import (
     NoneType,
     Type,
     TypeOfAny,
+    TypeVarType,
     UnionType,
 )
 
@@ -187,6 +188,162 @@ def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type
         return member
 
 
+def _type_contains_self(typ: Type) -> bool:
+    """Check if a type tree contains a Self TypeVarType."""
+    if isinstance(typ, TypeVarType):
+        return typ.id.is_self()
+    if isinstance(typ, Instance):
+        return any(_type_contains_self(arg) for arg in typ.args)
+    if isinstance(typ, UnionType):
+        return any(_type_contains_self(item) for item in typ.items)
+    return False
+
+
+def _replace_self_in_type(typ: Type, replacement: Type) -> Type:
+    """Replace Self TypeVarType with a concrete type throughout a type tree."""
+    if isinstance(typ, TypeVarType) and typ.id.is_self():
+        return replacement
+    if isinstance(typ, Instance):
+        if not typ.args:
+            return typ
+        new_args = [_replace_self_in_type(arg, replacement) for arg in typ.args]
+        return typ.copy_modified(args=new_args)
+    if isinstance(typ, UnionType):
+        new_items = [_replace_self_in_type(item, replacement) for item in typ.items]
+        return UnionType(new_items)
+    return typ
+
+
+def _resolve_model_id_self(ctx: ClassDefContext) -> None:
+    """
+    Resolve Self in the inherited ``id`` field type for model subclasses.
+
+    The base Model declares ``id: Field[int, Id[Self]]``.  django-stubs reads
+    field types from TypeInfo without resolving Self, causing unresolved types
+    in ``.values()``, ``.values_list()``, and FK ``.filter()`` contexts.  This
+    hook creates a class-local override with Self resolved to the concrete
+    model type so that, e.g., ``Organization.id`` is typed
+    ``Field[int, Id[Organization]]``.
+    """
+    info = ctx.cls.info
+    if not info.mro:
+        return
+
+    # If this class already defines id locally without Self, nothing to do.
+    if "id" in info.names:
+        node = info.names["id"].node
+        if isinstance(node, Var) and isinstance(node.type, Instance):
+            if not _type_contains_self(node.type):
+                return
+
+    # Walk the MRO (skipping self) to find the original id definition with Self.
+    original_type: Instance | None = None
+    for base_info in info.mro[1:]:
+        if "id" in base_info.names:
+            node = base_info.names["id"].node
+            if isinstance(node, Var) and isinstance(node.type, Instance):
+                if _type_contains_self(node.type):
+                    original_type = node.type
+                    break
+
+    if original_type is None:
+        return
+
+    concrete_type = Instance(info, [])
+    resolved_type = _replace_self_in_type(original_type, concrete_type)
+
+    add_attribute_to_class(ctx.api, ctx.cls, "id", resolved_type)
+
+
+# Cache: model fullname -> {attname: (related_model_fullname, nullable)}
+_fk_field_cache: dict[str, dict[str, tuple[str, bool]]] = {}
+
+
+def _get_fk_fields(model_fullname: str) -> dict[str, tuple[str, bool]]:
+    """Look up FK fields for a model class via Django's runtime _meta API.
+
+    Returns a dict mapping attname (e.g. "organization_id") to
+    (related_model_fullname, nullable).
+    """
+    if model_fullname in _fk_field_cache:
+        return _fk_field_cache[model_fullname]
+
+    result: dict[str, tuple[str, bool]] = {}
+    try:
+        from django.apps import apps
+        from django.db.models.fields.related import ForeignKey
+
+        module, _, class_name = model_fullname.rpartition(".")
+        model_cls = None
+        for m in apps.get_models(include_auto_created=True):
+            if m.__module__ == module and m.__name__ == class_name:
+                model_cls = m
+                break
+
+        if model_cls is not None:
+            for field in model_cls._meta.get_fields():
+                if isinstance(field, ForeignKey):
+                    related = field.related_model
+                    related_fullname = f"{related.__module__}.{related.__name__}"
+                    result[field.attname] = (related_fullname, field.null)
+    except Exception:
+        pass
+
+    _fk_field_cache[model_fullname] = result
+    return result
+
+
+_id_type_info: TypeInfo | None = None
+
+
+def _lookup_typeinfo(ctx: AttributeContext, fullname: str) -> TypeInfo | None:
+    """Look up a TypeInfo by fully qualified name via the checker's module graph."""
+    # Access the TypeChecker's modules dict (not in the official API but stable).
+    modules = getattr(ctx.api, "modules", None)
+    if modules is None:
+        return None
+    module_name, _, class_name = fullname.rpartition(".")
+    module = modules.get(module_name)
+    if module is None:
+        return None
+    sym = module.names.get(class_name)
+    if sym is None or not isinstance(sym.node, TypeInfo):
+        return None
+    return sym.node
+
+
+def _resolve_fk_id_attribute(ctx: AttributeContext, *, class_fullname: str, attr_name: str) -> Type:
+    """Resolve a FK _id attribute to Id[RelatedModel] at type-checking time."""
+    if not isinstance(ctx.default_attr_type, AnyType):
+        return ctx.default_attr_type
+
+    fk_fields = _get_fk_fields(class_fullname)
+    if attr_name not in fk_fields:
+        return ctx.default_attr_type
+
+    related_fullname, nullable = fk_fields[attr_name]
+
+    global _id_type_info
+    if _id_type_info is None:
+        _id_type_info = _lookup_typeinfo(ctx, "sentry.types.id.Id")
+    if _id_type_info is None:
+        return ctx.default_attr_type
+
+    related_info = _lookup_typeinfo(ctx, related_fullname)
+    if related_info is None:
+        return ctx.default_attr_type
+
+    id_type: Type = Instance(_id_type_info, [Instance(related_info, [])])
+    if nullable:
+        id_type = UnionType([id_type, NoneType()])
+    return id_type
+
+
+def _process_silo_model(ctx: ClassDefContext) -> None:
+    """Process a model decorated with @region_silo_model or @control_silo_model."""
+    _resolve_model_id_self(ctx)
+
+
 class SentryMypyPlugin(Plugin):
     def get_function_signature_hook(
         self, fullname: str
@@ -224,12 +381,31 @@ class SentryMypyPlugin(Plugin):
         else:
             return None
 
+    def get_class_decorator_hook(self, fullname: str) -> Callable[[ClassDefContext], None] | None:
+        if fullname in (
+            "sentry.db.models.base.region_silo_model",
+            "sentry.db.models.base.control_silo_model",
+        ):
+            return _process_silo_model
+        return None
+
     def get_attribute_hook(self, fullname: str) -> Callable[[AttributeContext], Type] | None:
         if fullname.startswith("sentry.utils.lazy_service_wrapper.LazyServiceWrapper."):
             _, attr = fullname.rsplit(".", 1)
             return functools.partial(_lazy_service_wrapper_attribute, attr=attr)
-        else:
-            return None
+
+        # Resolve FK _id attributes to Id[RelatedModel] on Sentry model classes.
+        # The _id suffix is a cheap pre-filter; actual FK validation happens in
+        # _resolve_fk_id_attribute via Django's _meta API (not all _id attrs are FKs).
+        if fullname.startswith("sentry.") and fullname.endswith("_id"):
+            class_fullname, _, attr_name = fullname.rpartition(".")
+            return functools.partial(
+                _resolve_fk_id_attribute,
+                class_fullname=class_fullname,
+                attr_name=attr_name,
+            )
+
+        return None
 
     def get_additional_deps(self, file: MypyFile) -> list[tuple[int, str, int]]:
         if file.fullname in {"django.http", "django.http.request", "rest_framework.request"}:
