@@ -470,7 +470,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
         mutationOptions={optionMutationOptions(notificationType)}
       >
         {field => (
-          <field.Layout.Row label={String(fieldDef.label)} hintText={help}>
+          <field.Layout.Row label={fieldDef.label} hintText={help}>
             <field.Select
               value={field.state.value}
               onChange={field.handleChange}
