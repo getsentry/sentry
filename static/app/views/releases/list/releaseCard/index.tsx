@@ -13,11 +13,11 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Collapsible from 'sentry/components/collapsible';
+import {DateTime} from 'sentry/components/dateTime';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tct, tn} from 'sentry/locale';
@@ -152,12 +152,11 @@ function ReleaseCard({
                   </TextOverflow>
                 )}
               </PackageName>
-              <TimeSince
-                tooltipPrefix={lastDeploy?.dateFinished ? t('Finished:') : t('Created:')}
-                date={lastDeploy?.dateFinished || dateCreated}
-              />
-              {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
-              &nbsp;
+              <div>
+                {lastDeploy?.dateFinished ? t('Finished:') : t('Created:')}{' '}
+                <DateTime date={lastDeploy?.dateFinished || dateCreated} seconds={false} />
+                {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
+              </div>
             </Container>
             <FinalizeWrapper>
               {release.dateReleased ? (
