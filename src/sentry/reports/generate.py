@@ -48,7 +48,9 @@ def generate_csv_for_explore_query(
         "dataset": ExploreSavedQueryDataset.get_type_name(saved_query.dataset),
         "project": list(saved_query.projects.values_list("id", flat=True)),
         "environment": query_data.get("environment", []),
-        "sort": query_params.get("orderby"),
+        "sort": [query_params["orderby"]]
+        if isinstance(query_params.get("orderby"), str)
+        else query_params.get("orderby", []),
         "equations": query_params.get("equations", []),
     }
 
