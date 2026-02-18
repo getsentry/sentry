@@ -31,19 +31,31 @@ function SelectIndicatorsContainer({
   );
 }
 
-// Base props shared by both single and multiple select
+// Base props shared by all select variants
 type BaseSelectFieldProps = BaseFieldProps &
   Omit<
     React.ComponentProps<typeof Select>,
-    'value' | 'onChange' | 'onBlur' | 'disabled' | 'multiple' | 'multi'
+    'value' | 'onChange' | 'onBlur' | 'disabled' | 'multiple' | 'multi' | 'clearable'
   > & {
     disabled?: boolean | string;
   };
 
-// Single select (default) - TValue must NOT be an array
-interface SingleSelectFieldProps<TValue> extends BaseSelectFieldProps {
-  onChange: (value: TValue extends readonly unknown[] ? never : TValue) => void;
-  value: TValue extends readonly unknown[] ? never : TValue | null;
+// Helper type for non-array constraint
+type NonArray<T> = T extends readonly unknown[] ? never : T;
+
+// Single select WITHOUT clearable - onChange receives TValue (never null)
+interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps {
+  onChange: (value: NonArray<TValue>) => void;
+  value: NonArray<TValue> | null;
+  clearable?: false;
+  multiple?: false;
+}
+
+// Single select WITH clearable - onChange can receive TValue | null
+interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps {
+  clearable: true;
+  onChange: (value: NonArray<TValue> | null) => void;
+  value: NonArray<TValue> | null;
   multiple?: false;
 }
 
@@ -52,10 +64,12 @@ interface MultipleSelectFieldProps<TValue> extends BaseSelectFieldProps {
   multiple: true;
   onChange: (value: TValue extends readonly unknown[] ? TValue : never) => void;
   value: TValue extends readonly unknown[] ? TValue : never;
+  clearable?: boolean;
 }
 
 export type SelectFieldProps<TValue = string> =
-  | SingleSelectFieldProps<TValue>
+  | SingleUnclearableSelectFieldProps<TValue>
+  | SingleClearableSelectFieldProps<TValue>
   | MultipleSelectFieldProps<TValue>;
 
 export function SelectField<TValue = string>({
@@ -115,8 +129,9 @@ export function SelectField<TValue = string>({
                 }
               } else {
                 if (!option) {
-                  // todo single-select with clearable needs to be able to allow null as value
-                  onChange(null as any);
+                  // Clearable single select - type system allows null via discriminated union
+                  (onChange as (value: TValue | null) => void)(null);
+                  return;
                 }
                 // For single-select, option is a single value
                 (onChange as (value: TValue) => void)(
