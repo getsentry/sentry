@@ -32,16 +32,20 @@ Sentry uses a **hybrid cloud silo architecture** to support multi-region SaaS de
 
 ## Where Each Silo Lives
 
-| Area                | Path                                                      | Purpose                                           |
-| ------------------- | --------------------------------------------------------- | ------------------------------------------------- |
-| Silo core           | `src/sentry/silo/`                                        | Modes, client, safety, util, signatures           |
-| Hybrid cloud        | `src/sentry/hybridcloud/`                                 | Outboxes, RPC, API gateway, replica services      |
-| Model decorators    | `src/sentry/db/models/base.py`                            | `@control_silo_model`, `@region_silo_model`       |
-| Endpoint decorators | `src/sentry/api/base.py`                                  | `@control_silo_endpoint`, `@region_silo_endpoint` |
-| DB routing          | `src/sentry/db/router.py`                                 | `SiloRouter` routes queries to correct DB         |
-| Cross-silo FKs      | `src/sentry/db/models/fields/hybrid_cloud_foreign_key.py` | `HybridCloudForeignKey`                           |
-| Region client       | `src/sentry/silo/client.py`                               | `RegionSiloClient` (Control→Region HTTP proxy)    |
-| API gateway         | `src/sentry/hybridcloud/apigateway/apigateway.py`         | Request routing/proxying                          |
+| Area                | Path                                                      | Purpose                                                           |
+| ------------------- | --------------------------------------------------------- | ----------------------------------------------------------------- |
+| Silo core           | `src/sentry/silo/`                                        | Modes, client, safety, util, signatures                           |
+| Hybrid cloud        | `src/sentry/hybridcloud/`                                 | Outboxes, RPC, API gateway, replica services                      |
+| Model decorators    | `src/sentry/db/models/base.py`                            | `@control_silo_model`, `@region_silo_model`                       |
+| Endpoint decorators | `src/sentry/api/base.py`                                  | `@control_silo_endpoint`, `@region_silo_endpoint`                 |
+| DB routing          | `src/sentry/db/router.py`                                 | `SiloRouter` routes queries to correct DB                         |
+| Cross-silo FKs      | `src/sentry/db/models/fields/hybrid_cloud_foreign_key.py` | `HybridCloudForeignKey`                                           |
+| Region client       | `src/sentry/silo/client.py`                               | `RegionSiloClient` (Control→Region HTTP proxy)                    |
+| API gateway         | `src/sentry/hybridcloud/apigateway/apigateway.py`         | Request routing/proxying                                          |
+| RPC base classes    | `src/sentry/hybridcloud/rpc/service.py`                   | `RpcService`, `DelegatingRpcService`, `_RemoteSiloCall`           |
+| RPC models          | `src/sentry/hybridcloud/rpc/__init__.py`                  | `RpcModel` Pydantic base for all RPC transfer objects             |
+| Region resolvers    | `src/sentry/hybridcloud/rpc/resolvers.py`                 | `ByOrganizationId`, `ByOrganizationSlug`, `ByRegionName`, etc.    |
+| RPC endpoint        | `src/sentry/api/endpoints/internal/rpc.py`                | `InternalRpcServiceEndpoint` — receives inbound RPC POST requests |
 
 ## How Silos Interact (And Why Regions Never Talk to Each Other)
 
@@ -62,6 +66,8 @@ When a replicated model changes, an outbox record is written **atomically in the
 - `ControlOutbox` (Control→Region): e.g., user profile updated, auth token created
 - `src/sentry/hybridcloud/models/outbox.py`
 - `src/sentry/hybridcloud/tasks/deliver_from_outbox.py`
+
+> **Deep dive**: see [`outboxes.md`](outboxes.md) for the full model pattern, sharding mechanics, drain path details, locking behaviour, and common gotchas.
 
 #### C. HTTP Proxying (Control → Region)
 
@@ -97,10 +103,10 @@ The silo architecture is the primary mechanism for **data residency** compliance
 | Customer data stays in jurisdiction | Region silo has isolated database; data never replicated cross-region                                                |
 | User identity is global             | User auth/PII in Control silo, accessed via RPC from regions; no PII copied to region DBs                            |
 | Right to erasure                    | Deleting a User in Control triggers `ControlOutbox` → cascades to all regions via `HybridCloudForeignKey` tombstones |
-| Org↔region binding                  | `OrganizationMapping` in Control is immutable once set; org data is locked to one region                             |
+| Org↔region binding                  | `OrganizationMapping` regions in Control are immutable once set; org data is locked to one region                    |
 | Audit trail                         | All cross-silo mutations flow through outbox tables, which are retained until processed                              |
 
-## How to Define a New Silo
+## How to Define Silo Resources
 
 ### New Model
 
@@ -140,13 +146,29 @@ Returns 404 automatically if accessed from the wrong silo. Every endpoint that i
 
 ### New RPC Service (cross-silo call)
 
+Every RPC service follows a **4-file pattern** inside `src/sentry/<domain>/services/<name>/`:
+
+| File         | Purpose                                                                                  |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| `model.py`   | `RpcModel` subclasses used as arguments and return values                                |
+| `serial.py`  | Helpers to construct `RpcModel` objects from Django ORM instances                        |
+| `service.py` | Abstract `RpcService` with decorated methods; creates the module-level delegation object |
+| `impl.py`    | Concrete `DatabaseBacked*` subclass with real DB logic                                   |
+
+**Control-silo service** (data lives in Control):
+
 ```python
-# src/sentry/services/myservice/service.py
+# src/sentry/myapp/services/myservice/service.py
+# Please do not use `from __future__ import annotations` — Pydantic needs runtime type reflection.
+
+import abc
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
+from sentry.myapp.services.myservice.model import RpcThing
+from sentry.silo.base import SiloMode
 
 class MyService(RpcService):
-    key = "my_service"  # Must be unique; conflicting keys will fail
-    local_mode = SiloMode.CONTROL   # Where the real data lives
+    key = "my_service"          # unique slug; appears in /api/0/rpc/<key>/<method>/
+    local_mode = SiloMode.CONTROL
 
     @classmethod
     def get_local_implementation(cls) -> "MyService":
@@ -154,12 +176,40 @@ class MyService(RpcService):
         return DatabaseBackedMyService()
 
     @rpc_method
-    @abstractmethod
+    @abc.abstractmethod
     def get_thing(self, *, id: int) -> RpcThing | None: ...
 
 my_service = MyService.create_delegation()
-# Callers in any silo just call my_service.get_thing(id=...) — routing is automatic
+# Callers in any silo: my_service.get_thing(id=42) — routing is automatic
 ```
+
+**Region-silo service** (data lives in Region — every method needs a resolver):
+
+```python
+# src/sentry/myapp/services/myservice/service.py
+import abc
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
+from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.myapp.services.myservice.model import RpcThing
+from sentry.silo.base import SiloMode
+
+class MyRegionService(RpcService):
+    key = "my_region_service"
+    local_mode = SiloMode.REGION
+
+    @classmethod
+    def get_local_implementation(cls) -> "MyRegionService":
+        from .impl import DatabaseBackedMyRegionService
+        return DatabaseBackedMyRegionService()
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abc.abstractmethod
+    def get_thing(self, *, organization_id: int, id: int) -> RpcThing | None: ...
+
+my_region_service = MyRegionService.create_delegation()
+```
+
+> **Deep dive**: see [`rpc_services.md`](rpc_services.md) for the full 4-file layout, all region resolvers, authentication/signing details, wire format, retry behaviour, and common gotchas.
 
 ### New Cross-Silo Foreign Key
 
