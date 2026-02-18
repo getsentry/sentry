@@ -174,13 +174,8 @@ def _set_tags_and_log(event_payload: Mapping[str, Any], github_event: str) -> No
         "%s.sending_request_to_seer",
         PREFIX,
         extra={
-            "provider": provider,
-            "repo_owner": owner,
-            "repo_name": name,
-            "pr_id": pr_id,
             "commit_sha": repo_data.get("base_commit_sha"),
             "request_type": event_payload.get("request_type"),
-            "github_event": github_event,
             "github_to_seer_latency_ms": (
                 calculate_latency_ms(trigger_at_str) if trigger_at_str else None
             ),

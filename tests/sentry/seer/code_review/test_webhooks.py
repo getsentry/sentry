@@ -760,11 +760,15 @@ class TestSetTagsAndLog:
 
         mock_logger.info.assert_called_once()
         log_extra = mock_logger.info.call_args[1]["extra"]
-        assert log_extra["provider"] == "github"
-        assert log_extra["repo_owner"] == "getsentry"
-        assert log_extra["repo_name"] == "sentry"
-        assert log_extra["pr_id"] == 42
-        assert log_extra["github_event"] == "pull_request"
+        # Redundant fields (provider, repo_owner, repo_name, pr_id, github_event) are omitted
+        # from extra since they're already set as sentry_sdk tags on the scope.
+        assert "commit_sha" in log_extra
+        assert "request_type" in log_extra
+        assert "github_to_seer_latency_ms" in log_extra
+        assert "provider" not in log_extra
+        assert "repo_owner" not in log_extra
+        assert "pr_id" not in log_extra
+        assert "github_event" not in log_extra
 
     @patch("sentry.seer.code_review.webhooks.task.logger")
     @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
