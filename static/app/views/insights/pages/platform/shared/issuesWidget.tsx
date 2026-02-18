@@ -21,7 +21,6 @@ import StreamGroup, {
 } from 'sentry/components/stream/group';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -58,21 +57,6 @@ function useMemberList() {
   }, [api, organization, isMountedRef]);
 
   return memberList;
-}
-
-function useSyncGroupStore(data: Group[] | undefined) {
-  useEffect(() => {
-    GroupStore.loadInitialData([]);
-    return () => {
-      GroupStore.reset();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (data) {
-      GroupStore.add(data);
-    }
-  }, [data]);
 }
 
 export function IssuesWidget() {
@@ -112,9 +96,6 @@ export function IssuesWidget() {
     ],
     {staleTime: 0}
   );
-
-  // We need to sync group store with the data as StreamGroup retrieves data from the store
-  useSyncGroupStore(groups);
 
   const issuesUrl = useMemo(() => {
     return {
@@ -173,15 +154,15 @@ export function IssuesWidget() {
                 <Placeholder height="50px" />
               </GroupPlaceholder>
             ))
-          : groups.map(({id, project}) => {
+          : groups.map(group => {
               return (
                 <StreamGroup
-                  key={id}
-                  id={id}
+                  key={group.id}
+                  group={group}
                   canSelect={false}
                   withChart={breakpoints.xl}
                   withColumns={COLUMNS}
-                  memberList={memberList?.[project.slug]}
+                  memberList={memberList?.[group.project.slug]}
                   useFilteredStats={false}
                   statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
                   source="laravel-insights"
