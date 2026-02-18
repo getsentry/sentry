@@ -84,6 +84,7 @@ function CustomCommitsResolutionModal({
                       select: ([commits]) =>
                         commits.map(c => ({
                           value: c,
+                          textValue: c.id,
                           label: <Version version={c.id} anchor={false} />,
                           details: (
                             <span>
