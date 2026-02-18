@@ -706,6 +706,9 @@ importers:
       vitest-canvas-mock:
         specifier: ^1.1.3
         version: 1.1.3(vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.15.21)(jiti@2.6.1)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.31.1)(terser@5.40.0)(yaml@2.8.0))
+      vitest-fail-on-console:
+        specifier: ^0.10.1
+        version: 0.10.1(@vitest/utils@4.0.18)(vite@6.4.1(@types/node@22.15.21)(jiti@2.6.1)(less@4.3.0)(lightningcss@1.31.1)(terser@5.40.0)(yaml@2.8.0))(vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.15.21)(jiti@2.6.1)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.31.1)(terser@5.40.0)(yaml@2.8.0))
     optionalDependencies:
       fsevents:
         specifier: ^2.3.3
@@ -4817,6 +4820,10 @@ packages:
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
     engines: {node: '>=10'}
+
+  chalk@5.6.2:
+    resolution: {integrity: sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA==}
+    engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
 
   char-regex@1.0.2:
     resolution: {integrity: sha512-kWWXztvZ5SBQV+eRgKFeh8q5sLuZY2+8WUIzlxWVTg+oGwY14qylx1KbKzHd8P6ZYkAg0xyIDU9JMHhyJMZ1jw==}
@@ -9412,6 +9419,13 @@ packages:
     resolution: {integrity: sha512-zlKJR776Qgd+bcACPh0Pq5MG3xWq+CdkACKY/wX4Jyija0BSz8LH3aCCgwFKYFwtm565+050YFEGG9Ki0gE/Hw==}
     peerDependencies:
       vitest: ^3.0.0 || ^4.0.0
+
+  vitest-fail-on-console@0.10.1:
+    resolution: {integrity: sha512-Xjy2SpgND547qSy0s0zYVnh1G/WyGtdjAbi4PFV8mkYRmTq+6NzRUJYdc08BHrw7HJLpO2kMxHFB8PWn7FOVsg==}
+    peerDependencies:
+      '@vitest/utils': '>=0.26.2'
+      vite: '>=4.5.2'
+      vitest: '>=0.26.2'
 
   vitest@4.0.18:
     resolution: {integrity: sha512-hOQuK7h0FGKgBAas7v0mSAsnvrIgAvWmRFjmzpJ7SwFHH3g1k2u37JtYwOwmEKhK6ZO3v9ggDBBm0La1LCK4uQ==}
@@ -14819,6 +14833,8 @@ snapshots:
     dependencies:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
+
+  chalk@5.6.2: {}
 
   char-regex@1.0.2: {}
 
@@ -20511,6 +20527,13 @@ snapshots:
     dependencies:
       cssfontparser: 1.2.1
       moo-color: 1.0.3
+      vitest: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.15.21)(jiti@2.6.1)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.31.1)(terser@5.40.0)(yaml@2.8.0)
+
+  vitest-fail-on-console@0.10.1(@vitest/utils@4.0.18)(vite@6.4.1(@types/node@22.15.21)(jiti@2.6.1)(less@4.3.0)(lightningcss@1.31.1)(terser@5.40.0)(yaml@2.8.0))(vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.15.21)(jiti@2.6.1)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.31.1)(terser@5.40.0)(yaml@2.8.0)):
+    dependencies:
+      '@vitest/utils': 4.0.18
+      chalk: 5.6.2
+      vite: 6.4.1(@types/node@22.15.21)(jiti@2.6.1)(less@4.3.0)(lightningcss@1.31.1)(terser@5.40.0)(yaml@2.8.0)
       vitest: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.15.21)(jiti@2.6.1)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.31.1)(terser@5.40.0)(yaml@2.8.0)
 
   vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.15.21)(jiti@2.6.1)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.31.1)(terser@5.40.0)(yaml@2.8.0):

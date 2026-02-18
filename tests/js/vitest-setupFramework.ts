@@ -1,17 +1,19 @@
 /// <reference types="vitest/globals" />
 /* global process */
-import failOnConsole from 'jest-fail-on-console';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import failOnConsole from 'vitest-fail-on-console';
 
 // Mirror Jest's static/app/__mocks__/prismjs.tsx — prevents syntax highlighting
 // from splitting code text across <span> elements, which breaks getByText().
 // Tests that specifically test Prism tokenization should call vi.unmock('prismjs').
 vi.mock('prismjs', async () => {
-  const {default: prismComponents} =
-    await vi.importActual<typeof import('prismjs/components')>('prismjs/components');
+  const prismComponents = await vi.importActual<any>('prismjs/components');
+  const prismLanguages =
+    prismComponents.languages ?? prismComponents.default?.languages ?? {};
   return {
     default: {
       manual: false,
-      languages: Object.keys(prismComponents.languages).reduce(
+      languages: Object.keys(prismLanguages).reduce(
         (acc: Record<string, Record<PropertyKey, unknown>>, language: string) => ({
           ...acc,
           [language]: {},
