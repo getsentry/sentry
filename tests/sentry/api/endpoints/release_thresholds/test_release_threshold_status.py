@@ -508,8 +508,8 @@ class ReleaseThresholdStatusProjectAccessTest(APITestCase):
             name="inaccessible", organization=self.organization, teams=[self.team2]
         )
 
-        # User only belongs to team1
-        self.create_member(teams=[self.team1], user=self.user, organization=self.organization)
+        # User only belongs to team1 (user is already a member from APITestCase setUp)
+        self.create_team_membership(team=self.team1, user=self.user)
 
         self.environment = Environment.objects.create(
             organization_id=self.organization.id, name="production"

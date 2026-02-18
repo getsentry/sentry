@@ -176,10 +176,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             release_query &= Q(
                 releaseprojectenvironment__environment__name__in=environments_list,
             )
-        if project_slug_list:
-            release_query &= Q(
-                projects__id__in=validated_project_ids,
-            )
+        release_query &= Q(
+            projects__id__in=validated_project_ids,
+        )
         if releases_list:
             release_query &= Q(
                 version__in=releases_list,
@@ -217,11 +216,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             # TODO:
             # We should update release model to preserve threshold states.
             # if release.failed_thresholds/passed_thresholds exists - then skip calculating and just return thresholds
-            project_list = [
-                p
-                for p in release.projects.all()
-                if (project_slug_list and p.id in validated_project_ids) or (not project_slug_list)
-            ]
+            project_list = [p for p in release.projects.all() if p.id in validated_project_ids]
 
             for project in project_list:
                 thresholds_list: list[ReleaseThreshold] = [
