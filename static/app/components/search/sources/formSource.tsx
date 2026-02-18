@@ -37,19 +37,6 @@ function createSearchMap({
   fields,
   ...other
 }: SearchMapParams): FormSearchField[] {
-  const STATIC_SEARCH_MAP: FormSearchField[] = [
-    {
-      route: '/settings/account/emails/',
-      title: 'Additional Email',
-      description: 'Designate an alternative email for this account',
-      field: {
-        type: 'string',
-        name: 'email',
-        label: 'Additional Email',
-      },
-    },
-  ];
-
   // There are currently two ways to define forms (TODO(billy): Turn this into one):
   // If `formGroups` is defined, then return a flattened list of fields in all formGroups
   // Otherwise `fields` is a map of fieldName -> fieldObject -- create a list of fields
@@ -57,15 +44,13 @@ function createSearchMap({
     ? formGroups.flatMap(formGroup => formGroup.fields)
     : Object.keys(fields).map(fieldName => fields[fieldName]);
 
-  const dynamicSearchMap = listOfFields.map<FormSearchField>(field => ({
+  return listOfFields.map<FormSearchField>(field => ({
     ...other,
     route,
     title: typeof field === 'function' ? undefined : (field?.label as string),
     description: typeof field === 'function' ? undefined : (field?.help as string),
     field: field!,
   }));
-
-  return [...STATIC_SEARCH_MAP, ...dynamicSearchMap];
 }
 
 /**

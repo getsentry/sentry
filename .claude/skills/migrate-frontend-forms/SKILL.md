@@ -487,36 +487,6 @@ function SlugForm({project}: {project: Project}) {
 | ----------- | ------- | ------------------------------------------------------------------------------------- |
 | `allowUndo` | 3 forms | Undo in toasts adds complexity with minimal benefit. Use simple error toasts instead. |
 
-## Search Discoverability
-
-The legacy system automatically made form fields searchable via `formSource.tsx`, which uses `require.context` to dynamically load all files in `static/app/data/forms/` that export a `route`. When a file is removed from that directory during migration, those fields are no longer discovered automatically.
-
-**After deleting a file from `static/app/data/forms/`**, add its fields to the `STATIC_SEARCH_MAP` in `static/app/components/search/sources/formSource.tsx`:
-
-```tsx
-const STATIC_SEARCH_MAP: FormSearchField[] = [
-  // ...existing entries
-  {
-    route: '/settings/account/emails/',
-    title: 'Additional Email', // was field.label
-    description: 'Designate an alternative email for this account', // was field.help
-    field: {
-      type: 'string',
-      name: 'email',
-      label: 'Additional Email',
-    },
-  },
-];
-```
-
-The values come directly from the deleted form file:
-
-- `route` → the exported `route` constant
-- `title` → `field.label`
-- `description` → `field.help`
-- `field.name` → `field.name`
-- `field.type` → `field.type`
-
 ## Migration Checklist
 
 - [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveField
@@ -531,4 +501,3 @@ The values come directly from the deleted form file:
 - [ ] Handle `saveMessage` in onSuccess callback
 - [ ] Convert `saveOnBlur: false` fields to regular forms with Save button
 - [ ] Verify `onSuccess` cache updates merge with existing data (use updater function) — some API endpoints may return partial objects
-- [ ] If a file was deleted from `static/app/data/forms/`, add its fields to `STATIC_SEARCH_MAP` in `formSource.tsx`
