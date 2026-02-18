@@ -574,7 +574,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       return [];
     }
     let colorIndex = 0;
-    return props.plottables.map(plottable => {
+    const items: LegendItem[] = props.plottables.map(plottable => {
       let color = '';
       if (plottable.needsColor) {
         color = palette[colorIndex % palette.length]!;
@@ -586,7 +586,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         color,
       };
     });
-  }, [hasChartLegend, props.plottables, palette, aliases]);
+    if (releaseSeries) {
+      items.push({
+        name: String(releaseSeries.name),
+        label: String(releaseSeries.name),
+        color: String(releaseSeries.color),
+      });
+    }
+    return items;
+  }, [hasChartLegend, props.plottables, palette, aliases, releaseSeries]);
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 

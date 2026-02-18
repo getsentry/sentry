@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
@@ -25,8 +26,14 @@ interface ChartLegendProps {
 }
 
 export function ChartLegend({items, selected, onSelectionChange}: ChartLegendProps) {
+  const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
-  const {overflowItems} = useOverflowItems(containerRef, items);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const outerGap = parseInt(theme.space.xs, 10);
+  const {overflowItems} = useOverflowItems(containerRef, items, {
+    triggerRef,
+    gap: outerGap,
+  });
 
   const overflowSet = useMemo(
     () => new Set(overflowItems.map(item => item.name)),
@@ -48,9 +55,17 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       overflowItems.map(item => ({
         value: item.name,
         label: item.label,
-        leadingItems: <ColorDot color={item.color} />,
+        hideCheck: true,
+        leadingItems: (
+          <LegendCheckbox
+            color={item.color}
+            checked={selected[item.name] !== false}
+            onChange={() => {}}
+            aria-label={t('Toggle %s', item.label)}
+          />
+        ),
       })),
-    [overflowItems]
+    [overflowItems, selected]
   );
 
   const overflowValues = useMemo(
@@ -74,6 +89,19 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   if (items.length === 0) {
     return null;
   }
+
+  // Determine the aggregate checked state of overflow items
+  const overflowCheckedCount = overflowItems.filter(
+    item => selected[item.name] !== false
+  ).length;
+  const overflowCheckState: boolean | 'indeterminate' =
+    overflowCheckedCount === 0
+      ? false
+      : overflowCheckedCount === overflowItems.length
+        ? true
+        : 'indeterminate';
+
+  const overflowColors = overflowItems.map(item => item.color).filter(Boolean);
 
   return (
     <Flex align="center" gap="xs" wrap="nowrap">
@@ -114,7 +142,12 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
           position="bottom-end"
           size="xs"
           trigger={triggerProps => (
-            <OverflowTrigger {...triggerProps}>
+            <OverflowTrigger ref={triggerRef} {...triggerProps}>
+              <LegendCheckbox
+                color={overflowColors}
+                checked={overflowCheckState}
+                onChange={() => {}}
+              />
               {t('%s more', overflowItems.length)}
             </OverflowTrigger>
           )}
@@ -146,7 +179,7 @@ const OverflowTrigger = styled(OverlayTrigger.Button)`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   background: none;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border: none;
   border-radius: ${p => p.theme.radius.sm};
   padding: 2px ${p => p.theme.space.sm};
   font-size: ${p => p.theme.font.size.sm};
@@ -158,12 +191,4 @@ const OverflowTrigger = styled(OverlayTrigger.Button)`
   &:hover {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
-`;
-
-const ColorDot = styled('div')<{color: string}>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: ${p => p.color};
-  flex-shrink: 0;
 `;

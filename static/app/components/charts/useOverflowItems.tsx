@@ -1,89 +1,116 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
+
+import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 
 /**
- * A generic hook that detects which items overflow a container using
- * IntersectionObserver. The caller renders ALL items as children of the
- * container referenced by `containerRef`. The hook observes direct children
- * and maps overflowing DOM child indices back to the `items` array.
+ * A generic hook that detects which items overflow a container by comparing
+ * child element widths against the available container width.
+ *
+ * The caller renders ALL items as children of the container referenced by
+ * `containerRef`. Overflow items should be hidden with `visibility: hidden`
+ * so they still contribute to measurement.
+ *
+ * A `ResizeObserver` watches the container so the partition updates when the
+ * container is resized. If a `triggerRef` is provided, its width (plus `gap`)
+ * is subtracted from the available space so the overflow trigger always fits.
  *
  * Returns `{ visibleItems, overflowItems }` as a partition of the input items.
  */
 export function useOverflowItems<T>(
   containerRef: React.RefObject<HTMLElement | null>,
-  items: T[]
+  items: T[],
+  options?: {
+    gap?: number;
+    triggerRef?: React.RefObject<HTMLElement | null>;
+  }
 ): {
   overflowItems: T[];
   visibleItems: T[];
 } {
-  const [overflowIndices, setOverflowIndices] = useState<Set<number>>(new Set());
+  const [firstOverflowIndex, setFirstOverflowIndex] = useState<number | null>(null);
+  const triggerRef = options?.triggerRef;
+  const gap = options?.gap ?? 0;
+
+  const computeOverflow = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const containerWidth = container.offsetWidth;
+    const triggerWidth = triggerRef?.current?.offsetWidth ?? 0;
+    const containerGap = parseFloat(getComputedStyle(container).columnGap) || 0;
+
+    const children = Array.from(container.children);
+    let usedWidth = 0;
+    let newFirstOverflowIndex: number | null = null;
+
+    for (let i = 0; i < children.length; i++) {
+      const childWidth = children[i]!.getBoundingClientRect().width;
+      if (i > 0) {
+        usedWidth += containerGap;
+      }
+      usedWidth += childWidth;
+
+      // Reserve space for the trigger + the gap between container and trigger
+      const remainingItems = children.length - i - 1;
+      const reservedSpace = remainingItems > 0 ? triggerWidth + gap : 0;
+
+      if (usedWidth > containerWidth - reservedSpace) {
+        newFirstOverflowIndex = i;
+        break;
+      }
+    }
+
+    setFirstOverflowIndex(newFirstOverflowIndex);
+  }, [containerRef, triggerRef, gap]);
 
   useEffect(() => {
-    if (!containerRef.current) {
+    const container = containerRef.current;
+    if (!container) {
       return () => {};
     }
 
-    const options: IntersectionObserverInit = {
-      root: containerRef.current,
-      // Negative right margin reserves space for the "X more" button
-      rootMargin: '0px -60px 0px 0px',
-      // Use 0.95 rather than 1 because of a bug in Edge (Windows) where the
-      // intersection ratio may unexpectedly drop to slightly below 1 (0.999...)
-      // on page scroll.
-      threshold: 0.95,
-    };
+    // Initial computation
+    computeOverflow();
 
-    const elementToIndex = new WeakMap<Element, number>();
-    const children = Array.from(containerRef.current.children);
-    children.forEach((child, index) => elementToIndex.set(child, index));
-
-    const callback: IntersectionObserverCallback = entries => {
-      entries.forEach(entry => {
-        const index = elementToIndex.get(entry.target);
-
-        if (index === undefined) {
-          return;
-        }
-
-        if (entry.isIntersecting) {
-          setOverflowIndices(prev => {
-            const next = new Set(prev);
-            next.delete(index);
-            return next;
-          });
-        } else {
-          setOverflowIndices(prev => {
-            const next = new Set(prev);
-            next.add(index);
-            return next;
-          });
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(callback, options);
-
-    children.forEach(child => observer.observe(child));
+    // Re-compute when the container resizes. ResizeObserver callbacks are
+    // already coalesced per-frame by the spec, but we defer measurement to a
+    // microtask as a precaution against forced reflows if the resulting
+    // state update synchronously changes layout.
+    const resizeObserver = new ResizeObserver(() => {
+      scheduleMicroTask(computeOverflow);
+    });
+    resizeObserver.observe(container);
 
     return () => {
-      observer.disconnect();
-      setOverflowIndices(new Set());
+      resizeObserver.disconnect();
     };
-  }, [containerRef, items.length]);
+  }, [containerRef, computeOverflow, items.length]);
 
-  const result = useMemo(() => {
-    const visibleItems: T[] = [];
-    const overflowItems: T[] = [];
+  // Also re-compute when the trigger appears or resizes
+  useEffect(() => {
+    const trigger = triggerRef?.current;
+    if (!trigger) {
+      return () => {};
+    }
 
-    items.forEach((item, index) => {
-      if (overflowIndices.has(index)) {
-        overflowItems.push(item);
-      } else {
-        visibleItems.push(item);
-      }
+    const resizeObserver = new ResizeObserver(() => {
+      scheduleMicroTask(computeOverflow);
     });
+    resizeObserver.observe(trigger);
 
-    return {visibleItems, overflowItems};
-  }, [items, overflowIndices]);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [triggerRef, computeOverflow, firstOverflowIndex !== null]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return result;
+  if (firstOverflowIndex === null) {
+    return {visibleItems: items, overflowItems: []};
+  }
+
+  return {
+    visibleItems: items.slice(0, firstOverflowIndex),
+    overflowItems: items.slice(firstOverflowIndex),
+  };
 }

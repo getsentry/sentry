@@ -1,14 +1,33 @@
 import type React from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
 const CHECKBOX_SIZE = '12px';
-const ICON_SIZE = '10px';
+const ICON_SIZE = '7px';
+
+const MAX_GRADIENT_COLORS = 4;
+
+function colorToBackground(colors: string | string[]): string {
+  if (typeof colors === 'string') {
+    return colors;
+  }
+  if (colors.length === 0) {
+    return 'transparent';
+  }
+  if (colors.length === 1) {
+    return colors[0]!;
+  }
+
+  // Diagonal linear gradient with smooth transitions between up to 4 colors
+  const limited = colors.slice(0, MAX_GRADIENT_COLORS);
+  return `linear-gradient(135deg, ${limited.join(', ')})`;
+}
 
 interface LegendCheckboxProps {
-  checked: boolean;
-  color: string;
+  checked: boolean | 'indeterminate';
+  color: string | string[];
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   'aria-label'?: string;
 }
@@ -19,17 +38,22 @@ export function LegendCheckbox({
   onChange,
   'aria-label': ariaLabel,
 }: LegendCheckboxProps) {
+  const theme = useTheme();
+  const isActive = checked === true || checked === 'indeterminate';
+  const background = isActive ? colorToBackground(color) : 'transparent';
+
   return (
     <Flex
       position="relative"
       display="inline-flex"
+      align="center"
       flexShrink={0}
       radius="2xs"
-      style={{cursor: 'pointer'}}
+      style={{cursor: 'pointer', height: '1.4em'}}
     >
       <NativeCheckbox
         type="checkbox"
-        checked={checked}
+        checked={checked !== 'indeterminate' && checked}
         onChange={onChange}
         aria-label={ariaLabel}
       />
@@ -41,15 +65,19 @@ export function LegendCheckbox({
         height={CHECKBOX_SIZE}
         radius="2xs"
         style={{
-          backgroundColor: checked ? color : 'transparent',
-          border: `1px solid ${checked ? color : 'var(--border-primary)'}`,
+          background,
+          border: `1px solid ${isActive ? 'transparent' : theme.tokens.border.primary}`,
           pointerEvents: 'none',
         }}
         aria-hidden
       >
-        {checked && (
-          <CheckIcon viewBox="0 0 16 16">
-            <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
+        {isActive && (
+          <CheckIcon viewBox="0 0 7 7">
+            {checked === 'indeterminate' ? (
+              <path d="M1.25 3.5H5.75" />
+            ) : (
+              <path d="M0.75 3.85639C1.59868 4.70507 2.94787 6.0325 2.92611 6.0325L6.0325 0.75" />
+            )}
           </CheckIcon>
         )}
       </Flex>
@@ -80,5 +108,5 @@ const CheckIcon = styled('svg')`
   stroke: white;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.8px;
+  stroke-width: 1.5px;
 `;
