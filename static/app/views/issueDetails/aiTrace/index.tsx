@@ -36,6 +36,54 @@ interface AITraceSectionProps {
 
 const MCP_SERVER_URL = 'http://localhost:8080';
 
+// Demo mode: set to true to use hardcoded data for UI testing
+const USE_DEMO_DATA = true;
+
+const DEMO_DATA: AITraceData = {
+  metadata: {
+    model_id: 'claude-sonnet-4-5-20250929',
+    project_path: '/Users/antonis/git/vibetrace',
+    session_id: '04b613db-e3e7-43dd-b2d7-70fa5fbb1717',
+    summary: 'Implement Vibe Trace integration with Sentry',
+    timestamp: '2026-02-18T14:30:00Z',
+    tool_name: 'claude-code',
+  },
+  conversation: [
+    {
+      role: 'user',
+      content:
+        'I want to test the full end-to-end flow of Vibe Trace - linking AI conversations to Sentry errors',
+    },
+    {
+      role: 'assistant',
+      content:
+        "I'll help you test the complete Vibe Trace flow. Let me create a test scenario that demonstrates how AI-generated code errors are linked back to their conversation context in Sentry...",
+      tool_uses: [{name: 'Write'}, {name: 'Bash'}],
+    },
+    {
+      role: 'user',
+      content:
+        "Let's modify the Sentry codebase directly instead of using Tampermonkey. I'll deploy via Vercel for testing.",
+    },
+    {
+      role: 'assistant',
+      content:
+        "Great idea! I'll create a native React component in the Sentry codebase. This will be more maintainable and won't require browser extensions...",
+      tool_uses: [{name: 'Write'}, {name: 'Edit'}, {name: 'Read'}],
+    },
+    {
+      role: 'user',
+      content: 'Can you fix the TypeScript errors showing up in the build?',
+    },
+    {
+      role: 'assistant',
+      content:
+        "I'll fix the TypeScript errors related to Sentry's theme system. The theme uses tokens.* properties rather than direct color properties...",
+      tool_uses: [{name: 'Edit'}],
+    },
+  ],
+};
+
 export function AITraceSection({event}: AITraceSectionProps) {
   const [traceData, setTraceData] = useState<AITraceData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +97,15 @@ export function AITraceSection({event}: AITraceSectionProps) {
   useEffect(() => {
     if (!commitHash) {
       setLoading(false);
+      return;
+    }
+
+    if (USE_DEMO_DATA) {
+      // Use hardcoded demo data for UI testing
+      setTimeout(() => {
+        setTraceData(DEMO_DATA);
+        setLoading(false);
+      }, 500); // Simulate network delay
       return;
     }
 
@@ -126,15 +183,17 @@ export function AITraceSection({event}: AITraceSectionProps) {
           </Button>
 
           <ToggleButton onClick={() => setShowConversation(!showConversation)}>
-            {showConversation ? '▼' : '▶'} {t('View Conversation')} (
-            {conversation.length})
+            {showConversation ? '▼' : '▶'} {t('View Conversation')} ({conversation.length}
+            )
           </ToggleButton>
 
           {showConversation && (
             <ConversationBox>
               {conversation.slice(0, 10).map((turn, i) => (
                 <Turn key={i}>
-                  <TurnLabel>{turn.role === 'user' ? '👤 User' : '🤖 Assistant'}</TurnLabel>
+                  <TurnLabel>
+                    {turn.role === 'user' ? '👤 User' : '🤖 Assistant'}
+                  </TurnLabel>
                   <TurnText>{turn.content.substring(0, 300)}...</TurnText>
                 </Turn>
               ))}
