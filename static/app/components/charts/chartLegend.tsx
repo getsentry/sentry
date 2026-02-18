@@ -243,7 +243,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
               {...triggerProps}
               ref={mergeRefs(triggerRef, triggerProps.ref)}
             >
-              {t('%s more', overflowItems.length)}
+              {t('+%s more', overflowItems.length)}
             </OverflowTrigger>
           )}
         />

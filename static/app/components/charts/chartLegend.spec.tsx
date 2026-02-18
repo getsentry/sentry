@@ -139,7 +139,7 @@ describe('ChartLegend', () => {
     mockContainerWidth(100);
     await triggerResize();
 
-    expect(screen.getByText('2 more')).toBeInTheDocument();
+    expect(screen.getByText('+2 more')).toBeInTheDocument();
   });
 
   it('does not show overflow trigger when nothing overflows', async () => {
@@ -167,7 +167,7 @@ describe('ChartLegend', () => {
     await triggerResize();
 
     // Open the overflow dropdown
-    await userEvent.click(screen.getByText('2 more'));
+    await userEvent.click(screen.getByText('+2 more'));
 
     // Click "Series B" inside the dropdown
     await userEvent.click(screen.getByRole('option', {name: 'Series B'}));
