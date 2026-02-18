@@ -104,6 +104,7 @@ class DatabaseBackedHookService(HookService):
                     installation_id=installation_id,
                     application_id=application_id,
                     actor_id=installation_id,
+                    organization_id=organization_id,
                     url=webhook_url,
                     events=expand_events(events),
                 )
