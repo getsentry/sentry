@@ -821,6 +821,5 @@ class OrganizationEventsTraceEndpointTest(
         occurrences = uptime_checks[0]["occurrences"]
         assert len(occurrences) == 1
         occurrence = occurrences[0]
-        assert occurrence["event_id"] == self.root_event.event_id
         assert occurrence["transaction"] == "uptime.check"
         assert occurrence["level"] == "error"

@@ -98,7 +98,7 @@ class TraceIssueOccurrenceData(TypedDict):
     issue_id: int
 
 
-class TraceOccurenceEventData(TypedDict):
+class TraceOccurrenceEventData(TypedDict):
     start_timestamp: float
     end_timestamp: float
     project_slug: str
@@ -107,7 +107,7 @@ class TraceOccurenceEventData(TypedDict):
 
 class TraceOccurrenceEvent(TypedDict):
     event_type: Literal["occurrence"]
-    event_data: TraceOccurenceEventData
+    event_data: TraceOccurrenceEventData
     issue_data: TraceIssueOccurrenceData
 
 
@@ -458,7 +458,7 @@ def _serialize_columnar_uptime_item(
                 },
                 "issue_data": issue_data,
             }
-            for issue_data in (check_id_to_occurrences or {}).get(check_id or "", [])
+            for issue_data in (check_id_to_occurrences or {}).get(check_id, [])
         ]
         if check_id
         else []
