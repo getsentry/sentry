@@ -5,6 +5,7 @@ from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, models, router, transaction
+from django.http import HttpResponseRedirect
 from django.test import Client, RequestFactory
 
 from sentry import audit_log
@@ -680,6 +681,7 @@ class AuthHelperTest(TestCase):
         result = helper.current_step()
 
         assert result.status_code == 302
+        assert isinstance(result, HttpResponseRedirect)
         assert result.url == f"/auth/login/{self.organization.slug}/"
         mock_messages.add_message.assert_called_once_with(
             self.request,
