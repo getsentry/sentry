@@ -82,9 +82,14 @@ For token and credential issuance, enforcement may exist in a **different reques
 - **Issuance flow**: The OAuth authorize/token view that creates the credential
 - **Usage flow**: The DRF API endpoints where the credential is subsequently used
 
-If the issued credential cannot be used because a separate enforcement point blocks it (e.g., `determine_access()` raises `MemberDisabledOverLimit` for all DRF endpoints), the credential is effectively inert. This is still a defense-in-depth gap worth noting, but it is **not** a HIGH finding — classify as **MEDIUM** at most.
+If the issued credential cannot be used because a separate enforcement point blocks it, classify based on where the enforcement lives:
 
-**Example:** OAuth authorize view issues a token to a `member-limit:restricted` member. The token exists, but every DRF endpoint rejects it via `is_member_disabled_from_limit()` in `api/permissions.py`. Severity: MEDIUM (defense-in-depth), not HIGH.
+- **Centralized enforcement** — the check is in a base class that ALL endpoints inherit (e.g., `SentryPermission.determine_access()` which runs for every DRF endpoint). The credential is truly inert. Classify as **LOW** (do not report).
+- **Scattered enforcement** — the check exists in some endpoints or serializers but not all. The credential may be usable against unchecked endpoints. Classify as **MEDIUM** (report as needs verification).
+
+**Example (LOW — centralized):** OAuth authorize view issues a token to a `member-limit:restricted` member. The token exists, but `is_member_disabled_from_limit()` in `SentryPermission.determine_access()` (`api/permissions.py`) rejects it at every DRF endpoint. The enforcement is in the base permission class — no endpoint can bypass it. Do not report.
+
+**Example (MEDIUM — scattered):** A token is issued without checking X, and X is only validated in specific endpoint subclasses (not the base). Some endpoints may not inherit the check. Report as needs verification.
 
 ## Tracing Requirements
 
@@ -101,4 +106,4 @@ Before marking a finding as **HIGH**, confirm the check is absent from **all** l
 □ Cross-flow: the issued credential is not blocked at usage time
 ```
 
-If the check exists in any layer or in a cross-flow enforcement point, the finding is either invalid or at most **MEDIUM** (if the enforcement is indirect or fragile).
+If the check exists in any layer or in a cross-flow enforcement point, the finding is either invalid, **LOW** (if enforcement is centralized in a base class), or at most **MEDIUM** (if enforcement is scattered or fragile).

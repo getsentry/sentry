@@ -141,7 +141,12 @@ For each potential finding, trace the **complete** request flow end-to-end. Do n
 
 If you cannot confirm the check is absent from every layer, mark the finding as **MEDIUM** (needs verification), not HIGH.
 
-**Cross-flow enforcement for token issuance:** For token/credential issuance flows, also check whether the issued credential is blocked at **usage time** (e.g., `determine_access()` rejects it at all DRF endpoints). If the credential is effectively inert, cap the finding at **MEDIUM** regardless of the issuance-time gap. See `enforcement-layers.md` "Cross-Flow Enforcement."
+**Cross-flow enforcement for token issuance:** For token/credential issuance flows, also check whether the issued credential is blocked at **usage time** (e.g., `determine_access()` rejects it at all DRF endpoints). Classify based on the enforcement scope:
+
+- **Centralized enforcement** (check lives in a base class ALL endpoints inherit, e.g., `SentryPermission.determine_access()`) → the credential is truly inert → **LOW** (do not report)
+- **Scattered enforcement** (only some endpoints or serializers check, others may not) → **MEDIUM** (report as needs verification)
+
+See `enforcement-layers.md` "Cross-Flow Enforcement."
 
 **Non-DRF views:** OAuth views are plain Django views — the 7-layer DRF model does not apply to the view itself. Check the view's own decorators and handler logic. But tokens issued by these views are later used at DRF endpoints where the full enforcement chain applies.
 

@@ -71,7 +71,7 @@ if member.is_pending or not member.user_is_active:
     return Response({"detail": "Member is not active"}, status=403)
 ```
 
-**Known downstream enforcement:** PR #92616 added `is_member_disabled_from_limit()` checks in `api/permissions.py:determine_access()`. This blocks all DRF API usage of tokens held by seat-limit restricted members. If the only gap is that token issuance proceeds but usage is blocked, classify as **MEDIUM** (defense-in-depth gap), not HIGH. See `enforcement-layers.md` "Cross-Flow Enforcement."
+**Known downstream enforcement:** PR #92616 added `is_member_disabled_from_limit()` checks in `SentryPermission.determine_access()` (`api/permissions.py`). This is **centralized enforcement** — it runs for every DRF endpoint via the base permission class. Tokens held by seat-limit restricted members are blocked at all API endpoints with no exceptions. Because the enforcement is centralized, this specific pattern is **LOW** (do not report). See `enforcement-layers.md` "Cross-Flow Enforcement."
 
 ### Real vulnerability: Personal tokens managing org tokens (PR #99457)
 
@@ -94,7 +94,8 @@ Impersonated sessions (staff acting as a user) had no rate limiting, allowing un
 □ Token issuance/refresh endpoints for org-scoped tokens require and validate organization_id
   (authentication classes reading existing tokens are exempt — org scoping is enforced by from_rpc_auth())
 □ Member active status is checked before token issuance
-  If missing at issuance but enforced at usage via is_member_disabled_from_limit() → MEDIUM, not HIGH
+  If missing at issuance but enforced at usage via is_member_disabled_from_limit() in base SentryPermission → LOW (centralized, do not report)
+  If enforced only in specific endpoint subclasses → MEDIUM
 □ Auth method is appropriate for the operation (org token vs personal token)
 □ Impersonated sessions are rate-limited
 □ Token revocation cascades properly (revoking app revokes all its tokens)
