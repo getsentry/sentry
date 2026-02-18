@@ -1,5 +1,3 @@
-from typing import TypedDict
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,12 +18,6 @@ from sentry.apidocs.parameters import WorkflowParams
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
 from sentry.workflow_engine.models import Workflow
-
-
-class DetectorCountResponse(TypedDict):
-    active: int
-    deactive: int
-    total: int
 
 
 @region_silo_endpoint
@@ -53,7 +45,7 @@ class AdminWorkflowDetailEndpoint(Endpoint):
         return args, kwargs
 
     @extend_schema(
-        operation_id="Get Organization Detector Count",
+        operation_id="Get the workflow for debugging purposes",
         parameters=[
             WorkflowParams.WORKFLOW_ID,
         ],
@@ -68,6 +60,7 @@ class AdminWorkflowDetailEndpoint(Endpoint):
     def get(self, request: AuthenticatedHttpRequest, workflow: Workflow) -> Response:
         """
         This API is for superusers to access workflow information w/o needing the organization.
+
         The API is used on the `_admin/alerts` page to gather the information
         related to the alert for debugging investigations
         """
