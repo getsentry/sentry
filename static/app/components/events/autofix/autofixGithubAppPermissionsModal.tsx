@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
@@ -25,17 +26,17 @@ export function AutofixGithubAppPermissionsModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h3>{t('Update GitHub App Permissions')}</h3>
+        <Heading as="h3">{t('Update GitHub App Permissions')}</Heading>
       </Header>
       <Body>
-        <p>
+        <Text as="p">
           {tct(
             'The Sentry GitHub App does not have sufficient permissions to launch a coding agent. Please update your [link:GitHub App installation settings] to grant the required permissions.',
             {
               link: <ExternalLink href={settingsUrl} />,
             }
           )}
-        </p>
+        </Text>
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">
