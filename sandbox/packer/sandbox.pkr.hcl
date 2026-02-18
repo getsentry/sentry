@@ -116,6 +116,9 @@ build {
       "echo 'SENTRY_CONF=/home/sentry/.sentry/' | sudo tee -a /etc/environment",
       "echo 'PATH=/opt/sentry/.venv/bin:/home/sentry/.local/share/sentry-devenv/bin:/usr/local/bin:/usr/bin:/bin' | sudo tee -a /etc/environment",
       "echo 'eval \"$(direnv hook bash)\"' | sudo tee -a /home/sentry/.bashrc",
+      # .bash_profile (created by devenv) doesn't source .bashrc, so the direnv
+      # hook and other interactive shell config never loads in login shells.
+      "echo '[ -f \"$HOME/.bashrc\" ] && . \"$HOME/.bashrc\"' | sudo tee -a /home/sentry/.bash_profile",
       "cd /opt/sentry && sudo -u sentry direnv allow /opt/sentry",
     ]
   }

@@ -57,6 +57,11 @@ NODE_URL="https://storage.googleapis.com/sentry-dev-infra-assets/node/node-${NOD
 curl -fsSL "$NODE_URL" | tar -xJ -C /usr/local --strip-components=1
 
 ###############################################################################
+# ChromeDriver (required by sentry .envrc, snap package broken on Ubuntu 24.04)
+###############################################################################
+npm install -g chromedriver
+
+###############################################################################
 # uv (pinned)
 ###############################################################################
 curl -LsSf "https://astral.sh/uv/${UV_VERSION}/install.sh" | env INSTALLER_NO_MODIFY_PATH=1 sh -s -- --no-modify-path
