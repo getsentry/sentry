@@ -51,7 +51,6 @@ class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
-    # let anyone in the org use this endpoint
     permission_classes = (OnboardingContinuationPermission,)
 
     def post(self, request: Request, organization: Organization):
