@@ -27,7 +27,7 @@ export default defineConfig({
   resolve: {
     // Reduce extension probing work for extensionless imports.
     // Keep common JS/TS extensions used in this repo and node deps.
-    extensions: ['.tsx', '.ts', '.json'],
+    extensions: ['.tsx', '.ts', '.js', '.json'],
     alias: [
       // Mirror moduleNameMapper from jest.config.ts
       {find: /^sentry\/(.*)/, replacement: path.resolve(ROOT, 'static/app/$1')},
