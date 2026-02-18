@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.core.cache import cache
@@ -211,60 +211,37 @@ def find_grouphash_with_group(
     return winning_grouphash
 
 
-# TODO: This can go once we've settled on an expiry time for each cache
-def _get_cache_expiry(
-    cache_key: str, cache_type: Literal["existence", "object"]
-) -> tuple[int, int]:
-    option_name = f"grouping.ingest_grouphash_{cache_type}_cache_expiry.trial_values"
-    possible_cache_expiries = options.get(option_name)
-    expiry_for_cache_key = possible_cache_expiries[hash(cache_key) % len(possible_cache_expiries)]
-
-    # Calculate a option version value so that when the option value changes, we invalidate the
-    # cache entries stored under the old value of the option
-    option_version = abs(hash(tuple(possible_cache_expiries)))
-
-    return (expiry_for_cache_key, option_version)
-
-
 def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_caching: bool) -> bool:
     """
     Check whether a given hash value has a corresponding `GroupHash` record in the database.
 
     If `use_caching` is True, cache the boolean result. Cache retention is controlled by the
     `grouping.ingest_grouphash_existence_cache_expiry` option.
-
-    TODO: That last sentence is temporarily untrue. While we're experimenting with retention
-    periods, cache retention is actually controlled by the helper `_get_cache_expiry`.
     """
     with metrics.timer(
         "grouping.get_or_create_grouphashes.check_secondary_hash_existence"
     ) as metrics_tags:
         if use_caching:
             cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
-            # TODO: This can go back to being just
-            #     cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
-            # once we've settled on a good retention period
-            cache_expiry, option_version = _get_cache_expiry(cache_key, cache_type="existence")
+            cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
-            # TODO: We can remove the version once we've settled on a good retention period
-            grouphash_exists = cache.get(cache_key, version=option_version)
+            grouphash_exists = cache.get(cache_key)
             got_cache_hit = grouphash_exists is not None
             metrics_tags["cache_result"] = "hit" if got_cache_hit else "miss"
-            # TODO: Temporary tag to let us compare hit rates across different retention periods
-            metrics_tags["expiry_seconds"] = cache_expiry
 
             if got_cache_hit:
                 metrics_tags["grouphash_exists"] = grouphash_exists
                 return grouphash_exists
 
+        # Get an answer from the database if we didn't find what we needed in the cache (or if
+        # caching is turned off)
         grouphash_exists = GroupHash.objects.filter(project=project, hash=hash_value).exists()
 
         if use_caching:
             metrics_tags["grouphash_exists"] = grouphash_exists
             metrics_tags["cache_set"] = True
 
-            # TODO: We can remove the version once we've settled on a good retention period
-            cache.set(cache_key, grouphash_exists, cache_expiry, version=option_version)
+            cache.set(cache_key, grouphash_exists, cache_expiry)
 
         return grouphash_exists
 
@@ -279,26 +256,17 @@ def _get_or_create_single_grouphash(
     `GroupHash` object. (Grouphashes without a group aren't cached because their data is about to
     change when a group is assigned.) Cache retention is controlled by the
     `grouping.ingest_grouphash_object_cache_expiry` option.
-
-    TODO: That last sentence is temporarily untrue. While we're experimenting with retention
-    periods, cache retention is actually controlled by the helper `_get_cache_expiry`.
     """
     with metrics.timer(
         "grouping.get_or_create_grouphashes.get_or_create_grouphash"
     ) as metrics_tags:
         if use_caching:
             cache_key = get_grouphash_object_cache_key(hash_value, project.id)
-            # TODO: This can go back to being just
-            #     cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
-            # once we've settled on a good retention period
-            cache_expiry, option_version = _get_cache_expiry(cache_key, cache_type="object")
+            cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
 
-            # TODO: We can remove the version once we've settled on a good retention period
-            grouphash = cache.get(cache_key, version=option_version)
+            grouphash = cache.get(cache_key)
             got_cache_hit = grouphash is not None
             metrics_tags["cache_result"] = "hit" if got_cache_hit else "miss"
-            # TODO: Temporary tag to let us compare hit rates across different retention periods
-            metrics_tags["expiry_seconds"] = cache_expiry
 
             if got_cache_hit:
                 return (grouphash, False)
@@ -311,8 +279,7 @@ def _get_or_create_single_grouphash(
         if use_caching and grouphash.group_id is not None:
             metrics_tags["cache_set"] = True
 
-            # TODO: We can remove the version once we've settled on a good retention period
-            cache.set(cache_key, grouphash, cache_expiry, version=option_version)
+            cache.set(cache_key, grouphash, cache_expiry)
 
         return (grouphash, created)
 
