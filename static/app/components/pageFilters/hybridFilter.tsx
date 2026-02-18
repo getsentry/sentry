@@ -558,18 +558,10 @@ export const HybridFilterComponents = {
 };
 
 const CheckboxWithIncreasedHitArea = styled(Checkbox)`
-  position: relative;
-
-  &:before {
+  input[type='checkbox']::after {
     content: '';
     position: absolute;
-    pointer-events: none;
-    display: block;
-    top: -${p => p.theme.space.xs};
-    left: -${p => p.theme.space.xs};
-
-    width: ${p => p.theme.space['2xl']};
-    height: ${p => p.theme.space['2xl']};
+    inset: -${p => p.theme.space.md};
   }
 `;
 
