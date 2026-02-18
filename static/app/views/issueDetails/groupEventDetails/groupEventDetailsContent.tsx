@@ -74,6 +74,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
+import {AITraceSection} from 'sentry/views/issueDetails/aiTrace';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -82,7 +83,6 @@ import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/us
 import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
-import {AITraceSection} from 'sentry/views/issueDetails/aiTrace';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';

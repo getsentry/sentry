@@ -90,9 +90,18 @@ export function AITraceSection({event}: AITraceSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showConversation, setShowConversation] = useState(false);
 
-  const commitHash =
-    event.tags?.find(tag => tag.key === 'git_commit')?.value ||
-    (typeof event.release === 'string' ? event.release.split('+')[1] : undefined);
+  // Extract commit hash from git_commit tag or release field
+  let commitHash: string | undefined;
+  const gitCommitTag = event.tags?.find(tag => tag.key === 'git_commit');
+  if (gitCommitTag?.value) {
+    commitHash = gitCommitTag.value;
+  } else if (typeof event.release === 'string') {
+    const releaseString = event.release as string;
+    const parts = releaseString.split('+');
+    if (parts.length > 1) {
+      commitHash = parts[1];
+    }
+  }
 
   useEffect(() => {
     if (!commitHash) {
