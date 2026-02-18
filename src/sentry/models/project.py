@@ -41,6 +41,7 @@ from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
 from sentry.models.team import Team
 from sentry.notifications.services import notifications_service
+from sentry.types.id import Id
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -174,7 +175,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
 
 
 class ProjectManager(BaseManager["Project"]):
-    def get_by_users(self, users: Iterable[User | RpcUser]) -> dict[int, set[int]]:
+    def get_by_users(self, users: Iterable[User | RpcUser]) -> dict[int, set[Id[Project]]]:
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
             projectteam__team__organizationmemberteam__is_active=True,
@@ -185,7 +186,7 @@ class ProjectManager(BaseManager["Project"]):
             "id", "projectteam__team__organizationmemberteam__organizationmember__user_id"
         )
 
-        projects_by_user_id = defaultdict(set)
+        projects_by_user_id = defaultdict[int, set[Id["Project"]]](set)
         for project_id, user_id in project_rows:
             if user_id is not None:
                 projects_by_user_id[user_id].add(project_id)
@@ -551,14 +552,14 @@ class Project(Model):
             for model in ReleaseProject, ReleaseProjectEnvironment, EnvironmentProject:
                 model.objects.filter(project_id=self.id).delete()
 
-        rules_by_environment_id = defaultdict(set)
+        rules_by_environment_id = defaultdict[int, set[Id[Rule]]](set)
         for rule_id, environment_id in Rule.objects.filter(
             project_id=self.id, environment_id__isnull=False
         ).values_list("id", "environment_id"):
             assert environment_id is not None
             rules_by_environment_id[environment_id].add(rule_id)
 
-        environment_names = dict(
+        environment_names = dict[int, str](
             Environment.objects.filter(organization_id=old_org_id).values_list("id", "name")
         )
 
@@ -618,7 +619,7 @@ class Project(Model):
 
         # [Rule, AlertRule(SnubaQuery->Environment)]
         # id -> name
-        environment_names_with_alerts = {
+        environment_names_with_alerts: dict[int, str] = {
             **environment_names,
             **{
                 env_id: env_name

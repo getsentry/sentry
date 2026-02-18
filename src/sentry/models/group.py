@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import re
-import warnings
 from collections import defaultdict, namedtuple
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
@@ -54,6 +53,7 @@ from sentry.types.group import (
     UNRESOLVED_SUBSTATUS_CHOICES,
     GroupSubStatus,
 )
+from sentry.types.id import Id
 from sentry.utils import metrics
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.numbers import base32_decode, base32_encode
@@ -332,11 +332,11 @@ class GroupManager(BaseManager["Group"]):
             .with_post_update_signal(options.get("groups.enable-post-update-signal"))
         )
 
-    def by_qualified_short_id(self, organization_id: int, short_id: str):
+    def by_qualified_short_id(self, organization_id: Id[Organization], short_id: str):
         return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
 
     def by_qualified_short_id_bulk(
-        self, organization_id: int, short_ids_raw: list[str]
+        self, organization_id: Id[Organization], short_ids_raw: list[str]
     ) -> Sequence[Group]:
         short_ids = []
         for short_id_raw in short_ids_raw:

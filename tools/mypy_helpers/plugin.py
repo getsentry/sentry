@@ -275,6 +275,7 @@ def _get_fk_fields(model_fullname: str) -> dict[str, tuple[str, bool]]:
 
         module, _, class_name = model_fullname.rpartition(".")
         model_cls = None
+        # TODO: Load into a global dict if this becomes a bottleneck
         for m in apps.get_models(include_auto_created=True):
             if m.__module__ == module and m.__name__ == class_name:
                 model_cls = m

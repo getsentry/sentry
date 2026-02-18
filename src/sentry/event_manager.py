@@ -131,6 +131,7 @@ from sentry.tasks.process_buffer import buffer_incr
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.types.id import Id
 from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
@@ -333,7 +334,7 @@ def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event
         logger.exception("Failed to update GroupTombstone count for id: %s", tombstone_id)
 
 
-ProjectsMapping = Mapping[int, Project]
+ProjectsMapping = Mapping[Id[Project], Project]
 
 Job = MutableMapping[str, Any]
 
@@ -1448,7 +1449,9 @@ def handle_existing_grouphash(
     # this function had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
-    group = Group.objects.get(id=existing_grouphash.group_id)
+    group_id = existing_grouphash.group_id
+    assert group_id is not None
+    group = Group.objects.get(id=group_id)
 
     # As far as we know this has never happened, but in theory at least, the error event hashing
     # algorithm and other event hashing algorithms could come up with the same hash value in the
