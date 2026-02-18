@@ -7,7 +7,6 @@ from django.utils import timezone
 from sentry.explore.models import ExploreSavedQuery
 from sentry.features import has as feature_has
 from sentry.models.dashboard import Dashboard
-from sentry.models.organization import Organization
 from sentry.reports.email import notify_report_deactivated, send_report_email
 from sentry.reports.generate import generate_csv_for_explore_query
 from sentry.reports.models import (
@@ -62,17 +61,15 @@ def schedule_reports() -> None:
 def execute_scheduled_report(scheduled_report_id: int) -> None:
     """Generate and deliver a single scheduled report."""
     try:
-        report = ScheduledReport.objects.get(id=scheduled_report_id)
+        report = ScheduledReport.objects.select_related("organization").get(id=scheduled_report_id)
     except ScheduledReport.DoesNotExist:
         return
 
-    organization = Organization.objects.get_from_cache(id=report.organization_id)
+    organization = report.organization
 
     if report.source_type == ScheduledReportSourceType.EXPLORE_SAVED_QUERY:
         try:
-            sq = ExploreSavedQuery.objects.get(
-                id=report.source_id, organization_id=report.organization_id
-            )
+            sq = ExploreSavedQuery.objects.get(id=report.source_id, organization_id=organization.id)
             if sq.dataset not in VALID_EXPLORE_DATASETS:
                 logger.info(
                     "scheduled_report.unsupported_dataset",
