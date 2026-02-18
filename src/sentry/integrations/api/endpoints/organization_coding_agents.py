@@ -25,9 +25,10 @@ from sentry.seer.autofix.utils import AutofixTriggerSource
 logger = logging.getLogger(__name__)
 
 
-class LaunchFailure(TypedDict):
+class LaunchFailure(TypedDict, total=False):
     repo_name: str
     error_message: str
+    failure_type: str
 
 
 class LaunchResponse(TypedDict, total=False):

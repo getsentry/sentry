@@ -1087,6 +1087,107 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             mock_store_to_seer.assert_called_once()
 
 
+class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgentsTest):
+    """Test class for POST endpoint 403 permission error handling."""
+
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
+    @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_403_error_returns_github_app_permissions_failure_type(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_preferences,
+        mock_get_prompt,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint returns failure_type=github_app_permissions on 403."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Test prompt"
+        mock_get_preferences.return_value = PreferenceResponse(
+            preference=None, code_mapping_repos=[]
+        )
+
+        # Create mock installation that raises ApiError with 403
+        from sentry.shared_integrations.exceptions import ApiError
+
+        failing_installation = MagicMock(spec=MockCodingAgentInstallation)
+        failing_installation.launch.side_effect = ApiError(
+            "Resource not accessible by integration", code=403
+        )
+
+        mock_rpc_integration = self._create_mock_rpc_integration()
+        mock_rpc_integration.get_installation = MagicMock(return_value=failing_installation)
+
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+        mock_get_autofix_state.return_value = self._create_mock_autofix_state()
+
+        data = {"integration_id": str(self.integration.id), "run_id": 123}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            assert response.data["success"] is True
+            assert response.data["failed_count"] >= 1
+            assert "failures" in response.data
+            assert len(response.data["failures"]) >= 1
+            failure = response.data["failures"][0]
+            assert failure["failure_type"] == "github_app_permissions"
+            assert "permissions" in failure["error_message"]
+
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
+    @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_non_403_error_returns_generic_failure_type(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_preferences,
+        mock_get_prompt,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint returns failure_type=generic for non-403 errors."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Test prompt"
+        mock_get_preferences.return_value = PreferenceResponse(
+            preference=None, code_mapping_repos=[]
+        )
+
+        from sentry.shared_integrations.exceptions import ApiError
+
+        failing_installation = MagicMock(spec=MockCodingAgentInstallation)
+        failing_installation.launch.side_effect = ApiError("Server error", code=500)
+
+        mock_rpc_integration = self._create_mock_rpc_integration()
+        mock_rpc_integration.get_installation = MagicMock(return_value=failing_installation)
+
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+        mock_get_autofix_state.return_value = self._create_mock_autofix_state()
+
+        data = {"integration_id": str(self.integration.id), "run_id": 123}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            assert response.data["success"] is True
+            assert response.data["failed_count"] >= 1
+            assert "failures" in response.data
+            failure = response.data["failures"][0]
+            assert failure["failure_type"] == "generic"
+
+
 class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgentsTest):
     """Test class for POST endpoint trigger source functionality."""
 
