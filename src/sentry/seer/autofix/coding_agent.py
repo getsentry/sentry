@@ -328,7 +328,7 @@ def _launch_agents_for_repos(
             github_installation_id: str | None = None
             if isinstance(e, ApiError):
                 url_part = f" ({e.url})" if e.url else ""
-                if e.code == 403 and client is None:
+                if e.code == 403 and client is not None:
                     failure_type = "github_app_permissions"
                     error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
                     if repo and repo.integration_id:

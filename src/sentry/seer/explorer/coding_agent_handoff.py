@@ -148,7 +148,7 @@ def launch_coding_agents(
             failure_type = "generic"
             error_message = "Failed to launch coding agent"
             github_installation_id: str | None = None
-            if isinstance(e, ApiError) and e.code == 403 and not is_github_copilot:
+            if isinstance(e, ApiError) and e.code == 403 and is_github_copilot:
                 failure_type = "github_app_permissions"
                 error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
                 try:
