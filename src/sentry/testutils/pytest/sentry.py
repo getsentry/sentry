@@ -457,21 +457,20 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
 def _duration_based_split(
     items: list[pytest.Item], total_groups: int, current_group: int
 ) -> tuple[list[pytest.Item], list[pytest.Item]]:
-    """Split tests into shards using duration-based greedy bin packing (LPT).
+    """Split tests into shards using worker-simulated greedy bin packing.
 
     Reads per-test durations from TEST_DURATIONS_FILE (JSON: {nodeid: seconds}).
-    Groups tests by scope (file::class), then assigns scopes to shards using
-    "longest processing time first" — the heaviest scope goes to the lightest
-    shard.
+    Groups tests by scope (file::class), then assigns scopes to shards by
+    minimising the predicted wall-clock — i.e. max(worker_loads) inside
+    each shard — rather than total duration.
 
-    Key improvements over earlier attempts:
-    - merge-test-durations.py uses only ``call`` duration (not setup),
-      avoiding H1 Snuba-wait contamination that inflated certain scopes.
-    - Duration cap at 60s per test removes remaining outliers.
-    - Unknown scopes use average-of-known as fallback instead of 1s.
-    - Falls back to hash-based if no durations file is available.
+    Plain LPT balances total duration per shard but ignores the N xdist
+    workers inside each shard.  Heavy scopes cluster together, wrecking
+    intra-shard parallelism.  Worker-simulated LPT tracks per-worker loads
+    and directly optimises the metric that determines actual run time.
+
+    Falls back to hash-based sharding when no durations file is available.
     """
-    import heapq
     import json as _json
 
     durations_file = os.environ.get("TEST_DURATIONS_FILE", "")
@@ -483,8 +482,6 @@ def _duration_based_split(
                 durations = _json.load(f)
 
     if not durations:
-        # No duration data — fall back to per-test hash distribution
-        # (same as roundrobin strategy).
         keep: list[pytest.Item] = []
         discard: list[pytest.Item] = []
         for item in items:
@@ -507,8 +504,6 @@ def _duration_based_split(
         scope_items.setdefault(scope, []).append(item)
 
     # Compute duration per scope using per-test data.
-    # For each test in a scope, look up its individual duration.
-    # Use average-of-known as fallback for unknown tests (not 1s).
     known_durs = [d for d in durations.values() if d > 0]
     fallback = sum(known_durs) / len(known_durs) if known_durs else 1.0
 
@@ -527,20 +522,38 @@ def _duration_based_split(
                 total_dur += fallback
         scope_durations.append((total_dur, scope))
 
-    # Sort by duration descending (largest first — LPT)
+    # Sort by duration descending (heaviest first)
     scope_durations.sort(key=lambda x: -x[0])
 
-    # Greedy bin packing using a min-heap of (total_duration, group_index)
+    n_workers = int(os.environ.get("XDIST_WORKERS", "3"))
+
+    # Worker-simulated bin packing: track per-worker loads for each shard.
+    # For each scope, try every shard, simulate assigning it to the shard's
+    # lightest worker, and pick the shard whose resulting wall-clock
+    # (max worker load) is lowest.
     bins: list[list[str]] = [[] for _ in range(total_groups)]
-    bin_durations: list[float] = [0.0] * total_groups
-    heap: list[tuple[float, int]] = [(0.0, i) for i in range(total_groups)]
-    heapq.heapify(heap)
+    shard_workers: list[list[float]] = [[0.0] * n_workers for _ in range(total_groups)]
 
     for dur, scope in scope_durations:
-        lightest_dur, lightest_idx = heapq.heappop(heap)
-        bins[lightest_idx].append(scope)
-        bin_durations[lightest_idx] = lightest_dur + dur
-        heapq.heappush(heap, (lightest_dur + dur, lightest_idx))
+        best_shard = 0
+        best_wallclock = float("inf")
+        for s in range(total_groups):
+            workers = shard_workers[s]
+            min_w_load = min(workers)
+            wallclock_if_added = max(
+                (w_load + dur if w_load == min_w_load else w_load) for w_load in workers
+            )
+            if wallclock_if_added < best_wallclock:
+                best_wallclock = wallclock_if_added
+                best_shard = s
+
+        bins[best_shard].append(scope)
+        workers = shard_workers[best_shard]
+        min_idx = workers.index(min(workers))
+        workers[min_idx] += dur
+
+    shard_wallclocks = [max(w) for w in shard_workers]
+    shard_totals = [sum(w) for w in shard_workers]
 
     print(
         f"[duration-split] {len(scope_durations)} scopes, "
@@ -551,16 +564,17 @@ def _duration_based_split(
     print(
         f"[duration-split] shard {current_group}/{total_groups}: "
         f"{len(bins[current_group])} scopes, "
-        f"predicted {bin_durations[current_group]:.0f}s "
-        f"(range: {min(bin_durations):.0f}s – {max(bin_durations):.0f}s, "
-        f"spread: {max(bin_durations) - min(bin_durations):.0f}s)",
+        f"predicted wallclock {shard_wallclocks[current_group]:.0f}s "
+        f"(total {shard_totals[current_group]:.0f}s) "
+        f"(wallclock range: {min(shard_wallclocks):.0f}s – {max(shard_wallclocks):.0f}s, "
+        f"spread: {max(shard_wallclocks) - min(shard_wallclocks):.0f}s)",
         file=sys.stderr,
     )
 
     # Collect items for current group
     current_scopes = set(bins[current_group])
-    keep = []
-    discard = []
+    keep: list[pytest.Item] = []
+    discard: list[pytest.Item] = []
     for item in items:
         scope = item.nodeid.rsplit("::", 1)[0]
         if scope in current_scopes:
