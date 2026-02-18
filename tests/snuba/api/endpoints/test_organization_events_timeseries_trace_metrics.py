@@ -334,6 +334,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                     "request_count",
                     value,
                     "counter",
+                    "millisecond",
                     timestamp=self.start + timedelta(hours=hour),
                 )
             )
@@ -344,7 +345,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
-                "yAxis": "per_minute(value,request_count,counter,-)",
+                "yAxis": "per_minute(value,request_count,counter,millisecond)",
                 "project": self.project.id,
                 "dataset": "tracemetrics",
             },
@@ -354,7 +355,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(response.data["timeSeries"]) == 1
         timeseries = response.data["timeSeries"][0]
 
-        assert timeseries["yAxis"] == "per_minute(value,request_count,counter,-)"
+        assert timeseries["yAxis"] == "per_minute(value,request_count,counter,millisecond)"
 
         # The valueUnit should be '1/minute' since per_minute formula implies per minute rate
         assert timeseries["meta"]["valueType"] == "rate"

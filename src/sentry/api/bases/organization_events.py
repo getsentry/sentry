@@ -339,10 +339,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         # For equation fields, check if any known rate function appears in the expression
         if field.startswith("equation|"):
             for fn in per_second_fns:
-                if any(field.startswith(fn) for fn in per_second_fns):
+                if fn in field:
                     return "1/second"
             for fn in per_minute_fns:
-                if any(field.startswith(fn) for fn in per_minute_fns):
+                if fn in field:
                     return "1/minute"
         return None
 
