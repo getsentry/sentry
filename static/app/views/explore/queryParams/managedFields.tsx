@@ -32,7 +32,7 @@ export function deriveUpdatedManagedFields(
     writableQueryParams
   );
 
-  const allFields = new Set<string>([...readableRefs.keys(), ...writableRefs.keys()]);
+  const allFields = new Set<string>([...writableRefs.keys(), ...readableRefs.keys()]);
 
   // if the writable fields is undefined, it means we're not changing it
   // so we should infer it from the readable fields
@@ -45,9 +45,11 @@ export function deriveUpdatedManagedFields(
   allFields.forEach(field => {
     const readableCount = readableRefs.get(field) || 0;
     const writableCount = writableRefs.get(field) || 0;
+    const shouldBootstrapManagedField =
+      managedFields.size === 0 && writableCount > 0 && !fields.includes(field);
 
     if (
-      writableCount > readableCount &&
+      (writableCount > readableCount || shouldBootstrapManagedField) &&
       !updatedManagedFields.has(field) &&
       !fields.includes(field)
     ) {

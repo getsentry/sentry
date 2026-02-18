@@ -397,7 +397,7 @@ describe('SpanQueryParamsProvider', () => {
 
     expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -435,7 +435,7 @@ describe('SpanQueryParamsProvider', () => {
 
     expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -469,7 +469,7 @@ describe('SpanQueryParamsProvider', () => {
 
     expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -500,7 +500,7 @@ describe('SpanQueryParamsProvider', () => {
 
     expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'asc'}],
