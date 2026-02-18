@@ -105,6 +105,7 @@ from sentry.seer.explorer.tools import (
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.utils import filter_repo_by_provider
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -544,8 +545,6 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         dict: Status of the webhook sending operation
     """
     # Validate event_name by constructing the full event type and checking if it's valid
-    from sentry.sentry_apps.metrics import SentryAppEventType
-
     event_type = f"seer.{event_name}"
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
