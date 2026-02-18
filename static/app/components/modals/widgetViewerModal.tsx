@@ -32,7 +32,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
@@ -278,20 +278,41 @@ function WidgetViewerModal(props: Props) {
       : widget;
   const api = useApi();
 
-  // Create Table widget
-  const tableWidget = {
-    ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]!]}),
-    displayType: DisplayType.TABLE,
-  };
-  const {aggregates, columns} = tableWidget.queries[0]!;
-  const {orderby} = widget.queries[0]!;
-  const order = orderby.startsWith('-');
-  const rawOrderby = trimStart(orderby, '-');
+  // Declare all query-dependent variables
+  let tableWidget: Widget;
+  let aggregates: string[];
+  let columns: string[];
+  let orderby: string;
+  let order: boolean;
+  let rawOrderby: string;
+  let fields: string[];
 
-  const fields =
-    widget.displayType === DisplayType.TABLE && defined(tableWidget.queries[0]!.fields)
-      ? tableWidget.queries[0]!.fields
-      : [...columns, ...aggregates];
+  // Text widgets don't have queries - preset everything to empty values
+  if (widget.displayType === DisplayType.TEXT) {
+    tableWidget = widget; // No need to create a separate table widget
+    aggregates = [];
+    columns = [];
+    orderby = '';
+    order = false;
+    rawOrderby = '';
+    fields = [];
+  } else {
+    // Create Table widget for non-text widgets
+    tableWidget = {
+      ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]!]}),
+      displayType: DisplayType.TABLE,
+    };
+    aggregates = tableWidget.queries[0]!.aggregates;
+    columns = tableWidget.queries[0]!.columns;
+    orderby = widget.queries[0]!.orderby;
+    order = orderby.startsWith('-');
+    rawOrderby = trimStart(orderby, '-');
+
+    fields =
+      widget.displayType === DisplayType.TABLE && defined(tableWidget.queries[0]!.fields)
+        ? tableWidget.queries[0]!.fields
+        : [...columns, ...aggregates];
+  }
 
   // Timeseries Widgets (Line, Area, Bar) allow the user to specify an orderby
   // that is not explicitly selected as an aggregate or column. We need to explicitly
@@ -362,7 +383,7 @@ function WidgetViewerModal(props: Props) {
     }
   });
 
-  if (shouldReplaceTableColumns) {
+  if (shouldReplaceTableColumns && widget.displayType !== DisplayType.TEXT) {
     switch (widget.widgetType) {
       case WidgetType.DISCOVER:
         if (fields.length === 1) {
@@ -381,11 +402,14 @@ function WidgetViewerModal(props: Props) {
     }
   }
 
-  const eventView = eventViewFromWidget(
-    tableWidget.title,
-    tableWidget.queries[0]!,
-    modalSelection
-  );
+  const eventView =
+    widget.displayType === DisplayType.TEXT
+      ? eventViewFromWidget(
+          tableWidget.title,
+          {aggregates, columns, orderby, conditions: '', name: ''},
+          modalSelection
+        )
+      : eventViewFromWidget(tableWidget.title, tableWidget.queries[0]!, modalSelection);
 
   const getOnDemandFilterWarning = createOnDemandFilterWarning(
     t(
@@ -685,96 +709,97 @@ function WidgetViewerModal(props: Props) {
             </Alert>
           </Alert.Container>
         )}
-        {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
-          <QueryContainer>
-            <Select
-              value={selectedQueryIndex}
-              options={queryOptions}
-              onChange={(option: SelectValue<number>) => {
-                navigate(
-                  {
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      [WidgetViewerQueryField.QUERY]: option.value,
-                      [WidgetViewerQueryField.PAGE]: undefined,
-                      [WidgetViewerQueryField.CURSOR]: undefined,
+        {widget.displayType !== DisplayType.TEXT &&
+          (widget.queries.length > 1 || widget.queries[0]!.conditions) && (
+            <QueryContainer>
+              <Select
+                value={selectedQueryIndex}
+                options={queryOptions}
+                onChange={(option: SelectValue<number>) => {
+                  navigate(
+                    {
+                      pathname: location.pathname,
+                      query: {
+                        ...location.query,
+                        [WidgetViewerQueryField.QUERY]: option.value,
+                        [WidgetViewerQueryField.PAGE]: undefined,
+                        [WidgetViewerQueryField.CURSOR]: undefined,
+                      },
                     },
-                  },
-                  {replace: true}
-                );
+                    {replace: true}
+                  );
 
-                trackAnalytics('dashboards_views.widget_viewer.select_query', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                  display_type: widget.displayType,
-                });
-              }}
-              components={{
-                // Replaces the displayed selected value
-                SingleValue: (containerProps: any) => {
-                  return (
-                    <components.SingleValue
-                      {...containerProps}
-                      // Overwrites some of the default styling that interferes with highlighted query text
-                      getStyles={() => ({
-                        wordBreak: 'break-word',
-                        flex: 1,
-                        display: 'flex',
-                        padding: `0 ${theme.space.xs}`,
-                      })}
-                    >
-                      {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
-                        display: 'block',
-                      }) ??
-                        (queryOptions[selectedQueryIndex]!.label || (
-                          <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-                        ))}
-                    </components.SingleValue>
-                  );
-                },
-                // Replaces the dropdown options
-                Option: (containerProps: any) => {
-                  const highlightedQuery = containerProps.data.getHighlightedQuery({
-                    display: 'flex',
+                  trackAnalytics('dashboards_views.widget_viewer.select_query', {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
                   });
-                  return (
-                    <SelectOption
-                      {...(highlightedQuery
-                        ? {
-                            ...containerProps,
-                            label: highlightedQuery,
-                          }
-                        : containerProps.label
-                          ? containerProps
-                          : {
+                }}
+                components={{
+                  // Replaces the displayed selected value
+                  SingleValue: (containerProps: any) => {
+                    return (
+                      <components.SingleValue
+                        {...containerProps}
+                        // Overwrites some of the default styling that interferes with highlighted query text
+                        getStyles={() => ({
+                          wordBreak: 'break-word',
+                          flex: 1,
+                          display: 'flex',
+                          padding: `0 ${theme.space.xs}`,
+                        })}
+                      >
+                        {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
+                          display: 'block',
+                        }) ??
+                          (queryOptions[selectedQueryIndex]!.label || (
+                            <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                          ))}
+                      </components.SingleValue>
+                    );
+                  },
+                  // Replaces the dropdown options
+                  Option: (containerProps: any) => {
+                    const highlightedQuery = containerProps.data.getHighlightedQuery({
+                      display: 'flex',
+                    });
+                    return (
+                      <SelectOption
+                        {...(highlightedQuery
+                          ? {
                               ...containerProps,
-                              label: (
-                                <EmptyQueryContainer>
-                                  {EMPTY_QUERY_NAME}
-                                </EmptyQueryContainer>
-                              ),
-                            })}
-                    />
-                  );
-                },
-                // Hide the dropdown indicator if there is only one option
-                ...(widget.queries.length < 2
-                  ? {IndicatorsContainer: (_: any) => null}
-                  : {}),
-              }}
-              isSearchable={false}
-              isDisabled={widget.queries.length < 2}
-            />
-            {widget.queries.length === 1 && (
-              <StyledQuestionTooltip
-                title={t('To edit this query, you must edit the widget.')}
-                size="sm"
+                              label: highlightedQuery,
+                            }
+                          : containerProps.label
+                            ? containerProps
+                            : {
+                                ...containerProps,
+                                label: (
+                                  <EmptyQueryContainer>
+                                    {EMPTY_QUERY_NAME}
+                                  </EmptyQueryContainer>
+                                ),
+                              })}
+                      />
+                    );
+                  },
+                  // Hide the dropdown indicator if there is only one option
+                  ...(widget.queries.length < 2
+                    ? {IndicatorsContainer: (_: any) => null}
+                    : {}),
+                }}
+                isSearchable={false}
+                isDisabled={widget.queries.length < 2}
               />
-            )}
-          </QueryContainer>
-        )}
-        {renderWidgetViewerTable()}
+              {widget.queries.length === 1 && (
+                <StyledQuestionTooltip
+                  title={t('To edit this query, you must edit the widget.')}
+                  size="sm"
+                />
+              )}
+            </QueryContainer>
+          )}
+        {widget.displayType !== DisplayType.TEXT && renderWidgetViewerTable()}
       </Fragment>
     );
   }
@@ -799,7 +824,7 @@ function WidgetViewerModal(props: Props) {
                     <Flex align="center" gap="sm">
                       <h3>{widget.title}</h3>
                     </Flex>
-                    {widget.description && (
+                    {widget.description && widget.displayType !== DisplayType.TEXT && (
                       <Tooltip
                         title={widget.description}
                         containerDisplayMode="grid"
@@ -815,7 +840,8 @@ function WidgetViewerModal(props: Props) {
                 <Body>{renderWidgetViewer()}</Body>
                 <Footer>
                   <ResultsContainer>
-                    {renderTotalResults(totalResults, widget.widgetType)}
+                    {widget.displayType !== DisplayType.TEXT &&
+                      renderTotalResults(totalResults, widget.widgetType)}
                     <Grid flow="column" align="center" gap="md">
                       {onEdit && widget.id && (
                         <Button
@@ -838,7 +864,7 @@ function WidgetViewerModal(props: Props) {
                           {t('Edit Widget')}
                         </Button>
                       )}
-                      {widget.widgetType && (
+                      {widget.widgetType && widget.displayType !== DisplayType.TEXT && (
                         <OpenButton
                           widget={primaryWidget}
                           dashboardFilters={dashboardFilters}
