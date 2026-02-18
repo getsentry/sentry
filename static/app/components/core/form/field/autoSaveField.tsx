@@ -151,12 +151,6 @@ interface AutoSaveFieldProps<
    * confirm={(value) => value === 'dangerous' ? "This is irreversible!" : undefined}
    */
   confirm?: ConfirmConfig<z.infer<TSchema>[TFieldName]>;
-
-  /**
-   * Optional callback fired when the field value changes.
-   * Useful for observing the current value from outside the render prop.
-   */
-  onValueChange?: (value: z.infer<TSchema>[TFieldName]) => void;
 }
 
 export function AutoSaveField<
@@ -190,9 +184,6 @@ export function AutoSaveField<
         if (!fieldApi.state.meta.isDefaultValue) {
           void formApi.handleSubmit();
         }
-      },
-      onChange: ({formApi}) => {
-        onValueChange?.(formApi.state.values[name]);
       },
     },
     onSubmit: ({value, formApi}) => {
