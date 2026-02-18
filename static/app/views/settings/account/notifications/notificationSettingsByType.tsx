@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect} from 'react';
 import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -105,8 +105,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
     useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
       staleTime: 30_000,
     });
-
-  const [selectedProviders, setSelectedProviders] = useState<string[] | null>(null);
 
   useEffect(() => {
     trackAnalytics('notification_settings.tuning_page_viewed', {
@@ -404,7 +402,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     .filter(([providerSlug]) => isProviderSupported(providerSlug))
     .map(([value, label]) => ({value, label}));
 
-  const providerSchema = z.object({provider: z.array(z.string())});
+  const providerSchema = z.object({provider: z.array(z.string()).min(1)});
 
   const providerMutationOptions = mutationOptions({
     mutationFn: (data: {provider: string[]}) =>
@@ -454,6 +452,9 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const renderDefaultField = () => {
     const fieldDef =
       NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType];
+    if (!fieldDef?.choices) {
+      return null;
+    }
     const help = isGroupedByProject(notificationType)
       ? t('This is the default for all projects.')
       : t('This is the default for all organizations.');
@@ -471,7 +472,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
             <field.Select
               value={field.state.value}
               onChange={field.handleChange}
-              options={choicesToOptions(fieldDef.choices as Array<[string, string]>)}
+              options={choicesToOptions(fieldDef.choices)}
             />
           </field.Layout.Row>
         )}
@@ -484,10 +485,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       {description && <TextBlock>{description}</TextBlock>}
-      {(selectedProviders ?? initialProviders).includes('slack') &&
-      unlinkedSlackOrgs.length > 0 ? (
-        <UnlinkedAlert organizations={unlinkedSlackOrgs} />
-      ) : null}
       <FieldGroup
         title={
           isGroupedByProject(notificationType)
@@ -504,20 +501,25 @@ export function NotificationSettingsByType({notificationType}: Props) {
             schema={providerSchema}
             initialValue={initialProviders}
             mutationOptions={providerMutationOptions}
-            onValueChange={setSelectedProviders}
           >
             {field => (
-              <field.Layout.Row
-                label={t('Delivery Method')}
-                hintText={t('Where personal notifications will be sent.')}
-              >
-                <field.Select
-                  multiple
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  options={providerChoices}
-                />
-              </field.Layout.Row>
+              <Fragment>
+                {(field.state.value ?? initialProviders).includes('slack') &&
+                unlinkedSlackOrgs.length > 0 ? (
+                  <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+                ) : null}
+                <field.Layout.Row
+                  label={t('Delivery Method')}
+                  hintText={t('Where personal notifications will be sent.')}
+                >
+                  <field.Select
+                    multiple
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={providerChoices}
+                  />
+                </field.Layout.Row>
+              </Fragment>
             )}
           </AutoSaveField>
         </FieldGroup>
