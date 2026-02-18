@@ -174,6 +174,21 @@ vi.mock('@stripe/react-stripe-js', async () => {
     })),
   };
 });
+vi.mock('@amplitude/analytics-browser', async () => {
+  const identifyInstance: any = {
+    set: vi.fn(() => identifyInstance),
+  };
+  return {
+    Identify: vi.fn(() => identifyInstance),
+    setUserId: vi.fn(),
+    identify: vi.fn(),
+    init: vi.fn(),
+    track: vi.fn(),
+    setGroup: vi.fn(),
+    Types: (await vi.importActual<any>('@amplitude/analytics-browser')).Types,
+    _identifyInstance: identifyInstance,
+  };
+});
 vi.mock('getsentry/utils/trackMarketingEvent');
 vi.mock('getsentry/utils/trackAmplitudeEvent');
 vi.mock('getsentry/utils/trackReloadEvent');

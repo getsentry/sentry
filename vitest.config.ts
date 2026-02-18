@@ -44,6 +44,22 @@ export default defineConfig({
         replacement: path.resolve(ROOT, 'src/sentry/locale/$1'),
       },
 
+      // Asset / style mocks (replaces moduleNameMapper patterns from Jest)
+      // Also match CSS imports from node_modules (e.g. react-date-range/dist/styles.css)
+      // These must come BEFORE image/logo path aliases so that e.g. sentry-logos/*.svg
+      // is intercepted here rather than resolving to a real file that jsdom can't load.
+      // NOTE: the `find` regex must use `.*` to consume the full import specifier —
+      // Vite applies aliases via String.replace(find, replacement), so a suffix-only
+      // regex would only replace the extension and leave the module prefix intact.
+      {
+        find: /^.*\.(css|less|png|gif|jpg|woff|mp4)$/,
+        replacement: path.resolve(ROOT, 'tests/js/sentry-test/mocks/importStyleMock.js'),
+      },
+      {
+        find: /^.*\.svg(\?(url|import))?$/,
+        replacement: path.resolve(ROOT, 'tests/js/sentry-test/mocks/svgMock.js'),
+      },
+
       // Image/logo aliases (matches rspack.config.ts)
       {
         find: /^sentry-images\/(.*)/,
@@ -56,21 +72,6 @@ export default defineConfig({
       {
         find: /^sentry-logos\/(.*)/,
         replacement: path.resolve(ROOT, 'src/sentry/static/sentry/images/logos/$1'),
-      },
-
-      // Asset / style mocks (replaces moduleNameMapper patterns from Jest)
-      // Also match CSS imports from node_modules (e.g. react-date-range/dist/styles.css)
-      {
-        find: /.*\.css$/,
-        replacement: path.resolve(ROOT, 'tests/js/sentry-test/mocks/importStyleMock.js'),
-      },
-      {
-        find: /\.(less|png|gif|jpg|woff|mp4)$/,
-        replacement: path.resolve(ROOT, 'tests/js/sentry-test/mocks/importStyleMock.js'),
-      },
-      {
-        find: /\.svg$/,
-        replacement: path.resolve(ROOT, 'tests/js/sentry-test/mocks/svgMock.js'),
       },
 
       // Disable echarts in test (same as Jest config)
