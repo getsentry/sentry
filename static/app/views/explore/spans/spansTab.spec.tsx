@@ -115,21 +115,34 @@ describe('SpansTabContent', () => {
       url: `/organizations/${organization.slug}/seer/setup-check/`,
       body: AutofixSetupFixture({}),
     });
-    // MockApiClient.addMockResponse({
-    //   url: `/organizations/${organization.slug}/stats_v2/`,
-    //   method: 'GET',
-    //   body: {},
-    // });
-    // MockApiClient.addMockResponse({
-    //   url: `/organizations/${organization.slug}/trace-explorer-ai/setup/`,
-    //   method: 'POST',
-    //   body: {},
-    // });
-    // MockApiClient.addMockResponse({
-    //   url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
-    //   method: 'POST',
-    //   body: {},
-    // });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/stats_v2/`,
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/stats/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            attribute_distributions: {
+              data: {},
+            },
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-explorer-ai/setup/`,
+      method: 'POST',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
+      method: 'POST',
+      body: {},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',

@@ -7,13 +7,12 @@ import failOnConsole from 'vitest-fail-on-console';
 // from splitting code text across <span> elements, which breaks getByText().
 // Tests that specifically test Prism tokenization should call vi.unmock('prismjs').
 vi.mock('prismjs', async () => {
-  const prismComponents = await vi.importActual<any>('prismjs/components');
-  const prismLanguages =
-    prismComponents.languages ?? prismComponents.default?.languages ?? {};
+  const prismComponents =
+    await vi.importActual<typeof import('prismjs/components')>('prismjs/components');
   return {
     default: {
       manual: false,
-      languages: Object.keys(prismLanguages).reduce(
+      languages: Object.keys(prismComponents.languages).reduce(
         (acc: Record<string, Record<PropertyKey, unknown>>, language: string) => ({
           ...acc,
           [language]: {},

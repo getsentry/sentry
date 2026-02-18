@@ -70,19 +70,31 @@ function compareRecord(want: Record<string, any>, check: Record<string, any>): b
   return true;
 }
 
-afterEach(() => {
-  // if any errors are caught we console.error them
-  const errors = Object.values(Client.errors);
-  if (errors.length > 0) {
-    for (const err of errors) {
-      // eslint-disable-next-line no-console
-      console.error(err);
-    }
-    Client.errors = {};
-  }
+beforeEach(() => {
+  // Reset collected errors up-front.
+  Client.errors = {};
+});
 
-  // Mock responses are removed between tests
+afterEach(() => {
+  const errors = Object.values(Client.errors);
+  Client.errors = {};
   Client.clearMockResponses();
+
+  // Ensure missing mock responses always fail the test in Vitest.
+  // Relying only on console.error can be flaky depending on hook ordering.
+  if (errors.length === 1) {
+    const [firstError] = errors;
+    if (firstError) {
+      throw firstError;
+    }
+  }
+  if (errors.length > 1) {
+    const missingRequests = errors.map(error => error.message).join('\n');
+    throw new AggregateError(
+      errors,
+      `Multiple mocked API responses were missing:\n${missingRequests}`
+    );
+  }
 });
 
 class Client implements ApiNamespace.Client {
@@ -257,7 +269,7 @@ class Client implements ApiNamespace.Client {
       // has mocked response
 
       // mock gets returned when we add a mock response, will represent calls to api.request
-      mock(url, options);
+      (mock as any)(url, options);
 
       const body =
         typeof response.body === 'function' ? response.body(url, options) : response.body;

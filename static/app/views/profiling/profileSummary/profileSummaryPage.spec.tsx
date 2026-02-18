@@ -34,6 +34,18 @@ describe('ProfileSummaryPage', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/tags/`,
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/profiling/filters/`,
       body: [],
     });

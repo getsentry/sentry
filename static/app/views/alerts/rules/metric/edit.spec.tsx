@@ -16,7 +16,7 @@ import {
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/analytics', () => {
-  const metricFn = jest.fn();
+  const metricFn = jest.fn() as any;
   metricFn.startSpan = jest.fn(() => ({
     setTag: jest.fn(),
     setData: jest.fn(),

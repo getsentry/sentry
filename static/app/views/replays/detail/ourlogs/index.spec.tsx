@@ -49,6 +49,11 @@ describe('OurLogs', () => {
   beforeEach(() => {
     // Seeing this error: <tbody> cannot be a child of <div>.
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   afterEach(() => {

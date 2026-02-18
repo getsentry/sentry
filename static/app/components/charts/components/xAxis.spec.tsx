@@ -8,13 +8,8 @@ const theme = ThemeFixture();
 vi.mock('moment-timezone', async () => {
   const actual =
     await vi.importActual<typeof import('moment-timezone')>('moment-timezone');
-  const moment =
-    actual.default ?? (actual as unknown as typeof import('moment-timezone').default);
-  moment.tz.setDefault('America/Los_Angeles');
-  return {
-    ...actual,
-    default: moment,
-  };
+  actual.tz.setDefault('America/Los_Angeles');
+  return actual;
 });
 
 describe('Chart XAxis', () => {

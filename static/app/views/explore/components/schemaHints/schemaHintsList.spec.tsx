@@ -278,12 +278,15 @@ describe('SchemaHintsList', () => {
   it('should remove hint from query when checkbox is unchecked on drawer', async () => {
     const mockUseSearchQueryBuilder = jest
       .spyOn(searchQueryBuilderContext, 'useSearchQueryBuilder')
-      .mockImplementation(() => ({
-        query: '!stringTag1:"" numberTag1:>0',
-        getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
-        dispatch: mockDispatch,
-        wrapperRef: {current: null},
-      }));
+      .mockImplementation(
+        () =>
+          ({
+            query: '!stringTag1:"" numberTag1:>0',
+            getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+            dispatch: mockDispatch,
+            wrapperRef: {current: null},
+          }) as any
+      );
 
     render(
       <Subject
@@ -317,12 +320,15 @@ describe('SchemaHintsList', () => {
   it('should remove aggregate hint from query when checkbox is unchecked on drawer', async () => {
     const mockUseSearchQueryBuilder = jest
       .spyOn(searchQueryBuilderContext, 'useSearchQueryBuilder')
-      .mockImplementation(() => ({
-        query: 'stringTag1:"" numberTag1:>0 count_unique(user):>0',
-        getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
-        dispatch: mockDispatch,
-        wrapperRef: {current: null},
-      }));
+      .mockImplementation(
+        () =>
+          ({
+            query: 'stringTag1:"" numberTag1:>0 count_unique(user):>0',
+            getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+            dispatch: mockDispatch,
+            wrapperRef: {current: null},
+          }) as any
+      );
 
     render(
       <Subject
@@ -412,12 +418,15 @@ describe('SchemaHintsList', () => {
   it('should set focus override propely on duplicate filters', async () => {
     const mockUseSearchQueryBuilder = jest
       .spyOn(searchQueryBuilderContext, 'useSearchQueryBuilder')
-      .mockImplementation(() => ({
-        query: 'stringTag1:"something"',
-        getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
-        dispatch: mockDispatch,
-        wrapperRef: {current: null},
-      }));
+      .mockImplementation(
+        () =>
+          ({
+            query: 'stringTag1:"something"',
+            getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+            dispatch: mockDispatch,
+            wrapperRef: {current: null},
+          }) as any
+      );
 
     render(
       <Subject

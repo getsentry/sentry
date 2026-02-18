@@ -299,11 +299,14 @@ describe('SeerDrawer', () => {
     // Use jest.spyOn instead of jest.mock inside the test
     const spy = jest
       .spyOn(issueTypeConfigModule, 'getConfigForIssueType')
-      .mockImplementation(() => ({
-        autofix: false,
-        issueSummary: {enabled: true},
-        resources: null,
-      }));
+      .mockImplementation(
+        () =>
+          ({
+            autofix: false,
+            issueSummary: {enabled: true},
+            resources: null,
+          }) as any
+      );
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,

@@ -1,3 +1,4 @@
+/* eslint-disable import/no-nodejs-modules */
 /// <reference types="vitest/globals" />
 
 import '@testing-library/jest-dom/vitest';
@@ -328,7 +329,7 @@ window.tick = () => new Promise(resolve => setTimeout(resolve));
 
 // Import the mocked Client to attach to window.
 const {Client: MockClient} = await import('sentry/__mocks__/api.vitest');
-window.MockApiClient = MockClient;
+window.MockApiClient = MockClient as unknown as typeof Client;
 
 window.scrollTo = vi.fn() as any;
 

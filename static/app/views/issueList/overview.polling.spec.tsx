@@ -12,19 +12,17 @@ import TagStore from 'sentry/stores/tagStore';
 import IssueList from 'sentry/views/issueList/overview';
 
 vi.mock('sentry/views/issueList/filters', () => ({default: vi.fn(() => null)}));
-jest.mock('sentry/components/stream/group', () => ({
+vi.mock('sentry/components/stream/group', () => ({
   __esModule: true,
-  default: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
-  LoadingStreamGroup: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
+  default: vi.fn(({id}: {id: string}) => <div data-test-id={id} />),
+  LoadingStreamGroup: vi.fn(({id}: {id: string}) => <div data-test-id={id} />),
 }));
 
-jest.mock('js-cookie', () => ({
+vi.mock('js-cookie', () => ({
   default: {
-    get: jest.fn(),
-    set: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
   },
-  get: jest.fn(),
-  set: jest.fn(),
 }));
 
 const PREVIOUS_PAGE_CURSOR = '1443575731';
@@ -63,16 +61,21 @@ describe('IssueList -> Polling', () => {
   beforeEach(() => {
     jest.useFakeTimers();
 
-    // The tests fail because we have a "component update was not wrapped in act" error.
-    // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
-
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sent-first-event/',
+      method: 'GET',
+      body: {firstEvent: true, firstTransaction: true, firstReplay: true},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      method: 'GET',
+      body: [project],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-count/',

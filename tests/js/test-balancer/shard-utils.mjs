@@ -22,7 +22,7 @@ export function toRepoRelativePath(filePath, cwd) {
  * @param {Record<string, number>} testStats
  * @returns {string[]}
  */
-export function getTestsForGroup(nodeIndex, nodeTotal, allTests, testStats) {
+function getTestsForGroup(nodeIndex, nodeTotal, allTests, testStats) {
   const speculatedSuiteDuration = Object.values(testStats).reduce((a, b) => a + b, 0);
   const targetDuration = speculatedSuiteDuration / nodeTotal;
 
@@ -30,6 +30,7 @@ export function getTestsForGroup(nodeIndex, nodeTotal, allTests, testStats) {
     throw new Error('Speculated suite duration is <= 0');
   }
 
+  /** @type {Map<string, number>} */
   const tests = new Map();
 
   for (const [test, duration] of Object.entries(testStats)) {
@@ -52,13 +53,16 @@ export function getTestsForGroup(nodeIndex, nodeTotal, allTests, testStats) {
     );
   }
 
+  /** @type {string[][]} */
   const groups = [];
   const testsSortedByPath = Array.from(tests.entries()).sort((a, b) =>
     a[0].localeCompare(b[0])
   );
 
   for (let group = 0; group < nodeTotal; group++) {
-    groups[group] = [];
+    /** @type {string[]} */
+    const groupTests = [];
+    groups[group] = groupTests;
     let duration = 0;
 
     while (duration < targetDuration && testsSortedByPath.length > 0) {
@@ -75,7 +79,7 @@ export function getTestsForGroup(nodeIndex, nodeTotal, allTests, testStats) {
         throw new TypeError('Received falsy test');
       }
 
-      groups[group].push(nextTest[0]);
+      groupTests.push(nextTest[0]);
       duration += nextTest[1];
     }
   }
@@ -86,7 +90,11 @@ export function getTestsForGroup(nodeIndex, nodeTotal, allTests, testStats) {
     if (!nextTest) {
       throw new TypeError('Received falsy test');
     }
-    groups[i % nodeTotal].push(nextTest[0]);
+    const targetGroup = groups[i % nodeTotal];
+    if (!targetGroup) {
+      throw new Error(`No tests found for node ${i % nodeTotal}`);
+    }
+    targetGroup.push(nextTest[0]);
     i++;
   }
 
@@ -100,7 +108,11 @@ export function getTestsForGroup(nodeIndex, nodeTotal, allTests, testStats) {
     throw new Error(`No tests found for node ${nodeIndex}`);
   }
 
-  return groups[nodeIndex];
+  const selectedGroup = groups[nodeIndex];
+  if (!selectedGroup) {
+    throw new Error(`No tests found for node ${nodeIndex}`);
+  }
+  return selectedGroup;
 }
 
 /**
@@ -109,7 +121,7 @@ export function getTestsForGroup(nodeIndex, nodeTotal, allTests, testStats) {
  * @param {ReadonlyArray<string>} allTests
  * @returns {string[]}
  */
-export function getFallbackTestsForGroup(nodeIndex, nodeTotal, allTests) {
+function getFallbackTestsForGroup(nodeIndex, nodeTotal, allTests) {
   const tests = [...allTests].sort((a, b) => b.localeCompare(a));
   const length = tests.length;
   const size = Math.floor(length / nodeTotal);

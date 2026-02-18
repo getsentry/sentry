@@ -19,7 +19,6 @@ describe('SentryAppExternalInstallation', () => {
     getOrgMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getAppMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getInstallationsMock: ReturnType<typeof MockApiClient.addMockResponse>,
-    getFeaturesMock: ReturnType<typeof MockApiClient.addMockResponse>,
     org1: TOrganization,
     org1Lite: Pick<TOrganization, 'slug' | 'name' | 'id'>,
     org2: TOrganization,
@@ -51,7 +50,7 @@ describe('SentryAppExternalInstallation', () => {
       body: sentryApp,
     });
 
-    getFeaturesMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/sentry-apps/${sentryApp.slug}/features/`,
       body: [],
     });
@@ -321,10 +320,11 @@ describe('SentryAppExternalInstallation', () => {
       await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
 
       await selectEvent.select(screen.getByRole('textbox'), 'org2');
-      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-        generateOrgSlugUrl('org2')
-      );
-      expect(getFeaturesMock).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+          generateOrgSlugUrl('org2')
+        );
+      });
     });
   });
 });

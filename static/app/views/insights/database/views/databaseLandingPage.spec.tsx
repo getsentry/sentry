@@ -24,6 +24,7 @@ describe('DatabaseLandingPage', () => {
 
   let spanListRequestMock: jest.Mock;
   let spanChartsRequestMock: jest.Mock;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   ProjectsStore.loadInitialData([
     ProjectFixture({hasInsightsDb: true, firstTransactionEvent: true}),
@@ -38,6 +39,9 @@ describe('DatabaseLandingPage', () => {
   });
 
   beforeEach(() => {
+    // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState({
       projects: [],
@@ -47,6 +51,16 @@ describe('DatabaseLandingPage', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
+    });
+
+    // Fallback for additional /events/ calls whose referrer may vary by implementation.
+    // More specific mocks below (with matchQuery) still win.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -108,13 +122,15 @@ describe('DatabaseLandingPage', () => {
     });
   });
 
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+  });
+
   afterAll(() => {
     jest.resetAllMocks();
   });
 
   it('fetches module data', async () => {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
-
     render(<DatabaseLandingPage />, {
       organization,
       initialRouterConfig: baseRouterConfig,
@@ -204,8 +220,6 @@ describe('DatabaseLandingPage', () => {
   });
 
   it('renders a list of queries', async () => {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
-
     render(<DatabaseLandingPage />, {
       organization,
       initialRouterConfig: baseRouterConfig,
@@ -220,8 +234,6 @@ describe('DatabaseLandingPage', () => {
   });
 
   it('filters by category and action', async () => {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
-
     render(<DatabaseLandingPage />, {
       organization,
       initialRouterConfig: {
@@ -321,8 +333,6 @@ describe('DatabaseLandingPage', () => {
   });
 
   it('displays the correct domain label for SQL systems', async () => {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
-
     render(<DatabaseLandingPage />, {
       organization,
       initialRouterConfig: {
@@ -344,8 +354,6 @@ describe('DatabaseLandingPage', () => {
   });
 
   it('displays the correct domain label for NoSQL systems', async () => {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
-
     render(<DatabaseLandingPage />, {
       organization,
       initialRouterConfig: {

@@ -211,7 +211,7 @@ describe('TeamStatsIssues', () => {
 
     // For some reason the "Environment:" is rendered via css :before
     expect(await screen.findAllByText('All')).not.toHaveLength(0);
-    await userEvent.type(screen.getAllByText('All')[0], '{mouseDown}');
+    await userEvent.type(screen.getAllByText('All')[0]!, '{mouseDown}');
     expect(screen.getByText(env1)).toBeInTheDocument();
     await userEvent.click(screen.getByText(env1));
     expect(router.location).toEqual(
