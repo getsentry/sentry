@@ -307,16 +307,15 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     continue
 
                 with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard_tag}):
-                    for segment_key, flushed_segment in flushed_segments.items():
+                    for flushed_segment in flushed_segments.values():
                         if not flushed_segment.spans:
                             continue
 
                         spans = [span.payload for span in flushed_segment.spans]
                         kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
-                        payload_size = len(kafka_payload.value)
                         metrics.timing(
                             "spans.buffer.segment_size_bytes",
-                            payload_size,
+                            len(kafka_payload.value),
                             tags={"shard": shard_tag},
                         )
                         produce(kafka_payload)

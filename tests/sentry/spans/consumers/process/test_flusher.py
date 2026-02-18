@@ -171,13 +171,7 @@ def test_flusher_waits_for_processes_to_start() -> None:
 
     # Patch SpanFlusher.main to never set healthy_since, simulating a process that fails to start
     def never_healthy_main(
-        buffer,
-        shards,
-        stopped,
-        current_drift,
-        backpressure_since,
-        healthy_since,
-        produce_to_pipe,
+        buffer, shards, stopped, current_drift, backpressure_since, healthy_since, produce_to_pipe
     ):
         # Don't set healthy_since.value, simulating a process that never becomes healthy
         return
