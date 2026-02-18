@@ -18,10 +18,25 @@ describe('AssertionSuggestionsDrawerContent', () => {
 
   const mockSuggestionsResponse = {
     preview_result: {
-      status_code: 200,
-      body: '{"status":"ok"}',
-      headers: {},
-      request_duration_ms: 150,
+      check_result: {
+        actual_check_time_ms: 1000,
+        duration_ms: 150,
+        guid: 'test-guid',
+        region: 'us',
+        scheduled_check_time_ms: 1000,
+        span_id: 'test-span',
+        status: 'success',
+        status_reason: null,
+        subscription_id: 'test-sub',
+        trace_id: 'test-trace',
+        request_info: {
+          http_status_code: 200,
+          request_type: 'GET',
+          url: 'https://example.com/api/health',
+          response_body: btoa('{"status":"ok"}'),
+          response_headers: [['content-type', 'application/json']],
+        },
+      },
     },
     suggested_assertion: null,
     suggestions: [
