@@ -1,3 +1,5 @@
+from typing import Any
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -33,9 +35,9 @@ class AdminWorkflowDetailEndpoint(Endpoint):
         self,
         request: Request,
         workflow_id: int | str,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[Any, Any]:
         try:
             workflow = Workflow.objects.get(id=int(workflow_id))
         except (Workflow.DoesNotExist, ValueError):
