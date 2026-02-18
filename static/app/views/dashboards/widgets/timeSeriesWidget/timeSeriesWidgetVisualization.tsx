@@ -561,11 +561,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const {onLegendSelectionChange} = props;
   const handleLegendSelectionChange = useCallback(
     (selection: Record<string, boolean>) => {
-      if (onLegendSelectionChange) {
-        onLegendSelectionChange(selection);
-      } else {
-        setLocalLegendSelection(selection);
-      }
+      setLocalLegendSelection(selection);
+      onLegendSelectionChange?.(selection);
     },
     [onLegendSelectionChange]
   );
@@ -585,12 +582,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         color = palette[colorIndex % palette.length]!;
         colorIndex += 1;
       } else {
-        // Extract color from the generated series for this plottable
+        // Extract color from the generated series for this plottable.
+        // Some plottables (e.g. Samples) use a callback function for
+        // itemStyle.color to color each data point differently. In that
+        // case we fall back to a neutral theme color for the legend swatch.
         const series = seriesFromPlottables.find(s => s.name === plottable.name);
         const seriesColor =
           (series as {color?: unknown})?.color ??
           (series as {itemStyle?: {color?: unknown}})?.itemStyle?.color;
-        color = typeof seriesColor === 'string' ? seriesColor : '';
+        color = typeof seriesColor === 'string' ? seriesColor : theme.gray300;
       }
       return {
         name: plottable.name,
@@ -616,6 +616,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     palette,
     seriesFromPlottables,
     releaseSeries,
+    theme.gray300,
   ]);
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);

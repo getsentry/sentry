@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -238,7 +239,10 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
           position="bottom-end"
           size="xs"
           trigger={triggerProps => (
-            <OverflowTrigger ref={triggerRef} {...triggerProps}>
+            <OverflowTrigger
+              {...triggerProps}
+              ref={mergeRefs(triggerRef, triggerProps.ref)}
+            >
               {t('%s more', overflowItems.length)}
             </OverflowTrigger>
           )}
@@ -265,8 +269,8 @@ const OverflowTrigger = styled(OverlayTrigger.Button)`
   background: none;
   border: none;
   border-radius: ${p => p.theme.radius.sm};
-  padding: 2px ${p => p.theme.space.sm};
-  font-size: ${p => p.theme.font.size.sm};
+  padding: 2px ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.xs};
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
