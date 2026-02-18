@@ -55,3 +55,9 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
             final_blob[EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value] = blob.fallthrough_type
 
         return final_blob
+
+    @classmethod
+    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        # TODO: is this ever anything other than 'mail'? If not, can just hard code that
+        label = "Send a notification via {}"
+        return label.format(blob.target_id.get("service"))
