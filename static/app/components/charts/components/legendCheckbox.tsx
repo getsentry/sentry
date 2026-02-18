@@ -7,8 +7,8 @@ import Color from 'color';
 import {Flex} from '@sentry/scraps/layout';
 
 interface LegendCheckboxProps {
-  checked: boolean | 'indeterminate';
-  color: string | [string, ...string[]];
+  checked: boolean;
+  color: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   'aria-label'?: string;
 }
@@ -20,9 +20,7 @@ export function LegendCheckbox({
   'aria-label': ariaLabel,
 }: LegendCheckboxProps) {
   const theme = useTheme();
-  const isActive = checked === true || checked === 'indeterminate';
-  const background = isActive ? colorToBackground(color) : 'transparent';
-  const needsBorder = !isActive || blendsIntoBackground(color, theme.type === 'dark');
+  const needsBorder = !checked || blendsIntoBackground(color, theme.type === 'dark');
 
   return (
     <Flex
@@ -35,7 +33,7 @@ export function LegendCheckbox({
     >
       <HiddenInput
         type="checkbox"
-        checked={checked !== 'indeterminate' && checked}
+        checked={checked}
         onChange={onChange}
         aria-label={ariaLabel}
       />
@@ -48,19 +46,15 @@ export function LegendCheckbox({
         height={CHECKBOX_SIZE}
         radius="2xs"
         style={{
-          background,
+          background: checked ? color : 'transparent',
           border: `1px solid ${needsBorder ? theme.tokens.border.primary : 'transparent'}`,
           pointerEvents: 'none',
         }}
         aria-hidden
       >
-        {isActive && (
+        {checked && (
           <CheckIcon viewBox="0 0 7 7">
-            {checked === 'indeterminate' ? (
-              <path d="M1.25 3.5H5.75" />
-            ) : (
-              <path d="M0.75 3.85639C1.59868 4.70507 2.94787 6.0325 2.92611 6.0325L6.0325 0.75" />
-            )}
+            <path d="M0.75 3.85639C1.59868 4.70507 2.94787 6.0325 2.92611 6.0325L6.0325 0.75" />
           </CheckIcon>
         )}
       </Flex>
@@ -70,38 +64,18 @@ export function LegendCheckbox({
 
 const CHECKBOX_SIZE = '12px';
 const ICON_SIZE = '7px';
-const MAX_GRADIENT_COLORS = 4;
 
 /**
- * Returns true if all colors would be invisible against the page background —
+ * Returns true if the color would be invisible against the page background —
  * very light colors in light mode, very dark colors in dark mode.
  */
-function blendsIntoBackground(
-  colors: string | [string, ...string[]],
-  isDark: boolean
-): boolean {
-  const list = typeof colors === 'string' ? [colors] : colors;
-  return list.every(c => {
-    try {
-      const luminosity = Color(c).luminosity();
-      return isDark ? luminosity < 0.05 : luminosity > 0.9;
-    } catch {
-      return false;
-    }
-  });
-}
-
-function colorToBackground(colors: string | [string, ...string[]]): string {
-  if (typeof colors === 'string') {
-    return colors;
+function blendsIntoBackground(color: string, isDark: boolean): boolean {
+  try {
+    const luminosity = Color(color).luminosity();
+    return isDark ? luminosity < 0.05 : luminosity > 0.9;
+  } catch {
+    return false;
   }
-  if (colors.length === 1) {
-    return colors[0];
-  }
-
-  // Diagonal linear gradient with smooth transitions between colors
-  const limited = colors.slice(0, MAX_GRADIENT_COLORS);
-  return `linear-gradient(135deg, ${limited.join(', ')})`;
 }
 
 const HiddenInput = styled('input')`

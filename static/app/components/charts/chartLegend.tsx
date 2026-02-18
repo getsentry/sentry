@@ -189,22 +189,6 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     return null;
   }
 
-  const overflowCheckedCount = overflowItems.filter(
-    item => selected[item.name] !== false
-  ).length;
-
-  const overflowCheckState: boolean | 'indeterminate' =
-    overflowCheckedCount === 0
-      ? false
-      : overflowCheckedCount === overflowItems.length
-        ? true
-        : 'indeterminate';
-
-  const overflowColors = overflowItems.map(item => item.color).filter(Boolean) as [
-    string,
-    ...string[],
-  ];
-
   return (
     <Flex align="center" gap="xs" wrap="nowrap">
       <Flex
@@ -255,13 +239,6 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
           size="xs"
           trigger={triggerProps => (
             <OverflowTrigger ref={triggerRef} {...triggerProps}>
-              {overflowColors.length > 0 && (
-                <LegendCheckbox
-                  color={overflowColors}
-                  checked={overflowCheckState}
-                  onChange={() => {}}
-                />
-              )}
               {t('%s more', overflowItems.length)}
             </OverflowTrigger>
           )}
@@ -290,7 +267,6 @@ const OverflowTrigger = styled(OverlayTrigger.Button)`
   border-radius: ${p => p.theme.radius.sm};
   padding: 2px ${p => p.theme.space.sm};
   font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
