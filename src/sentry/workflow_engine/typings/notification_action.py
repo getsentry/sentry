@@ -472,8 +472,9 @@ class TicketActionTranslator(BaseActionTranslator, TicketingActionDataBlobHelper
         ]
 
     @property
-    def integration_id(self) -> Any | None:
-        return self.action.get("integration")
+    def integration_id(self) -> int | None:
+        value = self.action.get("integration")
+        return int(value) if value is not None else None
 
     @property
     def target_type(self) -> int:
