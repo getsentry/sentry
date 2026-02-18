@@ -1,12 +1,12 @@
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.services.user.service import user_service
 
 
 @all_silo_test
-class UserServiceTest(TransactionTestCase):
+class UserServiceTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()

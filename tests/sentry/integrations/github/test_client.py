@@ -14,6 +14,7 @@ from responses import matchers
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -701,7 +702,7 @@ class GithubProxyClientTest(TestCase):
         # First request should refresh the token and add headers
         self.gh_client.authorize_request(prepared_request=access_token_request)
         assert mock_jwt.called
-        assert access_token_request.headers["Accept"] == "application/vnd.github+json"
+        assert access_token_request.headers["Accept"] == GITHUB_API_ACCEPT_HEADER
         assert self.access_token in access_token_request.headers["Authorization"]
 
         mock_jwt.reset_mock()
@@ -710,13 +711,13 @@ class GithubProxyClientTest(TestCase):
         # Following requests should just add headers
         self.gh_client.authorize_request(prepared_request=access_token_request)
         assert not mock_jwt.called
-        assert access_token_request.headers["Accept"] == "application/vnd.github+json"
+        assert access_token_request.headers["Accept"] == GITHUB_API_ACCEPT_HEADER
         assert self.access_token in access_token_request.headers["Authorization"]
 
         # JWT-authorized requests should be identified by request path
         self.gh_client.authorize_request(prepared_request=jwt_request)
         assert mock_jwt.called
-        assert jwt_request.headers["Accept"] == "application/vnd.github+json"
+        assert jwt_request.headers["Accept"] == GITHUB_API_ACCEPT_HEADER
         assert jwt_request.headers["Authorization"] == f"Bearer {self.jwt}"
 
     @responses.activate
