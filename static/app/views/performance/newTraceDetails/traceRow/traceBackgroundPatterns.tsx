@@ -1,21 +1,31 @@
 import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 
+import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
-function getMaxErrorSeverity(errors: TraceTree.TraceErrorIssue[]) {
-  return errors.reduce((acc, error) => {
-    if (error.level === 'fatal') {
+function getMaxIssueSeverity(
+  errors: TraceTree.TraceErrorIssue[],
+  occurrences: TraceTree.TraceOccurrence[]
+) {
+  const issues = [...errors, ...occurrences];
+  return issues.reduce((acc, issue) => {
+    const severity = getTraceIssueSeverityClassName(issue);
+
+    if (severity === 'fatal') {
       return 'fatal';
     }
-    if (error.level === 'error') {
+
+    if (severity === 'error') {
       return acc === 'fatal' ? 'fatal' : 'error';
     }
-    if (error.level === 'warning') {
+
+    if (severity === 'warning') {
       return acc === 'fatal' || acc === 'error' ? acc : 'warning';
     }
+
     return acc;
   }, 'default');
 }
@@ -44,8 +54,8 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
   }, [props.errors]);
 
   const severity = useMemo(() => {
-    return getMaxErrorSeverity(errors);
-  }, [errors]);
+    return getMaxIssueSeverity(errors, occurences);
+  }, [errors, occurences]);
 
   if (!props.occurrences.size && !props.errors.size) {
     return null;
@@ -93,7 +103,9 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
                   width: (1 - left) * 100 + '%',
                 }}
               >
-                <div className="TracePattern occurence" />
+                <div
+                  className={`TracePattern ${severity === 'default' ? 'occurence' : severity}`}
+                />
               </div>
             );
           })}

@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 
+import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
@@ -38,7 +39,7 @@ export function TraceErrorIcons(props: ErrorIconsProps) {
         return (
           <div
             key={i}
-            className={`TraceIcon ${error.level}`}
+            className={`TraceIcon ${getTraceIssueSeverityClassName(error)}`}
             style={{left: left * 100 + '%'}}
           >
             <TraceIcons.Icon event={error} />
@@ -86,7 +87,11 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
         );
 
         return (
-          <div key={i} className="TraceIcon occurence" style={{left: left * 100 + '%'}}>
+          <div
+            key={i}
+            className={`TraceIcon ${getTraceIssueSeverityClassName(occurence)}`}
+            style={{left: left * 100 + '%'}}
+          >
             <TraceIcons.Icon event={occurence} />
           </div>
         );

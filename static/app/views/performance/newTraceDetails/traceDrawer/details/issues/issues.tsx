@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -71,8 +72,7 @@ function Issue(props: IssueProps) {
     }
   );
 
-  const iconClassName: string =
-    props.issue.event_type === 'error' ? props.issue.level : 'occurence';
+  const iconClassName = getTraceIssueSeverityClassName(props.issue);
 
   return isPending ? (
     <StyledLoadingIndicatorWrapper>
