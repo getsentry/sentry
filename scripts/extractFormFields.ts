@@ -65,25 +65,49 @@ class FormFieldExtractor {
     const fields: ExtractedField[] = [];
     const formId = this.getFormId(sourceFile);
 
-    const visit = (node: ts.Node, parent?: ts.Node) => {
-      // Set parent reference for ancestor traversal
-      if (parent) {
-        (node as any).parent = parent;
-      }
-
-      // Look for: <form.AppField name="...">
+    // First, find all FormSearch components
+    const findFormSearches = (node: ts.Node) => {
       if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
-        const field = this.extractFieldFromJsx(node, formId, sourceFile);
+        const tagName = this.getJsxTagName(node, sourceFile);
+        if (tagName === 'FormSearch') {
+          const route = this.getJsxAttribute(node, 'route');
+          if (route) {
+            // Extract all fields inside this FormSearch
+            this.extractFieldsFromFormSearch(node, formId, route, sourceFile, fields);
+          }
+        }
+      }
+      ts.forEachChild(node, findFormSearches);
+    };
+
+    findFormSearches(sourceFile);
+    return fields;
+  }
+
+  /**
+   * Extract all fields inside a FormSearch component
+   */
+  private extractFieldsFromFormSearch(
+    formSearchNode: ts.JsxElement | ts.JsxSelfClosingElement,
+    formId: string,
+    route: string,
+    sourceFile: ts.SourceFile,
+    fields: ExtractedField[]
+  ): void {
+    const visit = (node: ts.Node) => {
+      if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+        const field = this.extractFieldFromJsx(node, formId, route, sourceFile);
         if (field) {
           fields.push(field);
         }
       }
-
-      ts.forEachChild(node, child => visit(child, node));
+      ts.forEachChild(node, visit);
     };
 
-    visit(sourceFile);
-    return fields;
+    // Visit children of FormSearch
+    if (ts.isJsxElement(formSearchNode)) {
+      formSearchNode.children.forEach(visit);
+    }
   }
 
   private getFormId(sourceFile: ts.SourceFile): string {
@@ -121,6 +145,7 @@ class FormFieldExtractor {
   private extractFieldFromJsx(
     node: ts.JsxElement | ts.JsxSelfClosingElement,
     formId: string,
+    route: string,
     sourceFile: ts.SourceFile
   ): ExtractedField | null {
     // Check if this is <form.AppField> or <AutoSaveField>
@@ -138,41 +163,12 @@ class FormFieldExtractor {
     // Extract metadata from render prop children
     const fieldMetadata = this.extractFieldMetadata(node, sourceFile);
 
-    // Extract route from ancestor form.FormWrapper
-    const route = this.extractRouteFromAncestors(node, sourceFile);
-
     return {
       name: nameAttr,
       formId,
+      route,
       ...fieldMetadata,
-      ...(route && {route}),
     };
-  }
-
-  /**
-   * Walk up the AST to find a FormSearch ancestor and extract its route prop
-   */
-  private extractRouteFromAncestors(
-    node: ts.Node,
-    sourceFile: ts.SourceFile
-  ): string | null {
-    let current: ts.Node | undefined = node.parent;
-
-    while (current) {
-      if (ts.isJsxElement(current) || ts.isJsxSelfClosingElement(current)) {
-        const tagName = this.getJsxTagName(current, sourceFile);
-        // Match "FormSearch"
-        if (tagName === 'FormSearch') {
-          const route = this.getJsxAttribute(current, 'route');
-          if (route) {
-            return route;
-          }
-        }
-      }
-      current = current.parent;
-    }
-
-    return null;
   }
 
   private extractFieldMetadata(
@@ -205,29 +201,22 @@ class FormFieldExtractor {
       if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
         const tagName = this.getJsxTagName(node, sourceFile);
 
-        // Extract label from Layout.Row, Layout.Stack, or field.Layout.Row/Stack
-        if (
-          tagName?.includes('Layout.Row') ||
-          tagName?.includes('Layout.Stack') ||
-          tagName === 'Layout.Row' ||
-          tagName === 'Layout.Stack'
-        ) {
-          const label = this.getJsxAttribute(node, 'label');
-          if (label && !metadata.label) metadata.label = label;
+        // Extract label/hintText props from any component
+        const label = this.getJsxAttributeExpression(node, 'label', sourceFile);
+        if (label && !metadata.label) metadata.label = label;
 
-          const hintText = this.getJsxAttribute(node, 'hintText');
-          if (hintText && !metadata.hintText) metadata.hintText = hintText;
-        }
+        const hintText = this.getJsxAttributeExpression(node, 'hintText', sourceFile);
+        if (hintText && !metadata.hintText) metadata.hintText = hintText;
 
-        // Extract label from field.Meta.Label (text is in children)
+        // Extract label from Meta.Label (text is in children)
         if (tagName?.endsWith('.Label') || tagName === 'Meta.Label') {
-          const text = this.getJsxTextContent(node);
+          const text = this.getJsxTextContent(node, sourceFile);
           if (text && !metadata.label) metadata.label = text;
         }
 
-        // Extract hintText from field.Meta.HintText (text is in children)
+        // Extract hintText from Meta.HintText (text is in children)
         if (tagName?.endsWith('.HintText') || tagName === 'Meta.HintText') {
-          const text = this.getJsxTextContent(node);
+          const text = this.getJsxTextContent(node, sourceFile);
           if (text && !metadata.hintText) metadata.hintText = text;
         }
       }
@@ -243,10 +232,12 @@ class FormFieldExtractor {
   }
 
   /**
-   * Extract text content from JSX element children (for Meta.Label, Meta.HintText)
+   * Extract text content from JSX element children as expression (for Meta.Label, Meta.HintText)
+   * Returns the expression text as-is, preserving t() calls
    */
   private getJsxTextContent(
-    node: ts.JsxElement | ts.JsxSelfClosingElement
+    node: ts.JsxElement | ts.JsxSelfClosingElement,
+    sourceFile: ts.SourceFile
   ): string | null {
     if (ts.isJsxSelfClosingElement(node)) {
       return null;
@@ -256,28 +247,11 @@ class FormFieldExtractor {
       // Direct text: <Meta.Label>Name</Meta.Label>
       if (ts.isJsxText(child)) {
         const text = child.text.trim();
-        if (text) return text;
+        if (text) return `"${text}"`;
       }
-      // Expression: <Meta.Label>{t('Name')}</Meta.Label>
+      // Expression: <Meta.Label>{t('Name')}</Meta.Label> -> t('Name')
       if (ts.isJsxExpression(child) && child.expression) {
-        if (ts.isStringLiteral(child.expression)) {
-          return child.expression.text;
-        }
-        // t() call
-        if (
-          ts.isCallExpression(child.expression) &&
-          ts.isIdentifier(child.expression.expression)
-        ) {
-          if (
-            child.expression.expression.text === 't' &&
-            child.expression.arguments.length > 0
-          ) {
-            const firstArg = child.expression.arguments[0];
-            if (firstArg && ts.isStringLiteral(firstArg)) {
-              return firstArg.text;
-            }
-          }
-        }
+        return child.expression.getText(sourceFile);
       }
     }
 
@@ -302,6 +276,10 @@ class FormFieldExtractor {
     return null;
   }
 
+  /**
+   * Get the string value of a JSX attribute (extracts from t() calls)
+   * Used for 'name' attribute where we want just the identifier
+   */
   private getJsxAttribute(
     node: ts.JsxElement | ts.JsxSelfClosingElement,
     attributeName: string
@@ -347,23 +325,52 @@ class FormFieldExtractor {
 
     return null;
   }
+
+  /**
+   * Get the expression text of a JSX attribute as-is (preserves t() calls)
+   * Used for 'label' and 'hintText' where we want the full expression
+   */
+  private getJsxAttributeExpression(
+    node: ts.JsxElement | ts.JsxSelfClosingElement,
+    attributeName: string,
+    sourceFile: ts.SourceFile
+  ): string | null {
+    const attributes = ts.isJsxElement(node)
+      ? node.openingElement.attributes
+      : node.attributes;
+
+    for (const attr of attributes.properties) {
+      if (
+        ts.isJsxAttribute(attr) &&
+        ts.isIdentifier(attr.name) &&
+        attr.name.text === attributeName
+      ) {
+        if (attr.initializer) {
+          // String literal: label="Name"
+          if (ts.isStringLiteral(attr.initializer)) {
+            return `"${attr.initializer.text}"`;
+          }
+          // JSX expression: label={t('Name')} -> t('Name')
+          if (ts.isJsxExpression(attr.initializer) && attr.initializer.expression) {
+            return attr.initializer.expression.getText(sourceFile);
+          }
+        }
+      }
+    }
+
+    return null;
+  }
 }
 
 function generateRegistryFile(fields: ExtractedField[], outputPath: string): void {
   // Dedupe fields by formId.name (last one wins for same key)
-  const fieldMap = new Map<string, ExtractedField>();
+  const fieldMap = new Map<string, ExtractedField & {route: string}>();
   for (const field of fields) {
     const key = `${field.formId}.${field.name}`;
-    fieldMap.set(key, field);
+    // All fields have a route since they're extracted from inside FormSearch
+    fieldMap.set(key, field as ExtractedField & {route: string});
   }
-  // Only include fields that are within a FormSearch component (have a route)
-  const dedupedFields = Array.from(fieldMap.values()).filter(
-    (f): f is ExtractedField & {route: string} => Boolean(f.route)
-  );
-
-  // Escape a string for embedding in a single-quoted JS literal
-  const escapeSingleQuotedString = (value: string): string =>
-    value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const dedupedFields = Array.from(fieldMap.values());
 
   const formatField = (field: ExtractedField & {route: string}): string => {
     const lines = [
@@ -372,10 +379,10 @@ function generateRegistryFile(fields: ExtractedField[], outputPath: string): voi
       `    route: '${field.route}',`,
     ];
     if (field.label) {
-      lines.push(`    label: t('${escapeSingleQuotedString(field.label)}'),`);
+      lines.push(`    label: ${field.label},`);
     }
     if (field.hintText) {
-      lines.push(`    hintText: t('${escapeSingleQuotedString(field.hintText)}'),`);
+      lines.push(`    hintText: ${field.hintText},`);
     }
     return lines.join('\n');
   };
