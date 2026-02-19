@@ -722,3 +722,88 @@ T1 improved slightly with n=4 (−21s max): T1 has no Snuba overhead — tests a
 T2 is significantly worse with n=2 (+56s max, +62s spread): dropping from 3 to 2 workers reduced throughput more than the reduced CPU contention helped. The key insight: tests spending time waiting on postgres/Snuba responses release the CPU while blocked — the xdist worker doesn't spin-wait. With n=2, the shard runs fewer tests concurrently and the CPU is less utilized, not more. The run queue on T2 is high (4.5–5.6) but most of that is ClickHouse + Kafka service processes competing, not pytest workers.
 
 **Conclusion:** n=3 is correct for T2. The CPU oversubscription seen in vmstat is driven by service-side processes (ClickHouse, Kafka), not by having too many pytest workers. The fix is to constrain service CPU usage (ClickHouse `max_threads=2`) rather than reduce pytest concurrency. n=4 is marginally better for T1 (−21s, −3.2%) but comes at no cost since T1 has no per-worker Snuba bootstrap. Reverted T2 to n=3; T1 n=4 is worth keeping if confirmed across more runs.
+
+---
+
+## Investigation: `dist=load` T1 regression and `test_buffer.py` fix
+
+### Motivation
+
+Step 4 showed `dist=load` (per-test dispatch) was consistently slower than `dist=loadfile` (per-file dispatch) across all granularities. T1 was disproportionately affected: +36s avg, +48s max at file granularity. T2 was essentially unchanged. This was surprising — T2 runs the full Snuba/Kafka/ClickHouse stack with more services and more complex per-worker isolation, so if `dist=load` caused resource contention or isolation failures, T2 should have been hit harder, not T1.
+
+### Rerun analysis
+
+Comparing the `dist=load` run (`22196178384`, T1 `-n 3 --dist=load`, T2 `-n 3 --dist=loadfile`) against the `loadfile` baseline (`22197280450`):
+
+| Shard | loadfile baseline | dist=load |
+|---|---|---|
+| T1(0) | 0 reruns | **12 reruns** |
+| T1(1) | 1 rerun | **8 reruns** |
+| T1(2) | 0 reruns | **13 reruns** |
+| T1(3) | 3 reruns | **20 reruns** |
+| T1(4) | 2 reruns | 0 reruns |
+| **T1 total** | **6** | **53** |
+| **T2 total** | **17** | **15** |
+
+T1 reruns spiked 9× (6 → 53) while T2 was unchanged. Extracting error messages from the CI logs revealed nearly all 53 T1 reruns came from a single file: `tests/sentry/spans/test_buffer.py`.
+
+### Root cause
+
+The errors fell into two categories, both originating from `test_buffer.py`:
+
+**1. "Database access not allowed" (primary failure)**
+
+```
+test_buffer.py:344 → buffer.flush_segments(now=10)
+  → buffer.py:628 _load_segment_data
+    → Project.objects.get_from_cache(id=project_id)
+      → Django ensure_connection()
+        → RuntimeError: Database access not allowed, use the "django_db" mark
+```
+
+`test_buffer.py` is a Redis-only test — it doesn't use `@pytest.mark.django_db`. However, `flush_segments()` → `_load_segment_data()` has a metrics reporting path (line 628) that calls `Project.objects.get_from_cache()` when `dropped > 0` (some spans lost between ingestion and loading). This is a Django ORM query that requires database access.
+
+**2. Redis data assertions (cascading from #1)**
+
+When the DB access exception crashes `flush_segments()`, it prevents the method from returning results. Downstream assertions then fail: `assert rv == {expected data}` gets `{}`, and `assert client.ttl(k) > -1` gets TTL = -2 (key doesn't exist, because the flush never completed).
+
+**Why it works under `loadfile` but fails under `load`:**
+
+Both T1 and T2 have identical per-worker isolation for Postgres (separate databases per worker via pytest-django `--reuse-db`) and Redis (separate DB numbers per worker via `_get_xdist_redis_db()`). The isolation infrastructure was not the problem.
+
+Under `loadfile`, all tests from a file are dispatched to the same worker consecutively. Tests that use Django `TestCase` (which extends `django.test.TransactionTestCase`) leave their database connection available after teardown. When `test_buffer.py` tests run on the same worker, they inherit this leaked connection — pytest-django doesn't actively block DB access between consecutive tests on the same worker if a connection was previously established.
+
+Under `load`, per-test dispatch interleaves tests from different files on the same worker. A `test_buffer.py` test might follow a non-DB test whose teardown caused pytest-django to properly block database access. Without the `django_db` marker, the connection is refused.
+
+**Why T2 was unaffected:** `test_buffer.py` is classified as a T1 test (it only uses Redis, no Snuba/Kafka). The brittle test simply doesn't exist in T2's test set.
+
+### Validation
+
+Created branch `mchen/fix-buffer-load` (run `22201666341`) with two changes: (1) added `pytestmark = [pytest.mark.django_db]` to `test_buffer.py`, (2) T1 set to `--dist=load`.
+
+| | dist=load (no fix) | **dist=load + fix** | loadfile baseline |
+|---|---|---|---|
+| T1(0) | 12 | **1** | 0 |
+| T1(1) | 8 | **2** | 1 |
+| T1(2) | 13 | **0** | 0 |
+| T1(3) | 20 | **0** | 3 |
+| T1(4) | 0 | **3** | 2 |
+| **T1 total** | **53** | **6** | **6** |
+
+The fix brought `dist=load` reruns to exactly the baseline level (6), confirming the missing `django_db` marker was the sole cause of the 47 additional reruns.
+
+### Residual `dist=load` overhead
+
+Even with reruns eliminated, `dist=load` still adds ~56s (+10%) to T1 pytest execution vs `loadfile`:
+
+| Metric | loadfile baseline | dist=load + fix | Delta |
+|---|---|---|---|
+| T1 avg pytest | 537s | 594s | **+56s (+10%)** |
+| T1 max pytest | 563s | 625s | **+62s** |
+| T1 max job | 11m01s | 12m15s | **+74s** |
+
+This overhead comes from fixture churn: `load` dispatch interleaves tests from different files on the same worker, causing repeated class/module fixture setup and teardown. The `_shuffle` function in `sentry.py` keeps classes and modules together to minimize this, but per-test dispatch defeats it. `loadfile` preserves the optimization by keeping all tests from a file on one worker.
+
+### Conclusion
+
+The `test_buffer.py` `django_db` fix is committed to the clean branch as a real bug fix — the missing marker causes flaky failures even under `loadfile` (3 of the baseline's 6 reruns were from this file). `dist=load` remains the wrong dispatch mode for T1: even with the flakiness fixed, it adds ~1 minute of fixture churn overhead. `loadfile` remains optimal.
