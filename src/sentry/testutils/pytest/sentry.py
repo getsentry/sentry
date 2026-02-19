@@ -356,6 +356,15 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
         del TaskNamespace._original_send_task
 
+    # When running shuffled tests with --exitfirst, record the first failing
+    # test ID so the CI workflow can pass it to detect-test-pollution.
+    failing_testid = getattr(session, "_shuffle_failing_testid", None)
+    if failing_testid and exitstatus != 0:
+        outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
+        print(f"writing {failing_testid} to {outdir}/failing-testid")
+        with open(f"{outdir}/failing-testid", "w") as f:
+            f.write(failing_testid)
+
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.config.getvalue("nomigrations") and any(
@@ -501,24 +510,16 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         config.hook.pytest_deselected(items=discard)
 
 
-def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    # When running shuffled tests with --exitfirst, record the first failing
-    # test ID so the CI workflow can pass it to detect-test-pollution.
-    # We do this at session end (rather than in pytest_runtest_makereport) so
-    # that retried tests (via pytest-rerunfailures) that eventually pass don't
-    # leave a stale failing-testid file.
-    if not os.environ.get("SENTRY_SHUFFLE_TESTS"):
-        return
-    if exitstatus == 0:
-        return
-
-    reporter = session.config.pluginmanager.get_plugin("terminalreporter")
-    if reporter and "failed" in reporter.stats:
-        nodeid = reporter.stats["failed"][0].nodeid
-        outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
-        print(f"writing {nodeid} to {outdir}/failing-testid")
-        with open(f"{outdir}/failing-testid", "w") as f:
-            f.write(nodeid)
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo[None]
+) -> collections.abc.Generator[None]:
+    outcome = yield
+    report = outcome.get_result()
+    # Track the last failing test for detect-test-pollution (written to disk
+    # in pytest_sessionfinish only when the session actually fails).
+    if os.environ.get("SENTRY_SHUFFLE_TESTS") and report.failed and report.when == "call":
+        item.session._shuffle_failing_testid = item.nodeid  # type: ignore[attr-defined]
 
 
 def pytest_xdist_setupnodes() -> None:
