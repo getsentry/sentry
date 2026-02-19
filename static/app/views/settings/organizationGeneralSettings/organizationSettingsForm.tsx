@@ -139,6 +139,10 @@ function OrganizationMembershipSettingsBase({
   const hasOrgWrite = access.has('org:write');
   const hasOrgAdmin = access.has('org:admin');
 
+  const [hasGranularReplay, setHasGranularReplay] = useState(
+    organization.hasGranularReplayPermissions ?? false
+  );
+
   const roleOptions = (organization.orgRoleList ?? []).map(r => ({
     value: r.id,
     label: r.name,
@@ -148,6 +152,16 @@ function OrganizationMembershipSettingsBase({
     mutationFn: (data: Partial<MembershipSchemaType>) =>
       fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
     onSuccess: updated => onSave(organization, updated),
+    onError: () => addErrorMessage(t('Unable to save change')),
+  });
+
+  const replayPermsMutationOpts = mutationOptions({
+    mutationFn: (data: Partial<MembershipSchemaType>) =>
+      fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
+    onSuccess: updated => {
+      onSave(organization, updated);
+      setHasGranularReplay(updated.hasGranularReplayPermissions ?? false);
+    },
     onError: () => addErrorMessage(t('Unable to save change')),
   });
 
@@ -368,21 +382,21 @@ function OrganizationMembershipSettingsBase({
       </AutoSaveField>
 
       {features.has('granular-replay-permissions') && (
-        <AutoSaveField
-          name="hasGranularReplayPermissions"
-          schema={membershipSchema}
-          initialValue={organization.hasGranularReplayPermissions}
-          mutationOptions={mutationOpts}
-          confirm={value =>
-            value
-              ? undefined
-              : t(
-                  'This will allow all members of your organization to access replay data. Do you want to continue?'
-                )
-          }
-        >
-          {field => (
-            <Fragment>
+        <Fragment>
+          <AutoSaveField
+            name="hasGranularReplayPermissions"
+            schema={membershipSchema}
+            initialValue={organization.hasGranularReplayPermissions}
+            mutationOptions={replayPermsMutationOpts}
+            confirm={value =>
+              value
+                ? undefined
+                : t(
+                    'This will allow all members of your organization to access replay data. Do you want to continue?'
+                  )
+            }
+          >
+            {field => (
               <field.Layout.Row
                 label={t('Restrict Replay Access')}
                 hintText={t(
@@ -395,17 +409,17 @@ function OrganizationMembershipSettingsBase({
                   disabled={!hasOrgWrite}
                 />
               </field.Layout.Row>
+            )}
+          </AutoSaveField>
 
-              {field.state.value ? (
-                <ReplayAccessMembersField
-                  organization={organization}
-                  onSave={onSave}
-                  disabled={!hasOrgWrite}
-                />
-              ) : null}
-            </Fragment>
+          {hasGranularReplay && (
+            <ReplayAccessMembersField
+              organization={organization}
+              onSave={onSave}
+              disabled={!hasOrgWrite}
+            />
           )}
-        </AutoSaveField>
+        </Fragment>
       )}
     </FieldGroup>
   );
