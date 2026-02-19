@@ -363,7 +363,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
         print(f"writing {failing_testid} to {outdir}/failing-testid")
         with open(f"{outdir}/failing-testid", "w") as f:
-            f.write(failing_testid)
+            f.write(failing_testid + "\n")
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
