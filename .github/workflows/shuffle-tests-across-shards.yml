@@ -46,14 +46,13 @@ jobs:
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run-tests
-        continue-on-error: true
         run: |
           python3 -b -m pytest \
           --exitfirst \
           tests/sentry/debug/utils/test_exception_reporter_filter.py
 
       - name: Truncate testids
-        if: steps.run-tests.outcome == 'failure' && hashFiles('/tmp/failing-testid') != ''
+        if: hashFiles('/tmp/failing-testid') != ''
         run: |
           # Keep only tests up to and including the failing test;
           # tests that run after it cannot be polluting it.
@@ -61,13 +60,13 @@ jobs:
           head -n "$(grep -nF "$FAILING_TESTID" /tmp/testids-full | head -1 | cut -d: -f1)" /tmp/testids-full > /tmp/testids
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: steps.run-tests.outcome == 'failure' && hashFiles('/tmp/failing-testid') != ''
+        if: hashFiles('/tmp/failing-testid') != ''
         with:
           name: testids-${{ matrix.instance }}
           path: /tmp/testids
 
       - name: Detect test pollution
-        if: steps.run-tests.outcome == 'failure' && hashFiles('/tmp/failing-testid') != ''
+        if: hashFiles('/tmp/failing-testid') != ''
         env:
           # just so we get realtime output since detect-test-pollution doesn't print much
           PYTHONUNBUFFERED: 1
@@ -82,7 +81,7 @@ jobs:
           echo "sentry sha: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub issue
-        if: steps.run-tests.outcome == 'failure' && hashFiles('/tmp/failing-testid') != ''
+        if: hashFiles('/tmp/failing-testid') != ''
         run: |
           gh issue create \
             --title "Test pollution: $FAILING_TESTID" \
