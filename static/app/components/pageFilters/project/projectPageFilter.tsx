@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
@@ -443,9 +444,12 @@ export function ProjectPageFilter({
             <Text>{t('Filter Projects')}</Text>
             <InfoTip
               size="xs"
-              variant="muted"
-              title={t(
-                'Shift + click to select a range of projects or cmd + click to select multiple projects at once.'
+              title={tct(
+                '[rangeModifier] + click to select a range of projects or [multiModifier] + click to select multiple projects at once.',
+                {
+                  rangeModifier: t('Shift'),
+                  multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
+                }
               )}
             />
           </Flex>
