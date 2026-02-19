@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
+import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
@@ -20,7 +21,7 @@ import {
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -241,9 +242,12 @@ export function EnvironmentPageFilter({
           <Text>{t('Filter Environments')}</Text>
           <InfoTip
             size="xs"
-            variant="muted"
-            title={t(
-              'Shift + click to select a range of environments or cmd + click to select multiple environments at once.'
+            title={tct(
+              '[rangeModifier] + click to select a range of environments or [multiModifier] + click to select multiple environments at once.',
+              {
+                rangeModifier: t('Shift'),
+                multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
+              }
             )}
           />
         </Flex>
