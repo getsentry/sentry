@@ -500,18 +500,23 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         config.hook.pytest_deselected(items=discard)
 
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(
-    item: pytest.Item, call: pytest.CallInfo[None]
-) -> collections.abc.Generator[None]:
-    outcome = yield
-    report = outcome.get_result()
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     # When running shuffled tests with --exitfirst, record the first failing
     # test ID so the CI workflow can pass it to detect-test-pollution.
-    if os.environ.get("SENTRY_SHUFFLE_TESTS") and report.failed:
-        print(f"writing {item.nodeid} to /tmp/failing-testid")
+    # We do this at session end (rather than in pytest_runtest_makereport) so
+    # that retried tests (via pytest-rerunfailures) that eventually pass don't
+    # leave a stale failing-testid file.
+    if not os.environ.get("SENTRY_SHUFFLE_TESTS"):
+        return
+    if exitstatus == 0:
+        return
+
+    reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+    if reporter and "failed" in reporter.stats:
+        nodeid = reporter.stats["failed"][0].nodeid
+        print(f"writing {nodeid} to /tmp/failing-testid")
         with open("/tmp/failing-testid", "w") as f:
-            f.write(item.nodeid)
+            f.write(nodeid)
 
 
 def pytest_xdist_setupnodes() -> None:
