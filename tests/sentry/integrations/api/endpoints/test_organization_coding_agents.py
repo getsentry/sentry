@@ -1029,8 +1029,8 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
 
         with self.feature("organizations:seer-coding-agent-integrations"):
             response = self.get_success_response(self.organization.slug, method="post", **data)
-            # Should succeed but with all failures
-            assert response.data["success"] is True
+            # All repos failed, so success is False (but HTTP 200 is still returned)
+            assert response.data["success"] is False
             assert response.data["launched_count"] == 0
             assert response.data["failed_count"] == 2
             # Should have failure details
@@ -1136,7 +1136,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
 
         with self.feature("organizations:seer-coding-agent-integrations"):
             response = self.get_success_response(self.organization.slug, method="post", **data)
-            assert response.data["success"] is True
+            assert response.data["success"] is False
             assert response.data["failed_count"] >= 1
             failure = response.data["failures"][0]
             assert failure["failure_type"] == "generic"
@@ -1184,7 +1184,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
             patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"),
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
-            assert response.data["success"] is True
+            assert response.data["success"] is False
             assert response.data["failed_count"] >= 1
             failure = response.data["failures"][0]
             assert failure["failure_type"] == "github_app_permissions"
@@ -1233,7 +1233,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
             patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"),
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
-            assert response.data["success"] is True
+            assert response.data["success"] is False
             assert response.data["failed_count"] >= 1
             failure = response.data["failures"][0]
             assert failure["failure_type"] == "generic"
@@ -1280,7 +1280,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
 
         with self.feature("organizations:seer-coding-agent-integrations"):
             response = self.get_success_response(self.organization.slug, method="post", **data)
-            assert response.data["success"] is True
+            assert response.data["success"] is False
             assert response.data["failed_count"] >= 1
             assert "failures" in response.data
             failure = response.data["failures"][0]
