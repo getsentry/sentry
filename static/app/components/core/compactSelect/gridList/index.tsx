@@ -147,6 +147,7 @@ function GridList({
                 if (item.type === 'section') {
                   return (
                     <GridListSection
+                      {...virtualizer.itemProps(row.index)}
                       key={item.key}
                       node={item}
                       listState={listState}
