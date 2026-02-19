@@ -298,10 +298,14 @@ class DashboardWidgetSerializer(Serializer):
         return urls
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardWidgetResponse:
-        widget_type = (
-            DashboardWidgetTypes.get_type_name(obj.widget_type)
-            or DashboardWidgetTypes.TYPE_NAMES[0]
-        )
+        # Text widgets don't have a widget_type
+        if obj.display_type == DashboardWidgetDisplayTypes.TEXT:
+            widget_type = None
+        else:
+            widget_type = (
+                DashboardWidgetTypes.get_type_name(obj.widget_type)
+                or DashboardWidgetTypes.TYPE_NAMES[0]
+            )
 
         if (
             obj.widget_type == DashboardWidgetTypes.DISCOVER
