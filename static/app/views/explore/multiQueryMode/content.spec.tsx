@@ -1,4 +1,3 @@
-import {Fragment, type ReactNode} from 'react';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -18,12 +17,6 @@ import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/lo
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
-
-function Wrapper() {
-  return function ({children}: {children: ReactNode}) {
-    return <Fragment>{children}</Fragment>;
-  };
-}
 
 describe('MultiQueryModeContent', () => {
   const {organization, project} = initializeOrg();
@@ -108,7 +101,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
@@ -121,7 +114,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -184,7 +177,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
@@ -199,7 +192,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -264,7 +257,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -327,7 +320,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
@@ -342,7 +335,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -425,7 +418,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(await screen.findByRole('button', {name: 'Bar'})).toBeInTheDocument();
 
@@ -473,7 +466,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     await userEvent.click(await screen.findByRole('button', {name: 'Bar'}));
     await userEvent.click(screen.getByRole('option', {name: 'Area'}));
@@ -509,7 +502,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -551,7 +544,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -593,7 +586,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -638,7 +631,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -680,7 +673,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -734,7 +727,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -795,7 +788,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -899,7 +892,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -1050,7 +1043,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -1094,7 +1087,6 @@ describe('MultiQueryModeContent', () => {
   it('sets interval correctly', async () => {
     const {router} = render(<MultiQueryModeContent />, {
       organization,
-      additionalWrapper: Wrapper(),
       initialRouterConfig: {
         location: {
           pathname: '/traces/compare',
@@ -1125,7 +1117,6 @@ describe('MultiQueryModeContent', () => {
   it('renders a save query button', async () => {
     render(<MultiQueryModeContent />, {
       organization,
-      additionalWrapper: Wrapper(),
     });
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
@@ -1169,7 +1160,6 @@ describe('MultiQueryModeContent', () => {
 
     render(<MultiQueryModeContent />, {
       organization,
-      additionalWrapper: Wrapper(),
       initialRouterConfig: {
         location: {
           pathname: '/traces/compare',

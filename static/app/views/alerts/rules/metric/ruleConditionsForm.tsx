@@ -648,196 +648,192 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </Fragment>
         ) : (
           <Fragment>
-            <Fragment>
-              {isExtrapolatedChartData && (
-                <OnDemandMetricAlert
-                  message={t(
-                    'The chart data above is an estimate based on the stored transactions that match the filters specified.'
+            {isExtrapolatedChartData && (
+              <OnDemandMetricAlert
+                message={t(
+                  'The chart data above is an estimate based on the stored transactions that match the filters specified.'
+                )}
+              />
+            )}
+            {confidenceEnabled && isLowConfidenceChartData && (
+              <Alert.Container>
+                <Alert variant="warning">
+                  {t(
+                    'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
                   )}
-                />
-              )}
-              {confidenceEnabled && isLowConfidenceChartData && (
-                <Alert.Container>
-                  <Alert variant="warning">
-                    {t(
-                      'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
-                    )}
-                  </Alert>
-                </Alert.Container>
-              )}
-              {!isErrorMigration && this.renderInterval()}
-              <StyledListItem>{t('Filter events')}</StyledListItem>
-              <Tooltip
-                title={this.transactionAlertDisabledMessage}
-                disabled={!this.disableTransactionAlertType}
-                isHoverable
-              >
-                <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
-                  {this.renderProjectSelector()}
-                  <SelectField
-                    name="environment"
-                    placeholder={t('All Environments')}
-                    style={{
-                      ...this.formElemBaseStyle,
-                      minWidth: 230,
-                      flex: 1,
-                    }}
-                    styles={{
-                      singleValue: (base: any) => ({
-                        ...base,
-                      }),
-                      option: (base: any) => ({
-                        ...base,
-                      }),
-                    }}
-                    options={environmentOptions}
-                    isDisabled={
-                      disabled ||
-                      this.state.environments === null ||
-                      isErrorMigration ||
-                      this.disableTransactionAlertType
-                    }
-                    isClearable
-                    inline={false}
-                    flexibleControlStateSize
-                  />
-                  {allowChangeEventTypes && this.renderEventTypeFilter()}
-                </FormRow>
-              </Tooltip>
-              <FormRow noMargin>
-                <FormField
-                  name="query"
-                  inline={false}
+                </Alert>
+              </Alert.Container>
+            )}
+            {!isErrorMigration && this.renderInterval()}
+            <StyledListItem>{t('Filter events')}</StyledListItem>
+            <Tooltip
+              title={this.transactionAlertDisabledMessage}
+              disabled={!this.disableTransactionAlertType}
+              isHoverable
+            >
+              <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
+                {this.renderProjectSelector()}
+                <SelectField
+                  name="environment"
+                  placeholder={t('All Environments')}
                   style={{
                     ...this.formElemBaseStyle,
-                    flex: '6 0 500px',
+                    minWidth: 230,
+                    flex: 1,
                   }}
+                  styles={{
+                    singleValue: (base: any) => ({
+                      ...base,
+                    }),
+                    option: (base: any) => ({
+                      ...base,
+                    }),
+                  }}
+                  options={environmentOptions}
+                  isDisabled={
+                    disabled ||
+                    this.state.environments === null ||
+                    isErrorMigration ||
+                    this.disableTransactionAlertType
+                  }
+                  isClearable
+                  inline={false}
                   flexibleControlStateSize
-                >
-                  {({onChange, onBlur, initialData, value}: any) => {
-                    return isEapAlertType(alertType) ? (
-                      <EAPSearchQueryBuilderWithContext
-                        initialQuery={value ?? ''}
-                        onSearch={(query, {parsedQuery}) => {
-                          onFilterSearch(query, parsedQuery);
+                />
+                {allowChangeEventTypes && this.renderEventTypeFilter()}
+              </FormRow>
+            </Tooltip>
+            <FormRow noMargin>
+              <FormField
+                name="query"
+                inline={false}
+                style={{
+                  ...this.formElemBaseStyle,
+                  flex: '6 0 500px',
+                }}
+                flexibleControlStateSize
+              >
+                {({onChange, onBlur, initialData, value}: any) => {
+                  return isEapAlertType(alertType) ? (
+                    <EAPSearchQueryBuilderWithContext
+                      initialQuery={value ?? ''}
+                      onSearch={(query, {parsedQuery}) => {
+                        onFilterSearch(query, parsedQuery);
+                        onChange(query, {});
+                      }}
+                      project={project}
+                      traceItemType={traceItemType ?? TraceItemDataset.SPANS}
+                    />
+                  ) : (
+                    <Flex align="center" gap="md">
+                      <SearchQueryBuilder
+                        initialQuery={initialData?.query ?? ''}
+                        getTagValues={this.getEventFieldValues}
+                        placeholder={this.searchPlaceholder}
+                        searchSource="alert_builder"
+                        filterKeys={filterKeys}
+                        disabled={
+                          disabled || isErrorMigration || this.disableTransactionAlertType
+                        }
+                        onChange={onChange}
+                        invalidMessages={{
+                          ...defaultConfig.invalidMessages,
+                          [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                            'The wildcard operator is not supported here.'
+                          ),
+                          [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+                            'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
+                          ),
+                        }}
+                        onSearch={query => {
+                          onFilterSearch(query, true);
                           onChange(query, {});
                         }}
-                        project={project}
-                        traceItemType={traceItemType ?? TraceItemDataset.SPANS}
+                        onBlur={(query, {parsedQuery}) => {
+                          onFilterSearch(query, parsedQuery);
+                          onBlur(query);
+                        }}
+                        // We only need strict validation for Transaction queries, everything else is fine
+                        disallowUnsupportedFilters={
+                          organization.features.includes('alert-allow-indexed') ||
+                          (hasOnDemandMetricAlertFeature(organization) &&
+                            isOnDemandQueryString(value))
+                            ? false
+                            : dataset === Dataset.GENERIC_METRICS
+                        }
                       />
-                    ) : (
-                      <Flex align="center" gap="md">
-                        <SearchQueryBuilder
-                          initialQuery={initialData?.query ?? ''}
-                          getTagValues={this.getEventFieldValues}
-                          placeholder={this.searchPlaceholder}
-                          searchSource="alert_builder"
-                          filterKeys={filterKeys}
-                          disabled={
-                            disabled ||
-                            isErrorMigration ||
-                            this.disableTransactionAlertType
-                          }
-                          onChange={onChange}
-                          invalidMessages={{
-                            ...defaultConfig.invalidMessages,
-                            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
-                              'The wildcard operator is not supported here.'
-                            ),
-                            [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
-                              'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
-                            ),
-                          }}
-                          onSearch={query => {
-                            onFilterSearch(query, true);
-                            onChange(query, {});
-                          }}
-                          onBlur={(query, {parsedQuery}) => {
-                            onFilterSearch(query, parsedQuery);
-                            onBlur(query);
-                          }}
-                          // We only need strict validation for Transaction queries, everything else is fine
-                          disallowUnsupportedFilters={
-                            organization.features.includes('alert-allow-indexed') ||
-                            (hasOnDemandMetricAlertFeature(organization) &&
-                              isOnDemandQueryString(value))
-                              ? false
-                              : dataset === Dataset.GENERIC_METRICS
-                          }
-                        />
-                        {isExtrapolatedChartData &&
-                          isOnDemandQueryString(value) &&
-                          (isOnDemandLimitReached ? (
-                            <OnDemandWarningIcon
-                              variant="danger"
-                              msg={tct(
-                                'We don’t routinely collect metrics from [fields] and you’ve already reached the limit of [docLink:alerts with advanced filters] for your organization.',
-                                {
-                                  fields: (
-                                    <strong>
-                                      {getOnDemandKeys(value)
-                                        .map(key => `"${key}"`)
-                                        .join(', ')}
-                                    </strong>
-                                  ),
-                                  docLink: (
-                                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#advanced-filters-for-transactions" />
-                                  ),
-                                }
-                              )}
-                              isHoverable
-                            />
-                          ) : (
-                            <OnDemandWarningIcon
-                              variant="primary"
-                              msg={tct(
-                                'We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]',
-                                {
-                                  fields: (
-                                    <strong>
-                                      {getOnDemandKeys(value)
-                                        .map(key => `"${key}"`)
-                                        .join(', ')}
-                                    </strong>
-                                  ),
-                                  strong: <strong />,
-                                }
-                              )}
-                            />
-                          ))}
-                      </Flex>
+                      {isExtrapolatedChartData &&
+                        isOnDemandQueryString(value) &&
+                        (isOnDemandLimitReached ? (
+                          <OnDemandWarningIcon
+                            variant="danger"
+                            msg={tct(
+                              'We don’t routinely collect metrics from [fields] and you’ve already reached the limit of [docLink:alerts with advanced filters] for your organization.',
+                              {
+                                fields: (
+                                  <strong>
+                                    {getOnDemandKeys(value)
+                                      .map(key => `"${key}"`)
+                                      .join(', ')}
+                                  </strong>
+                                ),
+                                docLink: (
+                                  <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#advanced-filters-for-transactions" />
+                                ),
+                              }
+                            )}
+                            isHoverable
+                          />
+                        ) : (
+                          <OnDemandWarningIcon
+                            variant="primary"
+                            msg={tct(
+                              'We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]',
+                              {
+                                fields: (
+                                  <strong>
+                                    {getOnDemandKeys(value)
+                                      .map(key => `"${key}"`)
+                                      .join(', ')}
+                                  </strong>
+                                ),
+                                strong: <strong />,
+                              }
+                            )}
+                          />
+                        ))}
+                    </Flex>
+                  );
+                }}
+              </FormField>
+            </FormRow>
+            <FormRow noMargin>
+              <FormField
+                name="query"
+                inline={false}
+                style={{
+                  ...this.formElemBaseStyle,
+                  flex: '6 0 500px',
+                }}
+                flexibleControlStateSize
+              >
+                {(args: any) => {
+                  if (
+                    args.value?.includes('is:unresolved') &&
+                    comparisonType === AlertRuleComparisonType.DYNAMIC
+                  ) {
+                    return (
+                      <OnDemandMetricAlert
+                        message={t(
+                          "'is:unresolved' queries are not supported by Anomaly Detection alerts."
+                        )}
+                      />
                     );
-                  }}
-                </FormField>
-              </FormRow>
-              <FormRow noMargin>
-                <FormField
-                  name="query"
-                  inline={false}
-                  style={{
-                    ...this.formElemBaseStyle,
-                    flex: '6 0 500px',
-                  }}
-                  flexibleControlStateSize
-                >
-                  {(args: any) => {
-                    if (
-                      args.value?.includes('is:unresolved') &&
-                      comparisonType === AlertRuleComparisonType.DYNAMIC
-                    ) {
-                      return (
-                        <OnDemandMetricAlert
-                          message={t(
-                            "'is:unresolved' queries are not supported by Anomaly Detection alerts."
-                          )}
-                        />
-                      );
-                    }
-                    return null;
-                  }}
-                </FormField>
-              </FormRow>
-            </Fragment>
+                  }
+                  return null;
+                }}
+              </FormField>
+            </FormRow>
           </Fragment>
         )}
       </Fragment>
