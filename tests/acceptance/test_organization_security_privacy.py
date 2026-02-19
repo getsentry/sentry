@@ -41,6 +41,8 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
             '[data-test-id="organization-settings-security-and-privacy"] .error'
         )
         self.browser.click("#require2FA")
+        # Click the page header to blur the switch and trigger auto-save + confirm dialog
+        self.browser.click("h1")
         self.browser.wait_until("[role='dialog']")
         self.browser.click("[role='dialog'] [data-test-id='confirm-button']")
         self.browser.wait_until_not("[role='dialog']")
