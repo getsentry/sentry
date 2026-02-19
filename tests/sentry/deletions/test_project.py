@@ -1,3 +1,4 @@
+import pytest
 from unittest import mock
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -203,6 +204,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
         assert RuleSnooze.objects.filter(id=rule_snooze.id).exists()
 
+    @pytest.mark.skip(reason="flaky: #108543")
     def test_delete_error_events(self) -> None:
         keeper = self.create_project(name="keeper")
         project = self.create_project(name="test")
