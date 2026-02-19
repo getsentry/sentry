@@ -11,6 +11,7 @@ import {
 import * as Sentry from '@sentry/react';
 
 import type {
+  GetTagKeys,
   GetTagValues,
   SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
@@ -71,6 +72,7 @@ interface SearchQueryBuilderContextData {
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   caseInsensitive?: CaseInsensitive;
   filterKeyAliases?: TagCollection;
+  getTagKeys?: GetTagKeys;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: (value: CaseInsensitive) => void;
@@ -112,6 +114,7 @@ export function SearchQueryBuilderProvider({
   filterKeyMenuWidth = 460,
   filterKeySections,
   getSuggestedFilterKey,
+  getTagKeys,
   getTagValues,
   onSearch,
   placeholder,
@@ -251,6 +254,7 @@ export function SearchQueryBuilderProvider({
       filterKeys: stableFilterKeys,
       getSuggestedFilterKey: stableGetSuggestedFilterKey,
       getTagValues,
+      getTagKeys,
       getFieldDefinition: stableFieldDefinitionGetter,
       dispatch,
       wrapperRef,
@@ -293,6 +297,7 @@ export function SearchQueryBuilderProvider({
     filterKeyAliases,
     filterKeyMenuWidth,
     filterKeySections,
+    getTagKeys,
     getTagValues,
     handleSearch,
     matchKeySuggestions,

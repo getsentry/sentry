@@ -12,7 +12,6 @@ import {LeadWrap} from '@sentry/scraps/compactSelect';
 import {InnerWrap, MenuListItem} from '@sentry/scraps/menuListItem';
 
 import {IconCheckmark} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 
 export interface GridListOptionProps extends AriaGridListItemOptions {
@@ -64,18 +63,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
   const [isFocusWithin, setFocusWithin] = useState(false);
   const {focusWithinProps} = useFocusWithin({onFocusWithinChange: setFocusWithin});
 
-  const rowPropsMemo = useMemo(
-    () => mergeProps(rowProps, hoverProps, focusWithinProps),
-    // Only update optionProps when a relevant state (selection/focus/disable) changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isSelected, isDisabled]
-  );
-
-  const gridCellPropsMemo = useMemo(
-    () => gridCellProps,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isSelected, isDisabled]
-  );
+  const rowPropsMerged = mergeProps(rowProps, hoverProps, focusWithinProps);
 
   const labelPropsMemo = useMemo(
     () => ({as: typeof label === 'string' ? 'p' : 'div'}) as const,
@@ -117,7 +105,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
 
   return (
     <StyledMenuListItem
-      {...rowPropsMemo}
+      {...rowPropsMerged}
       ref={ref}
       size={size}
       label={label}
@@ -127,7 +115,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
       isPressed={isPressed}
       isFocused={isFocusWithin}
       priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
-      innerWrapProps={gridCellPropsMemo}
+      innerWrapProps={gridCellProps}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
       trailingItems={trailingItems}
@@ -140,6 +128,6 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
 
 const StyledMenuListItem = styled(MenuListItem)`
   > ${InnerWrap} {
-    padding-left: ${space(1)};
+    padding-left: ${p => p.theme.space.md};
   }
 `;

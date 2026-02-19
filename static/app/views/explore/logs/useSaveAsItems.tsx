@@ -22,7 +22,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
@@ -140,7 +140,7 @@ export function useSaveAsItems({
           organization,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
           interval,
-          eventTypes: 'trace_item_log',
+          eventTypes: [EventTypes.TRACE_ITEM_LOG],
         }),
         onAction: () => {
           trackAnalytics('logs.save_as', {

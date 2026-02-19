@@ -91,13 +91,14 @@ describe('ChangePlanAction', () => {
 
     // Set up default subscription response
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
+      url: `/customers/${mockOrg.slug}/`,
       body: subscription,
     });
 
     MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+      url: `/customers/${mockOrg.slug}/billing-config/`,
       body: BILLING_CONFIG,
+      match: [MockApiClient.matchQuery({tier: 'all'})],
     });
   });
 
@@ -184,7 +185,7 @@ describe('ChangePlanAction', () => {
     });
     SubscriptionStore.set(mockOrg.slug, ntSubscription);
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
+      url: `/customers/${mockOrg.slug}/`,
       body: ntSubscription,
     });
 
@@ -413,13 +414,14 @@ describe('ChangePlanAction', () => {
 
       // Set up default subscription response
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${mockOrg.slug}/`,
+        url: `/customers/${mockOrg.slug}/`,
         body: subscription,
       });
 
       MockApiClient.addMockResponse({
-        url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+        url: `/customers/${mockOrg.slug}/billing-config/`,
         body: BILLING_CONFIG,
+        match: [MockApiClient.matchQuery({tier: 'all'})],
       });
     });
 
@@ -475,7 +477,7 @@ describe('ChangePlanAction', () => {
 
       SubscriptionStore.set(mockOrg.slug, subscriptionWithSeer);
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${mockOrg.slug}/`,
+        url: `/customers/${mockOrg.slug}/`,
         body: subscriptionWithSeer,
       });
 

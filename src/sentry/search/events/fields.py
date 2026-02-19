@@ -94,9 +94,9 @@ class PseudoField:
 
     def validate(self) -> None:
         assert self.alias is not None, f"{self.name}: alias is required"
-        assert (
-            self.expression is None or self.expression_fn is None
-        ), f"{self.name}: only one of expression, expression_fn is allowed"
+        assert self.expression is None or self.expression_fn is None, (
+            f"{self.name}: only one of expression, expression_fn is allowed"
+        )
 
 
 def project_threshold_config_expression(
@@ -1444,9 +1444,9 @@ class DiscoverFunction:
     def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
-            assert (
-                arg.has_default
-            ), f"{self.name}: optional argument at index {i} does not have default"
+            assert arg.has_default, (
+                f"{self.name}: optional argument at index {i} does not have default"
+            )
 
         # assert that the function has only one of the following specified
         # `column`, `aggregate`, or `transform`
@@ -1465,15 +1465,15 @@ class DiscoverFunction:
         # assert that no duplicate argument names are used
         names = set()
         for arg in self.args:
-            assert (
-                arg.name not in names
-            ), f"{self.name}: argument {arg.name} specified more than once"
+            assert arg.name not in names, (
+                f"{self.name}: argument {arg.name} specified more than once"
+            )
             names.add(arg.name)
 
         for calculation in self.calculated_args:
-            assert (
-                calculation["name"] not in names
-            ), "{}: argument {} specified more than once".format(self.name, calculation["name"])
+            assert calculation["name"] not in names, (
+                "{}: argument {} specified more than once".format(self.name, calculation["name"])
+            )
             names.add(calculation["name"])
 
         self.validate_result_type(self.default_result_type)
@@ -1508,9 +1508,9 @@ class DiscoverFunction:
                 )
 
     def validate_result_type(self, result_type) -> None:
-        assert (
-            result_type is None or result_type in RESULT_TYPES
-        ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
+        assert result_type is None or result_type in RESULT_TYPES, (
+            f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
+        )
 
     def is_accessible(
         self,
@@ -1652,11 +1652,7 @@ FUNCTIONS = {
                     ),
                     tupleElement(project_threshold_config, 2)
                 )
-            """.replace(
-                    "\n", ""
-                ).replace(
-                    " ", ""
-                ),
+            """.replace("\n", "").replace(" ", ""),
             ),
             default_result_type="number",
         ),
@@ -1684,11 +1680,7 @@ FUNCTIONS = {
                     ),
                     multiply(tupleElement(project_threshold_config, 2), 4)
                 ))
-                """.replace(
-                    "\n", ""
-                ).replace(
-                    " ", ""
-                ),
+                """.replace("\n", "").replace(" ", ""),
             ),
             default_result_type="integer",
         ),
@@ -1734,11 +1726,7 @@ FUNCTIONS = {
                         plus(uniq(user), {parameter_sum})
                     ),
                 0)
-            """.replace(
-                    " ", ""
-                ).replace(
-                    "\n", ""
-                ),
+            """.replace(" ", "").replace("\n", ""),
             ),
             default_result_type="number",
         ),
@@ -2192,18 +2180,18 @@ class SnQLFunction(DiscoverFunction):
     def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
-            assert (
-                arg.has_default
-            ), f"{self.name}: optional argument at index {i} does not have default"
+            assert arg.has_default, (
+                f"{self.name}: optional argument at index {i} does not have default"
+            )
 
         assert sum([self.snql_aggregate is not None, self.snql_column is not None]) == 1
 
         # assert that no duplicate argument names are used
         names = set()
         for arg in self.args:
-            assert (
-                arg.name not in names
-            ), f"{self.name}: argument {arg.name} specified more than once"
+            assert arg.name not in names, (
+                f"{self.name}: argument {arg.name} specified more than once"
+            )
             names.add(arg.name)
 
         self.validate_result_type(self.default_result_type)
@@ -2273,9 +2261,9 @@ class MetricsFunction(SnQLFunction):
     def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
-            assert (
-                arg.has_default
-            ), f"{self.name}: optional argument at index {i} does not have default"
+            assert arg.has_default, (
+                f"{self.name}: optional argument at index {i} does not have default"
+            )
 
         assert (
             sum(
@@ -2294,9 +2282,9 @@ class MetricsFunction(SnQLFunction):
         # assert that no duplicate argument names are used
         names = set()
         for arg in self.args:
-            assert (
-                arg.name not in names
-            ), f"{self.name}: argument {arg.name} specified more than once"
+            assert arg.name not in names, (
+                f"{self.name}: argument {arg.name} specified more than once"
+            )
             names.add(arg.name)
 
         self.validate_result_type(self.default_result_type)

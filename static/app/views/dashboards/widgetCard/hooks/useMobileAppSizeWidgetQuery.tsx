@@ -3,6 +3,7 @@ import {useCallback, useMemo, useRef} from 'react';
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -17,6 +18,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type MobileAppSizeSeriesResponse = EventsStats | MultiSeriesEventsStats;
@@ -85,7 +87,9 @@ export function useMobileAppSizeSeriesQuery(
       }
 
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -126,7 +130,7 @@ export function useMobileAppSizeSeriesQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       // Retry on 429 status codes up to 10 times, unless queue handles it
       retry: hasQueueFeature

@@ -94,10 +94,12 @@ class JiraClientTest(TestCase):
         ).prepare()
         self.jira_client.finalize_request(prepared_request=request)
 
-        raw_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmEiLCJpYXQiOjE2NzI1MzQ4NjEsImV4cCI6MTY3MjUzNTE2MSwicXNoIjoiZGU5NTIwMTA2NDBhYjJjZmQyMDYyNzgxYjU0ZTk0Yjc4ZmNlMTY3MzEwMDZkYjdkZWVhZmZjZWI0MjVmZTI0MiJ9.tydfCeXBICtX_xtgsOEiDJFmVPo6MmaAh1Bojouprjc"
-        assert request.headers["Authorization"] == f"JWT {raw_jwt}"
+        # Extract JWT from Authorization header
+        auth_header = request.headers["Authorization"]
+        assert auth_header.startswith("JWT ")
+        actual_jwt = auth_header.split(" ", 1)[1]
         decoded_jwt = jwt.decode(
-            raw_jwt,
+            actual_jwt,
             key=self.integration.metadata["shared_secret"],
             algorithms=["HS256"],
         )

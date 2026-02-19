@@ -45,26 +45,20 @@ function _apiOptions<
     ? [Options & {path?: never}]
     : [Options & PathParamOptions<TApiPath>]
 ) {
-  const url =
-    pathParams === skipToken
-      ? null
-      : getApiUrl(
-          path,
-          ...([
-            {
-              path: pathParams,
-            },
-          ] as OptionalPathParams<TApiPath>)
-        );
+  const url = getApiUrl(
+    path,
+    ...([
+      {
+        path: pathParams,
+      },
+    ] as OptionalPathParams<TApiPath>)
+  );
 
   return queryOptions({
     queryKey:
-      url === null
-        ? [path]
-        : Object.keys(options).length > 0
-          ? ([url, options] as const)
-          : ([url] as const),
-    queryFn: url === null ? skipToken : fetchDataQuery<TActualData>,
+      Object.keys(options).length > 0 ? ([url, options] as const) : ([url] as const),
+    queryFn: pathParams === skipToken ? skipToken : fetchDataQuery<TActualData>,
+    enabled: pathParams !== skipToken,
     staleTime,
     select: selectContent,
   });

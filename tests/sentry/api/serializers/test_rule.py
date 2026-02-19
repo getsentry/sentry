@@ -274,6 +274,8 @@ class WorkflowRuleSerializerTest(TestCase):
         ) == {workflow.id: timezone.now(), workflow_2.id: before_now(hours=1)}
 
     def test_rule_serializer(self) -> None:
+        self.issue_alert.update(owner_user_id=self.user.id)
+        self.issue_alert.refresh_from_db()
         self.assert_equal_serializers(self.issue_alert)
 
     def test_special_condition(self) -> None:

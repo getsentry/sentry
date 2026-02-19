@@ -175,7 +175,6 @@ class PerformanceDetectionTest(TestCase):
         assert not configured_settings[DetectorType.UNCOMPRESSED_ASSETS]["detection_enabled"]
 
     def test_project_options_overrides_default_threshold_settings(self) -> None:
-
         default_settings = get_detection_settings(self.project)
 
         assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 50
@@ -381,7 +380,6 @@ class PerformanceDetectionTest(TestCase):
         with patch.object(
             NPlusOneDBSpanDetector, "is_creation_allowed_for_organization", return_value=False
         ):
-
             perf_problems = _detect_performance_problems(
                 n_plus_one_event, sdk_span_mock, self.project
             )
@@ -398,7 +396,6 @@ class PerformanceDetectionTest(TestCase):
         with patch.object(
             NPlusOneDBSpanDetector, "is_creation_allowed_for_project", return_value=False
         ):
-
             perf_problems = _detect_performance_problems(
                 n_plus_one_event, sdk_span_mock, self.project
             )

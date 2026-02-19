@@ -20,7 +20,7 @@ import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/u
 import {SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
-  serviceEntrySpanName: string;
+  segmentSpanName: string;
 };
 
 const LIMIT = 10;
@@ -29,7 +29,7 @@ const LIMIT = 10;
 // for now, it will only allow categories that match the hardcoded list of span ops that were supported in the previous iteration
 const ALLOWED_CATEGORIES = ['http', 'db', 'browser', 'resource', 'ui'];
 
-export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
+export function SpanCategoryFilter({segmentSpanName}: Props) {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
@@ -42,7 +42,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const theme = useTheme();
 
   const query = new MutableSearch('');
-  query.addFilterValue('transaction', serviceEntrySpanName);
+  query.addFilterValue('transaction', segmentSpanName);
 
   const {data, isError} = useSpans(
     {

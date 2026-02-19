@@ -84,7 +84,6 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
     """
 
     def post(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
-
         serializer = ServiceHookProjectsInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

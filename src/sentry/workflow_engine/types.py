@@ -93,7 +93,7 @@ class WorkflowEventData:
     event: GroupEvent | Activity
     group: Group
     group_state: GroupState | None = None
-    has_reappeared: bool | None = None
+    # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
 

@@ -5,11 +5,11 @@ from sentry.dynamic_sampling import ProjectBoostedReleases
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject, ReleaseProjectModelManager
 from sentry.signals import receivers_raise_on_send
-from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 
 
-class ReleaseProjectManagerTestCase(TransactionTestCase):
+class ReleaseProjectManagerTestCase(TestCase):
     def test_custom_manager(self) -> None:
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
 

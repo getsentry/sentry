@@ -170,7 +170,7 @@ export function ColumnEditorModal({
             {editableColumns.map((column, i) => {
               return (
                 <ColumnEditorRow
-                  key={column.id}
+                  key={`${column.column}-${column.id}`}
                   canDelete={editableColumns.length > 1}
                   required={requiredTags?.includes(column.column)}
                   column={column}

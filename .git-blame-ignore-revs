@@ -106,3 +106,6 @@ b4914e559b6e70675452d8ed750fbf70ec703f27
 7dcda5dd9a861130d657ccc2468eb61f55be76b9
 # feat(dx): Move various organization endpoints to "core" (#97407)
 8592e74bbd014d1d44b7cd973379e5278ceb5b41
+
+# feat: migrate from black+isort+pyupgrade+flake8 to ruff (#108010)
+d26544689bfbbb81b0c2873f98e592920dcc91ec

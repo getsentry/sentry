@@ -35,7 +35,9 @@ function CardHeader({
       icon={<IconDelete />}
       aria-label={t('Delete Key')}
       disabled={disabled}
-      title={disabled ? t('You do not have permission to delete keys') : undefined}
+      tooltipProps={{
+        title: disabled ? t('You do not have permission to delete keys') : undefined,
+      }}
     />
   );
   return (
@@ -61,7 +63,9 @@ function CardHeader({
           icon={<IconEdit />}
           aria-label={t('Edit Key')}
           disabled={disabled}
-          title={disabled ? t('You do not have permission to edit keys') : undefined}
+          tooltipProps={{
+            title: disabled ? t('You do not have permission to edit keys') : undefined,
+          }}
         />
         {disabled ? (
           deleteButton

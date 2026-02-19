@@ -10,16 +10,21 @@ import type {Project} from 'sentry/types/project';
 import {uniqueId} from 'sentry/utils/guid';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
-import {MEASUREMENT_OPTIONS, METRIC_OPTIONS, type StatusCheckRule} from './types';
+import {
+  ALL_ARTIFACTS_ARTIFACT_TYPE,
+  DEFAULT_MEASUREMENT_TYPE,
+  DEFAULT_METRIC_TYPE,
+  toArtifactType,
+  toMeasurementType,
+  toMetricType,
+  type StatusCheckRule,
+} from './types';
 
 const ENABLED_KEY = 'sentry:preprod_size_status_checks_enabled';
 const RULES_KEY = 'sentry:preprod_size_status_checks_rules';
 
-const DEFAULT_METRIC = METRIC_OPTIONS[0]!.value;
-const DEFAULT_MEASUREMENT = MEASUREMENT_OPTIONS[0]!.value;
-
-const VALID_METRICS: string[] = METRIC_OPTIONS.map(o => o.value);
-const VALID_MEASUREMENTS: string[] = MEASUREMENT_OPTIONS.map(o => o.value);
+const DEFAULT_METRIC = DEFAULT_METRIC_TYPE;
+const DEFAULT_MEASUREMENT = DEFAULT_MEASUREMENT_TYPE;
 
 function parseRules(raw: unknown): StatusCheckRule[] {
   if (!Array.isArray(raw)) {
@@ -28,18 +33,16 @@ function parseRules(raw: unknown): StatusCheckRule[] {
   return raw
     .filter((r): r is Record<string, unknown> => !!r && typeof r.id === 'string')
     .map(r => {
-      const metric = VALID_METRICS.includes(r.metric as string)
-        ? (r.metric as StatusCheckRule['metric'])
-        : DEFAULT_METRIC;
-      const measurement = VALID_MEASUREMENTS.includes(r.measurement as string)
-        ? (r.measurement as StatusCheckRule['measurement'])
-        : DEFAULT_MEASUREMENT;
+      const metric = toMetricType(r.metric, DEFAULT_METRIC);
+      const measurement = toMeasurementType(r.measurement, DEFAULT_MEASUREMENT);
+      const artifactType = toArtifactType(r.artifactType);
       return {
         id: r.id as string,
         metric,
         measurement,
         value: typeof r.value === 'number' ? r.value : 0,
         filterQuery: typeof r.filterQuery === 'string' ? r.filterQuery : '',
+        artifactType,
       };
     });
 }
@@ -138,6 +141,7 @@ export function useStatusCheckRules(project: Project) {
       measurement: DEFAULT_MEASUREMENT,
       value: 0,
       filterQuery: '',
+      artifactType: ALL_ARTIFACTS_ARTIFACT_TYPE,
     };
   }, []);
 

@@ -25,7 +25,7 @@ export function StatusToggleButton({
     <Button
       icon={<Icon />}
       aria-label={label}
-      title={label}
+      tooltipProps={{title: label}}
       onClick={async () => {
         await onToggleStatus({enabled: !enabled});
         // TODO(epurkhiser): We'll need a hook here to trigger subscription
