@@ -492,7 +492,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         _shuffle(items, random.Random(seed))
 
         # Write the final ordered test IDs to a file for detect-test-pollution
-        with open("/tmp/testids-full", "w") as f:
+        outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
+        with open(f"{outdir}/testids-full", "w") as f:
             f.write("\n".join(item.nodeid for item in items) + "\n")
 
     # This only needs to be done if there are items to be de-selected
@@ -514,8 +515,9 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     reporter = session.config.pluginmanager.get_plugin("terminalreporter")
     if reporter and "failed" in reporter.stats:
         nodeid = reporter.stats["failed"][0].nodeid
-        print(f"writing {nodeid} to /tmp/failing-testid")
-        with open("/tmp/failing-testid", "w") as f:
+        outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
+        print(f"writing {nodeid} to {outdir}/failing-testid")
+        with open(f"{outdir}/failing-testid", "w") as f:
             f.write(nodeid)
 
 
