@@ -14,10 +14,12 @@ from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.models.code_review_event import CodeReviewEventStatus
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewSettings, CodeReviewTrigger
 
+from ..event_recorder import create_event_record, update_event_status
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
@@ -66,7 +68,7 @@ class PullRequestAction(enum.StrEnum):
     UNLOCKED = "unlocked"
 
 
-WHITELISTED_ACTIONS = {
+ALLOWED_ACTIONS = {
     PullRequestAction.CLOSED,
     PullRequestAction.OPENED,
     PullRequestAction.READY_FOR_REVIEW,
@@ -89,6 +91,7 @@ ACTIONS_ELIGIBLE_FOR_EYES_REACTION: set[PullRequestAction] = {
 def handle_pull_request_event(
     *,
     github_event: GithubWebhookType,
+    github_delivery_id: str | None = None,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
@@ -97,11 +100,7 @@ def handle_pull_request_event(
     extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
-    """
-    Handle pull_request webhook events for code review.
-
-    This handler processes PR events and sends them directly to Seer
-    """
+    """Handle pull_request webhook events by validating and forwarding to Seer."""
     pull_request = event.get("pull_request")
     if not pull_request:
         logger.warning(Log.MISSING_PULL_REQUEST.value, extra=extra)
@@ -127,12 +126,23 @@ def handle_pull_request_event(
         )
         return
 
-    if action not in WHITELISTED_ACTIONS:
+    if action not in ALLOWED_ACTIONS:
         logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
         record_webhook_filtered(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
+
+    # Action is supported — create the event record
+    event_record = create_event_record(
+        organization_id=organization.id,
+        repository_id=repo.id,
+        raw_event_type=github_event.value,
+        raw_event_action=action_value,
+        trigger_id=github_delivery_id,
+        event=event,
+        status=CodeReviewEventStatus.WEBHOOK_RECEIVED,
+    )
 
     action_requires_trigger_permission = ACTIONS_REQUIRING_TRIGGER_CHECK.get(action)
     if action_requires_trigger_permission is not None and (
@@ -140,16 +150,23 @@ def handle_pull_request_event(
         or action_requires_trigger_permission not in org_code_review_settings.triggers
     ):
         record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
+        update_event_status(
+            event_record, CodeReviewEventStatus.WEBHOOK_FILTERED, denial_reason="trigger_disabled"
+        )
         return
 
-    # Skip draft check for CLOSED actions to ensure Seer receives cleanup notifications
-    # even if the PR was converted to draft before closing
+    # Allow CLOSED actions for draft PRs so Seer gets cleanup notifications
     if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
+        record_webhook_filtered(
+            github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
+        )
+        update_event_status(
+            event_record, CodeReviewEventStatus.WEBHOOK_FILTERED, denial_reason="draft_pr"
+        )
         return
 
     pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
-        # We don't ever need to delete :eyes: since we later add it back to the PR description idempotently.
         reactions_to_delete = [GitHubReaction.HOORAY]
         if is_github_rate_limit_sensitive(organization.slug):
             reactions_to_delete = []
@@ -176,4 +193,5 @@ def handle_pull_request_event(
         organization=organization,
         repo=repo,
         target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
+        event_record=event_record,
     )

@@ -52,6 +52,7 @@ class SeerCodeReviewConfig(BaseModel):
     trigger_user_id: int | None = None
     trigger_at: datetime | None = None  # When the trigger event occurred on GitHub
     sentry_received_trigger_at: datetime | None = None  # When Sentry received the webhook
+    trigger_id: str | None = None  # SCM delivery ID; echoed back by Seer in the completion webhook
 
     def is_feature_enabled(self, feature: SeerCodeReviewFeature) -> bool:
         return self.features.get(feature, False)
@@ -88,6 +89,9 @@ class SeerCodeReviewRepoDefinition(BaseModel):
     # Optional in base, overridden in subclasses based on request type
     organization_id: int | None = None
     integration_id: str | None = None
+    repository_id: int | None = (
+        None  # Sentry repository ID; echoed back by Seer in the completion webhook
+    )
 
 
 class SeerCodeReviewRepoForPrReview(SeerCodeReviewRepoDefinition):
