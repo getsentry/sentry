@@ -1,4 +1,4 @@
-import {Fragment, PureComponent} from 'react';
+import {Fragment, PureComponent, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -71,10 +71,7 @@ import {
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import {SESSIONS_FILTER_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {
-  TraceItemAttributeProvider,
-  useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   deprecateTransactionAlerts,
@@ -651,14 +648,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </Fragment>
         ) : (
           <Fragment>
-            <TraceItemAttributeProvider
-              projects={[project]}
-              traceItemType={traceItemType ?? TraceItemDataset.SPANS}
-              enabled={
-                organization.features.includes('visibility-explore-view') &&
-                isEapAlertType(alertType)
-              }
-            >
+            <Fragment>
               {isExtrapolatedChartData && (
                 <OnDemandMetricAlert
                   message={t(
@@ -847,7 +837,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }}
                 </FormField>
               </FormRow>
-            </TraceItemAttributeProvider>
+            </Fragment>
           </Fragment>
         )}
       </Fragment>
@@ -868,12 +858,17 @@ function EAPSearchQueryBuilderWithContext({
   project,
   traceItemType,
 }: EAPSearchQueryBuilderWithContextProps) {
+  const traceItemAttributeConfig = useMemo(
+    () => ({traceItemType, enabled: true, projects: [project]}),
+    [traceItemType, project]
+  );
+
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number');
+    useTraceItemAttributes(traceItemAttributeConfig, 'number');
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string');
+    useTraceItemAttributes(traceItemAttributeConfig, 'string');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes('boolean');
+    useTraceItemAttributes(traceItemAttributeConfig, 'boolean');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery,

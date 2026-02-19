@@ -15,10 +15,7 @@ import {
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {logsTimestampAscendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
-import {
-  TraceItemAttributeProvider,
-  useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
   LoadingRenderer,
@@ -62,9 +59,7 @@ export default function OurLogs() {
       }}
     >
       <LogsPageDataProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
-        </TraceItemAttributeProvider>
+        <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
       </LogsPageDataProvider>
     </LogsQueryParamsProvider>
   );
@@ -75,10 +70,21 @@ interface OurLogsContentProps {
   startTimestampMs: number;
 }
 
+const logsAttributeConfig = {traceItemType: TraceItemDataset.LOGS, enabled: true};
+
 function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
-  const {attributes: booleanAttributes} = useTraceItemAttributes('boolean');
+  const {attributes: stringAttributes} = useTraceItemAttributes(
+    logsAttributeConfig,
+    'string'
+  );
+  const {attributes: numberAttributes} = useTraceItemAttributes(
+    logsAttributeConfig,
+    'number'
+  );
+  const {attributes: booleanAttributes} = useTraceItemAttributes(
+    logsAttributeConfig,
+    'boolean'
+  );
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const {currentTime, setCurrentTime} = useReplayContext();

@@ -18,6 +18,7 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {SizeUnit} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {
   DatasetConfig,
   SearchBarData,
@@ -191,16 +192,22 @@ function MobileAppSizeSearchBar({
 function useMobileAppSizeSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
+  const organization = useOrganization();
   const {
     selection: {projects},
   } = usePageFilters();
 
+  const preprodAttributeConfig = {
+    traceItemType: TraceItemDataset.PREPROD,
+    enabled: organization.features.includes('preprod-app-size-dashboard'),
+  };
+
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string', HIDDEN_PREPROD_ATTRIBUTES);
+    useTraceItemAttributes(preprodAttributeConfig, 'string', HIDDEN_PREPROD_ATTRIBUTES);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number', HIDDEN_PREPROD_ATTRIBUTES);
+    useTraceItemAttributes(preprodAttributeConfig, 'number', HIDDEN_PREPROD_ATTRIBUTES);
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes('boolean', HIDDEN_PREPROD_ATTRIBUTES);
+    useTraceItemAttributes(preprodAttributeConfig, 'boolean', HIDDEN_PREPROD_ATTRIBUTES);
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

@@ -117,15 +117,20 @@ function LogsSearchBar({
   WidgetBuilderSearchBarProps,
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
+  const organization = useOrganization();
   const {
     selection: {projects},
   } = usePageFilters();
+  const logsAttributeConfig = {
+    traceItemType: TraceItemDataset.LOGS,
+    enabled: isLogsEnabled(organization),
+  };
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string');
+    useTraceItemAttributes(logsAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number');
+    useTraceItemAttributes(logsAttributeConfig, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes('boolean');
+    useTraceItemAttributes(logsAttributeConfig, 'boolean');
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}

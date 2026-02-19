@@ -61,12 +61,17 @@ export function OurlogsDrawer({
   const setLogsQuery = useSetQueryParamsQuery();
   const logsSearch = useQueryParamsSearch();
 
+  const logsAttributeConfig = useMemo(
+    () => ({traceItemType: TraceItemDataset.LOGS, enabled: true}),
+    []
+  );
+
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string');
+    useTraceItemAttributes(logsAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number');
+    useTraceItemAttributes(logsAttributeConfig, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes('boolean');
+    useTraceItemAttributes(logsAttributeConfig, 'boolean');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),

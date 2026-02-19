@@ -84,9 +84,23 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
     arguments: undefined,
   };
 
-  const {attributes: storedNumberTags} = useTraceItemAttributes('number');
-  const {attributes: storedStringTags} = useTraceItemAttributes('string');
-  const {attributes: storedBooleanTags} = useTraceItemAttributes('boolean');
+  const traceItemAttributeConfig = useMemo(
+    () => ({traceItemType, enabled: true}),
+    [traceItemType]
+  );
+
+  const {attributes: storedNumberTags} = useTraceItemAttributes(
+    traceItemAttributeConfig,
+    'number'
+  );
+  const {attributes: storedStringTags} = useTraceItemAttributes(
+    traceItemAttributeConfig,
+    'string'
+  );
+  const {attributes: storedBooleanTags} = useTraceItemAttributes(
+    traceItemAttributeConfig,
+    'boolean'
+  );
 
   const storedTags = useMemo(() => {
     return aggregation === AggregationKey.COUNT_UNIQUE
