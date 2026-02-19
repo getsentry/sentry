@@ -9,7 +9,6 @@ type PullRequestEventListener = Callable[[PullRequestEvent], None]
 
 
 class SourceCodeManagerEventStream:
-
     def __init__(self):
         self.check_run_listeners: dict[str, CheckRunEventListener] = {}
         self.comment_listeners: dict[str, CommentEventListener] = {}

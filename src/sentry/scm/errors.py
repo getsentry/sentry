@@ -22,7 +22,6 @@ class SCMError(Exception):
 
 
 class SCMCodedError(SCMError):
-
     def __init__(self, *args, code: ErrorCode, **kwargs) -> None:
         self.code = code
         self.message = ERROR_CODES[code]

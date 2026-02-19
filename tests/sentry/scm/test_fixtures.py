@@ -458,7 +458,6 @@ def make_github_graphql_pr_comments_response(
 
 
 class BaseTestProvider(Provider):
-
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
         return False
 

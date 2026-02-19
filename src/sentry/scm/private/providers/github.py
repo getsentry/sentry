@@ -344,7 +344,6 @@ def _transform_pull_request(raw: dict[str, Any]) -> PullRequestActionResult:
 
 
 class GitHubProvider(Provider):
-
     def __init__(self, client: GitHubApiClient) -> None:
         self.client = client
 

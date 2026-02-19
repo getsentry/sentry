@@ -40,7 +40,6 @@ from sentry.scm.types import (
 
 
 class SourceCodeManager:
-
     def __init__(
         self,
         organization_id: int,
