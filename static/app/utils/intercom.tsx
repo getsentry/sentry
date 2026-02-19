@@ -1,15 +1,16 @@
 /**
  * Intercom Messenger utilities.
  *
+ * Uses the official @intercom/messenger-js-sdk for React integration.
  * Intercom is only loaded in SaaS environments when the feature flag is enabled.
- * These functions will operate as no-ops otherwise.
  */
 
-declare global {
-  interface Window {
-    Intercom?: (command: string, ...args: unknown[]) => void;
-  }
-}
+import {
+  hide,
+  shutdown as sdkShutdown,
+  update as sdkUpdate,
+  show,
+} from '@intercom/messenger-js-sdk';
 
 export interface IntercomUserData {
   createdAt: number;
@@ -18,36 +19,6 @@ export interface IntercomUserData {
   organizationId: string;
   organizationName: string;
   userId: string;
-}
-
-/**
- * Boot Intercom with user identity verification.
- *
- * @param appId - The Intercom app ID
- * @param userJwt - JWT for identity verification (signed with HS256)
- * @param userData - User data to pass to Intercom
- */
-export function bootIntercom(
-  appId: string,
-  userJwt: string,
-  userData: IntercomUserData
-): void {
-  if (!hasIntercom()) {
-    return;
-  }
-
-  window.Intercom!('boot', {
-    app_id: appId,
-    user_hash: userJwt,
-    user_id: userData.userId,
-    email: userData.email,
-    name: userData.name,
-    created_at: userData.createdAt,
-    company: {
-      company_id: userData.organizationId,
-      name: userData.organizationName,
-    },
-  });
 }
 
 /**
@@ -61,10 +32,6 @@ export function updateIntercom(
   userData: Partial<IntercomUserData>,
   userHash?: string
 ): void {
-  if (!hasIntercom()) {
-    return;
-  }
-
   const updateData: Record<string, unknown> = {};
   if (userHash) {
     updateData.user_hash = userHash;
@@ -82,7 +49,7 @@ export function updateIntercom(
     };
   }
 
-  window.Intercom!('update', updateData);
+  sdkUpdate(updateData);
 }
 
 /**
@@ -90,40 +57,29 @@ export function updateIntercom(
  * Call this when the user logs out to clear the session cookie.
  */
 export function shutdownIntercom(): void {
-  if (!hasIntercom()) {
-    return;
-  }
-
-  window.Intercom!('shutdown');
+  sdkShutdown();
 }
 
 /**
  * Show the Intercom Messenger.
  */
 export function showIntercom(): void {
-  if (!hasIntercom()) {
-    return;
-  }
-
-  window.Intercom!('show');
+  show();
 }
 
 /**
  * Hide the Intercom Messenger.
  */
 export function hideIntercom(): void {
-  if (!hasIntercom()) {
-    return;
-  }
-
-  window.Intercom!('hide');
+  hide();
 }
 
 /**
  * Check if Intercom is available.
+ * With the SDK, we check if window.Intercom exists (set by the SDK).
  */
 export function hasIntercom(): boolean {
-  return typeof window.Intercom === 'function';
+  return typeof window !== 'undefined' && typeof window.Intercom === 'function';
 }
 
 /**

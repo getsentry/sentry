@@ -1,15 +1,10 @@
 import {useEffect, useRef} from 'react';
+import Intercom, {shutdown, update} from '@intercom/messenger-js-sdk';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {
-  bootIntercom,
-  hasIntercom,
-  shutdownIntercom,
-  updateIntercom,
-} from 'sentry/utils/intercom';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {useIntercomJwt} from 'getsentry/hooks/useIntercomJwt';
+import {useIntercomJwt} from 'getsentry/utils/useIntercomJwt';
 
 /**
  * Hook to initialize Intercom with identity verification.
@@ -24,35 +19,49 @@ import {useIntercomJwt} from 'getsentry/hooks/useIntercomJwt';
  */
 export function useIntercomInit(): void {
   const organization = useOrganization({allowNull: true});
-  const useIntercom = organization?.features.includes('intercom-support') ?? false;
+  const useIntercomFeature = organization?.features.includes('intercom-support') ?? false;
   const intercomAppId = ConfigStore.get('intercomAppId');
   const hasBootedRef = useRef(false);
 
   const {data: jwtData} = useIntercomJwt(organization?.slug ?? '', {
-    enabled: useIntercom && !!organization && !!intercomAppId,
+    enabled: useIntercomFeature && !!organization && !!intercomAppId,
   });
-
   // Boot or update Intercom when JWT data is available
   useEffect(() => {
-    if (!useIntercom || !jwtData || !hasIntercom() || !intercomAppId) {
+    if (!useIntercomFeature || !jwtData || !intercomAppId) {
       return;
     }
 
     if (hasBootedRef.current) {
       // Subsequent JWT refreshes: update with new hash without disrupting session
-      updateIntercom(jwtData.userData, jwtData.jwt);
+      update({
+        user_hash: jwtData.jwt,
+        email: jwtData.userData.email,
+        name: jwtData.userData.name,
+      });
     } else {
-      // First time: boot Intercom with full user data
-      bootIntercom(intercomAppId, jwtData.jwt, jwtData.userData);
+      // First time: initialize Intercom with full user data
+      Intercom({
+        app_id: intercomAppId,
+        user_id: jwtData.userData.userId,
+        user_hash: jwtData.jwt,
+        email: jwtData.userData.email,
+        name: jwtData.userData.name,
+        created_at: jwtData.userData.createdAt,
+        company: {
+          company_id: jwtData.userData.organizationId,
+          name: jwtData.userData.organizationName,
+        },
+      });
       hasBootedRef.current = true;
     }
-  }, [useIntercom, jwtData, intercomAppId]);
+  }, [useIntercomFeature, jwtData, intercomAppId]);
 
   // Separate cleanup effect that only runs on unmount
   useEffect(() => {
     return () => {
-      if (hasBootedRef.current && hasIntercom()) {
-        shutdownIntercom();
+      if (hasBootedRef.current) {
+        shutdown();
         hasBootedRef.current = false;
       }
     };
