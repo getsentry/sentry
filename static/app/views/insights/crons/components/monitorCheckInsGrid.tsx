@@ -22,6 +22,7 @@ export function MonitorCheckInsGrid({checkIns, isLoading, project, hasMultiEnv}:
     <GridEditable<CheckIn, GridColumnOrder<CheckInCellKey>>
       isLoading={isLoading}
       emptyMessage={t('No check-ins have been recorded for this time period.')}
+      fit="max-content"
       data={checkIns}
       columnOrder={[
         {key: 'status', width: 120, name: t('Status')},
