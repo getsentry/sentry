@@ -15,7 +15,10 @@ export function useDsnLookupActions(query: string): CommandPaletteActionWithKey[
   const isDsn = DSN_PATTERN.test(debouncedQuery);
 
   const {data} = useApiQuery<DsnLookupResponse>(
-    [`/organizations/${organization?.slug}/dsn-lookup/`, {query: {dsn: debouncedQuery}}],
+    [
+      `/organizations/${organization?.slug ?? ''}/dsn-lookup/`,
+      {query: {dsn: debouncedQuery}},
+    ],
     {
       staleTime: 30_000,
       enabled: isDsn && !!organization,
