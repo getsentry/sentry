@@ -3,7 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AssertionSuggestionsDrawerContent} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsDrawerContent';
-import type {PreviewCheckPayload} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  AssertionType,
+  ComparisonType,
+  type PreviewCheckPayload,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 describe('AssertionSuggestionsDrawerContent', () => {
   const organization = OrganizationFixture();
@@ -41,8 +45,8 @@ describe('AssertionSuggestionsDrawerContent', () => {
     suggested_assertion: null,
     suggestions: [
       {
-        assertion_type: 'status_code',
-        comparison: 'equals',
+        assertion_type: AssertionType.STATUS_CODE,
+        comparison: ComparisonType.EQUALS,
         expected_value: '200',
         confidence: 0.95,
         explanation: 'HTTP 200 indicates a successful response',
@@ -56,8 +60,8 @@ describe('AssertionSuggestionsDrawerContent', () => {
         },
       },
       {
-        assertion_type: 'json_path',
-        comparison: 'equals',
+        assertion_type: AssertionType.JSON_PATH,
+        comparison: ComparisonType.EQUALS,
         expected_value: 'ok',
         confidence: 0.8,
         explanation: 'The status field should be ok',

@@ -221,10 +221,24 @@ export interface PreviewCheckPayload {
 
 // Assertion Suggestions Types (from Seer-powered endpoint)
 
+export enum AssertionType {
+  STATUS_CODE = 'status_code',
+  JSON_PATH = 'json_path',
+  HEADER = 'header',
+}
+
+export enum ComparisonType {
+  EQUALS = 'equals',
+  NOT_EQUAL = 'not_equal',
+  LESS_THAN = 'less_than',
+  GREATER_THAN = 'greater_than',
+  ALWAYS = 'always',
+}
+
 export interface AssertionSuggestion {
   assertion_json: Op;
-  assertion_type: 'status_code' | 'json_path' | 'header';
-  comparison: 'equals' | 'not_equal' | 'less_than' | 'greater_than' | 'always';
+  assertion_type: AssertionType;
+  comparison: ComparisonType;
   confidence: number;
   expected_value: string;
   explanation: string;
