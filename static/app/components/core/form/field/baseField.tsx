@@ -76,7 +76,7 @@ export function BaseField(
     if (hash !== field.name) {
       return;
     }
-    ref.current?.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+    ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
     ref.current?.focus({focusVisible: true});
     animateRowHighlight(ref.current);
   }, [location.hash, field.name]);
