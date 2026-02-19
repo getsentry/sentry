@@ -245,15 +245,12 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   // When the search/filter changes, clear the shift-click anchor so the next
   // shift+click starts a fresh range from the visible filtered list.
-  const handleSearch = useCallback(
-    (searchValue: string) => {
-      if (searchValue !== currentSearchRef.current) {
-        currentSearchRef.current = searchValue;
-        lastSelectedRef.current = null;
-      }
-    },
-    [currentSearchRef]
-  );
+  const handleSearch = useCallback((searchValue: string) => {
+    if (searchValue !== currentSearchRef.current) {
+      currentSearchRef.current = searchValue;
+      lastSelectedRef.current = null;
+    }
+  }, []);
 
   // Clear the shift-click anchor when the menu opens so every new session
   // starts fresh — prevents a stale anchor from a previous open/close cycle
@@ -405,23 +402,17 @@ export function HybridFilter<Value extends SelectKey>({
     stagedSelect.toggleOption,
   ]);
 
-  const handleSearch = useCallback(
-    (value: string) => {
-      stagedSelect.handleSearch(value);
-      onSearchProp?.(value);
-    },
-    [stagedSelect, onSearchProp]
-  );
+  const handleSearch = (value: string) => {
+    stagedSelect.handleSearch(value);
+    onSearchProp?.(value);
+  };
 
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) {
-        stagedSelect.resetAnchor();
-      }
-      onOpenChangeProp?.(open);
-    },
-    [stagedSelect, onOpenChangeProp]
-  );
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      stagedSelect.resetAnchor();
+    }
+    onOpenChangeProp?.(open);
+  };
 
   const mappedOptions = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
