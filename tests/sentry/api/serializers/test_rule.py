@@ -5,6 +5,7 @@ from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.integrations.models import OrganizationIntegration
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
@@ -476,6 +477,36 @@ class WorkflowRuleSerializerTest(TestCase):
             "team": team["id"],
             "priority": "P2",
             "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+        }
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
+    def test_pagerduty_action(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration, org_integration = self.create_provider_integration_for(
+                self.organization,
+                self.user,
+                provider="pagerduty",
+                name="Example",
+                external_id="pagerduty:1",
+                metadata={},
+            )
+            service = add_service(
+                org_integration,
+                service_name="Critical",
+                integration_key="PND4F9",
+            )
+        action_data = {
+            "account": integration.id,
+            "service": str(service["id"]),
+            "severity": "warning",
+            "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
         }
         rule = self.create_project_rule(
             project=self.project,

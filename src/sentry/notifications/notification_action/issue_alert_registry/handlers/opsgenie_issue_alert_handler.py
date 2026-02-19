@@ -1,5 +1,6 @@
 from typing import Any
 
+from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
 from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseIssueAlertHandler
@@ -24,8 +25,6 @@ class OpsgenieIssueAlertHandler(BaseIssueAlertHandler):
 
     @classmethod
     def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
-        from sentry.integrations.opsgenie.utils import get_team
-
         result = integration_service.organization_context(
             organization_id=organization_id,
             integration_id=blob["account"],
