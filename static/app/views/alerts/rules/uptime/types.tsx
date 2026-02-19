@@ -242,7 +242,7 @@ export enum AssertionType {
 export interface AssertionSuggestion {
   assertion_json: Op;
   assertion_type: AssertionType;
-  comparison: ComparisonType;
+  comparison: Exclude<ComparisonType, ComparisonType.NEVER>;
   confidence: number;
   expected_value: string;
   explanation: string;
