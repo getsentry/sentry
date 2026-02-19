@@ -19,11 +19,8 @@ function getMaxIssueSeverity(
     if (severity === 'error') {
       return acc === 'fatal' ? 'fatal' : 'error';
     }
-    if (severity === 'warning') {
-      return acc === 'fatal' || acc === 'error' ? acc : 'warning';
-    }
-    if (severity === 'occurence') {
-      return 'occurence';
+    if (severity === 'warning' || severity === 'occurence') {
+      return acc === 'fatal' || acc === 'error' ? acc : severity;
     }
     return acc;
   }, 'default');
