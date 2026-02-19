@@ -54,7 +54,12 @@ export function MetricSelector({
     const shouldIncludeOptionFromTraceMetric =
       traceMetric.name &&
       !metricOptionsData?.data?.some(
-        option => option[TraceMetricKnownFieldKey.METRIC_NAME] === traceMetric.name
+        option =>
+          makeMetricSelectValue({
+            name: option[TraceMetricKnownFieldKey.METRIC_NAME],
+            type: option[TraceMetricKnownFieldKey.METRIC_TYPE],
+            unit: option[TraceMetricKnownFieldKey.METRIC_UNIT],
+          }) === makeMetricSelectValue(traceMetric)
       );
     return [
       ...(shouldIncludeOptionFromTraceMetric ? [optionFromTraceMetric] : []),
@@ -78,7 +83,7 @@ export function MetricSelector({
         ),
       })) ?? []),
     ];
-  }, [metricOptionsData, optionFromTraceMetric, traceMetric.name]);
+  }, [metricOptionsData, optionFromTraceMetric, traceMetric]);
 
   useEffect(() => {
     if (metricOptions.length && metricOptions[0] && !traceMetric.name) {
