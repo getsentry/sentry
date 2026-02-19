@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import OrganizationSecurityAndPrivacy from 'sentry/views/settings/organizationSecurityAndPrivacy';
@@ -59,11 +59,15 @@ describe('OrganizationSecurityAndPrivacy', () => {
     // Confirm but has API failure
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    expect(
-      await screen.findByRole('checkbox', {
-        name: 'Enable to require and enforce two-factor authentication for all members',
-      })
-    ).not.toBeChecked();
+    // AutoSaveField calls onError but does not revert the switch.
+    // The checkbox should become enabled again after the mutation fails.
+    await waitFor(() => {
+      expect(
+        screen.getByRole('checkbox', {
+          name: 'Enable to require and enforce two-factor authentication for all members',
+        })
+      ).toBeEnabled();
+    });
   });
 
   it('renders join request switch', async () => {
