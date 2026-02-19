@@ -461,7 +461,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         # Bulk fetch projects for workflows (attached through detectors)
         workflow_to_projects = self._fetch_workflow_projects(item_list)
 
-        # Bulk fetch wokflows with trigger and filter conditions
+        # Bulk fetch workflows with trigger and filter conditions
         workflows = self._fetch_workflows(item_list)
 
         # Bulk fetch workflow -> rule ids
