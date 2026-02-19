@@ -725,6 +725,38 @@ T2 is significantly worse with n=2 (+56s max, +62s spread): dropping from 3 to 2
 
 ---
 
+## Experiment: ClickHouse `max_threads=2`
+
+**Hypothesis:** ClickHouse defaults to `num_cpus` (4) query threads on a 4-CPU runner. Monitoring showed ClickHouse averaging 44% CPU with peaks of 235% (2.35 CPUs), directly competing with pytest workers. Capping ClickHouse to 2 threads should free ~1 CPU for pytest/postgres during query-heavy periods, reducing T2 wall clock.
+
+**Config:** Branch `mchen/clickhouse-maxthreads` (run [`22202322211`](https://github.com/getsentry/sentry/actions/runs/22202322211)). Applied via `curl` after devservices up (no container rebuild required):
+
+```bash
+curl -sf 'http://localhost:8123/' \
+  --data-binary "ALTER USER default SETTINGS max_threads = 2"
+```
+
+Note: this run used T1 `n=3` (the CH worktree was created before the T1 n=4 change landed on the clean branch), so the T1 comparison is not apples-to-apples.
+
+**Results:**
+
+| Metric         | Baseline (n=3/n=3, run `22168142281`) | CH max_threads=2 (run `22202322211`) | Delta                  |
+| -------------- | ------------------------------------- | ------------------------------------ | ---------------------- |
+| T1 max         | 10m53s                                | 11m7s                                | +14s (likely variance) |
+| T2 max         | 10m25s                                | **10m16s**                           | **−9s**                |
+| **Wall clock** | **10m53s**                            | **11m7s**                            | +14s (T1 variance)     |
+| Runner-min     | ~219m                                 | 213m                                 | −6m                    |
+
+**Analysis:**
+
+T2 improved by 9s as expected — capping ClickHouse at 2 threads freed headroom for pytest workers during Snuba queries. Runner-minutes also dropped 6m (~3%), indicating less total CPU wasted on context switching.
+
+T1 regressed 14s, but T1 tests don't use ClickHouse at all (T1 has no Snuba). This is run-to-run variance, not a real regression caused by the change. The ClickHouse cap only affects T2 where Snuba queries run.
+
+**Conclusion:** `max_threads=2` gives a modest T2 improvement (~9s) and reduces runner-minutes. However, since this run used T1 n=3, the wall clock remained T1-dominated (11m7s). With T1 n=4 (already on the clean branch), the wall clock would be T2-dominated again. The CH cap is worth keeping as a low-effort optimization layered on top of the n=4/n=3 config. It should be combined with the postgres experiments for a cumulative test.
+
+---
+
 ## Investigation: `dist=load` T1 regression and `test_buffer.py` fix
 
 ### Motivation
