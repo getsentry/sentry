@@ -87,7 +87,8 @@
       "WebFetch(domain:modelcontextprotocol.io)",
       "WebFetch(domain:react.dev)"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": ["../seer", "../getsentry"]
   },
   "enableAllProjectMcpServers": true,
   "includeCoAuthoredBy": false,
