@@ -653,13 +653,10 @@ class Release(Model):
 
         set_commits(self, commit_list)
 
-    def safe_delete(self):
-        """Deletes a release if possible or raises a `UnsafeReleaseDeletion`
-        exception.
-        """
+    def validate_safe_to_delete(self) -> None:
+        """Raises UnsafeReleaseDeletion if this release cannot be deleted."""
         from sentry import release_health
         from sentry.models.group import Group
-        from sentry.models.releasefile import ReleaseFile
 
         # we don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),
@@ -676,14 +673,6 @@ class Release(Model):
             [(p[0], self.version) for p in project_ids]
         ):
             raise UnsafeReleaseDeletion(ERR_RELEASE_HEALTH_DATA)
-
-        # TODO(dcramer): this needs to happen in the queue as it could be a long
-        # and expensive operation
-        file_list = ReleaseFile.objects.filter(release_id=self.id).select_related("file")
-        for releasefile in file_list:
-            releasefile.file.delete()
-            releasefile.delete()
-        self.delete()
 
     def count_artifacts(self):
         """Sum the artifact_counts of all release files.

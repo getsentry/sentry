@@ -6,6 +6,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.constants import MAX_VERSION_LENGTH
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
@@ -1176,10 +1177,13 @@ class ReleaseDeleteTest(APITestCase):
         )
         response = self.client.delete(url)
 
-        assert response.status_code == 204, response.content
+        assert response.status_code == 202, response.content
 
-        assert not Release.objects.filter(id=release.id).exists()
-        assert not ReleaseFile.objects.filter(id=release_file.id).exists()
+        assert Release.objects.filter(id=release.id).exists()
+        assert ReleaseFile.objects.filter(id=release_file.id).exists()
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Release", object_id=release.id
+        ).exists()
 
     def test_existing_group(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)

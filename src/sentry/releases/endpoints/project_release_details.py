@@ -11,6 +11,7 @@ from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.activity import Activity
 from sentry.models.release import Release
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
@@ -175,8 +176,9 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             raise ResourceDoesNotExist
 
         try:
-            release.safe_delete()
+            release.validate_safe_to_delete()
         except UnsafeReleaseDeletion as e:
             return Response({"detail": str(e)}, status=400)
 
-        return Response(status=204)
+        RegionScheduledDeletion.schedule(release, days=0, actor=request.user)
+        return Response(status=202)

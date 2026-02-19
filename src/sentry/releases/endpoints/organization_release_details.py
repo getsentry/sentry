@@ -25,14 +25,15 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.apidocs.constants import (
+    RESPONSE_ACCEPTED,
     RESPONSE_FORBIDDEN,
-    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -542,7 +543,7 @@ class OrganizationReleaseDetailsEndpoint(
             ReleaseParams.VERSION,
         ],
         responses={
-            204: RESPONSE_NO_CONTENT,
+            202: RESPONSE_ACCEPTED,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -562,8 +563,9 @@ class OrganizationReleaseDetailsEndpoint(
             raise ResourceDoesNotExist
 
         try:
-            release.safe_delete()
+            release.validate_safe_to_delete()
         except UnsafeReleaseDeletion as e:
             return Response({"detail": str(e)}, status=400)
 
-        return Response(status=204)
+        RegionScheduledDeletion.schedule(release, days=0, actor=request.user)
+        return Response(status=202)

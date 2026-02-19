@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry.api.serializers.rest_framework.release import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.activity import Activity
 from sentry.models.files.file import File
 from sentry.models.release import Release
@@ -231,9 +232,12 @@ class ReleaseDeleteTest(APITestCase):
         )
         response = self.client.delete(url)
 
-        assert response.status_code == 204, response.content
+        assert response.status_code == 202, response.content
 
-        assert not Release.objects.filter(id=release.id).exists()
+        assert Release.objects.filter(id=release.id).exists()
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Release", object_id=release.id
+        ).exists()
 
     def test_existing_group(self) -> None:
         self.login_as(user=self.user)
