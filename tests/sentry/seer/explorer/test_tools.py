@@ -1641,12 +1641,33 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Search
 
 
 class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.max_date_range = timedelta(days=14)
+
+    def store_event_helper(
+        self,
+        dt: datetime,
+        project_id: int,
+        trace_id: str | None = None,
+        span_id: str | None = None,
+    ) -> Event:
+        """All events stored with this method should share a group (same exception)"""
+        data = load_data("python", timestamp=dt)
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        if trace_id:
+            data["contexts"] = data.get("contexts", {})
+            data["contexts"]["trace"] = {
+                "trace_id": trace_id,
+                "span_id": span_id,
+            }
+        return self.store_event(data=data, project_id=project_id)
+
     def test_get_recommended_event_start_clamped_to_retention(self):
         """
-        Start is clamped to retention boundary. Spans query should also
+        Start is clamped to retention boundary. Spans query should also be clamped.
         """
         project = self.create_project()
-
         now = datetime.now(UTC)
         start = now - timedelta(days=11)
         end = now
@@ -1655,17 +1676,13 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         retention_boundary = now - timedelta(days=retention_days)
 
         # Event right after boundary to test spans query clamping to boundary
-        data = load_data("python", timestamp=retention_boundary + timedelta(hours=1))
-        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-        data["contexts"] = data.get("contexts", {})
-        data["contexts"]["trace"] = {
-            "trace_id": uuid.uuid4().hex,
-            "span_id": "1" + uuid.uuid4().hex[:15],
-        }
-        event = self.store_event(
-            data=data,
+        event = self.store_event_helper(
+            dt=retention_boundary + timedelta(hours=1),
             project_id=project.id,
+            trace_id=uuid.uuid4().hex,
+            span_id="1" + uuid.uuid4().hex[:15],
         )
+        assert event.group is not None
 
         with patch(
             "sentry.quotas.backend.get_event_retention",
@@ -1698,12 +1715,11 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         start = now - timedelta(days=11)
         end = now - timedelta(days=9)
 
-        data = load_data("python", timestamp=now - timedelta(days=1))
-        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-        event = self.store_event(
-            data=data,
+        event = self.store_event_helper(
+            dt=now - timedelta(days=1),
             project_id=project.id,
         )
+        assert event.group is not None
 
         with patch("sentry.quotas.backend.get_event_retention", return_value=5):
             with pytest.raises(BadRequest):
@@ -1713,6 +1729,68 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
                     start=start,
                     end=end,
                 )
+
+    def test_get_recommended_event_fallback_if_no_events_in_clamped_range(self):
+        """Falls back to most recent event in full range if no events in clamped range."""
+        project = self.create_project()
+        now = datetime.now(UTC)
+        start = now - timedelta(days=30)
+        end = now
+        clamped_start = end - self.max_date_range
+
+        # 2 events before clamped start - should fallback to most recent
+        event1 = self.store_event_helper(
+            dt=clamped_start - timedelta(hours=12),
+            project_id=project.id,
+        )
+        event2 = self.store_event_helper(
+            dt=clamped_start - timedelta(hours=10),
+            project_id=project.id,
+        )
+        assert event1.group is not None
+        assert event1.group == event2.group
+
+        result = _get_recommended_event(
+            group=event1.group,
+            organization=project.organization,
+            start=start,
+            end=end,
+        )
+        assert isinstance(result, GroupEvent)
+        assert result.event_id == event2.event_id
+
+    def test_get_recommended_event_fallback_if_no_events_with_spans_in_clamped_range(self):
+        """Falls back to most recent event if no events with spans in clamped range."""
+        project = self.create_project()
+        now = datetime.now(UTC)
+        start = now - timedelta(days=30)
+        end = now
+        clamped_start = end - self.max_date_range
+
+        # Event before clamped start
+        event1 = self.store_event_helper(
+            dt=clamped_start - timedelta(hours=10),
+            project_id=project.id,
+        )
+
+        # Event with trace, but no stored spans after clamped start
+        event2 = self.store_event_helper(
+            dt=clamped_start + timedelta(hours=10),
+            project_id=project.id,
+            # trace_id=uuid.uuid4().hex,
+            # span_id="1" + uuid.uuid4().hex[:15],
+        )
+        assert event1.group is not None
+        assert event1.group == event2.group
+
+        result = _get_recommended_event(
+            group=event1.group,
+            organization=project.organization,
+            start=start,
+            end=end,
+        )
+        assert isinstance(result, GroupEvent)
+        assert result.event_id == event2.event_id
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):
