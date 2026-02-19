@@ -91,13 +91,6 @@ export function BaseField(
   });
 }
 
-declare global {
-  interface FocusOptions {
-    /** https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus#focusvisible */
-    focusVisible?: boolean;
-  }
-}
-
 function animateRowHighlight(node: HTMLElement | null) {
   if (!node) return;
   const name = node.getAttribute('name');
