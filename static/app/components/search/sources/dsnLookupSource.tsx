@@ -1,12 +1,11 @@
 import {useEffect, useMemo, useState} from 'react';
 
 import {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {DSN_PATTERN} from './dsnLookupUtils';
+import {DSN_PATTERN, getDsnNavTargets} from './dsnLookupUtils';
 import type {DsnLookupResponse} from './dsnLookupUtils';
-import type {ChildProps, ResultItem} from './types';
+import type {ChildProps} from './types';
 import {makeResolvedTs} from './utils';
 
 type Props = {
@@ -60,36 +59,19 @@ function DsnLookupSource({query, children}: Props) {
     }
 
     const resolvedTs = makeResolvedTs();
-    const {organizationSlug, projectSlug, projectId, projectName} = data;
 
-    const items: ResultItem[] = [
-      {
-        title: t('Issues for %s', projectName),
-        description: t('View issues'),
-        sourceType: 'dsn-lookup',
-        resultType: 'route',
+    return getDsnNavTargets(data).map((target, i) => ({
+      item: {
+        title: target.label,
+        description: target.description,
+        sourceType: 'dsn-lookup' as const,
+        resultType: 'route' as const,
         resolvedTs,
-        to: `/organizations/${organizationSlug}/issues/?project=${projectId}`,
+        to: target.to,
       },
-      {
-        title: t('%s Settings', projectName),
-        description: t('Project settings'),
-        sourceType: 'dsn-lookup',
-        resultType: 'route',
-        resolvedTs,
-        to: `/settings/${organizationSlug}/projects/${projectSlug}/`,
-      },
-      {
-        title: t('Client Keys (DSN) for %s', projectName),
-        description: t('Manage DSN keys'),
-        sourceType: 'dsn-lookup',
-        resultType: 'route',
-        resolvedTs,
-        to: `/settings/${organizationSlug}/projects/${projectSlug}/keys/`,
-      },
-    ];
-
-    return items.map((item, i) => ({item, score: 0, refIndex: i}));
+      score: 0,
+      refIndex: i,
+    }));
   }, [data]);
 
   return children({isLoading, results});
