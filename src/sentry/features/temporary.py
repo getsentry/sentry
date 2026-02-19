@@ -551,8 +551,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable equations feature on the new explore page
     manager.add("organizations:visibility-explore-equations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable equations feature in dashboards
-    manager.add("organizations:visibility-dashboards-equations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable an async queue for dashboard widget queries
     manager.add("organizations:visibility-dashboards-async-queue", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the new explore page
@@ -642,8 +640,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Enable feature flag to send expanded sentry apps webhooks (issue.created for all group categories)
     manager.add("organizations:expanded-sentry-apps-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable using paginated projects endpoint for Jira integration
-    manager.add("organizations:jira-paginated-projects", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable single trace summary
     manager.add("organizations:single-trace-summary", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable seeing upsell modal when clicking upgrade for multi-org
@@ -718,12 +714,4 @@ def register_temporary_features(manager: FeatureManager) -> None:
         OrganizationFeature,
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=False,
-    )
-
-    # Control access to a new debug files role management
-    manager.add(
-        "organizations:debug-files-role-management",
-        OrganizationFeature,
-        FeatureHandlerStrategy.FLAGPOLE,
-        api_expose=True,
     )
