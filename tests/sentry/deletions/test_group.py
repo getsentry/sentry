@@ -1,4 +1,3 @@
-import pytest
 import os
 import random
 from datetime import datetime, timedelta
@@ -7,6 +6,7 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from snuba_sdk import Column, Condition, DeleteQuery, Entity, Function, Op, Query, Request
 
 from sentry import deletions, nodestore
