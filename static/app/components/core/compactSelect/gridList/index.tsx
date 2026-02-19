@@ -127,6 +127,8 @@ function GridList({
     size,
   });
 
+  const mergedProps = mergeProps(gridProps, props);
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
@@ -135,8 +137,8 @@ function GridList({
         <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
           <Container {...virtualizer.wrapperProps}>
             <ListWrap
-              {...mergeProps(gridProps, props)}
-              style={{...virtualizer.listWrapStyle}}
+              {...mergedProps}
+              style={{...mergedProps.style, ...virtualizer.listWrapStyle}}
               onKeyDown={onKeyDown}
               ref={ref}
             >
