@@ -66,6 +66,7 @@
     "@emotion/is-prop-valid": "^1.3.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@intercom/messenger-js-sdk": "^0.0.18",
     "@mdx-js/loader": "^3.1.0",
     "@popperjs/core": "^2.11.5",
     "@r4ai/remark-callout": "^0.6.2",
