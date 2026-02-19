@@ -6,8 +6,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from sentry.seer.models import SeerRepoDefinition
-
 # =============================================================================
 # Code Review Models (ported from Seer)
 # =============================================================================

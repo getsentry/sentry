@@ -270,7 +270,7 @@ def transform_issue_comment_to_codegen_request(
 ) -> dict[str, Any] | None:
     """
     Transform an issue comment on a PR into a code review request for Seer.
-    
+
     Returns a dictionary matching SeerCodeReviewTaskRequestForPrReview format.
     """
     payload = _common_codegen_request_payload(
