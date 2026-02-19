@@ -248,12 +248,13 @@ class SeerOperatorTest(TestCase):
             cache_payload=self.entrypoint.create_autofix_cache_payload(),
         )
 
+    @patch.object(SeerOperator, "has_access", return_value=True)
     @patch.dict(
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
         {MockEntrypoint.key: MockEntrypoint},
         clear=True,
     )
-    def test_process_autofix_updates_early_exits(self):
+    def test_process_autofix_updates_early_exits(self, _mock_has_access):
         with patch.object(MockEntrypoint, "on_autofix_update") as mock_on_autofix_update:
             # Missing group_id/run_id
             process_autofix_updates(
@@ -287,13 +288,15 @@ class SeerOperatorTest(TestCase):
             )
             mock_on_autofix_update.assert_not_called()
 
+    @patch.object(SeerOperator, "has_access", return_value=True)
     @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
-    def test_process_autofix_updates(self, mock_autofix_cache_get):
+    def test_process_autofix_updates(self, mock_autofix_cache_get, _mock_has_access):
         cache_payload = self.entrypoint.create_autofix_cache_payload()
         mock_autofix_cache_get.side_effect = lambda **kwargs: SeerOperatorCacheResult(
             payload=cache_payload, source="run_id", key="abc"
         )
         mock_entrypoint_cls = Mock(spec=SeerEntrypoint)
+        mock_entrypoint_cls.has_access.return_value = True
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
         event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
 
@@ -309,6 +312,65 @@ class SeerOperatorTest(TestCase):
             )
 
         mock_entrypoint_cls.on_autofix_update.assert_called_once_with(
+            event_type=event_type,
+            event_payload=event_payload,
+            cache_payload=cache_payload,
+        )
+
+    def test_process_autofix_updates_no_operator_access(self):
+        mock_entrypoint_cls = Mock(spec=SeerEntrypoint)
+        event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        with (
+            patch.object(SeerOperator, "has_access", return_value=False),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
+                {MockEntrypoint.key: mock_entrypoint_cls},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=event_type,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+
+        mock_entrypoint_cls.has_access.assert_not_called()
+        mock_entrypoint_cls.on_autofix_update.assert_not_called()
+
+    @patch.object(SeerOperator, "has_access", return_value=True)
+    @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
+    def test_process_autofix_updates_skips_entrypoint_without_access(
+        self, mock_autofix_cache_get, _mock_has_access
+    ):
+        cache_payload = self.entrypoint.create_autofix_cache_payload()
+        mock_autofix_cache_get.side_effect = lambda **kwargs: SeerOperatorCacheResult(
+            payload=cache_payload, source="run_id", key="abc"
+        )
+        mock_no_access_cls = Mock(spec=SeerEntrypoint)
+        mock_no_access_cls.has_access.return_value = False
+        mock_has_access_cls = Mock(spec=SeerEntrypoint)
+        mock_has_access_cls.has_access.return_value = True
+        event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        with patch.dict(
+            "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
+            {
+                cast(SeerEntrypointKey, "NO_ACCESS"): mock_no_access_cls,
+                cast(SeerEntrypointKey, "HAS_ACCESS"): mock_has_access_cls,
+            },
+            clear=True,
+        ):
+            process_autofix_updates(
+                event_type=event_type,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+
+        mock_no_access_cls.on_autofix_update.assert_not_called()
+        mock_has_access_cls.on_autofix_update.assert_called_once_with(
             event_type=event_type,
             event_payload=event_payload,
             cache_payload=cache_payload,
