@@ -98,7 +98,7 @@ class DashboardWidgetResponse(TypedDict):
     dashboardId: str
     queries: list[DashboardWidgetQueryResponse]
     limit: int | None
-    widgetType: str
+    widgetType: str | None
     layout: dict[str, int] | None
     datasetSource: str | None
     exploreUrls: NotRequired[list[str] | None]
