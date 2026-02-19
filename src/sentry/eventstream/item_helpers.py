@@ -40,6 +40,40 @@ def serialize_event_data_as_item(
     )
 
 
+def encode_attributes(
+    event: Event | GroupEvent, event_data: Mapping[str, Any], ignore_fields: set[str] | None = None
+) -> Mapping[str, AnyValue]:
+    attributes = {}
+    ignore_fields = ignore_fields or set()
+
+    for key, value in event_data.items():
+        if key in ignore_fields:
+            continue
+        if value is None:
+            continue
+        attributes[key] = encode_value(value)
+
+    if event.group_id:
+        attributes["group_id"] = AnyValue(int_value=event.group_id)
+
+    tag_keys = set()
+    tags = event_data.get("tags")
+    if tags is not None:
+        for tag in tags:
+            if tag is None:
+                continue
+            key, value = tag
+            if value is None:
+                continue
+            formatted_key = f"tags[{key}]"
+            attributes[formatted_key] = encode_value(value)
+            tag_keys.add(formatted_key)
+
+    attributes["tag_keys"] = encode_value(sorted(tag_keys))
+
+    return attributes
+
+
 def encode_value(value: Any, _depth: int = 0) -> AnyValue:
     if _depth > _ENCODE_MAX_DEPTH:
         # Beyond max depth, stringify to prevent protobuf nesting limit errors.
@@ -78,37 +112,3 @@ def encode_value(value: Any, _depth: int = 0) -> AnyValue:
         )
     else:
         raise NotImplementedError(f"encode not supported for {type(value)}")
-
-
-def encode_attributes(
-    event: Event | GroupEvent, event_data: Mapping[str, Any], ignore_fields: set[str] | None = None
-) -> Mapping[str, AnyValue]:
-    attributes = {}
-    ignore_fields = ignore_fields or set()
-
-    for key, value in event_data.items():
-        if key in ignore_fields:
-            continue
-        if value is None:
-            continue
-        attributes[key] = encode_value(value)
-
-    if event.group_id:
-        attributes["group_id"] = AnyValue(int_value=event.group_id)
-
-    tag_keys = set()
-    tags = event_data.get("tags")
-    if tags is not None:
-        for tag in tags:
-            if tag is None:
-                continue
-            key, value = tag
-            if value is None:
-                continue
-            formatted_key = f"tags[{key}]"
-            attributes[formatted_key] = encode_value(value)
-            tag_keys.add(formatted_key)
-
-    attributes["tag_keys"] = encode_value(sorted(tag_keys))
-
-    return attributes

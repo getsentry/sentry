@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.testutils.cases import OccurrenceTestCase, SnubaTestCase, TestCase
@@ -16,7 +16,7 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         query_string: str = "",
         selected_columns: list[str] | None = None,
         occurrence_category: OccurrenceCategory | None = None,
-    ) -> dict:
+    ) -> EAPResponse:
         if selected_columns is None:
             selected_columns = ["count()"]
 
