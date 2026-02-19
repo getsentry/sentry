@@ -4,7 +4,6 @@ from django.db.migrations.executor import MigrationExecutor
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class TestMigrateActionsSentryAppData(TestMigrations):
@@ -25,7 +24,7 @@ class TestMigrateActionsSentryAppData(TestMigrations):
             config={
                 "target_type": ActionTarget.SENTRY_APP,
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+                "sentry_app_identifier": "sentry_app_id",
             },
         )
 
