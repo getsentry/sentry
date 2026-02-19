@@ -1,5 +1,7 @@
 import logging
 import time
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import NotRequired
 
 from sentry.ratelimits.sliding_windows import (
@@ -145,3 +147,23 @@ class RateBasedCircuitBreaker(CircuitBreaker):
             "sentry_app.webhook.circuit_breaker.state_change",
             extra={"key": self.key, "from_state": from_state.value, "to_state": to_state.value},
         )
+
+
+@contextmanager
+def circuit_breaker_tracking(
+    breaker: RateBasedCircuitBreaker | None,
+) -> Generator[None]:
+    """Track request outcome: record_error on Exception, record_success on normal exit.
+
+    Handles the None case as a no-op so callers don't need nullcontext().
+    """
+    if breaker is None:
+        yield
+        return
+    try:
+        yield
+    except Exception:
+        breaker.record_error()
+        raise
+    else:
+        breaker.record_success()
