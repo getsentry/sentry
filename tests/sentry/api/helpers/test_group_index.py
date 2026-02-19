@@ -302,6 +302,19 @@ class UpdateGroupsTest(TestCase):
         assert group.status == GroupStatus.RESOLVED
         assert send_robust.called
 
+    def test_get_group_list_with_short_id_rejects_cross_project(self) -> None:
+        """Qualified short IDs from unauthorized projects must be filtered out."""
+        other_project = self.create_project(organization=self.organization, slug="other-project")
+        other_group = self.create_group(project=other_project, status=GroupStatus.UNRESOLVED)
+
+        # Passing [self.project] as authorized projects, but using other_project's short ID
+        group_list = get_group_list(
+            self.organization.id,
+            [self.project],
+            [other_group.qualified_short_id],
+        )
+        assert group_list == []
+
     def test_unresolve_clears_commit_resolution_links(self) -> None:
         """
         Test that when an issue is unresolved, commit resolution links are deleted

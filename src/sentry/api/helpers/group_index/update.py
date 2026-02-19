@@ -357,9 +357,12 @@ def get_group_list(
             )
         )
     else:
+        project_ids = {p.id for p in projects}
         for group_id in group_ids:
             if isinstance(group_id, str):
-                groups.append(Group.objects.by_qualified_short_id(organization_id, group_id))
+                group = Group.objects.by_qualified_short_id(organization_id, group_id)
+                if group.project_id in project_ids:
+                    groups.append(group)
 
     return groups
 
