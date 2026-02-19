@@ -1,67 +1,71 @@
-import {useState} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import BooleanField, {
-  type BooleanFieldProps,
-} from 'sentry/components/forms/fields/booleanField';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Alert} from '@sentry/scraps/alert';
+import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import type {Organization} from 'sentry/types/organization';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
+const dataSecrecySchema = z.object({
+  allowSuperuserAccess: z.boolean(),
+});
+
 export default function DataSecrecy() {
-  const api = useApi();
   const organization = useOrganization();
+  const disabled = !organization.access.includes('org:write');
 
-  // state for the allowSuperuserAccess bit field
-  const [allowAccess, setAllowAccess] = useState(organization.allowSuperuserAccess);
-
-  const updateAllowedAccess = async (value: boolean) => {
-    try {
-      await api.requestPromise(`/organizations/${organization.slug}/`, {
+  const dataSecrecyMutationOptions = mutationOptions({
+    mutationFn: (data: {allowSuperuserAccess: boolean}) => {
+      return fetchMutation<Organization>({
         method: 'PUT',
-        data: {allowSuperuserAccess: value},
+        url: `/organizations/${organization.slug}/`,
+        data,
       });
-      setAllowAccess(value);
+    },
+    onSuccess: (data, variables) => {
+      updateOrganization(data);
       addSuccessMessage(
-        value
+        variables.allowSuperuserAccess
           ? t('Successfully allowed support access.')
           : t('Successfully removed support access.')
       );
-    } catch (error) {
-      addErrorMessage(t('Unable to save changes.'));
-    }
-  };
-
-  const allowAccessProps: BooleanFieldProps = {
-    name: 'allowSuperuserAccess',
-    label: t('Allow access to Sentry employees'),
-    help: t(
-      'Sentry employees will not have access to your organization unless granted permission'
-    ),
-    'aria-label': t(
-      'Sentry employees will not have access to your data unless granted permission'
-    ),
-    value: allowAccess,
-    disabled: !organization.access.includes('org:write'),
-    onBlur: updateAllowedAccess,
-  };
+    },
+  });
 
   return (
-    <Panel>
-      <PanelHeader>{t('Support Access')}</PanelHeader>
-      <PanelBody>
-        <PanelAlert variant="info">
-          {allowAccess
-            ? t('Sentry employees have access to your organization')
-            : t('Sentry employees do not have access to your organization')}
-        </PanelAlert>
+    <FieldGroup title={t('Support Access')}>
+      <Alert variant="info">
+        {organization.allowSuperuserAccess
+          ? t('Sentry employees have access to your organization')
+          : t('Sentry employees do not have access to your organization')}
+      </Alert>
 
-        <BooleanField {...allowAccessProps} />
-      </PanelBody>
-    </Panel>
+      <AutoSaveField
+        name="allowSuperuserAccess"
+        schema={dataSecrecySchema}
+        initialValue={organization.allowSuperuserAccess}
+        mutationOptions={dataSecrecyMutationOptions}
+      >
+        {field => (
+          <field.Layout.Row
+            label={t('Allow access to Sentry employees')}
+            hintText={t(
+              'Sentry employees will not have access to your organization unless granted permission'
+            )}
+          >
+            <field.Switch
+              checked={field.state.value}
+              onChange={field.handleChange}
+              disabled={disabled}
+            />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    </FieldGroup>
   );
 }

@@ -1,16 +1,25 @@
-import styled from '@emotion/styled';
+import {mutationOptions} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {AutoSaveField} from '@sentry/scraps/form';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import projectSecurityAndPrivacyGroups from 'sentry/data/forms/projectSecurityAndPrivacyGroups';
+import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {
+  formatStoreCrashReports,
+  getStoreCrashReportsValues,
+  SettingScope,
+} from 'sentry/utils/crashReports';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
+
+const storeCrashReportsSchema = z.object({
+  storeCrashReports: z.string(),
+});
 
 interface StoreCrashReportsConfigProps {
   organization: Organization;
@@ -31,44 +40,63 @@ export function StoreCrashReportsConfig({
     return <Placeholder height="72px" />;
   }
 
-  const storeCrashReportsField = projectSecurityAndPrivacyGroups
-    .flatMap(group => group.fields)
-    .find(field => field.name === 'storeCrashReports');
-
-  if (!project || !storeCrashReportsField) {
+  if (!project || !organization.features.includes('event-attachments')) {
     return null;
   }
 
+  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
+  const endpoint = `/projects/${organization.slug}/${projectSlug}/`;
+
+  const storeCrashReportsMutationOptions = mutationOptions({
+    mutationFn: (data: {storeCrashReports: string}) => {
+      const value = data.storeCrashReports === '' ? null : Number(data.storeCrashReports);
+      return fetchMutation<Project>({
+        method: 'PUT',
+        url: endpoint,
+        data: {storeCrashReports: value},
+      });
+    },
+    onSuccess: data => {
+      ProjectsStore.onUpdateSuccess(data);
+    },
+  });
+
+  const options = getStoreCrashReportsValues(SettingScope.PROJECT).map(value => ({
+    value: value === null ? '' : String(value),
+    label: formatStoreCrashReports(value, organization.storeCrashReports) as string,
+  }));
+
   return (
-    <Form
-      saveOnBlur
-      allowUndo
-      initialData={project}
-      apiMethod="PUT"
-      apiEndpoint={`/projects/${organization.slug}/${projectSlug}/`}
-      onSubmitSuccess={data => {
-        // This will update our project global state
-        ProjectsStore.onUpdateSuccess(data);
-      }}
-      onSubmitError={() => addErrorMessage('Unable to save change')}
+    <AutoSaveField
+      name="storeCrashReports"
+      schema={storeCrashReportsSchema}
+      initialValue={
+        project.storeCrashReports === null ? '' : String(project.storeCrashReports)
+      }
+      mutationOptions={storeCrashReportsMutationOptions}
     >
-      <StyledJsonForm
-        features={new Set(organization.features)}
-        additionalFieldProps={{organization, project}}
-        disabled={!hasEveryAccess(['project:write'], {organization, project})}
-        forms={[
-          {
-            title: '', // we do not want to show the panel's header
-            fields: [storeCrashReportsField],
-          },
-        ]}
-      />
-    </Form>
+      {field => (
+        <field.Layout.Row
+          label={t('Store Minidumps As Attachments')}
+          hintText={tct(
+            'Store minidumps as attachments for improved processing and download in issue details. Overrides [organizationSettingsLink: organization settings].',
+            {
+              organizationSettingsLink: (
+                <a href={`/settings/${organization.slug}/security-and-privacy/`}>
+                  {t('organization settings')}
+                </a>
+              ),
+            }
+          )}
+        >
+          <field.Select
+            value={field.state.value}
+            onChange={field.handleChange}
+            options={options}
+            disabled={!hasAccess}
+          />
+        </field.Layout.Row>
+      )}
+    </AutoSaveField>
   );
 }
-
-const StyledJsonForm = styled(JsonForm)`
-  ${Panel} {
-    margin-bottom: 0;
-  }
-`;

@@ -29,7 +29,7 @@ describe('DataSecrecy', () => {
     ).toBeInTheDocument();
 
     const checkbox = screen.getByRole('checkbox', {
-      name: /Sentry employees will not have access to your data unless granted permission/,
+      name: 'Allow access to Sentry employees',
     });
     expect(checkbox).not.toBeChecked();
   });
@@ -48,7 +48,7 @@ describe('DataSecrecy', () => {
     ).toBeInTheDocument();
 
     const checkbox = screen.getByRole('checkbox', {
-      name: /Sentry employees will not have access to your data unless granted permission/,
+      name: 'Allow access to Sentry employees',
     });
     expect(checkbox).toBeChecked();
   });
@@ -67,7 +67,7 @@ describe('DataSecrecy', () => {
     render(<DataSecrecy />, {organization: orgWithoutAccess});
 
     const checkbox = screen.getByRole('checkbox', {
-      name: /Sentry employees will not have access to your data unless granted permission/,
+      name: 'Allow access to Sentry employees',
     });
 
     await userEvent.click(checkbox);
@@ -97,7 +97,7 @@ describe('DataSecrecy', () => {
     render(<DataSecrecy />, {organization: orgWithAccess});
 
     const checkbox = screen.getByRole('checkbox', {
-      name: /Sentry employees will not have access to your data unless granted permission/,
+      name: 'Allow access to Sentry employees',
     });
 
     await userEvent.click(checkbox);
@@ -123,7 +123,7 @@ describe('DataSecrecy', () => {
     render(<DataSecrecy />, {organization: orgWithoutWriteAccess});
 
     const checkbox = screen.getByRole('checkbox', {
-      name: /Sentry employees will not have access to your data unless granted permission/,
+      name: 'Allow access to Sentry employees',
     });
     expect(checkbox).toBeDisabled();
   });

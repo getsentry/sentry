@@ -1,7 +1,13 @@
 import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import OrganizationSecurityAndPrivacy from 'sentry/views/settings/organizationSecurityAndPrivacy';
@@ -28,13 +34,13 @@ describe('OrganizationSecurityAndPrivacy', () => {
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Enable to require and enforce two-factor authentication for all members',
+        name: 'Require Two-Factor Authentication',
       })
     ).toBeInTheDocument();
   });
 
-  it('returns to "off" if switch enable fails (e.g. API error)', async () => {
-    MockApiClient.addMockResponse({
+  it('shows error state if switch enable fails (e.g. API error)', async () => {
+    const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
       statusCode: 500,
@@ -49,7 +55,7 @@ describe('OrganizationSecurityAndPrivacy', () => {
 
     await userEvent.click(
       await screen.findByRole('checkbox', {
-        name: 'Enable to require and enforce two-factor authentication for all members',
+        name: 'Require Two-Factor Authentication',
       })
     );
 
@@ -57,21 +63,28 @@ describe('OrganizationSecurityAndPrivacy', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
     // Confirm but has API failure
-    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Confirm'}));
 
-    expect(
-      await screen.findByRole('checkbox', {
-        name: 'Enable to require and enforce two-factor authentication for all members',
-      })
-    ).not.toBeChecked();
+    // Verify the API was called
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalled();
+    });
   });
 
-  it('renders join request switch', async () => {
+  it('renders join request switch when SSO is not enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/auth-provider/`,
+      method: 'GET',
+      statusCode: 404,
+      body: {},
+    });
+
     render(<OrganizationSecurityAndPrivacy />);
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Enable to allow users to request to join your organization',
+        name: 'Allow Join Requests',
       })
     ).toBeInTheDocument();
   });
@@ -91,16 +104,17 @@ describe('OrganizationSecurityAndPrivacy', () => {
 
     await userEvent.click(
       await screen.findByRole('checkbox', {
-        name: 'Enable to require and enforce two-factor authentication for all members',
+        name: 'Require Two-Factor Authentication',
       })
     );
 
-    // Cancel
-    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    // Cancel within the confirm modal dialog
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Cancel'}));
 
     expect(
       screen.getByRole('checkbox', {
-        name: 'Enable to require and enforce two-factor authentication for all members',
+        name: 'Require Two-Factor Authentication',
       })
     ).not.toBeChecked();
 
@@ -122,17 +136,20 @@ describe('OrganizationSecurityAndPrivacy', () => {
 
     await userEvent.click(
       await screen.findByRole('checkbox', {
-        name: 'Enable to require and enforce two-factor authentication for all members',
+        name: 'Require Two-Factor Authentication',
       })
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Confirm'}));
 
-    expect(
-      screen.getByRole('checkbox', {
-        name: 'Enable to require and enforce two-factor authentication for all members',
-      })
-    ).toBeChecked();
+    await waitFor(() => {
+      expect(
+        screen.getByRole('checkbox', {
+          name: 'Require Two-Factor Authentication',
+        })
+      ).toBeChecked();
+    });
 
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/',

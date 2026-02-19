@@ -19,47 +19,33 @@ describe('projectSecurityAndPrivacy', () => {
       outletContext: {project},
     });
 
-    // Store Minidumps As Attachments
-    expect(
-      screen.getByRole('textbox', {
-        name: 'Store Minidumps As Attachments',
-      })
-    ).not.toHaveValue();
-    expect(screen.getByText(/Inherit organization settings/)).toBeInTheDocument();
-
     expect(
       screen.getByRole('checkbox', {
-        name: 'Enable server-side data scrubbing',
+        name: 'Data Scrubber',
       })
     ).not.toBeChecked();
 
     expect(
       screen.getByRole('checkbox', {
-        name: 'Enable to apply default scrubbers to prevent things like passwords and credit cards from being stored',
+        name: 'Use Default Scrubbers',
       })
     ).not.toBeChecked();
 
     expect(
       screen.getByRole('checkbox', {
-        name: 'Enable to prevent IP addresses from being stored for new events',
+        name: 'Prevent Storing of IP Addresses',
       })
     ).not.toBeChecked();
 
     expect(
       screen.getByRole('textbox', {
-        name: 'Enter field names which data scrubbers should ignore. Separate multiple entries with a newline',
+        name: 'Safe Fields',
       })
     ).toHaveValue('business-email\ncompany');
 
     expect(
       screen.getByRole('textbox', {
-        name: 'Enter additional field names to match against when scrubbing data. Separate multiple entries with a newline',
-      })
-    ).toHaveValue('creditcard\nssn');
-
-    expect(
-      screen.getByRole('textbox', {
-        name: 'Enter additional field names to match against when scrubbing data. Separate multiple entries with a newline',
+        name: 'Additional Sensitive Fields',
       })
     ).toHaveValue('creditcard\nssn');
   });
@@ -78,23 +64,19 @@ describe('projectSecurityAndPrivacy', () => {
 
     expect(
       screen.getByRole('checkbox', {
-        name: 'Enable to prevent IP addresses from being stored for new events',
+        name: 'Prevent Storing of IP Addresses',
       })
     ).toBeEnabled();
 
     expect(
       screen.getByRole('checkbox', {
-        name: 'Enable to prevent IP addresses from being stored for new events',
+        name: 'Prevent Storing of IP Addresses',
       })
     ).not.toBeChecked();
 
-    expect(
-      screen.getByRole('checkbox', {name: 'Enable server-side data scrubbing'})
-    ).toBeDisabled();
+    expect(screen.getByRole('checkbox', {name: 'Data Scrubber'})).toBeDisabled();
 
-    expect(
-      screen.getByRole('checkbox', {name: 'Enable server-side data scrubbing'})
-    ).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Data Scrubber'})).toBeChecked();
   });
 
   it('disables fields when missing project:write access', () => {
@@ -113,7 +95,7 @@ describe('projectSecurityAndPrivacy', () => {
     // Check that the data scrubber toggle is disabled
     expect(
       screen.getByRole('checkbox', {
-        name: 'Enable server-side data scrubbing',
+        name: 'Data Scrubber',
       })
     ).toBeDisabled();
   });
