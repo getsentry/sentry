@@ -5,6 +5,7 @@ import debounce from 'lodash/debounce';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import ListItem from 'sentry/components/list/listItem';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -160,6 +161,25 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
     fetchApiData(relevantRuleData, cursor);
   };
 
+  const handleAssigneeChange = useCallback(
+    (groupId: string, newAssignee: AssignableEntity | null) => {
+      setPreviewGroups(prev =>
+        prev.map(group => {
+          if (group.id !== groupId) {
+            return group;
+          }
+          return {
+            ...group,
+            assignedTo: newAssignee
+              ? {id: newAssignee.id, name: '', type: newAssignee.type}
+              : null,
+          };
+        })
+      );
+    },
+    []
+  );
+
   const errorMessage = previewError
     ? rule?.conditions.length || rule?.filters.length
       ? t('Preview is not supported for these conditions')
@@ -180,6 +200,7 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
           members={members}
           pageLinks={pageLinks}
           onCursor={onPreviewCursor}
+          onAssigneeChange={handleAssigneeChange}
           issueCount={issueCount}
           page={previewPage}
           isLoading={isLoading}

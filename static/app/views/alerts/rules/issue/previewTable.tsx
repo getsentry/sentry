@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {indexMembersByProject} from 'sentry/actionCreators/members';
+import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -20,6 +21,7 @@ type Props = {
   isLoading: boolean;
   issueCount: number;
   members: Member[] | undefined;
+  onAssigneeChange: (groupId: string, newAssignee: AssignableEntity | null) => void;
   onCursor: CursorHandler;
   page: number;
   pageLinks: string;
@@ -30,6 +32,7 @@ function PreviewTable({
   members,
   pageLinks,
   onCursor,
+  onAssigneeChange,
   issueCount,
   page,
   isLoading,
@@ -67,6 +70,7 @@ function PreviewTable({
         canSelect={false}
         showLastTriggered
         withColumns={['assignee', 'event', 'lastTriggered', 'users']}
+        onAssigneeChange={newAssignee => onAssigneeChange(group.id, newAssignee)}
       />
     ));
   };
