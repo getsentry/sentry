@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import Count from 'sentry/components/count';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -14,8 +15,8 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -33,7 +34,6 @@ import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useComb
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
-import {getExploreUrlWithProjectSelection} from 'sentry/views/insights/pages/agents/utils/getExploreUrlWithProjectSelection';
 import {getAIGenerationsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -209,7 +209,7 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const exploreUrl = getExploreUrlWithProjectSelection({
+  const exploreUrl = getExploreUrl({
     selection,
     organization,
     mode: Mode.SAMPLES,
@@ -267,7 +267,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <ErrorCell
           value={dataRow.errors}
-          target={getExploreUrlWithProjectSelection({
+          target={getExploreUrl({
             query: `${query} span.status:internal_error gen_ai.request.model:"${dataRow.model}"`,
             organization,
             selection,

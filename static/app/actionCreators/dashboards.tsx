@@ -2,9 +2,9 @@ import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {t} from 'sentry/locale';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -47,8 +47,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 export function createDashboard(
   api: Client,
   orgSlug: string,
-  newDashboard: DashboardDetails,
-  duplicate?: boolean
+  newDashboard: DashboardDetails
 ): Promise<DashboardDetails> {
   const {title, widgets, projects, environment, period, start, end, filters, utc} =
     newDashboard;
@@ -60,7 +59,6 @@ export function createDashboard(
       data: {
         title,
         widgets: widgets.map(widget => omit(widget, ['tempId'])).map(_enforceWidgetLimit),
-        duplicate,
         projects,
         environment,
         period,

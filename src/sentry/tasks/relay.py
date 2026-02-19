@@ -2,8 +2,9 @@ import logging
 import time
 
 import sentry_sdk
-from django.db import router, transaction
+from django.db import connections, router, transaction
 
+from sentry import options
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
@@ -304,25 +305,27 @@ def schedule_invalidate_project_config(
     if transaction_db is None:
         transaction_db = router.db_for_write(Project)
 
+    def _do_schedule():
+        _schedule_invalidate_project_config(
+            trigger=trigger,
+            trigger_details=trigger_details,
+            organization_id=organization_id,
+            project_id=project_id,
+            public_key=public_key,
+            countdown=countdown,
+        )
+
     with sentry_sdk.start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ) as span:
         span.set_tag("transaction_db", transaction_db)
-
-        # XXX(iker): updating a lot of organizations or projects in a single
-        # database transaction causes the `on_commit` list to grow considerably
-        # and may cause memory leaks.
-        transaction.on_commit(
-            lambda: _schedule_invalidate_project_config(
-                trigger=trigger,
-                trigger_details=trigger_details,
-                organization_id=organization_id,
-                project_id=project_id,
-                public_key=public_key,
-                countdown=countdown,
-            ),
-            using=transaction_db,
-        )
+        if (
+            options.get("relay.invalidation-direct-outside-atomic")
+            and not connections[transaction_db].in_atomic_block
+        ):
+            _do_schedule()
+        else:
+            transaction.on_commit(_do_schedule, using=transaction_db)
 
 
 def _schedule_invalidate_project_config(

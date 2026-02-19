@@ -1,13 +1,12 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import Footer from 'sentry/components/footer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,6 +14,7 @@ import PageOverlay from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
@@ -45,7 +45,12 @@ function DisabledMemberView(props: Props) {
     isError,
     refetch,
   } = useApiQuery<Organization>(
-    [`/organizations/${orgSlug}/`, {query: {detailed: '0', include_feature_flags: '1'}}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {query: {detailed: '0', include_feature_flags: '1'}},
+    ],
     {
       staleTime: 0,
     }
@@ -208,7 +213,9 @@ const MinimalistSidebar = styled('div')`
   padding: 0 ${space(2)};
 `;
 
-const DisabledMemberButtonBar = styled(ButtonBar)`
+const DisabledMemberButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   max-width: fit-content;
 `;
 

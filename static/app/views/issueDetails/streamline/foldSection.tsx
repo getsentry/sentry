@@ -9,9 +9,10 @@ import React, {
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import {Disclosure} from 'sentry/components/core/disclosure';
-import {Separator, type SeparatorProps} from 'sentry/components/core/separator';
-import {Text} from 'sentry/components/core/text';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Separator, type SeparatorProps} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

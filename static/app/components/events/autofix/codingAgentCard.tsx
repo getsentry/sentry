@@ -2,13 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
@@ -158,7 +157,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                   <React.Fragment>
                     <BottomDivider />
                     <BottomButtonContainer>
-                      <ButtonBar>
+                      <Grid flow="column" align="center" gap="md">
                         {codingAgentState.agent_url && (
                           <ExternalLink href={codingAgentState.agent_url}>
                             <Button
@@ -189,7 +188,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               </Button>
                             </ExternalLink>
                           ))}
-                      </ButtonBar>
+                      </Grid>
                     </BottomButtonContainer>
                   </React.Fragment>
                 )}

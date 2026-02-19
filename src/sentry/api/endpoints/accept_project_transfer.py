@@ -11,11 +11,13 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializerWithProjectsAndTeams,
 )
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.core.endpoints.project_transfer import SALT
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -68,6 +70,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
         return data, project
 
     @sudo_required
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-accept-project-transfer"])
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
             return Response(status=400)
@@ -99,6 +102,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
         )
 
     @sudo_required
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-accept-project-transfer"])
     def post(self, request: Request) -> Response:
         if not request.user.is_authenticated:
             return Response(status=400)

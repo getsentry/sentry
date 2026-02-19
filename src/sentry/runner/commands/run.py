@@ -201,9 +201,7 @@ def cron(**options: Any) -> None:
 @click.option(
     "--hostname",
     "-n",
-    help=(
-        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
-    ),
+    help=("Set custom hostname, e.g. 'w1.%h'. Expands: %h(hostname), %n (name) and %d, (domain)."),
 )
 @click.option(
     "--queues",
@@ -610,9 +608,13 @@ def basic_consumer(
         quantized_rebalance_delay_secs = options.get("sentry-metrics.synchronized-rebalance-delay")
 
     dump_stacktrace_on_shutdown = consumer_name in get("consumer.dump_stacktrace_on_shutdown", [])
+    verbose_multiprocessing_logs = consumer_name in get("consumer.verbose_multiprocessing_logs", [])
 
     run_processor_with_signals(
-        processor, quantized_rebalance_delay_secs, dump_stacktrace_on_shutdown
+        processor,
+        quantized_rebalance_delay_secs,
+        dump_stacktrace_on_shutdown,
+        verbose_multiprocessing_logs,
     )
 
 

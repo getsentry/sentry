@@ -382,8 +382,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self.aggregate = aggregate
         if not extra_fields or "org_id" not in extra_fields:
             raise InvalidQuerySubscription(
-                "org_id is a required param when "
-                "building snuba filter for a metrics subscription"
+                "org_id is a required param when building snuba filter for a metrics subscription"
             )
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window

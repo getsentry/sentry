@@ -23,7 +23,7 @@ from sentry.seer.anomaly_detection.types import (
     SeerDetectorDataResponse,
     TimeSeriesPoint,
 )
-from sentry.seer.anomaly_detection.utils import translate_direction
+from sentry.seer.anomaly_detection.utils import get_aggregate_type, translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.utils import json
@@ -97,6 +97,8 @@ def get_anomaly_data_from_seer(
         direction=translate_direction(threshold_type),
         expected_seasonality=seasonality,
     )
+    if aggregate_type := get_aggregate_type(snuba_query.aggregate):
+        anomaly_detection_config["aggregate"] = aggregate_type
     context = AlertInSeer(
         id=None,
         source_id=source_id,

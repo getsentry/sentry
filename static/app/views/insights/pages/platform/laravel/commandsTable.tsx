@@ -1,6 +1,8 @@
 import {useCallback} from 'react';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -8,7 +10,6 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';

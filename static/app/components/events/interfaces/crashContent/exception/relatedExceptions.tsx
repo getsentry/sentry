@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ExceptionValue} from 'sentry/types/event';
@@ -212,5 +213,5 @@ const Circle = styled('div')`
   border-radius: 50%;
   height: 12px;
   width: 12px;
-  border: 1px solid ${p => p.theme.tokens.content.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;

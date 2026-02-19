@@ -37,9 +37,8 @@ class OAuthAuthorizeView(AuthLoginView):
 
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == "token":
-            final_uri = "{}#{}".format(
-                redirect_uri,
-                urlencode([(k, v) for k, v in params.items() if v is not None]),
+            final_uri = (
+                f"{redirect_uri}#{urlencode([(k, v) for k, v in params.items() if v is not None])}"
             )
         else:
             parts = list(urlparse(redirect_uri))

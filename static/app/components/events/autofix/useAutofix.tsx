@@ -1,6 +1,8 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {
   AutofixStatus,
   AutofixStepType,
@@ -11,6 +13,7 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   setApiQueryData,
@@ -35,7 +38,12 @@ export const makeAutofixQueryKey = (
   groupId: string,
   isUserWatching = false
 ): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      issueId: groupId,
+    },
+  }),
   {query: {isUserWatching: isUserWatching ? true : false, mode: 'legacy'}},
 ];
 
@@ -323,9 +331,18 @@ export function useCodingAgentIntegrations() {
 
   return useApiQuery<{
     integrations: CodingAgentIntegration[];
-  }>([`/organizations/${organization.slug}/integrations/coding-agents/`], {
-    staleTime: 5 * 60 * 1000,
-  });
+  }>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
+    ],
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 }
 
 interface LaunchCodingAgentParams {
@@ -343,6 +360,8 @@ interface LaunchCodingAgentResponse {
   failures?: Array<{
     error_message: string;
     repo_name: string;
+    failure_type?: string;
+    github_installation_id?: string;
   }>;
 }
 
@@ -391,7 +410,27 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
     },
     onSuccess: (data, params) => {
       if (data.failures && data.failures.length > 0) {
-        data.failures.forEach(failure => {
+        const permissionFailures = data.failures.filter(
+          f => f.failure_type === 'github_app_permissions'
+        );
+        const otherFailures = data.failures.filter(
+          f => f.failure_type !== 'github_app_permissions'
+        );
+
+        if (permissionFailures.length > 0) {
+          const installationId = permissionFailures[0]?.github_installation_id;
+          const installationUrl = installationId
+            ? `https://github.com/settings/installations/${installationId}`
+            : undefined;
+          openModal(deps => (
+            <AutofixGithubAppPermissionsModal
+              {...deps}
+              installationUrl={installationUrl}
+            />
+          ));
+        }
+
+        otherFailures.forEach(failure => {
           addErrorMessage(t('%s: %s', failure.repo_name, failure.error_message));
         });
 

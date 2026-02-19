@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field, FieldObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';

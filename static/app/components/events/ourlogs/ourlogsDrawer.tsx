@@ -1,10 +1,10 @@
 import {useMemo, useRef} from 'react';
 import moment from 'moment-timezone';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -65,14 +65,18 @@ export function OurlogsDrawer({
     useTraceItemAttributes('string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributes('number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributes('boolean');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),
     searchSource: 'ourlogs',
     onSearch: (query: string) => setLogsQuery(query),
+    booleanAttributes,
     numberAttributes,
     stringAttributes,
     itemType: TraceItemDataset.LOGS,
+    booleanSecondaryAliases,
     numberSecondaryAliases,
     stringSecondaryAliases,
   };

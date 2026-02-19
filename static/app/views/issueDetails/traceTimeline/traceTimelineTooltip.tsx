@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Link} from '@sentry/scraps/link';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Link} from 'sentry/components/core/link';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tn} from 'sentry/locale';

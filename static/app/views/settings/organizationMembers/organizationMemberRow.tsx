@@ -1,12 +1,12 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import Confirm from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -205,8 +205,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               <Button
                 disabled
                 size="sm"
-                title={
-                  isIdpProvisioned
+                tooltipProps={{
+                  title: isIdpProvisioned
                     ? t(
                         "This user is managed through your organization's identity provider."
                       )
@@ -215,8 +215,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                       : // only show this message if member can remove invites but invite was not sent by them
                         pending && canInvite && !isInviteFromCurrentUser
                         ? t('You cannot modify this invite.')
-                        : t('You do not have access to remove members')
-                }
+                        : t('You do not have access to remove members'),
+                }}
                 icon={<IconSubtract />}
               >
                 {t('Remove')}
@@ -241,8 +241,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 size="sm"
                 icon={<IconClose />}
                 disabled
-                title={
-                  isIdpProvisioned
+                tooltipProps={{
+                  title: isIdpProvisioned
                     ? t(
                         "Your account is managed through your organization's identity provider."
                       )
@@ -250,8 +250,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                       ? t('You cannot make changes as a partner-provisioned user.')
                       : t(
                           'You cannot leave this organization as you are the only organization owner.'
-                        )
-                }
+                        ),
+                }}
               >
                 {t('Leave')}
               </Button>

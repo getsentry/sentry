@@ -1,6 +1,7 @@
+import {Button} from '@sentry/scraps/button';
+
 import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
@@ -27,7 +28,7 @@ function CreateIntegrationButton({analyticsView}: CreateIntegrationButtonProps) 
           size="sm"
           priority="primary"
           disabled={!hasAccess}
-          title={hasAccess ? undefined : permissionTooltipText}
+          tooltipProps={{title: hasAccess ? undefined : permissionTooltipText}}
           onClick={() => {
             openCreateNewIntegrationModal();
             trackIntegrationAnalytics(PlatformEvents.OPEN_CREATE_MODAL, {

@@ -3,7 +3,7 @@ import {Outlet} from 'react-router-dom';
 import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function UptimeContainer() {

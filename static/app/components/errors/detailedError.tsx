@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconFlag} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
@@ -48,7 +48,7 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
           <div>{onRetry && <Button onClick={onRetry}>{t('Retry')}</Button>}</div>
 
           {!hideSupportLinks && (
-            <ButtonBar gap="lg">
+            <Grid flow="column" align="center" gap="lg">
               {lastEventId && (
                 <Button
                   priority="link"
@@ -66,7 +66,7 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
               <LinkButton priority="link" external href="https://sentry.io/support/">
                 {t('Contact support')}
               </LinkButton>
-            </ButtonBar>
+            </Grid>
           )}
         </ErrorFooter>
       )}

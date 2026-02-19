@@ -6,15 +6,15 @@ import type {ListState} from '@react-stately/list';
 import type {CollectionChildren, Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Container} from '@sentry/scraps/layout';
-
 import {
   ListLabel,
   ListSeparator,
   ListWrap,
   SizeLimitMessage,
-} from 'sentry/components/core/compactSelect/styles';
-import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
+} from '@sentry/scraps/compactSelect';
+import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
+import {Container} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -26,7 +26,8 @@ import {ListBoxSection} from './section';
 type ObjectLike = object;
 
 interface ListBoxProps<T extends ObjectLike>
-  extends Omit<
+  extends
+    Omit<
       React.HTMLAttributes<HTMLUListElement>,
       'onBlur' | 'onFocus' | 'autoFocus' | 'children'
     >,
@@ -82,6 +83,10 @@ interface ListBoxProps<T extends ObjectLike>
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
   /**
+   * Whether the select has a search input field.
+   */
+  searchable?: boolean;
+  /**
    * When false, hides option details.
    */
   showDetails?: boolean;
@@ -128,7 +133,7 @@ export function ListBox<T extends ObjectLike>({
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
-  hasSearch,
+  searchable,
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
@@ -233,7 +238,7 @@ export function ListBox<T extends ObjectLike>({
                 );
               })}
 
-            {!hasSearch && hiddenOptions.size > 0 && (
+            {!searchable && hiddenOptions.size > 0 && (
               <SizeLimitMessage>
                 {sizeLimitMessage ?? t('Use search to find more options…')}
               </SizeLimitMessage>

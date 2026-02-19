@@ -28,7 +28,6 @@ def build_incident_attachment(
     organization: Organization,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
-
     data = incident_attachment_info(
         metric_issue_context=metric_issue_context,
         alert_context=alert_context,

@@ -1,12 +1,11 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import DiscoverButton from 'sentry/components/discoverButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -260,10 +259,10 @@ class SpikeProtectionHistoryTable extends Component<Props> {
           <LinkButton
             size="sm"
             icon={<IconSettings />}
-            aria-label={t('Settings')}
-            title={t('Go to spike protection settings')}
             to={`/settings/${organization.slug}/spike-protection/`}
-          />
+          >
+            {t('Spike Protection Settings')}
+          </LinkButton>
         </Flex>
         {this.renderTable()}
       </div>

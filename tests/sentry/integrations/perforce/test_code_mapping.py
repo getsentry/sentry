@@ -406,7 +406,9 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
                 "web_url": "https://p4web.example.com",
             },
         )
-        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
+        installation: PerforceIntegration = integration_with_web.get_installation(
+            self.organization.id
+        )  # type: ignore[assignment]
 
         # Create repo with web viewer integration
         repo_web = Repository.objects.create(

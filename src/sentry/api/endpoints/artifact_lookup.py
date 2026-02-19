@@ -252,15 +252,16 @@ def get_legacy_release_bundles(release: Release, dist: Distribution | None) -> s
             artifact_count=0,
             # similarly the special `type` is also used for release archives.
             file__type=RELEASE_BUNDLE_TYPE,
-        ).values_list("id", flat=True)
-        # TODO: this `order_by` might be incredibly slow
-        # we want to have a hard limit on the returned bundles here. and we would
-        # want to pick the most recently uploaded ones. that should mostly be
-        # relevant for customers that upload multiple bundles, or are uploading
-        # newer files for existing releases. In that case the symbolication is
-        # already degraded, so meh...
-        # .order_by("-file__timestamp")
-        [:MAX_BUNDLES_QUERY]
+        ).values_list("id", flat=True)[
+            # TODO: this `order_by` might be incredibly slow
+            # we want to have a hard limit on the returned bundles here. and we would
+            # want to pick the most recently uploaded ones. that should mostly be
+            # relevant for customers that upload multiple bundles, or are uploading
+            # newer files for existing releases. In that case the symbolication is
+            # already degraded, so meh...
+            # .order_by("-file__timestamp")
+            :MAX_BUNDLES_QUERY
+        ]
     )
 
 

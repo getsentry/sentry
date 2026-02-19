@@ -1,4 +1,5 @@
-import type {LinkProps} from 'sentry/components/core/link';
+import type {LinkProps} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -9,6 +10,7 @@ import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   getAlertRuleExploreUrl,
   getAlertRuleLogsUrl,
+  getAlertRuleMetricsUrl,
 } from 'sentry/views/alerts/rules/utils';
 import {getMetricRuleDiscoverUrl} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -59,6 +61,17 @@ export function makeDefaultCta({
       return {
         buttonText: t('Open in Logs'),
         to: getAlertRuleLogsUrl({
+          rule,
+          organization,
+          timePeriod,
+          projectId: projects[0]!.id,
+        }),
+      };
+    }
+    if (traceItemType === TraceItemDataset.TRACEMETRICS) {
+      return {
+        buttonText: t('Open in Metrics'),
+        to: getAlertRuleMetricsUrl({
           rule,
           organization,
           timePeriod,

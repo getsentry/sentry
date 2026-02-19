@@ -1,3 +1,4 @@
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -11,8 +12,16 @@ export default function SeerOnboarding() {
   const organization = useOrganization();
 
   if (showNewSeer(organization)) {
-    return <SeerOnboardingSeatBased />;
+    return (
+      <AnalyticsArea name="onboarding">
+        <SeerOnboardingSeatBased />
+      </AnalyticsArea>
+    );
   }
 
-  return <SeerOnboardingLegacy />;
+  return (
+    <AnalyticsArea name="onboarding">
+      <SeerOnboardingLegacy />
+    </AnalyticsArea>
+  );
 }

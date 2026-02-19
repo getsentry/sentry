@@ -6,13 +6,13 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   LOGS_AUTO_REFRESH_KEY,
   LOGS_REFRESH_INTERVAL_KEY,
@@ -34,7 +34,7 @@ import {
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 const mockUsePageFilters = jest.mocked(usePageFilters);
 
 jest.mock('sentry/utils/useNavigate');
@@ -72,7 +72,6 @@ describe('useInfiniteLogsQuery', () => {
     mockLocation.mockReturnValue(LocationFixture());
     mockUsePageFilters.mockReturnValue({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       shouldPersist: true,
       selection: PageFiltersFixture(),
@@ -661,7 +660,6 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
 
     mockUsePageFilters.mockReturnValue({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       shouldPersist: true,
       selection: PageFiltersFixture(),

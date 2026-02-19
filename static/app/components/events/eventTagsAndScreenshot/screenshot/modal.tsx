@@ -3,12 +3,11 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
@@ -155,7 +154,7 @@ export default function ScreenshotModal({
         </Flex>
       </Body>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {onDelete && (
             <Confirm
               confirmText={t('Delete')}
@@ -169,7 +168,7 @@ export default function ScreenshotModal({
           <LinkButton onClick={onDownload} href={downloadUrl}>
             {t('Download')}
           </LinkButton>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import TypedDict
 
 import sentry_sdk
 from snuba_sdk import (
@@ -21,10 +22,11 @@ from snuba_sdk import (
 from sentry import quotas
 from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
+from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
@@ -33,6 +35,37 @@ ACTIVE_ORGS_DEFAULT_GRANULARITY = Granularity(3600)
 
 ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
+
+
+class MeasureConfig(TypedDict):
+    """Configuration for a sampling measure query."""
+
+    mri: str
+    use_case_id: UseCaseID
+    tags: dict[str, str]
+
+
+# Configuration for each sampling measure type
+MEASURE_CONFIGS: dict[SamplingMeasure, MeasureConfig] = {
+    # SEGMENTS: SpanMRI with is_segment=true filter (replacement for transactions)
+    SamplingMeasure.SEGMENTS: {
+        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+        "use_case_id": UseCaseID.SPANS,
+        "tags": {"is_segment": "true"},
+    },
+    # SPANS: SpanMRI without is_segment filter (AM3/project mode - counts all spans)
+    SamplingMeasure.SPANS: {
+        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+        "use_case_id": UseCaseID.SPANS,
+        "tags": {},
+    },
+    # TRANSACTIONS: TransactionMRI without tag filters (legacy)
+    SamplingMeasure.TRANSACTIONS: {
+        "mri": TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+        "use_case_id": UseCaseID.TRANSACTIONS,
+        "tags": {},
+    },
+}
 
 
 class GetActiveOrgs:
@@ -50,10 +83,13 @@ class GetActiveOrgs:
         max_projects: int | None = None,
         time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
+        measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
     ) -> None:
-        self.metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
+        config = MEASURE_CONFIGS[measure]
+        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
+        self.use_case_id = config["use_case_id"]
+        self.tag_filters = config["tags"]
+
         self.offset = 0
         self.last_result: list[tuple[int, int]] = []
         self.has_more_results = True
@@ -72,6 +108,20 @@ class GetActiveOrgs:
 
         if self.has_more_results:
             # not enough for the current iteration and data still in the db top it up from db
+            where_conditions = [
+                Condition(
+                    Column("timestamp"),
+                    Op.GTE,
+                    datetime.utcnow() - self.time_interval,
+                ),
+                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                Condition(Column("metric_id"), Op.EQ, self.metric_id),
+            ]
+            for tag_name, tag_value in self.tag_filters.items():
+                tag_string_id = indexer.resolve_shared_org(tag_name)
+                tag_column = f"tags_raw[{tag_string_id}]"
+                where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
+
             query = (
                 Query(
                     match=Entity(EntityKey.GenericOrgMetricsCounters.value),
@@ -82,15 +132,7 @@ class GetActiveOrgs:
                     groupby=[
                         Column("org_id"),
                     ],
-                    where=[
-                        Condition(
-                            Column("timestamp"),
-                            Op.GTE,
-                            datetime.utcnow() - self.time_interval,
-                        ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                        Condition(Column("metric_id"), Op.EQ, self.metric_id),
-                    ],
+                    where=where_conditions,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
                     ],
@@ -104,7 +146,7 @@ class GetActiveOrgs:
                 app_id="dynamic_sampling",
                 query=query,
                 tenant_ids={
-                    "use_case_id": UseCaseID.TRANSACTIONS.value,
+                    "use_case_id": self.use_case_id.value,
                     "cross_org_query": 1,
                 },
             )
@@ -200,12 +242,15 @@ class GetActiveOrgsVolumes:
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep: bool = True,
         orgs: list[int] | None = None,
+        measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
     ) -> None:
         self.include_keep = include_keep
         self.orgs = orgs
-        self.metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
+
+        config = MEASURE_CONFIGS[measure]
+        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
+        self.use_case_id = config["use_case_id"]
+        self.tag_filters = config["tags"]
 
         if self.include_keep:
             decision_string_id = indexer.resolve_shared_org("decision")
@@ -251,6 +296,11 @@ class GetActiveOrgsVolumes:
             Condition(Column("metric_id"), Op.EQ, self.metric_id),
         ]
 
+        for tag_name, tag_value in self.tag_filters.items():
+            tag_string_id = indexer.resolve_shared_org(tag_name)
+            tag_column = f"tags_raw[{tag_string_id}]"
+            where.append(Condition(Column(tag_column), Op.EQ, tag_value))
+
         if self.orgs:
             where.append(Condition(Column("org_id"), Op.IN, self.orgs))
 
@@ -277,7 +327,7 @@ class GetActiveOrgsVolumes:
                 app_id="dynamic_sampling",
                 query=query,
                 tenant_ids={
-                    "use_case_id": UseCaseID.TRANSACTIONS.value,
+                    "use_case_id": self.use_case_id.value,
                     "cross_org_query": 1,
                 },
             )

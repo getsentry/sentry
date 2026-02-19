@@ -1,8 +1,11 @@
 import logging
+from enum import Enum
 from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
@@ -13,6 +16,18 @@ from sentry.snuba import rpc_dataset_common
 from sentry.utils.snuba import process_value
 
 logger = logging.getLogger(__name__)
+
+
+class OccurrenceCategory(Enum):
+    """
+    Category of occurrence events in EAP.
+
+    In EAP, both error events and issue platform (generic) events are stored as
+    TRACE_ITEM_TYPE_OCCURRENCE.
+    """
+
+    ERROR = "error"
+    GENERIC = "generic"
 
 
 class Occurrences(rpc_dataset_common.RPCBase):
@@ -36,6 +51,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
+        occurrence_category: OccurrenceCategory | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -50,6 +66,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
                 resolver=search_resolver or cls.get_resolver(params, config),
                 page_token=page_token,
                 additional_queries=additional_queries,
+                extra_conditions=cls._build_category_filter(occurrence_category),
             ),
             params.debug,
         )
@@ -72,6 +89,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         equations: list[str] | None = None,
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
+        occurrence_category: OccurrenceCategory | None = None,
     ) -> EAPResponse:
         """
         Runs a query with additional selected_columns of all tags in tags.
@@ -110,6 +128,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
                 resolver=SearchResolver(params=params, config=config, definitions=definitions),
                 page_token=page_token,
                 additional_queries=additional_queries,
+                extra_conditions=cls._build_category_filter(occurrence_category),
             ),
             params.debug,
         )
@@ -126,6 +145,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         referrer: str,
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None = None,
+        occurrence_category: OccurrenceCategory | None = None,
     ) -> list[dict[str, Any]]:
         """
         Run a timeseries query grouped by the specified columns.
@@ -167,6 +187,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
             groupby=groupby,
             referrer=referrer,
             sampling_mode=sampling_mode,
+            extra_conditions=cls._build_category_filter(occurrence_category),
         )
 
         rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
@@ -219,3 +240,24 @@ class Occurrences(rpc_dataset_common.RPCBase):
             results.extend(time_dict.values())
 
         return results
+
+    @classmethod
+    def _build_category_filter(cls, category: OccurrenceCategory | None) -> TraceItemFilter | None:
+        if category == OccurrenceCategory.ERROR:
+            return TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="type", type=AttributeKey.TYPE_STRING),
+                    op=ComparisonFilter.OP_NOT_EQUALS,
+                    value=AttributeValue(val_str="generic"),
+                )
+            )
+        elif category == OccurrenceCategory.GENERIC:
+            return TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="type", type=AttributeKey.TYPE_STRING),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str="generic"),
+                )
+            )
+
+        return None

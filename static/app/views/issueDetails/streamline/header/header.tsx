@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -134,12 +134,12 @@ export default function StreamlinedGroupHeader({
               </Tooltip>
             )}
           </Flex>
-          <ButtonBar gap="xs">
+          <Grid flow="column" align="center" gap="xs">
             {!hasOnlyOneUIOption && !hasFeedbackForm && (
               <LinkButton
                 size="xs"
                 external
-                title={t('Learn more about the new UI')}
+                tooltipProps={{title: t('Learn more about the new UI')}}
                 href="https://docs.sentry.io/product/issues/issue-details/"
                 aria-label={t('Learn more about the new UI')}
                 icon={<IconInfo />}
@@ -167,7 +167,7 @@ export default function StreamlinedGroupHeader({
             ) : (
               <NewIssueExperienceButton />
             )}
-          </ButtonBar>
+          </Grid>
         </Flex>
         <HeaderGrid>
           <Title>
@@ -266,32 +266,36 @@ export default function StreamlinedGroupHeader({
         id={IssueDetailsTour.WORKFLOWS}
         title={t('Take action')}
         description={t(
-          'Now that you’ve learned about this issue, it’s time to assign an owner, update priority, and take additional actions.'
+          "Now that you've learned about this issue, it's time to assign an owner, update priority, and take additional actions."
         )}
         position="bottom-end"
       >
-        <ActionBar isComplete={isComplete} role="banner">
-          <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={event}
-          />
-          <WorkflowActions>
-            <Workflow>
-              {t('Priority')}
-              <GroupPriority group={group} />
-            </Workflow>
-            <Workflow>
-              {t('Assignee')}
-              <GroupHeaderAssigneeSelector
+        {tourProps => (
+          <div {...tourProps}>
+            <ActionBar isComplete={isComplete} role="banner">
+              <GroupActions
                 group={group}
                 project={project}
+                disabled={disableActions}
                 event={event}
               />
-            </Workflow>
-          </WorkflowActions>
-        </ActionBar>
+              <WorkflowActions>
+                <Workflow>
+                  {t('Priority')}
+                  <GroupPriority group={group} />
+                </Workflow>
+                <Workflow>
+                  {t('Assignee')}
+                  <GroupHeaderAssigneeSelector
+                    group={group}
+                    project={project}
+                    event={event}
+                  />
+                </Workflow>
+              </WorkflowActions>
+            </ActionBar>
+          </div>
+        )}
       </TourElement>
     </Fragment>
   );
@@ -376,6 +380,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     left: 24px;
     bottom: unset;
     height: 1px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
   }
 `;

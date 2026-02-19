@@ -199,9 +199,9 @@ def create_configurations(
     platform_config: PlatformConfig,
 ) -> tuple[list[CodeMapping], list[str]]:
     """
-    Given a set of trees and frames to process, create code mappings & in-app stack trace rules.
+    Given a set of trees and frames to process, create code mappings & in-app stacktrace rules.
 
-    Returns a tuple of code mappings and in-app stack trace rules even when running in dry-run mode.
+    Returns a tuple of code mappings and in-app stacktrace rules even when running in dry-run mode.
     """
     org_integration = installation.org_integration
     if not org_integration:

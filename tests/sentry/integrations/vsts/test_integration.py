@@ -28,7 +28,6 @@ LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 
 @control_silo_test
 class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
-
     # Test regular install still works
     @with_feature("organizations:migrate-azure-devops-integration")
     @patch(
@@ -369,7 +368,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             )
 
         test_cases = [
-            f'{self.vsts_base_url}/{self.project_a["name"]}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents',
+            f"{self.vsts_base_url}/{self.project_a['name']}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
             f"{self.vsts_base_url}/DefaultCollection/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
             f"{self.vsts_base_url}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
         ]
@@ -392,7 +391,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             )
 
         test_cases = [
-            f'{self.vsts_base_url}/{self.project_a["name"]}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents',
+            f"{self.vsts_base_url}/{self.project_a['name']}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
             f"{self.vsts_base_url}/DefaultCollection/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
             f"{self.vsts_base_url}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
         ]

@@ -5,9 +5,9 @@ import uniqBy from 'lodash/uniqBy';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ApiResult} from 'sentry/api';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
@@ -20,6 +20,7 @@ import {space} from 'sentry/styles/space';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import type {InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
 function NoFeedback() {
   return (
@@ -38,7 +39,7 @@ interface Props {
 export default function FeedbackList({onItemSelect}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
-    queryKey: listQueryKey ?? ['infinite', ''],
+    queryKey: listQueryKey ?? (['infinite', ''] as unknown as InfiniteApiQueryKey),
     enabled: Boolean(listQueryKey),
   });
 

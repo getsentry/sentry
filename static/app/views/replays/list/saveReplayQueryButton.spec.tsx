@@ -8,7 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {ReplayQueryParamsProvider} from 'sentry/views/replays/list/replayQueryParamsProvider';
 import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
 

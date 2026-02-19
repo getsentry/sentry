@@ -2,9 +2,10 @@ import {useRef, useState} from 'react';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {
   AskSeerLabel,
   AskSeerListItem,
@@ -22,9 +23,6 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const {setDisplayAskSeer, aiSearchBadgeType} = useSearchQueryBuilder();
 
   const organization = useOrganization();
-  const hasAskSeerConsentFlowChanges = organization.features.includes(
-    'gen-ai-consent-flow-removal'
-  );
 
   const [optionDisableOverride, setOptionDisableOverride] = useState(false);
 
@@ -60,8 +58,7 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
             onMouseOver: () => setOptionDisableOverride(true),
             onMouseOut: () => setOptionDisableOverride(false),
           }}
-          showUnderline={hasAskSeerConsentFlowChanges}
-          disabled={!hasAskSeerConsentFlowChanges}
+          showUnderline
         >
           {t('Ask AI to build your query')}
         </AiPrivacyTooltip>

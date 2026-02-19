@@ -62,7 +62,6 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_makes_successful_request(self, mock_record: MagicMock) -> None:
-
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
@@ -167,7 +166,6 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_makes_failed_request(self, mock_record: MagicMock) -> None:
-
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",

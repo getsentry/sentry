@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
-import {inlineCodeStyles} from '@sentry/scraps/code/inlineCode';
+import {Button} from '@sentry/scraps/button';
+import {inlineCodeStyles} from '@sentry/scraps/code';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {IconChevron, IconLink, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,6 +18,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 
 import type {Block, TodoItem} from './types';
 import {
@@ -286,15 +287,18 @@ function BlockComponent({
 
   const trackThumbsFeedback = useCallback(
     (type: 'positive' | 'negative') => {
-      if (!feedbackSubmitted) {
+      // Guard against missing runId (shouldn't happen with showActions check, but be defensive)
+      // Do this instead of hiding buttons to prevent flickering while data's loading for this edge case.
+      if (!feedbackSubmitted && runId !== undefined) {
         trackAnalytics('seer.explorer.feedback_submitted', {
           organization,
           type,
           run_id: runId,
           block_index: blockIndex,
           block_message: block.message.content.slice(0, 100),
-          langfuse_url: runId ? getLangfuseUrl(runId) : undefined,
-          explorer_url: runId ? getExplorerUrl(runId) : undefined,
+          langfuse_url: getLangfuseUrl(runId),
+          explorer_url: getExplorerUrl(runId),
+          conversations_url: getConversationsUrl(organization.slug, runId),
         });
         setFeedbackSubmitted(true); // disable button for rest of the session
       }
@@ -319,13 +323,13 @@ function BlockComponent({
         disabled={feedbackSubmitted}
         priority="transparent"
         size="xs"
-        title={
-          feedbackSubmitted
+        tooltipProps={{
+          title: feedbackSubmitted
             ? t('Feedback submitted')
             : type === 'positive'
               ? t('I like this response')
-              : t("I don't like this response")
-        }
+              : t("I don't like this response"),
+        }}
         onClick={e => {
           e.stopPropagation();
           trackThumbsFeedback(type);
@@ -359,10 +363,11 @@ function BlockComponent({
 
   const showActions =
     isFocused &&
+    !isPolling &&
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
-    !readOnly; // move this check to inside button bar once there are more actions
+    !readOnly;
   const showFeedbackButtons = block.message.role === 'assistant';
 
   return (
@@ -480,7 +485,7 @@ function BlockComponent({
             </BlockContentWrapper>
           </Flex>
         )}
-        {showActions && !isPolling && (
+        {showActions && (
           <ActionButtonBar gap="xs">
             {showFeedbackButtons && thumbsFeedbackButton('positive')}
             {showFeedbackButtons && thumbsFeedbackButton('negative')}
@@ -488,7 +493,7 @@ function BlockComponent({
               size="xs"
               priority="transparent"
               onClick={handleDeleteClick}
-              title="Restart conversation from here"
+              tooltipProps={{title: 'Restart conversation from here'}}
             >
               <FlippedReturnIcon />
             </Button>
@@ -596,6 +601,24 @@ const BlockContent = styled(MarkedText)`
   h6 {
     margin: 0;
     font-size: ${p => p.theme.font.size.lg};
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: ${p => p.theme.space.md} 0;
+  }
+
+  th,
+  td {
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+    text-align: left;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+
+  th {
+    background: ${p => p.theme.tokens.background.secondary};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   p:first-child,

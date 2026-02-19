@@ -17,7 +17,7 @@ export const AM_ADD_ON_CATEGORIES = {
     apiName: AddOnCategory.SEER,
     dataCategories: [DataCategory.SEER_USER],
     name: 'seer',
-    billingFlag: 'seer-user-billing',
+    billingFlag: 'seer-user-billing-launch',
     order: 2,
     productName: 'Seer',
   },

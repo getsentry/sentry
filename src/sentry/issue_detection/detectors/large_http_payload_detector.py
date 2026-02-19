@@ -31,7 +31,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
     def __init__(
         self,
-        settings: dict[DetectorType, Any],
+        settings: dict[str, Any],
         event: dict[str, Any],
         organization: Organization | None = None,
         detector_id: int | None = None,
@@ -57,7 +57,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if not encoded_body_size:
             return
 
-        payload_size_threshold = self.settings.get("payload_size_threshold")
+        payload_size_threshold = self.settings["payload_size_threshold"]
 
         if isinstance(encoded_body_size, str):
             encoded_body_size = int(encoded_body_size)
@@ -118,9 +118,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if not op.startswith("http"):
             return False
 
-        if get_span_duration(span) < timedelta(
-            milliseconds=self.settings.get("minimum_span_duration")
-        ):
+        if get_span_duration(span) < timedelta(milliseconds=self.settings["minimum_span_duration"]):
             return False
 
         normalized_description = description.strip().upper()

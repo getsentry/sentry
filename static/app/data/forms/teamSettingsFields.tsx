@@ -16,7 +16,7 @@ const formGroups: JsonFormObject[] = [
         type: 'string',
         required: true,
         label: t('Team Slug'),
-        placeholder: 'e.g. api-team',
+        placeholder: 'e.g. operations, web-frontend, mobile-ios',
         help: t('A unique ID used to identify the team'),
         transformInput: slugify,
         disabled: ({hasTeamWrite}) => !hasTeamWrite,

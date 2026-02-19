@@ -1,4 +1,4 @@
-import {Link} from '@sentry/scraps/link/link';
+import {Link} from '@sentry/scraps/link';
 
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import {

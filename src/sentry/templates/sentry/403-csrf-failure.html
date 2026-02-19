@@ -21,15 +21,10 @@
             <span id="csrf-status" style="margin-left: 10px;"></span>
         </div>
 
-        <p>{% trans "Why are you encountering a CSRF error after login?" %}</p>
-        <ul>
-          <li>See explanation from <a href="https://docs.djangoproject.com/en/5.2/ref/csrf/#why-might-a-user-encounter-a-csrf-validation-failure-after-logging-in" target="_blank">Django docs</a>.</li>
-          <li>Read more about <a href="https://en.wikipedia.org/wiki/Cross-site_request_forgery">CSRF on Wikipedia</a>.</li>
-        </ul>
-
         <p>{% trans "If you're continually seeing this issue, try the following steps:" %}</p>
 
         <ol>
+          <li>{% trans "Make sure cookies are enabled in your browser." %}</li>
           <li>{% trans "Close other tabs with Sentry loaded." %}</li>
           <li>{% trans "Clear cookies (at least for Sentry's domain)." %}</li>
           <li>{% trans "Reload the page you're trying to submit (don't re-submit data)." %}</li>

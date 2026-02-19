@@ -2,23 +2,23 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
@@ -422,7 +422,7 @@ export default function AlertRuleDetails() {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
                 <SnoozeAlert
@@ -460,7 +460,7 @@ export default function AlertRuleDetails() {
             >
               {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
             </LinkButton>
-          </ButtonBar>
+          </Grid>
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>

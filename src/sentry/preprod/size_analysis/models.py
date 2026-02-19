@@ -69,8 +69,16 @@ class TreemapElementMisc(BaseModel):
     scale: int | None = None
 
 
-class TreemapElement(BaseModel):
+class FlaggedInsight(BaseModel):
+    """An insight flagged on a treemap node with its per-file savings."""
 
+    model_config = ConfigDict(frozen=True)
+
+    key: str
+    savings: int = 0
+
+
+class TreemapElement(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     name: str
@@ -81,6 +89,7 @@ class TreemapElement(BaseModel):
     """ Some files (like zip files) are not directories but have children. """
     children: list[TreemapElement]
     misc: TreemapElementMisc | None = None
+    flagged_insights: list[str | FlaggedInsight] = []
 
 
 class TreemapResults(BaseModel):
@@ -130,7 +139,6 @@ class AppComponent(BaseModel):
 
 
 class SizeAnalysisResults(BaseModel):
-
     model_config = ConfigDict(frozen=True)
 
     analysis_duration: float

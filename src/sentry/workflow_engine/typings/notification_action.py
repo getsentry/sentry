@@ -6,6 +6,9 @@ from dataclasses import dataclass, field
 from enum import Enum, IntEnum, StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
+from sentry.constants import SentryAppInstallationStatus
+from sentry.sentry_apps.services.app.service import app_service
+from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.utils import json
 
 OPSGENIE_DEFAULT_PRIORITY = "P3"
@@ -34,15 +37,6 @@ class FallthroughChoiceType(Enum):
 
 # Keep existing excluded keys constant
 EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
-
-
-class SentryAppIdentifier(StrEnum):
-    """
-    SentryAppIdentifier is an enum that represents the identifier for a Sentry app.
-    """
-
-    SENTRY_APP_INSTALLATION_UUID = "sentry_app_installation_uuid"
-    SENTRY_APP_ID = "sentry_app_id"
 
 
 class ActionType(StrEnum):
@@ -214,7 +208,8 @@ class BaseActionTranslator(ABC):
         """Return the integration ID for this action, if any"""
         if mapping := ACTION_FIELD_MAPPINGS.get(self.action_type):
             if ActionFieldMappingKeys.INTEGRATION_ID_KEY.value in mapping:
-                return self.action.get(mapping[ActionFieldMappingKeys.INTEGRATION_ID_KEY.value])
+                value = self.action.get(mapping[ActionFieldMappingKeys.INTEGRATION_ID_KEY.value])
+                return int(value) if value is not None else None
         return None
 
     @property
@@ -241,7 +236,19 @@ class BaseActionTranslator(ABC):
             "target_type": self.target_type if self.target_type is not None else None,
         }
         if self.action_type == ActionType.SENTRY_APP:
-            base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+            installs = app_service.get_many(
+                filter={
+                    "uuids": [self.target_identifier],
+                    "status": SentryAppInstallationStatus.INSTALLED,
+                }
+            )
+            if not installs:
+                raise SentryAppError(
+                    message="Could not find sentry app install from uuid.",
+                    status_code=400,
+                )
+
+            base_config["target_identifier"] = str(installs[0].sentry_app.id)
 
         return base_config
 
@@ -454,8 +461,9 @@ class TicketActionTranslator(BaseActionTranslator, TicketingActionDataBlobHelper
         ]
 
     @property
-    def integration_id(self) -> Any | None:
-        return self.action.get("integration")
+    def integration_id(self) -> int | None:
+        value = self.action.get("integration")
+        return int(value) if value is not None else None
 
     @property
     def target_type(self) -> int:

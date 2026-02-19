@@ -45,6 +45,8 @@ def should_sync_assignee_inbound(
         return features.has(
             "organizations:integrations-github_enterprise-project-management", organization
         )
+    elif provider == "gitlab":
+        return features.has("organizations:integrations-gitlab-project-management", organization)
     return True
 
 
@@ -90,7 +92,6 @@ def _handle_assign(
     integration: RpcIntegration | Integration,
     users: list[RpcUser],
 ) -> list[Group]:
-
     groups_assigned: list[Group] = []
 
     users_by_id = {user.id: user for user in users}
@@ -137,7 +138,6 @@ def sync_group_assignee_inbound_by_external_actor(
     external_issue_key: str | None,
     assign: bool = True,
 ) -> QuerySet[Group] | list[Group]:
-
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
 
     with ProjectManagementEvent(
@@ -169,6 +169,7 @@ def sync_group_assignee_inbound_by_external_actor(
         user_ids = [
             external_actor for external_actor in external_actors if external_actor is not None
         ]
+
         log_context["user_ids"] = user_ids
         logger.info("sync_group_assignee_inbound_by_external_actor.user_ids", extra=log_context)
 
