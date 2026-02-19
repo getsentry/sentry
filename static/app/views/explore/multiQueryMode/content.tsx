@@ -34,7 +34,6 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
@@ -221,9 +220,7 @@ export function MultiQueryModeContent() {
 
   return (
     <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <Content datePageFilterProps={datePageFilterProps} />
-      </TraceItemAttributeProvider>
+      <Content datePageFilterProps={datePageFilterProps} />
     </PageFiltersContainer>
   );
 }

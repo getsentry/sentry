@@ -1,5 +1,4 @@
-import type React from 'react';
-import {createContext, useContext, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -49,53 +48,13 @@ type TraceItemAttributeResult = {
   secondaryAliases: TagCollection;
 };
 
-const TraceItemAttributeContext = createContext<
-  TypedTraceItemAttributesResult | undefined
->(undefined);
-
-type TraceItemAttributeConfig = {
+export type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
   projects?: Project[];
   query?: string;
   search?: string;
 };
-
-const DISABLED_CONFIG: TraceItemAttributeConfig = {
-  enabled: false,
-  traceItemType: TraceItemDataset.SPANS,
-};
-
-type TraceItemAttributeProviderProps = {
-  children: React.ReactNode;
-} & TraceItemAttributeConfig;
-
-/**
- * @deprecated Use `useTraceItemAttributes` with a config argument instead
- * of wrapping children in a provider.
- */
-export function TraceItemAttributeProvider({
-  children,
-  traceItemType,
-  enabled,
-  projects,
-  search,
-  query,
-}: TraceItemAttributeProviderProps) {
-  const typedAttributesResult = useTraceItemAttributeConfig({
-    traceItemType,
-    enabled,
-    projects,
-    search,
-    query,
-  });
-
-  return (
-    <TraceItemAttributeContext value={typedAttributesResult}>
-      {children}
-    </TraceItemAttributeContext>
-  );
-}
 
 function useTraceItemAttributeConfig({
   traceItemType,
@@ -259,81 +218,13 @@ function processTraceItemAttributes(
   };
 }
 
-function isTraceItemAttributeConfig(
-  value: TraceItemAttributeConfig | TraceItemAttributeType | undefined
-): value is TraceItemAttributeConfig {
-  return typeof value === 'object' && value !== null;
-}
-
-function isTraceItemAttributeType(
-  value: TraceItemAttributeType | string[] | undefined
-): value is TraceItemAttributeType {
-  return value === 'boolean' || value === 'number' || value === 'string';
-}
-
-function resolveTraceItemAttributeArgs(
-  configOrType: TraceItemAttributeConfig | TraceItemAttributeType | undefined,
-  typeOrHiddenKeys: TraceItemAttributeType | string[] | undefined,
-  maybeHiddenKeys: string[] | undefined
-) {
-  if (isTraceItemAttributeConfig(configOrType)) {
-    return {
-      isConfigMode: true,
-      config: configOrType,
-      type: isTraceItemAttributeType(typeOrHiddenKeys) ? typeOrHiddenKeys : undefined,
-      hiddenKeys: maybeHiddenKeys,
-    };
-  }
-
-  return {
-    isConfigMode: false,
-    config: DISABLED_CONFIG,
-    type: configOrType,
-    hiddenKeys: Array.isArray(typeOrHiddenKeys) ? typeOrHiddenKeys : undefined,
-  };
-}
-
 export function useTraceItemAttributes(
   config: TraceItemAttributeConfig,
   type?: TraceItemAttributeType,
   hiddenKeys?: string[]
-): TraceItemAttributeResult;
-
-/**
- * @deprecated Pass a `TraceItemAttributeConfig` as the first argument instead
- * of relying on `TraceItemAttributeProvider` context.
- */
-export function useTraceItemAttributes(
-  type?: TraceItemAttributeType,
-  hiddenKeys?: string[]
-): TraceItemAttributeResult;
-
-export function useTraceItemAttributes(
-  configOrType?: TraceItemAttributeConfig | TraceItemAttributeType,
-  typeOrHiddenKeys?: TraceItemAttributeType | string[],
-  maybeHiddenKeys?: string[]
 ): TraceItemAttributeResult {
-  const args = resolveTraceItemAttributeArgs(
-    configOrType,
-    typeOrHiddenKeys,
-    maybeHiddenKeys
-  );
-
-  // Always call both to satisfy React hooks rules of unconditional calls.
-  // When in context mode, useTraceItemAttributeConfig runs with enabled: false (no API calls).
-  // When in config mode, useContext just returns undefined harmlessly.
-  const contextResult = useContext(TraceItemAttributeContext);
-  const configResult = useTraceItemAttributeConfig(args.config);
-
-  const typedAttributesResult = args.isConfigMode ? configResult : contextResult;
-
-  if (typedAttributesResult === undefined) {
-    throw new Error(
-      'useTraceItemAttributes must be used within a TraceItemAttributeProvider or called with a config'
-    );
-  }
-
-  return processTraceItemAttributes(typedAttributesResult, args.type, args.hiddenKeys);
+  const typedAttributesResult = useTraceItemAttributeConfig(config);
+  return processTraceItemAttributes(typedAttributesResult, type, hiddenKeys);
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

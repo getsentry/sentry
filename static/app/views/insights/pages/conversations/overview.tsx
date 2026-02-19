@@ -23,7 +23,6 @@ import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaH
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
@@ -211,9 +210,7 @@ function PageWithProviders() {
 
   return (
     <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <ConversationsOverviewPage datePageFilterProps={datePageFilterProps} />
-      </TraceItemAttributeProvider>
+      <ConversationsOverviewPage datePageFilterProps={datePageFilterProps} />
     </DomainOverviewPageProviders>
   );
 }
