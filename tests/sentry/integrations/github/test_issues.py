@@ -12,11 +12,14 @@ from django.test import RequestFactory
 from django.utils import timezone
 from pytest import fixture
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.github import client
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
-from sentry.issues.grouptype import FeedbackGroup
+from sentry.issues.grouptype import FeedbackGroup, PerformanceNPlusOneGroupType, ReplayRageClickType
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
@@ -151,6 +154,13 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             assert request.headers[PROXY_OI_HEADER] == str(self.install.org_integration.id)
             assert request.headers[PROXY_BASE_URL_HEADER] == "https://api.github.com"
             assert PROXY_SIGNATURE_HEADER in request.headers
+
+    def _stub_create_issue_config_dependencies(
+        self,
+    ) -> tuple[tuple[str, str], list[tuple[str, str]]]:
+        default_repo = "getsentry/sentry"
+        repo_choices = [("getsentry/sentry", "sentry")]
+        return (default_repo, repo_choices)
 
     @responses.activate
     def test_get_allowed_assignees(self) -> None:
@@ -574,6 +584,226 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert "oh no" in description
         title = self.install.get_group_title(event.group, event)
         assert title == event.title
+
+    def test_get_create_issue_config_uses_legacy_defaults_when_flag_disabled(self) -> None:
+        event = self.create_performance_issue()
+        assert event.group is not None
+        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
+
+        with (
+            mock.patch.object(
+                self.install,
+                "get_repository_choices",
+                return_value=(default_repo, repo_choices),
+            ),
+            mock.patch.object(
+                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
+            ),
+            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
+        ):
+            fields = self.install.get_create_issue_config(event.group, self.user)
+
+        description_field = next(field for field in fields if field["name"] == "description")
+        assert "|  |  |" in description_field["default"]
+        assert "Query Evidence:" not in description_field["default"]
+
+    def test_get_create_issue_config_uses_enhanced_defaults_for_db_query(self) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "f" * 32,
+                "message": "query issue",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        db_query = "db - SELECT * FROM `users` WHERE users.id = 1"
+        group_event = event.for_group(event.group)
+        group_event.occurrence = IssueOccurrence(
+            id="github-db-occurrence",
+            project_id=self.project.id,
+            event_id=event.event_id,
+            fingerprint=["performance-n-plus-one"],
+            issue_title="N+1 DB Query",
+            subtitle="Repeated DB queries detected",
+            resource_id=None,
+            evidence_data={"num_repeating_spans": "12"},
+            evidence_display=[
+                IssueEvidence(name="Offending Spans", value=db_query, important=True)
+            ],
+            type=PerformanceNPlusOneGroupType,
+            detection_time=before_now(minutes=1),
+            level="error",
+            culprit="",
+        )
+
+        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
+        with (
+            self.feature("organizations:integrations-github-issue-defaults-enhanced"),
+            mock.patch.object(Group, "get_latest_event", return_value=group_event),
+            mock.patch.object(
+                self.install,
+                "get_repository_choices",
+                return_value=(default_repo, repo_choices),
+            ),
+            mock.patch.object(
+                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
+            ),
+            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
+        ):
+            fields = self.install.get_create_issue_config(event.group, self.user)
+
+        title_field = next(field for field in fields if field["name"] == "title")
+        description_field = next(field for field in fields if field["name"] == "description")
+        assert (
+            title_field["default"] == "N+1 DB Query: db - SELECT * FROM `users` WHERE users.id = 1"
+        )
+        assert "Query Evidence:" in description_field["default"]
+        assert "Offending Spans:\n```" in description_field["default"]
+        assert f"{db_query}\n```" in description_field["default"]
+        assert "|  |  |" not in description_field["default"]
+
+    def test_get_create_issue_config_uses_enhanced_defaults_for_replay_issue(self) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "message": "replay issue",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        selector_path = "div.page > button[data-test-id='signup']"
+        group_event = event.for_group(event.group)
+        group_event.occurrence = IssueOccurrence(
+            id="github-replay-occurrence",
+            project_id=self.project.id,
+            event_id=event.event_id,
+            fingerprint=["replay-click-rage"],
+            issue_title="Rage Click",
+            subtitle=selector_path,
+            resource_id=None,
+            evidence_data={"selector": selector_path},
+            evidence_display=[
+                IssueEvidence(name="Clicked Element", value="button#signup", important=False),
+                IssueEvidence(name="Selector Path", value=selector_path, important=False),
+                IssueEvidence(name="React Component Name", value="StyledButton", important=True),
+            ],
+            type=ReplayRageClickType,
+            detection_time=before_now(minutes=1),
+            level="error",
+            culprit="",
+        )
+
+        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
+        with (
+            self.feature("organizations:integrations-github-issue-defaults-enhanced"),
+            mock.patch.object(Group, "get_latest_event", return_value=group_event),
+            mock.patch.object(
+                self.install,
+                "get_repository_choices",
+                return_value=(default_repo, repo_choices),
+            ),
+            mock.patch.object(
+                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
+            ),
+            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
+        ):
+            fields = self.install.get_create_issue_config(event.group, self.user)
+
+        title_field = next(field for field in fields if field["name"] == "title")
+        description_field = next(field for field in fields if field["name"] == "description")
+        assert title_field["default"] == "Rage Click: StyledButton"
+        assert "Interaction Evidence:" in description_field["default"]
+        assert "Selector Path:\n```" in description_field["default"]
+        assert f"{selector_path}\n```" in description_field["default"]
+
+    def test_get_create_issue_config_uses_enhanced_defaults_for_metric_issue(self) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "metric issue",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        group_event = event.for_group(event.group)
+        group_event.occurrence = IssueOccurrence(
+            id="github-metric-occurrence",
+            project_id=self.project.id,
+            event_id=event.event_id,
+            fingerprint=["metric-issue"],
+            issue_title="Error Rate Alert",
+            subtitle="Critical: Number of events in the last 5 minutes above 100",
+            resource_id=None,
+            evidence_data={"alert_id": 42},
+            evidence_display=[],
+            type=MetricIssue,
+            detection_time=before_now(minutes=1),
+            level="error",
+            culprit="",
+        )
+
+        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
+        with (
+            self.feature("organizations:integrations-github-issue-defaults-enhanced"),
+            mock.patch.object(Group, "get_latest_event", return_value=group_event),
+            mock.patch.object(
+                self.install,
+                "get_repository_choices",
+                return_value=(default_repo, repo_choices),
+            ),
+            mock.patch.object(
+                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
+            ),
+            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
+        ):
+            fields = self.install.get_create_issue_config(event.group, self.user)
+
+        description_field = next(field for field in fields if field["name"] == "description")
+        assert "Metric Details:" in description_field["default"]
+        assert "alert_id: 42" in description_field["default"]
+        assert "Evidence:" not in description_field["default"]
+
+    def test_get_create_issue_config_enhanced_defaults_preserves_event_context_markdown(
+        self,
+    ) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "error issue",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
+        with (
+            self.feature("organizations:integrations-github-issue-defaults-enhanced"),
+            mock.patch.object(
+                self.install, "get_group_body", return_value="line1\nSELECT * FROM `users`"
+            ),
+            mock.patch.object(
+                self.install,
+                "get_repository_choices",
+                return_value=(default_repo, repo_choices),
+            ),
+            mock.patch.object(
+                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
+            ),
+            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
+        ):
+            fields = self.install.get_create_issue_config(event.group, self.user)
+
+        description_field = next(field for field in fields if field["name"] == "description")
+        assert "Event Context:\n```" in description_field["default"]
+        assert "SELECT * FROM `users`" in description_field["default"]
+        assert "```" in description_field["default"]
 
     @responses.activate
     def test_link_issue(self) -> None:

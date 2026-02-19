@@ -7,6 +7,7 @@ from typing import Any, NoReturn
 
 from django.urls import reverse
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -32,9 +33,188 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
 PAGE_NUMBER_LIMIT = 1
+GITHUB_ENHANCED_DEFAULTS_FEATURE = "organizations:integrations-github-issue-defaults-enhanced"
+MAX_TITLE_LENGTH = 255
+MAX_EVIDENCE_ITEMS = 8
+MAX_EVIDENCE_VALUE_LENGTH = 140
+MAX_EVENT_CONTEXT_LENGTH = 1200
+SQL_EVIDENCE_PREFIX_RE = re.compile(
+    r"^(db|database)\s*-\s*(select|insert|update|delete|with)\b", re.I
+)
+CODE_BLOCK_EVIDENCE_NAME_PARTS = frozenset({"query", "offending spans", "selector path"})
 
 
 class GitHubIssuesSpec(SourceCodeIssueIntegration):
+    def _truncate_text(self, value: str, max_length: int | None = None) -> str:
+        if max_length and len(value) > max_length:
+            return f"{value[: max_length - 3]}..."
+        return value
+
+    def _normalize_text(
+        self, value: Any, max_length: int | None = None, normalize_whitespace: bool = False
+    ) -> str:
+        if value is None:
+            return ""
+        text = str(value)
+        if normalize_whitespace:
+            text = " ".join(text.split())
+        return self._truncate_text(text, max_length)
+
+    def _has_github_enhanced_defaults_flag(self, group: Group, user: User | RpcUser) -> bool:
+        return features.has(GITHUB_ENHANCED_DEFAULTS_FEATURE, group.organization, actor=user)
+
+    def _get_occurrence_evidence_section_title(self, occurrence: IssueOccurrence) -> str:
+        category = occurrence.type.category_v2
+        if category == GroupCategory.DB_QUERY.value:
+            return "Query Evidence"
+        if category == GroupCategory.HTTP_CLIENT.value:
+            return "Request Evidence"
+        if category == GroupCategory.FRONTEND.value:
+            return "Interaction Evidence"
+        return "Evidence"
+
+    def _get_occurrence_details_section_title(self, occurrence: IssueOccurrence) -> str:
+        category = occurrence.type.category_v2
+        if category == GroupCategory.METRIC.value:
+            return "Metric Details"
+        if category == GroupCategory.FRONTEND.value:
+            return "Interaction Details"
+        return "Details"
+
+    def _is_code_block_evidence(self, evidence_name: str, evidence_value: Any) -> bool:
+        normalized_name = evidence_name.lower()
+        if any(part in normalized_name for part in CODE_BLOCK_EVIDENCE_NAME_PARTS):
+            return True
+        return bool(SQL_EVIDENCE_PREFIX_RE.search(str(evidence_value).strip()))
+
+    def _get_formatted_evidence_lines(self, evidence_name: str, evidence_value: Any) -> list[str]:
+        name = self._normalize_text(evidence_name, normalize_whitespace=True)
+        value = str(evidence_value)
+        if self._is_code_block_evidence(name, value):
+            return [f"{name}:", "```", value, "```"]
+        return [
+            f"{name}: {self._normalize_text(value, MAX_EVIDENCE_VALUE_LENGTH, normalize_whitespace=True)}"
+        ]
+
+    def _get_occurrence_detail_lines(self, evidence_data: Mapping[str, Any]) -> list[str]:
+        lines: list[str] = []
+        added_items = 0
+        for key, value in evidence_data.items():
+            if value is None or not isinstance(value, (str, int, float, bool)):
+                continue
+            lines.extend(self._get_formatted_evidence_lines(str(key), value))
+            added_items += 1
+            if added_items >= MAX_EVIDENCE_ITEMS:
+                break
+        return lines
+
+    def _get_github_enhanced_title_description(
+        self, group: Group, event: Event | GroupEvent, **kwargs: Any
+    ) -> tuple[str, str]:
+        title = self._normalize_text(
+            self.get_group_title(group, event, **kwargs),
+            MAX_TITLE_LENGTH,
+            normalize_whitespace=True,
+        )
+        output = self.get_group_link(group, **kwargs)
+
+        if isinstance(event, GroupEvent) and event.occurrence is not None:
+            issue_title = self._normalize_text(
+                event.occurrence.issue_title,
+                MAX_TITLE_LENGTH,
+                normalize_whitespace=True,
+            )
+            if issue_title:
+                title = issue_title
+                output.extend(["", f"Issue Type: {issue_title}"])
+
+            subtitle = self._normalize_text(
+                event.occurrence.subtitle,
+                MAX_EVENT_CONTEXT_LENGTH,
+                normalize_whitespace=True,
+            )
+            if subtitle:
+                output.append(f"Summary: {subtitle}")
+
+            important_evidence = event.occurrence.important_evidence_display
+            if important_evidence:
+                important_value = self._normalize_text(
+                    important_evidence.value,
+                    MAX_EVIDENCE_VALUE_LENGTH,
+                    normalize_whitespace=True,
+                )
+                if important_value:
+                    title = self._normalize_text(
+                        f"{title}: {important_value}",
+                        MAX_TITLE_LENGTH,
+                        normalize_whitespace=True,
+                    )
+
+            evidence_items = sorted(
+                event.occurrence.evidence_display, key=attrgetter("important"), reverse=True
+            )[:MAX_EVIDENCE_ITEMS]
+            if evidence_items:
+                output.extend(
+                    ["", f"{self._get_occurrence_evidence_section_title(event.occurrence)}:"]
+                )
+                for evidence in evidence_items:
+                    output.extend(self._get_formatted_evidence_lines(evidence.name, evidence.value))
+            else:
+                detail_lines = self._get_occurrence_detail_lines(event.occurrence.evidence_data)
+                if detail_lines:
+                    output.extend(
+                        [
+                            "",
+                            f"{self._get_occurrence_details_section_title(event.occurrence)}:",
+                            *detail_lines,
+                        ]
+                    )
+        else:
+            body = self.get_group_body(group, event)
+            if body:
+                output.extend(
+                    [
+                        "",
+                        "Event Context:",
+                        "```",
+                        self._truncate_text(body, MAX_EVENT_CONTEXT_LENGTH),
+                        "```",
+                    ]
+                )
+
+        return title, "\n".join(output)
+
+    def _get_create_issue_fields(
+        self, group: Group, user: User | RpcUser, **kwargs: Any
+    ) -> list[dict[str, Any]]:
+        event = group.get_latest_event()
+        if event is None:
+            return []
+
+        if self._has_github_enhanced_defaults_flag(group, user):
+            title, description = self._get_github_enhanced_title_description(group, event, **kwargs)
+        else:
+            title = self.get_group_title(group, event, **kwargs)
+            description = self.get_group_description(group, event, **kwargs)
+
+        return [
+            {
+                "name": "title",
+                "label": "Title",
+                "default": title,
+                "type": "string",
+                "required": True,
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "default": description,
+                "type": "textarea",
+                "autosize": True,
+                "maxRows": 10,
+            },
+        ]
+
     def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
         if isinstance(exc, ApiError):
             if exc.code == 422:
@@ -165,7 +345,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         kwargs["link_referrer"] = "github_integration"
 
         if group:
-            fields = super().get_create_issue_config(group, user, **kwargs)
+            fields = self._get_create_issue_fields(group, user, **kwargs)
             org = group.organization
         else:
             fields = []
