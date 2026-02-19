@@ -607,3 +607,118 @@ Comparing against the previous warm-cache run (workflow_dispatch `22168142281`):
 | T2 bottleneck | 10m25s                 | 10m38s                 | +13s            |
 
 **Caveat:** Single data point; T2 shard spread is wide (7m50s–10m38s) so the -17s improvement is within normal run-to-run variance. The `Setup sentry env` step showed no discrete improvement (35s → 36s flat) because venv pyc recompilation cost is distributed across test collection/import time, not a single step. Both fixes are still correct — need more data points to confirm magnitude.
+
+---
+
+## Resource Profiling: CPU, Memory, and Service Contention
+
+Monitoring run (`22197280450`, `mchen/resource-monitoring` branch): `vmstat`, `iostat`, `docker stats` sampled every 5s across representative T1 and T2 shards.
+
+### What the data shows
+
+**Memory is not the bottleneck.** Process memory (total RAM − free − buffers − cache) peaks at ~5.3 GB on T2 on a 16 GB runner. Services add: ClickHouse 744 MB, Kafka 472 MB, Postgres 443 MB, per-worker Snuba ×3 ~91 MB each.
+
+**CPU is the binding constraint on T2.** vmstat run queue (`r`) averages 4.5–5.6 on a 4-CPU runner — meaning 20–40% of the time a runnable process is waiting for a CPU. Peak run queue hit 21. T1 run queue averages 3.3–3.8 (less pressure, 22% idle vs T2's 14%).
+
+**sys% is 15–20% on T2 (vs ~17% on T1).** This is kernel-mode CPU time, and it comes from several sources:
+
+1. **Postgres socket volume.** Each shard runs N xdist workers × 3 databases (region/control/secondary) simultaneously. Every Django ORM query involves a TCP send() + recv() pair through the kernel. Django TestCase also wraps every test in a SAVEPOINT on each of the 3 databases — at 32K tests that's 32K × 3 DBs × 2 round-trips (SAVEPOINT + ROLLBACK) = ~192K postgres round-trips per shard just for test isolation. Each round-trip copies data through kernel socket buffers, contributing directly to sys%.
+
+2. **Three databases per worker.** The `configure_split_db()` call in `sentry.py` adds `control` and `secondary` alongside `default` (region). pytest-django appends `_gwN` suffixes, creating `test_region_gw0/1/2`, `test_control_gw0/1/2`, `test_secondary_gw0/1/2` = 9 concurrent postgres connections for N=3 workers. PIDS inside the postgres container: 7 idle → 16–17 during tests (9 connections + ~7 postgres background processes). Postgres sustained CPU: 25–92% during test execution.
+
+3. **xdist inter-process coordination.** pytest-xdist scheduler sends/receives test assignments and results over sockets to each worker — minor but constant.
+
+4. **Postgres WAL writes.** The postgres Docker image runs with `wal_level=logical` and no `synchronous_commit=off` override, so every committed transaction forces WAL data to disk. With 9 connections issuing constant writes, this generates frequent `fsync()` / `fdatasync()` syscalls inside the postgres process. These appear as sys% in vmstat since they're kernel I/O operations (even on fast SSD).
+
+**iowait is negligible** (1–3%). The runner SSD handles sequential WAL writes without disk-queue buildup. The real cost is CPU cycles spent in the kernel managing the I/O, not waiting on the disk.
+
+### Actionable findings
+
+#### 1. Postgres performance flags for CI (easy, safe)
+
+The postgres Docker command in `sentry-shared-postgres/devservices/config.yml` can take additional `-c` flags. For ephemeral test databases, durability guarantees are irrelevant:
+
+```yaml
+command:
+  [
+    postgres,
+    -c,
+    wal_level=logical,
+    -c,
+    max_replication_slots=1,
+    -c,
+    max_wal_senders=1,
+    -c,
+    synchronous_commit=off,
+    -c,
+    full_page_writes=off,
+  ]
+```
+
+- `synchronous_commit=off`: postgres reports commit success without waiting for WAL to flush to disk. Data is still written — postgres just doesn't sync before returning. Reduces per-commit latency from ~1–5ms to <0.1ms. Safe: worst case on crash is losing the last few committed transactions, which is irrelevant for test databases.
+- `full_page_writes=off`: disables writing full page images to WAL on the first modification after a checkpoint. Reduces WAL volume by 30–60%, cutting both the data-copying cost and the I/O overhead per transaction.
+
+Expected impact: ~5–10% reduction in overall sys% by reducing WAL-related kernel I/O syscalls inside postgres. Also reduces postgres CPU usage since it no longer needs to format and sync WAL pages on every commit.
+
+This change is to the `sentry-shared-postgres` repo — it would affect all devservices postgres users, not just CI. The flags are safe for dev and CI (not production).
+
+#### 2. ClickHouse thread limits (easy, isolated)
+
+`snuba/devservices/clickhouse/config.xml` sets `max_server_memory_usage_to_ram_ratio=0.5` (up to 8 GB), but there are no thread limits set anywhere. ClickHouse defaults to using `num_cpus` (4) threads per query plus background merge threads. On a 4-CPU T2 runner this means ClickHouse and pytest workers directly compete for all CPUs, contributing to the run queue spike.
+
+In `snuba/devservices/clickhouse/users.xml`, add `<max_threads>` to the default profile:
+
+```xml
+<profiles>
+    <default>
+        <max_threads>2</max_threads>
+    </default>
+```
+
+This caps ClickHouse query threads at 2 CPUs, leaving 2 for pytest workers + postgres. Expected impact: reduces run queue average on T2 by ~0.5–1, equivalent to freeing a partial CPU's worth of headroom for test execution.
+
+#### 3. The 3-database-per-worker architecture is load-bearing
+
+`configure_split_db()` adds the `control` and `secondary` databases to reflect sentry's hybrid-cloud silo design. Tests that exercise cross-silo operations need all three. Switching to `SENTRY_USE_MONOLITH_DBS=1` (single DB per worker) would reduce postgres connections from 9 to 3 and cut SAVEPOINT round-trips by 3×, but it also silently disables the silo routing and could hide real hybrid-cloud bugs. Not recommended without a clear plan for silo test coverage.
+
+#### 4. TransactionTestCase is expensive
+
+54 test files use `TransactionTestCase` instead of `TestCase`. `TestCase` wraps each test in a SAVEPOINT (cheap rollback). `TransactionTestCase` flushes the entire database between tests using `call_command("flush", ...)` — recreating tables is orders of magnitude more expensive. At 54 files × (unknown test count), these are disproportionately expensive per-test and cluster on whichever workers receive them, contributing to shard imbalance.
+
+Most `TransactionTestCase` usage in Django is for testing code that explicitly commits transactions (e.g., testing `on_commit` signal handlers, or testing `select_for_update` behavior). An audit of the 54 files may reveal that many can be safely converted to `TestCase`, reducing expensive flush operations.
+
+### Summary
+
+| Finding                                                    | Impact                                         | Effort                                 | Risk                      |
+| ---------------------------------------------------------- | ---------------------------------------------- | -------------------------------------- | ------------------------- |
+| Postgres `synchronous_commit=off` + `full_page_writes=off` | -5–10% sys%, faster postgres commits           | Low (config change in shared-postgres) | Minimal (safe for dev/CI) |
+| ClickHouse `max_threads=2`                                 | Frees 2 CPUs on T2, less run queue             | Low (1 line in users.xml)              | Minimal                   |
+| Reduce TransactionTestCase usage                           | Faster per-test teardown, better shard balance | Medium (audit 54 files)                | Low                       |
+| 3-DB architecture                                          | Would need redesign to change                  | High                                   | High                      |
+
+---
+
+## Experiment: xdist worker count (T1 n=4, T2 n=2)
+
+**Hypothesis:** T2 at n=3 xdist workers on a 4-CPU runner is CPU-oversubscribed (run queue avg 4.5–5.6). Reducing T2 to n=2 frees a CPU for ClickHouse/Postgres, potentially improving throughput per worker. T1 has more headroom (run queue 3.3–3.8, 22% idle) so n=4 might use the spare CPU productively.
+
+**Config:** Branch `mchen/xdist-n-workers` (run `22201290044`): T1 `-n 4`, T2 `-n 2`, otherwise identical to main + G1 baseline.
+
+**Results:**
+
+| Metric         | Baseline (n=3/n=3, run `22168142281`) | n=4/n=2 (run `22201290044`) | Delta            |
+| -------------- | ------------------------------------- | --------------------------- | ---------------- |
+| T1 max         | 10m53s                                | **10m32s**                  | -21s             |
+| T1 spread      | 50s                                   | 67s                         | +17s             |
+| T2 max         | 10m25s                                | **11m21s**                  | +56s             |
+| T2 spread      | 106s                                  | 168s                        | +62s             |
+| **Wall clock** | **10m53s**                            | **11m21s**                  | **+28s (+4.3%)** |
+| Runner-min     | ~219m                                 | 223m                        | +4m              |
+
+**Analysis:**
+
+T1 improved slightly with n=4 (−21s max): T1 has no Snuba overhead — tests are postgres + CPU-bound. The 4th CPU was underutilized at n=3 (22% idle on T1), so the extra worker fills it productively.
+
+T2 is significantly worse with n=2 (+56s max, +62s spread): dropping from 3 to 2 workers reduced throughput more than the reduced CPU contention helped. The key insight: tests spending time waiting on postgres/Snuba responses release the CPU while blocked — the xdist worker doesn't spin-wait. With n=2, the shard runs fewer tests concurrently and the CPU is less utilized, not more. The run queue on T2 is high (4.5–5.6) but most of that is ClickHouse + Kafka service processes competing, not pytest workers.
+
+**Conclusion:** n=3 is correct for T2. The CPU oversubscription seen in vmstat is driven by service-side processes (ClickHouse, Kafka), not by having too many pytest workers. The fix is to constrain service CPU usage (ClickHouse `max_threads=2`) rather than reduce pytest concurrency. n=4 is marginally better for T1 (−21s, −3.2%) but comes at no cost since T1 has no per-worker Snuba bootstrap. Reverted T2 to n=3; T1 n=4 is worth keeping if confirmed across more runs.
