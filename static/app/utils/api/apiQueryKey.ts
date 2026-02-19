@@ -78,3 +78,24 @@ export function getInfiniteQueryKey<TApiPath extends KnownApiUrls = KnownApiUrls
 ): InfiniteApiQueryKey {
   return ['infinite', ...getQueryKey<TApiPath>(template, options ?? {})] as const;
 }
+
+function isInfiniteQueryKey(
+  queryKey: ApiQueryKey | InfiniteApiQueryKey
+): queryKey is InfiniteApiQueryKey {
+  return queryKey[0] === 'infinite';
+}
+
+export function parseQueryKey(queryKey: ApiQueryKey | InfiniteApiQueryKey) {
+  if (isInfiniteQueryKey(queryKey)) {
+    return {
+      isInfinite: true,
+      url: queryKey[1],
+      options: queryKey[2],
+    };
+  }
+  return {
+    isInfinite: false,
+    url: queryKey[0],
+    options: queryKey[1],
+  };
+}

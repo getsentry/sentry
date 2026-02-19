@@ -1,5 +1,8 @@
-import type {QueryFunctionContext} from 'sentry/utils/queryClient';
-import {QUERY_API_CLIENT, type ApiQueryKey} from 'sentry/utils/queryClient';
+import type {QueryFunctionContext} from '@tanstack/react-query';
+
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {
@@ -12,17 +15,17 @@ export type ApiResponse<TResponseData = unknown> = {
 };
 
 export default async function apiFetch<TData = unknown>(
-  context: QueryFunctionContext<ApiQueryKey>
+  context: QueryFunctionContext<ApiQueryKey | InfiniteApiQueryKey>
 ): Promise<ApiResponse<TData>> {
-  const [url, opts] = context.queryKey;
+  const {url, options = {}} = parseQueryKey(context.queryKey);
 
   const [json, _, response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
-    host: opts?.host,
-    method: opts?.method ?? 'GET',
-    data: opts?.data,
-    query: opts?.query,
-    headers: opts?.headers,
+    host: options?.host,
+    method: options?.method ?? 'GET',
+    data: options?.data,
+    query: options?.query,
+    headers: options?.headers,
   });
 
   return {

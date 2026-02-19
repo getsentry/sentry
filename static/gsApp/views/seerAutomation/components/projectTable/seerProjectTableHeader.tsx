@@ -14,9 +14,9 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {parseQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
@@ -99,7 +99,7 @@ export default function ProjectTableHeader({
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
     listItemCheckboxState;
-  const queryOptions = parseQueryKey(queryKey).options;
+  const queryOptions = queryKey ? parseQueryKey(queryKey).options : undefined;
   const queryString = queryOptions?.query?.query;
 
   const projectIds = useMemo(

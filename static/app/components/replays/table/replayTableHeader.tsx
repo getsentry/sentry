@@ -11,9 +11,9 @@ import {
 } from 'sentry/components/replays/table/replayTableColumns';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {parseQueryKey} from 'sentry/utils/queryClient';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -34,7 +34,7 @@ export default function ReplayTableHeader({
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
     listItemCheckboxState;
-  const queryOptions = parseQueryKey(queryKey).options;
+  const queryOptions = queryKey ? parseQueryKey(queryKey).options : undefined;
   const queryString = queryOptions?.query?.query;
 
   const headerStyle: React.CSSProperties = stickyHeader

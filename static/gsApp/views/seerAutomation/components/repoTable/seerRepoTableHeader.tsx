@@ -11,9 +11,9 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {parseQueryKey} from 'sentry/utils/queryClient';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import type {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
@@ -55,7 +55,7 @@ export default function SeerRepoTableHeader({
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
     listItemCheckboxState;
-  const queryOptions = parseQueryKey(queryKey).options;
+  const queryOptions = queryKey ? parseQueryKey(queryKey).options : undefined;
   const queryString = queryOptions?.query?.query;
 
   const handleBulkCodeReview = (enabledCodeReview: boolean) => {
