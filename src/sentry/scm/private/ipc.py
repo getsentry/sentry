@@ -131,6 +131,28 @@ def _map_subscription_event(parsed: SubscriptionEventParser) -> SubscriptionEven
     }
 
 
+def _map_subscription_event_parser(event: SubscriptionEvent) -> SubscriptionEventParser:
+    return SubscriptionEventParser(
+        event=event["event"],
+        event_type_hint=event["event_type_hint"],
+        extra=event["extra"],
+        received_at=event["received_at"],
+        sentry_meta=(
+            [
+                SubscriptionEventSentryMetaParser(
+                    id=item["id"],
+                    integration_id=item["integration_id"],
+                    organization_id=item["organization_id"],
+                )
+                for item in event["sentry_meta"]
+            ]
+            if event["sentry_meta"]
+            else None
+        ),
+        type=event["type"],
+    )
+
+
 def deserialize_check_run_event(event_data: str) -> CheckRunEvent:
     parsed = check_run_event_decoder.decode(event_data)
     return CheckRunEvent(
@@ -193,29 +215,10 @@ def serialize_check_run_event(event: CheckRunEvent) -> str:
         external_id=event.check_run["external_id"],
         html_url=event.check_run["html_url"],
     )
-    subscription_event = SubscriptionEventParser(
-        event=event.subscription_event["event"],
-        event_type_hint=event.subscription_event["event_type_hint"],
-        extra=event.subscription_event["extra"],
-        received_at=event.subscription_event["received_at"],
-        sentry_meta=(
-            [
-                SubscriptionEventSentryMetaParser(
-                    id=item["id"],
-                    integration_id=item["integration_id"],
-                    organization_id=item["organization_id"],
-                )
-                for item in event.subscription_event["sentry_meta"]
-            ]
-            if event.subscription_event["sentry_meta"]
-            else None
-        ),
-        type=event.subscription_event["type"],
-    )
     structured_event = CheckRunEventParser(
         action=event.action,
         check_run=check_run_data,
-        subscription_event=subscription_event,
+        subscription_event=_map_subscription_event_parser(event.subscription_event),
     )
     return encoder.encode(structured_event).decode("utf-8")
 
@@ -232,30 +235,11 @@ def serialize_comment_event(event: CommentEvent) -> str:
             else None
         ),
     )
-    subscription_event = SubscriptionEventParser(
-        event=event.subscription_event["event"],
-        event_type_hint=event.subscription_event["event_type_hint"],
-        extra=event.subscription_event["extra"],
-        received_at=event.subscription_event["received_at"],
-        sentry_meta=(
-            [
-                SubscriptionEventSentryMetaParser(
-                    id=item["id"],
-                    integration_id=item["integration_id"],
-                    organization_id=item["organization_id"],
-                )
-                for item in event.subscription_event["sentry_meta"]
-            ]
-            if event.subscription_event["sentry_meta"]
-            else None
-        ),
-        type=event.subscription_event["type"],
-    )
     structured_event = CommentEventParser(
         action=event.action,
         comment_type=event.comment_type,
         comment=comment_data,
-        subscription_event=subscription_event,
+        subscription_event=_map_subscription_event_parser(event.subscription_event),
     )
     return encoder.encode(structured_event).decode("utf-8")
 
@@ -283,29 +267,10 @@ def serialize_pull_request_event(event: PullRequestEvent) -> str:
             else None
         ),
     )
-    subscription_event = SubscriptionEventParser(
-        event=event.subscription_event["event"],
-        event_type_hint=event.subscription_event["event_type_hint"],
-        extra=event.subscription_event["extra"],
-        received_at=event.subscription_event["received_at"],
-        sentry_meta=(
-            [
-                SubscriptionEventSentryMetaParser(
-                    id=item["id"],
-                    integration_id=item["integration_id"],
-                    organization_id=item["organization_id"],
-                )
-                for item in event.subscription_event["sentry_meta"]
-            ]
-            if event.subscription_event["sentry_meta"]
-            else None
-        ),
-        type=event.subscription_event["type"],
-    )
     structured_event = PullRequestEventParser(
         action=event.action,
         pull_request=pull_request_data,
-        subscription_event=subscription_event,
+        subscription_event=_map_subscription_event_parser(event.subscription_event),
     )
     return encoder.encode(structured_event).decode("utf-8")
 
