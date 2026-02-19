@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - mchen/pg-socket
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -124,6 +125,23 @@ jobs:
         with:
           mode: migrations
 
+      - name: Reconnect postgres via Unix socket
+        run: |
+          mkdir -p /tmp/pg-sock
+          PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+          docker stop postgres-postgres-1 && docker rm postgres-postgres-1
+          docker run -d --name postgres-postgres-1 \
+            --network devservices --label orchestrator=devservices \
+            -p 127.0.0.1:5432:5432 \
+            -v postgres-data:/var/lib/postgresql/data \
+            -v /tmp/pg-sock:/var/run/postgresql \
+            -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
+            "$PG_IMAGE" postgres \
+              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+          until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
+          echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+          echo "[postgres] Unix socket ready at /tmp/pg-sock/.s.PGSQL.5432"
+
       - name: Run tier 1 tests
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
@@ -200,6 +218,7 @@ jobs:
           SNUBA_WAIT_TIMEOUT: '180'
           DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
+          SENTRY_DB_SOCKET: /tmp/pg-sock
         run: |
           XDIST_N=${XDIST_WORKERS:-3}
           PHASE_START=$(date +%s)
@@ -211,6 +230,21 @@ jobs:
             devservices up --mode backend-ci
             SERVICE_END=$(date +%s)
             echo "[services] devservices ready in $((SERVICE_END - SERVICE_START))s"
+
+            # Restart postgres with Unix socket mount to eliminate TCP overhead.
+            mkdir -p /tmp/pg-sock
+            PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+            docker stop postgres-postgres-1 && docker rm postgres-postgres-1
+            docker run -d --name postgres-postgres-1 \
+              --network devservices --label orchestrator=devservices \
+              -p 127.0.0.1:5432:5432 \
+              -v postgres-data:/var/lib/postgresql/data \
+              -v /tmp/pg-sock:/var/run/postgresql \
+              -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
+              "$PG_IMAGE" postgres \
+                -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+            until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
+            echo "[services] postgres Unix socket ready at /tmp/pg-sock/.s.PGSQL.5432"
 
             SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
             SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')

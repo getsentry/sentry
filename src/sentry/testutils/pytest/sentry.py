@@ -215,6 +215,13 @@ def pytest_configure(config: pytest.Config) -> None:
 
     integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
+    # Allow CI to route postgres through a Unix domain socket for lower-latency
+    # connections. Must be set before configure_split_db() so the HOST override
+    # propagates to the control and secondary database copies.
+    if _pg_socket := os.environ.get("SENTRY_DB_SOCKET"):
+        settings.DATABASES["default"]["HOST"] = _pg_socket
+        settings.DATABASES["default"]["PORT"] = ""
+
     configure_split_db()
 
     # Ensure we can test secure ssl settings
@@ -627,12 +634,11 @@ def _wait_for_services():
     sentinel_path = Path(sentinel)
     while not sentinel_path.exists():
         if time.time() - start > timeout:
-            print(
-                f"[services] WARNING: timed out after {timeout}s waiting for {sentinel}",
-                file=sys.stderr,
+            sys.stderr.write(
+                f"[services] WARNING: timed out after {timeout}s waiting for {sentinel}\n"
             )
             break
         time.sleep(1)
     elapsed = time.time() - start
     if elapsed > 1:
-        print(f"[services] waited {elapsed:.0f}s for services after collection", file=sys.stderr)
+        sys.stderr.write(f"[services] waited {elapsed:.0f}s for services after collection\n")
