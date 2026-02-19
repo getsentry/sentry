@@ -353,7 +353,6 @@ function SpanTabContentSection({
               visualizes={visualizes}
               setVisualizes={setVisualizes}
               samplingMode={timeseriesSamplingMode}
-              setTab={setTab}
               rawSpanCounts={rawSpanCounts}
             />
             <ExploreTables

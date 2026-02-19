@@ -6,20 +6,18 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getUtcDateString} from 'sentry/utils/dates';
+import useRouter from 'sentry/utils/useRouter';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
-import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attributeBreakdowns/constants';
-import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
@@ -27,9 +25,7 @@ import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContex
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
@@ -49,7 +45,6 @@ interface ExploreChartsProps {
   extrapolate: boolean;
   query: string;
   rawSpanCounts: RawCounts;
-  setTab: (tab: Mode | Tab) => void;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
@@ -81,7 +76,6 @@ export function ExploreCharts({
   visualizes,
   setVisualizes,
   samplingMode,
-  setTab,
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
 
@@ -117,7 +111,6 @@ export function ExploreCharts({
         {visualizes.map((visualize, index) => {
           return (
             <Chart
-              setTab={setTab}
               key={`${index}`}
               extrapolate={extrapolate}
               index={index}
@@ -146,7 +139,6 @@ interface ChartProps {
   onChartVisibilityChange: (visible: boolean) => void;
   query: string;
   rawSpanCounts: RawCounts;
-  setTab: (tab: Mode | Tab) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualize: Visualize;
   samplingMode?: SamplingMode;
@@ -164,17 +156,9 @@ function Chart({
   timeseriesResult,
   samplingMode,
   topEvents,
-  setTab,
 }: ChartProps) {
-  const organization = useOrganization();
-  const {chartSelection, setChartSelection} = useChartSelection();
+  const router = useRouter();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const {
-    dismiss: dismissChartSelectionAlert,
-    isDismissed: isChartSelectionAlertDismissed,
-  } = useDismissAlert({
-    key: CHART_SELECTION_ALERT_KEY,
-  });
 
   const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
 
@@ -270,11 +254,6 @@ function Chart({
     </Fragment>
   );
 
-  const initialChartSelection =
-    chartSelection && chartSelection.chartIndex === index
-      ? chartSelection.selection
-      : undefined;
-
   return (
     <ChartWrapper ref={chartWrapperRef}>
       <Widget
@@ -286,38 +265,31 @@ function Chart({
               chartInfo={chartInfo}
               chartRef={chartRef}
               chartXRangeSelection={{
-                initialSelection: initialChartSelection,
-                onSelectionEnd: () => {
-                  if (!isChartSelectionAlertDismissed) {
-                    dismissChartSelectionAlert();
-                  }
-                },
-                onInsideSelectionClick: params => {
-                  if (!params.selectionState) return;
+                onSelectionEnd: params => {
+                  const coordRange = params.selectionState?.selection?.range;
+                  if (!coordRange) return;
 
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: true,
-                  });
-                },
-                onOutsideSelectionClick: params => {
-                  if (!params.selectionState?.isActionMenuVisible) return;
+                  let startTimestamp = coordRange[0];
+                  let endTimestamp = coordRange[1];
+                  if (!startTimestamp || !endTimestamp) return;
 
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: false,
-                  });
-                },
-                onClearSelection: () => {
-                  setChartSelection(null);
-                },
-                disabled: !organization.features.includes(
-                  'performance-spans-suspect-attributes'
-                ),
-                actionMenuRenderer: params => {
-                  return (
-                    <FloatingTrigger chartIndex={index} params={params} setTab={setTab} />
+                  // Round off the bounds to the minute
+                  startTimestamp = Math.floor(startTimestamp / 60_000) * 60_000;
+                  endTimestamp = Math.ceil(endTimestamp / 60_000) * 60_000;
+
+                  // Ensure the bounds has 1 minute resolution
+                  startTimestamp = Math.min(startTimestamp, endTimestamp - 60_000);
+
+                  updateDateTime(
+                    {
+                      start: getUtcDateString(startTimestamp),
+                      end: getUtcDateString(endTimestamp),
+                    },
+                    router,
+                    {save: true}
                   );
+
+                  params.clearSelection();
                 },
               }}
             />
