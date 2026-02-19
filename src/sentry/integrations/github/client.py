@@ -810,6 +810,15 @@ class GitHubBaseClient(
         endpoint = f"/repos/{repo}/check-runs"
         return self.post(endpoint, data=data)
 
+    def get_check_run(self, repo: str, check_run_id: int) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#get-a-check-run
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/check-runs/{check_run_id}"
+        return self.get(endpoint)
+
     def get_check_runs(self, repo: str, sha: str) -> Any:
         """
         https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference
