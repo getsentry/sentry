@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 import testsAnalyticsSummaryDark from 'sentry-images/features/test-analytics-summary-dark.svg';
 import testsAnalyticsSummary from 'sentry-images/features/test-analytics-summary.svg';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -132,7 +133,10 @@ export default function TestsPreOnboardingPage() {
                       />
                     )}
                   </Access>
-                  <LinkButton priority="default" href="/settings/integrations/github">
+                  <LinkButton
+                    priority="default"
+                    href={`/settings/${organization.slug}/integrations/github`}
+                  >
                     Learn more
                   </LinkButton>
                 </Flex>
@@ -146,7 +150,10 @@ export default function TestsPreOnboardingPage() {
                 >
                   {INSTRUCTIONS_TEXT.mainCTA}
                 </LinkButton>
-                <LinkButton priority="default" href="/settings/integrations/github">
+                <LinkButton
+                  priority="default"
+                  href={`/settings/${organization.slug}/integrations/github`}
+                >
                   Learn more
                 </LinkButton>
               </Flex>

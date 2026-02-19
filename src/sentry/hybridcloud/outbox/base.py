@@ -102,7 +102,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
                     "SELECT nextval(%s) FROM generate_series(1,%s);",
                     [f"{model._meta.db_table}_id_seq", len(tuple_of_objs)],
                 )
-                ids = [i for i, in cursor.fetchall()]
+                ids = [i for (i,) in cursor.fetchall()]
 
             outboxes: list[RegionOutboxBase] = []
             for row_id, obj in zip(ids, tuple_of_objs):
@@ -313,7 +313,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
                     "SELECT nextval(%s) FROM generate_series(1,%s);",
                     [f"{model._meta.db_table}_id_seq", len(tuple_of_objs)],
                 )
-                ids = [i for i, in cursor.fetchall()]
+                ids = [i for (i,) in cursor.fetchall()]
 
             outboxes: list[ControlOutboxBase] = []
             for row_id, obj in zip(ids, tuple_of_objs):

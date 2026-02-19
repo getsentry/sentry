@@ -186,7 +186,7 @@ const DragHandle = styled('div')`
     top: 0;
     bottom: 0;
     width: 2px;
-    background: ${p => p.theme.tokens.border.primary};
+    background: ${p => p.theme.tokens.background.secondary};
     left: 50%;
     transform: translateX(-50%);
   }
@@ -232,11 +232,11 @@ const Cover = styled('div')`
   left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.tokens.content.success};
+  border-color: ${p => p.theme.tokens.border.success.moderate};
   & + & {
     border: ${BORDER_WIDTH}px solid;
     border-radius: ${space(0.5)} 0 0 ${space(0.5)};
-    border-color: ${p => p.theme.tokens.content.danger};
+    border-color: ${p => p.theme.tokens.border.danger.moderate};
     border-right-width: 0;
   }
 `;

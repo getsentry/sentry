@@ -1,9 +1,9 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Tag} from 'sentry/components/core/badge/tag';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
 import Placeholder from 'sentry/components/placeholder';
@@ -42,8 +42,7 @@ export default function FeedbackCategories() {
   // if we are showing this component, gen-ai-features must be true
   // and org.hideAiFeatures must be false,
   // but we still need to check that their seer acknowledgement exists
-  const {setupAcknowledgement, isPending: isOrgSeerSetupPending} =
-    useOrganizationSeerSetup();
+  const {isPending: isOrgSeerSetupPending} = useOrganizationSeerSetup();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,7 +50,7 @@ export default function FeedbackCategories() {
 
   useEffect(() => {
     // Analytics for the rendered state. Should match the conditions below.
-    if (isPending || isOrgSeerSetupPending || !setupAcknowledgement.orgHasAcknowledged) {
+    if (isPending || isOrgSeerSetupPending) {
       return;
     }
     if (isError) {
@@ -77,7 +76,6 @@ export default function FeedbackCategories() {
     isError,
     tooFewFeedbacks,
     categories,
-    setupAcknowledgement.orgHasAcknowledged,
     isPending,
     isOrgSeerSetupPending,
   ]);
@@ -94,13 +92,7 @@ export default function FeedbackCategories() {
 
   // The assumption is that if categories are enabled, then summaries are definitely enabled.
   // Both are wrapped in a parent component. Summary has its own states for these cases, so we can just return null.
-  if (
-    isError ||
-    tooFewFeedbacks ||
-    !categories ||
-    categories.length === 0 ||
-    !setupAcknowledgement.orgHasAcknowledged
-  ) {
+  if (isError || tooFewFeedbacks || !categories || categories.length === 0) {
     return null;
   }
 

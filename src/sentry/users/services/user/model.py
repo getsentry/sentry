@@ -166,6 +166,8 @@ class UserUpdateArgs(TypedDict, total=False):
     avatar_type: int
     actor_id: int  # TODO(hybrid-cloud): Remove this after the actor migration is complete
     is_active: bool
+    is_superuser: bool
+    is_staff: bool
 
 
 class UserIdEmailArgs(TypedDict):

@@ -4,8 +4,10 @@ import {tct} from 'sentry/locale';
 function getPythonInstallSnippet({
   packageName,
   minimumVersion,
+  additionalPackage,
 }: {
   packageName: string;
+  additionalPackage?: string;
   minimumVersion?: string;
 }) {
   // We are using consistent double quotes here for all package managers after aligning with the Python SDK team.
@@ -15,11 +17,12 @@ function getPythonInstallSnippet({
     : `"${packageName}"`;
 
   const upgradeFlag = minimumVersion ? '--upgrade ' : '';
+  const additionalPkg = additionalPackage ? ` "${additionalPackage}"` : '';
 
   const packageManagerCommands = {
-    uv: `uv add ${upgradeFlag}${versionedPackage}`,
-    pip: `pip install ${upgradeFlag}${versionedPackage}`,
-    poetry: `poetry add ${versionedPackage}`,
+    uv: `uv add ${upgradeFlag}${versionedPackage}${additionalPkg}`,
+    pip: `pip install ${upgradeFlag}${versionedPackage}${additionalPkg}`,
+    poetry: `poetry add ${versionedPackage}${additionalPkg}`,
   };
 
   return packageManagerCommands;
@@ -28,11 +31,17 @@ function getPythonInstallSnippet({
 export function getPythonInstallCodeBlock({
   packageName = 'sentry-sdk',
   minimumVersion,
+  additionalPackage,
 }: {
+  additionalPackage?: string;
   minimumVersion?: string;
   packageName?: string;
 } = {}): ContentBlock {
-  const packageManagerCommands = getPythonInstallSnippet({packageName, minimumVersion});
+  const packageManagerCommands = getPythonInstallSnippet({
+    packageName,
+    minimumVersion,
+    additionalPackage,
+  });
   return {
     type: 'code',
     tabs: [

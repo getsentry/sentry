@@ -4,9 +4,9 @@ import uniqBy from 'lodash/uniqBy';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Container} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ApiResult} from 'sentry/api';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import InfiniteListItems from 'sentry/components/infiniteList/infiniteListItems';
 import InfiniteListState from 'sentry/components/infiniteList/infiniteListState';

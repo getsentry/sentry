@@ -5,7 +5,6 @@ import type {Image} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 
 const IMAGE_ADDR_LEN = 12;
-export const IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT = 400;
 
 export function getStatusWeight(status?: ImageStatus | null) {
   switch (status) {

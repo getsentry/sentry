@@ -11,7 +11,6 @@ from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 def test_build_sdk_crash_detection_configs(
     empty_cocoa_config: SDKCrashDetectionConfig, field_containing_path: str
 ) -> None:
-
     empty_cocoa_config.sdk_frame_config.path_patterns = {"Sentry**"}
 
     detector = SDKCrashDetector(empty_cocoa_config)

@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/core/avatar/avatarList';
+import {AvatarList} from '@sentry/scraps/avatar';
+
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
@@ -114,11 +115,10 @@ export default function GroupSidebar({
     const issues: React.ReactNode[] = [];
     (group.pluginIssues || []).forEach(plugin => {
       const issue = plugin.issue;
-      // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
         issues.push(
           <Fragment key={plugin.slug}>
-            <span>{`${plugin.shortName || plugin.name || plugin.title}: `}</span>
+            <span>{`${plugin.shortName || plugin.name}: `}</span>
             <a href={issue.url}>
               {typeof issue.label === 'object' ? issue.label.id : issue.label}
             </a>

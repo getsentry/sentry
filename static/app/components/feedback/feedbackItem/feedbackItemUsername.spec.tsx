@@ -7,20 +7,14 @@ import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedba
 describe('FeedbackItemUsername', () => {
   let seerSetupMock: any;
 
-  const mockSeerSetup = (overrides: any = {}) => {
+  const mockSeerSetup = () => {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
       body: {
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-          ...overrides.setupAcknowledgement,
-        },
         billing: {
           hasAutofixQuota: false,
           hasScannerQuota: false,
         },
-        ...overrides,
       },
     });
   };
@@ -142,9 +136,7 @@ describe('FeedbackItemUsername', () => {
 
   describe('AI summary functionality', () => {
     it('should display summary and include it in email subject when AI summary is enabled', async () => {
-      seerSetupMock = mockSeerSetup({
-        setupAcknowledgement: {orgHasAcknowledged: true},
-      });
+      seerSetupMock = mockSeerSetup();
 
       const issue = FeedbackIssueFixture({
         metadata: {
@@ -178,34 +170,21 @@ describe('FeedbackItemUsername', () => {
         description: 'AI features are disabled',
         features: ['user-feedback-ai-titles'],
         summary: 'Login issue with payment flow',
-        seerSetupOverrides: {setupAcknowledgement: {orgHasAcknowledged: true}},
       },
       {
         description: 'user feedback AI titles are disabled',
         features: ['gen-ai-features'],
         summary: 'Login issue with payment flow',
-        seerSetupOverrides: {setupAcknowledgement: {orgHasAcknowledged: true}},
-      },
-      {
-        description: 'organization has not acknowledged AI setup',
-        features: ['user-feedback-ai-titles', 'gen-ai-features'],
-        summary: 'Login issue with payment flow',
-        seerSetupOverrides: {
-          setupAcknowledgement: {
-            orgHasAcknowledged: false,
-          },
-        },
       },
       {
         description: 'AI features enabled but summary is null',
         features: ['user-feedback-ai-titles', 'gen-ai-features'],
         summary: null,
-        seerSetupOverrides: {setupAcknowledgement: {orgHasAcknowledged: true}},
       },
     ])(
       'should not display summary or include it in email subject when $description',
-      async ({features, summary, seerSetupOverrides}) => {
-        seerSetupMock = mockSeerSetup(seerSetupOverrides);
+      async ({features, summary}) => {
+        seerSetupMock = mockSeerSetup();
 
         const issue = FeedbackIssueFixture({
           metadata: {

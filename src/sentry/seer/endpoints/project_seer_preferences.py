@@ -19,6 +19,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.models import PreferenceResponse, SeerProjectPreference
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.utils import filter_repo_by_provider
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -108,12 +109,30 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         serializer = ProjectSeerPreferencesSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        for repo_data in serializer.validated_data.get("repositories", []):
+            provider = repo_data.get("provider")
+            external_id = repo_data.get("external_id")
+            repo_org_id = repo_data.get("organization_id")
+            owner = repo_data.get("owner")
+            name = repo_data.get("name")
+
+            if repo_org_id is not None and repo_org_id != project.organization.id:
+                return Response({"detail": "Invalid repository"}, status=400)
+
+            repo_data["organization_id"] = project.organization.id
+
+            repo_exists = filter_repo_by_provider(
+                project.organization.id, provider, external_id, owner, name
+            ).exists()
+
+            if not repo_exists:
+                return Response({"detail": "Invalid repository"}, status=400)
+
         path = "/v1/project-preference/set"
         body = orjson.dumps(
             {
                 "preference": SeerProjectPreference.validate(
                     {
-                        # TODO: this should allow passing a partial preference object, upserting the rest.
                         **serializer.validated_data,
                         "organization_id": project.organization.id,
                         "project_id": project.id,

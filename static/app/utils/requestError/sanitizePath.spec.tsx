@@ -113,12 +113,6 @@ describe('sanitizePath', () => {
         '/customers/{orgSlug}/',
       ],
 
-      [
-        // CustomerDetailsEndpoint
-        '/subscriptions/sentry/',
-        '/subscriptions/{orgSlug}/',
-      ],
-
       // replays endpionts
       [
         // ProjectReplayDetailsEndpoint

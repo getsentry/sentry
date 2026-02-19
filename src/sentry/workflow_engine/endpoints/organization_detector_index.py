@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Sequence
 from functools import partial
-from typing import assert_never
+from typing import Any, assert_never
 
 from django.db import router, transaction
 from django.db.models import Count, F, OuterRef, Q, Subquery
@@ -53,6 +53,7 @@ from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid_int_id_list
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
@@ -120,7 +121,7 @@ DETECTOR_TYPE_ALIASES = {
 
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance=None
+    request: Request, project: Project, detector_type_slug: str, instance: Any = None
 ) -> BaseDetectorTypeValidator:
     type = grouptype.registry.get_by_slug(detector_type_slug)
     if type is None:
@@ -155,7 +156,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
     permission_classes = (OrganizationDetectorPermission,)
 
-    def filter_detectors(self, request: Request, organization) -> QuerySet[Detector]:
+    def filter_detectors(self, request: Request, organization: Any) -> QuerySet[Detector]:
         """
         Filter detectors based on the request parameters.
         """
@@ -164,20 +165,17 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return Detector.objects.none()
 
         if raw_idlist := request.GET.getlist("id"):
-            try:
-                ids = [int(id) for id in raw_idlist]
-                # If filtering by IDs, we must search across all accessible projects
-                projects = self.get_projects(
-                    request,
-                    organization,
-                    include_all_accessible=True,
-                )
-                return Detector.objects.with_type_filters().filter(
-                    project_id__in=projects,
-                    id__in=ids,
-                )
-            except ValueError:
-                raise ValidationError({"id": ["Invalid ID format"]})
+            ids = to_valid_int_id_list("id", raw_idlist)
+            # If filtering by IDs, we must search across all accessible projects
+            projects = self.get_projects(
+                request,
+                organization,
+                include_all_accessible=True,
+            )
+            return Detector.objects.with_type_filters().filter(
+                project_id__in=projects,
+                id__in=ids,
+            )
 
         projects = self.get_projects(
             request,
@@ -331,12 +329,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         ):
             raise ResourceDoesNotExist
 
-        try:
-            project_id = request.data.get("projectId")
-            if not project_id:
-                raise ValidationError({"projectId": ["This field is required."]})
+        project_id = request.data.get("projectId")
+        if not project_id:
+            raise ValidationError({"projectId": ["This field is required."]})
 
-            project = Project.objects.get(id=project_id)
+        validated_project_id = to_valid_int_id("projectId", project_id)
+        try:
+            project = Project.objects.get(id=validated_project_id)
         except Project.DoesNotExist:
             raise ValidationError({"projectId": ["Project not found"]})
 

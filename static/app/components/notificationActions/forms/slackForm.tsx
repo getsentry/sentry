@@ -1,11 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -110,14 +109,14 @@ function SlackForm({
         />
       </Flex>
 
-      <ButtonBar gap="xs">
+      <Grid flow="column" align="center" gap="xs">
         <Button onClick={onCancel} size="xs">
           {t('Cancel')}
         </Button>
         <Button priority="primary" size="xs" onClick={onSave}>
           {t('Save')}
         </Button>
-      </ButtonBar>
+      </Grid>
     </Flex>
   );
 }

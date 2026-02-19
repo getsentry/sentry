@@ -21,168 +21,98 @@ const CHART_MAP = {
   [EVENT_GRAPH_WIDGET_ID]: () =>
     import('sentry/views/issueDetails/streamline/eventGraphWidget'),
   unhealthySessionsChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/unhealthySessionsChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/unhealthySessionsChartWidget'),
   userHealthCountChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/userHealthCountChartWidget'),
   userHealthRateChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/userHealthRateChartWidget'),
   sessionHealthRateChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/sessionHealthRateChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/sessionHealthRateChartWidget'),
   resourceSummaryAverageSizeChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/resourceSummaryAverageSizeChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/resourceSummaryAverageSizeChartWidget'),
   resourceSummaryDurationChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/resourceSummaryDurationChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/resourceSummaryDurationChartWidget'),
   resourceSummaryThroughputChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/resourceSummaryThroughputChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/resourceSummaryThroughputChartWidget'),
   sessionHealthCountChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/sessionHealthCountChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/sessionHealthCountChartWidget'),
   resourceLandingDurationChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/resourceLandingDurationChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/resourceLandingDurationChartWidget'),
   resourceLandingThroughputChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/resourceLandingThroughputChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/resourceLandingThroughputChartWidget'),
   crashFreeSessionsChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/crashFreeSessionsChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/crashFreeSessionsChartWidget'),
   releaseSessionCountChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/releaseSessionCountChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/releaseSessionCountChartWidget'),
   releaseSessionPercentageChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/releaseSessionPercentageChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/releaseSessionPercentageChartWidget'),
 
   queuesSummaryThroughputChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/queuesSummaryThroughputChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/queuesSummaryThroughputChartWidget'),
   releaseNewIssuesChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/releaseNewIssuesChartWidget'),
   performanceScoreBreakdownChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget'),
   queuesLandingLatencyChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/queuesLandingLatencyChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/queuesLandingLatencyChartWidget'),
   queuesLandingThroughputChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/queuesLandingThroughputChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/queuesLandingThroughputChartWidget'),
   queuesSummaryLatencyChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/queuesSummaryLatencyChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/queuesSummaryLatencyChartWidget'),
   newAndResolvedIssueChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/newAndResolvedIssueChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/newAndResolvedIssueChartWidget'),
   databaseSummaryThroughputChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/databaseSummaryThroughputChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/databaseSummaryThroughputChartWidget'),
   databaseLandingDurationChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget'),
   databaseLandingThroughputChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget'),
   overviewTransactionThroughputChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewTransactionThroughputChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/overviewTransactionThroughputChartWidget'),
   overviewTransactionDurationChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewTransactionDurationChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/overviewTransactionDurationChartWidget'),
   databaseSummaryDurationChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget'),
   cacheThroughputChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/cacheThroughputChartWidget'),
   cacheMissRateChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/cacheMissRateChartWidget'),
   httpResponseCodesChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/httpResponseCodesChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/httpResponseCodesChartWidget'),
   httpThroughputChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/httpThroughputChartWidget'),
   httpDomainSummaryResponseCodesChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget'),
   httpDomainSummaryThroughputChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget'),
   httpDurationChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/httpDurationChartWidget'),
   httpDomainSummaryDurationChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget'),
   overviewAgentsRunsChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget'),
   overviewAgentsDurationChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget'),
   overviewApiLatencyChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'),
   overviewCacheMissChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget'),
   overviewJobsChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewJobsChartWidget'),
   overviewPageloadsChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget'),
   overviewRequestsChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
   overviewSlowNextjsSSRWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewSlowNextjsSSRWidget'),
   overviewSlowQueriesChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'),
   overviewSlowAssetsWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewSlowAssetsWidget'),
   overviewTimeConsumingQueriesWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewTimeConsumingQueriesWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/overviewTimeConsumingQueriesWidget'),
   overviewTimeConsumingRequestsWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewTimeConsumingRequestsWidget'
-    ),
+    import('sentry/views/insights/common/components/widgets/overviewTimeConsumingRequestsWidget'),
   mcpTrafficWidget: () =>
     import('sentry/views/insights/common/components/widgets/mcpTrafficWidget'),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;

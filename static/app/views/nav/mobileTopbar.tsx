@@ -2,9 +2,9 @@ import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import Hook from 'sentry/components/hook';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -63,7 +63,7 @@ function MobileTopbar() {
         icon={view === 'closed' ? <IconMenu /> : <IconClose />}
         aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
         size="sm"
-        borderless
+        priority="transparent"
       />
       {view === 'closed' ? null : (
         <NavigationOverlayPortal

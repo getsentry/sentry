@@ -1,7 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
+
 import {Search} from 'sentry/components/search';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -282,8 +282,10 @@ const commonTheme = {
   ...typography,
 };
 
-export interface SentryTheme
-  extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
+export interface SentryTheme extends Omit<
+  typeof lightThemeDefinition,
+  'chart' | 'tokens'
+> {
   chart: {
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
   };

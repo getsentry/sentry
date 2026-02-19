@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {SummaryCard, SummaryCardGroup} from 'sentry/components/prevent/summary';
 import {t} from 'sentry/locale';
 import {formatPercentRate} from 'sentry/utils/formatters';

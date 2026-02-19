@@ -2,7 +2,8 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {generateSentryTraceHeader} from '@sentry/core';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {t} from 'sentry/locale';
 import {safeURL} from 'sentry/utils/url/safeURL';
 

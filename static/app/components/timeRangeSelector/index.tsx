@@ -3,14 +3,13 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
+import {Button} from '@sentry/scraps/button';
+import type {SelectOption, SingleSelectProps} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -60,22 +59,21 @@ export type ChangeData = {
   utc?: boolean | null;
 };
 
-export interface TimeRangeSelectorProps
-  extends Omit<
-    SingleSelectProps<string>,
-    | 'multiple'
-    | 'searchable'
-    | 'disableSearchFilter'
-    | 'options'
-    | 'hideOptions'
-    | 'value'
-    | 'clearable'
-    | 'onChange'
-    | 'onInteractOutside'
-    | 'closeOnSelect'
-    | 'onKeyDown'
-    | 'trigger'
-  > {
+export interface TimeRangeSelectorProps extends Omit<
+  SingleSelectProps<string>,
+  | 'multiple'
+  | 'searchable'
+  | 'disableSearchFilter'
+  | 'options'
+  | 'hideOptions'
+  | 'value'
+  | 'clearable'
+  | 'onChange'
+  | 'onInteractOutside'
+  | 'closeOnSelect'
+  | 'onKeyDown'
+  | 'trigger'
+> {
   /**
    * Set an optional default value to prefill absolute date with
    */
@@ -85,11 +83,6 @@ export interface TimeRangeSelectorProps
    * unclearable.
    */
   defaultPeriod?: string;
-  /**
-   * (Specific to DatePageFilter) Whether the current value is out of sync with the
-   * stored persistent value.
-   */
-  desynced?: boolean;
   /**
    * Forces the user to select from the set of defined relative options
    */
@@ -138,12 +131,7 @@ export interface TimeRangeSelectorProps
    * Start date value for absolute date selector
    */
   start?: DateString;
-  trigger?: (
-    props: TriggerProps & {
-      desynced?: boolean;
-    },
-    isOpen: boolean
-  ) => React.ReactNode;
+  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
   /**
    * Default initial value for using UTC
    */
@@ -172,7 +160,6 @@ export function TimeRangeSelector({
   menuBody,
   menuFooter,
   menuFooterMessage,
-  desynced,
   ...selectProps
 }: TimeRangeSelectorProps) {
   const router = useRouter();
@@ -376,7 +363,6 @@ export function TimeRangeSelector({
             const mergedProps = mergeProps(triggerProps, {
               'data-test-id': 'page-filter-timerange-selector',
               children: defaultLabel,
-              desynced,
             });
 
             return trigger ? (
@@ -462,7 +448,7 @@ export function TimeRangeSelector({
                           {showRelative && (
                             <Button
                               size="xs"
-                              borderless
+                              priority="transparent"
                               icon={<IconArrow direction="left" />}
                               onClick={() => setShowAbsoluteSelector(false)}
                             >
@@ -493,17 +479,11 @@ export function TimeRangeSelector({
   );
 }
 
-export function TimeRangeSelectTrigger({
-  desynced,
-  ...props
-}: TriggerProps & {
-  desynced?: boolean;
-}) {
+export function TimeRangeSelectTrigger(props: TriggerProps) {
   return (
     <OverlayTrigger.Button {...props}>
       <TriggerLabelWrap>
         <TriggerLabel>{props.children}</TriggerLabel>
-        {desynced && <DesyncedFilterIndicator />}
       </TriggerLabelWrap>
     </OverlayTrigger.Button>
   );

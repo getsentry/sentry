@@ -5,27 +5,25 @@ import requests
 from django.urls import reverse
 
 from sentry.seer.explorer.client_models import ExplorerRun
-from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cursors import Cursor
 
 
 @with_feature("organizations:seer-explorer")
+@with_feature("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-consent-flow-removal")
 class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
     endpoint = "sentry-api-0-organization-seer-explorer-runs"
 
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
         self.url = reverse(self.endpoint, args=[self.organization.slug])
         self.login_as(user=self.user)
 
-        self.seer_access_patcher = patch(
-            "sentry.seer.explorer.client_utils.has_seer_explorer_access_with_detail",
-            return_value=(True, None),
-        )
-        self.seer_access_patcher.start()
         self.client_patcher = patch(
             "sentry.seer.endpoints.organization_seer_explorer_runs.SeerExplorerClient"
         )
@@ -34,7 +32,6 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
         self.mock_client_class.return_value = self.mock_client
 
     def tearDown(self) -> None:
-        self.seer_access_patcher.stop()
         self.client_patcher.stop()
         super().tearDown()
 
@@ -247,53 +244,37 @@ class TestOrganizationSeerExplorerRunsEndpointFeatureFlags(APITestCase):
         self.login_as(user=self.user)
 
     def test_missing_gen_ai_features_flag(self) -> None:
+        """Missing gen-ai-features flag is caught by endpoint-level explorer access check"""
         with self.feature({"organizations:seer-explorer": True}):
-            with patch(
-                "sentry.seer.endpoints.organization_seer_explorer_runs.SeerExplorerClient",
-                side_effect=SeerPermissionError("Feature flag not enabled"),
-            ):
-                response = self.client.get(self.url)
-                assert response.status_code == 403
-                assert response.data == {"detail": "Feature flag not enabled"}
+            response = self.client.get(self.url)
+            assert response.status_code == 403
 
     def test_missing_seer_explorer_flag(self) -> None:
-        with self.feature({"organizations:gen-ai-features": True}):
-            with patch(
-                "sentry.seer.endpoints.organization_seer_explorer_runs.SeerExplorerClient",
-                side_effect=SeerPermissionError("Feature flag not enabled"),
-            ):
-                response = self.client.get(self.url)
-                assert response.status_code == 403
-                assert response.data == {"detail": "Feature flag not enabled"}
-
-    def test_missing_seer_acknowledgement(self) -> None:
+        """Missing seer-explorer flag is caught by endpoint-level explorer access check"""
         with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
+            {
+                "organizations:gen-ai-features": True,
+                "organizations:gen-ai-consent-flow-removal": True,
+            }
         ):
-            with patch(
-                "sentry.seer.endpoints.organization_seer_explorer_runs.SeerExplorerClient",
-                side_effect=SeerPermissionError(
-                    "Seer has not been acknowledged by the organization."
-                ),
-            ):
-                response = self.client.get(self.url)
-                assert response.status_code == 403
-                assert response.data == {
-                    "detail": "Seer has not been acknowledged by the organization."
-                }
+            self.organization.flags.allow_joinleave = True
+            self.organization.save()
+            response = self.client.get(self.url)
+            assert response.status_code == 403
 
     def test_missing_allow_joinleave_org_flag(self) -> None:
+        """Missing allow_joinleave is caught by endpoint-level explorer access check"""
         with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
+            {
+                "organizations:gen-ai-features": True,
+                "organizations:seer-explorer": True,
+                "organizations:gen-ai-consent-flow-removal": True,
+            }
         ):
-            with patch(
-                "sentry.seer.endpoints.organization_seer_explorer_runs.SeerExplorerClient",
-                side_effect=SeerPermissionError(
-                    "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
-                ),
-            ):
-                response = self.client.get(self.url)
-                assert response.status_code == 403
-                assert response.data == {
-                    "detail": "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
-                }
+            self.organization.flags.allow_joinleave = False
+            self.organization.save()
+            response = self.client.get(self.url)
+            assert response.status_code == 403
+            assert response.data == {
+                "detail": "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+            }

@@ -2,8 +2,8 @@ import type React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Input} from 'sentry/components/core/input';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Input, InputGroup} from '@sentry/scraps/input';
+
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
 import {space} from 'sentry/styles/space';

@@ -29,10 +29,9 @@ from django.core.cache import cache
 from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
-from django.test import override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -143,6 +142,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.response import is_drf_response
 from sentry.testutils.helpers.slack import install_slack
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.testutils.pytest.selenium import Browser
 from sentry.uptime.types import IncidentStatus
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
@@ -1095,9 +1095,9 @@ class SnubaTestCase(BaseTestCase):
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert (
-                False
-            ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
+            assert False, (
+                f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
+            )
 
     def build_session(self, **kwargs):
         session = {
@@ -1283,6 +1283,7 @@ class BaseSpansTestCase(SnubaTestCase):
         parent_span_id: str | None = None,
         profile_id: str | None = None,
         transaction: str | None = None,
+        name: str | None = None,
         duration: int = 10,
         exclusive_time: int = 5,
         tags: dict[str, str] | None = None,
@@ -1310,6 +1311,8 @@ class BaseSpansTestCase(SnubaTestCase):
             sentry_tags["status"] = status
         if environment is not None:
             sentry_tags["environment"] = environment
+        if name is not None:
+            sentry_tags["name"] = name
 
         payload = {
             "project_id": project_id,
@@ -2066,9 +2069,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             time.sleep(0.05)
 
         if attempt == attempts:
-            assert (
-                False
-            ), f"Could not ensure that {total} metric(s) were persisted within {attempt} attempt(s)."
+            assert False, (
+                f"Could not ensure that {total} metric(s) were persisted within {attempt} attempt(s)."
+            )
 
 
 class BaseIncidentsTest(SnubaTestCase):
@@ -2384,9 +2387,9 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
 
     def store_replays(self, replays):
-        assert (
-            len(replays) >= 2
-        ), "You need to store at least 2 replay events for the replay to be considered valid"
+        assert len(replays) >= 2, (
+            "You need to store at least 2 replay events for the replay to be considered valid"
+        )
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=replays
         )
@@ -3163,19 +3166,22 @@ class UptimeTestCaseMixin:
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
+        guid: str | None = None,
         status: CheckStatus = CHECKSTATUS_FAILURE,
         scheduled_check_time: datetime | None = None,
         uptime_region: str | None = "us-west",
     ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
+        if guid is None:
+            guid = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
         optional_fields: _OptionalCheckResult = {}
         if uptime_region is not None:
             optional_fields["region"] = uptime_region
         return {
-            "guid": uuid.uuid4().hex,
+            "guid": guid,
             "subscription_id": subscription_id,
             "status": status,
             "status_reason": {
@@ -3188,6 +3194,7 @@ class UptimeTestCaseMixin:
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
+            "assertion_failure_data": MOCK_ASSERTION_FAILURE_DATA,
             **optional_fields,
         }
 
@@ -3980,6 +3987,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
         send_request_duration_us=None,
         receive_response_duration_us=None,
         request_body_size_bytes=None,
+        assertion_failure_data=None,
         response_body_size_bytes=None,
         status_reason_type=None,
         status_reason_description=None,
@@ -4019,6 +4027,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
             "check_duration_us": check_duration_us,
             "request_duration_us": request_duration_us,
             "span_id": span_id,
+            "assertion_failure_data": assertion_failure_data,
         }
 
         if check_id is not None:
@@ -4043,6 +4052,8 @@ class UptimeResultEAPTestCase(BaseTestCase):
         if status_reason_description is not None:
             attributes_data["status_reason_description"] = status_reason_description
 
+        if assertion_failure_data is not None:
+            attributes_data["assertion_failure_data"] = json.dumps(assertion_failure_data)
         if incident_status is not None:
             attributes_data["incident_status"] = incident_status.value
 

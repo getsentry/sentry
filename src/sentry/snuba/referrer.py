@@ -316,12 +316,12 @@ class Referrer(StrEnum):
     API_INSIGHTS_MOBILE_SPAN_TABLE = "api.insights.mobile-span-table"
     API_INSIGHTS_MOBILE_LANDING_TABLE = "api.insights.mobile.landing-table"
 
-    # Service Entry Spans
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE = "api.insights.service-entry-spans-table"
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_WITH_CATEGORY = (
-        "api.insights.service-entry-spans-table-with-category"
+    # Segment Spans
+    API_INSIGHTS_SEGMENT_SPANS_TABLE = "api.insights.segment-spans-table"
+    API_INSIGHTS_SEGMENT_SPANS_TABLE_WITH_CATEGORY = (
+        "api.insights.segment-spans-table-with-category"
     )
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_COUNT = "api.insights.service-entry-spans-table-count"
+    API_INSIGHTS_SEGMENT_SPANS_TABLE_COUNT = "api.insights.segment-spans-table-count"
 
     # Trace Panel
     API_INSIGHTS_TRACE_PANEL_LEFT_TRACE_LINK = "api.insights.trace-panel-left-trace-link"
@@ -659,12 +659,6 @@ class Referrer(StrEnum):
     EXPORT_EVENTS = "export-events"
     FETCH_EVENTS_FOR_DELETION = "fetch_events_for_deletion"
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
-    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_CONDITIONS = (
-        "getsentry.promotion.mobile_performance_adoption.check_conditions"
-    )
-    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
-        "getsentry.promotion.mobile_performance_adoption.check_eligible"
-    )
     GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
     GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
@@ -687,6 +681,7 @@ class Referrer(StrEnum):
     ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS = "issues.suspect_tags.query_error_counts"
     ISSUES_LLM_ISSUE_DETECTION_TRANSACTION = "issues.llm_issue_detection.transaction"
     ISSUES_LLM_ISSUE_DETECTION_TRACE = "issues.llm_issue_detection.trace"
+    ISSUES_LLM_ISSUE_DETECTION_SPAN_COUNT = "issues.llm_issue_detection.span_count"
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"

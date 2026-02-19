@@ -52,6 +52,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_simple(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
@@ -71,6 +72,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_includes_roles_and_permissions(self) -> None:
         self.add_user_permission(self.superuser, "users.admin")
         self.login_as(user=self.superuser, superuser=True)
@@ -87,6 +89,7 @@ class UserDetailsGetTest(UserDetailsTest):
         resp = self.get_success_response(self.superuser.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
+    @override_options({"staff.ga-rollout": True})
     def test_staff_includes_roles_and_permissions(self) -> None:
         self.add_user_permission(self.staff_user, "users.admin")
         self.login_as(user=self.staff_user, staff=True)
@@ -208,8 +211,23 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
 
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_user_cannot_elevate_when_superuser_org_not_configured(self) -> None:
+        """Verify users cannot elevate when SUPERUSER_ORG_ID is None (not configured)"""
+        from sentry.users.api.endpoints.user_details import user_can_elevate
+
+        # SUPERUSER_ORG_ID defaults to None, don't override it
+        # Even if user is in org 1, they can't elevate without SUPERUSER_ORG_ID configured
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = self.create_organization(id=1, name="Default Org")
+            self.create_member(user=self.user, organization=org)
+
+        # user_can_elevate should return False when SUPERUSER_ORG_ID is None
+        assert not user_can_elevate(self.user)
+
 
 @control_silo_test
+@override_options({"staff.ga-rollout": False})
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -500,7 +518,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert user.name == "New Name"
         assert user.username == "newemail@example.com"
 
-    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=1)
     def test_superuser_with_permission_can_remove_superuser(self) -> None:
         """Test that superuser with permission can remove superuser status"""
         # Add user to org 1 so they pass the user_can_elevate check
@@ -521,7 +539,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_superuser
 
-    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=1)
     def test_superuser_with_permission_can_remove_staff(self) -> None:
         """Test that superuser with permission can remove staff status"""
         # Add user to org 1 so they pass the user_can_elevate check
@@ -544,6 +562,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
 
 @control_silo_test
+@override_options({"staff.ga-rollout": True})
 class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -761,6 +780,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
 class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
     method = "delete"
 
+    @override_options({"staff.ga-rollout": True})
     def test_close_account(self) -> None:
         org_single_owner = self.create_organization(name="A", owner=self.user)
         user2 = self.create_user(email="user2@example.com")
@@ -812,6 +832,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
+    @override_options({"staff.ga-rollout": True})
     def test_close_account_no_orgs(self) -> None:
         org_single_owner = self.create_organization(name="A", owner=self.user)
         user2 = self.create_user(email="user2@example.com")
@@ -858,10 +879,12 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
+    @override_options({"staff.ga-rollout": True})
     def test_cannot_hard_delete_self(self) -> None:
         # Cannot hard delete your own account
         self.get_error_response(self.user.id, hardDelete=True, organizations=[], status_code=403)
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_hard_delete_account_without_permission(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")
@@ -887,6 +910,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_hard_delete_account_with_permission(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")
@@ -909,8 +933,8 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert not User.objects.filter(id=user2.id).exists()
 
     @override_options({"staff.ga-rollout": True})
-    def test_superuser_cannot_hard_delete_with_active_option(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+    def test_staff_cannot_hard_delete_with_active_option(self) -> None:
+        self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
 
         # Add users.admin permission to superuser
@@ -924,3 +948,23 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
 
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
+
+    @override_options({"staff.ga-rollout": True})
+    def test_deactivation_deletes_auth_identities(self) -> None:
+        from sentry.models.authidentity import AuthIdentity
+        from sentry.models.authprovider import AuthProvider
+
+        auth_provider = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
+        auth_identity = AuthIdentity.objects.create(
+            user=self.user,
+            auth_provider=auth_provider,
+            ident="test-ident",
+        )
+
+        self.get_success_response(self.user.id, organizations=[], status_code=204)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
+        assert not AuthIdentity.objects.filter(id=auth_identity.id).exists()

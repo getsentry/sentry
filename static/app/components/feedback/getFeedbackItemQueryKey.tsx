@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -13,7 +14,9 @@ export default function getFeedbackItemQueryKey({feedbackId, organization}: Prop
   return {
     issueQueryKey: feedbackId
       ? [
-          `/organizations/${organization.slug}/issues/${feedbackId}/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+            path: {organizationIdOrSlug: organization.slug, issueId: feedbackId},
+          }),
           {
             query: {
               collapse: ['release', 'tags'],
@@ -22,7 +25,18 @@ export default function getFeedbackItemQueryKey({feedbackId, organization}: Prop
         ]
       : undefined,
     eventQueryKey: feedbackId
-      ? [`/organizations/${organization.slug}/issues/${feedbackId}/events/latest/`]
+      ? [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                issueId: feedbackId,
+                eventId: 'latest',
+              },
+            }
+          ),
+        ]
       : undefined,
   };
 }

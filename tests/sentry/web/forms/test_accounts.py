@@ -24,9 +24,9 @@ def test_sets_user_timezone_when_present() -> None:
 
     user = form.save(commit=True)
 
-    assert UserOption.objects.filter(
-        user=user, key="timezone", value="Europe/Vienna"
-    ).exists(), "Timezone should be set correctly"
+    assert UserOption.objects.filter(user=user, key="timezone", value="Europe/Vienna").exists(), (
+        "Timezone should be set correctly"
+    )
 
 
 @no_silo_test
@@ -44,6 +44,6 @@ def test_registration_form_without_timezone() -> None:
 
     user = form.save(commit=True)
 
-    assert not UserOption.objects.filter(
-        user=user, key="timezone"
-    ).exists(), "Timezone should not be set"
+    assert not UserOption.objects.filter(user=user, key="timezone").exists(), (
+        "Timezone should not be set"
+    )

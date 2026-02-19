@@ -433,7 +433,7 @@ describe('BuildDetails', () => {
       });
 
       expect(
-        await screen.findByText("You've exceeded your size analysis quota.")
+        await screen.findByText(/You've exceeded your Size Analysis quota/)
       ).toBeInTheDocument();
     });
 
@@ -472,7 +472,7 @@ describe('BuildDetails', () => {
       });
 
       expect(
-        await screen.findByText("You've exceeded your build distribution quota.")
+        await screen.findByText(/You've exceeded your Build Distribution quota/)
       ).toBeInTheDocument();
     });
 
@@ -512,7 +512,7 @@ describe('BuildDetails', () => {
 
       expect(
         await screen.findByText(
-          "You've exceeded your size analysis and build distribution quota."
+          /You've exceeded your Size Analysis and Build Distribution quota/
         )
       ).toBeInTheDocument();
     });

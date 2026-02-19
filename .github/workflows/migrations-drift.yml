@@ -51,7 +51,7 @@ jobs:
         run: make apply-migrations
 
       - name: capture database schema before
-        run: docker exec sentry-postgres-1 bash -c 'pg_dumpall -U postgres -s' > schema-before
+        run: docker exec postgres-postgres-1 bash -c 'pg_dumpall -U postgres -s' > schema-before
 
       - name: clear db
         run: make drop-db create-db
@@ -65,7 +65,7 @@ jobs:
         run: make drop-db apply-migrations
 
       - name: capture database schema after
-        run: docker exec sentry-postgres-1 bash -c 'pg_dumpall -U postgres -s' > schema-after
+        run: docker exec postgres-postgres-1 bash -c 'pg_dumpall -U postgres -s' > schema-after
 
       - name: compare schema
         run: python3 -um tools.migrations.compare --color schema-before schema-after

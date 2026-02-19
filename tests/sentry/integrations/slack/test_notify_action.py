@@ -2,7 +2,6 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import orjson
-import pytest
 import responses
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web.slack_response import SlackResponse
@@ -20,7 +19,6 @@ from sentry.testutils.helpers.analytics import (
     assert_any_analytics_event,
     assert_last_analytics_event,
 )
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import Action
@@ -34,15 +32,6 @@ pytestmark = [requires_snuba]
 
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
-
-    @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
-        with override_options(
-            {
-                "workflow_engine.issue_alert.group.type_id.ga": [1],
-            }
-        ):
-            yield
 
     def mock_list(self, list_type, channels, result_name="channels"):
         return mock_slack_response(f"{list_type}_list", body={"ok": True, result_name: channels})

@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
 
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -116,7 +116,7 @@ export function IssueViewItem({
         to={constructViewLink(baseUrl, view)}
         isActive={isActive}
         leadingItems={
-          <LeadingItemsWrapper>
+          <Flex justify="center" align="center" position="relative">
             <GrabHandleWrapper
               data-drag-icon
               onPointerDown={e => {
@@ -136,7 +136,7 @@ export function IssueViewItem({
               projectPlatforms={projectPlatforms}
               allProjects={view.projects.length === 1 && view.projects[0] === -1}
             />
-          </LeadingItemsWrapper>
+          </Flex>
         }
         trailingItems={
           <Flex align="center">
@@ -260,13 +260,6 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   height: 10px;
   top: -3px;
   right: -3px;
-`;
-
-const LeadingItemsWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const GrabHandleWrapper = styled(motion.div)`

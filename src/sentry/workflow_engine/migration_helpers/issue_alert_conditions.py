@@ -185,6 +185,12 @@ def create_issue_category_data_condition(
     comparison = {
         "value": int(data["value"]),
     }
+    include_data = data.get("include")
+    if include_data is not None:
+        if isinstance(include_data, bool):
+            comparison["include"] = include_data
+        else:
+            comparison["include"] = include_data != "false"
 
     return DataConditionKwargs(
         type=Condition.ISSUE_CATEGORY,

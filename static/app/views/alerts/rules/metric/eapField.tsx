@@ -2,9 +2,10 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Select} from 'sentry/components/core/select';
+import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
@@ -85,12 +86,13 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
 
   const {attributes: storedNumberTags} = useTraceItemAttributes('number');
   const {attributes: storedStringTags} = useTraceItemAttributes('string');
+  const {attributes: storedBooleanTags} = useTraceItemAttributes('boolean');
 
   const storedTags = useMemo(() => {
     return aggregation === AggregationKey.COUNT_UNIQUE
-      ? {...storedNumberTags, ...storedStringTags}
+      ? {...storedNumberTags, ...storedStringTags, ...storedBooleanTags}
       : storedNumberTags;
-  }, [aggregation, storedNumberTags, storedStringTags]);
+  }, [aggregation, storedBooleanTags, storedNumberTags, storedStringTags]);
 
   const fieldsArray = useMemo(() => {
     return Object.values(storedTags).toSorted((a, b) => {
@@ -228,7 +230,7 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
     : undefined;
 
   return (
-    <Wrapper>
+    <Flex gap="md">
       <StyledSelectControl
         searchable
         placeholder={t('Select an operation')}
@@ -302,16 +304,11 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
           />
         </FlexWrapper>
       )}
-    </Wrapper>
+    </Flex>
   );
 }
 
 export default EAPFieldWrapper;
-
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 const FlexWrapper = styled('div')`
   flex: 1;

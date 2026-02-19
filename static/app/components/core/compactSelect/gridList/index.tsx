@@ -5,23 +5,25 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {ControlContext} from '@sentry/scraps/compactSelect/control';
-
-import {SelectFilterContext} from 'sentry/components/core/compactSelect/list';
 import {
+  ControlContext,
   ListLabel,
   ListSeparator,
   ListWrap,
+  SelectFilterContext,
   SizeLimitMessage,
-} from 'sentry/components/core/compactSelect/styles';
-import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
+  type SelectKey,
+  type SelectSection,
+} from '@sentry/scraps/compactSelect';
+
 import {t} from 'sentry/locale';
 
 import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';
 
 interface GridListProps
-  extends Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
+  extends
+    Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
     Omit<
       AriaGridListOptions<any>,
       | 'disabledKeys'
@@ -98,7 +100,7 @@ function GridList({
     }
   };
 
-  const {overlayIsOpen, search} = useContext(ControlContext);
+  const {overlayIsOpen, searchable} = useContext(ControlContext);
   const hiddenOptions = useContext(SelectFilterContext);
   const listItems = useMemo(
     () =>
@@ -141,7 +143,7 @@ function GridList({
             );
           })}
 
-          {!search && hiddenOptions.size > 0 && (
+          {!searchable && hiddenOptions.size > 0 && (
             <SizeLimitMessage>
               {sizeLimitMessage ?? t('Use search to find more options…')}
             </SizeLimitMessage>

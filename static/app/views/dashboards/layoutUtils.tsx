@@ -7,8 +7,8 @@ import zip from 'lodash/zip';
 
 import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
+import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 
-import {NUM_DESKTOP_COLS} from './dashboard';
 import type {Widget, WidgetLayout} from './types';
 import {DisplayType} from './types';
 

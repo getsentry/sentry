@@ -1,16 +1,17 @@
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {TabList} from '@sentry/scraps/tabs';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {TabList} from 'sentry/components/core/tabs';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
@@ -57,14 +58,13 @@ function AlertHeader({activeTab}: Props) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <CreateAlertButton
             organization={organization}
             iconProps={{size: 'sm'}}
             size="sm"
             priority="primary"
             referrer="alert_stream"
-            showPermissionGuide
             projectSlug={
               selection.projects.length === 1
                 ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
@@ -81,7 +81,7 @@ function AlertHeader({activeTab}: Props) {
             icon={<IconSettings size="sm" />}
             aria-label={t('Settings')}
           />
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
       <Layout.HeaderTabs value={activeTab}>
         <TabList>

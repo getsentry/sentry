@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {
   getArtifactsFromBlocks,
   useExplorerAutofix,
@@ -28,25 +30,26 @@ import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSecti
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {SeerSectionCtaButton} from './seerSectionCtaButton';
 
 function SeerWelcomeEntrypoint() {
   return (
     <WelcomeContainer>
-      <WelcomeTextContainer>
+      <Stack gap="sm">
         <Text>{t('Meet Seer, the AI debugging agent.')}</Text>
-      </WelcomeTextContainer>
+      </Stack>
       <WelcomeImageContainer>
         <img src={autofixSetupImg} alt="Seer AI debugging agent" />
       </WelcomeImageContainer>
-      <WelcomeTextContainer>
+      <Stack gap="sm">
         <Text>
           {t(
             'Find the root cause of the issue, and even open a PR to fix it, in minutes.'
           )}
         </Text>
-      </WelcomeTextContainer>
+      </Stack>
     </WelcomeContainer>
   );
 }
@@ -115,10 +118,11 @@ export default function SeerSection({
     !issueTypeConfig.autofix && !issueTypeConfig.issueSummary;
 
   const organization = useOrganization();
-  const removeConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
-  const isExplorerEnabled = organization.features.includes('seer-explorer');
+  const isExplorerEnabled =
+    isSeerExplorerEnabled(organization) &&
+    organization.features.includes('autofix-on-explorer');
 
-  // Get explorer artifacts when autofix on explorer is enabled
+  // Get explorer artifacts when autofix-on-explorer is enabled
   const {runState: explorerRunState} = useExplorerAutofix(group.id, {
     enabled: isExplorerEnabled,
   });
@@ -160,11 +164,7 @@ export default function SeerSection({
   // Determine what content to show in the section body
   const renderSectionContent = () => {
     // Welcome entrypoint for orgs that need consent
-    if (
-      (aiConfig.orgNeedsGenAiAcknowledgement ||
-        (!removeConsentFlow && !aiConfig.hasAutofixQuota)) &&
-      !aiConfig.isAutofixSetupLoading
-    ) {
+    if (aiConfig.orgNeedsGenAiAcknowledgement && !aiConfig.isAutofixSetupLoading) {
       return <SeerWelcomeEntrypoint />;
     }
 
@@ -220,7 +220,7 @@ export default function SeerSection({
       sectionKey={SectionKey.SEER}
       preventCollapse={!hasStreamlinedUI}
     >
-      <SeerSectionContainer>
+      <Stack>
         {renderSectionContent()}
         {event &&
           showCtaButton &&
@@ -241,15 +241,10 @@ export default function SeerSection({
               hasStreamlinedUI={hasStreamlinedUI}
             />
           ))}
-      </SeerSectionContainer>
+      </Stack>
     </SidebarFoldSection>
   );
 }
-
-const SeerSectionContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const Summary = styled('div')`
   margin-bottom: ${space(0.5)};
@@ -319,10 +314,4 @@ const WelcomeImageContainer = styled('div')`
     max-width: 100%;
     height: auto;
   }
-`;
-
-const WelcomeTextContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
 `;

@@ -2,6 +2,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './index';
 
 describe('gcpfunctions onboarding docs', () => {
@@ -12,6 +14,7 @@ describe('gcpfunctions onboarding docs', () => {
           version: '1.99.9',
         },
       },
+      selectedProducts: [ProductSolution.LOGS, ProductSolution.METRICS],
     });
 
     // Renders main headings
@@ -34,6 +37,16 @@ describe('gcpfunctions onboarding docs', () => {
           /<PackageReference Include="Sentry\.Google\.Cloud\.Functions" Version="1\.99\.9"\/>/
         )
       )
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/EnableLogs/))
     ).toBeInTheDocument();
   });
 });
