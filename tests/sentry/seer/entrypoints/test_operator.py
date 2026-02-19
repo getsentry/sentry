@@ -45,7 +45,6 @@ class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
         return True
 
     def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
-        # def on_trigger_autofix_already_exists(self, *, state: AutofixState, step_state: dict) -> None:
         self.autofix_already_exists_states.append((run_id, has_complete_stage))
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
