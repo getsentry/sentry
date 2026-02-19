@@ -170,7 +170,7 @@ class RpcTentativeResult(RpcModel):
     error_str: str | None
     result: str | None
 
-class DatabaseBackedMyuService(MyService):
+class DatabaseBackedMyService(MyService):
     def foobar(self, *, organization_id: int) -> RpcTentativeResult
         try:
             some_function_call()
