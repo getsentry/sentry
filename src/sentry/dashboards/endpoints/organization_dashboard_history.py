@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -133,16 +134,16 @@ class DashboardRestoreEndpoint(OrganizationDashboardBase):
                 status=400,
             )
 
-        # Capture current state before restoring so restore is undoable
-        capture_dashboard_snapshot(
-            dashboard, user_id=request.user.id, source=DashboardHistorySource.RESTORE
-        )
+        with transaction.atomic(router.db_for_write(Dashboard)):
+            capture_dashboard_snapshot(
+                dashboard, user_id=request.user.id, source=DashboardHistorySource.RESTORE
+            )
 
-        restored = restore_dashboard_from_snapshot(
-            dashboard=dashboard,
-            snapshot=history.snapshot,
-            organization=organization,
-            request=request,
-        )
+            restored = restore_dashboard_from_snapshot(
+                dashboard=dashboard,
+                snapshot=history.snapshot,
+                organization=organization,
+                request=request,
+            )
 
         return Response(serialize(restored, request.user), status=200)

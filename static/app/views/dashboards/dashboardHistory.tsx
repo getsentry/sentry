@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -119,16 +120,20 @@ function DashboardHistoryDrawerContent({
 
   return (
     <Fragment>
-      <DrawerHeader>{t('Dashboard History')}</DrawerHeader>
+      <DrawerHeader>
+        <Flex align="center" justify="center">
+          {t('Dashboard History')}
+        </Flex>
+      </DrawerHeader>
       <DrawerBody>
         {isLoading ? (
           <LoadingIndicator />
         ) : history.length === 0 ? (
-          <EmptyMessage>
+          <p>
             {t(
               'No history entries yet. History is recorded when the dashboard is edited.'
             )}
-          </EmptyMessage>
+          </p>
         ) : (
           <HistoryList>
             {history.map(entry => (
@@ -169,10 +174,6 @@ function DashboardHistoryDrawerContent({
   );
 }
 
-const EmptyMessage = styled('p')`
-  color: ${p => p.theme.subText};
-`;
-
 const HistoryList = styled('ul')`
   list-style: none;
   padding: 0;
@@ -184,7 +185,7 @@ const HistoryItem = styled('li')`
   align-items: center;
   justify-content: space-between;
   padding: ${space(1.5)} 0;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   &:last-child {
     border-bottom: none;
@@ -205,13 +206,13 @@ const HistoryTitleRow = styled('div')`
 `;
 
 const HistoryTitle = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
 const HistoryMeta = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;

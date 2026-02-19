@@ -196,10 +196,10 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         try:
-            if isinstance(dashboard, Dashboard):
-                capture_dashboard_snapshot(dashboard, user_id=request.user.id)
-
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
+                if isinstance(dashboard, Dashboard):
+                    capture_dashboard_snapshot(dashboard, user_id=request.user.id)
+
                 serializer.save()
                 if tombstone:
                     DashboardTombstone.objects.get_or_create(
