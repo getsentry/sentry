@@ -508,10 +508,10 @@ def pytest_runtest_makereport(
     report = outcome.get_result()
     # When running shuffled tests with --exitfirst, record the first failing
     # test ID so the CI workflow can pass it to detect-test-pollution.
-    if report.failed and report.when == "call":
-        if os.environ.get("SENTRY_SHUFFLE_TESTS") and not os.path.exists("/tmp/failing-testid"):
-            with open("/tmp/failing-testid", "w") as f:
-                f.write(item.nodeid)
+    if os.environ.get("SENTRY_SHUFFLE_TESTS") and report.failed:
+        print(f"writing {item.nodeid} to /tmp/failing-testid")
+        with open("/tmp/failing-testid", "w") as f:
+            f.write(item.nodeid)
 
 
 def pytest_xdist_setupnodes() -> None:

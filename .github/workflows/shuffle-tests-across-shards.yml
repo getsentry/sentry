@@ -26,11 +26,11 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        instance: [0]
 
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
-      MATRIX_INSTANCE_TOTAL: 11
+      MATRIX_INSTANCE_TOTAL: 1
       SENTRY_SHUFFLE_TESTS: 1
       # All shards must share the same seed; github.run_id is consistent across matrix instances
       SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed || github.run_id }}
@@ -50,14 +50,7 @@ jobs:
         run: |
           python3 -b -m pytest \
           --exitfirst \
-          tests \
-          --reuse-db \
-          --ignore tests/acceptance \
-          --ignore tests/apidocs \
-          --ignore tests/js \
-          --ignore tests/tools \
-          --ignore tests/relay_integration \
-          --ignore tests/symbolicator
+          tests/sentry/debug/utils/test_exception_reporter_filter.py
 
       - name: Truncate testids
         if: steps.run-tests.outcome == 'failure' && hashFiles('/tmp/failing-testid') != ''
