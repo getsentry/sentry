@@ -9,16 +9,18 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {organizationSeerOnboardingCheckOptions} from 'sentry/utils/endpoints/organizationSeerOnboardingCheck';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import useOrganization from 'sentry/utils/useOrganization';
-import {seerOnboardingCheckOptions} from 'sentry/utils/useSeerOnboardingCheck';
 
 export default function SeerWizardSetupBanner() {
   const organization = useOrganization();
   const theme = useInvertedTheme();
 
-  const {data, isPending, isError} = useQuery(seerOnboardingCheckOptions(organization));
+  const {data, isPending, isError} = useQuery(
+    organizationSeerOnboardingCheckOptions(organization)
+  );
 
   if (isPending || isError) {
     return null;

@@ -30,12 +30,13 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {organizationSeerOnboardingCheckOptions} from 'sentry/utils/endpoints/organizationSeerOnboardingCheck';
 import {getShortEventId} from 'sentry/utils/events';
+import {useQuery} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
@@ -88,7 +89,9 @@ function WelcomeScreen({
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
-  const {isPending, data} = useSeerOnboardingCheck();
+  const {data, isPending} = useQuery(
+    organizationSeerOnboardingCheckOptions(organization)
+  );
 
   const seatBasedSeer = organization.features.includes('seat-based-seer-enabled');
 

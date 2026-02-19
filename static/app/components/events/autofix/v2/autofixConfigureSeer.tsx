@@ -18,9 +18,10 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {organizationSeerOnboardingCheckOptions} from 'sentry/utils/endpoints/organizationSeerOnboardingCheck';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
 interface AutofixConfigureSeerProps {
   event: Event;
@@ -30,7 +31,10 @@ interface AutofixConfigureSeerProps {
 
 export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSeerProps) {
   const organization = useOrganization();
-  const {data: setupCheck} = useSeerOnboardingCheck();
+
+  const {data: setupCheck} = useQuery(
+    organizationSeerOnboardingCheckOptions(organization)
+  );
   const {data, isPending, isError} = useGroupSummary(group, event, project);
 
   const orgNeedsToConfigureSeer =

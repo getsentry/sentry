@@ -9,8 +9,9 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
+import {organizationSeerOnboardingCheckOptions} from 'sentry/utils/endpoints/organizationSeerOnboardingCheck';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
+import {useQuery} from 'sentry/utils/queryClient';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -146,7 +147,8 @@ function ProductBreakdownPanel({
   // TODO(billing): if we ever show the setup state for other products, this will need refactoring
   // maybe a billing hook for setup checks
   const shouldCheckSetup = selectedProduct === AddOnCategory.SEER && isEnabled;
-  const {data: setupCheck, isLoading: setupCheckLoading} = useSeerOnboardingCheck({
+  const {data: setupCheck, isLoading: setupCheckLoading} = useQuery({
+    ...organizationSeerOnboardingCheckOptions(organization),
     enabled: shouldCheckSetup,
     staleTime: 60_000,
   });

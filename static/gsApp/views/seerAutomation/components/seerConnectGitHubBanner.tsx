@@ -8,16 +8,21 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {organizationSeerOnboardingCheckOptions} from 'sentry/utils/endpoints/organizationSeerOnboardingCheck';
+import {useQuery} from 'sentry/utils/queryClient';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {GithubButton} from 'getsentry/views/seerAutomation/onboarding/githubButton';
 import {SeerOnboardingProvider} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 
 export default function SeerConnectGitHubBanner() {
+  const organization = useOrganization();
   const theme = useInvertedTheme();
 
-  const {data, isFetched, isError} = useSeerOnboardingCheck();
+  const {data, isFetched, isError} = useQuery(
+    organizationSeerOnboardingCheckOptions(organization)
+  );
 
   const handleAddIntegration = useCallback(() => {
     window.location.reload();

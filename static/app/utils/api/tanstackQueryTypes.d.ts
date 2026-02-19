@@ -4,20 +4,17 @@
  * being used as query keys — only branded ApiUrl values (from getApiUrl()) are
  * accepted.
  *
- * Types are defined inline to avoid circular imports through the augmentation
- * chain (this file → queryKey types → getApiUrl → @tanstack/react-query →
- * @tanstack/query-core).
- *
  * See: ApiQueryKey and InfiniteApiQueryKey in sentry/utils/queryClient.tsx
  */
-declare module '@tanstack/query-core' {
-  import type {ApiUrl} from 'sentry/utils/api/getApiUrl';
-  import type {
-    ApiQueryKey,
-    InfiniteApiQueryKey,
-    SentryQueryKeyOptions,
-  } from 'sentry/utils/queryClient';
 
+import type {ApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {
+  ApiQueryKey,
+  InfiniteApiQueryKey,
+  SentryQueryKeyOptions,
+} from 'sentry/utils/queryClient';
+
+declare module '@tanstack/query-core' {
   interface Register {
     queryKey: readonly unknown[] | ApiQueryKey | InfiniteApiQueryKey;
   }

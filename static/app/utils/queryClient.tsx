@@ -15,7 +15,7 @@ import type {
   ApiQueryKey,
   InfiniteApiQueryKey,
   QueryKeyEndpointOptions,
-} from 'sentry/utils/api/queryKey';
+} from 'sentry/utils/api/apiQueryKey';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
@@ -204,7 +204,7 @@ export function setApiQueryData<TResponseData>(
 ): TResponseData | undefined {
   const updateResult = queryClient.setQueryData<ApiResult<TResponseData>>(
     queryKey,
-    previous => {
+    (previous: undefined | ApiResult<TResponseData>) => {
       const [prevData, prevStatusText, prevResponse] = previous ?? [
         undefined,
         undefined,

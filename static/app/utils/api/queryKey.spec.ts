@@ -1,7 +1,7 @@
 import {skipToken} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
 
-import {getQueryKey} from 'sentry/utils/api/queryKey';
+import {getQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 describe('getQueryKey', () => {

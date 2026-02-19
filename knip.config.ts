@@ -44,11 +44,14 @@ const storyBookEntryPoints = [
   'static/**/*.mdx',
 ];
 
+const typedefEntryPoints = ['*.d.ts', '*.d.tsx'];
+
 const config: KnipConfig = {
   entry: [
     ...productionEntryPoints.map(entry => `${entry}!`),
     ...testingEntryPoints,
     ...storyBookEntryPoints,
+    ...typedefEntryPoints,
     'static/eslint/**/index.mjs',
     // figma code connect files - consumed by Figma CLI
     'static/**/*.figma.{tsx,jsx}',
