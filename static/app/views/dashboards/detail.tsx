@@ -1313,13 +1313,7 @@ class DashboardDetail extends Component<Props, State> {
                                       useTimeseriesVisualization={
                                         useTimeseriesVisualization
                                       }
-                                      widgetInterval={
-                                        organization.features.includes(
-                                          'dashboards-interval-selection'
-                                        )
-                                          ? this.props.validatedWidgetInterval
-                                          : undefined
-                                      }
+                                      widgetInterval={this.props.validatedWidgetInterval}
                                     />
                                   </WidgetQueryQueueProvider>
 
