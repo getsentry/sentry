@@ -16,6 +16,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
@@ -41,7 +42,9 @@ export function WidgetBuilderXAxisSelector() {
   // Only use string tags for categorical X-axis (numeric values don't make good
   // categories). This has a major caveat that _some_ numerical tags like HTTP
   // response status _are_ good for grouping, so we may want to allow that.
+  const traceItemConfig = useWidgetBuilderTraceItemConfig();
   const {tags: stringSpanTags, isLoading: isLoadingSpanTags} = useTraceItemTags(
+    traceItemConfig,
     'string',
     hiddenKeys
   );

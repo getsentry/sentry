@@ -13,6 +13,7 @@ import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/co
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
@@ -37,9 +38,14 @@ function WidgetBuilderGroupBySelector({
   } else if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
     hiddenKeys = HIDDEN_PREPROD_ATTRIBUTES;
   }
-  const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
-  const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
-  const {tags: booleanSpanTags} = useTraceItemTags('boolean', hiddenKeys);
+  const traceItemConfig = useWidgetBuilderTraceItemConfig();
+  const {tags: numericSpanTags} = useTraceItemTags(traceItemConfig, 'number', hiddenKeys);
+  const {tags: stringSpanTags} = useTraceItemTags(traceItemConfig, 'string', hiddenKeys);
+  const {tags: booleanSpanTags} = useTraceItemTags(
+    traceItemConfig,
+    'boolean',
+    hiddenKeys
+  );
 
   const groupByOptions = useMemo(() => {
     const datasetConfig = getDatasetConfig(state.dataset);

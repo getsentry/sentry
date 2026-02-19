@@ -23,6 +23,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {
   getResultsLimit,
   SortDirection,
@@ -45,9 +46,14 @@ function WidgetBuilderSortBySelector() {
   if (state.dataset === WidgetType.TRACEMETRICS) {
     hiddenKeys = HiddenTraceMetricGroupByFields;
   }
-  const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
-  const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
-  const {tags: booleanSpanTags} = useTraceItemTags('boolean', hiddenKeys);
+  const traceItemConfig = useWidgetBuilderTraceItemConfig();
+  const {tags: numericSpanTags} = useTraceItemTags(traceItemConfig, 'number', hiddenKeys);
+  const {tags: stringSpanTags} = useTraceItemTags(traceItemConfig, 'string', hiddenKeys);
+  const {tags: booleanSpanTags} = useTraceItemTags(
+    traceItemConfig,
+    'boolean',
+    hiddenKeys
+  );
 
   if (
     state.dataset === WidgetType.SPANS ||

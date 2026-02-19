@@ -9,6 +9,7 @@ import {
   FieldKind,
   getFieldDefinition,
 } from 'sentry/utils/fields';
+import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 
@@ -19,9 +20,10 @@ type Props = {
 
 export function ExploreArithmeticBuilder({equation, onUpdate}: Props) {
   const expression = stripEquationPrefix(equation);
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+  const traceItemConfig = useWidgetBuilderTraceItemConfig();
+  const {tags: numberTags} = useTraceItemTags(traceItemConfig, 'number');
+  const {tags: stringTags} = useTraceItemTags(traceItemConfig, 'string');
+  const {tags: booleanTags} = useTraceItemTags(traceItemConfig, 'boolean');
 
   const functionArguments: FunctionArgument[] = useMemo(() => {
     return [
