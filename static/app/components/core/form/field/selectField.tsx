@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useRef, type ComponentProps, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
@@ -14,6 +14,7 @@ function SelectInput({
   selectProps,
   ...props
 }: React.ComponentProps<typeof components.Input> & {
+  ref: Ref<{input: HTMLInputElement}>;
   selectProps: {'aria-invalid': boolean};
 }) {
   return <components.Input {...props} aria-invalid={selectProps['aria-invalid']} />;
@@ -72,6 +73,21 @@ export type SelectFieldProps<TValue = string> =
   | SingleClearableSelectFieldProps<TValue>
   | MultipleSelectFieldProps<TValue>;
 
+// HACK: react-select types are bad, ref is a custom StateManager
+// This converts the `ref` value of SelectInput into a format
+// that works for BaseField, which expects `fieldProps.ref: Ref<HTMLElement>`
+const applyInputToRef =
+  (ref: Ref<HTMLElement>) =>
+  (instance: null | {input: HTMLInputElement}): void => {
+    if (instance) {
+      if (typeof ref === 'function') {
+        ref(instance.input);
+      } else if (ref) {
+        ref.current = instance.input;
+      }
+    }
+  };
+
 export function SelectField<TValue = string>({
   onChange,
   disabled,
@@ -93,14 +109,15 @@ export function SelectField<TValue = string>({
           <Select
             {...fieldProps}
             {...props}
-            innerRef={ref}
             inputId={id}
             disabled={isDisabled}
             multiple={multiple}
             value={value}
             components={{
               ...props.components,
-              Input: SelectInput,
+              Input: (p: ComponentProps<typeof SelectInput>) => (
+                <SelectInput {...p} ref={applyInputToRef(ref)} />
+              ),
               IndicatorsContainer: SelectIndicatorsContainer,
             }}
             onMenuOpen={() => {
