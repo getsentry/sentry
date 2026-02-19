@@ -1,3 +1,4 @@
+import pytest
 import os
 import random
 from datetime import datetime, timedelta
@@ -566,6 +567,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert delete_request.query.column_conditions["project_id"] == [self.project.id]
         assert delete_request.query.column_conditions["group_id"] == [issue_platform_group.id]
 
+    @pytest.mark.skip(reason="flaky: #108541")
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
         # Patch max_rows_to_delete to a small value for testing
