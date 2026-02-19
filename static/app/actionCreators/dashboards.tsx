@@ -314,40 +314,6 @@ export type DashboardHistoryEntry = {
   widgetCount: number;
 };
 
-export function fetchDashboardHistory(
-  api: Client,
-  orgSlug: string,
-  dashboardId: string
-): Promise<DashboardHistoryEntry[]> {
-  const promise: Promise<DashboardHistoryEntry[]> = api.requestPromise(
-    `/organizations/${orgSlug}/dashboards/${dashboardId}/history/`
-  );
-
-  promise.catch(() => {
-    addErrorMessage(t('Unable to load dashboard history'));
-  });
-
-  return promise;
-}
-
-export function restoreDashboardSnapshot(
-  api: Client,
-  orgSlug: string,
-  dashboardId: string,
-  historyId: string
-): Promise<DashboardDetails> {
-  const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgSlug}/dashboards/${dashboardId}/history/${historyId}/restore/`,
-    {method: 'POST'}
-  );
-
-  promise.catch(() => {
-    addErrorMessage(t('Unable to restore dashboard'));
-  });
-
-  return promise;
-}
-
 export function validateWidget(
   api: Client,
   orgId: string,

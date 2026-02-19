@@ -6,10 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  makeDashboardHistoryQueryKey,
-  type DashboardHistoryEntry,
-} from 'sentry/actionCreators/dashboards';
+import {makeDashboardHistoryQueryKey} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -17,15 +14,11 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  fetchMutation,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {useDashboardHistory} from './hooks/useDashboardHistory';
 import type {DashboardDetails} from './types';
 
 interface DashboardHistoryButtonProps {
@@ -43,13 +36,10 @@ export default function DashboardHistoryButton({
   const isValidDashboard =
     !!dashboard.id && dashboard.id !== 'default-overview' && !dashboard.prebuiltId;
 
-  const {data: history} = useApiQuery<DashboardHistoryEntry[]>(
-    makeDashboardHistoryQueryKey(organization.slug, dashboard.id),
-    {
-      staleTime: 30_000,
-      enabled: isValidDashboard,
-    }
-  );
+  const {data: history} = useDashboardHistory({
+    dashboardId: dashboard.id,
+    enabled: isValidDashboard,
+  });
 
   const hasHistory = (history?.length ?? 0) > 0;
 
@@ -102,12 +92,7 @@ function DashboardHistoryDrawerContent({
   orgSlug: string;
 }) {
   const queryClient = useQueryClient();
-  const {data: history, isPending} = useApiQuery<DashboardHistoryEntry[]>(
-    makeDashboardHistoryQueryKey(orgSlug, dashboardId),
-    {
-      staleTime: 30_000,
-    }
-  );
+  const {data: history, isPending} = useDashboardHistory({dashboardId});
 
   const {mutate: restoreSnapshot, isPending: isRestoring} = useMutation<
     DashboardDetails,
