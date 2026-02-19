@@ -84,10 +84,10 @@ For token and credential issuance, enforcement may exist in a **different reques
 
 If the issued credential cannot be used because a separate enforcement point blocks it, classify based on where the enforcement lives:
 
-- **Centralized enforcement** — the check is in a base class that ALL endpoints inherit (e.g., `SentryPermission.determine_access()` which runs for every DRF endpoint). The credential is truly inert. Classify as **LOW** (do not report).
+- **Centralized enforcement** — the check runs in a permission class inherited by all endpoints within the affected scope. The credential cannot reach any endpoint that lacks the check. Classify as **LOW** (do not report).
 - **Scattered enforcement** — the check exists in some endpoints or serializers but not all. The credential may be usable against unchecked endpoints. Classify as **MEDIUM** (report as needs verification).
 
-**Example (LOW — centralized):** OAuth authorize view issues a token to a `member-limit:restricted` member. The token exists, but `is_member_disabled_from_limit()` in `SentryPermission.determine_access()` (`api/permissions.py`) rejects it at every DRF endpoint. The enforcement is in the base permission class — no endpoint can bypass it. Do not report.
+**Example (LOW — centralized):** OAuth authorize view issues a token to a `member-limit:restricted` member. The token exists, but `is_member_disabled_from_limit()` in `OrganizationPermission.determine_access()` rejects it at every organization-scoped DRF endpoint. Since the token is only usable against organization endpoints (which all inherit this permission class), the enforcement covers all relevant paths. Do not report.
 
 **Example (MEDIUM — scattered):** A token is issued without checking X, and X is only validated in specific endpoint subclasses (not the base). Some endpoints may not inherit the check. Report as needs verification.
 

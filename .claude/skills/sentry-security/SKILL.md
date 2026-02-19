@@ -146,7 +146,7 @@ If you cannot confirm the check is absent from every layer, mark the finding as 
 
 **Cross-flow enforcement for token issuance:** For token/credential issuance flows, also check whether the issued credential is blocked at **usage time** (e.g., `determine_access()` rejects it at all DRF endpoints). Classify based on the enforcement scope:
 
-- **Centralized enforcement** (check lives in a base class ALL endpoints inherit, e.g., `SentryPermission.determine_access()`) → the credential is truly inert → **LOW** (do not report)
+- **Centralized enforcement** (check runs in a permission class inherited by all endpoints in the affected scope) → the credential is effectively inert → **LOW** (do not report)
 - **Scattered enforcement** (only some endpoints or serializers check, others may not) → **MEDIUM** (report as needs verification)
 
 See `enforcement-layers.md` "Cross-Flow Enforcement."

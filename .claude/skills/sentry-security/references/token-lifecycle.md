@@ -71,7 +71,7 @@ if member.is_pending or not member.user_is_active:
     return Response({"detail": "Member is not active"}, status=403)
 ```
 
-**Known downstream enforcement:** PR #92616 added `is_member_disabled_from_limit()` checks in `SentryPermission.determine_access()` (`api/permissions.py`). This is **centralized enforcement** — it runs for every DRF endpoint via the base permission class. Tokens held by seat-limit restricted members are blocked at all API endpoints with no exceptions. Because the enforcement is centralized, this specific pattern is **LOW** (do not report). See `enforcement-layers.md` "Cross-Flow Enforcement."
+**Known downstream enforcement:** PR #92616 added `is_member_disabled_from_limit()` checks via the organization permission base class. This is **centralized enforcement** — the check runs for every organization-scoped DRF endpoint via `OrganizationPermission.determine_access()`. Tokens held by seat-limit restricted members are blocked at all organization API endpoints. Because the enforcement covers all endpoints the token can be used against, this pattern is **LOW** (do not report). See `enforcement-layers.md` "Cross-Flow Enforcement."
 
 ### Real vulnerability: Personal tokens managing org tokens (PR #99457)
 
