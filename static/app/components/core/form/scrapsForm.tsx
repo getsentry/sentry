@@ -14,6 +14,7 @@ import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {RangeField} from './field/rangeField';
+import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
 import {SwitchField} from './field/switchField';
 import {TextAreaField} from './field/textAreaField';
@@ -38,6 +39,7 @@ const fieldComponents = {
   Number: NumberField,
   Range: RangeField,
   Select: SelectField,
+  SelectAsync: SelectAsyncField,
   Switch: SwitchField,
   TextArea: TextAreaField,
   Meta: FieldMeta,
@@ -118,6 +120,7 @@ type InferFormData<T> = T extends {state: {values: infer D}} ? D : never;
  *   'address.city': { message: 'City not found' },
  * });
  * ```
+ * @public
  */
 export function setFieldErrors<
   TForm extends {setErrorMap: (...args: any[]) => unknown; state: {values: unknown}},
