@@ -1,7 +1,11 @@
+import {useEffect, useRef, type Ref} from 'react';
+
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Checkmark, Spinner, Warning} from '@sentry/scraps/form/icons';
 import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {useLocation} from 'sentry/utils/useLocation';
 
 export type BaseFieldProps = Record<never, unknown>;
 
@@ -11,6 +15,7 @@ type FieldChildrenProps = {
   id: string;
   name: string;
   onBlur: () => void;
+  ref: Ref<HTMLElement>;
 };
 
 export const useFieldStateIndicator = () => {
@@ -56,14 +61,46 @@ export function BaseField(
   }
 ) {
   const field = useFieldContext();
+  const ref = useRef<HTMLElement>(null);
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash.slice(1) !== field.name) {
+      return;
+    }
+    ref.current?.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+    ref.current?.focus({focusVisible: true});
+    animateRowHighlight(ref.current);
+  }, [location.hash, field.name]);
 
   return props.children({
+    ref,
     'aria-invalid': !field.state.meta.isValid,
     'aria-describedby': hintTextId,
     onBlur: field.handleBlur,
     name: field.name,
     id: fieldId,
   });
+}
+
+declare global {
+  interface FocusOptions {
+    /** https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus#focusvisible */
+    focusVisible?: boolean;
+  }
+}
+
+function animateRowHighlight(node: HTMLElement | null) {
+  if (!node) return;
+  const name = node.getAttribute('name');
+  if (!name) return;
+  const fieldRow = node.closest<HTMLElement>(`#${CSS.escape(name)}`);
+  if (fieldRow) {
+    fieldRow.dataset.highlight = '';
+    fieldRow.addEventListener('animationend', () => delete fieldRow.dataset.highlight, {
+      once: true,
+    });
+  }
 }

@@ -1,8 +1,6 @@
-import {useCallback, useEffect, useRef} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {RequiredIndicator} from '@sentry/scraps/form/icons';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -22,81 +20,13 @@ function HintText(props: {children: React.ReactNode}) {
   );
 }
 
-declare global {
-  interface FocusOptions {
-    /** https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus#focusvisible */
-    focusVisible?: boolean;
-  }
-}
-
-function scrollToField(node: HTMLLabelElement) {
-  let hash: string;
-  try {
-    hash = decodeURIComponent(window.location.hash.slice(1));
-  } catch {
-    return;
-  }
-  if (hash !== node.dataset.field) {
-    return;
-  }
-
-  let attempts = 0;
-  const maxAttempts = 10;
-
-  const tryScrollAndFocus = () => {
-    attempts++;
-    const control = node.control;
-
-    if (control) {
-      node.scrollIntoView({block: 'center', behavior: 'smooth'});
-      control.focus({focusVisible: true});
-
-      const fieldRow = node.closest<HTMLElement>(`[id="${CSS.escape(hash)}"]`);
-      if (fieldRow) {
-        fieldRow.dataset.highlight = '';
-        fieldRow.addEventListener(
-          'animationend',
-          () => delete fieldRow.dataset.highlight,
-          {once: true}
-        );
-      }
-      return;
-    }
-
-    if (attempts < maxAttempts) {
-      requestAnimationFrame(tryScrollAndFocus);
-    }
-  };
-
-  requestAnimationFrame(tryScrollAndFocus);
-}
-
 function Label(props: {
   children: React.ReactNode;
   description?: React.ReactNode;
   required?: boolean;
 }) {
-  const {name: fieldName} = useFieldContext();
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
-  const labelRef = useRef<HTMLLabelElement | null>(null);
-
-  const scrollToFieldCallbackRef = useCallback((node: HTMLLabelElement | null) => {
-    labelRef.current = node;
-    if (node) {
-      scrollToField(node);
-    }
-  }, []);
-
-  useEffect(() => {
-    const node = labelRef.current;
-    if (!node) {
-      return undefined;
-    }
-    const onHashChange = () => scrollToField(node);
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
 
   const labelContent = props.description ? (
     <InfoText title={props.description}>{props.children}</InfoText>
@@ -108,14 +38,7 @@ function Label(props: {
     <Container width="fit-content">
       {containerProps => (
         <Flex gap="xs">
-          <Text
-            {...containerProps}
-            as="label"
-            data-field={fieldName}
-            htmlFor={fieldId}
-            bold={false}
-            ref={scrollToFieldCallbackRef}
-          >
+          <Text {...containerProps} as="label" htmlFor={fieldId} bold={false}>
             {labelContent}
           </Text>
           {props.required ? <RequiredIndicator /> : null}
