@@ -1,3 +1,4 @@
+import logging
 from copy import deepcopy
 
 from django.db import IntegrityError, router, transaction
@@ -55,6 +56,9 @@ def create_organization_provisioning_outbox(
         object_identifier=organization_id,
         payload=payload,
     )
+
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseBackedControlOrganizationProvisioningService(
@@ -236,6 +240,13 @@ class DatabaseBackedControlOrganizationProvisioningService(
         except IntegrityError as e:
             # Check if this is a unique constraint violation on the slug
             if "sentry_organizationslugreservation_slug_key" in str(e):
+                logging.info(
+                    "update_organization_slug.conflict",
+                    extra={
+                        "organization_id": organization_id,
+                        "slug": slug_base,
+                    },
+                )
                 raise RpcValidationException(
                     detail=f"Organization slug '{slug_base}' is already in use",
                     code="slug_conflict",
@@ -259,6 +270,14 @@ class DatabaseBackedControlOrganizationProvisioningService(
         )
 
         if not primary_slug or primary_slug.slug != slug_base:
+            logging.info(
+                "validate-primary-slug-updated.failure",
+                extra={
+                    "organization_id": organization_id,
+                    "primary_slug": primary_slug.slug if primary_slug else "n/a",
+                    "new": slug_base,
+                },
+            )
             raise RpcValidationException(
                 detail=f"Organization slug '{slug_base}' is already in use",
                 code="slug_swap",
@@ -291,5 +310,6 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
         for slug_reservation in slug_reservations_to_create:
             self._validate_primary_slug_updated(
-                slug_base=slug_reservation.slug, organization_id=slug_reservation.organization_id
+                slug_base=slug_reservation.slug,
+                organization_id=slug_reservation.organization_id,
             )
