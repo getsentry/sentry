@@ -71,6 +71,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Detect test pollution
+        id: detect-test-pollution
         if: failure()
         env:
           # just so we get realtime output since detect-test-pollution doesn't print much
@@ -87,7 +88,7 @@ jobs:
           echo "sentry sha: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub issue
-        if: failure()
+        if: failure() && steps.detect-test-pollution.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
