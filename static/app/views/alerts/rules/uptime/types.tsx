@@ -94,13 +94,25 @@ export interface Assertion {
   root: AndOp;
 }
 
-export type Comparison =
-  | {cmp: 'always'}
-  | {cmp: 'never'}
-  | {cmp: 'less_than'}
-  | {cmp: 'greater_than'}
-  | {cmp: 'equals'}
-  | {cmp: 'not_equal'};
+export enum OpType {
+  AND = 'and',
+  OR = 'or',
+  NOT = 'not',
+  STATUS_CODE_CHECK = 'status_code_check',
+  JSON_PATH = 'json_path',
+  HEADER_CHECK = 'header_check',
+}
+
+export enum ComparisonType {
+  EQUALS = 'equals',
+  NOT_EQUAL = 'not_equal',
+  LESS_THAN = 'less_than',
+  GREATER_THAN = 'greater_than',
+  ALWAYS = 'always',
+  NEVER = 'never',
+}
+
+export type Comparison = {cmp: ComparisonType};
 
 export type HeaderOperand =
   | {header_op: 'none'}
@@ -115,31 +127,31 @@ export type JsonPathOperand =
 export interface AndOp {
   children: Op[];
   id: string;
-  op: 'and';
+  op: OpType.AND;
 }
 
 export interface OrOp {
   children: Op[];
   id: string;
-  op: 'or';
+  op: OpType.OR;
 }
 
 export interface NotOp {
   id: string;
-  op: 'not';
+  op: OpType.NOT;
   operand: Op;
 }
 
 export interface StatusCodeOp {
   id: string;
-  op: 'status_code_check';
+  op: OpType.STATUS_CODE_CHECK;
   operator: Comparison;
   value: number;
 }
 
 export interface JsonPathOp {
   id: string;
-  op: 'json_path';
+  op: OpType.JSON_PATH;
   operand: JsonPathOperand;
   operator: Comparison;
   value: string;
@@ -149,7 +161,7 @@ export interface HeaderCheckOp {
   id: string;
   key_op: Comparison;
   key_operand: HeaderOperand;
-  op: 'header_check';
+  op: OpType.HEADER_CHECK;
   value_op: Comparison;
   value_operand: HeaderOperand;
 }
@@ -225,14 +237,6 @@ export enum AssertionType {
   STATUS_CODE = 'status_code',
   JSON_PATH = 'json_path',
   HEADER = 'header',
-}
-
-export enum ComparisonType {
-  EQUALS = 'equals',
-  NOT_EQUAL = 'not_equal',
-  LESS_THAN = 'less_than',
-  GREATER_THAN = 'greater_than',
-  ALWAYS = 'always',
 }
 
 export interface AssertionSuggestion {

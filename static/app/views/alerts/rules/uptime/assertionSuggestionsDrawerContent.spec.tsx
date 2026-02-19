@@ -6,6 +6,7 @@ import {AssertionSuggestionsDrawerContent} from 'sentry/views/alerts/rules/uptim
 import {
   AssertionType,
   ComparisonType,
+  OpType,
   type PreviewCheckPayload,
 } from 'sentry/views/alerts/rules/uptime/types';
 
@@ -53,9 +54,9 @@ describe('AssertionSuggestionsDrawerContent', () => {
         json_path: null,
         header_name: null,
         assertion_json: {
-          op: 'status_code_check',
+          op: OpType.STATUS_CODE_CHECK,
           id: 'sug-1',
-          operator: {cmp: 'equals'},
+          operator: {cmp: ComparisonType.EQUALS},
           value: 200,
         },
       },
@@ -71,7 +72,7 @@ describe('AssertionSuggestionsDrawerContent', () => {
           op: 'json_path_match',
           id: 'sug-2',
           path: '$.status',
-          operator: {cmp: 'equals'},
+          operator: {cmp: ComparisonType.EQUALS},
           value: 'ok',
         },
       },

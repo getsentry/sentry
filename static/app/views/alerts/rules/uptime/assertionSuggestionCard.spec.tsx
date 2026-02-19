@@ -7,6 +7,7 @@ import {
 import {
   AssertionType,
   ComparisonType,
+  OpType,
   type AssertionSuggestion,
 } from 'sentry/views/alerts/rules/uptime/types';
 
@@ -22,9 +23,9 @@ function makeSuggestion(
     json_path: null,
     header_name: null,
     assertion_json: {
-      op: 'status_code_check' as const,
+      op: OpType.STATUS_CODE_CHECK,
       id: 'test-1',
-      operator: {cmp: 'equals' as const},
+      operator: {cmp: ComparisonType.EQUALS},
       value: 200,
     },
     ...overrides,
