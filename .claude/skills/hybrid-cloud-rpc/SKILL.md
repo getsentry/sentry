@@ -159,6 +159,27 @@ class DatabaseBackedMyService(MyService):
         return serialize_my_model(obj)
 ```
 
+### Error propagation
+
+All errors an RPC method propagates must be done via the return type. Errors are
+rewrapped and returned as generic Invalid service request to external callers.
+
+```python
+class RpcTentativeResult(RpcModel):
+    success: bool
+    error_str: str | None
+    result: str | None
+
+class DatabaseBackedMyuService(MyService):
+    def foobar(self, *, organization_id: int) -> RpcTentativeResult
+        try:
+            some_function_call()
+        except e:
+            return RpcTentativeResult(success=False, error_str = str(e))
+
+        return RpcTentativeResult(success=True, result="foobar")
+```
+
 ### RPC Models
 
 Load `references/rpc-models.md` for supported types, default values, and serialization patterns.
@@ -168,7 +189,7 @@ Load `references/rpc-models.md` for supported types, default values, and seriali
 ### Safe changes (backwards compatible)
 
 - Adding a new **optional** parameter with a default value
-- Widening a return type (e.g., `RpcFoo` → `RpcFoo | None`)
+- Widening a return type (e.g., `RpcFoo` → `RpcFoo | None`) on a Control RPC service
 - Adding fields with defaults to an `RpcModel`
 
 ### Breaking changes (require coordination)
@@ -368,6 +389,9 @@ def test_no_side_effects_on_failure(self):
     with assume_test_silo_mode(SiloMode.REGION):
         assert not MyModel.objects.filter(organization_id=org.id).exists()
 ```
+
+Test that any calling code (both direct and indirect) is also appropriately
+tested with the correct silo decorators.
 
 ### 7.6 Key imports for testing
 
