@@ -43,7 +43,6 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
-
         logger_data = {
             "uuid": relocation_uuid,
             "requesting_region_name": requesting_region_name,
@@ -82,7 +81,6 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
         encrypted_contents: bytes | None = None,
     ) -> None:
-
         with atomic_transaction(
             using=(
                 router.db_for_write(Relocation),

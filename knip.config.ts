@@ -50,6 +50,8 @@ const config: KnipConfig = {
     ...testingEntryPoints,
     ...storyBookEntryPoints,
     'static/eslint/**/index.mjs',
+    // figma code connect files - consumed by Figma CLI
+    'static/**/*.figma.{tsx,jsx}',
   ],
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',

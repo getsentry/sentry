@@ -1,9 +1,10 @@
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -15,6 +16,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -33,7 +35,7 @@ type FetchApiTokenParameters = {
 type FetchApiTokenResponse = InternalAppApiToken;
 
 const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
-  [`/api-tokens/${tokenId}/`] as const;
+  [getApiUrl(`/api-tokens/$tokenId/`, {path: {tokenId}})] as const;
 
 function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   const initialData = {

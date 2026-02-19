@@ -49,7 +49,7 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
-from tests.sentry.issues.test_utils import OccurrenceTestMixin, SearchIssueTestMixin
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 def _get_utc_iso_without_timezone(dt: datetime) -> str:
@@ -111,7 +111,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             ),
         ]
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
     def test_spans_timeseries_count_metric(self):
         """Test timeseries query with count() metric using real data"""
@@ -466,12 +466,12 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         # Each group should have the metric wrapped in normalized format
         # Format: {"group_value": {"count()": {"data": [...]}}}
         for group_value, metrics in result.items():
-            assert isinstance(
-                metrics, dict
-            ), f"Expected dict for {group_value}, got {type(metrics)}"
-            assert (
-                "count()" in metrics
-            ), f"Missing count() in metrics for {group_value}: {metrics.keys()}"
+            assert isinstance(metrics, dict), (
+                f"Expected dict for {group_value}, got {type(metrics)}"
+            )
+            assert "count()" in metrics, (
+                f"Missing count() in metrics for {group_value}: {metrics.keys()}"
+            )
             assert "data" in metrics["count()"], f"Missing data in count() for {group_value}"
 
             # Verify we can get actual count data
@@ -594,7 +594,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
         result = get_trace_waterfall(
             trace_id[:8] if use_short_id else trace_id, self.organization.id
         )
@@ -666,7 +666,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Call with short ID and wrong org
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -692,7 +692,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Should find the trace using short ID by sliding back to the second window
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -720,7 +720,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Should find the trace by sliding back through multiple windows
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -748,7 +748,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Should not find the trace since it's beyond the 90-day limit
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -772,7 +772,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             },
             start_ts=self.ten_mins_ago,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         result = get_trace_waterfall(trace_id, self.organization.id)
         assert isinstance(result, EAPTrace)
@@ -850,7 +850,7 @@ class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
                 ),
             ]
 
-            self.store_spans(spans, is_eap=True)
+            self.store_spans(spans)
 
             # Cross-project query should return both traces with pageload spans.
             result = execute_trace_table_query(
@@ -990,13 +990,13 @@ def _validate_event_timeseries(timeseries: dict, expected_total: int | None = No
         assert isinstance(item[1][0]["count"], int)
         total_count += item[1][0]["count"]
     if expected_total is not None:
-        assert (
-            total_count == expected_total
-        ), f"Expected total count {expected_total}, got {total_count}"
+        assert total_count == expected_total, (
+            f"Expected total count {expected_total}, got {total_count}"
+        )
 
 
 class TestGetIssueAndEventDetailsV2(
-    APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin, SpanTestCase
+    APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin, SpanTestCase
 ):
     """Integration tests for the get_issue_and_event_details RPC."""
 
@@ -1036,7 +1036,7 @@ class TestGetIssueAndEventDetailsV2(
             start_ts=before_now(days=3, hours=23),
             duration=100,
         )
-        self.store_spans([span0, span1], is_eap=True)
+        self.store_spans([span0, span1])
 
         # Create events with shared stacktrace (should have same group)
         events: list[Event] = []
@@ -1214,7 +1214,7 @@ class TestGetIssueAndEventDetailsV2(
             start_ts=before_now(minutes=10),
             duration=100,
         )
-        self.store_spans([span0], is_eap=True)
+        self.store_spans([span0])
 
         # Create one event.
         data = load_data("python", timestamp=before_now(minutes=10))
@@ -1324,8 +1324,108 @@ class TestGetIssueAndEventDetailsV2(
             include_issue=False,
         )
 
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_details_from_issue_id_with_occurrence(self, mock_get_tags, mock_get_timeseries):
+        """Test that occurrence data is included when fetching by issue_id."""
+        mock_get_timeseries.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
-class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
+        occurrence, group_info = self.process_occurrence(
+            event_data={
+                "timestamp": before_now(minutes=5).isoformat(),
+                "project_id": self.project.id,
+                "platform": "python",
+            },
+            project_id=self.project.id,
+        )
+        assert group_info is not None
+        group = group_info.group
+
+        result = get_issue_and_event_details_v2(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+            include_issue=True,
+        )
+
+        assert result is not None
+        self._assert_occurrence_in_response(result, occurrence)
+
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_details_from_event_id_with_occurrence_single_project(
+        self, mock_get_tags, mock_get_timeseries
+    ):
+        """Test that occurrence data is included when fetching by event_id (single project)."""
+        mock_get_timeseries.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        occurrence, group_info = self.process_occurrence(
+            event_data={
+                "timestamp": before_now(minutes=5).isoformat(),
+                "project_id": self.project.id,
+                "platform": "python",
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_issue_and_event_details_v2(
+            organization_id=self.organization.id,
+            event_id=occurrence.event_id,
+            project_slug=self.project.slug,
+            include_issue=True,
+        )
+
+        assert result is not None
+        assert result["event_id"] == occurrence.event_id
+        self._assert_occurrence_in_response(result, occurrence)
+
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_details_from_event_id_with_occurrence_multi_project(
+        self, mock_get_tags, mock_get_timeseries
+    ):
+        """Test that occurrence data is included when fetching by event_id (multi project)."""
+        mock_get_timeseries.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Create a second project so the multi-project code path is exercised.
+        self.create_project(organization=self.organization)
+
+        occurrence, group_info = self.process_occurrence(
+            event_data={
+                "timestamp": before_now(minutes=5).isoformat(),
+                "project_id": self.project.id,
+                "platform": "python",
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_issue_and_event_details_v2(
+            organization_id=self.organization.id,
+            event_id=occurrence.event_id,
+            include_issue=True,
+        )
+
+        assert result is not None
+        assert result["event_id"] == occurrence.event_id
+        self._assert_occurrence_in_response(result, occurrence)
+
+    def _assert_occurrence_in_response(self, result, occurrence):
+        occ = result["event"]["occurrence"]
+        assert occ is not None
+        assert occ["id"] == occurrence.id
+        assert occ["issueTitle"] == occurrence.issue_title
+        assert occ["subtitle"] == occurrence.subtitle
+        assert occ["evidenceData"] == {"test": 123}
+        assert len(occ["evidenceDisplay"]) == len(occurrence.evidence_display)
+        for serialized, original in zip(occ["evidenceDisplay"], occurrence.evidence_display):
+            assert serialized["name"] == original.name
+            assert serialized["value"] == original.value
+            assert serialized["important"] == original.important
+
+
+class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
     """Unit tests for the util that derives a response from an event and group."""
 
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -1541,12 +1641,33 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
 
 
 class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.max_date_range = timedelta(days=14)
+
+    def store_event_helper(
+        self,
+        dt: datetime,
+        project_id: int,
+        trace_id: str | None = None,
+        span_id: str | None = None,
+    ) -> Event:
+        """All events stored with this method should share a group (same exception)"""
+        data = load_data("python", timestamp=dt)
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        if trace_id:
+            data["contexts"] = data.get("contexts", {})
+            data["contexts"]["trace"] = {
+                "trace_id": trace_id,
+                "span_id": span_id,
+            }
+        return self.store_event(data=data, project_id=project_id)
+
     def test_get_recommended_event_start_clamped_to_retention(self):
         """
-        Start is clamped to retention boundary. Spans query should also
+        Start is clamped to retention boundary. Spans query should also be clamped.
         """
         project = self.create_project()
-
         now = datetime.now(UTC)
         start = now - timedelta(days=11)
         end = now
@@ -1555,17 +1676,13 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         retention_boundary = now - timedelta(days=retention_days)
 
         # Event right after boundary to test spans query clamping to boundary
-        data = load_data("python", timestamp=retention_boundary + timedelta(hours=1))
-        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-        data["contexts"] = data.get("contexts", {})
-        data["contexts"]["trace"] = {
-            "trace_id": uuid.uuid4().hex,
-            "span_id": "1" + uuid.uuid4().hex[:15],
-        }
-        event = self.store_event(
-            data=data,
+        event = self.store_event_helper(
+            dt=retention_boundary + timedelta(hours=1),
             project_id=project.id,
+            trace_id=uuid.uuid4().hex,
+            span_id="1" + uuid.uuid4().hex[:15],
         )
+        assert event.group is not None
 
         with patch(
             "sentry.quotas.backend.get_event_retention",
@@ -1598,12 +1715,11 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         start = now - timedelta(days=11)
         end = now - timedelta(days=9)
 
-        data = load_data("python", timestamp=now - timedelta(days=1))
-        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
-        event = self.store_event(
-            data=data,
+        event = self.store_event_helper(
+            dt=now - timedelta(days=1),
             project_id=project.id,
         )
+        assert event.group is not None
 
         with patch("sentry.quotas.backend.get_event_retention", return_value=5):
             with pytest.raises(BadRequest):
@@ -1613,6 +1729,68 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
                     start=start,
                     end=end,
                 )
+
+    def test_get_recommended_event_fallback_if_no_events_in_clamped_range(self):
+        """Falls back to most recent event in full range if no events in clamped range."""
+        project = self.create_project()
+        now = datetime.now(UTC)
+        start = now - timedelta(days=30)
+        end = now
+        clamped_start = end - self.max_date_range
+
+        # 2 events before clamped start - should fallback to most recent
+        event1 = self.store_event_helper(
+            dt=clamped_start - timedelta(hours=12),
+            project_id=project.id,
+        )
+        event2 = self.store_event_helper(
+            dt=clamped_start - timedelta(hours=10),
+            project_id=project.id,
+        )
+        assert event1.group is not None
+        assert event1.group == event2.group
+
+        result = _get_recommended_event(
+            group=event1.group,
+            organization=project.organization,
+            start=start,
+            end=end,
+        )
+        assert isinstance(result, GroupEvent)
+        assert result.event_id == event2.event_id
+
+    def test_get_recommended_event_fallback_if_no_events_with_spans_in_clamped_range(self):
+        """Falls back to most recent event if no events with spans in clamped range."""
+        project = self.create_project()
+        now = datetime.now(UTC)
+        start = now - timedelta(days=30)
+        end = now
+        clamped_start = end - self.max_date_range
+
+        # Event before clamped start
+        event1 = self.store_event_helper(
+            dt=clamped_start - timedelta(hours=10),
+            project_id=project.id,
+        )
+
+        # Event with trace, but no stored spans after clamped start
+        event2 = self.store_event_helper(
+            dt=clamped_start + timedelta(hours=10),
+            project_id=project.id,
+            # trace_id=uuid.uuid4().hex,
+            # span_id="1" + uuid.uuid4().hex[:15],
+        )
+        assert event1.group is not None
+        assert event1.group == event2.group
+
+        result = _get_recommended_event(
+            group=event1.group,
+            organization=project.organization,
+            start=start,
+            end=end,
+        )
+        assert isinstance(result, GroupEvent)
+        assert result.event_id == event2.event_id
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):
@@ -1886,7 +2064,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=100,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         # Mock the profile data fetch and conversion
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
@@ -1921,7 +2099,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=200,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         # Mock the profile data
         mock_fetch_profile.return_value = {
@@ -1961,7 +2139,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             )
             for i, start_time in enumerate([span1_time, span2_time, span3_time])
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
         mock_convert_tree.return_value = ([{"function": "test", "module": "test"}], "3")
@@ -1998,7 +2176,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=twenty_days_ago,
             duration=150,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
         mock_convert_tree.return_value = ([{"function": "old_function", "module": "old"}], "4")
@@ -2023,7 +2201,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=100,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
         mock_convert_tree.return_value = ([{"function": "handler", "module": "server"}], "5")
@@ -2045,7 +2223,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=100,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         result = rpc_get_profile_flamegraph("notfound", self.organization.id)
 

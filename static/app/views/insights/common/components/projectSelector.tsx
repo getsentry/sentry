@@ -1,5 +1,5 @@
-import type {ProjectPageFilterProps} from 'sentry/components/organizations/projectPageFilter';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import type {ProjectPageFilterProps} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 type Props = Omit<ProjectPageFilterProps, 'storageNamespace'>;

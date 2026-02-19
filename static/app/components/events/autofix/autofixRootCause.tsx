@@ -2,12 +2,12 @@ import React, {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
-import {TextArea} from 'sentry/components/core/textarea';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
@@ -39,6 +39,7 @@ import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -237,7 +238,7 @@ function CopyRootCauseButton({
   return (
     <Button
       size="sm"
-      title="Copy analysis as Markdown / LLM prompt"
+      tooltipProps={{title: 'Copy analysis as Markdown / LLM prompt'}}
       onClick={() => copy(text, {successMessage: t('Analysis copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
@@ -300,7 +301,7 @@ function SolutionActionButton({
         priority={primaryButtonPriority}
         busy={isSelectingRootCause}
         onClick={submitFindSolution}
-        title={findSolutionTitle}
+        tooltipProps={{title: findSolutionTitle}}
       >
         {t('Find Solution')}
       </Button>
@@ -386,7 +387,7 @@ function SolutionActionButton({
       };
 
   return (
-    <ButtonBar merged gap="0">
+    <ButtonBar>
       <Button
         size="sm"
         priority={primaryButtonPriority}
@@ -433,6 +434,7 @@ function AutofixRootCauseDisplay({
 }: AutofixRootCauseProps) {
   const cause = causes[0];
   const organization = useOrganization();
+  const user = useUser();
   const iconFocusRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const [solutionText, setSolutionText] = useState('');
@@ -528,6 +530,13 @@ function AutofixRootCauseDisplay({
       organization,
       group_id: groupId,
     });
+    trackAnalytics('coding_integration.send_to_agent_clicked', {
+      organization,
+      group_id: groupId,
+      provider: integration.provider,
+      source: 'autofix',
+      user_id: user.id,
+    });
   };
 
   // Shared UI state for solution action controls
@@ -591,8 +600,8 @@ function AutofixRootCauseDisplay({
           {t('Root Cause')}
           <Button
             size="zero"
-            borderless
-            title={t('Chat with Seer')}
+            priority="transparent"
+            tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Root Cause Chat"
             analyticsEventKey="autofix.root_cause.chat"

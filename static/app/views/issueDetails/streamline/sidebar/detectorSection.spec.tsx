@@ -1,3 +1,4 @@
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -14,7 +15,7 @@ import {
 
 describe('DetectorSection', () => {
   const detectorId = '123';
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
   const project = ProjectFixture();
   const issueDetailsContext = {
     sectionData: {},
@@ -25,6 +26,16 @@ describe('DetectorSection', () => {
     dispatch: jest.fn(),
   };
 
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/${detectorId}/`,
+      body: MetricDetectorFixture({
+        id: detectorId,
+      }),
+    });
+  });
+
   it('does not display detector details when no detector is found', () => {
     const event = EventFixture();
     const group = GroupFixture();
@@ -33,7 +44,8 @@ describe('DetectorSection', () => {
     const {container} = render(
       <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
         <DetectorSection group={group} project={project} />
-      </IssueDetailsContext>
+      </IssueDetailsContext>,
+      {organization}
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -56,7 +68,8 @@ describe('DetectorSection', () => {
     render(
       <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
         <DetectorSection group={group} project={project} />
-      </IssueDetailsContext>
+      </IssueDetailsContext>,
+      {organization}
     );
 
     expect(screen.getByText('Metric Monitor')).toBeInTheDocument();
@@ -90,7 +103,8 @@ describe('DetectorSection', () => {
     render(
       <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
         <DetectorSection group={group} project={project} />
-      </IssueDetailsContext>
+      </IssueDetailsContext>,
+      {organization}
     );
 
     expect(screen.getByText('Cron Monitor')).toBeInTheDocument();
@@ -122,7 +136,8 @@ describe('DetectorSection', () => {
     render(
       <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
         <DetectorSection group={group} project={project} />
-      </IssueDetailsContext>
+      </IssueDetailsContext>,
+      {organization}
     );
 
     expect(screen.getByText('Uptime Monitor')).toBeInTheDocument();
@@ -134,5 +149,51 @@ describe('DetectorSection', () => {
     expect(
       screen.getByText('This issue was created by an uptime monitoring alert rule.')
     ).toBeInTheDocument();
+  });
+
+  it('links to metric alert rule details when workflow engine UI is disabled', async () => {
+    const alertRuleId = 456;
+    const event = EventFixture({
+      occurrence: {
+        evidenceData: {
+          detectorId,
+        },
+        type: 8001,
+      },
+    });
+    const group = GroupFixture({
+      issueCategory: IssueCategory.METRIC,
+      issueType: IssueType.METRIC_ISSUE,
+    });
+    const orgWithOnlyMetricIssues = OrganizationFixture({
+      features: ['workflow-engine-metric-issue-ui'],
+    });
+    const metricDetector = MetricDetectorFixture({
+      id: detectorId,
+      alertRuleId,
+    });
+    const detectorDetails = getDetectorDetails({
+      event,
+      organization: orgWithOnlyMetricIssues,
+      project,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithOnlyMetricIssues.slug}/detectors/${detectorId}/`,
+      body: metricDetector,
+    });
+
+    render(
+      <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
+        <DetectorSection group={group} project={project} />
+      </IssueDetailsContext>,
+      {organization: orgWithOnlyMetricIssues}
+    );
+
+    const link = await screen.findByRole('button', {name: 'View metric alert details'});
+    expect(link).toHaveAttribute(
+      'href',
+      `/organizations/${orgWithOnlyMetricIssues.slug}/issues/alerts/rules/details/${alertRuleId}/`
+    );
   });
 });

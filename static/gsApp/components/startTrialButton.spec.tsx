@@ -12,7 +12,7 @@ describe('StartTrialButton', () => {
 
     org = OrganizationFixture();
     endpoint = MockApiClient.addMockResponse({
-      url: `/subscriptions/${org.slug}/`,
+      url: `/customers/${org.slug}/`,
       method: 'GET',
       body: SubscriptionFixture({organization: org}),
     });

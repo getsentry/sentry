@@ -1,0 +1,55 @@
+---
+title: ButtonBar
+description: ButtonBar is a specialized component for creating pill-like button layouts where buttons are visually joined together.
+category: buttons
+source: '@sentry/scraps/button'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/button/buttonBar.tsx
+---
+
+import {Fragment, useState} from 'react';
+
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
+import ButtonDocumentation from '!!type-loader!@sentry/scraps/button';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = {
+  props: {
+    ButtonBar: ButtonDocumentation.props?.ButtonBar,
+  },
+  exports: {
+    module: ButtonDocumentation.exports?.module,
+    exports: {
+      ...Object.fromEntries(
+        Object.entries(ButtonDocumentation?.exports?.exports ?? {}).filter(
+          ([key]) => key === 'ButtonBar'
+        )
+      ),
+    },
+  },
+};
+
+ButtonBar is used to create merged button groups where buttons are visually joined together with shared borders and no gaps between them, creating a cohesive pill-like control unit.
+
+## Usage
+
+<Storybook.Demo>
+  <ButtonBar>
+    <Button>One</Button>
+    <Button>Two</Button>
+    <Button>Three</Button>
+  </ButtonBar>
+</Storybook.Demo>
+```jsx
+<ButtonBar>
+  <Button>One</Button>
+  <Button>Two</Button>
+  <Button>Three</Button>
+</ButtonBar>
+```
+
+## Notes
+
+ButtonBar is a simple presentational component that handles only the visual layout of buttons. It does not manage any internal state such as which button is active or selected. If you need to track an active button or manage selection state, you should handle that in your parent component and pass the appropriate props (like `priority="primary"`) to the active button.

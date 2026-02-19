@@ -18,11 +18,15 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 
 export function useLogsSearchQueryBuilderProps({
+  booleanAttributes,
+  booleanSecondaryAliases,
   numberAttributes,
   stringAttributes,
   numberSecondaryAliases,
   stringSecondaryAliases,
 }: {
+  booleanAttributes: TagCollection;
+  booleanSecondaryAliases: TagCollection;
   numberAttributes: TagCollection;
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
@@ -44,6 +48,7 @@ export function useLogsSearchQueryBuilderProps({
       const suggestedColumns = findSuggestedColumns(newSearch, oldLogsSearch, {
         numberAttributes,
         stringAttributes,
+        booleanAttributes,
       });
 
       const existingFields = new Set(fields);
@@ -54,16 +59,25 @@ export function useLogsSearchQueryBuilderProps({
         fields: newColumns.length ? [...fields, ...newColumns] : undefined,
       });
     },
-    [oldLogsSearch, numberAttributes, stringAttributes, fields, setQueryParams]
+    [
+      booleanAttributes,
+      fields,
+      numberAttributes,
+      oldLogsSearch,
+      setQueryParams,
+      stringAttributes,
+    ]
   );
 
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),
     searchSource: 'ourlogs',
     onSearch,
+    booleanAttributes,
     numberAttributes,
     stringAttributes,
     itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
+    booleanSecondaryAliases,
     numberSecondaryAliases,
     stringSecondaryAliases,
     caseInsensitive,

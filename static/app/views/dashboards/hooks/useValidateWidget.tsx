@@ -1,8 +1,8 @@
 import {validateWidgetRequest} from 'sentry/actionCreators/dashboards';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {ValidateWidgetResponse, Widget} from 'sentry/views/dashboards/types';
 import {cleanWidgetForRequest} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 

@@ -4,8 +4,8 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';

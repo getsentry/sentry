@@ -41,7 +41,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         # Make the Identity have an expired token
         idp = IdentityProvider.objects.get(external_id=self.vsts_account_id)
         identity = Identity.objects.get(idp_id=idp.id)
-        identity.data["expires"] = int(time()) - int(123456789)
+        identity.data["expires"] = int(time()) - 123456789
         identity.save()
 
         # New values VSTS will return on refresh
@@ -81,7 +81,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         # Make the Identity have an expired token
         idp = IdentityProvider.objects.get(external_id=self.vsts_account_id)
         identity = Identity.objects.get(idp_id=idp.id)
-        identity.data["expires"] = int(time()) - int(123456789)
+        identity.data["expires"] = int(time()) - 123456789
         identity.save()
 
         # New values VSTS will return on refresh
@@ -120,7 +120,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         # Make the Identity have a non-expired token
         idp = IdentityProvider.objects.get(external_id=self.vsts_account_id)
         identity = Identity.objects.get(idp_id=idp.id)
-        expires = int(time()) + int(123456789)
+        expires = int(time()) + 123456789
         identity.data["expires"] = expires
         access_token = identity.data["access_token"]
         refresh_token = identity.data["refresh_token"]
@@ -141,6 +141,20 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert identity.data["access_token"] == access_token != self.access_token
         assert identity.data["refresh_token"] == refresh_token != self.refresh_token
         assert identity.data["expires"] == expires
+
+    def test_identity_property_raises_when_identity_id_is_none(self) -> None:
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+        assert installation.org_integration is not None
+
+        client = VstsApiClient(
+            base_url=self.vsts_base_url,
+            oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
+            org_integration_id=installation.org_integration.id,
+            identity_id=None,
+        )
+        with pytest.raises(ValueError, match="identity_id is not set"):
+            client.identity
 
     def test_project_pagination(self) -> None:
         def request_callback(request):

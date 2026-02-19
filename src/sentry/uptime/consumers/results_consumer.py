@@ -28,6 +28,7 @@ from sentry.uptime.autodetect.result_handler import handle_onboarding_result
 from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
 from sentry.uptime.grouptype import UptimePacketValue
 from sentry.uptime.models import (
+    RESPONSE_BODY_SEPARATOR,
     UptimeResponseCapture,
     UptimeSubscription,
     UptimeSubscriptionRegion,
@@ -52,6 +53,7 @@ from sentry.uptime.utils import (
     build_backlog_task_scheduled_key,
     build_last_interval_change_timestamp_key,
     build_last_update_key,
+    generate_scheduled_check_times_ms,
     get_cluster,
 )
 from sentry.utils import json, metrics
@@ -76,9 +78,6 @@ TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 # The maximum number of missed checks we backfill, upon noticing a gap in our expected check results
 MAX_SYNTHETIC_MISSED_CHECKS = 100
-
-
-RESPONSE_BODY_SEPARATOR = b"\r\n\r\n---BODY---\r\n\r\n"
 
 
 def format_response_for_storage(
@@ -106,9 +105,13 @@ def create_uptime_response_capture(
     """
     Create a response capture from a check result if it contains response data.
 
-    Returns the created capture, or None if there's no response data in result
-    or if a capture already exists for this scheduled check time.
+    Returns the created capture, or None if response capture is disabled,
+    there's no response data in result, or a capture already exists for this
+    scheduled check time.
     """
+    if not subscription.response_capture_enabled:
+        return None
+
     # Check if we already have a capture for this scheduled check time
     # to avoid creating duplicates on retries.
     scheduled_check_time_ms = int(result["scheduled_check_time_ms"])
@@ -160,6 +163,7 @@ def create_uptime_response_capture(
         unit="byte",
     )
 
+    result["had_response_body"] = True  # type: ignore[typeddict-unknown-key]
     return capture
 
 
@@ -343,7 +347,12 @@ def create_backfill_misses(
 
         synthetic_metric_tags = metric_tags.copy()
         synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
-        for i in range(0, num_missed_checks):
+        missed_times = generate_scheduled_check_times_ms(
+            last_update_ms + subscription_interval_ms,
+            subscription_interval_ms,
+            num_missed_checks,
+        )
+        for scheduled_time_ms in missed_times:
             missed_result: CheckResult = {
                 "guid": uuid.uuid4().hex,
                 "subscription_id": result["subscription_id"],
@@ -355,10 +364,11 @@ def create_backfill_misses(
                 "trace_id": uuid.uuid4().hex,
                 "span_id": uuid.uuid4().hex,
                 "region": result["region"],
-                "scheduled_check_time_ms": last_update_ms + ((i + 1) * subscription_interval_ms),
+                "scheduled_check_time_ms": scheduled_time_ms,
                 "actual_check_time_ms": result["actual_check_time_ms"],
                 "duration_ms": 0,
                 "request_info": None,
+                "assertion_failure_data": None,
             }
             produce_eap_uptime_result(
                 detector,
@@ -388,6 +398,9 @@ def process_result_internal(
         needs_update |= set_response_capture_enabled(uptime_subscription, True)
     elif result["status"] == CHECKSTATUS_FAILURE:
         needs_update |= set_response_capture_enabled(uptime_subscription, False)
+        # Force an update if there was a response body, to make sure we properly sync things here.
+        if result.get("had_response_body"):
+            needs_update = True
 
     if should_run_region_checks(uptime_subscription, result):
         needs_update |= try_check_and_update_regions(uptime_subscription, subscription_regions)
@@ -661,7 +674,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 )
             return
 
-        if result["status"] == CHECKSTATUS_FAILURE:
+        if result["status"] == CHECKSTATUS_FAILURE and features.has(
+            "organizations:uptime-response-capture", organization
+        ):
             create_uptime_response_capture(subscription, result)
 
         if last_update_ms > 0:

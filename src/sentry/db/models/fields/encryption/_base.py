@@ -59,6 +59,10 @@ class EncryptedField(Field):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Default to "unknown" - will be overridden by __set_name__ or contribute_to_class
+        # when the field is properly attached to a model
+        self._model_name = "unknown"
+
         self._encryption_handlers: dict[_EncryptionMethod, _EncryptionHandler] = {
             "plaintext": {
                 "marker": MARKER_PLAINTEXT,
@@ -77,9 +81,15 @@ class EncryptedField(Field):
             },
         }
 
-    def __set_name__(self, owner: type, name: str) -> None:
-        super().__set_name__(owner, name)  # type: ignore[misc]
-        self._model_name = owner.__name__
+    def contribute_to_class(self, cls: type, name: str, private_only: bool = False) -> None:
+        """Called by Django's ModelBase metaclass when field is added to a model.
+
+        This is where we capture the model name for metrics. Django's metaclass
+        removes fields from the class dict and stores them in _meta, so Python's
+        __set_name__() is never called for Django model fields.
+        """
+        super().contribute_to_class(cls, name, private_only=private_only)
+        self._model_name = cls.__name__
 
     @sentry_sdk.trace
     def _format_encrypted_value(
@@ -124,7 +134,7 @@ class EncryptedField(Field):
         tags = {
             "method": encryption_method,
             "field_type": self.__class__.__name__,
-            "model": getattr(self, "_model_name", "unknown"),
+            "table_name": self._model_name,
         }
 
         try:
@@ -285,7 +295,7 @@ class EncryptedField(Field):
                 tags = {
                     "method": method_name,
                     "field_type": self.__class__.__name__,
-                    "model": getattr(self, "_model_name", "unknown"),
+                    "table_name": self._model_name,
                     "marker": marker,
                 }
 

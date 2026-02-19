@@ -1,4 +1,5 @@
-import type {TagProps} from 'sentry/components/core/badge/tag';
+import type {TagProps} from '@sentry/scraps/badge';
+
 import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

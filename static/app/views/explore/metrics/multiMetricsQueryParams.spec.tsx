@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
@@ -16,7 +17,7 @@ function Wrapper({children}: {children: ReactNode}) {
 
 describe('MultiMetricsQueryParamsProvider', () => {
   it('sets defaults', () => {
-    const {result} = renderHookWithProviders(() => useMultiMetricsQueryParams(), {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
       additionalWrapper: Wrapper,
     });
 
@@ -44,7 +45,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
   });
 
   it('updates to compatible aggregate when changing metrics', () => {
-    const {result} = renderHookWithProviders(() => useMultiMetricsQueryParams(), {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
       additionalWrapper: Wrapper,
     });
 
@@ -82,7 +83,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
   });
 
   it('updates incompatible aggregate when changing metrics', () => {
-    const {result} = renderHookWithProviders(() => useMultiMetricsQueryParams(), {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
       additionalWrapper: Wrapper,
     });
 
@@ -164,5 +165,110 @@ describe('MultiMetricsQueryParamsProvider', () => {
         }),
       }),
     ]);
+  });
+
+  describe('with tracemetrics-overlay-charts-ui feature', () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-overlay-charts-ui'],
+    });
+
+    it('parses multiple visualizes from URL params', () => {
+      const metricQuery = JSON.stringify({
+        metric: {name: 'test_metric', type: 'distribution'},
+        query: '',
+        aggregateFields: [
+          {yAxes: ['p50(value,test_metric,distribution,-)']},
+          {yAxes: ['p75(value,test_metric,distribution,-)']},
+          {yAxes: ['p99(value,test_metric,distribution,-)']},
+        ],
+        aggregateSortBys: [],
+        mode: 'samples',
+      });
+
+      const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+        additionalWrapper: Wrapper,
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [metricQuery],
+            },
+          },
+        },
+      });
+
+      expect(result.current).toEqual([
+        expect.objectContaining({
+          metric: {name: 'test_metric', type: 'distribution'},
+          queryParams: expect.objectContaining({
+            aggregateFields: [
+              new VisualizeFunction('p50(value,test_metric,distribution,-)'),
+              new VisualizeFunction('p75(value,test_metric,distribution,-)'),
+              new VisualizeFunction('p99(value,test_metric,distribution,-)'),
+            ],
+          }),
+        }),
+      ]);
+    });
+
+    it('sets multiple visualizes when changing aggregates', () => {
+      const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+        additionalWrapper: Wrapper,
+        organization,
+      });
+
+      act(() => result.current[0]!.setTraceMetric({name: 'foo', type: 'distribution'}));
+      act(() =>
+        result.current[0]!.setQueryParams(
+          result.current[0]!.queryParams.replace({
+            aggregateFields: [
+              new VisualizeFunction('p50(value,foo,distribution,-)'),
+              new VisualizeFunction('p75(value,foo,distribution,-)'),
+              new VisualizeFunction('p99(value,foo,distribution,-)'),
+            ],
+          })
+        )
+      );
+
+      expect(result.current).toEqual([
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          queryParams: expect.objectContaining({
+            aggregateFields: [
+              new VisualizeFunction('p50(value,foo,distribution,-)'),
+              new VisualizeFunction('p75(value,foo,distribution,-)'),
+              new VisualizeFunction('p99(value,foo,distribution,-)'),
+            ],
+          }),
+        }),
+      ]);
+    });
+
+    it('keeps the first visualize when changing metric type', () => {
+      const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+        additionalWrapper: Wrapper,
+        organization,
+      });
+
+      act(() => result.current[0]!.setTraceMetric({name: 'foo', type: 'distribution'}));
+      act(() =>
+        result.current[0]!.setQueryParams(
+          result.current[0]!.queryParams.replace({
+            aggregateFields: [
+              new VisualizeFunction('p50(value,foo,distribution,-)'),
+              new VisualizeFunction('p75(value,foo,distribution,-)'),
+            ],
+          })
+        )
+      );
+
+      act(() => result.current[0]!.setTraceMetric({name: 'bar', type: 'distribution'}));
+
+      // Only the first visualize is updated when changing metric type
+      expect(result.current[0]!.queryParams.aggregateFields).toEqual([
+        new VisualizeFunction('p50(value,bar,distribution,-)'),
+      ]);
+    });
   });
 });

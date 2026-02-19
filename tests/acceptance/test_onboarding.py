@@ -23,7 +23,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
     def start_onboarding(self) -> None:
         self.browser.get("/onboarding/%s/" % self.org.slug)
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
-        self.browser.click('[aria-label="Start"]')
+        self.browser.click('[data-test-id="onboarding-welcome-start"]')
         self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
 
     def test_onboarding_happy_path(self) -> None:

@@ -114,10 +114,7 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   }
 
   get description(): string | undefined {
-    const otelFriendlyUi = this.extra?.organization.features.includes(
-      'performance-otel-friendly-ui'
-    );
-    return otelFriendlyUi ? this.value.name : this.value.description;
+    return this.value.name;
   }
 
   get drawerTabsTitle(): string {

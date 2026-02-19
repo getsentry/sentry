@@ -2,10 +2,9 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/core/avatar/avatarList';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
+import {AvatarList, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
@@ -37,7 +36,7 @@ export default function ParticipantList({
 
   return (
     <div>
-      <Button borderless translucentBorder size="zero" {...triggerProps}>
+      <Button priority="transparent" size="zero" {...triggerProps}>
         <StyledAvatarList
           teams={teams}
           users={users}

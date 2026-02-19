@@ -240,7 +240,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
-        debug = request.user.is_superuser and "debug" in request.GET
 
         def _data_fn(
             dataset_query: DatasetQuery,
@@ -280,7 +279,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 on_demand_metrics_type=on_demand_metrics_type,
                 fallback_to_transactions=True,
                 query_source=query_source,
-                debug=debug,
             )
 
         @sentry_sdk.tracing.trace

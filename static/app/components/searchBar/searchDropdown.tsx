@@ -2,12 +2,10 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
@@ -140,11 +138,11 @@ function SearchDropdown({
       )}
 
       <DropdownFooter>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {runShortcut &&
             visibleShortcuts?.map(shortcut => (
               <Button
-                borderless
+                priority="transparent"
                 size="xs"
                 key={shortcut.text}
                 onClick={() => runShortcut(shortcut)}
@@ -158,7 +156,7 @@ function SearchDropdown({
                 {shortcut.text}
               </Button>
             ))}
-        </ButtonBar>
+        </Grid>
         <LinkButton
           size="xs"
           href="https://docs.sentry.io/product/sentry-basics/search/"

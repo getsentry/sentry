@@ -4,7 +4,7 @@ from typing import Any
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
-from sentry.api.fields import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.group_index.validators.inbox_details import InboxDetailsValidator
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group
@@ -53,7 +53,7 @@ class GroupValidator(serializers.Serializer[Group]):
     discard = serializers.BooleanField(
         help_text="If true, discards the issues instead of updating them."
     )
-    assignedTo = ActorField(
+    assignedTo = OwnerActorField(
         help_text="The user or team that should be assigned to the issues. Values take the form of `<user_id>`, `user:<user_id>`, `<username>`, `<user_primary_email>`, or `team:<team_id>`."
     )
     priority = serializers.ChoiceField(

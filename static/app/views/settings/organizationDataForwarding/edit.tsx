@@ -1,8 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Button} from '@sentry/scraps/button';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';

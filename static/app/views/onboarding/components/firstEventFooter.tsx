@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -147,7 +147,7 @@ export default function FirstEventFooter({
           {project?.firstEvent ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>
-      <OnboardingButtonBar gap="xl">
+      <OnboardingButtonBar>
         {getSecondaryCta()}
         {getPrimaryCta()}
       </OnboardingButtonBar>
@@ -155,7 +155,9 @@ export default function FirstEventFooter({
   );
 }
 
-const OnboardingButtonBar = styled(ButtonBar)`
+const OnboardingButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="xl" {...props} />
+))`
   margin: ${space(2)} ${space(4)};
   justify-self: end;
   margin-left: auto;

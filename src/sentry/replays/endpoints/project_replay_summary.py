@@ -136,13 +136,16 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                     status=403,
                 )
 
-            # We skip checking Seer permissions here for performance, and because summaries can't be created without them anyway.
+            # Since this endpoint is polled, we skip checking Seer permissions here for performance.
+            # Both the frontend and summary generation are gated by the same permissions.
 
             # Request Seer for the state of the summary task.
             return self.make_seer_request(
                 SEER_POLL_STATE_ENDPOINT_PATH,
                 {
                     "replay_id": replay_id,
+                    "organization_id": project.organization.id,
+                    "project_id": project.id,
                 },
             )
 

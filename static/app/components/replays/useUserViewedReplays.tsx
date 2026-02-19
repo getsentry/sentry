@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -10,7 +11,9 @@ export default function useUserViewedReplays() {
   const organization = useOrganization();
   const {data, isError, isPending} = useApiQuery<RawQueryData>(
     [
-      `/organizations/${organization.slug}/replays/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/replays/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {query: `viewed_by_me:true`}},
     ],
     {staleTime: 0}

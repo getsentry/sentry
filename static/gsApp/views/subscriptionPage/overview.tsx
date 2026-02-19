@@ -1,30 +1,23 @@
 import {Fragment, useEffect} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {
-  openCodecovModal,
-  openOnDemandBudgetEditModal,
-} from 'getsentry/actionCreators/modal';
+import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import withSubscription from 'getsentry/components/withSubscription';
-import type {CustomerUsage, PromotionData, Subscription} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
-import withPromotions from 'getsentry/utils/withPromotions';
+import type {CustomerUsage, Subscription} from 'getsentry/types';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
 
-import openPerformanceReservedTransactionsDiscountModal from './promotions/performanceReservedTransactionsPromo';
 import TrialEnded from './trial/trialEnded';
 import OnDemandDisabled from './ondemandDisabled';
 import RecurringCredits from './recurringCredits';
@@ -32,18 +25,14 @@ import SubscriptionHeader from './subscriptionHeader';
 import UsageAlert from './usageAlert';
 
 type Props = {
-  promotionData: PromotionData;
   subscription: Subscription;
 };
 
 /**
  * Subscription overview page.
  */
-function Overview({subscription, promotionData}: Props) {
-  const api = useApi();
+function Overview({subscription}: Props) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   const hasBillingPerms = organization.access?.includes('org:billing');
   // we fetch an expanded view of the subscription which includes usage
@@ -53,37 +42,18 @@ function Overview({subscription, promotionData}: Props) {
     refetch: refetchUsage,
     isPending,
     isError,
-  } = useApiQuery<CustomerUsage>([`/customers/${organization.slug}/usage/`], {
-    staleTime: 60_000,
-  });
+  } = useApiQuery<CustomerUsage>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/usage/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 60_000,
+    }
+  );
 
   useEffect(() => {
-    if (promotionData) {
-      const promotion = promotionData.availablePromotions?.find(
-        promo => promo.promptActivityTrigger === 'performance_reserved_txns_discount_v1'
-      );
-
-      if (promotion) {
-        openPerformanceReservedTransactionsDiscountModal({
-          api,
-          promotionData,
-          organization,
-          promptFeature: 'performance_reserved_txns_discount_v1',
-          navigate,
-        });
-        return;
-      }
-    }
-
-    // open the codecov modal if the query param is present
-    if (
-      location.query?.open_codecov_modal === '1' &&
-      // self serve or has billing perms can view it
-      hasAccessToSubscriptionOverview(subscription, organization)
-    ) {
-      openCodecovModal({organization});
-    }
-
     // Open on-demand budget modal if hash fragment present
     // Modal logic handles checking perms
     if (window.location.hash === '#open-ondemand-modal') {
@@ -96,7 +66,7 @@ function Overview({subscription, promotionData}: Props) {
         window.location.pathname + window.location.search
       );
     }
-  }, [organization, location.query, subscription, promotionData, api, navigate]);
+  }, [organization, subscription]);
 
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
@@ -196,4 +166,4 @@ function Footer({subscription}: {subscription: Subscription}) {
   );
 }
 
-export default withSubscription(withPromotions(Overview));
+export default withSubscription(Overview);

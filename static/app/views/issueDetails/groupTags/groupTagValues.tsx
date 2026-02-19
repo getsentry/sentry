@@ -1,22 +1,21 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import type {FlexProps} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {FlexProps} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
@@ -211,10 +210,13 @@ export function GroupTagValues() {
         <Fragment key={tagValueIdx}>
           <NameColumn>
             <NameWrapper data-test-id="group-tag-value">
-              <GlobalSelectionLink
+              <Link
                 to={{
                   pathname: `${baseUrl}events/`,
-                  query: {query: issuesQuery},
+                  query: {
+                    ...extractSelectionParameters(location.query),
+                    query: issuesQuery,
+                  },
                 }}
               >
                 {key === 'user' ? (
@@ -226,7 +228,7 @@ export function GroupTagValues() {
                 ) : (
                   <DeviceName value={tagName} />
                 )}
-              </GlobalSelectionLink>
+              </Link>
             </NameWrapper>
 
             {tagValue.email && (
@@ -295,7 +297,7 @@ export function GroupTagValues() {
       <Layout.Main width="full">
         <Flex justify="between" align="center" wrap="wrap" marginBottom="xl">
           <Title>{t('Tag Details')}</Title>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <LinkButton
               size="sm"
               priority="default"
@@ -313,7 +315,7 @@ export function GroupTagValues() {
                 },
               }}
             />
-          </ButtonBar>
+          </Grid>
         </Flex>
         <StyledPanelTable
           isLoading={isLoading}

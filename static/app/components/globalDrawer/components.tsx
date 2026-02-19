@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import type {Transition} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
-import {Button} from 'sentry/components/core/button';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -170,6 +170,7 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   flex-shrink: 0;
   gap: ${p => (p.hideBar ? space(1) : 0)};
   padding: ${space(1.5)};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
   padding-left: ${p => (p.hideCloseButton ? '24px' : space(2))};
   padding-top: ${p => (p.hideCloseButton ? space(1.5) : space(0.75))};

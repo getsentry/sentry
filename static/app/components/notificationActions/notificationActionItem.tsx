@@ -1,7 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   addErrorMessage,
@@ -10,10 +13,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
@@ -289,14 +288,14 @@ function NotificationActionItem({
             <Flex align="center" wrap="wrap" gap="xs">
               {renderDescription()}
             </Flex>
-            <ButtonBar gap="xs">
+            <Grid flow="column" align="center" gap="xs">
               <Button onClick={handleCancel} size="xs">
                 {t('Cancel')}
               </Button>
               <Button priority="primary" size="xs" onClick={handleSave}>
                 {t('Save')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </Flex>
         );
       case NotificationActionService.SLACK:

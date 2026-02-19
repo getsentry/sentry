@@ -2,10 +2,10 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
@@ -231,7 +231,6 @@ function ChapterRow({
             allowShowSnippet={false}
             startTimestampMs={replay?.getStartTimestampMs() ?? 0}
             key={`breadcrumb-${j}`}
-            style={{}}
           />
         ))}
       </div>
@@ -269,6 +268,7 @@ const ChapterWrapper = styled('details')`
     width: 1px;
     top: 1px;
     bottom: -9px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.secondary};
   }
 
@@ -288,13 +288,11 @@ const ChapterWrapper = styled('details')`
   /* the border-top is used to eliminate some of the top gap */
 
   &:hover {
-    border-top: 1px solid
-      ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-top: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   &:active {
-    border-top: 1px solid
-      ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   [data-is-feedback='true'] {

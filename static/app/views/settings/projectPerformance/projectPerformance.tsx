@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -26,6 +26,7 @@ import type {Scope} from 'sentry/types/core';
 import {IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -158,13 +159,25 @@ const formFields: Field[] = [
 ];
 
 const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/transaction-threshold/configure/`,
+  getApiUrl(
+    `/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/`,
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }
+  ),
 ];
 
 const getPerformanceIssueSettingsQueryKey = (
   orgSlug: string,
   projectSlug: string
-): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/performance-issues/configure/`];
+): ApiQueryKey => [
+  getApiUrl(
+    `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/`,
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }
+  ),
+];
 
 function ProjectPerformance() {
   const api = useApi({persistInFlight: true});
@@ -209,7 +222,14 @@ function ProjectPerformance() {
     isPending: isPendingGeneral,
     isError: isErrorGeneral,
   } = useApiQuery<any>(
-    [`/projects/${organization.slug}/${projectSlug}/performance/configure/`],
+    [
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/`,
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        }
+      ),
+    ],
     {
       staleTime: 0,
     }

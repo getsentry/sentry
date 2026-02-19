@@ -1,18 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Stack} from 'sentry/components/core/layout';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import {GroupSummary} from 'sentry/components/stream/group';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
@@ -122,7 +122,7 @@ export default function ChartWithIssues(props: Props) {
           <Button
             size="xs"
             aria-label={t('Open Full-Screen View')}
-            borderless
+            priority="transparent"
             icon={<IconExpand />}
             onClick={() => {
               openInsightChartModal({

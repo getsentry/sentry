@@ -1,4 +1,5 @@
-import {Grid} from 'sentry/components/core/layout';
+import {Grid} from '@sentry/scraps/layout';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
 import {useNavContext} from 'sentry/views/nav/context';

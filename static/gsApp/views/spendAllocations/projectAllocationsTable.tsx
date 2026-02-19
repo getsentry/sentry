@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 

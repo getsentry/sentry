@@ -22,8 +22,10 @@ import {getItemsWithKeys, shouldCloseOnSelect} from './utils';
 
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
-interface BaseSelectProps<Value extends SelectKey>
-  extends Omit<ControlProps, 'onClear' | 'clearable'> {
+interface BaseSelectProps<Value extends SelectKey> extends Omit<
+  ControlProps,
+  'onClear' | 'clearable'
+> {
   options: Array<SelectOptionOrSection<Value>>;
   /**
    * Number of options above which virtualization will be enabled.

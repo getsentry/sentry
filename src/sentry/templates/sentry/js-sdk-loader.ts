@@ -37,6 +37,22 @@ declare const __LOADER__IS_LAZY__: any;
   type FunctionQueueItem = {a: IArguments; f: string};
   type QueueItem = ErrorQueueItem | PromiseRejectionQueueItem | FunctionQueueItem;
 
+  // Loader config injected from the backend
+  interface LoaderConfig {
+    dsn: string;
+    tracesSampleRate?: number;
+    replaysSessionSampleRate?: number;
+    replaysOnErrorSampleRate?: number;
+    debug?: boolean;
+    // Although this is not a top-level SDK option we pass this flag so we can
+    // auto-add the integration in the loader template
+    autoInjectFeedback?: boolean;
+    integrations?:
+      | {name: string}[]
+      | ((integrations: {name: string}[]) => {name: string}[]);
+    [key: string]: unknown;
+  }
+
   function queueIsError(item: QueueItem): item is ErrorQueueItem {
     return 'e' in item;
   }
@@ -147,8 +163,8 @@ declare const __LOADER__IS_LAZY__: any;
   }
 
   // We want to ensure to only add default integrations if they haven't been added by the user.
-  function setupDefaultIntegrations(config: any, SDK: any) {
-    const integrations: {name: string}[] = config.integrations || [];
+  function setupDefaultIntegrations(config: LoaderConfig, SDK: any) {
+    const integrations = config.integrations || [];
 
     // integrations can be a function, in which case we will not add any defaults
     if (!Array.isArray(integrations)) {
@@ -178,6 +194,12 @@ declare const __LOADER__IS_LAZY__: any;
       } else if (SDK.Replay) {
         // Pre v8 version of the Replay integration
         integrations.push(new SDK.Replay());
+      }
+    }
+
+    if (config.autoInjectFeedback && integrationNames.indexOf('Feedback') === -1) {
+      if (SDK.feedbackIntegration) {
+        integrations.push(SDK.feedbackIntegration());
       }
     }
 

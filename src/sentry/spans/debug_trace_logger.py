@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class DebugTraceLogger:
     """
     Logs debug information for specific traces specified in the
-    spans.buffer.debug-traces option. The information includes zunionstore
+    spans.buffer.debug-traces option. The information includes sunionstore
     source set sizes, key existence, and dumps of all spans in the subsegment.
     """
 
@@ -22,7 +22,7 @@ class DebugTraceLogger:
         self._client = client
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
-        return f"span-buf:z:{{{project_and_trace}}}:{span_id}".encode("ascii")
+        return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
     def log_subsegment_info(
         self,
@@ -48,7 +48,7 @@ class DebugTraceLogger:
         if span_keys:
             with self._client.pipeline(transaction=False) as p:
                 for key in span_keys:
-                    p.zcard(key)
+                    p.scard(key)
                 results = p.execute()
 
             for i, key in enumerate(span_keys):
@@ -63,8 +63,8 @@ class DebugTraceLogger:
                 "project_and_trace": project_and_trace,
                 "parent_span_id": parent_span_id,
                 "num_spans_in_subsegment": len(subsegment),
-                "zunion_span_key_count": len(span_keys),
-                "zunion_existing_key_count": num_existing_keys,
+                "sunion_span_key_count": len(span_keys),
+                "sunion_existing_key_count": num_existing_keys,
                 "set_sizes": set_sizes,
                 "total_set_sizes": sum(set_sizes.values()),
                 "subsegment_spans": spans,

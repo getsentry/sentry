@@ -7,7 +7,6 @@ from typing import Any
 
 from urllib3.exceptions import HTTPError
 
-from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -62,8 +61,9 @@ def schedule_task(
         )
         return
 
+    # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
-        github_event=github_event,
+        github_event=github_event.value,
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
@@ -79,7 +79,7 @@ def schedule_task(
 def process_github_webhook_event(
     *,
     enqueued_at_str: str,
-    github_event: GithubWebhookType,
+    github_event: str,
     event_payload: Mapping[str, Any],
     **kwargs: Any,
 ) -> None:
@@ -97,9 +97,8 @@ def process_github_webhook_event(
     try:
         path = get_seer_endpoint_for_event(github_event).value
 
-        # Validate payload with Pydantic if enabled (except for CHECK_RUN events which use minimal payload)
-        should_validate = options.get("seer.code_review.validate_webhook_payload", False)
-        if should_validate and github_event != GithubWebhookType.CHECK_RUN:
+        # Validate payload with Pydantic (except for CHECK_RUN events which use minimal payload)
+        if github_event != GithubWebhookType.CHECK_RUN:
             # Parse with appropriate model based on request type to enforce
             # organization_id and integration_id requirements for PR closed
             request_type = event_payload.get("request_type")
@@ -119,6 +118,7 @@ def process_github_webhook_event(
         else:
             payload = event_payload
 
+        log_seer_request(event_payload, github_event)
         make_seer_request(path=path, payload=payload)
     except Exception as e:
         status = e.__class__.__name__
@@ -135,23 +135,44 @@ def process_github_webhook_event(
             record_latency(status, enqueued_at_str)
 
 
+def log_seer_request(event_payload: Mapping[str, Any], github_event: str) -> None:
+    repo_data = event_payload.get("data", {}).get("repo", {})
+    trigger_at_str = event_payload.get("data", {}).get("config", {}).get("trigger_at")
+    logger.info(
+        "%s.sending_request_to_seer",
+        PREFIX,
+        extra={
+            "provider": repo_data.get("provider"),
+            "repo_owner": repo_data.get("owner"),
+            "repo_name": repo_data.get("name"),
+            "pr_id": event_payload.get("data", {}).get("pr_id"),
+            "commit_sha": repo_data.get("base_commit_sha"),
+            "request_type": event_payload.get("request_type"),
+            "github_event": github_event,
+            "github_to_seer_latency_ms": (
+                calculate_latency_ms(trigger_at_str) if trigger_at_str else None
+            ),
+        },
+    )
+
+
 def record_latency(status: str, enqueued_at_str: str) -> None:
-    latency_ms = calculate_latency(enqueued_at_str)
+    latency_ms = calculate_latency_ms(enqueued_at_str)
     if latency_ms > 0:
         metrics.timing(f"{PREFIX}.e2e_latency", latency_ms, tags={"status": status})
 
 
-def calculate_latency(enqueued_at_str: str) -> int:
-    """Calculate the latency between the enqueued_at timestamp and the current time."""
+def calculate_latency_ms(timestamp_str: str) -> int:
+    """Calculate the latency in milliseconds between the given timestamp and now."""
     try:
-        enqueued_at = datetime.fromisoformat(enqueued_at_str)
-        processing_started_at = datetime.now(timezone.utc)
-        return int((processing_started_at - enqueued_at).total_seconds() * 1000)
+        timestamp = datetime.fromisoformat(timestamp_str)
+        now = datetime.now(timezone.utc)
+        return int((now - timestamp).total_seconds() * 1000)
     except (ValueError, TypeError) as e:
         # Don't fail the task if timestamp parsing fails
         logger.warning(
             "%s.invalid_timestamp",
             PREFIX,
-            extra={"enqueued_at": enqueued_at_str, "error": str(e)},
+            extra={"timestamp": timestamp_str, "error": str(e)},
         )
         return 0

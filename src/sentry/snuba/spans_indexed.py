@@ -45,7 +45,6 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
-    debug: bool = False,
     *,
     referrer: str,
 ):
@@ -75,7 +74,7 @@ def query(
     result = builder.process_results(
         builder.run_query(referrer=referrer, query_source=query_source)
     )
-    if debug:
+    if snuba_params.debug:
         result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
     return result
 

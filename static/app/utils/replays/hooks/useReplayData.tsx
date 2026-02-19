@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';

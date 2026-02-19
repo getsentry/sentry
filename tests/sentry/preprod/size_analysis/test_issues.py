@@ -7,7 +7,6 @@ from sentry.testutils.cases import TestCase
 
 class DiffToOccurrenceTest(TestCase):
     def test_diff_to_occurrence_install(self):
-
         project = self.create_project()
 
         head_artifact = self.create_preprod_artifact(project=project, app_id="com.example.app")
@@ -66,7 +65,6 @@ class DiffToOccurrenceTest(TestCase):
         assert occurrence.evidence_data["base_size_metric_id"] == base_metric.id
 
     def test_diff_to_occurrence_download(self):
-
         project = self.create_project()
 
         head_artifact = self.create_preprod_artifact(project=project, app_id="com.example.app")
