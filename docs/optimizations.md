@@ -735,15 +735,15 @@ Step 4 showed `dist=load` (per-test dispatch) was consistently slower than `dist
 
 Comparing the `dist=load` run (`22196178384`, T1 `-n 3 --dist=load`, T2 `-n 3 --dist=loadfile`) against the `loadfile` baseline (`22197280450`):
 
-| Shard | loadfile baseline | dist=load |
-|---|---|---|
-| T1(0) | 0 reruns | **12 reruns** |
-| T1(1) | 1 rerun | **8 reruns** |
-| T1(2) | 0 reruns | **13 reruns** |
-| T1(3) | 3 reruns | **20 reruns** |
-| T1(4) | 2 reruns | 0 reruns |
-| **T1 total** | **6** | **53** |
-| **T2 total** | **17** | **15** |
+| Shard        | loadfile baseline | dist=load     |
+| ------------ | ----------------- | ------------- |
+| T1(0)        | 0 reruns          | **12 reruns** |
+| T1(1)        | 1 rerun           | **8 reruns**  |
+| T1(2)        | 0 reruns          | **13 reruns** |
+| T1(3)        | 3 reruns          | **20 reruns** |
+| T1(4)        | 2 reruns          | 0 reruns      |
+| **T1 total** | **6**             | **53**        |
+| **T2 total** | **17**            | **15**        |
 
 T1 reruns spiked 9× (6 → 53) while T2 was unchanged. Extracting error messages from the CI logs revealed nearly all 53 T1 reruns came from a single file: `tests/sentry/spans/test_buffer.py`.
 
@@ -781,14 +781,14 @@ Under `load`, per-test dispatch interleaves tests from different files on the sa
 
 Created branch `mchen/fix-buffer-load` (run `22201666341`) with two changes: (1) added `pytestmark = [pytest.mark.django_db]` to `test_buffer.py`, (2) T1 set to `--dist=load`.
 
-| | dist=load (no fix) | **dist=load + fix** | loadfile baseline |
-|---|---|---|---|
-| T1(0) | 12 | **1** | 0 |
-| T1(1) | 8 | **2** | 1 |
-| T1(2) | 13 | **0** | 0 |
-| T1(3) | 20 | **0** | 3 |
-| T1(4) | 0 | **3** | 2 |
-| **T1 total** | **53** | **6** | **6** |
+|              | dist=load (no fix) | **dist=load + fix** | loadfile baseline |
+| ------------ | ------------------ | ------------------- | ----------------- |
+| T1(0)        | 12                 | **1**               | 0                 |
+| T1(1)        | 8                  | **2**               | 1                 |
+| T1(2)        | 13                 | **0**               | 0                 |
+| T1(3)        | 20                 | **0**               | 3                 |
+| T1(4)        | 0                  | **3**               | 2                 |
+| **T1 total** | **53**             | **6**               | **6**             |
 
 The fix brought `dist=load` reruns to exactly the baseline level (6), confirming the missing `django_db` marker was the sole cause of the 47 additional reruns.
 
@@ -796,17 +796,115 @@ The fix brought `dist=load` reruns to exactly the baseline level (6), confirming
 
 Even with reruns eliminated, `dist=load` still adds ~56s (+10%) to T1 pytest execution vs `loadfile`:
 
-| Metric | loadfile baseline | dist=load + fix | Delta |
-|---|---|---|---|
-| T1 avg pytest | 537s | 594s | **+56s (+10%)** |
-| T1 max pytest | 563s | 625s | **+62s** |
-| T1 max job | 11m01s | 12m15s | **+74s** |
+| Metric        | loadfile baseline | dist=load + fix | Delta           |
+| ------------- | ----------------- | --------------- | --------------- |
+| T1 avg pytest | 537s              | 594s            | **+56s (+10%)** |
+| T1 max pytest | 563s              | 625s            | **+62s**        |
+| T1 max job    | 11m01s            | 12m15s          | **+74s**        |
 
 This overhead comes from fixture churn: `load` dispatch interleaves tests from different files on the same worker, causing repeated class/module fixture setup and teardown. The `_shuffle` function in `sentry.py` keeps classes and modules together to minimize this, but per-test dispatch defeats it. `loadfile` preserves the optimization by keeping all tests from a file on one worker.
 
 ### Conclusion
 
 The `test_buffer.py` `django_db` fix is committed to the clean branch as a real bug fix — the missing marker causes flaky failures even under `loadfile` (3 of the baseline's 6 reruns were from this file). `dist=load` remains the wrong dispatch mode for T1: even with the flakiness fixed, it adds ~1 minute of fixture churn overhead. `loadfile` remains optimal.
+
+---
+
+## Postgres Network Traffic
+
+### Root cause: `databases = "__all__"` on every TestCase
+
+Sentry's base `TestCase` (`src/sentry/testutils/cases.py:432`) sets:
+
+```python
+databases: set[str] | str = "__all__"
+```
+
+Django's `_enter_atomics()` reads this attribute and opens a SAVEPOINT on every configured database before each test. With 3 databases (region/control/secondary), every test gets 3 SAVEPOINT opens + 3 ROLLBACK TOs regardless of whether the test ever touches `control` or `secondary`. Django's own default `TestCase` only issues SAVEPOINTs for `databases = {'default'}` — a single DB.
+
+At 32K tests per shard × 3 DBs × 2 round-trips (open + rollback) = ~192K postgres round-trips per shard just for test isolation setup/teardown. Each round-trip is a TCP `send()` + `recv()` to the postgres container at `127.0.0.1:5432`.
+
+The 3-database design is required for hybrid-cloud silo tests (some tests genuinely write to all three), but the majority of tests only touch `default` (region). Those tests pay 2× unnecessary SAVEPOINTs on databases they never use.
+
+### Why postgres CPU is high (avg 57%, peak 192%)
+
+Beyond the SAVEPOINT volume, postgres burns CPU on:
+
+1. **WAL writes**: Every INSERT/UPDATE/DELETE in test fixtures and test data creation writes to the WAL. By default, postgres waits for WAL to flush (`synchronous_commit=on`), adding 1–5ms per commit. Fixture-heavy tests issue hundreds of commits per test file.
+
+2. **`--reuse-db` startup cost**: On cold runs (new runner, no cached DB), postgres creates 3× `N_workers` databases (test_region_gw0/1/2, test_control_gw0/1/2, test_secondary_gw0/1/2) and runs all migrations for each — 191% CPU spike at startup before any test runs.
+
+3. **Shared TCP stack overhead**: All postgres queries go through the TCP loopback interface. The kernel copies every query payload user→kernel (send) and response kernel→user (recv). With 9 concurrent connections issuing thousands of queries, this is a constant syscall overhead contributing to the 15–20% sys%.
+
+### Actionable options
+
+#### Option 1: `synchronous_commit=off` (easy, safe)
+
+Applied via `docker exec` after devservices starts — no changes to sentry-shared-postgres required:
+
+```bash
+docker exec postgres-postgres-1 psql -U postgres \
+  -c "ALTER SYSTEM SET synchronous_commit = off" \
+  -c "ALTER SYSTEM SET full_page_writes = off" \
+  -c "SELECT pg_reload_conf()"
+```
+
+- `synchronous_commit=off`: postgres ACKs commits immediately without waiting for WAL to flush to disk. The WAL is still written — just not synced before returning. Reduces per-commit latency from ~1–5ms to <0.1ms.
+- `full_page_writes=off`: disables full-page images in WAL on first post-checkpoint write. Reduces WAL volume 30–60%.
+- Safe for test databases: worst case on crash is losing the last few committed transactions — irrelevant since `--reuse-db` always starts from a known schema state.
+
+Expected impact: reduces postgres CPU overhead for fixture writes (fixture creation is commit-heavy), and reduces WAL-related sys%.
+
+#### Option 2: Unix domain socket (moderate effort, no sentry-shared-postgres change)
+
+Replace the TCP connection to `127.0.0.1:5432` with a Unix domain socket. This eliminates the TCP stack entirely for postgres connections — no kernel TCP buffer copies, no TCP ACK overhead, just direct memory copies through the kernel socket.
+
+**Implementation in-workflow** (no sentry-shared-postgres change required):
+
+1. After `devservices up`, restart the postgres container with a socket volume mount:
+
+```bash
+mkdir -p /tmp/pg-sock
+PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+docker stop postgres-postgres-1 && docker rm postgres-postgres-1
+docker run -d --name postgres-postgres-1 \
+  --network devservices --label orchestrator=devservices \
+  -p 127.0.0.1:5432:5432 \
+  -v postgres-data:/var/lib/postgresql/data \
+  -v /tmp/pg-sock:/var/run/postgresql \
+  -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
+  "$PG_IMAGE" postgres \
+    -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
+```
+
+2. Override Django's `HOST` setting in `sentry.py` before `configure_split_db()` (so control/secondary inherit it):
+
+```python
+if _pg_socket := os.environ.get("SENTRY_DB_SOCKET"):
+    settings.DATABASES["default"]["HOST"] = _pg_socket
+    settings.DATABASES["default"]["PORT"] = ""
+```
+
+3. Set `SENTRY_DB_SOCKET=/tmp/pg-sock` in the workflow.
+
+psycopg2 uses a Unix socket when `HOST` is an absolute path — it looks for `.s.PGSQL.5432` inside that directory. No URL or connection string changes needed.
+
+**Expected impact**: Reduces per-round-trip latency ~3× (TCP loopback ~30–50μs → Unix socket ~10–15μs). For ~500K total postgres round-trips per shard (192K SAVEPOINTs + ORM queries), this could save 10–20s.
+
+#### Option 3: Narrow `databases` per test class (high effort, high impact)
+
+For test classes that only query `default`, override `databases = {"default"}`. Django will then skip SAVEPOINTs on `control` and `secondary` for those tests, cutting their postgres round-trips from 3× to 1×. This requires auditing which tests actually need multi-silo DB isolation. A runtime tracer (monkey-patch `django.db.connections[alias].queries`) could automate this.
+
+### Summary
+
+| Option                       | Mechanism                                                    | Effort                                                          | Expected savings                       |
+| ---------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------- | -------------------------------------- |
+| `synchronous_commit=off`     | Eliminate WAL sync latency per commit                        | Low (docker exec after devservices up)                          | ~5% postgres CPU                       |
+| Unix domain socket           | Skip TCP stack per round-trip                                | Medium (in-workflow postgres restart + 2-line sentry.py change) | ~10-20s / shard                        |
+| Narrow `databases` per class | Eliminate 2/3 of SAVEPOINT round-trips for region-only tests | High (audit 1800+ test files)                                   | Up to 2× postgres round-trip reduction |
+
+---
 
 ### Why `dist=load` hurts T1 but not T2
 
