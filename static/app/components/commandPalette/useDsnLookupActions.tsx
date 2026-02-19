@@ -10,7 +10,6 @@ import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookup
 import {IconIssues, IconList, IconSettings} from 'sentry/icons';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ICONS: React.ReactElement[] = [
@@ -22,15 +21,14 @@ const ICONS: React.ReactElement[] = [
 export function useDsnLookupActions(query: string): void {
   const organization = useOrganization({allowNull: true});
   const hasDsnLookup = organization?.features?.includes('cmd-k-dsn-lookup') ?? false;
-  const debouncedQuery = useDebouncedValue(query, 300);
-  const isDsn = DSN_PATTERN.test(debouncedQuery);
+  const isDsn = DSN_PATTERN.test(query);
 
   const {data} = useApiQuery<DsnLookupResponse>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/dsn-lookup/', {
         path: {organizationIdOrSlug: organization?.slug ?? ''},
       }),
-      {query: {dsn: debouncedQuery}},
+      {query: {dsn: query}},
     ],
     {
       staleTime: 30_000,

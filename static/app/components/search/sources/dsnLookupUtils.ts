@@ -15,7 +15,6 @@ export interface DsnLookupResponse {
 
 interface DsnNavTarget {
   description: string;
-  key: string;
   label: string;
   to: string;
 }
@@ -24,19 +23,16 @@ export function getDsnNavTargets(data: DsnLookupResponse): DsnNavTarget[] {
   const {organizationSlug, projectSlug, projectId, projectName} = data;
   return [
     {
-      key: 'dsn-lookup-issues',
       label: t('Issues for %s', projectName),
       description: t('View issues'),
       to: `/organizations/${organizationSlug}/issues/?project=${projectId}`,
     },
     {
-      key: 'dsn-lookup-project-settings',
       label: t('%s Settings', projectName),
       description: t('Project settings'),
       to: `/settings/${organizationSlug}/projects/${projectSlug}/`,
     },
     {
-      key: 'dsn-lookup-client-keys',
       label: t('Client Keys (DSN) for %s', projectName),
       description: t('Manage DSN keys'),
       to: `/settings/${organizationSlug}/projects/${projectSlug}/keys/`,
