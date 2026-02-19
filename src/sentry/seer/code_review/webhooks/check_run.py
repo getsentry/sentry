@@ -70,6 +70,7 @@ def handle_check_run_event(
     *,
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
+    tags: Mapping[str, Any],
     **kwargs: Any,
 ) -> None:
     """
@@ -80,7 +81,7 @@ def handle_check_run_event(
     Args:
         github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run")
         event: The webhook event payload
-        organization: The Sentry organization that the webhook event belongs to
+        tags: Sentry SDK tags from the handler (from get_tags); merged with check_run-specific overrides
         **kwargs: Additional keyword arguments
     """
     if github_event != GithubWebhookType.CHECK_RUN:
@@ -118,12 +119,10 @@ def handle_check_run_event(
     # Import here to avoid circular dependency with webhook_task
     from .task import process_github_webhook_event
 
-    tags = {
-        "github_event": github_event.value,
-        "github_event_action": validated_event.action,
-        "scm_provider": "github",
-        "scm_event_url": validated_event.check_run.html_url,
-    }
+    # Use passed tags as base and override with check_run-specific values
+    task_tags = dict(tags)
+    task_tags["scm_event_url"] = validated_event.check_run.html_url
+    task_tags["github_event_action"] = validated_event.action
 
     # Scheduling the work as a task allows us to retry the request if it fails.
     # Convert enum to string for Celery serialization
@@ -134,7 +133,7 @@ def handle_check_run_event(
         action=validated_event.action,
         html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
-        tags=tags,
+        tags=task_tags,
     )
     record_webhook_enqueued(github_event, action)
 
