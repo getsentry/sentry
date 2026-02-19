@@ -309,6 +309,24 @@ class SearchResolver:
                 where = TraceItemFilter(and_filter=AndFilter(filters=[where_lhs, where_rhs]))
             else:
                 where = TraceItemFilter(or_filter=OrFilter(filters=[where_lhs, where_rhs]))
+            # if operator == "and":
+            #     # Flatten nested ANDs to avoid deeply nested protobuf messages
+            #     and_filters: list[TraceItemFilter] = []
+            #     for f in [where_lhs, where_rhs]:
+            #         if f.HasField("and_filter"):
+            #             and_filters.extend(f.and_filter.filters)
+            #         else:
+            #             and_filters.append(f)
+            #     where = TraceItemFilter(and_filter=AndFilter(filters=and_filters))
+            # else:
+            #     # Flatten nested ORs to avoid deeply nested protobuf messages
+            #     or_filters: list[TraceItemFilter] = []
+            #     for f in [where_lhs, where_rhs]:
+            #         if f.HasField("or_filter"):
+            #             or_filters.extend(f.or_filter.filters)
+            #         else:
+            #             or_filters.append(f)
+            #     where = TraceItemFilter(or_filter=OrFilter(filters=or_filters))
         elif where_lhs is None and where_rhs is not None:
             where = where_rhs
         elif where_lhs is not None and where_rhs is None:
@@ -323,6 +341,24 @@ class SearchResolver:
                 having = AggregationFilter(
                     or_filter=AggregationOrFilter(filters=[having_lhs, having_rhs])
                 )
+            # if operator == "and":
+            #     # Flatten nested ANDs to avoid deeply nested protobuf messages
+            #     agg_and_filters: list[AggregationFilter] = []
+            #     for f in [having_lhs, having_rhs]:
+            #         if f.HasField("and_filter"):
+            #             agg_and_filters.extend(f.and_filter.filters)
+            #         else:
+            #             agg_and_filters.append(f)
+            #     having = AggregationFilter(and_filter=AggregationAndFilter(filters=agg_and_filters))
+            # else:
+            #     # Flatten nested ORs to avoid deeply nested protobuf messages
+            #     agg_or_filters: list[AggregationFilter] = []
+            #     for f in [having_lhs, having_rhs]:
+            #         if f.HasField("or_filter"):
+            #             agg_or_filters.extend(f.or_filter.filters)
+            #         else:
+            #             agg_or_filters.append(f)
+            #     having = AggregationFilter(or_filter=AggregationOrFilter(filters=agg_or_filters))
         elif having_lhs is None and having_rhs is not None:
             having = having_rhs
         elif having_lhs is not None and having_rhs is None:

@@ -261,6 +261,130 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+    def test_query_with_three_ors_is_flat(self) -> None:
+        """Three OR conditions should produce a flat OrFilter, not nested."""
+        where, having, _ = self.resolver.resolve_query(
+            "span.description:foo or span.op:bar or span.action:baz"
+        )
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.raw_description",
+                                type=AttributeKey.Type.TYPE_STRING,
+                            ),
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str="foo"),
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(name="sentry.op", type=AttributeKey.Type.TYPE_STRING),
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str="bar"),
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.action", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str="baz"),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_query_with_mixed_or_and_and_not_flattened(self) -> None:
+        """AND groups inside an OR should not be flattened into the OR."""
+        where, having, _ = self.resolver.resolve_query(
+            "span.description:a span.op:b or span.description:c span.op:d or span.description:e"
+        )
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        and_filter=AndFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=AttributeKey(
+                                            name="sentry.raw_description",
+                                            type=AttributeKey.Type.TYPE_STRING,
+                                        ),
+                                        op=ComparisonFilter.OP_EQUALS,
+                                        value=AttributeValue(val_str="a"),
+                                    )
+                                ),
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=AttributeKey(
+                                            name="sentry.op",
+                                            type=AttributeKey.Type.TYPE_STRING,
+                                        ),
+                                        op=ComparisonFilter.OP_EQUALS,
+                                        value=AttributeValue(val_str="b"),
+                                    )
+                                ),
+                            ]
+                        )
+                    ),
+                    TraceItemFilter(
+                        and_filter=AndFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=AttributeKey(
+                                            name="sentry.raw_description",
+                                            type=AttributeKey.Type.TYPE_STRING,
+                                        ),
+                                        op=ComparisonFilter.OP_EQUALS,
+                                        value=AttributeValue(val_str="c"),
+                                    )
+                                ),
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=AttributeKey(
+                                            name="sentry.op",
+                                            type=AttributeKey.Type.TYPE_STRING,
+                                        ),
+                                        op=ComparisonFilter.OP_EQUALS,
+                                        value=AttributeValue(val_str="d"),
+                                    )
+                                ),
+                            ]
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.raw_description",
+                                type=AttributeKey.Type.TYPE_STRING,
+                            ),
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str="e"),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_query_with_many_ors_no_decode_error(self) -> None:
+        """Many OR conditions should produce a flat OrFilter without DecodeError."""
+        n = 150
+        query = " OR ".join([f"span.op:val{i}" for i in range(n)])
+        where, having, _ = self.resolver.resolve_query(query)
+        assert where is not None
+        assert having is None
+        assert where.HasField("or_filter")
+        assert len(where.or_filter.filters) == n
+
     def test_empty_query(self) -> None:
         where, having, _ = self.resolver.resolve_query("")
         assert where is None
