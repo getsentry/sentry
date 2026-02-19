@@ -9,7 +9,7 @@ import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import type {ChildProps, Result} from './types';
 import {makeResolvedTs, strGetFn} from './utils';
 
-export type FormSearchField = {
+type FormSearchField = {
   description: React.ReactNode;
   field: {name: string};
   route: string;
