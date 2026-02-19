@@ -427,58 +427,56 @@ export function ProjectPageFilter({
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
       }}
       menuFooter={
-        selectionLimitExceeded || hasProjectWrite || stagedSelect.hasStagedChanges ? (
-          <Stack gap="md" direction="column">
-            {selectionLimitExceeded && (
-              <CondensedAlert variant="warning" showIcon={false}>
-                <Text size="sm">
-                  {tct(
-                    `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
-                    {
-                      limit: SELECTION_COUNT_LIMIT,
-                      count: stagedValue.length,
-                    }
-                  )}
-                </Text>
-              </CondensedAlert>
-            )}
-            <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
-              {hasProjectWrite ? (
-                <HybridFilterComponents.LinkButton
-                  icon={<IconAdd />}
-                  to={makeProjectsPathname({path: '/new/', organization})}
+        <Stack gap="md" direction="column">
+          {selectionLimitExceeded && (
+            <CondensedAlert variant="warning" showIcon={false}>
+              <Text size="sm">
+                {tct(
+                  `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
+                  {
+                    limit: SELECTION_COUNT_LIMIT,
+                    count: stagedValue.length,
+                  }
+                )}
+              </Text>
+            </CondensedAlert>
+          )}
+          <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
+            {hasProjectWrite ? (
+              <HybridFilterComponents.LinkButton
+                icon={<IconAdd />}
+                to={makeProjectsPathname({path: '/new/', organization})}
+              >
+                {t('Create Project')}
+              </HybridFilterComponents.LinkButton>
+            ) : undefined}
+            {stagedSelect.hasStagedChanges ? (
+              <Flex gap="md" align="center" justify="end">
+                <HybridFilterComponents.CancelButton
+                  onClick={stagedSelect.removeStagedChanges}
+                />
+                <HybridFilterComponents.ApplyButton
+                  disabled={stagedSelect.disableCommit}
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
+              </Flex>
+            ) : (
+              <Flex gap="md" align="center" justify="end">
+                <HybridFilterComponents.CommitButton
+                  onClick={() => stagedSelect.commit([ALL_ACCESS_PROJECTS])}
                 >
-                  {t('Create Project')}
-                </HybridFilterComponents.LinkButton>
-              ) : undefined}
-              {stagedSelect.hasStagedChanges ? (
-                <Flex gap="md" align="center" justify="end">
-                  <HybridFilterComponents.CancelButton
-                    onClick={stagedSelect.removeStagedChanges}
-                  />
-                  <HybridFilterComponents.ApplyButton
-                    disabled={stagedSelect.disableCommit}
-                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
-                  />
-                </Flex>
-              ) : (
-                <Flex gap="md" align="center" justify="end">
-                  <HybridFilterComponents.CommitButton
-                    onClick={() => stagedSelect.commit([ALL_ACCESS_PROJECTS])}
-                  >
-                    {t('All Projects')}
-                  </HybridFilterComponents.CommitButton>
-                  <HybridFilterComponents.CommitButton
-                    priority="primary"
-                    onClick={() => stagedSelect.commit([])}
-                  >
-                    {t('My Projects')}
-                  </HybridFilterComponents.CommitButton>
-                </Flex>
-              )}
-            </Flex>
-          </Stack>
-        ) : null
+                  {t('All Projects')}
+                </HybridFilterComponents.CommitButton>
+                <HybridFilterComponents.CommitButton
+                  priority="primary"
+                  onClick={() => stagedSelect.commit([])}
+                >
+                  {t('My Projects')}
+                </HybridFilterComponents.CommitButton>
+              </Flex>
+            )}
+          </Flex>
+        </Stack>
       }
       trigger={
         trigger ??
