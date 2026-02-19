@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - mchen/clickhouse-maxthreads
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -211,6 +212,13 @@ jobs:
             devservices up --mode backend-ci
             SERVICE_END=$(date +%s)
             echo "[services] devservices ready in $((SERVICE_END - SERVICE_START))s"
+
+            # Cap ClickHouse to 2 query threads, leaving 2 CPUs for pytest workers + postgres.
+            # Default is num_cpus (4), which competes directly with test execution.
+            curl -sf 'http://localhost:8123/' \
+              --data-binary "ALTER USER default SETTINGS max_threads = 2" \
+              && echo "[services] ClickHouse max_threads=2 applied" \
+              || echo "[services] WARNING: failed to set ClickHouse max_threads"
 
             SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
             SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
