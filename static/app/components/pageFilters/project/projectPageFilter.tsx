@@ -444,14 +444,12 @@ export function ProjectPageFilter({
             )}
             <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
               {hasProjectWrite ? (
-                <HybridFilterComponents.Button
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                <HybridFilterComponents.LinkButton
+                  icon={<IconAdd />}
+                  to={makeProjectsPathname({path: '/new/', organization})}
                 >
-                  <Flex align="center" gap="sm">
-                    {t('Create Project')}
-                    <IconAdd size="xs" />
-                  </Flex>
-                </HybridFilterComponents.Button>
+                  {t('Create Project')}
+                </HybridFilterComponents.LinkButton>
               ) : undefined}
               {stagedSelect.hasStagedChanges ? (
                 <Flex gap="md" align="center" justify="end">
