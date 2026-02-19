@@ -37,7 +37,7 @@ export function useDsnLookupActions(query: string): void {
   );
 
   const actions: CommandPaletteAction[] = useMemo(() => {
-    if (!data) {
+    if (!isDsn || !data) {
       return [];
     }
 
@@ -51,7 +51,7 @@ export function useDsnLookupActions(query: string): void {
       },
       groupingKey: 'search-result' as const,
     }));
-  }, [data]);
+  }, [isDsn, data]);
 
   useCommandPaletteActions(actions);
 }
