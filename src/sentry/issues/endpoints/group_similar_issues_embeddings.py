@@ -66,6 +66,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         }
         for similar_issue_data in similar_issues_data:
             if parent_hashes_group_ids[similar_issue_data.parent_hash] != group.id:
+                # Results are sorted by ascending distance, so the first occurrence of each
+                # group has the best (lowest distance / highest similarity) score. Skip
+                # duplicates to avoid overwriting a better score with a worse one while
+                # keeping the dict insertion position from the first (best) entry.
+                if similar_issue_data.parent_group_id in group_data:
+                    continue
                 formatted_response: FormattedSimilarIssuesEmbeddingsData = {
                     "exception": round(1 - similar_issue_data.stacktrace_distance, 4),
                     "shouldBeGrouped": "Yes" if similar_issue_data.should_group else "No",
