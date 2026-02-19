@@ -896,6 +896,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.seer.autofix.issue_summary",
+    "sentry.seer.code_review.tasks",
+    "sentry.seer.code_review.webhooks.on_completion",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
@@ -1131,6 +1133,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "seer-explorer-index": {
         "task": "seer:sentry.tasks.seer_explorer_index.schedule_explorer_index",
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+    },
+    "seer-code-review-cleanup": {
+        "task": "seer.code_review:sentry.seer.code_review.tasks.cleanup_old_code_review_events",
+        "schedule": task_crontab("0", "3", "*", "*", "*"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
