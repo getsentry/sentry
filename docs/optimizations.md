@@ -384,15 +384,15 @@ The baseline continued iterating beyond the 11m29s configuration:
 
 **Results** (run `22120115422`, `--dist=loadscope`, no extra tests forced to tier3):
 
-| Metric       | Step 4 best  | Step 5       |
-| ------------ | ------------ | ------------ |
-| Wall clock   | 11.9m        | **13.0m**    |
+| Metric       | Step 4 best  | Step 5        |
+| ------------ | ------------ | ------------- |
+| Wall clock   | 11.9m        | **13.0m**     |
 | T1 avg / max | 9.8m / 10.8m | 11.4m / 12.7m |
 | T2 avg / max | 9.9m / 10.7m | 10.6m / 11.4m |
-| T3           | —            | 8.1m         |
-| T1 spread    | 153s         | 136s         |
-| T2 spread    | 133s         | 88s          |
-| Runner-min   | 217m         | 234m         |
+| T3           | —            | 8.1m          |
+| T1 spread    | 153s         | 136s          |
+| T2 spread    | 133s         | 88s           |
+| Runner-min   | 217m         | 234m          |
 
 Wall clock regressed from the earlier 11.8m (run `22118316595`, `--dist=loadfile`) to 13.0m. Investigation: the earlier 11.8m run used `--dist=loadfile` with the same tier layout and no extra forced tests. T1 spread was only 26s (vs 136s with `loadscope`). `loadscope` appears worse in the 3-tier config — T1 has fewer, larger test files where `loadfile`'s per-file fixture reuse is more valuable. The `loadscope` advantage seen in Step 4 (2-tier, 17 T2 shards) doesn't carry over to the 3-tier layout.
 
@@ -430,15 +430,15 @@ Two optimization experiments run in parallel worktrees on top of the Step 5 + Ka
 
 **Results** (run `22120115559`, 0 failures):
 
-| Metric       | Step 5 (main) | G1            | Delta        |
-| ------------ | ------------- | ------------- | ------------ |
-| Wall clock   | 13.0m         | **11.2m**     | **-1.8m**    |
-| T1 avg / max | 11.4m / 12.7m | 10.5m / 10.9m | -1.8m max    |
-| T2 avg / max | 10.6m / 11.4m | 9.6m / 10.6m  | -0.8m max    |
-| T3           | 8.1m          | 8.4m          | +0.3m        |
-| T1 spread    | 136s          | **51s**        | -85s         |
-| T2 spread    | 88s           | 95s           | +7s          |
-| Runner-min   | 234m          | **215m**      | **-19m**     |
+| Metric       | Step 5 (main) | G1            | Delta     |
+| ------------ | ------------- | ------------- | --------- |
+| Wall clock   | 13.0m         | **11.2m**     | **-1.8m** |
+| T1 avg / max | 11.4m / 12.7m | 10.5m / 10.9m | -1.8m max |
+| T2 avg / max | 10.6m / 11.4m | 9.6m / 10.6m  | -0.8m max |
+| T3           | 8.1m          | 8.4m          | +0.3m     |
+| T1 spread    | 136s          | **51s**       | -85s      |
+| T2 spread    | 88s           | 95s           | +7s       |
+| Runner-min   | 234m          | **215m**      | **-19m**  |
 
 **Analysis:** G1 delivers the biggest single improvement since H1 (overlapped startup). The 50s collection savings per shard directly reduces wall clock since T1 doesn't have devservices startup to overlap with — the time comes straight off T1 durations. T1 spread dropped to 51s (from 136s), making it remarkably well-balanced. T1 is still the critical path (10.9m) but now only barely above T2 max (10.6m).
 
@@ -462,17 +462,28 @@ Two optimization experiments run in parallel worktrees on top of the Step 5 + Ka
 
 ### Summary
 
-| Config         | Wall clock | Runner-min | T1 spread | Failures |
-| -------------- | ---------- | ---------- | --------- | -------- |
-| Main (Step 5)  | 13.0m      | 234m       | 136s      | 0        |
-| **G1**         | **11.2m**  | **215m**   | **51s**   | 0        |
-| Balanced (seed)| 12.6m      | 232m       | 167s      | 0        |
+| Config          | Wall clock | Runner-min | T1 spread | Failures |
+| --------------- | ---------- | ---------- | --------- | -------- |
+| Main (Step 5)   | 13.0m      | 234m       | 136s      | 0        |
+| **G1**          | **11.2m**  | **215m**   | **51s**   | 0        |
+| Balanced (seed) | 12.6m      | 232m       | 167s      | 0        |
 
 G1 is the clear winner. Collection-time savings are the largest remaining lever after H1. Balanced sharding needs a follow-up run with cached durations to show its potential — ideally combined with G1.
 
 ### Reverting to 2-Tier Layout
 
-3-tier (5T1/16T2/1T3) consistently produced more total runner-minutes than 2-tier (5T1/17T2) because every T2 shard still pulled heavy images via `backend-ci` anyway, while T3 added an extra shard's overhead. Reverting to 2-tier with `--dist=loadfile`.
+3-tier (5T1/16T2/1T3) did not save runner-minutes vs 2-tier (5T1/17T2). Reverting to 2-tier with `--dist=loadfile`.
+
+**Why 3-tier didn't help:** The theory was that `backend-ci-light` on T2 would skip heavy images (relay, symbolicator, objectstore) and save startup time per shard. In practice: (1) Snuba/Clickhouse/Kafka/Postgres are the heavy images and are needed in both modes — relay/symbolicator/objectstore add only ~5-10s marginal startup. (2) Startup overlaps with test collection (H1 optimization), so the extra seconds are hidden. (3) The extra T3 shard running full `backend-ci` for ~8m ate any marginal T2 savings. Net result: ~234m runner-minutes for both layouts.
+
+**2-tier confirmed results** (run `22121660458` main, `22121660683` G1, 0 failures):
+
+| Config        | Wall clock | Runner-min | T1 max | T2 max |
+| ------------- | ---------- | ---------- | ------ | ------ |
+| Main 2-tier   | 11.7m      | 234m       | 11m40s | 11m21s |
+| **G1 2-tier** | **10.8m**  | **214m**   | 10m49s | 10m36s |
+
+G1's `pytest_ignore_collect` saves ~50s per shard by skipping irrelevant file imports, directly reducing both wall-clock and runner-minutes. This is the only optimization that meaningfully reduces runner-minutes (234m → 214m).
 
 ### LPT Second Run Analysis — Why Flat LPT Wrecks Intra-Shard Parallelism
 
@@ -480,11 +491,11 @@ G1 is the clear winner. Collection-time savings are the largest remaining lever 
 
 LPT was active with 13,372 tests of timing data. All 16 T2 shards predicted exactly `1077s` total duration with `spread: 0s` — mathematically perfect balance. Yet actual wall-clocks ranged from **568s to 857s**, a 289s spread:
 
-| Shard   | Scopes assigned | Predicted total | Actual wall-clock |
-| ------- | --------------- | --------------- | ----------------- |
-| T2(0)   | 67 (heavy)      | 1077s           | **819s**          |
-| T2(1)   | 77              | 1077s           | **857s**          |
-| T2(11)  | 95 (light)      | 1077s           | **568s**          |
+| Shard  | Scopes assigned | Predicted total | Actual wall-clock |
+| ------ | --------------- | --------------- | ----------------- |
+| T2(0)  | 67 (heavy)      | 1077s           | **819s**          |
+| T2(1)  | 77              | 1077s           | **857s**          |
+| T2(11) | 95 (light)      | 1077s           | **568s**          |
 
 **Root cause:** LPT optimises **total duration per shard**, but each shard runs N=3 xdist workers in parallel. Actual wall-clock = `max(worker_loads)`, not `sum(worker_loads)`. By assigning the heaviest scopes to the lightest bin, LPT concentrated heavy scopes together: shard 0 got 67 large scopes, shard 11 got 95 small ones. Both sum to ~1077s, but shard 0's workers are severely imbalanced (one worker gets stuck on a 60s scope while others idle), giving ~1.3x parallelism. Shard 11's many small scopes spread evenly, giving ~1.9x parallelism.
 
@@ -493,6 +504,7 @@ LPT was active with 13,372 tests of timing data. All 16 T2 shards predicted exac
 Instead of tracking one number per shard (total duration), track the load on **each of the N workers** inside each shard. When placing a scope, simulate: "if I add this scope, it goes to the lightest worker — what would the resulting max-worker-time (wall-clock) be?" Assign to the shard that minimises the global maximum wall-clock.
 
 Algorithm:
+
 1. Sort scopes by duration descending (heaviest first, same as before).
 2. For each scope, for each candidate shard:
    - Find the lightest worker in that shard.
@@ -503,3 +515,57 @@ Algorithm:
 Complexity: O(scopes × shards × workers) = ~1460 × 17 × 3 ≈ 74K ops. Trivial.
 
 This directly optimises the metric that determines actual run time, rather than a proxy (total duration) that ignores intra-shard parallelism.
+
+### G1 Impact Summary
+
+G1 (`pytest_ignore_collect`) is the single largest improvement after H1. It prevents pytest from importing test files that aren't in the shard's tier list, saving ~50s of module import time per shard. Without G1, every shard imports ALL ~1500 test files, discovers every test, then filters down — wasting ~1m45s on collection. G1 short-circuits this before the import step.
+
+**2-tier confirmed results** (0 failures):
+
+- Main: 11.7m wall clock, 234m runner-min
+- G1: **10.8m wall clock, 214m runner-min** (best so far)
+
+G1 is the only optimization that meaningfully reduces runner-minutes (234m → 214m = 20m saved), because it cuts actual work on every shard rather than just reshuffling it.
+
+**Future collection-time ideas:**
+
+- Skip entire directory subtrees (e.g., T1 shards skip `tests/snuba/`) to avoid even traversing them.
+- Lazy imports in conftest files — pytest still imports every `conftest.py` in the tree even with G1; heavy top-level imports there cost time on every shard.
+- Cache `__pycache__` across CI runs to avoid recompiling .py → .pyc on every shard.
+
+---
+
+## Experiment: Balanced Sharding with Hybrid LPT + Swap Refinement (⚠️ likely highly flawed study)
+
+> **Caveat:** This experiment is likely highly flawed. The balanced branch diverged from main on multiple axes simultaneously (LPT algorithm, `--dist=loadscope`, `TEST_GROUP_STRATEGY=duration`, swap refinement), making it impossible to isolate the effect of any single change. The collection time discrepancy (228s vs 66s on T1) was never fully explained, and the scope-keeping constraint was tested only under `loadscope` — not under `loadfile` where the cost of indivisible units differs. Treat these findings as directional, not definitive.
+
+**What:** Extended Worker-Simulated LPT with a swap refinement phase (Proposal C). After the initial LPT assignment, iteratively try swapping scopes between the heaviest and lightest shards to reduce the global max wallclock. Also switched from `--dist=loadfile` to `--dist=loadscope` to allow finer-grained within-shard parallelism. Ported G1 optimizations to this branch.
+
+**Results** (run `22168142508`, second run with cached durations, 0 failures):
+
+| Metric       | Main + G1 (22168142281) | Balanced + G1 + Swap (22168142508) |
+| ------------ | ----------------------- | ---------------------------------- |
+| Wall clock   | **10m53s**              | 13m22s                             |
+| T1 avg / max | 10m31s / 10m53s         | 13m09s / 13m22s                    |
+| T2 avg / max | 9m46s / 10m25s          | 10m00s / 11m11s                    |
+| T1 spread    | 50s                     | 39s                                |
+| T2 spread    | **106s**                | 474s                               |
+| Runner-min   | **218.7m**              | 236.0m                             |
+
+**Balanced is 2m29s slower and costs 17 more runner-minutes. Both tiers are worse.**
+
+### T1: Duration-based sharding is net negative
+
+- **Collection 3.5× slower (228s vs 66s):** All 5 balanced T1 shards consistently took ~230s for collection vs ~65s on main. Both branches have identical G1 code and the same 1508-file tier list. The exact cause is unclear — likely a combination of `--dist=loadscope` overhead and `_duration_based_split` running on each xdist worker.
+- **Unbalanced test counts:** LPT optimizes by call-duration, not test count. T1(0) got 4971 tests vs main's 3888 (28% more). Per-test overhead (setup/teardown) not captured in durations caused proportionally longer execution (723s vs 567s).
+- **Net:** LPT saved 11s of spread (39s vs 50s) but added ~2.5 minutes of overhead.
+
+### T2: Mega-scopes are indivisible under loadscope
+
+- **474s spread vs main's 106s.** The swap algorithm performed **0 swaps** despite 50 rounds available.
+- **Root cause:** With `--dist=loadscope`, entire test classes are atomic units. A class taking 834s dominates one shard's wallclock. Swapping it to another shard just moves the bottleneck — no swap produces improvement when the mega-scope IS the bottleneck.
+- Main's hash-based (roundrobin) sharding avoids this by hashing individual test nodeids, naturally scattering mega-class tests across all 17 shards.
+
+### Key takeaway
+
+For this workload (~32K tests with skewed class sizes), randomized hash sharding outperforms duration-based LPT because: (1) indivisible mega-scopes create unavoidable hotspots under scope-preserving algorithms, (2) with 17+ shards the law of large numbers gives randomized distribution good-enough balance, and (3) the algorithmic overhead (collection, JSON parsing, LPT computation) negates any theoretical improvement. Main + G1 with roundrobin remains the best configuration at **10m53s / 218.7m**.
