@@ -361,7 +361,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     failing_testid = getattr(session, "_shuffle_failing_testid", None)
     if failing_testid and exitstatus != 0:
         outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
-        print(f"writing {failing_testid} to {outdir}/failing-testid")
         with open(f"{outdir}/failing-testid", "w") as f:
             f.write(failing_testid + "\n")
 

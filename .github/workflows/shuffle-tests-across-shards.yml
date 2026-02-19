@@ -88,6 +88,8 @@ jobs:
 
       - name: Create GitHub issue
         if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           test -f "$GITHUB_WORKSPACE/failing-testid" || exit 0
           read -r FAILING_TESTID < "$GITHUB_WORKSPACE/failing-testid"
