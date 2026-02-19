@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
+from sentry.integrations.models import OrganizationIntegration
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
@@ -281,6 +282,7 @@ class WorkflowRuleSerializerTest(TestCase):
         ) == {workflow.id: timezone.now(), workflow_2.id: before_now(hours=1)}
 
     def test_rule_serializer(self) -> None:
+        # default issue alert rule has legacy plugins and webhook actions
         self.issue_alert.update(owner_user_id=self.user.id)
         self.issue_alert.refresh_from_db()
         self.assert_equal_serializers(self.issue_alert)
@@ -331,6 +333,58 @@ class WorkflowRuleSerializerTest(TestCase):
 
         self.assert_equal_serializers(issue_alert)
 
+    def test_email_action_simple(self) -> None:
+        action_data = [
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": str(self.user.id),
+                "targetType": "Member",
+            },
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": str(self.team.id),
+                "targetType": "Team",
+            },
+        ]
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=action_data,
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
+    def test_email_action_issue_owners(self) -> None:
+        action_data = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            },
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "AllMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            },
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "NoOne",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            },
+        ]
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=action_data,
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
     def test_discord_action(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = self.create_integration(
@@ -379,52 +433,29 @@ class WorkflowRuleSerializerTest(TestCase):
         )
         self.assert_equal_serializers(rule)
 
-    def test_email_action_simple(self) -> None:
-        action_data = [
-            {
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": str(self.user.id),
-                "targetType": "Member",
-            },
-            {
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": str(self.team.id),
-                "targetType": "Team",
-            },
-        ]
+    def test_opsgenie_action(self) -> None:
+        team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="opsgenie",
+                name="test-app",
+                external_id="opsgenie:1",
+            )
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=integration.id
+            )
+            org_integration.config = {"team_table": [team]}
+            org_integration.save()
+        action_data = {
+            "account": integration.id,
+            "team": team["id"],
+            "priority": "P2",
+            "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+        }
         rule = self.create_project_rule(
             project=self.project,
-            action_data=action_data,
-            condition_data=self.conditions,
-            include_legacy_rule_id=False,
-            include_workflow_id=False,
-        )
-        self.assert_equal_serializers(rule)
-
-    def test_email_action_issue_owners(self) -> None:
-        action_data = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-            },
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "AllMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-            },
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "NoOne",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-            },
-        ]
-        rule = self.create_project_rule(
-            project=self.project,
-            action_data=action_data,
+            action_data=[action_data],
             condition_data=self.conditions,
             include_legacy_rule_id=False,
             include_workflow_id=False,
