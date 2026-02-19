@@ -14,6 +14,9 @@ from sentry.models.organization import Organization
 logger = logging.getLogger(__name__)
 
 
+MAX_SNAPSHOTS_PER_DASHBOARD = 10
+
+
 def capture_dashboard_snapshot(
     dashboard: Dashboard,
     user_id: int | None = None,
@@ -28,9 +31,12 @@ def capture_dashboard_snapshot(
     *source* indicates why the snapshot was taken — ``"edit"`` for
     normal edits, ``"restore"`` when capturing state before a
     restore operation.
+
+    Enforces a cap of ``MAX_SNAPSHOTS_PER_DASHBOARD`` per dashboard,
+    deleting the oldest snapshots first when the limit is reached.
     """
     snapshot_data = serialize(dashboard)
-    return DashboardHistory.objects.create(
+    history = DashboardHistory.objects.create(
         dashboard=dashboard,
         organization=dashboard.organization,
         created_by_id=user_id,
@@ -39,71 +45,45 @@ def capture_dashboard_snapshot(
         snapshot=snapshot_data,
     )
 
+    # Delete oldest snapshots exceeding the cap
+    ids_to_keep = list(
+        DashboardHistory.objects.filter(dashboard=dashboard)
+        .order_by("-date_added")
+        .values_list("id", flat=True)[:MAX_SNAPSHOTS_PER_DASHBOARD]
+    )
+    DashboardHistory.objects.filter(dashboard=dashboard).exclude(id__in=ids_to_keep).delete()
+
+    return history
+
+
+# Read-only / computed fields to strip at each level so the serializer
+# treats the snapshot as fresh input.  Using a blocklist instead of an
+# allowlist means new schema fields pass through automatically.
+_DASHBOARD_EXCLUDE = {"id", "dateCreated", "createdBy", "isFavorited", "prebuiltId"}
+_WIDGET_EXCLUDE = {"id", "dateCreated", "dashboardId", "exploreUrls", "changedReason"}
+_QUERY_EXCLUDE = {"id", "widgetId", "onDemand"}
+
 
 def _snapshot_to_input_format(snapshot: dict[str, Any]) -> dict[str, Any]:
     """
     Transform a snapshot (API response format, camelCase) into the
     shape accepted by ``DashboardDetailsSerializer`` for an update.
 
-    The key transformation is stripping widget and query IDs so the
-    serializer treats every widget as a *new* creation (rather than
+    Strips read-only / server-computed fields and widget/query IDs so
+    the serializer treats every widget as a *new* creation (rather than
     trying to update by ID — those widgets may no longer exist).
     """
     widgets = []
     for w in snapshot.get("widgets", []):
-        queries = []
-        for q in w.get("queries", []):
-            queries.append(
-                {
-                    "name": q.get("name", ""),
-                    "fields": q.get("fields", []),
-                    "aggregates": q.get("aggregates", []),
-                    "columns": q.get("columns", []),
-                    "fieldAliases": q.get("fieldAliases", []),
-                    "conditions": q.get("conditions", ""),
-                    "orderby": q.get("orderby", ""),
-                    "isHidden": q.get("isHidden", False),
-                    "selectedAggregate": q.get("selectedAggregate"),
-                    "linkedDashboards": q.get("linkedDashboards", []),
-                }
-            )
-        widget_data: dict[str, Any] = {
-            "title": w.get("title", ""),
-            "description": w.get("description"),
-            "displayType": w.get("displayType", "line"),
-            "interval": w.get("interval", "5m"),
-            "widgetType": w.get("widgetType", "error-events"),
-            "queries": queries,
-            "limit": w.get("limit"),
-            "layout": w.get("layout"),
-            "thresholds": w.get("thresholds"),
-        }
-        if w.get("datasetSource"):
-            widget_data["datasetSource"] = w["datasetSource"]
+        queries = [
+            {k: v for k, v in q.items() if k not in _QUERY_EXCLUDE} for q in w.get("queries", [])
+        ]
+        widget_data = {k: v for k, v in w.items() if k not in _WIDGET_EXCLUDE and k != "queries"}
+        widget_data["queries"] = queries
         widgets.append(widget_data)
 
-    result: dict[str, Any] = {
-        "title": snapshot.get("title", ""),
-        "widgets": widgets,
-    }
-
-    if snapshot.get("projects"):
-        result["projects"] = snapshot["projects"]
-    if snapshot.get("environment") is not None:
-        result["environment"] = snapshot["environment"]
-    if snapshot.get("period") is not None:
-        result["period"] = snapshot["period"]
-    if snapshot.get("start") is not None:
-        result["start"] = snapshot["start"]
-    if snapshot.get("end") is not None:
-        result["end"] = snapshot["end"]
-    if snapshot.get("utc") is not None:
-        result["utc"] = snapshot["utc"]
-    if snapshot.get("filters"):
-        result["filters"] = snapshot["filters"]
-    if snapshot.get("permissions") is not None:
-        result["permissions"] = snapshot["permissions"]
-
+    result = {k: v for k, v in snapshot.items() if k not in _DASHBOARD_EXCLUDE and k != "widgets"}
+    result["widgets"] = widgets
     return result
 
 

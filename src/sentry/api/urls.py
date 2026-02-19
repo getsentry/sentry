@@ -156,7 +156,6 @@ from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardVisitEndpoint,
 )
 from sentry.dashboards.endpoints.organization_dashboard_history import (
-    DashboardHistoryDetailEndpoint,
     DashboardHistoryEndpoint,
     DashboardRestoreEndpoint,
 )
@@ -1584,11 +1583,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/history/$",
         DashboardHistoryEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-history",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>\d+)/history/(?P<history_id>[^/]+)/$",
-        DashboardHistoryDetailEndpoint.as_view(),
-        name="sentry-api-0-organization-dashboard-history-detail",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/history/(?P<history_id>\d+)/restore/$",
