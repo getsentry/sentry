@@ -151,13 +151,6 @@ interface AutoSaveFieldProps<
    * confirm={(value) => value === 'dangerous' ? "This is irreversible!" : undefined}
    */
   confirm?: ConfirmConfig<z.infer<TSchema>[TFieldName]>;
-
-  /**
-   * Optional flag to reset the form to initial values if the mutation fails.
-   * Good for Switches, bad for everything else (can cause jarring UX and loss of user input).
-   * Default is false (don't reset on error).
-   */
-  resetOnError?: boolean;
 }
 
 export function AutoSaveField<
@@ -170,12 +163,12 @@ export function AutoSaveField<
   mutationOptions,
   confirm,
   children,
-  resetOnError,
 }: AutoSaveFieldProps<TSchema, TFieldName>) {
   const id = useId();
   const mutation = useMutation(mutationOptions);
   // Track pending confirmation to prevent duplicate modals
   const pendingConfirmRef = useRef(false);
+  const resetOnErrorRef = useRef(false);
 
   const form = useScrapsForm({
     formId: `${name}-${id}-(auto-save)`,
@@ -199,7 +192,7 @@ export function AutoSaveField<
       }
 
       const onError = () => {
-        if (resetOnError) {
+        if (resetOnErrorRef.current) {
           formApi.reset();
         }
         setFieldErrors(formApi, {[name]: {message: t('Failed to save')}} as never);
@@ -245,7 +238,7 @@ export function AutoSaveField<
 
   return (
     <form.AppForm>
-      <AutoSaveContextProvider value={{status: mutation.status}}>
+      <AutoSaveContextProvider value={{status: mutation.status, resetOnErrorRef}}>
         <form.FormWrapper>
           <form.AppField name={name}>{field => children(field as never)}</form.AppField>
         </form.FormWrapper>

@@ -116,6 +116,7 @@ const userMutationOptions = (client: QueryClient) =>
     mutationFn: async (variables: Partial<User>): Promise<User> => {
       // eslint-disable-next-line no-console
       console.log('saving user', variables);
+      throw new Error('ooopa');
       await sleep(1000);
       return {
         firstName: 'John',

@@ -593,7 +593,6 @@ describe('SwitchField resetOnError', () => {
         schema={testSchema}
         initialValue={false}
         mutationOptions={{mutationFn}}
-        resetOnError
       >
         {field => (
           <field.Layout.Row label="Enable Feature">
@@ -614,39 +613,6 @@ describe('SwitchField resetOnError', () => {
     });
   });
 
-  it('does not reset switch when mutation fails and resetOnError is false', async () => {
-    const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
-
-    render(
-      <AutoSaveField
-        name="enabled"
-        schema={testSchema}
-        initialValue={false}
-        mutationOptions={{mutationFn}}
-      >
-        {field => (
-          <field.Layout.Row label="Enable Feature">
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
-          </field.Layout.Row>
-        )}
-      </AutoSaveField>
-    );
-
-    const checkbox = screen.getByRole('checkbox');
-    await userEvent.click(checkbox);
-
-    // Mutation should be called
-    await waitFor(() => {
-      expect(mutationFn).toHaveBeenCalledWith({enabled: true});
-    });
-
-    // Switch should stay checked (not reverted) since resetOnError is not set
-    await waitFor(() => {
-      expect(checkbox).toBeEnabled();
-    });
-    expect(checkbox).toBeChecked();
-  });
-
   it('resets switch after confirmed mutation fails with resetOnError', async () => {
     renderGlobalModal();
     const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
@@ -658,7 +624,6 @@ describe('SwitchField resetOnError', () => {
         initialValue={false}
         mutationOptions={{mutationFn}}
         confirm="Are you sure?"
-        resetOnError
       >
         {field => (
           <field.Layout.Row label="Enable Feature">

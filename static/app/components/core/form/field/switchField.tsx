@@ -34,6 +34,8 @@ export function SwitchField({
                 onChange(e.target.checked);
                 // Trigger onBlur for auto-saving when the switch is toggled
                 if (autoSaveContext) {
+                  // Switches should reset to previous value on error
+                  autoSaveContext.resetOnErrorRef.current = true;
                   fieldProps.onBlur();
                 }
               }}
