@@ -15,14 +15,14 @@ type Props = {
 };
 
 function DsnLookupSource({query, children}: Props) {
-  const organization = useOrganization();
-  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
+  const organization = useOrganization({allowNull: true});
+  const hasDsnLookup = organization?.features?.includes('cmd-k-dsn-lookup') ?? false;
   const isDsn = DSN_PATTERN.test(query);
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<DsnLookupResponse | null>(null);
 
   useEffect(() => {
-    if (!hasDsnLookup || !isDsn) {
+    if (!organization || !hasDsnLookup || !isDsn) {
       setData(null);
       setIsLoading(false);
       return undefined;
@@ -52,7 +52,7 @@ function DsnLookupSource({query, children}: Props) {
     return () => {
       cancelled = true;
     };
-  }, [hasDsnLookup, isDsn, query, organization.slug]);
+  }, [organization, hasDsnLookup, isDsn, query]);
 
   const results = useMemo(() => {
     if (!data) {

@@ -1,4 +1,5 @@
-export const DSN_PATTERN = /^https?:\/\/([a-f0-9]{32})(:[a-f0-9]{32})?@[^/]+\/\d+$/;
+export const DSN_PATTERN =
+  /^https?:\/\/([a-f0-9]{32})(:[a-f0-9]{32})?@[^/]+\/(?:[^/]+\/)*\d+$/;
 
 export interface DsnLookupResponse {
   keyId: string;
