@@ -38,9 +38,6 @@ MAX_TITLE_LENGTH = 255
 MAX_EVIDENCE_ITEMS = 8
 MAX_EVIDENCE_VALUE_LENGTH = 140
 MAX_EVENT_CONTEXT_LENGTH = 1200
-SQL_EVIDENCE_PREFIX_RE = re.compile(
-    r"^(db|database)\s*-\s*(select|insert|update|delete|with)\b", re.I
-)
 CODE_BLOCK_EVIDENCE_NAME_PARTS = frozenset({"query", "offending spans", "selector path"})
 
 
@@ -81,16 +78,14 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             return "Interaction Details"
         return "Details"
 
-    def _is_code_block_evidence(self, evidence_name: str, evidence_value: Any) -> bool:
+    def _is_code_block_evidence(self, evidence_name: str) -> bool:
         normalized_name = evidence_name.lower()
-        if any(part in normalized_name for part in CODE_BLOCK_EVIDENCE_NAME_PARTS):
-            return True
-        return bool(SQL_EVIDENCE_PREFIX_RE.search(str(evidence_value).strip()))
+        return any(part in normalized_name for part in CODE_BLOCK_EVIDENCE_NAME_PARTS)
 
     def _get_formatted_evidence_lines(self, evidence_name: str, evidence_value: Any) -> list[str]:
         name = self._normalize_text(evidence_name, normalize_whitespace=True)
         value = str(evidence_value)
-        if self._is_code_block_evidence(name, value):
+        if self._is_code_block_evidence(name):
             return [f"{name}:", "```", value, "```"]
         return [
             f"{name}: {self._normalize_text(value, MAX_EVIDENCE_VALUE_LENGTH, normalize_whitespace=True)}"
