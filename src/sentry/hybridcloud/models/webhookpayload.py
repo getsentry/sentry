@@ -142,6 +142,8 @@ class WebhookPayload(Model):
             "mailbox_name": self.mailbox_name,
             "provider": self.provider,
             "region_name": self.region_name,
+            "request_method": self.request_method,
+            "request_path": self.request_path,
             "schedule_for": self.schedule_for.isoformat() if self.schedule_for else None,
         }
 
