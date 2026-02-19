@@ -27,7 +27,6 @@ from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_web
 from ..utils import (
     convert_enum_keys_to_strings,
     get_seer_endpoint_for_event,
-    get_tags,
     make_seer_request,
 )
 
@@ -48,6 +47,7 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    tags: Mapping[str, object],
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
@@ -66,16 +66,6 @@ def schedule_task(
             github_event, github_event_action, WebhookFilteredReason.TRANSFORM_FAILED
         )
         return
-
-    tags = get_tags(
-        event,
-        github_event=github_event.value,
-        github_event_action=github_event_action,
-        organization_id=organization.id,
-        organization_slug=organization.slug,
-        integration_id=repo.integration_id,
-        target_commit_sha=target_commit_sha,
-    )
 
     process_github_webhook_event.delay(
         github_event=github_event.value,

@@ -50,7 +50,8 @@ def handle_issue_comment_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration | None = None,
+    integration: RpcIntegration,
+    tags: Mapping[str, Any],
     **kwargs: Any,
 ) -> None:
     """
@@ -116,4 +117,5 @@ def handle_issue_comment_event(
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
+        tags=tags,
     )

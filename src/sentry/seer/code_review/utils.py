@@ -383,11 +383,10 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
 
 def get_tags(
     event: Mapping[str, Any],
-    github_event: str | None = None,
-    github_event_action: str | None = None,
-    organization_id: int | None = None,
-    organization_slug: str | None = None,
-    integration_id: int | None = None,
+    github_event: str,
+    organization_id: int,
+    organization_slug: str,
+    integration_id: int,
     trigger: str | None = None,
     target_commit_sha: str | None = None,
 ) -> dict[str, str]:
@@ -401,8 +400,6 @@ def get_tags(
     Args:
         event: The GitHub webhook event payload
         github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
-        github_event_action: The event action; takes precedence over event["action"] and is used
-            to derive trigger when trigger is not explicitly provided
         organization_id: Sentry organization ID
         organization_slug: Sentry organization slug
         integration_id: Sentry integration ID
@@ -433,8 +430,8 @@ def get_tags(
         "scm_provider": "github",
         "scm_repo_full_name": None,
         "scm_repo_name": None,
-        "sentry_integration_id": str(integration_id) if integration_id is not None else None,
-        "sentry_organization_id": str(organization_id) if organization_id is not None else None,
+        "sentry_integration_id": str(integration_id),
+        "sentry_organization_id": str(organization_id),
         "sentry_organization_slug": organization_slug,
         "trigger": trigger,
     }
@@ -448,11 +445,9 @@ def get_tags(
         if owner_repo_name := repository.get("full_name"):
             result["scm_repo_full_name"] = owner_repo_name
 
-    # Explicit param takes precedence over event["action"].
+    github_event_action = event.get("action")
     if github_event_action:
         result["github_event_action"] = github_event_action
-    elif action := event.get("action"):
-        result["github_event_action"] = action
 
     if pull_request := event.get("pull_request"):
         if html_url := pull_request.get("html_url"):

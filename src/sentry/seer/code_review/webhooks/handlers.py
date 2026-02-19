@@ -46,7 +46,7 @@ def handle_webhook_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration | None = None,
+    integration: RpcIntegration,
     **kwargs: Any,
 ) -> None:
     """
@@ -62,7 +62,7 @@ def handle_webhook_event(
         **kwargs: Additional keyword arguments
     """
     # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
-    if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
+    if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         return
 
     # Set Sentry scope tags so all logs, errors, and spans in this scope carry them automatically.
@@ -71,17 +71,14 @@ def handle_webhook_event(
         github_event=github_event.value,
         organization_id=organization.id,
         organization_slug=organization.slug,
-        integration_id=integration.id if integration else None,
+        integration_id=integration.id,
     )
     sentry_sdk.set_tags(tags)
     sentry_sdk.set_context("code_review_context", tags)
     if github_delivery_id:
         sentry_sdk.set_tag("github_delivery_id", github_delivery_id)
 
-    handler = EVENT_TYPE_TO_HANDLER.get(github_event)
-    if handler is None:
-        logger.warning("github.webhook.handler.not_found")
-        return
+    handler = EVENT_TYPE_TO_HANDLER[github_event]
 
     from ..utils import get_pr_author_id
 
@@ -126,4 +123,5 @@ def handle_webhook_event(
         repo=repo,
         integration=integration,
         org_code_review_settings=preflight.settings,
+        tags=tags,
     )
