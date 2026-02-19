@@ -2567,6 +2567,28 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Circuit breaker configuration for webhook endpoint failure detection.
+# Keys match RateBasedCircuitBreakerConfig
+register(
+    "sentry-apps.webhook.circuit-breaker.config",
+    type=Dict,
+    default={
+        "error_limit": 5000,  # 5,000 errors in 10 minutes
+        "error_limit_window": 600,  # 10 minutes
+        "broken_state_duration": 300,  # 5 minutes
+        "error_rate_threshold": 0.5,  # 50% error rate
+        "error_floor": 500,  # 500 errors before error rate check applies
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When True, the circuit breaker tracks state and emits metrics but does not block requests.
+register(
+    "sentry-apps.webhook.circuit-breaker.dry-run",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables statistical detectors for a project
 register(
     "statistical_detectors.enable",
