@@ -82,7 +82,7 @@ class SeerOperator[CachePayloadT]:
         # at the moment, won't be visible in-app to users with this flag.
         # This check can only be removed once this feature migrates to explorer-based autofix.
         if features.has("organizations:autofix-on-explorer", organization):
-            return False
+            return not features.has("organizations:seer-slack-workflows-explorer", organization)
 
         if entrypoint_key:
             if entrypoint_key not in entrypoint_registry.registrations:
