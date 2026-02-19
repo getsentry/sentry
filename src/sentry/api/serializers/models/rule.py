@@ -488,7 +488,12 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             serialized_actions = []
             for action in self._fetch_actions(workflow_dcg.condition_group):
-                handler = issue_alert_handler_registry.get(action.type)
+                try:
+                    handler = issue_alert_handler_registry.get(action.type)
+                except Exception:
+                    # just keep iterating through the actions in case we have valid ones in there
+                    continue
+
                 action_data = handler.build_rule_action_blob(action, workflow.organization_id)
                 action_data["name"] = handler.render_label(workflow.organization_id, action_data)
 
