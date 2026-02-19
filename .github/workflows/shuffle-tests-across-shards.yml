@@ -47,6 +47,9 @@ jobs:
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run-tests
         run: |
+          # override --reruns from setup-sentry: retries would mask the
+          # order-dependent failures this workflow is designed to catch.
+          PYTEST_ADDOPTS= \
           python3 -b -m pytest \
           --exitfirst \
           tests/sentry/debug/utils/test_exception_reporter_filter.py
