@@ -490,14 +490,6 @@ export const HybridFilterComponents = {
     );
   },
 
-  Button(
-    props: DistributedOmit<ButtonProps, 'size' | 'priority'> & {
-      priority?: 'transparent' | 'default';
-    }
-  ) {
-    return <Button size="xs" {...props} />;
-  },
-
   CommitButton(props: DistributedOmit<ButtonProps, 'size'>) {
     const controlContext = useContext(ControlContext);
     return (
