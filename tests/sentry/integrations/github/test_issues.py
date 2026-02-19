@@ -1,5 +1,6 @@
 import datetime
 from collections.abc import Mapping, Sequence
+from contextlib import contextmanager
 from functools import cached_property
 from typing import cast
 from unittest import mock
@@ -161,6 +162,22 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         default_repo = "getsentry/sentry"
         repo_choices = [("getsentry/sentry", "sentry")]
         return (default_repo, repo_choices)
+
+    @contextmanager
+    def _mock_create_issue_config_form_dependencies(self):
+        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
+        with (
+            mock.patch.object(
+                self.install,
+                "get_repository_choices",
+                return_value=(default_repo, repo_choices),
+            ),
+            mock.patch.object(
+                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
+            ),
+            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
+        ):
+            yield
 
     @responses.activate
     def test_get_allowed_assignees(self) -> None:
@@ -654,19 +671,8 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
     def test_get_create_issue_config_uses_legacy_defaults_when_flag_disabled(self) -> None:
         event = self.create_performance_issue()
         assert event.group is not None
-        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
 
-        with (
-            mock.patch.object(
-                self.install,
-                "get_repository_choices",
-                return_value=(default_repo, repo_choices),
-            ),
-            mock.patch.object(
-                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
-            ),
-            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
-        ):
+        with self._mock_create_issue_config_form_dependencies():
             fields = self.install.get_create_issue_config(event.group, self.user)
 
         description_field = next(field for field in fields if field["name"] == "description")
@@ -704,19 +710,10 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             culprit="",
         )
 
-        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
         with (
             self.feature("organizations:integrations-github-issue-defaults-enhanced"),
             mock.patch.object(Group, "get_latest_event", return_value=group_event),
-            mock.patch.object(
-                self.install,
-                "get_repository_choices",
-                return_value=(default_repo, repo_choices),
-            ),
-            mock.patch.object(
-                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
-            ),
-            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
+            self._mock_create_issue_config_form_dependencies(),
         ):
             fields = self.install.get_create_issue_config(event.group, self.user)
 
@@ -763,19 +760,10 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             culprit="",
         )
 
-        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
         with (
             self.feature("organizations:integrations-github-issue-defaults-enhanced"),
             mock.patch.object(Group, "get_latest_event", return_value=group_event),
-            mock.patch.object(
-                self.install,
-                "get_repository_choices",
-                return_value=(default_repo, repo_choices),
-            ),
-            mock.patch.object(
-                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
-            ),
-            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
+            self._mock_create_issue_config_form_dependencies(),
         ):
             fields = self.install.get_create_issue_config(event.group, self.user)
 
@@ -835,19 +823,10 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             culprit="",
         )
 
-        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
         with (
             self.feature("organizations:integrations-github-issue-defaults-enhanced"),
             mock.patch.object(Group, "get_latest_event", return_value=group_event),
-            mock.patch.object(
-                self.install,
-                "get_repository_choices",
-                return_value=(default_repo, repo_choices),
-            ),
-            mock.patch.object(
-                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
-            ),
-            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
+            self._mock_create_issue_config_form_dependencies(),
         ):
             fields = self.install.get_create_issue_config(event.group, self.user)
 
@@ -871,21 +850,12 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         )
         assert event.group is not None
 
-        default_repo, repo_choices = self._stub_create_issue_config_dependencies()
         with (
             self.feature("organizations:integrations-github-issue-defaults-enhanced"),
             mock.patch.object(
                 self.install, "get_group_body", return_value="line1\nSELECT * FROM `users`"
             ),
-            mock.patch.object(
-                self.install,
-                "get_repository_choices",
-                return_value=(default_repo, repo_choices),
-            ),
-            mock.patch.object(
-                self.install, "get_allowed_assignees", return_value=(("", "Unassigned"),)
-            ),
-            mock.patch.object(self.install, "get_repo_labels", return_value=(("bug", "bug"),)),
+            self._mock_create_issue_config_form_dependencies(),
         ):
             fields = self.install.get_create_issue_config(event.group, self.user)
 
