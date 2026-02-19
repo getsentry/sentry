@@ -269,17 +269,18 @@ class TestHookService(TestCase):
         # Should return one hook
         assert len(result) == 1
 
-        # Verify hook was updated (same ID, new values)
+        # Verify hook was recreated with correct values (ID may differ
+        # because the implementation deletes and recreates for idempotency)
         with assume_test_silo_mode(SiloMode.REGION):
-            updated_hook = ServiceHook.objects.get(id=hook.id)
+            hooks = ServiceHook.objects.filter(
+                installation_id=installation.id,
+                application_id=self.sentry_app.application.id,
+            )
+            assert hooks.count() == 1
+            updated_hook = hooks.first()
+            assert updated_hook is not None
             assert updated_hook.url == self.sentry_app.webhook_url
             assert updated_hook.events == self.sentry_app.events
-
-            # Should still be only one hook for this installation
-            hooks_count = ServiceHook.objects.filter(
-                installation_id=installation.id, application_id=self.sentry_app.application.id
-            ).count()
-            assert hooks_count == 1
 
     def test_create_or_update_webhook_and_events_for_installation_delete(self) -> None:
         installation = self.create_sentry_app_installation(
@@ -328,6 +329,108 @@ class TestHookService(TestCase):
 
         # Should return empty list and not raise exception
         assert result == []
+
+    def test_create_or_update_webhook_and_events_for_installation_with_duplicate_hooks(
+        self,
+    ) -> None:
+        """When duplicate ServiceHooks exist for the same installation, the function
+        should clean them up and create a single new hook."""
+        installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+
+        # Manually create a duplicate hook to simulate the concurrency bug
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert (
+                ServiceHook.objects.filter(
+                    installation_id=installation.id,
+                    application_id=self.sentry_app.application.id,
+                ).count()
+                == 1
+            )
+            ServiceHook.objects.create(
+                application_id=self.sentry_app.application.id,
+                actor_id=installation.id,
+                installation_id=installation.id,
+                organization_id=self.org.id,
+                url="https://duplicate.example.com",
+                events=["error.created"],
+            )
+            assert (
+                ServiceHook.objects.filter(
+                    installation_id=installation.id,
+                    application_id=self.sentry_app.application.id,
+                ).count()
+                == 2
+            )
+
+        # Call the function -- should succeed despite duplicates
+        result = hook_service.create_or_update_webhook_and_events_for_installation(
+            installation_id=installation.id,
+            organization_id=self.org.id,
+            webhook_url=self.sentry_app.webhook_url,
+            events=self.sentry_app.events,
+            application_id=self.sentry_app.application.id,
+        )
+
+        assert len(result) == 1
+
+        # Verify exactly one hook exists in the database with correct values
+        with assume_test_silo_mode(SiloMode.REGION):
+            hooks = ServiceHook.objects.filter(
+                installation_id=installation.id,
+                application_id=self.sentry_app.application.id,
+            )
+            assert hooks.count() == 1
+            hook = hooks.first()
+            assert hook is not None
+            assert hook.url == self.sentry_app.webhook_url
+            assert hook.events == self.sentry_app.events
+
+    def test_create_or_update_webhook_and_events_for_installation_delete_duplicates(
+        self,
+    ) -> None:
+        """When duplicate ServiceHooks exist and webhook_url is None, the function
+        should delete all of them without raising MultipleObjectsReturned."""
+        installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+
+        # Manually create a duplicate hook to simulate the concurrency bug
+        with assume_test_silo_mode(SiloMode.REGION):
+            ServiceHook.objects.create(
+                application_id=self.sentry_app.application.id,
+                actor_id=installation.id,
+                installation_id=installation.id,
+                organization_id=self.org.id,
+                url="https://duplicate.example.com",
+                events=["error.created"],
+            )
+            assert (
+                ServiceHook.objects.filter(
+                    installation_id=installation.id,
+                    application_id=self.sentry_app.application.id,
+                ).count()
+                == 2
+            )
+
+        # Call with webhook_url=None -- should delete all duplicates
+        result = hook_service.create_or_update_webhook_and_events_for_installation(
+            installation_id=installation.id,
+            organization_id=self.org.id,
+            webhook_url=None,
+            events=["issue"],
+            application_id=self.sentry_app.application.id,
+        )
+
+        assert result == []
+
+        # Verify all hooks are deleted
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not ServiceHook.objects.filter(
+                installation_id=installation.id,
+                application_id=self.sentry_app.application.id,
+            ).exists()
 
 
 @all_silo_test(regions=create_test_regions("us", "de"))

@@ -8,7 +8,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import get_unique_active_actions
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 @region_silo_test
@@ -393,7 +392,6 @@ class TestActionDeduplication(TestCase):
             config={
                 "target_type": ActionTarget.SENTRY_APP,
                 "target_identifier": "action-123",
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
         )
 
@@ -402,7 +400,6 @@ class TestActionDeduplication(TestCase):
             config={
                 "target_type": ActionTarget.SENTRY_APP,
                 "target_identifier": "action-123",
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
         )
 
