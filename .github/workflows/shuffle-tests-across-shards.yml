@@ -52,25 +52,28 @@ jobs:
           tests/sentry/debug/utils/test_exception_reporter_filter.py
 
       - name: Truncate testids
-        if: failure() && hashFiles('/tmp/failing-testid') != ''
+        if: failure()
         run: |
+          test -f /tmp/failing-testid || exit 0
           # Keep only tests up to and including the failing test;
           # tests that run after it cannot be polluting it.
           read -r FAILING_TESTID < /tmp/failing-testid
           head -n "$(grep -nF "$FAILING_TESTID" /tmp/testids-full | head -1 | cut -d: -f1)" /tmp/testids-full > /tmp/testids
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: failure() && hashFiles('/tmp/failing-testid') != ''
+        if: failure()
         with:
           name: testids-${{ matrix.instance }}
           path: /tmp/testids
+          if-no-files-found: ignore
 
       - name: Detect test pollution
-        if: failure() && hashFiles('/tmp/failing-testid') != ''
+        if: failure()
         env:
           # just so we get realtime output since detect-test-pollution doesn't print much
           PYTHONUNBUFFERED: 1
         run: |
+          test -f /tmp/failing-testid || exit 0
           read -r FAILING_TESTID < /tmp/failing-testid
           python .github/workflows/scripts/detect-test-pollution.py \
             --failing-test "$FAILING_TESTID" \
@@ -81,8 +84,10 @@ jobs:
           echo "sentry sha: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub issue
-        if: failure() && hashFiles('/tmp/failing-testid') != ''
+        if: failure()
         run: |
+          test -f /tmp/failing-testid || exit 0
+          read -r FAILING_TESTID < /tmp/failing-testid
           gh issue create \
             --title "Test pollution: $FAILING_TESTID" \
             --label test-pollution \
