@@ -124,7 +124,7 @@ def create_event_record(
     raw_event_action: str,
     trigger_id: str | None,
     event: Mapping[str, Any],
-    status: str,
+    status: CodeReviewEventStatus,
     denial_reason: str | None = None,
 ) -> CodeReviewEvent | None:
     now = datetime.now(timezone.utc)
@@ -163,7 +163,7 @@ def create_event_record(
 
 def update_event_status(
     event_record: CodeReviewEvent | None,
-    status: str,
+    status: CodeReviewEventStatus,
     *,
     denial_reason: str | None = None,
 ) -> None:
