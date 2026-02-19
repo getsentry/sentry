@@ -557,7 +557,7 @@ def get_autofix_explorer_status(
 
             # OPEN_PR step gets special treatment to also
             # check on the status of the pr creation
-            if step == AutofixStoppingPoint.OPEN_PR and completed:
+            if stopping_point == AutofixStoppingPoint.OPEN_PR and completed:
                 return all(
                     pr_state.pr_creation_status != "creating"
                     for pr_state in autofix_state.repo_pr_states.values()
