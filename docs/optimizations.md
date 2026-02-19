@@ -807,3 +807,16 @@ This overhead comes from fixture churn: `load` dispatch interleaves tests from d
 ### Conclusion
 
 The `test_buffer.py` `django_db` fix is committed to the clean branch as a real bug fix — the missing marker causes flaky failures even under `loadfile` (3 of the baseline's 6 reruns were from this file). `dist=load` remains the wrong dispatch mode for T1: even with the flakiness fixed, it adds ~1 minute of fixture churn overhead. `loadfile` remains optimal.
+
+### Why `dist=load` hurts T1 but not T2
+
+Two mechanisms, both T1-specific:
+
+1. **Rerun spike**: All 47 extra reruns came from `test_buffer.py`, a T1-only test. T2 never runs it.
+
+2. **Fixture churn**: Under `loadfile`, class/module fixtures are set up once per file per worker. Under `load`, test interleaving forces repeated teardown and re-setup. T1 is hit harder because:
+   - T1 tests are lightweight Django tests that rely heavily on class-level `TestCase` transactions and module-scoped conftest fixtures — cheap individually, expensive when churned thousands of times.
+   - T1 has ~19k tests across 5 shards — massive interleaving surface area.
+   - The `_shuffle` function in `sentry.py` groups tests by class/module to minimize fixture cost; `loadfile` preserves this, `load` defeats it.
+
+   T2 is resilient because its tests are heavy integration tests that already set up per-test state (Snuba queries, Kafka topics, ClickHouse tables) with function-scoped fixtures. Less to churn. Additionally, T2's ~90s devservices startup dominates the wall clock, making any fixture overhead a smaller fraction.
