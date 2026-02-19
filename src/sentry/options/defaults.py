@@ -1165,13 +1165,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "explorer.service_map.rate_limit_seconds",
-    default=3600,  # 1 hour
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "seer.similarity.global-rate-limit",
     type=Dict,
     default={"limit": 20, "window": 1},  # window is in seconds

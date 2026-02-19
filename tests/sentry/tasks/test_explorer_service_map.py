@@ -5,22 +5,20 @@ Tests the service map building, graph analysis, and task execution
 for the Explorer service map feature.
 """
 
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 from uuid import uuid4
 
 import pytest
 import responses
 from django.conf import settings
-from django.core.cache import cache
 
+from sentry.search.events.types import SnubaParams
 from sentry.tasks.explorer_service_map import (
     _classify_service_roles,
-    _get_rate_limit_key,
-    _is_rate_limited,
     _query_service_dependencies,
     _query_top_transactions,
     _send_to_seer,
-    _set_rate_limit,
     build_service_map,
     schedule_service_map_builds,
 )
@@ -31,67 +29,23 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 
 
-@django_db_all
-class TestRateLimiting(TestCase):
-    def setUp(self):
-        super().setUp()
-        cache.clear()
-
-    def test_rate_limit_key_generation(self):
-        org_id = 123
-        key = _get_rate_limit_key(org_id)
-        assert key == "explorer_service_map_last_run:123"
-
-    def test_not_rate_limited_initially(self):
-        org = self.create_organization()
-        assert _is_rate_limited(org.id) is False
-
-    def test_rate_limited_after_set(self):
-        org = self.create_organization()
-
-        with override_options({"explorer.service_map.rate_limit_seconds": 3600}):
-            _set_rate_limit(org.id)
-            assert _is_rate_limited(org.id) is True
-
-    def test_force_bypasses_rate_limit(self):
-        org = self.create_organization()
-
-        with override_options({"explorer.service_map.rate_limit_seconds": 3600}):
-            _set_rate_limit(org.id)
-            assert _is_rate_limited(org.id, force=True) is False
-
-    def test_rate_limit_expires(self):
-        org = self.create_organization()
-
-        # Set very short rate limit
-        with override_options({"explorer.service_map.rate_limit_seconds": 1}):
-            _set_rate_limit(org.id)
-            assert _is_rate_limited(org.id) is True
-
-            # Wait for expiration (cache timeout handles this automatically)
-            cache.delete(_get_rate_limit_key(org.id))
-            assert _is_rate_limited(org.id) is False
+def _make_snuba_params(organization, projects):
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(hours=24)
+    return SnubaParams(start=start, end=end, projects=projects, organization=organization)
 
 
 @django_db_all
 class TestQueryTopTransactions(TestCase):
-    def test_returns_empty_for_nonexistent_org(self):
-        result = _query_top_transactions(99999)
-        assert result == []
-
-    def test_returns_empty_for_org_with_no_projects(self):
-        org = self.create_organization()
-        result = _query_top_transactions(org.id)
-        assert result == []
-
     @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
     def test_queries_with_correct_parameters(self, mock_query):
         org = self.create_organization()
-        self.create_project(organization=org)
+        project = self.create_project(organization=org)
+        snuba_params = _make_snuba_params(org, [project])
 
         mock_query.return_value = {"data": []}
 
-        _query_top_transactions(org.id, limit=50)
+        _query_top_transactions(snuba_params, limit=50)
 
         mock_query.assert_called_once()
         call_kwargs = mock_query.call_args[1]
@@ -105,7 +59,8 @@ class TestQueryTopTransactions(TestCase):
     @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
     def test_returns_transaction_names(self, mock_query):
         org = self.create_organization()
-        self.create_project(organization=org)
+        project = self.create_project(organization=org)
+        snuba_params = _make_snuba_params(org, [project])
 
         mock_query.return_value = {
             "data": [
@@ -115,22 +70,12 @@ class TestQueryTopTransactions(TestCase):
             ]
         }
 
-        result = _query_top_transactions(org.id)
+        result = _query_top_transactions(snuba_params)
 
         assert len(result) == 2
         assert "/api/users" in result
         assert "/api/events" in result
         assert "" not in result
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_handles_query_exception(self, mock_query):
-        org = self.create_organization()
-        self.create_project(organization=org)
-
-        mock_query.side_effect = Exception("Snuba error")
-
-        result = _query_top_transactions(org.id)
-        assert result == []
 
 
 @django_db_all
@@ -184,10 +129,6 @@ class TestSendToSeer(TestCase):
 
 @django_db_all
 class TestBuildServiceMap(TestCase):
-    def setUp(self):
-        super().setUp()
-        cache.clear()
-
     def test_respects_enable_flag(self):
         org = self.create_organization()
 
@@ -212,41 +153,6 @@ class TestBuildServiceMap(TestCase):
 
         mock_query.assert_not_called()
 
-    def test_respects_rate_limiting(self):
-        org = self.create_organization()
-
-        with override_options(
-            {"explorer.service_map.enable": True, "explorer.service_map.rate_limit_seconds": 3600}
-        ):
-            # Set rate limit
-            _set_rate_limit(org.id)
-
-            with mock.patch(
-                "sentry.tasks.explorer_service_map._query_top_transactions"
-            ) as mock_query:
-                build_service_map(org.id)
-
-        # Should not query since rate limited
-        mock_query.assert_not_called()
-
-    def test_force_bypasses_rate_limiting(self):
-        org = self.create_organization()
-        self.create_project(organization=org)
-
-        with override_options(
-            {"explorer.service_map.enable": True, "explorer.service_map.rate_limit_seconds": 3600}
-        ):
-            _set_rate_limit(org.id)
-
-            with mock.patch(
-                "sentry.tasks.explorer_service_map._query_top_transactions"
-            ) as mock_query:
-                mock_query.return_value = []
-                build_service_map(org.id, force=True)
-
-        # Should query even though rate limited
-        mock_query.assert_called_once()
-
     @mock.patch("sentry.tasks.explorer_service_map._send_to_seer")
     @mock.patch("sentry.tasks.explorer_service_map._query_service_dependencies")
     @mock.patch("sentry.tasks.explorer_service_map._query_top_transactions")
@@ -260,20 +166,14 @@ class TestBuildServiceMap(TestCase):
             {"source_project_id": project1.id, "target_project_id": project2.id, "count": 10}
         ]
 
-        with override_options(
-            {
-                "explorer.service_map.enable": True,
-                "explorer.service_map.rate_limit_seconds": 3600,
-            }
-        ):
+        with override_options({"explorer.service_map.enable": True}):
             build_service_map(org.id)
 
-        mock_transactions.assert_called_once_with(org.id)
-        mock_dependencies.assert_called_once_with(org.id, ["/api/users"])
+        mock_transactions.assert_called_once()
+        snuba_params = mock_transactions.call_args[0][0]
+        assert isinstance(snuba_params, SnubaParams)
+        mock_dependencies.assert_called_once_with(snuba_params, ["/api/users"])
         mock_send.assert_called_once()
-
-        # Verify rate limit was set
-        assert _is_rate_limited(org.id) is True
 
     @mock.patch("sentry.tasks.explorer_service_map._query_top_transactions")
     def test_handles_no_transactions(self, mock_transactions):
@@ -281,16 +181,8 @@ class TestBuildServiceMap(TestCase):
 
         mock_transactions.return_value = []
 
-        with override_options(
-            {
-                "explorer.service_map.enable": True,
-                "explorer.service_map.rate_limit_seconds": 3600,
-            }
-        ):
+        with override_options({"explorer.service_map.enable": True}):
             build_service_map(org.id)
-
-        # Should set rate limit even with no transactions
-        assert _is_rate_limited(org.id) is True
 
     @mock.patch("sentry.tasks.explorer_service_map._query_service_dependencies")
     @mock.patch("sentry.tasks.explorer_service_map._query_top_transactions")
@@ -300,20 +192,11 @@ class TestBuildServiceMap(TestCase):
         mock_transactions.return_value = ["/api/users"]
         mock_dependencies.return_value = []
 
-        with override_options(
-            {
-                "explorer.service_map.enable": True,
-                "explorer.service_map.rate_limit_seconds": 3600,
-            }
-        ):
+        with override_options({"explorer.service_map.enable": True}):
             with mock.patch("sentry.tasks.explorer_service_map._send_to_seer") as mock_send:
                 build_service_map(org.id)
 
-        # Should not send to Seer with no edges
         mock_send.assert_not_called()
-
-        # Should still set rate limit
-        assert _is_rate_limited(org.id) is True
 
     @mock.patch("sentry.tasks.explorer_service_map._query_top_transactions")
     def test_handles_exception(self, mock_transactions):
@@ -322,7 +205,6 @@ class TestBuildServiceMap(TestCase):
         mock_transactions.side_effect = Exception("Test error")
 
         with override_options({"explorer.service_map.enable": True}):
-            # Should not raise exception
             build_service_map(org.id)
 
 
@@ -434,6 +316,10 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
     def setup_test_data(self):
         self.ten_mins_ago = before_now(minutes=10)
         yield
+
+    def _snuba_params(self):
+        projects = list(self.organization.project_set.all())
+        return _make_snuba_params(self.organization, projects)
 
     def _verify_edge(self, edges, source_slug, target_slug, expected_count=None):
         """Verify specific edge exists with expected properties"""
@@ -555,7 +441,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
         self.store_spans([parent, child])
 
         # Query
-        edges = _query_service_dependencies(self.organization.id, ["/api/users"])
+        edges = _query_service_dependencies(self._snuba_params(), ["/api/users"])
 
         # Verify
         assert len(edges) == 1
@@ -621,7 +507,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
         self.store_spans([frontend_span, api_span, db_span])
 
         # Query for both downstream transactions
-        edges = _query_service_dependencies(self.organization.id, ["/api/users", "/db/query"])
+        edges = _query_service_dependencies(self._snuba_params(), ["/api/users", "/db/query"])
 
         # Verify both edges exist
         assert len(edges) == 2
@@ -668,7 +554,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
         self.store_spans([parent, child])
 
         # Query
-        edges = _query_service_dependencies(self.organization.id, ["/child/transaction"])
+        edges = _query_service_dependencies(self._snuba_params(), ["/child/transaction"])
 
         # Verify no edges (same-project filtered)
         assert len(edges) == 0
@@ -722,7 +608,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         # Query for all 3 transactions
         edges = _query_service_dependencies(
-            self.organization.id, ["/api/endpoint0", "/api/endpoint1", "/api/endpoint2"]
+            self._snuba_params(), ["/api/endpoint0", "/api/endpoint1", "/api/endpoint2"]
         )
 
         # Verify single edge with count=3 (aggregated across different transactions)
@@ -755,7 +641,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
         self.store_spans([child])
 
         # Query
-        edges = _query_service_dependencies(self.organization.id, ["/orphan/transaction"])
+        edges = _query_service_dependencies(self._snuba_params(), ["/orphan/transaction"])
 
         # Verify no edges created for orphans
         assert len(edges) == 0
@@ -839,7 +725,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
         self.store_spans(spans)
 
         # Query for both transactions
-        edges = _query_service_dependencies(self.organization.id, ["/api/users", "/api/events"])
+        edges = _query_service_dependencies(self._snuba_params(), ["/api/users", "/api/events"])
 
         # Verify both edges targeting API
         assert len(edges) == 2
@@ -925,7 +811,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         # Query for all transactions
         edges = _query_service_dependencies(
-            self.organization.id,
+            self._snuba_params(),
             [
                 "/service-a/endpoint1",
                 "/service-a/endpoint2",
@@ -950,6 +836,10 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
     def setup_test_data(self):
         self.ten_mins_ago = before_now(minutes=10)
         yield
+
+    def _snuba_params(self):
+        projects = list(self.organization.project_set.all())
+        return _make_snuba_params(self.organization, projects)
 
     def test_frontend_classification(self):
         """Test classification of frontend service (high out-degree, low in-degree)"""
@@ -1002,7 +892,7 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
         self.store_spans(spans)
 
         # Query and classify
-        edges = _query_service_dependencies(self.organization.id, ["/api/users", "/db/query"])
+        edges = _query_service_dependencies(self._snuba_params(), ["/api/users", "/db/query"])
         roles = _classify_service_roles(edges)
 
         # Frontend should be classified as frontend (only outgoing edges)
@@ -1089,7 +979,7 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         # Query and classify (query both transactions)
         edges = _query_service_dependencies(
-            self.organization.id, ["/api/users", "/api/events", "/db/query"]
+            self._snuba_params(), ["/api/users", "/api/events", "/db/query"]
         )
         roles = _classify_service_roles(edges)
 
@@ -1178,7 +1068,7 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         # Query and classify
         edges = _query_service_dependencies(
-            self.organization.id, ["/api/users", "/isolated/endpoint"]
+            self._snuba_params(), ["/api/users", "/isolated/endpoint"]
         )
         roles = _classify_service_roles(edges)
 
@@ -1194,17 +1084,11 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
 
     @pytest.fixture(autouse=True)
     def setup_test_data(self):
-        from django.core.cache import cache
-
         self.ten_mins_ago = before_now(minutes=10)
-        cache.clear()
         yield
 
     def test_complete_workflow_realistic_topology(self):
         """Test complete workflow with realistic multi-service topology"""
-        import orjson
-        from django.conf import settings
-
         from sentry.testutils.helpers.options import override_options
 
         # Setup realistic topology: frontend → api → [database, cache]
@@ -1329,69 +1213,41 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        # Mock Seer endpoint and execute workflow
-        with responses.RequestsMock() as rsps:
-            rsps.add(
-                responses.POST,
-                f"{settings.SEER_AUTOFIX_URL}/v1/explorer/service-map/update",
-                json={"status": "success"},
-                status=200,
-            )
-
-            # Execute complete workflow
+        with mock.patch("sentry.tasks.explorer_service_map._send_to_seer") as mock_send:
             with override_options(
                 {
                     "explorer.service_map.enable": True,
-                    "explorer.service_map.rate_limit_seconds": 3600,
                     "explorer.service_map.max_edges": 5000,
                 }
             ):
                 build_service_map(self.organization.id)
 
-            # Verify Seer was called
-            assert len(rsps.calls) == 1
-            request = rsps.calls[0].request
-            payload = orjson.loads(request.body)
+        mock_send.assert_called_once()
+        _, edges, roles = mock_send.call_args[0]
 
-            # Verify payload structure
-            assert payload["organization_id"] == self.organization.id
-            assert "edges" in payload
-            assert "roles" in payload
-            assert "generated_at" in payload
+        # Verify edges
+        assert len(edges) == 3  # frontend→api, api→database, api→cache
 
-            # Verify edges
-            edges = payload["edges"]
-            assert len(edges) == 3  # frontend→api, api→database, api→cache
+        edge_pairs = {(e["source_project_slug"], e["target_project_slug"]) for e in edges}
+        assert edge_pairs == {("frontend", "api"), ("api", "database"), ("api", "cache")}
 
-            edge_pairs = {(e["source_project_slug"], e["target_project_slug"]) for e in edges}
-            assert edge_pairs == {("frontend", "api"), ("api", "database"), ("api", "cache")}
+        # Verify edge counts are aggregated correctly
+        for edge in edges:
+            if edge["source_project_slug"] == "frontend" and edge["target_project_slug"] == "api":
+                assert edge["count"] == 3
+            elif edge["source_project_slug"] == "api" and edge["target_project_slug"] == "database":
+                assert edge["count"] == 2
+            elif edge["source_project_slug"] == "api" and edge["target_project_slug"] == "cache":
+                assert edge["count"] == 1
 
-            # Verify edge counts are aggregated correctly
-            for edge in edges:
-                if (
-                    edge["source_project_slug"] == "frontend"
-                    and edge["target_project_slug"] == "api"
-                ):
-                    assert edge["count"] == 3
-                elif (
-                    edge["source_project_slug"] == "api"
-                    and edge["target_project_slug"] == "database"
-                ):
-                    assert edge["count"] == 2
-                elif (
-                    edge["source_project_slug"] == "api" and edge["target_project_slug"] == "cache"
-                ):
-                    assert edge["count"] == 1
+        # Verify roles
+        assert project_frontend.id in roles
+        assert project_api.id in roles
 
-            # Verify roles
-            roles = payload["roles"]
-            assert str(project_frontend.id) in roles
-            assert str(project_api.id) in roles
-
-            # Verify edge format has required fields
-            for edge in edges:
-                assert "source_project_id" in edge
-                assert "source_project_slug" in edge
-                assert "target_project_id" in edge
-                assert "target_project_slug" in edge
-                assert "count" in edge
+        # Verify edge format has required fields
+        for edge in edges:
+            assert "source_project_id" in edge
+            assert "source_project_slug" in edge
+            assert "target_project_id" in edge
+            assert "target_project_slug" in edge
+            assert "count" in edge

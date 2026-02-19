@@ -16,7 +16,6 @@ from typing import cast
 import orjson
 import requests
 from django.conf import settings
-from django.core.cache import cache
 from django.utils import timezone as django_timezone
 
 from sentry import options
@@ -35,115 +34,45 @@ logger = logging.getLogger("sentry.tasks.explorer_service_map")
 # Seer endpoint path
 SEER_SERVICE_MAP_PATH = "/v1/explorer/service-map/update"
 
-# Rate limiting cache key
-RATE_LIMIT_KEY_PREFIX = "explorer_service_map_last_run"
 
-
-def _get_rate_limit_key(org_id: int) -> str:
-    """Generate cache key for rate limiting."""
-    return f"{RATE_LIMIT_KEY_PREFIX}:{org_id}"
-
-
-def _is_rate_limited(org_id: int, force: bool = False) -> bool:
-    """
-    Check if service map build is rate limited for this organization.
-
-    Args:
-        org_id: Organization ID
-        force: If True, bypass rate limiting
-
-    Returns:
-        True if rate limited, False otherwise
-    """
-    if force:
-        return False
-
-    rate_limit_seconds = options.get("explorer.service_map.rate_limit_seconds")
-    cache_key = _get_rate_limit_key(org_id)
-    last_run = cache.get(cache_key)
-
-    if last_run is None:
-        return False
-
-    elapsed = (django_timezone.now() - last_run).total_seconds()
-    return elapsed < rate_limit_seconds
-
-
-def _set_rate_limit(org_id: int) -> None:
-    """Mark organization as having run service map build."""
-    rate_limit_seconds = options.get("explorer.service_map.rate_limit_seconds")
-    cache_key = _get_rate_limit_key(org_id)
-    cache.set(cache_key, django_timezone.now(), timeout=rate_limit_seconds)
-
-
-def _query_top_transactions(org_id: int, limit: int = 100) -> list[str]:
+def _query_top_transactions(snuba_params: SnubaParams, limit: int = 100) -> list[str]:
     """
     Query top transactions across the organization.
 
     Args:
-        org_id: Organization ID
+        snuba_params: Pre-built Snuba query parameters
         limit: Maximum number of transactions to return
 
     Returns:
         List of transaction names
     """
-    try:
-        organization = Organization.objects.get(id=org_id)
-        projects = list(Project.objects.filter(organization_id=org_id))
+    result = Spans.run_table_query(
+        params=snuba_params,
+        query_string="is_transaction:true",
+        selected_columns=["transaction", "sum(span.duration)"],
+        orderby=["-sum(span.duration)"],
+        offset=0,
+        limit=limit,
+        referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
+        config=SearchResolverConfig(),
+    )
 
-        if not projects:
-            logger.info("No projects found for organization", extra={"org_id": org_id})
-            return []
+    transactions = [tx for row in result.get("data", []) if (tx := row.get("transaction"))]
 
-        end = datetime.now(timezone.utc)
-        start = end - timedelta(hours=24)
+    logger.info(
+        "Queried top transactions",
+        extra={"org_id": snuba_params.organization_id, "transaction_count": len(transactions)},
+    )
 
-        snuba_params = SnubaParams(
-            start=start,
-            end=end,
-            projects=projects,
-            organization=organization,
-        )
-
-        # Query for top transactions by total duration (segment spans only)
-        result = Spans.run_table_query(
-            params=snuba_params,
-            query_string="is_transaction:true",  # Only segment spans
-            selected_columns=["transaction", "sum(span.duration)"],
-            orderby=["-sum(span.duration)"],
-            offset=0,
-            limit=limit,
-            referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
-            config=SearchResolverConfig(),
-        )
-
-        transactions = []
-        for row in result.get("data", []):
-            tx = row.get("transaction")
-            if tx and tx != "":
-                transactions.append(tx)
-
-        logger.info(
-            "Queried top transactions",
-            extra={"org_id": org_id, "transaction_count": len(transactions)},
-        )
-
-        return transactions
-
-    except Organization.DoesNotExist:
-        logger.error("Organization not found", extra={"org_id": org_id})
-        return []
-    except Exception:
-        logger.exception("Failed to query top transactions", extra={"org_id": org_id})
-        return []
+    return transactions
 
 
-def _query_service_dependencies(org_id: int, transactions: list[str]) -> list[dict]:
+def _query_service_dependencies(snuba_params: SnubaParams, transactions: list[str]) -> list[dict]:
     """
     Query segment spans and their parent spans to find cross-project dependencies.
 
     Args:
-        org_id: Organization ID
+        snuba_params: Pre-built Snuba query parameters
         transactions: List of transaction names to filter on
 
     Returns:
@@ -153,150 +82,133 @@ def _query_service_dependencies(org_id: int, transactions: list[str]) -> list[di
     if not transactions:
         return []
 
+    org_id = snuba_params.organization_id
     max_edges = options.get("explorer.service_map.max_edges")
 
-    try:
-        organization = Organization.objects.get(id=org_id)
-        projects = list(Project.objects.filter(organization_id=org_id))
+    # Query 1: Get one segment span per transaction
+    # Use a while loop to ensure all transactions are covered
+    seen_transactions: set[str] = set()
+    all_segments: list[dict] = []
+    remaining_transactions = set(transactions)
+    max_iterations = 10  # Safety limit
+    iteration = 0
 
-        if not projects:
-            logger.info("No projects found for organization", extra={"org_id": org_id})
-            return []
+    while remaining_transactions and iteration < max_iterations:
+        iteration += 1
 
-        end = datetime.now(timezone.utc)
-        start = end - timedelta(hours=24)
-
-        snuba_params = SnubaParams(
-            start=start,
-            end=end,
-            projects=projects,
-            organization=organization,
-        )
-
-        # Query 1: Get one segment span per transaction
-        # Use a while loop to ensure all transactions are covered
-        seen_transactions = set()
-        all_segments = []
-        remaining_transactions = set(transactions)
-        max_iterations = 10  # Safety limit
-        iteration = 0
-
-        while remaining_transactions and iteration < max_iterations:
-            iteration += 1
-
-            # Build query string for unseen transactions only
-            transaction_filters = " OR ".join(
-                [f'transaction:"{t}"' for t in list(remaining_transactions)[:100]]
-            )  # Limit to 100 transactions per query to avoid query size issues
-            query_string = f"is_transaction:true ({transaction_filters})"
-
-            logger.info(
-                "Querying segment spans",
-                extra={
-                    "org_id": org_id,
-                    "iteration": iteration,
-                    "remaining_count": len(remaining_transactions),
-                },
-            )
-
-            try:
-                segment_result = Spans.run_table_query(
-                    params=snuba_params,
-                    query_string=query_string,
-                    selected_columns=[
-                        "id",
-                        "parent_span",
-                        "project.id",
-                        "project.slug",
-                        "transaction",
-                        "timestamp",
-                    ],
-                    orderby=["-timestamp"],  # Get most recent
-                    offset=0,
-                    limit=500,  # Reasonable batch size
-                    referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
-                    config=SearchResolverConfig(),
-                )
-
-                # Process results and track which transactions we've seen
-                new_segments_found = False
-                for row in segment_result.get("data", []):
-                    transaction_name = row.get("transaction")
-                    if transaction_name and transaction_name not in seen_transactions:
-                        seen_transactions.add(transaction_name)
-                        remaining_transactions.discard(transaction_name)
-                        all_segments.append(row)
-                        new_segments_found = True
-
-                # If no new segments found, break to avoid infinite loop
-                if not new_segments_found:
-                    logger.warning(
-                        "No new segments found, stopping iteration",
-                        extra={
-                            "org_id": org_id,
-                            "iteration": iteration,
-                            "remaining_count": len(remaining_transactions),
-                        },
-                    )
-                    break
-
-            except Exception:
-                logger.exception(
-                    "Failed to query segment spans",
-                    extra={"org_id": org_id, "iteration": iteration},
-                )
-                break
-
-        if not all_segments:
-            logger.info("No segment spans found", extra={"org_id": org_id})
-            return []
-
-        # Collect parent span IDs and build mapping
-        parent_span_ids = []
-        segments_by_parent: dict[str, list[dict]] = defaultdict(list)
-
-        for row in all_segments:
-            parent_span_id = row.get("parent_span")
-            child_project_id = row.get("project.id")
-            child_project_slug = row.get("project.slug")
-
-            if parent_span_id and child_project_id:
-                parent_span_ids.append(parent_span_id)
-                segments_by_parent[parent_span_id].append(
-                    {
-                        "child_project_id": child_project_id,
-                        "child_project_slug": child_project_slug,
-                    }
-                )
-
-        if not parent_span_ids:
-            logger.info("No segment spans with parents found", extra={"org_id": org_id})
-            return []
-
-        # Remove duplicates while preserving order
-        unique_parent_span_ids = list(dict.fromkeys(parent_span_ids))
+        # Build query string for unseen transactions only
+        transaction_filters = " OR ".join(
+            [f'transaction:"{t}"' for t in list(remaining_transactions)[:100]]
+        )  # Limit to 100 transactions per query to avoid query size issues
+        query_string = f"is_transaction:true ({transaction_filters})"
 
         logger.info(
-            "Found segment spans with parents",
+            "Querying segment spans",
             extra={
                 "org_id": org_id,
-                "unique_parents": len(unique_parent_span_ids),
-                "total_segments": len(parent_span_ids),
-                "transactions_represented": len(all_segments),
+                "iteration": iteration,
+                "remaining_count": len(remaining_transactions),
             },
         )
 
-        # Query 2: Resolve parent spans to get their project_ids
-        # Batch the parent span IDs to avoid query size limits
-        batch_size = 500
-        edges_by_pair: dict[tuple[int, str | None, int, str | None], int] = defaultdict(int)
+        try:
+            segment_result = Spans.run_table_query(
+                params=snuba_params,
+                query_string=query_string,
+                selected_columns=[
+                    "id",
+                    "parent_span",
+                    "project.id",
+                    "project.slug",
+                    "transaction",
+                    "timestamp",
+                ],
+                orderby=["-timestamp"],  # Get most recent
+                offset=0,
+                limit=500,  # Reasonable batch size
+                referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
+                config=SearchResolverConfig(),
+            )
 
-        for i in range(0, len(unique_parent_span_ids), batch_size):
-            batch = unique_parent_span_ids[i : i + batch_size]
+            # Process results and track which transactions we've seen
+            new_segments_found = False
+            for row in segment_result.get("data", []):
+                transaction_name = row.get("transaction")
+                if transaction_name and transaction_name not in seen_transactions:
+                    seen_transactions.add(transaction_name)
+                    remaining_transactions.discard(transaction_name)
+                    all_segments.append(row)
+                    new_segments_found = True
 
-            # Build query string for span IDs
-            span_id_filters = " OR ".join([f'id:"{span_id}"' for span_id in batch])
+            # If no new segments found, break to avoid infinite loop
+            if not new_segments_found:
+                logger.warning(
+                    "No new segments found, stopping iteration",
+                    extra={
+                        "org_id": org_id,
+                        "iteration": iteration,
+                        "remaining_count": len(remaining_transactions),
+                    },
+                )
+                break
 
+        except Exception:
+            logger.exception(
+                "Failed to query segment spans",
+                extra={"org_id": org_id, "iteration": iteration},
+            )
+            break
+
+    if not all_segments:
+        logger.info("No segment spans found", extra={"org_id": org_id})
+        return []
+
+    # Collect parent span IDs and build mapping
+    parent_span_ids = []
+    segments_by_parent: dict[str, list[dict]] = defaultdict(list)
+
+    for row in all_segments:
+        parent_span_id = row.get("parent_span")
+        child_project_id = row.get("project.id")
+        child_project_slug = row.get("project.slug")
+
+        if parent_span_id and child_project_id:
+            parent_span_ids.append(parent_span_id)
+            segments_by_parent[parent_span_id].append(
+                {
+                    "child_project_id": child_project_id,
+                    "child_project_slug": child_project_slug,
+                }
+            )
+
+    if not parent_span_ids:
+        logger.info("No segment spans with parents found", extra={"org_id": org_id})
+        return []
+
+    # Remove duplicates while preserving order
+    unique_parent_span_ids = list(dict.fromkeys(parent_span_ids))
+
+    logger.info(
+        "Found segment spans with parents",
+        extra={
+            "org_id": org_id,
+            "unique_parents": len(unique_parent_span_ids),
+            "total_segments": len(parent_span_ids),
+            "transactions_represented": len(all_segments),
+        },
+    )
+
+    # Query 2: Resolve parent spans to get their project_ids
+    # Batch the parent span IDs to avoid query size limits
+    batch_size = 500
+    edges_by_pair: dict[tuple[int, str | None, int, str | None], int] = defaultdict(int)
+
+    for i in range(0, len(unique_parent_span_ids), batch_size):
+        batch = unique_parent_span_ids[i : i + batch_size]
+
+        span_id_filters = " OR ".join([f'id:"{span_id}"' for span_id in batch])
+
+        try:
             parent_result = Spans.run_table_query(
                 params=snuba_params,
                 query_string=span_id_filters,
@@ -307,60 +219,54 @@ def _query_service_dependencies(org_id: int, transactions: list[str]) -> list[di
                 referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
                 config=SearchResolverConfig(),
             )
+        except Exception:
+            logger.exception(
+                "Failed to query parent spans",
+                extra={"org_id": org_id, "batch_index": i},
+            )
+            continue
 
-            # Match parents with children to build edges
-            for parent_row in parent_result.get("data", []):
-                parent_span_id = parent_row.get("id")
-                parent_project_id = parent_row.get("project.id")
-                parent_project_slug = parent_row.get("project.slug")
+        for parent_row in parent_result.get("data", []):
+            parent_span_id = parent_row.get("id")
+            parent_project_id = parent_row.get("project.id")
+            parent_project_slug = parent_row.get("project.slug")
 
-                if not parent_span_id or not parent_project_id:
-                    continue
+            if not parent_span_id or not parent_project_id:
+                continue
 
-                # Find all child segments with this parent
-                for segment in segments_by_parent.get(parent_span_id, []):
-                    child_project_id = segment["child_project_id"]
-                    child_project_slug = segment.get("child_project_slug")
+            for segment in segments_by_parent.get(parent_span_id, []):
+                child_project_id = segment["child_project_id"]
+                child_project_slug = segment.get("child_project_slug")
 
-                    if child_project_id and parent_project_id != child_project_id:
-                        # Cross-project edge found
-                        edge_key = (
-                            parent_project_id,
-                            parent_project_slug,
-                            child_project_id,
-                            child_project_slug,
-                        )
-                        edges_by_pair[edge_key] += 1
+                if child_project_id and parent_project_id != child_project_id:
+                    edge_key = (
+                        parent_project_id,
+                        parent_project_slug,
+                        child_project_id,
+                        child_project_slug,
+                    )
+                    edges_by_pair[edge_key] += 1
 
-        # Convert to list format
-        edges = [
-            {
-                "source_project_id": source_id,
-                "source_project_slug": source_slug,
-                "target_project_id": target_id,
-                "target_project_slug": target_slug,
-                "count": count,
-            }
-            for (source_id, source_slug, target_id, target_slug), count in edges_by_pair.items()
-        ]
+    edges = [
+        {
+            "source_project_id": source_id,
+            "source_project_slug": source_slug,
+            "target_project_id": target_id,
+            "target_project_slug": target_slug,
+            "count": count,
+        }
+        for (source_id, source_slug, target_id, target_slug), count in edges_by_pair.items()
+    ]
 
-        # Sort by count and apply limit
-        edges.sort(key=lambda x: cast(int, x["count"]), reverse=True)
-        edges = edges[:max_edges]
+    edges.sort(key=lambda x: cast(int, x["count"]), reverse=True)
+    edges = edges[:max_edges]
 
-        logger.info(
-            "Extracted service dependencies",
-            extra={"org_id": org_id, "edge_count": len(edges)},
-        )
+    logger.info(
+        "Extracted service dependencies",
+        extra={"org_id": org_id, "edge_count": len(edges)},
+    )
 
-        return edges
-
-    except Organization.DoesNotExist:
-        logger.error("Organization not found", extra={"org_id": org_id})
-        return []
-    except Exception:
-        logger.exception("Failed to query service dependencies", extra={"org_id": org_id})
-        return []
+    return edges
 
 
 def _classify_service_roles(edges: list[dict]) -> dict[int, str]:
@@ -479,23 +385,22 @@ def _send_to_seer(org_id: int, edges: list[dict], roles: dict[int, str]) -> None
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,  # 10 minutes
 )
-def build_service_map(organization_id: int, force: bool = False, *args, **kwargs) -> None:
+def build_service_map(organization_id: int, *args, **kwargs) -> None:
     """
     Build service map for a single organization and send to Seer.
 
     This task:
-    1. Checks feature flags and rate limits
+    1. Checks feature flags
     2. Queries Snuba for service dependencies
     3. Classifies service roles using graph analysis
     4. Sends data to Seer
 
     Args:
         organization_id: Organization ID to build map for
-        force: If True, bypass rate limiting
     """
     logger.info(
         "Starting service map build",
-        extra={"org_id": organization_id, "force": force},
+        extra={"org_id": organization_id},
     )
 
     # Check feature flags
@@ -507,37 +412,39 @@ def build_service_map(organization_id: int, force: bool = False, *args, **kwargs
         logger.info("explorer.service_map.killswitch enabled")
         return
 
-    # Check rate limiting
-    if _is_rate_limited(organization_id, force=force):
-        logger.info("Service map build is rate limited", extra={"org_id": organization_id})
-        return
-
     try:
-        # Query top transactions
-        transactions = _query_top_transactions(organization_id)
+        organization = Organization.objects.get(id=organization_id)
+        projects = list(Project.objects.filter(organization_id=organization_id))
+
+        if not projects:
+            logger.info("No projects found for organization", extra={"org_id": organization_id})
+            return
+
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(hours=24)
+
+        snuba_params = SnubaParams(
+            start=start,
+            end=end,
+            projects=projects,
+            organization=organization,
+        )
+
+        transactions = _query_top_transactions(snuba_params)
 
         if not transactions:
             logger.info("No transactions found for organization", extra={"org_id": organization_id})
-            # Still set rate limit to prevent repeated attempts
-            _set_rate_limit(organization_id)
             return
 
-        # Query service dependencies
-        edges = _query_service_dependencies(organization_id, transactions)
+        edges = _query_service_dependencies(snuba_params, transactions)
 
         if not edges:
             logger.info("No service dependencies found", extra={"org_id": organization_id})
-            _set_rate_limit(organization_id)
             return
 
-        # Classify service roles
         roles = _classify_service_roles(edges)
 
-        # Send to Seer
         _send_to_seer(organization_id, edges, roles)
-
-        # Mark as complete
-        _set_rate_limit(organization_id)
 
         logger.info(
             "Successfully completed service map build",
@@ -548,6 +455,8 @@ def build_service_map(organization_id: int, force: bool = False, *args, **kwargs
             },
         )
 
+    except Organization.DoesNotExist:
+        logger.error("Organization not found", extra={"org_id": organization_id})
     except Exception:
         logger.exception(
             "Failed to build service map",
