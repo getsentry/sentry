@@ -115,27 +115,28 @@ export default function TeamSettings() {
                 </field.Layout.Row>
               )}
             </form.AppField>
-
-            <form.Subscribe selector={state => state.values.slug !== team.slug}>
-              {hasChanged =>
-                hasChanged ? (
-                  <Alert
-                    variant="info"
-                    trailingItems={
-                      <Flex gap="sm">
-                        <Alert.Button onClick={() => form.reset()}>
-                          {t('Cancel')}
-                        </Alert.Button>
-                        <form.SubmitButton size="zero">{t('Save')}</form.SubmitButton>
-                      </Flex>
-                    }
-                  >
-                    {t('You will be redirected to the new team slug after saving.')}
-                  </Alert>
-                ) : null
-              }
-            </form.Subscribe>
           </form.FormWrapper>
+
+          <form.Subscribe selector={state => state.values.slug !== team.slug}>
+            {hasChanged =>
+              hasChanged ? (
+                <Alert
+                  system
+                  variant="info"
+                  trailingItems={
+                    <Flex gap="sm">
+                      <Alert.Button onClick={() => form.reset()}>
+                        {t('Cancel')}
+                      </Alert.Button>
+                      <form.SubmitButton size="zero">{t('Save')}</form.SubmitButton>
+                    </Flex>
+                  }
+                >
+                  {t('You will be redirected to the new team slug after saving.')}
+                </Alert>
+              ) : null
+            }
+          </form.Subscribe>
 
           <form.AppField name="teamId">
             {field => (
