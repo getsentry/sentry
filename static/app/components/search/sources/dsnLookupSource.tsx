@@ -1,6 +1,7 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 
-import {Client} from 'sentry/api';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {DSN_PATTERN, getDsnNavTargets} from './dsnLookupUtils';
@@ -17,41 +18,19 @@ function DsnLookupSource({query, children}: Props) {
   const organization = useOrganization({allowNull: true});
   const hasDsnLookup = organization?.features?.includes('cmd-k-dsn-lookup') ?? false;
   const isDsn = DSN_PATTERN.test(query);
-  const [isLoading, setIsLoading] = useState(false);
-  const [data, setData] = useState<DsnLookupResponse | null>(null);
 
-  useEffect(() => {
-    if (!organization || !hasDsnLookup || !isDsn) {
-      setData(null);
-      setIsLoading(false);
-      return undefined;
+  const {data, isPending} = useApiQuery<DsnLookupResponse>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/dsn-lookup/', {
+        path: {organizationIdOrSlug: organization?.slug ?? ''},
+      }),
+      {query: {dsn: query}},
+    ],
+    {
+      staleTime: 30_000,
+      enabled: isDsn && !!organization && hasDsnLookup,
     }
-
-    setIsLoading(true);
-    const api = new Client();
-    let cancelled = false;
-
-    api
-      .requestPromise(`/organizations/${organization.slug}/dsn-lookup/`, {
-        query: {dsn: query},
-      })
-      .then((response: DsnLookupResponse) => {
-        if (!cancelled) {
-          setData(response);
-          setIsLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setData(null);
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [organization, hasDsnLookup, isDsn, query]);
+  );
 
   const results = useMemo(() => {
     if (!data) {
@@ -74,7 +53,7 @@ function DsnLookupSource({query, children}: Props) {
     }));
   }, [data]);
 
-  return children({isLoading, results});
+  return children({isLoading: isPending, results});
 }
 
 export default DsnLookupSource;

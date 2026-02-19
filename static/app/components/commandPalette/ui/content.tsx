@@ -15,7 +15,6 @@ import {SvgIcon} from 'sentry/icons/svgIcon';
 import {unreachable} from 'sentry/utils/unreachable';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {
   children: CommandPaletteActionMenuItem[];
@@ -43,20 +42,13 @@ function actionToMenuItem(
 export function CommandPaletteContent() {
   const {actions, selectedAction, selectAction, clearSelection, query, setQuery} =
     useCommandPaletteState();
-  const organization = useOrganization({allowNull: true});
-  const hasDsnLookup = organization?.features?.includes('cmd-k-dsn-lookup') ?? false;
-  const dsnLookupActions = useDsnLookupActions(hasDsnLookup ? query : '');
+  useDsnLookupActions(query);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const mergedActions = useMemo(
-    () => [...dsnLookupActions, ...actions],
-    [dsnLookupActions, actions]
-  );
-
   const groupedMenuItems = useMemo<CommandPaletteActionMenuItem[]>(() => {
     const itemsBySection = new Map<string, CommandPaletteActionMenuItem[]>();
-    for (const action of mergedActions) {
+    for (const action of actions) {
       const sectionLabel = action.groupingKey
         ? (COMMAND_PALETTE_GROUP_KEY_CONFIG[action.groupingKey]?.label ?? '')
         : '';
@@ -75,7 +67,7 @@ export function CommandPaletteContent() {
         };
       })
       .filter(section => section.children.length > 0);
-  }, [mergedActions]);
+  }, [actions]);
 
   const handleSelect = useCallback(
     (action: CommandPaletteActionWithKey) => {
@@ -104,12 +96,12 @@ export function CommandPaletteContent() {
       if (selectionKey === null || selectionKey === undefined) {
         return;
       }
-      const action = mergedActions.find(a => a.key === selectionKey);
+      const action = actions.find(a => a.key === selectionKey);
       if (action) {
         handleSelect(action);
       }
     },
-    [mergedActions, handleSelect]
+    [actions, handleSelect]
   );
 
   // When an action has been selected, clear the query and focus the input

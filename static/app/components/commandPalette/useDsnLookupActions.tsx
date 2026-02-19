@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {
   DSN_PATTERN,
   getDsnNavTargets,
@@ -12,14 +13,15 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const ICON_MAP: Record<string, React.ReactElement> = {
-  'dsn-lookup-issues': <IconIssues />,
-  'dsn-lookup-project-settings': <IconSettings />,
-  'dsn-lookup-client-keys': <IconList />,
-};
+const ICONS: React.ReactElement[] = [
+  <IconIssues key="issues" />,
+  <IconSettings key="settings" />,
+  <IconList key="list" />,
+];
 
-export function useDsnLookupActions(query: string): CommandPaletteActionWithKey[] {
+export function useDsnLookupActions(query: string): void {
   const organization = useOrganization({allowNull: true});
+  const hasDsnLookup = organization?.features?.includes('cmd-k-dsn-lookup') ?? false;
   const debouncedQuery = useDebouncedValue(query, 300);
   const isDsn = DSN_PATTERN.test(debouncedQuery);
 
@@ -32,25 +34,26 @@ export function useDsnLookupActions(query: string): CommandPaletteActionWithKey[
     ],
     {
       staleTime: 30_000,
-      enabled: isDsn && !!organization,
+      enabled: isDsn && !!organization && hasDsnLookup,
     }
   );
 
-  return useMemo(() => {
+  const actions: CommandPaletteAction[] = useMemo(() => {
     if (!data) {
       return [];
     }
 
-    return getDsnNavTargets(data).map(target => ({
-      key: target.key,
+    return getDsnNavTargets(data).map((target, i) => ({
       type: 'navigate' as const,
       to: target.to,
       display: {
         label: target.label,
         details: target.description,
-        icon: ICON_MAP[target.key],
+        icon: ICONS[i],
       },
-      groupingKey: 'search-result',
+      groupingKey: 'search-result' as const,
     }));
   }, [data]);
+
+  useCommandPaletteActions(actions);
 }
