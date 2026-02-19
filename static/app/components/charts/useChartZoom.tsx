@@ -207,7 +207,7 @@ export function useChartZoom({
       if (startValue && endValue) {
         // When !utc, chart data is timezone-shifted ("fake UTC").
         // Unshift zoom coordinates back to real UTC before updating filters.
-        if (!utc) {
+        if (utc === false) {
           startValue = unshiftTimestampFromFakeUtc(startValue);
           endValue = unshiftTimestampFromFakeUtc(endValue);
         }

@@ -10,6 +10,7 @@ import * as qs from 'query-string';
 
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
+import {unshiftTimestampFromFakeUtc} from 'sentry/components/charts/timezoneShift';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -277,10 +278,19 @@ class ChartZoom extends Component<Props> {
 
       this.setPeriod(previousPeriod);
     } else {
-      const start = moment.utc(startValue);
+      // When utc is explicitly false, chart data is timezone-shifted ("fake UTC").
+      // Unshift zoom coordinates back to real UTC before updating filters.
+      let realStartValue = startValue;
+      let realEndValue = endValue;
+      if (this.props.utc === false) {
+        realStartValue = unshiftTimestampFromFakeUtc(startValue);
+        realEndValue = unshiftTimestampFromFakeUtc(endValue);
+      }
+
+      const start = moment.utc(realStartValue);
 
       // Add a day so we go until the end of the day (e.g. next day at midnight)
-      const end = moment.utc(endValue);
+      const end = moment.utc(realEndValue);
 
       this.setPeriod({period: null, start, end}, true);
     }

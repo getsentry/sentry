@@ -17,11 +17,13 @@ import {getParser, getTimeFormat} from 'sentry/utils/dates';
  */
 export function formatXAxisTimestamp(
   value: number,
-  _options: {utc?: boolean} = {utc: false}
+  options: {utc?: boolean} = {utc: false}
 ): string {
-  // With timezone shifting in BaseChart, UTC wall-clock already matches
-  // the user's configured timezone. Always parse as UTC.
-  const parsed = getParser(false)(value);
+  // When utc is explicitly false, BaseChart shifts data to "fake UTC"
+  // so we parse as UTC. When utc is true, data is real UTC.
+  // When utc is undefined (not set), preserve old behavior (local parse).
+  const local = options.utc === undefined;
+  const parsed = getParser(local)(value);
 
   // Granularity-aware parsing, adjusts the format based on the
   // granularity of the object This works well with ECharts since the

@@ -87,6 +87,7 @@ describe('Chart XAxis', () => {
             ...props,
             useMultilineDate: true,
             period: '7d',
+            utc: false,
           });
 
           // @ts-expect-error formatter type is missing

@@ -23,11 +23,19 @@ export function shiftTimestampToFakeUtc(timestamp: number, timezone?: string): n
 
 /**
  * Reverse: recover real UTC from a shifted "fake UTC" timestamp.
+ *
+ * Uses a two-step approach to handle DST boundaries correctly:
+ * the shifted timestamp may be on a different side of a DST transition
+ * than the real timestamp, so we first estimate, then refine.
  */
 export function unshiftTimestampFromFakeUtc(shifted: number, timezone?: string): number {
   const tz = timezone ?? getUserTimezone();
-  const offsetMs = moment.tz(shifted, tz).utcOffset() * 60_000;
-  return shifted - offsetMs;
+  // First approximation: offset at the shifted timestamp
+  const approxOffsetMs = moment.tz(shifted, tz).utcOffset() * 60_000;
+  const estimatedReal = shifted - approxOffsetMs;
+  // Refinement: offset at the estimated real timestamp
+  const refinedOffsetMs = moment.tz(estimatedReal, tz).utcOffset() * 60_000;
+  return shifted - refinedOffsetMs;
 }
 
 /**

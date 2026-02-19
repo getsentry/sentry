@@ -491,11 +491,13 @@ function BaseChart({
   const chartId = useId();
 
   const chartOption = useMemo(() => {
-    // When utc is false, we shift all timestamps into "fake UTC" so that
-    // ECharts (with useUTC: true) places tick boundaries at nice values
-    // in the user's configured timezone. Formatters then read the shifted
-    // UTC wall-clock, which matches user-timezone wall-clock.
-    const shouldShift = !utc;
+    // When utc is explicitly false, we shift all timestamps into "fake UTC"
+    // so that ECharts (with useUTC: true) places tick boundaries at nice
+    // values in the user's configured timezone. Formatters then read the
+    // shifted UTC wall-clock, which matches user-timezone wall-clock.
+    // When utc is undefined (not set), we don't shift to preserve existing
+    // behavior and avoid inconsistencies with zoom handlers.
+    const shouldShift = utc === false;
 
     const finalSeries = shouldShift ? shiftSeriesData(resolvedSeries) : resolvedSeries;
 
@@ -525,7 +527,7 @@ function BaseChart({
           );
 
     const aria = computeEchartsAriaLabels(
-      {series: finalSeries, useUTC: utc},
+      {series: finalSeries, useUTC: shouldShift ? true : utc},
       isGroupedByDate
     );
     const defaultAxesProps = {theme};
@@ -592,7 +594,7 @@ function BaseChart({
     return {
       ...options,
       animation,
-      useUTC: true,
+      useUTC: shouldShift ? true : utc,
       color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,

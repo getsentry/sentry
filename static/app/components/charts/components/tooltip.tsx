@@ -21,7 +21,7 @@ type ChartProps = React.ComponentProps<typeof BaseChart>;
 export function defaultFormatAxisLabel(
   value: number,
   isTimestamp: boolean,
-  utc: boolean,
+  utc: boolean | undefined,
   showTimeInTooltip: boolean,
   addSecondsToTimeFormat: boolean,
   bucketSize?: number
@@ -30,18 +30,27 @@ export function defaultFormatAxisLabel(
     return value;
   }
 
-  // With timezone shifting in BaseChart, UTC wall-clock matches
-  // the user's configured timezone. Always parse as UTC.
-  const formatOptions = {local: false};
+  // When utc is explicitly false, BaseChart shifts data to "fake UTC"
+  // so we parse as UTC. When utc is true, data is real UTC.
+  // When utc is undefined (not set), preserve old behavior (local parse).
+  const local = utc === undefined;
+  const formatOptions = {local};
 
   const timeFormat = showTimeInTooltip
     ? getTimeFormat({seconds: addSecondsToTimeFormat})
     : '';
 
-  // Compute timezone abbreviation from the real (unshifted) timestamp
-  const tzAbbr = utc
-    ? 'UTC'
-    : moment.tz(unshiftTimestampFromFakeUtc(value), getUserTimezone()).format('z');
+  // Compute timezone abbreviation
+  let tzAbbr: string;
+  if (utc === true) {
+    tzAbbr = 'UTC';
+  } else if (utc === false) {
+    // Data is shifted — unshift to get real UTC, then format in user timezone
+    tzAbbr = moment.tz(unshiftTimestampFromFakeUtc(value), getUserTimezone()).format('z');
+  } else {
+    // utc is undefined — use local timezone abbreviation (old behavior)
+    tzAbbr = moment(value).format('z');
+  }
 
   if (!bucketSize) {
     const format = `MMM D, YYYY ${timeFormat}`.trim();
@@ -49,9 +58,10 @@ export function defaultFormatAxisLabel(
     return `${formatted} ${tzAbbr}`.trim();
   }
 
-  const now = moment.utc();
-  const bucketStart = moment.utc(value);
-  const bucketEnd = moment.utc(value + bucketSize);
+  const parser = local ? moment : moment.utc;
+  const now = parser();
+  const bucketStart = parser(value);
+  const bucketEnd = parser(value + bucketSize);
 
   const showYear = now.year() !== bucketStart.year() || now.year() !== bucketEnd.year();
   const showEndDate = bucketStart.date() !== bucketEnd.date();
@@ -184,7 +194,7 @@ export function getFormatter({
       const label = axisFormatterOrDefault(
         timestamp,
         !!isGroupedByDate,
-        !!utc,
+        utc,
         !!showTimeInTooltip,
         addSecondsToTimeFormat,
         bucketSize,
@@ -226,7 +236,7 @@ export function getFormatter({
       axisFormatterOrDefault(
         timestamp,
         !!isGroupedByDate,
-        !!utc,
+        utc,
         !!showTimeInTooltip,
         addSecondsToTimeFormat,
         bucketSize,

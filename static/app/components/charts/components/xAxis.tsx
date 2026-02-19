@@ -27,7 +27,7 @@ function XAxis({
   start,
   end,
   period,
-  utc: _utc,
+  utc,
   addSecondsToTimeFormat = false,
   ...props
 }: XAxisProps): XAXisComponentOption {
@@ -38,12 +38,14 @@ function XAxis({
 
     if (isGroupedByDate) {
       const dateFormat = useShortDate ? 'MMM Do' : `MMM D`;
-      // With timezone shifting in BaseChart, UTC wall-clock already matches
-      // the user's configured timezone. Always parse as UTC.
-      const dateString = getFormattedDate(value, dateFormat, {local: false});
+      // When utc is explicitly false, BaseChart shifts data to "fake UTC"
+      // so we parse as UTC. When utc is true, data is real UTC.
+      // When utc is undefined (not set), preserve old behavior (local parse).
+      const local = utc === undefined;
+      const dateString = getFormattedDate(value, dateFormat, {local});
 
       const timeFormat = getTimeFormat({seconds: addSecondsToTimeFormat});
-      const timeString = getFormattedDate(value, timeFormat, {local: false});
+      const timeString = getFormattedDate(value, timeFormat, {local});
 
       const delimiter = useMultilineDate ? '\n' : ' ';
 
