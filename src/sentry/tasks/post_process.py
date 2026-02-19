@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
@@ -1166,16 +1167,20 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
     event, is_new = job["event"], job["group_state"]["is_new"]
 
     if event.get_event_type() == "error" and _should_send_error_created_hooks(event.project):
-        process_resource_change_bound.delay(
-            action="created",
-            sender="Error",
-            instance_id=event.event_id,
-            project_id=event.project_id,
-            group_id=event.group_id,
+        transaction.on_commit(
+            lambda: process_resource_change_bound.delay(
+                action="created",
+                sender="Error",
+                instance_id=event.event_id,
+                project_id=event.project_id,
+                group_id=event.group_id,
+            )
         )
     if is_new:
-        process_resource_change_bound.delay(
-            action="created", sender="Group", instance_id=event.group_id
+        transaction.on_commit(
+            lambda: process_resource_change_bound.delay(
+                action="created", sender="Group", instance_id=event.group_id
+            )
         )
 
 
