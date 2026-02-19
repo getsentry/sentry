@@ -238,9 +238,10 @@
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.40.0",
     "typescript-eslint": "8.39.0",
-    "vitest": "^4.0.18",
-    "vitest-canvas-mock": "^1.1.3",
-    "vitest-fail-on-console": "^0.10.1"
+    "vite": "8.0.0-beta.14",
+    "vitest": "4.1.0-beta.4",
+    "vitest-canvas-mock": "1.1.3",
+    "vitest-fail-on-console": "0.10.1"
   },
   "pnpm": {
     "overrides": {

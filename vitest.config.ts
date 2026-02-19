@@ -18,7 +18,7 @@ export default defineConfig({
   plugins: [
     react({
       jsxImportSource: '@emotion/react',
-      plugins: [['@swc/plugin-emotion', {}]],
+      plugins: [['@swc/plugin-emotion', {sourceMap: false, autoLabel: 'never'}]],
       devTarget: 'esnext',
     }),
     pegjsPlugin(),
@@ -111,7 +111,7 @@ export default defineConfig({
     ],
   },
   test: {
-    maxWorkers: '75%',
+    maxWorkers: IS_GITHUB_ACTION_ENV ? '75%' : undefined,
     // Limit Vitest's crawl to the frontend app tree.
     dir: 'static',
     globals: true,

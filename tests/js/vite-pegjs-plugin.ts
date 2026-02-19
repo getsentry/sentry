@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import peggy from 'peggy';
 import type {Plugin} from 'vite';
 
