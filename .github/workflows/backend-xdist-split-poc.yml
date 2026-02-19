@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - mchen/cumulative-opts
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -244,6 +245,12 @@ jobs:
                 -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
             until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
             echo "[services] postgres Unix socket ready at /tmp/pg-sock/.s.PGSQL.5432"
+
+            # Cap ClickHouse query threads to 2 to free CPU headroom for pytest/postgres.
+            curl -sf 'http://localhost:8123/' \
+              --data-binary "ALTER USER default SETTINGS max_threads = 2" \
+              && echo "[services] ClickHouse max_threads=2 applied" \
+              || echo "[services] WARNING: failed to set ClickHouse max_threads"
 
             SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
             SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
