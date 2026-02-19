@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - mchen/resource-monitoring
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -124,6 +125,20 @@ jobs:
         with:
           mode: migrations
 
+      - name: Start resource monitoring
+        run: |
+          mkdir -p .artifacts/monitoring
+          vmstat 5 > .artifacts/monitoring/vmstat.log 2>&1 &
+          echo $! > /tmp/vmstat.pid
+          iostat -x 5 > .artifacts/monitoring/iostat.log 2>&1 &
+          echo $! > /tmp/iostat.pid
+          (while true; do
+            echo "=== $(date -Iseconds) ==="
+            docker stats --no-stream 2>/dev/null || true
+            sleep 10
+          done) > .artifacts/monitoring/docker-stats.log 2>&1 &
+          echo $! > /tmp/docker-stats.pid
+
       - name: Run tier 1 tests
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
@@ -157,6 +172,27 @@ jobs:
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
+
+      - name: Stop resource monitoring
+        if: always()
+        run: |
+          for pidfile in /tmp/vmstat.pid /tmp/iostat.pid /tmp/docker-stats.pid; do
+            [ -f "$pidfile" ] && kill "$(cat "$pidfile")" 2>/dev/null || true
+          done
+          echo "=== vmstat tail ==="
+          tail -30 .artifacts/monitoring/vmstat.log 2>/dev/null || true
+          echo "=== iostat tail ==="
+          tail -50 .artifacts/monitoring/iostat.log 2>/dev/null || true
+          echo "=== docker stats tail ==="
+          tail -30 .artifacts/monitoring/docker-stats.log 2>/dev/null || true
+
+      - name: Upload monitoring data
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: monitoring-tier1-${{ matrix.instance }}
+          path: .artifacts/monitoring/
+          retention-days: 3
 
   # ─── Tier 2: Full Snuba stack (backend-ci mode) ──────────────────
   tier2:
@@ -194,6 +230,20 @@ jobs:
         with:
           mode: backend-ci
           skip-devservices: true
+
+      - name: Start resource monitoring
+        run: |
+          mkdir -p .artifacts/monitoring
+          vmstat 5 > .artifacts/monitoring/vmstat.log 2>&1 &
+          echo $! > /tmp/vmstat.pid
+          iostat -x 5 > .artifacts/monitoring/iostat.log 2>&1 &
+          echo $! > /tmp/iostat.pid
+          (while true; do
+            echo "=== $(date -Iseconds) ==="
+            docker stats --no-stream 2>/dev/null || true
+            sleep 10
+          done) > .artifacts/monitoring/docker-stats.log 2>&1 &
+          echo $! > /tmp/docker-stats.pid
 
       - name: Run tier 2 tests (overlapped startup)
         env:
@@ -297,3 +347,24 @@ jobs:
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
+
+      - name: Stop resource monitoring
+        if: always()
+        run: |
+          for pidfile in /tmp/vmstat.pid /tmp/iostat.pid /tmp/docker-stats.pid; do
+            [ -f "$pidfile" ] && kill "$(cat "$pidfile")" 2>/dev/null || true
+          done
+          echo "=== vmstat tail ==="
+          tail -30 .artifacts/monitoring/vmstat.log 2>/dev/null || true
+          echo "=== iostat tail ==="
+          tail -50 .artifacts/monitoring/iostat.log 2>/dev/null || true
+          echo "=== docker stats tail ==="
+          tail -30 .artifacts/monitoring/docker-stats.log 2>/dev/null || true
+
+      - name: Upload monitoring data
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: monitoring-tier2-${{ matrix.instance }}
+          path: .artifacts/monitoring/
+          retention-days: 3
