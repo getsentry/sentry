@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
@@ -147,14 +146,13 @@ export function ProjectPageFilter({
    */
   const mapNormalValueToURLValue = useCallback(
     (val: number[]) => {
+      if (val.includes(ALL_ACCESS_PROJECTS)) {
+        return [ALL_ACCESS_PROJECTS];
+      }
+
       const memberProjectsSelected = memberProjects.every(p =>
         val.includes(parseInt(p.id, 10))
       );
-
-      // "All Projects"
-      if (!val.length) {
-        return [ALL_ACCESS_PROJECTS];
-      }
 
       // "My Projects"
       if (
@@ -204,10 +202,6 @@ export function ProjectPageFilter({
 
   const handleChange = useCallback(
     async (newValue: number[]) => {
-      if (isEqual(newValue, value)) {
-        return;
-      }
-
       onChange?.(newValue);
 
       trackAnalytics('projectselector.update', {
@@ -228,7 +222,6 @@ export function ProjectPageFilter({
       });
     },
     [
-      value,
       resetParamsOnChange,
       router,
       organization,
@@ -433,13 +426,6 @@ export function ProjectPageFilter({
       onOpenChange={() => {
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
       }}
-      menuHeaderTrailingItems={
-        stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
-          />
-        ) : null
-      }
       menuFooter={
         selectionLimitExceeded || hasProjectWrite || stagedSelect.hasStagedChanges ? (
           <Stack gap="md" direction="column">
@@ -459,7 +445,6 @@ export function ProjectPageFilter({
             <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
               {hasProjectWrite ? (
                 <HybridFilterComponents.Button
-                  priority="transparent"
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 >
                   <Flex align="center" gap="sm">
@@ -471,7 +456,7 @@ export function ProjectPageFilter({
               {stagedSelect.hasStagedChanges ? (
                 <Flex gap="md" align="center" justify="end">
                   <HybridFilterComponents.CancelButton
-                    onClick={() => stagedSelect.removeStagedChanges()}
+                    onClick={stagedSelect.removeStagedChanges}
                   />
                   <HybridFilterComponents.ApplyButton
                     disabled={stagedSelect.disableCommit}
@@ -480,21 +465,17 @@ export function ProjectPageFilter({
                 </Flex>
               ) : (
                 <Flex gap="md" align="center" justify="end">
-                  <HybridFilterComponents.Button
-                    onClick={() =>
-                      stagedSelect.commit(nonMemberProjects.map(p => parseInt(p.id, 10)))
-                    }
+                  <HybridFilterComponents.CommitButton
+                    onClick={() => stagedSelect.commit([ALL_ACCESS_PROJECTS])}
                   >
                     {t('All Projects')}
-                  </HybridFilterComponents.Button>
-                  <HybridFilterComponents.Button
-                    onClick={() =>
-                      stagedSelect.commit(memberProjects.map(p => parseInt(p.id, 10)))
-                    }
+                  </HybridFilterComponents.CommitButton>
+                  <HybridFilterComponents.CommitButton
                     priority="primary"
+                    onClick={() => stagedSelect.commit([])}
                   >
                     {t('My Projects')}
-                  </HybridFilterComponents.Button>
+                  </HybridFilterComponents.CommitButton>
                 </Flex>
               )}
             </Flex>

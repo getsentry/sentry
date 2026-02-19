@@ -51,7 +51,6 @@ interface UseStagedCompactSelectOptions<Value extends SelectKey> {
 }
 
 export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
-  // Additional state and utilities
   commit: (val: Value[]) => void;
   // Props that can be spread directly into CompactSelect
   compactSelectProps: Pick<
@@ -491,8 +490,26 @@ export const HybridFilterComponents = {
     );
   },
 
-  Button(props: DistributedOmit<ButtonProps, 'size'>) {
+  Button(
+    props: DistributedOmit<ButtonProps, 'size' | 'priority'> & {
+      priority?: 'transparent' | 'default';
+    }
+  ) {
     return <Button size="xs" {...props} />;
+  },
+
+  CommitButton(props: DistributedOmit<ButtonProps, 'size'>) {
+    const controlContext = useContext(ControlContext);
+    return (
+      <Button
+        size="xs"
+        {...props}
+        onClick={e => {
+          props.onClick?.(e);
+          controlContext.overlayState?.close();
+        }}
+      />
+    );
   },
 };
 
