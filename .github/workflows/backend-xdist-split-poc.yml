@@ -4,10 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - mchen/tiered-xdist-clean
-      - mchen/tiered-file
-      - mchen/tiered-class
-      - mchen/tiered-test
+      - mchen/dist-load
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -132,7 +129,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n 3 \
-            --dist=loadfile \
+            --dist=load \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
@@ -263,7 +260,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadfile \
+            --dist=load \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
