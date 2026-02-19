@@ -15,7 +15,7 @@ def remove_action_sentry_app_identifier(
 
     for action in RangeQuerySetWrapper(Action.objects.filter(type="sentry_app")):
         config = action.config
-        config.pop("sentry_app_identifier")
+        config.pop("sentry_app_identifier", None)
         action.config = config
         action.save()
 
