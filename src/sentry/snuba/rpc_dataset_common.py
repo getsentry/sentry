@@ -99,6 +99,7 @@ class TableRequest:
 
     rpc_request: TraceItemTableRequest
     columns: list[ResolvedColumn]
+    sort_column_aliases: set[str] = field(default_factory=set)
 
 
 def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
@@ -364,6 +365,7 @@ class RPCBase:
                 trace_filters=cross_trace_queries,
             ),
             all_columns,
+            sort_column_aliases=sort_column_aliases,
         )
 
     @classmethod
@@ -447,7 +449,7 @@ class RPCBase:
         for column_value in rpc_response.column_values:
             attribute = column_value.attribute_name
             # Skip internal sort columns used for virtual context ordering
-            if attribute.startswith("__sort_"):
+            if attribute in table_request.sort_column_aliases:
                 continue
             if attribute not in columns_by_name:
                 logger.warning(
