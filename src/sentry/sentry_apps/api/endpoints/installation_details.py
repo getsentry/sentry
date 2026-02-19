@@ -72,7 +72,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
                     sentry_sdk.capture_exception(exc)
 
             transaction.on_commit(notify_on_commit, using=db)
-
+        if request.user.is_authenticated:
             analytics.record(
                 SentryAppUninstalledEvent(
                     user_id=request.user.id,
