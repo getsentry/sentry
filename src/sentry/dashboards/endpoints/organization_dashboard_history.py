@@ -45,6 +45,9 @@ class DashboardHistoryEndpoint(OrganizationDashboardBase):
         if not feature_has(READ_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
+        if not feature_has("organizations:dashboards-history", organization, actor=request.user):
+            return Response(status=404)
+
         if isinstance(dashboard, dict):
             return Response(status=404)
 
@@ -126,6 +129,9 @@ class DashboardRestoreEndpoint(OrganizationDashboardBase):
         Captures current state first so the restore is undoable.
         """
         if not feature_has(EDIT_FEATURE, organization, actor=request.user):
+            return Response(status=404)
+
+        if not feature_has("organizations:dashboards-history", organization, actor=request.user):
             return Response(status=404)
 
         if isinstance(dashboard, dict):
