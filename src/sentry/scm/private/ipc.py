@@ -301,8 +301,14 @@ def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
     """
     if event["type"] == "github":
         return deserialize_github_event(event)
+    elif event["type"] == "github_enterprise":
+        return deserialize_github_event(event)
+    elif event["type"] == "bitbucket":
+        raise SCMProviderNotSupported("Bitbucket has not been implemented.")
+    elif event["type"] == "gitlab":
+        raise SCMProviderNotSupported("GitLab has not been implemented.")
     else:
-        raise SCMProviderNotSupported("Provider not implemented.")
+        assert_never(event["type"])
 
 
 def serialize_event(event: EventType) -> str:
