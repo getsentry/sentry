@@ -303,7 +303,7 @@ def _get_user(validated_event: dict[str, Any]) -> tuple[str, int]:
     except ValidationError:
         pass
 
-    if "createdByUserId" in validated_event:
+    if validated_event.get("createdByUserId") is not None:
         return str(validated_event["createdByUserId"]), CREATED_BY_TYPE_MAP["id"]
     return created_by, CREATED_BY_TYPE_MAP["name"]
 
