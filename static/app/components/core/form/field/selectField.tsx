@@ -88,11 +88,12 @@ export function SelectField<TValue = string>({
 
   return (
     <BaseField>
-      {({id, ...fieldProps}) => {
+      {({id, ref, ...fieldProps}) => {
         const select = (
           <Select
             {...fieldProps}
             {...props}
+            innerRef={ref}
             inputId={id}
             disabled={isDisabled}
             multiple={multiple}
