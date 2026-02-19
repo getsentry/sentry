@@ -145,7 +145,7 @@ def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullReque
 def deserialize_github_event_type_hint(event: SubscriptionEvent) -> EventTypeHint | None:
     if event["event_type_hint"] == "pull_request":
         return "pull_request"
-    elif event["event_type_hint"] == "comment":
+    elif event["event_type_hint"] == "issue_comment":
         return "comment"
     elif event["event_type_hint"] == "check_run":
         return "check_run"
