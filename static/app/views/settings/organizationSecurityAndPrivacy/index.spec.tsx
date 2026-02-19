@@ -13,6 +13,7 @@ describe('OrganizationSecurityAndPrivacy', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
+      statusCode: 404,
       body: {},
     });
 
