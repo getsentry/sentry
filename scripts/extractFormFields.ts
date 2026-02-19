@@ -411,7 +411,7 @@ ${registryEntries}
 `;
 
   fs.writeFileSync(outputPath, registryContent, 'utf-8');
-  execSync(`pnpm prettier --write ${outputPath}`, {stdio: 'ignore'});
+  execSync('pnpm', ['prettier', '--write', outputPath], {stdio: 'ignore'});
   console.log(`✅ Generated ${dedupedFields.length} field definitions in ${outputPath}`);
 }
 
