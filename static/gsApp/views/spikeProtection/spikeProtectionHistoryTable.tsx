@@ -259,10 +259,10 @@ class SpikeProtectionHistoryTable extends Component<Props> {
           <LinkButton
             size="sm"
             icon={<IconSettings />}
-            aria-label={t('Settings')}
-            tooltipProps={{title: t('Go to spike protection settings')}}
             to={`/settings/${organization.slug}/spike-protection/`}
-          />
+          >
+            {t('Spike Protection Settings')}
+          </LinkButton>
         </Flex>
         {this.renderTable()}
       </div>
