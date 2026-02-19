@@ -56,12 +56,11 @@ export function BaseField(
   }
 ) {
   const field = useFieldContext();
-  const hasError = field.state.meta.isTouched && !field.state.meta.isValid;
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
 
   return props.children({
-    'aria-invalid': hasError,
+    'aria-invalid': !field.state.meta.isValid,
     'aria-describedby': hintTextId,
     onBlur: field.handleBlur,
     name: field.name,
