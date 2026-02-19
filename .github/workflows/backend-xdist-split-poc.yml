@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - mchen/pg-sync-commit
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -124,6 +125,15 @@ jobs:
         with:
           mode: migrations
 
+      - name: Tune postgres for test workload
+        run: |
+          docker exec postgres-postgres-1 psql -U postgres \
+            -c "ALTER SYSTEM SET synchronous_commit = off" \
+            -c "ALTER SYSTEM SET full_page_writes = off" \
+            -c "SELECT pg_reload_conf()" \
+            && echo "[postgres] WAL flags applied" \
+            || echo "[postgres] WARNING: failed to apply WAL flags"
+
       - name: Run tier 1 tests
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
@@ -211,6 +221,14 @@ jobs:
             devservices up --mode backend-ci
             SERVICE_END=$(date +%s)
             echo "[services] devservices ready in $((SERVICE_END - SERVICE_START))s"
+
+            # Disable WAL sync for ephemeral test databases -- eliminates 1-5ms latency per commit.
+            docker exec postgres-postgres-1 psql -U postgres \
+              -c "ALTER SYSTEM SET synchronous_commit = off" \
+              -c "ALTER SYSTEM SET full_page_writes = off" \
+              -c "SELECT pg_reload_conf()" \
+              && echo "[services] postgres WAL flags applied" \
+              || echo "[services] WARNING: failed to apply postgres WAL flags"
 
             SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
             SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
