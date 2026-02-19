@@ -7,6 +7,7 @@ from requests import Response
 
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.metrics import SentryAppWebhookHaltReason
+from sentry.sentry_apps.utils.webhooks import IssueActionType, SentryAppResourceType
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -46,7 +47,10 @@ class WebhookTimeoutTest(TestCase):
         mock_safe_urlopen.return_value = mock_response
 
         app_platform_event = AppPlatformEvent(
-            resource="issue", action="created", install=self.install, data={"test": "data"}
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"test": "data"},
         )
 
         # Should complete without raising WebhookTimeoutError
@@ -77,7 +81,10 @@ class WebhookTimeoutTest(TestCase):
 
         # Create event
         app_platform_event = AppPlatformEvent(
-            resource="issue", action="created", install=self.install, data={"test": "data"}
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"test": "data"},
         )
 
         # Should raise WebhookTimeoutError
@@ -102,7 +109,10 @@ class WebhookTimeoutTest(TestCase):
         mock_safe_urlopen.side_effect = slow_urlopen
 
         app_platform_event = AppPlatformEvent(
-            resource="issue", action="created", install=self.install, data={"test": "data"}
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"test": "data"},
         )
 
         with pytest.raises(WebhookTimeoutError):
@@ -127,7 +137,10 @@ class WebhookTimeoutTest(TestCase):
         mock_safe_urlopen.side_effect = slow_urlopen
 
         app_platform_event = AppPlatformEvent(
-            resource="issue", action="created", install=self.install, data={"test": "data"}
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"test": "data"},
         )
 
         with pytest.raises(WebhookTimeoutError):
@@ -160,7 +173,10 @@ class WebhookTimeoutTest(TestCase):
         mock_safe_urlopen.return_value = mock_response
 
         app_platform_event = AppPlatformEvent(
-            resource="issue", action="created", install=self.install, data={"test": "data"}
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"test": "data"},
         )
 
         send_and_save_webhook_request(self.sentry_app, app_platform_event)
@@ -187,7 +203,10 @@ class WebhookTimeoutTest(TestCase):
         mock_safe_urlopen.return_value = mock_response
 
         app_platform_event = AppPlatformEvent(
-            resource="issue", action="created", install=self.install, data={"test": "data"}
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"test": "data"},
         )
 
         send_and_save_webhook_request(self.sentry_app, app_platform_event)
