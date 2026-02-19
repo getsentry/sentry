@@ -1,13 +1,49 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
 import {css, useTheme, type SerializedStyles} from '@emotion/react';
 
+import {NODE_ENV} from 'sentry/constants';
 import type {
   BorderVariant,
   BreakpointSize,
   RadiusSize,
   SpaceSize,
+  SurfaceVariant,
   Theme,
 } from 'sentry/utils/theme';
+
+// Cache for rc() results. WeakMap on Theme ensures garbage collection on theme change.
+const rcCache = new WeakMap<Theme, Map<string, SerializedStyles | undefined>>();
+
+function getRcCacheMap(theme: Theme): Map<string, SerializedStyles | undefined> {
+  let map = rcCache.get(theme);
+  if (!map) {
+    map = new Map();
+    rcCache.set(theme, map);
+  }
+  return map;
+}
+
+function makeRcCacheKey<T>(
+  property: string,
+  value: Responsive<T> | undefined,
+  resolver:
+    | ((v: T | undefined, bp: BreakpointSize | undefined, t: Theme) => string | undefined)
+    | undefined
+): string {
+  const resolverName = resolver?.name ?? '';
+  if (!isResponsive(value)) {
+    return `${property}|${resolverName}|${String(value)}`;
+  }
+  // Serialize responsive object in stable breakpoint order
+  let responsive = '';
+  for (const bp of BREAKPOINT_ORDER) {
+    const v = value[bp];
+    if (v !== undefined) {
+      responsive += `${bp}:${String(v)},`;
+    }
+  }
+  return `${property}|${resolverName}|{${responsive}}`;
+}
 
 // It is unfortunate, but Emotion seems to use the fn callback name in the classname, so lets keep it short.
 export function rc<T>(
@@ -15,6 +51,31 @@ export function rc<T>(
   value: Responsive<T> | undefined,
   theme: Theme,
   // Optional resolver function to transform the value before it is applied to the CSS property.
+  resolver?: (
+    value: T | undefined,
+    breakpoint: BreakpointSize | undefined,
+    theme: Theme
+  ) => string | undefined
+): SerializedStyles | undefined {
+  if (NODE_ENV === 'development') {
+    const cache = getRcCacheMap(theme);
+    const key = makeRcCacheKey(property, value, resolver);
+
+    if (cache.has(key)) {
+      return cache.get(key);
+    }
+    const result = responsiveCSS(property, value, theme, resolver);
+    cache.set(key, result);
+    return result;
+  }
+
+  return responsiveCSS(property, value, theme, resolver);
+}
+
+function responsiveCSS<T>(
+  property: string,
+  value: Responsive<T> | undefined,
+  theme: Theme,
   resolver?: (
     value: T | undefined,
     breakpoint: BreakpointSize | undefined,
@@ -218,6 +279,14 @@ export function getMargin(
     .split(' ')
     .map(size => resolveMargin(size as Margin, theme))
     .join(' ');
+}
+
+export function getBackground(
+  value: Exclude<SurfaceVariant, 'overlay'> | undefined,
+  _breakpoint: BreakpointSize | undefined,
+  theme: Theme
+): string | undefined {
+  return value ? theme.tokens.background[value] : undefined;
 }
 
 /**
