@@ -111,7 +111,7 @@ export default defineConfig({
     ],
   },
   test: {
-    maxWorkers: '50%',
+    maxWorkers: '75%',
     // Limit Vitest's crawl to the frontend app tree.
     dir: 'static',
     globals: true,
