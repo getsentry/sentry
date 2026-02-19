@@ -472,9 +472,6 @@ def get_constrained_date_range(
     return adjusted_start, adjusted_end, interval
 
 
-TS_COL = "bucketed_started"
-
-
 def isoformat_z(date):
     return datetime.fromtimestamp(int(date.timestamp())).isoformat() + "Z"
 
