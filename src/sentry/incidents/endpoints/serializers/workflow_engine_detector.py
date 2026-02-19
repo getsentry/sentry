@@ -319,10 +319,13 @@ class WorkflowEngineDetectorSerializer(Serializer):
             query_subscription = query_subscriptions.get(
                 Q(id=data_source_detector.data_source.source_id)
             )
-            result[detector]["query"] = query_subscription.snuba_query.query
-            result[detector]["aggregate"] = query_subscription.snuba_query.aggregate
-            result[detector]["timeWindow"] = query_subscription.snuba_query.time_window / 60
-            result[detector]["resolution"] = query_subscription.snuba_query.resolution / 60
+            snuba_query = query_subscription.snuba_query
+            result[detector]["query"] = snuba_query.query
+            result[detector]["aggregate"] = snuba_query.aggregate
+            result[detector]["timeWindow"] = snuba_query.time_window / 60
+            result[detector]["resolution"] = snuba_query.resolution / 60
+            env = snuba_query.environment
+            result[detector]["environment"] = env.name if env else None
 
         return result
 
@@ -355,6 +358,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "aggregate": attrs.get("aggregate"),
             "timeWindow": attrs.get("timeWindow"),
             "resolution": attrs.get("resolution"),
+            "environment": attrs.get("environment"),
             "thresholdPeriod": 1,  # unset on detectors
             "triggers": triggers,
             "projects": sorted(attrs.get("projects", [])),

@@ -207,6 +207,22 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
             self.detector, self.user, WorkflowEngineDetectorSerializer()
         )
 
+    def test_workflow_engine_serializer_empty_list(self) -> None:
+        """An org with no alert rules should return an empty list, not 404."""
+        org = self.create_organization(owner=self.user)
+        project = self.create_project(organization=org)
+        team = self.create_team(organization=org, members=[self.user])
+        ProjectTeam.objects.create(project=project, team=team)
+        self.login_as(self.user)
+
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:workflow-engine-rule-serializers"),
+        ):
+            resp = self.get_success_response(org.slug)
+
+        assert resp.data == []
+
     def test_no_feature(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)

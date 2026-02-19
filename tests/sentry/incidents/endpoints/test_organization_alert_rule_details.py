@@ -54,6 +54,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode
 from sentry.testutils.abstract import Abstract
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -232,6 +233,95 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         fake_detector_id = get_fake_id_from_object_id(self.detector.id)
 
         self.get_error_response(self.organization.slug, fake_detector_id, status_code=400)
+
+    @freeze_time("2024-12-11 03:21:34")
+    def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
+        """Verify the new WorkflowEngineDetectorSerializer output matches the old
+        DetailedAlertRuleSerializer output for the same alert rule, so we can
+        turn on the feature flag without breaking clients."""
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        # Get old serializer response
+        with self.feature("organizations:incidents"):
+            old_resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+        old_data = old_resp.data
+
+        # Get new serializer response
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:workflow-engine-rule-serializers"),
+        ):
+            new_resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+        new_data = new_resp.data
+
+        # Collect all differences rather than failing on the first one
+        mismatches: list[str] = []
+        missing_from_new: list[str] = []
+        value_diffs: list[str] = []
+
+        # Check every field in the old response
+        for field in old_data:
+            if field == "triggers":
+                continue  # checked separately below
+            if field not in new_data:
+                missing_from_new.append(field)
+            elif new_data[field] != old_data[field]:
+                value_diffs.append(f"  {field}: old={old_data[field]!r}, new={new_data[field]!r}")
+
+        extra_in_new = [f for f in new_data if f not in old_data and f != "triggers"]
+
+        # Triggers comparison
+        old_triggers = sorted(old_data.get("triggers", []), key=lambda t: t.get("label", ""))
+        new_triggers = sorted(new_data.get("triggers", []), key=lambda t: t.get("label", ""))
+        trigger_diffs: list[str] = []
+        if len(old_triggers) != len(new_triggers):
+            trigger_diffs.append(f"  count: old={len(old_triggers)}, new={len(new_triggers)}")
+        for old_t, new_t in zip(old_triggers, new_triggers):
+            for tfield in set(list(old_t.keys()) + list(new_t.keys())):
+                if tfield == "actions":
+                    continue  # checked below
+                if tfield not in new_t:
+                    trigger_diffs.append(f"  trigger[{old_t.get('label')}] missing field: {tfield}")
+                elif tfield not in old_t:
+                    trigger_diffs.append(f"  trigger[{new_t.get('label')}] extra field: {tfield}")
+                elif old_t[tfield] != new_t[tfield]:
+                    trigger_diffs.append(
+                        f"  trigger[{old_t.get('label')}].{tfield}: old={old_t[tfield]!r}, new={new_t[tfield]!r}"
+                    )
+            # Actions comparison
+            old_actions = old_t.get("actions", [])
+            new_actions = new_t.get("actions", [])
+            if len(old_actions) != len(new_actions):
+                trigger_diffs.append(
+                    f"  trigger[{old_t.get('label')}] action count: old={len(old_actions)}, new={len(new_actions)}"
+                )
+            for ai, (oa, na) in enumerate(zip(old_actions, new_actions)):
+                for afield in set(list(oa.keys()) + list(na.keys())):
+                    if afield not in na:
+                        trigger_diffs.append(
+                            f"  trigger[{old_t.get('label')}].actions[{ai}] missing: {afield}"
+                        )
+                    elif afield not in oa:
+                        trigger_diffs.append(
+                            f"  trigger[{old_t.get('label')}].actions[{ai}] extra: {afield}"
+                        )
+                    elif oa[afield] != na[afield]:
+                        trigger_diffs.append(
+                            f"  trigger[{old_t.get('label')}].actions[{ai}].{afield}: old={oa[afield]!r}, new={na[afield]!r}"
+                        )
+
+        # Build failure message
+        if missing_from_new:
+            mismatches.append(f"Missing from new: {missing_from_new}")
+        if extra_in_new:
+            mismatches.append(f"Extra in new: {extra_in_new}")
+        if value_diffs:
+            mismatches.append("Value mismatches:\n" + "\n".join(value_diffs))
+        if trigger_diffs:
+            mismatches.append("Trigger mismatches:\n" + "\n".join(trigger_diffs))
+
+        assert not mismatches, "Old vs new serializer differences:\n" + "\n".join(mismatches)
 
     def test_aggregate_translation(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
