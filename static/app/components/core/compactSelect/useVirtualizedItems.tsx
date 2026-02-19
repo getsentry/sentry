@@ -4,7 +4,7 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 
 import type {FormSize} from 'sentry/utils/theme';
 
-export const heightEstimations = {
+const heightEstimations = {
   sm: {regular: 32, large: 49},
   md: {regular: 36, large: 53},
   xs: {regular: 25, large: 42},

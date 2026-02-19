@@ -34,8 +34,8 @@ describe('ProjectPageFilter', () => {
 
   afterEach(() => PageFiltersStore.reset());
 
-  it('renders & handles single selection', async () => {
-    const {router} = render(<ProjectPageFilter />, {
+  it('renders projects in a flat list', async () => {
+    render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {}},
@@ -45,12 +45,28 @@ describe('ProjectPageFilter', () => {
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
-    // There are 2 option groups
-    expect(screen.getByRole('rowgroup', {name: 'My Projects'})).toBeInTheDocument();
-    expect(screen.getByRole('rowgroup', {name: 'Other'})).toBeInTheDocument();
+    // All projects (member and non-member) are shown in a flat list without groups
+    expect(screen.getByRole('row', {name: 'project-1'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'project-2'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'project-3'})).toBeInTheDocument();
+    expect(screen.queryByRole('rowgroup')).not.toBeInTheDocument();
 
-    // Select only project-1
-    await userEvent.click(screen.getByRole('row', {name: 'project-1'}));
+    // Close menu without committing
+    await userEvent.keyboard('{Escape}');
+  });
+
+  it('handles single selection', async () => {
+    const {router} = render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
+    });
+
+    // Open menu, deselect project-2 (leaving only project-1), and apply
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
     // Trigger label & router is updated
     expect(screen.getByRole('button', {name: 'project-1'})).toBeInTheDocument();
@@ -151,9 +167,8 @@ describe('ProjectPageFilter', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('handles reset', async () => {
-    const onReset = jest.fn();
-    const {router} = render(<ProjectPageFilter onReset={onReset} />, {
+  it('handles footer quick-select buttons', async () => {
+    const {router} = render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {}},
@@ -165,13 +180,21 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('row', {name: 'project-1'}));
     expect(router.location.query).toEqual({project: '1'});
 
-    // Open menu again & click "Reset"
+    // Open menu again & click "My Projects" footer button to reset to default
     await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
-    // Trigger button was updated, onReset was called
+    // Trigger button was updated back to "My Projects"
     expect(screen.getByRole('button', {name: 'My Projects'})).toBeInTheDocument();
-    expect(onReset).toHaveBeenCalled();
+    expect(router.location.query).toEqual({});
+
+    // Open menu again & click "All Projects" footer button
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+
+    // Trigger button was updated to "All Projects"
+    expect(screen.getByRole('button', {name: 'All Projects'})).toBeInTheDocument();
+    expect(router.location.query).toEqual({project: '-1'});
   });
 
   it('responds to page filter changes, async e.g. from back button nav', async () => {
