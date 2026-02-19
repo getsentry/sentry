@@ -1375,7 +1375,6 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-
 interface DashboardDetailWithInjectedPropsProps extends Omit<
   Props,
   | 'theme'
