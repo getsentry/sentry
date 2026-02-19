@@ -51,6 +51,7 @@ interface Options<TApiPath extends KnownApiUrls> extends QueryKeyEndpointOptions
   path?: PathParamOptions<TApiPath>;
 }
 
+/** @public **/
 export function getQueryKey<TApiPath extends KnownApiUrls = KnownApiUrls>(
   template: TApiPath,
   options?: Options<TApiPath>
@@ -70,6 +71,7 @@ export function getQueryKey<TApiPath extends KnownApiUrls = KnownApiUrls>(
     : ([url] as const);
 }
 
+/** @public **/
 export function getInfiniteQueryKey<TApiPath extends KnownApiUrls = KnownApiUrls>(
   template: TApiPath,
   options?: Options<TApiPath>
