@@ -2,16 +2,16 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {FORM_FIELD_REGISTRY} from '@sentry/scraps/form';
 
-import type {Field, FieldObject, JsonFormObject} from 'sentry/components/forms/types';
+import type {Field, JsonFormObject} from 'sentry/components/forms/types';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 
-import type {ChildProps, Result, ResultItem} from './types';
+import type {ChildProps, Result} from './types';
 import {makeResolvedTs, strGetFn} from './utils';
 
 export type FormSearchField = {
   description: React.ReactNode;
-  field: FieldObject;
+  field: {name: string};
   route: string;
   title: React.ReactNode;
 };
@@ -56,7 +56,7 @@ function createSearchMap({
 /**
  * Get fields from the new Scraps form system (statically extracted)
  */
-function getNewFormFields(): FormSearchField[] {
+function getNewFormFields() {
   return Object.values(FORM_FIELD_REGISTRY).map(f => ({
     title: f.label ?? f.name,
     description: f.hintText ?? '',
@@ -65,7 +65,7 @@ function getNewFormFields(): FormSearchField[] {
       name: f.name,
       label: f.label,
       help: f.hintText,
-    } as FieldObject,
+    },
   }));
 }
 
@@ -163,7 +163,7 @@ function FormSource({searchOptions, query, children}: Props) {
           resultType: 'field',
           to: {pathname: item.route, hash: `#${encodeURIComponent(item.field.name)}`},
           resolvedTs,
-        } as ResultItem,
+        },
         ...rest,
       })) ?? []
     );
