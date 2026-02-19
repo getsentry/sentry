@@ -42,6 +42,25 @@ CODE_BLOCK_EVIDENCE_NAME_PARTS = frozenset({"query", "offending spans", "selecto
 
 
 class GitHubIssuesSpec(SourceCodeIssueIntegration):
+    def _get_metric_issue_body(self, occurrence: IssueOccurrence) -> str:
+        details = ["Metric Details:"]
+        details_added = 0
+
+        for key, value in occurrence.evidence_data.items():
+            if value is None or not isinstance(value, (str, int, float, bool)):
+                continue
+
+            details.append(f"- **{key}**: {value}")
+            details_added += 1
+
+            if details_added >= MAX_EVIDENCE_ITEMS:
+                break
+
+        if details_added == 0:
+            details.append("- No metric details available.")
+
+        return "\n".join(details)
+
     def _truncate_text(self, value: str, max_length: int | None = None) -> str:
         if max_length and len(value) > max_length:
             return f"{value[: max_length - 3]}..."
@@ -272,6 +291,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         return body.rstrip("\n")  # remove the last new line
 
     def get_generic_issue_body(self, occurrence: IssueOccurrence) -> str:
+        if (
+            occurrence.type.category_v2 == GroupCategory.METRIC.value
+            and len(occurrence.evidence_display) == 0
+        ):
+            return self._get_metric_issue_body(occurrence)
+
         body = "|  |  |\n"
         body += "| ------------- | --------------- |\n"
         for evidence in sorted(

@@ -562,11 +562,48 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         group_event.occurrence = occurrence
 
         description = self.install.get_group_description(group_event.group, group_event)
+        assert "|  |  |" in description
+        assert "| ------------- | --------------- |" in description
         assert occurrence.evidence_display[0].value in description
         assert occurrence.evidence_display[1].value in description
         assert occurrence.evidence_display[2].value in description
         title = self.install.get_group_title(group_event.group, group_event)
         assert title == occurrence.issue_title
+
+    def test_metric_issue_content_falls_back_to_evidence_data_when_display_is_empty(self) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "metric issue",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        group_event = event.for_group(event.group)
+        group_event.occurrence = IssueOccurrence(
+            id="metric-occurrence-description",
+            project_id=self.project.id,
+            event_id=event.event_id,
+            fingerprint=["metric-issue"],
+            issue_title="Error Rate Alert",
+            subtitle="Critical: Number of events in the last 5 minutes above 100",
+            resource_id=None,
+            evidence_data={"alert_id": 42, "window": "5m"},
+            evidence_display=[],
+            type=MetricIssue,
+            detection_time=before_now(minutes=1),
+            level="error",
+            culprit="",
+        )
+
+        description = self.install.get_group_description(group_event.group, group_event)
+
+        assert "Metric Details:" in description
+        assert "- **alert_id**: 42" in description
+        assert "- **window**: 5m" in description
+        assert "|  |  |" not in description
 
     def test_error_issues_content(self) -> None:
         """Test that a GitHub issue created from an error issue has the expected title and descriptionn"""
