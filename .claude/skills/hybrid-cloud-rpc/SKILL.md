@@ -192,49 +192,203 @@ Load `references/deprecation.md` for the full 3-phase workflow.
 
 ## Step 7: Test
 
-### Testing with `dispatch_to_local_service`
+Every RPC service needs three categories of tests: **silo mode compatibility**, **data accuracy**, and **error handling**. Use `TransactionTestCase` (not `TestCase`) when tests need outbox processing or `on_commit` hooks.
 
-Test serialization round-trip by calling through the RPC dispatch layer:
+### 7.1 Silo mode compatibility with `@all_silo_test`
+
+Every service test class MUST use `@all_silo_test` so tests run in all three modes (MONOLITH, REGION, CONTROL). This ensures the delegation layer works for both local and remote dispatch paths.
+
+```python
+from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
+
+@all_silo_test
+class MyServiceTest(TestCase):
+    def test_get_by_id(self):
+        org = self.create_organization()
+        result = my_service.get_by_id(organization_id=org.id, id=thing.id)
+        assert result is not None
+```
+
+For tests that need named regions (e.g., testing region resolution):
+
+```python
+@all_silo_test(regions=create_test_regions("us", "eu"))
+class MyServiceRegionTest(TransactionTestCase):
+    ...
+```
+
+Use `assume_test_silo_mode` or `assume_test_silo_mode_of` to switch modes within a test when accessing ORM models that live in a different silo:
+
+```python
+def test_cross_silo_behavior(self):
+    with assume_test_silo_mode(SiloMode.REGION):
+        org = self.create_organization()
+    result = my_service.get_by_id(organization_id=org.id, id=thing.id)
+    assert result is not None
+```
+
+### 7.2 Serialization round-trip with `dispatch_to_local_service`
+
+Test that arguments and return values survive serialization/deserialization:
 
 ```python
 from sentry.hybridcloud.rpc.service import dispatch_to_local_service
 
-result = dispatch_to_local_service(
-    "my_service_key",
-    "my_method",
-    {"organization_id": org.id, "name": "test"},
-)
+def test_serialization_round_trip(self):
+    result = dispatch_to_local_service(
+        "my_service_key",
+        "my_method",
+        {"organization_id": org.id, "name": "test"},
+    )
+    assert result["value"] is not None
 ```
 
-### Testing with `dispatch_remote_call`
+### 7.3 RPC model data accuracy
 
-For integration tests that verify the full remote call path (test client mode):
+Validate that RPC models faithfully represent the ORM data. Compare **every field** of the RPC model against the source ORM object:
 
 ```python
-from sentry.hybridcloud.rpc.service import dispatch_remote_call
+def test_rpc_model_accuracy(self):
+    orm_obj = MyModel.objects.get(id=thing.id)
+    rpc_obj = my_service.get_by_id(organization_id=org.id, id=thing.id)
 
-result = dispatch_remote_call(
-    region=None,  # None for control silo services
-    service_name="my_service_key",
-    method_name="my_method",
-    serial_arguments={"user_id": user.id},
-    use_test_client=True,
-)
+    assert rpc_obj.id == orm_obj.id
+    assert rpc_obj.name == orm_obj.name
+    assert rpc_obj.organization_id == orm_obj.organization_id
+    assert rpc_obj.is_active == orm_obj.is_active
+    assert rpc_obj.date_added == orm_obj.date_added
 ```
 
-### Standard unit tests
+For models with flags or nested objects, iterate all field names:
 
 ```python
-from sentry.myservice.services.myservice.service import my_service
+def test_flags_accuracy(self):
+    rpc_org = organization_service.get(id=org.id)
+    for field_name in rpc_org.flags.get_field_names():
+        assert getattr(rpc_org.flags, field_name) == getattr(orm_org.flags, field_name)
+```
 
-class TestMyService(TestCase):
-    def test_my_method(self):
-        # Setup
-        org = self.create_organization()
-        # Call through the delegation layer
-        result = my_service.my_method(organization_id=org.id, name="test")
-        assert result is not None
-        assert result.name == "test"
+For list results, sort both sides by ID before comparing:
+
+```python
+def test_list_accuracy(self):
+    rpc_items = my_service.list_things(organization_id=org.id)
+    orm_items = list(MyModel.objects.filter(organization_id=org.id).order_by("id"))
+    assert len(rpc_items) == len(orm_items)
+    for rpc_item, orm_item in zip(sorted(rpc_items, key=lambda x: x.id), orm_items):
+        assert rpc_item.id == orm_item.id
+        assert rpc_item.name == orm_item.name
+```
+
+### 7.4 Cross-silo resource creation
+
+If your service creates or updates resources that propagate across silos (via outboxes or mappings), verify the cross-silo effects.
+
+Use `outbox_runner()` to flush outboxes synchronously during tests:
+
+```python
+from sentry.testutils.outbox import outbox_runner
+
+def test_cross_silo_mapping_created(self):
+    with outbox_runner():
+        my_service.create_thing(organization_id=org.id, name="test")
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        mapping = MyMapping.objects.get(organization_id=org.id)
+        assert mapping.name == "test"
+```
+
+For triple-equality assertions (RPC result = source ORM = cross-silo replica):
+
+```python
+def test_provisioning_accuracy(self):
+    rpc_result = my_service.provision(organization_id=org.id, slug="test")
+    with assume_test_silo_mode(SiloMode.REGION):
+        orm_obj = MyModel.objects.get(id=rpc_result.id)
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        mapping = MyMapping.objects.get(organization_id=org.id)
+    assert rpc_result.slug == orm_obj.slug == mapping.slug
+```
+
+Use `HybridCloudTestMixin` for common cross-silo assertions:
+
+```python
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+
+class MyServiceTest(HybridCloudTestMixin, TransactionTestCase):
+    def test_member_mapping_synced(self):
+        self.assert_org_member_mapping(org_member=org_member)
+```
+
+### 7.5 Error handling
+
+Test that the service handles errors correctly in all silo modes:
+
+```python
+def test_not_found_returns_none(self):
+    result = my_service.get_by_id(organization_id=org.id, id=99999)
+    assert result is None
+
+def test_missing_org_returns_none(self):
+    # For methods with return_none_if_mapping_not_found=True
+    result = my_service.get_by_id(organization_id=99999, id=1)
+    assert result is None
+```
+
+Test disabled methods:
+
+```python
+from sentry.hybridcloud.rpc.service import RpcDisabledException
+from sentry.testutils.helpers.options import override_options
+
+def test_disabled_method_raises(self):
+    with override_options({"hybrid_cloud.rpc.disabled-service-methods": ["MyService.my_method"]}):
+        with pytest.raises(RpcDisabledException):
+            dispatch_remote_call(None, "my_service_key", "my_method", {"id": 1})
+```
+
+Test that remote exceptions are properly wrapped:
+
+```python
+from sentry.hybridcloud.rpc.service import RpcRemoteException
+
+def test_remote_error_wrapping(self):
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        with pytest.raises(RpcRemoteException):
+            my_control_service.do_thing_that_fails(...)
+```
+
+Test that failed operations produce no side effects:
+
+```python
+def test_no_side_effects_on_failure(self):
+    result = my_service.create_conflicting_thing(organization_id=org.id)
+    assert not result
+    with assume_test_silo_mode(SiloMode.REGION):
+        assert not MyModel.objects.filter(organization_id=org.id).exists()
+```
+
+### 7.6 Key imports for testing
+
+```python
+from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.silo import (
+    all_silo_test,
+    control_silo_test,
+    region_silo_test,
+    assume_test_silo_mode,
+    assume_test_silo_mode_of,
+    create_test_regions,
+)
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.hybridcloud.rpc.service import (
+    dispatch_to_local_service,
+    dispatch_remote_call,
+    RpcDisabledException,
+    RpcRemoteException,
+)
 ```
 
 ## Step 8: Verify (Pre-flight Checklist)
@@ -253,4 +407,8 @@ Before submitting your PR, verify:
 - [ ] `impl.py` implements every abstract method with matching parameter names
 - [ ] `serial.py` correctly converts ORM models to RPC models
 - [ ] Sensitive fields use `Field(repr=False)` (tokens, secrets, config, metadata)
+- [ ] Tests use `@all_silo_test` for full silo mode coverage
+- [ ] Tests validate RPC model field accuracy against ORM objects
+- [ ] Tests verify cross-silo resources (mappings, replicas) are created with correct data
+- [ ] Tests cover error cases (not found, disabled methods, failed operations)
 - [ ] Tests cover serialization round-trip via `dispatch_to_local_service`
