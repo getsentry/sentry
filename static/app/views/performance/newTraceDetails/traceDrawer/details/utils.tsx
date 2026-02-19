@@ -285,10 +285,11 @@ export function getTraceIssueSeverityClassName(
 ): Level | 'occurence' {
   const level = issue.level;
 
-  // Only consider error and fatal levels for occurrence issues
-  if (issue.event_type === 'occurrence') {
-    return level !== 'error' && level !== 'fatal' ? 'occurence' : level;
+  if (issue.event_type === 'error') {
+    return level;
   }
 
-  return level;
+  // Only consider error and fatal levels for non-error issues,
+  // otherwise return 'occurence'
+  return ['error', 'fatal'].includes(level) ? level : 'occurence';
 }
