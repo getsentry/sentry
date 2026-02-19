@@ -140,8 +140,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dynamic-sampling-minimum-sample-rate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metrics emission for dynamic sampling rules
     manager.add("organizations:dynamic-sampling-count-biases", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable logging project config for debugging
-    manager.add("organizations:log-project-config", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable archive/escalating issue workflow features in v2
     manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable emiting escalating data to the metrics backend
@@ -311,8 +309,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-web-vitals-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Suggestions for Web Vitals Module
     manager.add("organizations:performance-web-vitals-seer-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable default explore queries in the new side nav
-    manager.add("organizations:performance-default-explore-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable suspect attributes feature
     manager.add("organizations:performance-spans-suspect-attributes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Transaction alert deprecation
@@ -587,14 +583,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable replay logs UI.
     manager.add("organizations:ourlogs-replay-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable UI for logs pinning
-    manager.add("organizations:ourlogs-pinning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable UI for logs export
     manager.add("organizations:ourlogs-export", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable UI for interleaved errors in logs
-    manager.add("organizations:ourlogs-interleaved-errors", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable UI for log tags
-    manager.add("organizations:ourlogs-tags-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable overlaying charts in logs
     manager.add("organizations:ourlogs-overlay-charts-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable service hooks outbox
