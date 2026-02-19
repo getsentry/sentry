@@ -141,7 +141,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n 3 \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
@@ -275,16 +275,20 @@ jobs:
               done
             done
             echo "[services] All ready in $(($(date +%s) - SERVICE_START))s"
+            touch /tmp/services-ready
           ) 2>&1 &
           SERVICES_PID=$!
 
           # ── Foreground: pytest starts immediately ──
+          # Collection overlaps with service startup. The _wait_for_services
+          # session fixture blocks on /tmp/services-ready before running tests.
           echo "=== Tier 2: $(wc -l < /tmp/tier2-tests.txt) scopes, shard ${{ matrix.instance }}/17 ==="
           PYTEST_EXIT=0
+          SERVICES_READY_FILE=/tmp/services-ready \
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \

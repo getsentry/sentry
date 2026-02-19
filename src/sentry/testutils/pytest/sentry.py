@@ -133,6 +133,52 @@ def _configure_test_env_regions() -> None:
     monkey_patch_single_process_silo_mode_state()
 
 
+# ── G1: Skip irrelevant test files during collection ──────────────────
+# When SELECTED_TESTS_FILE is set, pytest_ignore_collect prevents pytest from
+# importing files that aren't in the selected list. This runs *before* module
+# import, avoiding the ~1m45s full-collection overhead on each shard.
+_COLLECT_ALLOWED_FILES: frozenset[str] | None = None
+
+
+def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
+    global _COLLECT_ALLOWED_FILES
+    selected_file = os.environ.get("SELECTED_TESTS_FILE")
+    if not selected_file:
+        return None
+
+    if _COLLECT_ALLOWED_FILES is None:
+        sel_path = Path(selected_file)
+        if not sel_path.exists():
+            return None
+        with sel_path.open() as f:
+            _COLLECT_ALLOWED_FILES = frozenset(
+                line.strip().split("::")[0] for line in f if line.strip()
+            )
+
+    # Let directories through so pytest can descend into them.
+    if collection_path.is_dir():
+        return None
+
+    # Only gate .py files — let conftest, plugins, etc. through.
+    if collection_path.suffix != ".py":
+        return None
+
+    try:
+        rel = str(collection_path.relative_to(config.rootpath))
+    except ValueError:
+        return None
+
+    # Don't skip conftest files — they set up fixtures needed by child tests.
+    if collection_path.name == "conftest.py":
+        return None
+
+    # Only filter files under tests/
+    if not rel.startswith("tests/"):
+        return None
+
+    return rel not in _COLLECT_ALLOWED_FILES
+
+
 def pytest_configure(config: pytest.Config) -> None:
     import warnings
 
@@ -454,20 +500,42 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
     items[:] = new_items
 
 
+def _compute_wallclock(shard_workers: list[list[float]]) -> list[float]:
+    """Return predicted wallclock (max worker load) for each shard."""
+    return [max(w) if w else 0.0 for w in shard_workers]
+
+
+def _rebuild_worker_loads(
+    bins: list[list[str]],
+    scope_dur: dict[str, float],
+    n_workers: int,
+    total_groups: int,
+) -> list[list[float]]:
+    """Rebuild per-worker load arrays from scratch given current bin assignments."""
+    shard_workers: list[list[float]] = [[0.0] * n_workers for _ in range(total_groups)]
+    for s in range(total_groups):
+        sorted_scopes = sorted(bins[s], key=lambda sc: -scope_dur.get(sc, 0.0))
+        for sc in sorted_scopes:
+            workers = shard_workers[s]
+            min_idx = workers.index(min(workers))
+            workers[min_idx] += scope_dur.get(sc, 0.0)
+    return shard_workers
+
+
 def _duration_based_split(
     items: list[pytest.Item], total_groups: int, current_group: int
 ) -> tuple[list[pytest.Item], list[pytest.Item]]:
-    """Split tests into shards using worker-simulated greedy bin packing.
+    """Split tests using Worker-Simulated LPT + swap refinement (Proposal C).
 
-    Reads per-test durations from TEST_DURATIONS_FILE (JSON: {nodeid: seconds}).
-    Groups tests by scope (file::class), then assigns scopes to shards by
-    minimising the predicted wall-clock — i.e. max(worker_loads) inside
-    each shard — rather than total duration.
+    Phase 1 — Worker-Simulated LPT: Greedy assignment that tracks per-worker
+    loads inside each shard and optimises predicted wall-clock (max worker load).
 
-    Plain LPT balances total duration per shard but ignores the N xdist
-    workers inside each shard.  Heavy scopes cluster together, wrecking
-    intra-shard parallelism.  Worker-simulated LPT tracks per-worker loads
-    and directly optimises the metric that determines actual run time.
+    Phase 2 — Swap refinement: Iteratively swaps scopes between the heaviest
+    and lightest shards to reduce global max wallclock. Handles mega-files that
+    LPT alone cannot balance (e.g. an 867s file that dominates one shard).
+
+    Uses loadscope-compatible scoping (file::class) so xdist can distribute
+    classes from the same file to different workers within a shard.
 
     Falls back to hash-based sharding when no durations file is available.
     """
@@ -503,11 +571,10 @@ def _duration_based_split(
         scope = item.nodeid.rsplit("::", 1)[0]
         scope_items.setdefault(scope, []).append(item)
 
-    # Compute duration per scope using per-test data.
     known_durs = [d for d in durations.values() if d > 0]
     fallback = sum(known_durs) / len(known_durs) if known_durs else 1.0
 
-    scope_durations: list[tuple[float, str]] = []
+    scope_dur: dict[str, float] = {}
     matched = 0
     estimated = 0
     for scope, scope_tests in scope_items.items():
@@ -520,17 +587,15 @@ def _duration_based_split(
             else:
                 estimated += 1
                 total_dur += fallback
-        scope_durations.append((total_dur, scope))
+        scope_dur[scope] = total_dur
 
-    # Sort by duration descending (heaviest first)
-    scope_durations.sort(key=lambda x: -x[0])
+    scope_durations: list[tuple[float, str]] = sorted(
+        ((d, s) for s, d in scope_dur.items()), key=lambda x: -x[0]
+    )
 
     n_workers = int(os.environ.get("XDIST_WORKERS", "3"))
 
-    # Worker-simulated bin packing: track per-worker loads for each shard.
-    # For each scope, try every shard, simulate assigning it to the shard's
-    # lightest worker, and pick the shard whose resulting wall-clock
-    # (max worker load) is lowest.
+    # ── Phase 1: Worker-Simulated LPT ──
     bins: list[list[str]] = [[] for _ in range(total_groups)]
     shard_workers: list[list[float]] = [[0.0] * n_workers for _ in range(total_groups)]
 
@@ -552,8 +617,84 @@ def _duration_based_split(
         min_idx = workers.index(min(workers))
         workers[min_idx] += dur
 
-    shard_wallclocks = [max(w) for w in shard_workers]
-    shard_totals = [sum(w) for w in shard_workers]
+    lpt_wallclocks = _compute_wallclock(shard_workers)
+    lpt_spread = max(lpt_wallclocks) - min(lpt_wallclocks)
+
+    # ── Phase 2: Swap refinement ──
+    # Repeatedly try swapping scopes between the heaviest and lightest shards.
+    MAX_SWAP_ROUNDS = 50
+    improved = True
+    swap_count = 0
+    for _round in range(MAX_SWAP_ROUNDS):
+        if not improved:
+            break
+        improved = False
+        wallclocks = _compute_wallclock(shard_workers)
+        heavy_shard = wallclocks.index(max(wallclocks))
+        light_shard = wallclocks.index(min(wallclocks))
+        if heavy_shard == light_shard:
+            break
+        current_max = wallclocks[heavy_shard]
+
+        best_improvement = 0.0
+        best_swap: tuple[int, int] | None = None
+
+        for i, scope_h in enumerate(bins[heavy_shard]):
+            dur_h = scope_dur.get(scope_h, 0.0)
+            for j, scope_l in enumerate(bins[light_shard]):
+                dur_l = scope_dur.get(scope_l, 0.0)
+                if abs(dur_h - dur_l) < 1.0:
+                    continue
+
+                # Simulate the swap: move scope_h to light, scope_l to heavy
+                bins[heavy_shard][i] = scope_l
+                bins[light_shard][j] = scope_h
+                new_workers = _rebuild_worker_loads(bins, scope_dur, n_workers, total_groups)
+                new_wallclocks = _compute_wallclock(new_workers)
+                new_max = max(new_wallclocks)
+                improvement = current_max - new_max
+
+                # Revert
+                bins[heavy_shard][i] = scope_h
+                bins[light_shard][j] = scope_l
+
+                if improvement > best_improvement:
+                    best_improvement = improvement
+                    best_swap = (i, j)
+
+            # Also try moving scope_h to light shard without taking anything back
+            bins[heavy_shard].pop(i)
+            bins[light_shard].append(scope_h)
+            new_workers = _rebuild_worker_loads(bins, scope_dur, n_workers, total_groups)
+            new_wallclocks = _compute_wallclock(new_workers)
+            new_max = max(new_wallclocks)
+            improvement = current_max - new_max
+
+            # Revert
+            bins[light_shard].pop()
+            bins[heavy_shard].insert(i, scope_h)
+
+            if improvement > best_improvement:
+                best_improvement = improvement
+                best_swap = (i, -1)  # -1 signals a move, not a swap
+
+        if best_swap is not None and best_improvement > 0.5:
+            i_h, j_l = best_swap
+            scope_h = bins[heavy_shard][i_h]
+            if j_l == -1:
+                bins[heavy_shard].pop(i_h)
+                bins[light_shard].append(scope_h)
+            else:
+                scope_l = bins[light_shard][j_l]
+                bins[heavy_shard][i_h] = scope_l
+                bins[light_shard][j_l] = scope_h
+            shard_workers = _rebuild_worker_loads(bins, scope_dur, n_workers, total_groups)
+            swap_count += 1
+            improved = True
+
+    final_wallclocks = _compute_wallclock(shard_workers)
+    final_totals = [sum(w) for w in shard_workers]
+    final_spread = max(final_wallclocks) - min(final_wallclocks)
 
     print(
         f"[duration-split] {len(scope_durations)} scopes, "
@@ -562,12 +703,17 @@ def _duration_based_split(
         file=sys.stderr,
     )
     print(
+        f"[duration-split] LPT spread: {lpt_spread:.0f}s → "
+        f"after {swap_count} swaps: {final_spread:.0f}s",
+        file=sys.stderr,
+    )
+    print(
         f"[duration-split] shard {current_group}/{total_groups}: "
         f"{len(bins[current_group])} scopes, "
-        f"predicted wallclock {shard_wallclocks[current_group]:.0f}s "
-        f"(total {shard_totals[current_group]:.0f}s) "
-        f"(wallclock range: {min(shard_wallclocks):.0f}s – {max(shard_wallclocks):.0f}s, "
-        f"spread: {max(shard_wallclocks) - min(shard_wallclocks):.0f}s)",
+        f"predicted wallclock {final_wallclocks[current_group]:.0f}s "
+        f"(total {final_totals[current_group]:.0f}s) "
+        f"(wallclock range: {min(final_wallclocks):.0f}s – {max(final_wallclocks):.0f}s, "
+        f"spread: {final_spread:.0f}s)",
         file=sys.stderr,
     )
 
@@ -695,3 +841,32 @@ def _xdist_per_worker_snuba():
 def pytest_xdist_setupnodes() -> None:
     # prevent out-of-order django initialization
     os.environ.pop("DJANGO_SETTINGS_MODULE", None)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _wait_for_services():
+    """Block until background services are ready (H1 overlapped startup).
+
+    With G1 (pytest_ignore_collect), test collection finishes ~50s faster,
+    which means tests can start executing before devservices has finished
+    starting. This fixture blocks on a sentinel file written by the background
+    service-startup script, ensuring all services are healthy before any test
+    runs. The collection phase still overlaps with service startup.
+    """
+    sentinel = os.environ.get("SERVICES_READY_FILE")
+    if not sentinel:
+        return
+    timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "180"))
+    start = time.time()
+    sentinel_path = Path(sentinel)
+    while not sentinel_path.exists():
+        if time.time() - start > timeout:
+            print(
+                f"[services] WARNING: timed out after {timeout}s waiting for {sentinel}",
+                file=sys.stderr,
+            )
+            break
+        time.sleep(1)
+    elapsed = time.time() - start
+    if elapsed > 1:
+        print(f"[services] waited {elapsed:.0f}s for services after collection", file=sys.stderr)
