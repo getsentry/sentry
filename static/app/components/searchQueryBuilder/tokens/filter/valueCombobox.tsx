@@ -379,8 +379,22 @@ function useFilterSuggestions({
     enabled: shouldFetchValues,
   });
 
+  // Use refs for values that change frequently (every toggle) so that
+  // createItem and suggestionSectionItems stay referentially stable.
+  // The trailingItems render prop reads from these refs at render time.
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
+  const ctrlKeyPressedRef = useRef(ctrlKeyPressed);
+  ctrlKeyPressedRef.current = ctrlKeyPressed;
+  const selectedValuesRef = useRef(selectedValues);
+  selectedValuesRef.current = selectedValues;
+  const selectedValueMapRef = useRef(new Map<string, boolean>());
+  selectedValueMapRef.current = new Map(
+    selectedValues.map(v => [v.value, v.selected] as const)
+  );
+
   const createItem = useCallback(
-    (suggestion: SuggestionItem, selected = false) => {
+    (suggestion: SuggestionItem) => {
       return {
         label: suggestion.label ?? suggestion.value,
         value: suggestion.value,
@@ -396,17 +410,17 @@ function useFilterSuggestions({
           return (
             <ItemCheckbox
               isFocused={isFocused}
-              selected={selected}
-              token={token}
+              selected={selectedValueMapRef.current.get(suggestion.value) ?? false}
+              token={tokenRef.current}
               disabled={disabled}
               value={suggestion.value}
-              ctrlKeyPressed={ctrlKeyPressed}
+              ctrlKeyPressed={ctrlKeyPressedRef.current}
             />
           );
         },
       };
     },
-    [canSelectMultipleValues, token, ctrlKeyPressed]
+    [canSelectMultipleValues]
   );
 
   const suggestionGroups = useMemo(() => {
@@ -444,35 +458,33 @@ function useFilterSuggestions({
   }
 
   // Grouped sections for rendering purposes.
-  // Uses two paths:
-  //   Path A (fresh open): sorts selected items to the top, then freezes the order.
-  //   Path B (subsequent toggles): preserves frozen order, only updates checkbox states.
+  // On fresh open (frozenOrderRef is null): sorts selected items to the top, then
+  // freezes the order. On subsequent toggles: returns the cached result — checkbox
+  // states are read from selectedValueMapRef at render time, so item objects stay
+  // referentially stable and downstream memos/components skip re-computation.
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
-    const selectedValueMap = new Map(
-      selectedValues.map(v => [v.value, v.selected] as const)
-    );
+    const currentSelectedValues = selectedValuesRef.current;
     const allSuggestions = new Map(
       suggestionGroups.flatMap(group => group.suggestions.map(s => [s.value, s] as const))
     );
 
     if (!frozenOrderRef.current) {
-      // PATH A: Fresh open — sort selected items to top (original behavior)
+      // Fresh open — sort selected items to top (original behavior)
       const itemsWithoutSection = suggestionGroups
         .filter(group => group.sectionText === '')
         .flatMap(group => group.suggestions)
-        .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value));
+        .filter(
+          suggestion => !currentSelectedValues.some(v => v.value === suggestion.value)
+        );
       const sections = suggestionGroups.filter(group => group.sectionText !== '');
 
       const result: SuggestionSectionItem[] = [
         {
           sectionText: '',
           items: getItemsWithKeys([
-            ...selectedValues.map(value => {
+            ...currentSelectedValues.map(value => {
               const matchingSuggestion = allSuggestions.get(value.value);
-              if (matchingSuggestion) {
-                return createItem(matchingSuggestion, value.selected);
-              }
-              return createItem({value: value.value}, value.selected);
+              return createItem(matchingSuggestion ?? {value: value.value});
             }),
             ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
           ]),
@@ -482,7 +494,8 @@ function useFilterSuggestions({
           items: getItemsWithKeys(
             group.suggestions
               .filter(
-                suggestion => !selectedValues.some(v => v.value === suggestion.value)
+                suggestion =>
+                  !currentSelectedValues.some(v => v.value === suggestion.value)
               )
               .map(suggestion => createItem(suggestion))
           ),
@@ -498,26 +511,19 @@ function useFilterSuggestions({
       return result;
     }
 
-    // PATH B: Subsequent toggle — preserve frozen order, update checkbox states only
-    const frozenValues = new Set(frozenOrderRef.current.flatMap(s => s.values));
-    const newCustomValues = selectedValues.filter(
-      v => !frozenValues.has(v.value) && !allSuggestions.has(v.value)
-    );
-
-    return frozenOrderRef.current.map((section, i) => ({
+    // Subsequent toggle — return cached items. Checkbox states are read from
+    // selectedValueMapRef inside the trailingItems render prop, so the same
+    // item objects render the correct state without needing reconstruction.
+    return frozenOrderRef.current.map(section => ({
       sectionText: section.sectionText,
-      items: getItemsWithKeys([
-        ...(i === 0
-          ? newCustomValues.map(v => createItem({value: v.value}, v.selected))
-          : []),
-        ...section.values.map(value => {
+      items: getItemsWithKeys(
+        section.values.map(value => {
           const suggestion = allSuggestions.get(value) ?? {value};
-          const isSelected = selectedValueMap.get(value);
-          return createItem(suggestion, isSelected ?? false);
-        }),
-      ]),
+          return createItem(suggestion);
+        })
+      ),
     }));
-  }, [createItem, selectedValues, suggestionGroups]);
+  }, [createItem, suggestionGroups]);
 
   // Flat list used for state management
   const items = useMemo(() => {
@@ -896,6 +902,19 @@ export function SearchQueryBuilderValueCombobox({
     [wrapperRef]
   );
 
+  // Refs for volatile values used in customMenu so the memo stays stable
+  // during checkbox toggles (items, isFetching, token, inputValue all change).
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const isFetchingRef = useRef(isFetching);
+  isFetchingRef.current = isFetching;
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
+  const inputValueRef = useRef(inputValue);
+  inputValueRef.current = inputValue;
+  const analyticsDataRef = useRef(analyticsData);
+  analyticsDataRef.current = analyticsData;
+
   const customMenu: CustomComboboxMenu<SelectOptionWithKey<string>> | undefined =
     useMemo(() => {
       if (!showDatePicker) {
@@ -912,10 +931,10 @@ export function SearchQueryBuilderValueCombobox({
               hiddenOptions={hiddenOptions}
               wrapperRef={topLevelWrapperRef}
               isMultiSelect={canSelectMultipleValues}
-              items={items}
-              isLoading={isFetching}
+              items={itemsRef.current}
+              isLoading={isFetchingRef.current}
               canUseWildcard={canUseWildcard}
-              token={token}
+              token={tokenRef.current}
             />
           );
         };
@@ -925,12 +944,14 @@ export function SearchQueryBuilderValueCombobox({
         return (
           <SpecificDatePicker
             {...props}
-            dateString={inputValue || getDefaultAbsoluteDateValue(token)}
+            dateString={
+              inputValueRef.current || getDefaultAbsoluteDateValue(tokenRef.current)
+            }
             handleSelectDateTime={newDateTimeValue => {
               setInputValue(newDateTimeValue);
               inputRef.current?.focus();
               trackAnalytics('search.value_autocompleted', {
-                ...analyticsData,
+                ...analyticsDataRef.current,
                 filter_value: newDateTimeValue,
                 filter_value_type: 'absolute_date',
               });
@@ -943,7 +964,7 @@ export function SearchQueryBuilderValueCombobox({
             handleSave={newDateTimeValue => {
               dispatch({
                 type: 'UPDATE_TOKEN_VALUE',
-                token,
+                token: tokenRef.current,
                 value: newDateTimeValue,
               });
               onCommit();
@@ -955,12 +976,7 @@ export function SearchQueryBuilderValueCombobox({
       showDatePicker,
       topLevelWrapperRef,
       canSelectMultipleValues,
-      items,
-      isFetching,
       canUseWildcard,
-      inputValue,
-      token,
-      analyticsData,
       dispatch,
       onCommit,
     ]);
