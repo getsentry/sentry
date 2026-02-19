@@ -57,7 +57,7 @@ interface TraceOccurenceIconsProps {
 }
 
 export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
-  const occurences = useMemo(() => {
+  const occurrences = useMemo(() => {
     return [...props.occurrences];
   }, [props.occurrences]);
 
@@ -67,16 +67,16 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
 
   return (
     <Fragment>
-      {occurences.map((occurence, i) => {
-        const occurence_start_timestamp =
-          'start_timestamp' in occurence ? occurence.start_timestamp : occurence.start;
+      {occurrences.map((occurrence, i) => {
+        const occurrence_start_timestamp =
+          'start_timestamp' in occurrence ? occurrence.start_timestamp : occurrence.start;
         const icon_timestamp =
-          'timestamp' in occurence && occurence.timestamp
-            ? occurence.timestamp * 1e3
-            : occurence_start_timestamp
-              ? occurence_start_timestamp * 1e3
+          'timestamp' in occurrence && occurrence.timestamp
+            ? occurrence.timestamp * 1e3
+            : occurrence_start_timestamp
+              ? occurrence_start_timestamp * 1e3
               : props.node_space![0];
-        // Clamp the occurence's timestamp to the span's timestamp
+        // Clamp the occurrence's timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
           clamp(
             icon_timestamp,
@@ -89,10 +89,10 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
         return (
           <div
             key={i}
-            className={`TraceIcon ${getTraceIssueSeverityClassName(occurence)}`}
+            className={`TraceIcon ${getTraceIssueSeverityClassName(occurrence)}`}
             style={{left: left * 100 + '%'}}
           >
-            <TraceIcons.Icon event={occurence} />
+            <TraceIcons.Icon event={occurrence} />
           </div>
         );
       })}

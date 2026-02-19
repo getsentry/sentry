@@ -19,7 +19,7 @@ function getMaxIssueSeverity(
     if (severity === 'error') {
       return acc === 'fatal' ? 'fatal' : 'error';
     }
-    if (severity === 'warning' || severity === 'occurence') {
+    if (severity === 'warning' || severity === 'occurrence') {
       return acc === 'fatal' || acc === 'error' ? acc : severity;
     }
     return acc;
@@ -34,7 +34,7 @@ interface BackgroundPatternsProps {
 }
 
 export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
-  const occurences = useMemo(() => {
+  const occurrences = useMemo(() => {
     if (!props.occurrences.size) {
       return [];
     }
@@ -50,16 +50,16 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
   }, [props.errors]);
 
   const severity = useMemo(() => {
-    return getMaxIssueSeverity(errors, occurences);
-  }, [errors, occurences]);
+    return getMaxIssueSeverity(errors, occurrences);
+  }, [errors, occurrences]);
 
   if (!props.occurrences.size && !props.errors.size) {
     return null;
   }
 
   // If there is an error, render the error pattern across the entire width.
-  // Else if there is an occurence, render the occurence pattern
-  // for the duration of the occurence. If there is a profile, render
+  // Else if there is an occurrence, render the occurrence pattern
+  // for the duration of the occurrence. If there is a profile, render
   // the profile pattern for entire duration (we do not have profile durations here)
   return (
     <Fragment>
@@ -73,13 +73,13 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
         >
           <div className={`TracePattern ${severity}`} />
         </div>
-      ) : occurences.length > 0 ? (
+      ) : occurrences.length > 0 ? (
         <Fragment>
-          {occurences.map((occurence, i) => {
+          {occurrences.map((occurrence, i) => {
             const timestamp =
-              'start_timestamp' in occurence
-                ? occurence.start_timestamp * 1e3
-                : occurence.start * 1e3;
+              'start_timestamp' in occurrence
+                ? occurrence.start_timestamp * 1e3
+                : occurrence.start * 1e3;
             // Clamp the issue timestamp to the span's timestamp
             const left = props.manager.computeRelativeLeftPositionFromOrigin(
               clamp(
