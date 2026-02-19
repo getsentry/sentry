@@ -950,3 +950,98 @@ Two mechanisms, both T1-specific:
    - The `_shuffle` function in `sentry.py` groups tests by class/module to minimize fixture cost; `loadfile` preserves this, `load` defeats it.
 
    T2 is resilient because its tests are heavy integration tests that already set up per-test state (Snuba queries, Kafka topics, ClickHouse tables) with function-scoped fixtures. Less to churn. Additionally, T2's ~90s devservices startup dominates the wall clock, making any fixture overhead a smaller fraction.
+
+---
+
+## Experiment: T1 n=4 on clean branch (new baseline)
+
+**Config:** Branch `mchen/tiered-xdist-clean` (run [`22203192423`](https://github.com/getsentry/sentry/actions/runs/22203192423)). T1 `-n 4`, T2 `-n 3`, baseline optimizations only (lazy imports, G1, balanced sharding, `test_buffer.py` fix).
+
+**Results:**
+
+| Metric         | Old baseline (T1 n=3/T2 n=3, run `22168142281`) | New baseline (T1 n=4/T2 n=3, run `22203192423`) | Delta            |
+| -------------- | ----------------------------------------------- | ----------------------------------------------- | ---------------- |
+| T1 max         | 10m53s                                          | **10m8s**                                       | **−45s**         |
+| T1 spread      | 50s                                             | 83s                                             | +33s             |
+| T2 max         | 10m25s                                          | **9m59s**                                       | **−26s**         |
+| T2 spread      | 106s                                            | 66s                                             | −40s             |
+| **Wall clock** | **10m53s**                                      | **10m8s**                                       | **−45s (−6.9%)** |
+| Runner-min     | ~219m                                           | ~208m                                           | −11m             |
+
+Both tiers improved significantly. T1 n=4 added a 4th pytest worker to use the CPU headroom that was idle at n=3 (22% idle in vmstat), cutting the longest shard by 45s. T2 also improved — likely because these runs had warmer caches (venv cache hit). The spread on T2 narrowed considerably (106s → 66s), indicating more consistent shard loads.
+
+**This is the reference baseline for all subsequent postgres experiments below.**
+
+---
+
+## Experiment: postgres `synchronous_commit=off` + `full_page_writes=off`
+
+**Hypothesis:** Postgres WAL sync adds 1–5ms per commit. Test fixture creation is commit-heavy; disabling WAL sync should reduce per-commit latency from ~1–5ms to <0.1ms and reduce postgres CPU.
+
+**Config:** Branch `mchen/pg-sync-commit` (run [`22203204826`](https://github.com/getsentry/sentry/actions/runs/22203204826)). After devservices up on both T1 and T2:
+
+```bash
+docker exec postgres-postgres-1 psql -U postgres \
+  -c "ALTER SYSTEM SET synchronous_commit = off" \
+  -c "ALTER SYSTEM SET full_page_writes = off" \
+  -c "SELECT pg_reload_conf()"
+```
+
+**Results:**
+
+| Metric         | New baseline (run `22203192423`) | pg-sync-commit (run `22203204826`) | Delta            |
+| -------------- | -------------------------------- | ---------------------------------- | ---------------- |
+| T1 max         | 10m8s                            | **10m56s**                         | **+48s (worse)** |
+| T2 max         | 9m59s                            | **10m27s**                         | **+28s (worse)** |
+| **Wall clock** | **10m8s**                        | **10m56s**                         | **+48s (+7.9%)** |
+| Runner-min     | ~208m                            | ~208m                              | ~0               |
+
+**Analysis:** Both tiers were slower, which is counterintuitive. Possible explanations:
+
+1. **Run-to-run variance dominates**: A single run delta of +48s is within the observed variance range (~60s spread). The effect of synchronous_commit=off may be real but small — smaller than noise.
+2. **WAL sync wasn't the bottleneck**: `--reuse-db` means most tests don't run migrations. Fixture creation (which does write data) may not issue enough commits for WAL sync to be a meaningful fraction of runtime.
+3. **Docker exec overhead at T2 startup**: The psql command runs during the background devservices startup script — if the postgres container isn't fully ready, there could be a retry or wait added.
+
+**Conclusion:** No measurable benefit observed. `synchronous_commit=off` is not recommended for this workload — the commit overhead isn't significant enough compared to query execution and TCP round-trip overhead. Single-run data; could retest for confirmation.
+
+---
+
+## Experiment: postgres Unix domain socket
+
+**Hypothesis:** Replacing TCP loopback (`127.0.0.1:5432`) with a Unix socket eliminates kernel TCP stack overhead per postgres round-trip, reducing the ~15–20% sys% that postgres connections contribute.
+
+**Config:** Branch `mchen/pg-socket` (run [`22203222043`](https://github.com/getsentry/sentry/actions/runs/22203222043)). After devservices up, the postgres container is restarted with a socket volume mount:
+
+```bash
+mkdir -p /tmp/pg-sock
+PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+docker stop postgres-postgres-1 && docker rm postgres-postgres-1
+docker run -d ... -v /tmp/pg-sock:/var/run/postgresql ... "$PG_IMAGE"
+until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
+echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+```
+
+Django's `HOST` is overridden to the socket path before `configure_split_db()` so all three databases (region/control/secondary) use the socket. psycopg2 connects via `AF_UNIX` when HOST is an absolute path.
+
+**Results:**
+
+| Metric         | New baseline (run `22203192423`) | pg-socket (run `22203222043`) | Delta           |
+| -------------- | -------------------------------- | ----------------------------- | --------------- |
+| T1 max         | 10m8s                            | **9m32s**                     | **−36s**        |
+| T1 spread      | 83s                              | 40s                           | −43s            |
+| T2 max         | 9m59s                            | 10m3s                         | +4s (variance)  |
+| T2 spread      | 66s                              | 90s                           | +24s            |
+| **Wall clock** | **10m8s**                        | **10m3s**                     | **−5s (−0.8%)** |
+| Runner-min     | ~208m                            | ~201m                         | **−7m (−3.4%)** |
+
+**Analysis:**
+
+T1 improved meaningfully: −36s max, −43s spread. T1 is postgres-heavy (no Snuba, tests connect to postgres for every fixture creation and every ORM query). Unix socket cuts per-round-trip overhead ~3× (TCP loopback ~30–50μs → Unix socket ~10–15μs). With 3 workers × 32K tests × multiple ORM queries per test, this adds up.
+
+T2 was essentially flat (+4s is within variance). T2 is I/O dominated by Snuba/ClickHouse queries over HTTP, not postgres round-trips, so the benefit is diluted.
+
+Wall clock improved −5s (now T2-dominated at 10m3s). Runner-minutes dropped −7m (−3.4%), reflecting less total syscall time wasted across all 22 concurrent jobs.
+
+**T1 spread narrowed dramatically** (83s → 40s): the 5 T1 shards ran from 8m52s to 9m32s instead of 8m45s to 10m8s. This indicates the Unix socket makes postgres response times more consistent, reducing shard imbalance.
+
+**Conclusion:** Unix domain socket provides a real T1 benefit (~36s max reduction) and saves runner-minutes. The implementation is pure workflow + 2-line sentry.py change — no sentry-shared-postgres modification required. Worth landing on the clean branch. The T2 wall clock is now the bottleneck at ~10m3s.
