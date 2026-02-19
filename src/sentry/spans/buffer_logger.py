@@ -269,17 +269,29 @@ def emit_observability_metrics(
                 )
 
     for metric, (min_value, max_value, sum_value, count) in latency_metrics_dict.items():
-        metrics.timing(f"spans.buffer.process_spans.avg_{metric}", sum_value / count)
-        metrics.timing(f"spans.buffer.process_spans.min_{metric}", min_value)
-        metrics.timing(f"spans.buffer.process_spans.max_{metric}", max_value)
+        tags = {"stage": metric}
+        metrics.timing(
+            "spans.buffer.process_spans.avg_step_latency_ms", sum_value / count, tags=tags
+        )
+        metrics.timing("spans.buffer.process_spans.min_step_latency_ms", min_value, tags=tags)
+        metrics.timing("spans.buffer.process_spans.max_step_latency_ms", max_value, tags=tags)
     for metric, (min_value, max_value, sum_value, count) in gauge_metrics_dict.items():
-        metrics.gauge(f"spans.buffer.avg_{metric}", sum_value / count)
-        metrics.gauge(f"spans.buffer.min_{metric}", min_value)
-        metrics.gauge(f"spans.buffer.max_{metric}", max_value)
+        tags = {"stage": metric}
+        metrics.gauge("spans.buffer.avg_gauge_metric", sum_value / count, tags=tags)
+        metrics.gauge("spans.buffer.min_gauge_metric", min_value, tags=tags)
+        metrics.gauge("spans.buffer.max_gauge_metric", max_value, tags=tags)
 
-    for data_point in longest_evalsha_data[1]:  # latency_metrics
-        key = data_point[0].decode("utf-8")
-        metrics.timing(f"spans.buffer.process_spans.longest_evalsha.latency.{key}", data_point[1])
-    for data_point in longest_evalsha_data[2]:  # gauge_metrics
-        key = data_point[0].decode("utf-8")
-        metrics.gauge(f"spans.buffer.process_spans.longest_evalsha.{key}", data_point[1])
+    for raw_key, value in longest_evalsha_data[1]:  # latency_metrics
+        key = raw_key.decode("utf-8")
+        metrics.timing(
+            "spans.buffer.process_spans.longest_evalsha.step_latency_ms",
+            value,
+            tags={"stage": key},
+        )
+    for raw_key, value in longest_evalsha_data[2]:  # gauge_metrics
+        key = raw_key.decode("utf-8")
+        metrics.gauge(
+            "spans.buffer.process_spans.longest_evalsha.gauge_metric",
+            value,
+            tags={"stage": key},
+        )

@@ -322,91 +322,155 @@ class TestEmitObservabilityMetrics:
             longest_evalsha_data=self.data()["longest_evalsha_data"],
         )
 
-        # Expected timing calls: 7 timing metrics * 3 (min, max, avg) + 8 for longest evalsha
+        LE = "spans.buffer.process_spans.longest_evalsha.step_latency_ms"
+
+        def t(stage):
+            return {"stage": stage}
+
         mock_timing.assert_has_calls(
             [
-                # Aggregated latency metrics (min, max, avg for each metric)
-                call("spans.buffer.process_spans.avg_redirect_step_latency_ms", 1.0),
-                call("spans.buffer.process_spans.min_redirect_step_latency_ms", 1),
-                call("spans.buffer.process_spans.max_redirect_step_latency_ms", 1),
-                call("spans.buffer.process_spans.avg_sunionstore_args_step_latency_ms", 1.0),
-                call("spans.buffer.process_spans.min_sunionstore_args_step_latency_ms", 1),
-                call("spans.buffer.process_spans.max_sunionstore_args_step_latency_ms", 1),
-                call("spans.buffer.process_spans.avg_sunionstore_step_latency_ms", 2.0),
-                call("spans.buffer.process_spans.min_sunionstore_step_latency_ms", 2),
-                call("spans.buffer.process_spans.max_sunionstore_step_latency_ms", 2),
-                call("spans.buffer.process_spans.avg_arg_cleanup_step_latency_ms", 3.0),
-                call("spans.buffer.process_spans.min_arg_cleanup_step_latency_ms", 3),
-                call("spans.buffer.process_spans.max_arg_cleanup_step_latency_ms", 3),
-                call("spans.buffer.process_spans.avg_spop_step_latency_ms", 5.0),
-                call("spans.buffer.process_spans.min_spop_step_latency_ms", 5),
-                call("spans.buffer.process_spans.max_spop_step_latency_ms", 5),
-                call("spans.buffer.process_spans.avg_ingested_count_step_latency_ms", 5.0),
-                call("spans.buffer.process_spans.min_ingested_count_step_latency_ms", 2),
-                call("spans.buffer.process_spans.max_ingested_count_step_latency_ms", 8),
-                call("spans.buffer.process_spans.avg_total_step_latency_ms", 8.0),
-                call("spans.buffer.process_spans.min_total_step_latency_ms", 3),
-                call("spans.buffer.process_spans.max_total_step_latency_ms", 13),
-                # Longest evalsha metrics
+                # Aggregated latency metrics (avg, min, max for each stage)
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.redirect_step_latency_ms",
-                    1,
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    1.0,
+                    tags=t("redirect_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.sunionstore_args_step_latency_ms",
+                    "spans.buffer.process_spans.min_step_latency_ms",
                     1,
+                    tags=t("redirect_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.sunionstore_step_latency_ms",
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    1,
+                    tags=t("redirect_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    1.0,
+                    tags=t("sunionstore_args_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
+                    1,
+                    tags=t("sunionstore_args_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    1,
+                    tags=t("sunionstore_args_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    2.0,
+                    tags=t("sunionstore_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
                     2,
+                    tags=t("sunionstore_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.arg_cleanup_step_latency_ms",
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    2,
+                    tags=t("sunionstore_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    3.0,
+                    tags=t("arg_cleanup_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
                     3,
+                    tags=t("arg_cleanup_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.spop_step_latency_ms",
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    3,
+                    tags=t("arg_cleanup_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    5.0,
+                    tags=t("spop_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
                     5,
+                    tags=t("spop_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.ingested_count_step_latency_ms",
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    5,
+                    tags=t("spop_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    5.0,
+                    tags=t("ingested_count_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
+                    2,
+                    tags=t("ingested_count_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.max_step_latency_ms",
                     8,
+                    tags=t("ingested_count_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.total_step_latency_ms",
-                    13,
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    8.0,
+                    tags=t("total_step_latency_ms"),
                 ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
+                    3,
+                    tags=t("total_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    13,
+                    tags=t("total_step_latency_ms"),
+                ),
+                # Longest evalsha metrics
+                call(LE, 1, tags=t("redirect_step_latency_ms")),
+                call(LE, 1, tags=t("sunionstore_args_step_latency_ms")),
+                call(LE, 2, tags=t("sunionstore_step_latency_ms")),
+                call(LE, 3, tags=t("arg_cleanup_step_latency_ms")),
+                call(LE, 5, tags=t("spop_step_latency_ms")),
+                call(LE, 8, tags=t("ingested_count_step_latency_ms")),
+                call(LE, 13, tags=t("total_step_latency_ms")),
             ]
         )
 
-        # Expected gauge calls: 5 gauge metrics * 3 (min, max, avg) + 5 for longest evalsha
+        LG = "spans.buffer.process_spans.longest_evalsha.gauge_metric"
+
         mock_gauge.assert_has_calls(
             [
-                # Aggregated gauge metrics (min, max, avg for each metric)
-                call("spans.buffer.avg_redirect_table_size", 1123.0),
-                call("spans.buffer.min_redirect_table_size", 1123.0),
-                call("spans.buffer.max_redirect_table_size", 1123.0),
-                call("spans.buffer.avg_redirect_depth", 5.0),
-                call("spans.buffer.min_redirect_depth", 5.0),
-                call("spans.buffer.max_redirect_depth", 5.0),
-                call("spans.buffer.avg_parent_span_set_before_size", 813.0),
-                call("spans.buffer.min_parent_span_set_before_size", 813.0),
-                call("spans.buffer.max_parent_span_set_before_size", 813.0),
-                call("spans.buffer.avg_parent_span_set_after_size", 2134.0),
-                call("spans.buffer.min_parent_span_set_after_size", 2134.0),
-                call("spans.buffer.max_parent_span_set_after_size", 2134.0),
-                call("spans.buffer.avg_spopcalls", 55.0),
-                call("spans.buffer.min_spopcalls", 55.0),
-                call("spans.buffer.max_spopcalls", 55.0),
+                # Aggregated gauge metrics (avg, min, max for each stage)
+                call("spans.buffer.avg_gauge_metric", 1123.0, tags=t("redirect_table_size")),
+                call("spans.buffer.min_gauge_metric", 1123.0, tags=t("redirect_table_size")),
+                call("spans.buffer.max_gauge_metric", 1123.0, tags=t("redirect_table_size")),
+                call("spans.buffer.avg_gauge_metric", 5.0, tags=t("redirect_depth")),
+                call("spans.buffer.min_gauge_metric", 5.0, tags=t("redirect_depth")),
+                call("spans.buffer.max_gauge_metric", 5.0, tags=t("redirect_depth")),
+                call("spans.buffer.avg_gauge_metric", 813.0, tags=t("parent_span_set_before_size")),
+                call("spans.buffer.min_gauge_metric", 813.0, tags=t("parent_span_set_before_size")),
+                call("spans.buffer.max_gauge_metric", 813.0, tags=t("parent_span_set_before_size")),
+                call("spans.buffer.avg_gauge_metric", 2134.0, tags=t("parent_span_set_after_size")),
+                call("spans.buffer.min_gauge_metric", 2134.0, tags=t("parent_span_set_after_size")),
+                call("spans.buffer.max_gauge_metric", 2134.0, tags=t("parent_span_set_after_size")),
+                call("spans.buffer.avg_gauge_metric", 55.0, tags=t("spopcalls")),
+                call("spans.buffer.min_gauge_metric", 55.0, tags=t("spopcalls")),
+                call("spans.buffer.max_gauge_metric", 55.0, tags=t("spopcalls")),
                 # Longest evalsha gauge metrics
-                call("spans.buffer.process_spans.longest_evalsha.redirect_table_size", 1123.0),
-                call("spans.buffer.process_spans.longest_evalsha.redirect_depth", 5.0),
-                call(
-                    "spans.buffer.process_spans.longest_evalsha.parent_span_set_before_size", 813.0
-                ),
-                call(
-                    "spans.buffer.process_spans.longest_evalsha.parent_span_set_after_size", 2134.0
-                ),
-                call("spans.buffer.process_spans.longest_evalsha.spopcalls", 55.0),
+                call(LG, 1123.0, tags=t("redirect_table_size")),
+                call(LG, 5.0, tags=t("redirect_depth")),
+                call(LG, 813.0, tags=t("parent_span_set_before_size")),
+                call(LG, 2134.0, tags=t("parent_span_set_after_size")),
+                call(LG, 55.0, tags=t("spopcalls")),
             ]
         )
