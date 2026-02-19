@@ -261,7 +261,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   );
 }
 
-const MAX_LABEL_WIDTH = 160;
+const MAX_LABEL_WIDTH = 180;
 
 const LegendItemButton = styled(Flex)`
   cursor: pointer;
