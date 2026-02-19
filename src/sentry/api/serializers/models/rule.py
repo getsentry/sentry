@@ -508,7 +508,7 @@ class WorkflowEngineRuleSerializer(Serializer):
 
                 # XXX: remove notes unless it actually has content
                 if action.data.get("notes") == "":
-                    action_data.pop("notes")
+                    action_data.pop("notes", None)
 
                 serialized_actions.append(action_data)
 
