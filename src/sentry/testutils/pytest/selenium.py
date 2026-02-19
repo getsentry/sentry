@@ -9,16 +9,6 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 import pytest
-from selenium import webdriver
-from selenium.common.exceptions import (
-    NoSuchElementException,
-    SessionNotCreatedException,
-    WebDriverException,
-)
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
@@ -128,6 +118,7 @@ class Browser:
         """
         Get an element from the page. This method will wait for the element to show up.
         """
+        from selenium.webdriver.common.by import By
 
         if xpath is not None:
             self.wait_until(xpath=xpath)
@@ -140,6 +131,7 @@ class Browser:
         """
         Get elements from the page. This method will wait for the element to show up.
         """
+        from selenium.webdriver.common.by import By
 
         if xpath is not None:
             self.wait_until(xpath=xpath)
@@ -152,6 +144,9 @@ class Browser:
         """
         Check if an element exists on the page. This method will *not* wait for the element.
         """
+        from selenium.common.exceptions import NoSuchElementException
+        from selenium.webdriver.common.by import By
+
         try:
             if xpath is not None:
                 self.driver.find_element(by=By.XPATH, value=xpath)
@@ -191,12 +186,16 @@ class Browser:
         return self
 
     def find_element_by_name(self, name):
+        from selenium.webdriver.common.by import By
+
         return self.driver.find_element(by=By.NAME, value=name)
 
     def move_to(self, selector=None):
         """
         Mouse move to ``selector``
         """
+        from selenium.webdriver.common.action_chains import ActionChains
+
         if selector:
             actions = ActionChains(self.driver)
             actions.move_to_element(self.element(selector)).perform()
@@ -210,6 +209,10 @@ class Browser:
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
         """
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support import expected_conditions
+        from selenium.webdriver.support.wait import WebDriverWait
+
         wait = WebDriverWait(self.driver, timeout)
         if selector:
             wait.until(expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector)))
@@ -225,6 +228,10 @@ class Browser:
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
         """
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support import expected_conditions
+        from selenium.webdriver.support.wait import WebDriverWait
+
         wait = WebDriverWait(self.driver, timeout)
         if selector:
             wait.until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector)))
@@ -245,6 +252,10 @@ class Browser:
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
         """
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support import expected_conditions
+        from selenium.webdriver.support.wait import WebDriverWait
+
         wait = WebDriverWait(self.driver, timeout)
         if selector:
             wait.until_not(
@@ -264,6 +275,8 @@ class Browser:
         Waits until ``script`` executes and evaluates truthy,
         or until ``timeout`` is hit, whichever happens first.
         """
+        from selenium.webdriver.support.wait import WebDriverWait
+
         wait = WebDriverWait(self.driver, timeout)
         wait.until(lambda driver: driver.execute_script(script))
 
@@ -382,24 +395,32 @@ def pytest_configure(config):
     )
 
 
-@TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,), log_original_error=True)
 def start_chrome(**chrome_args):
-    try:
-        return webdriver.Chrome(**chrome_args)
-    except SessionNotCreatedException as e:
-        if "This version of ChromeDriver only supports Chrome version" in (e.msg or ""):
-            raise Exception(
-                """ChromeDriver version does not match Chrome version, update ChromeDriver (e.g. if you use `homebrew`):
+    from selenium import webdriver
+    from selenium.common.exceptions import SessionNotCreatedException, WebDriverException
+
+    @TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,), log_original_error=True)
+    def _start():
+        try:
+            return webdriver.Chrome(**chrome_args)
+        except SessionNotCreatedException as e:
+            if "This version of ChromeDriver only supports Chrome version" in (e.msg or ""):
+                raise Exception(
+                    """ChromeDriver version does not match Chrome version, update ChromeDriver (e.g. if you use `homebrew`):
 
     brew upgrade --cask chromedriver
     """
-            )
+                )
+
+    return _start()
 
 
 @pytest.fixture(scope="function")
 def browser(request, live_server):
     window_size = request.config.getoption("window_size")
     window_width, window_height = map(int, window_size.split("x", 1))
+
+    from selenium import webdriver
 
     driver_type = request.config.getoption("selenium_driver")
     headless = not request.config.getoption("no_headless")

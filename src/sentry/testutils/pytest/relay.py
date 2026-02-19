@@ -8,11 +8,8 @@ import time
 from os import environ, path
 from urllib.parse import urlparse
 
-import ephemeral_port_reserve
 import pytest
-import requests
 
-from sentry.runner.commands.devservices import get_docker_client
 from sentry.testutils.pytest.sentry import _get_xdist_kafka_topic, _get_xdist_redis_db
 
 _log = logging.getLogger(__name__)
@@ -80,6 +77,8 @@ def relay_server_setup(live_server, tmpdir_factory):
     config_path.chmod(0o755)
     config_path = str(config_path)
 
+    import ephemeral_port_reserve
+
     parsed_live_server_url = urlparse(live_server.url)
     if parsed_live_server_url.port is not None:
         port = parsed_live_server_url.port
@@ -128,6 +127,8 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     # we have a config path for relay that is set up with the current live serve as upstream
     # check if we have the test relay docker container
+    from sentry.runner.commands.devservices import get_docker_client
+
     with get_docker_client() as docker_client:
         container_name = _relay_server_container_name()
         _remove_container_if_exists(docker_client, container_name)
@@ -151,6 +152,8 @@ def relay_server_setup(live_server, tmpdir_factory):
     # cleanup
     shutil.rmtree(config_path)
     if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
+        from sentry.runner.commands.devservices import get_docker_client
+
         with get_docker_client() as docker_client:
             _remove_container_if_exists(docker_client, container_name)
 
@@ -162,6 +165,10 @@ def _relay_container(relay_server_setup):
     Eliminates ~10s Docker lifecycle overhead per test. The per-test relay_server
     fixture handles re-inserting the Relay model row after TransactionTestCase flushes.
     """
+    import requests
+
+    from sentry.runner.commands.devservices import get_docker_client
+
     options = relay_server_setup["options"]
     container_name = _relay_server_container_name()
 
@@ -186,6 +193,8 @@ def _relay_container(relay_server_setup):
             time.sleep(0.1 * 2**i)
 
     yield {"url": url}
+
+    from sentry.runner.commands.devservices import get_docker_client
 
     with get_docker_client() as docker_client:
         _remove_container_if_exists(docker_client, container_name)

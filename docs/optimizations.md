@@ -569,3 +569,28 @@ G1 is the only optimization that meaningfully reduces runner-minutes (234m → 2
 ### Key takeaway
 
 For this workload (~32K tests with skewed class sizes), randomized hash sharding outperforms duration-based LPT because: (1) indivisible mega-scopes create unavoidable hotspots under scope-preserving algorithms, (2) with 17+ shards the law of large numbers gives randomized distribution good-enough balance, and (3) the algorithmic overhead (collection, JSON parsing, LPT computation) negates any theoretical improvement. Main + G1 with roundrobin remains the best configuration at **10m53s / 218.7m**.
+
+---
+
+## Bug Fix: setup-sentry deletes venv pyc files
+
+`setup-sentry/action.yml` runs `find . -type d -name __pycache__ -exec rm -rf {} +` from the repo root. `.venv/` lives inside the repo root, so this also deletes all compiled bytecode from the cached venv — immediately after `action-setup-venv` restored it from cache. Python must recompile every installed package on first import each run.
+
+**Fix:** Exclude `.venv/` from the deletion:
+
+```bash
+find . -not -path './.venv/*' -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+find . -not -path './.venv/*' -type f -name "*.pyc" -delete 2>/dev/null || true
+```
+
+---
+
+## Optimization: Lazy plugin imports (selenium, kafka, relay)
+
+`sentry.testutils.pytest` unconditionally loads 13 plugins on every shard. Three of them import heavy third-party libraries at module level that are never used on T1/T2 shards:
+
+- `selenium.py` — `from selenium import webdriver` + 6 more selenium imports. Selenium is a 23MB package. All CI shards pass `--ignore tests/acceptance`, so selenium is never exercised.
+- `kafka.py` — `from confluent_kafka import Consumer, Producer` + `AdminClient` at module level.
+- `relay.py` — `from sentry.runner.commands.devservices import get_docker_client` (pulls in Docker SDK) + `ephemeral_port_reserve` + `requests`.
+
+**Fix:** Move these imports inside the fixture/function bodies that use them. Python caches modules in `sys.modules`, so the first call pays the import cost and subsequent calls are O(1) dict lookups. Zero functional impact.
