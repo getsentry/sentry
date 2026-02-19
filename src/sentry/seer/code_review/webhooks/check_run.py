@@ -1,7 +1,9 @@
 """
-Handle GitHub check_run webhook events for PR review rerun.
+Webhooks for GitHub check_run webhook events.
+
+This module is used to handle GitHub check_run webhook events for PR review rerun.
 When a user clicks "Re-run" on a check run in GitHub UI, we enqueue
-a task to forward the original run ID to Seer.
+a task to forward the original run ID to Seer so it can rerun the PR review.
 """
 
 from __future__ import annotations
@@ -45,11 +47,11 @@ class GitHubCheckRunAction(StrEnum):
 class GitHubCheckRunData(BaseModel):
     """GitHub check_run object structure."""
 
-    external_id: str
-    html_url: str
+    external_id: str  # The external ID set by Seer
+    html_url: str  # The URL to view the check run on GitHub
 
     class Config:
-        extra = "allow"
+        extra = "allow"  # Allow additional fields from GitHub (Pydantic v1 syntax)
 
 
 class GitHubCheckRunEvent(BaseModel):
@@ -62,7 +64,7 @@ class GitHubCheckRunEvent(BaseModel):
     check_run: GitHubCheckRunData
 
     class Config:
-        extra = "allow"
+        extra = "allow"  # Allow additional fields from GitHub (Pydantic v1 syntax)
 
 
 def handle_check_run_event(
@@ -123,8 +125,11 @@ def handle_check_run_event(
     # Import here to avoid circular dependency with webhook_task
     from .task import process_github_webhook_event
 
+    # Scheduling the work as a task allows us to retry the request if it fails.
+    # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
         github_event=github_event.value,
+        # A reduced payload is enough for the task to process.
         event_payload={"original_run_id": validated_event.check_run.external_id},
         action=validated_event.action,
         html_url=validated_event.check_run.html_url,

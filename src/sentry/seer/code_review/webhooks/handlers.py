@@ -55,6 +55,7 @@ def handle_webhook_event(
     if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         return
 
+    # The extracted important key values are used for debugging with logs
     extra = extract_github_info(event, github_event=github_event.value)
     extra["organization_slug"] = organization.slug
     extra["github_delivery_id"] = github_delivery_id
