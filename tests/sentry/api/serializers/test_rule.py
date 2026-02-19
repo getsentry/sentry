@@ -339,20 +339,20 @@ class WorkflowRuleSerializerTest(TestCase):
                 external_id="guild-id",
                 organization=self.organization,
             )
-        self.action_data = {
+        action_data = {
             "server": self.integration.id,
             "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
             "channel_id": "channel-id-123",
             "tags": "",
         }
-        self.rule = self.create_project_rule(
+        rule = self.create_project_rule(
             project=self.project,
-            action_data=[self.action_data],
+            action_data=[action_data],
             condition_data=self.conditions,
             include_legacy_rule_id=False,
             include_workflow_id=False,
         )
-        self.assert_equal_serializers(self.rule)
+        self.assert_equal_serializers(rule)
 
     def test_slack_action(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -363,19 +363,70 @@ class WorkflowRuleSerializerTest(TestCase):
                 external_id="slack:1",
                 metadata={"access_token": "xoxb-access-token"},
             )
-        self.uuid = "5bac5dcc-e201-4cb2-8da2-bac39788a13d"
-        self.action_data = {
+        action_data = {
             "workspace": self.integration.id,
             "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
             "channel_id": "C0123456789",
             "tags": "",
             "channel": "test-notifications",
         }
-        self.rule = self.create_project_rule(
+        rule = self.create_project_rule(
             project=self.project,
-            action_data=[self.action_data],
+            action_data=[action_data],
             condition_data=self.conditions,
             include_legacy_rule_id=False,
             include_workflow_id=False,
         )
-        self.assert_equal_serializers(self.rule)
+        self.assert_equal_serializers(rule)
+
+    def test_email_action_simple(self) -> None:
+        action_data = [
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": str(self.user.id),
+                "targetType": "Member",
+            },
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": str(self.team.id),
+                "targetType": "Team",
+            },
+        ]
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=action_data,
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
+    def test_email_action_issue_owners(self) -> None:
+        action_data = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            },
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "AllMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            },
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "NoOne",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            },
+        ]
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=action_data,
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)

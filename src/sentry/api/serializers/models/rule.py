@@ -495,6 +495,18 @@ class WorkflowEngineRuleSerializer(Serializer):
                 handler = issue_alert_handler_registry.get(action.type)
                 action_data = handler.build_rule_action_blob(action, workflow.organization_id)
                 action_data["name"] = handler.render_label(workflow.organization_id, action_data)
+
+                # HACKs below - we don't want to change the underlying data we render for ACI but we need to return it in the expected issue alert format
+
+                # XXX: convert fallthrough_type to fallthroughType
+                if action_data.get("fallthrough_type"):
+                    action_data["fallthroughType"] = action_data.get("fallthrough_type")
+                    del action_data["fallthrough_type"]
+
+                # XXX: add a targetIdentifier empty string
+                if action_data.get("targetIdentifier") is None:
+                    action_data["targetIdentifier"] = ""
+
                 # XXX: manually remove notes which would only apply to legacy metric alerts or single written alerts
                 action_data.pop("notes", None)
                 serialized_actions.append(action_data)
