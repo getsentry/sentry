@@ -11,6 +11,8 @@ from sentry_redis_tools.clients import StrictRedis
 from sentry.spans.buffer import FlushedSegment, OutputSpan, SegmentKey, Span, SpansBuffer
 from sentry.testutils.helpers.options import override_options
 
+pytestmark = [pytest.mark.django_db]
+
 DEFAULT_OPTIONS = {
     "spans.buffer.timeout": 60,
     "spans.buffer.root-timeout": 10,
