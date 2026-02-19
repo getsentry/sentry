@@ -15,6 +15,7 @@ import {
   useInfiniteQuery,
   useQueryClient,
   type ApiQueryKey,
+  type InfiniteApiQueryKey,
   type InfiniteData,
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
@@ -182,7 +183,8 @@ export function useLogsQueryKeyWithInfinite({
     highFidelity,
   });
   return {
-    queryKey: [...queryKey, 'infinite'] as QueryKey,
+    // @ts-expect-error - Incorrectly typed query key
+    queryKey: [...queryKey, 'infinite'] as InfiniteApiQueryKey,
     other,
   };
 }
@@ -396,11 +398,11 @@ function isFlexTimePageParam(pageParam: LogPageParam): pageParam is FlexTimePage
   return defined(pageParam) && 'cursor' in pageParam;
 }
 
-type QueryKey = [
-  url: ReturnType<typeof getApiUrl>,
-  endpointOptions: QueryKeyEndpointOptions,
-  'infinite',
-];
+// type QueryKey = [
+//   url: ReturnType<typeof getApiUrl>,
+//   endpointOptions: QueryKeyEndpointOptions,
+//   'infinite',
+// ];
 
 export function useInfiniteLogsQuery({
   disabled,
@@ -461,9 +463,10 @@ export function useInfiniteLogsQuery({
     ApiResult<EventsLogsResult>,
     Error,
     InfiniteData<ApiResult<EventsLogsResult>>,
-    QueryKey,
+    ApiQueryKey,
     LogPageParam
   >({
+    // @ts-expect-error - Incorrectly typed query key
     queryKey: queryKeyWithInfinite,
     queryFn: async ({
       pageParam,
@@ -494,7 +497,7 @@ export function useInfiniteLogsQuery({
       ) {
         endpointOptions = {
           ...endpointOptions,
-          query: {...endpointOptions.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
+          query: {...endpointOptions?.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
         };
         response = await fetchDataQuery({
           queryKey: [

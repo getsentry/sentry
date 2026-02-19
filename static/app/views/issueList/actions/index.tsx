@@ -23,6 +23,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -331,7 +332,14 @@ function IssueListActions({
             if (itemIds?.length) {
               for (const itemId of itemIds) {
                 queryClient.invalidateQueries({
-                  queryKey: [`/organizations/${organization.slug}/issues/${itemId}/`],
+                  queryKey: [
+                    getApiUrl(`/organizations/$organizationIdOrSlug/issues/$issueId/`, {
+                      path: {
+                        organizationIdOrSlug: organization.slug,
+                        issueId: itemId,
+                      },
+                    }),
+                  ],
                   exact: false,
                 });
               }
@@ -341,7 +349,11 @@ function IssueListActions({
                 predicate: apiQuery =>
                   typeof apiQuery.queryKey[0] === 'string' &&
                   apiQuery.queryKey[0].startsWith(
-                    `/organizations/${organization.slug}/issues/`
+                    getApiUrl(`/organizations/$organizationIdOrSlug/issues/`, {
+                      path: {
+                        organizationIdOrSlug: organization.slug,
+                      },
+                    })
                   ),
               });
             }

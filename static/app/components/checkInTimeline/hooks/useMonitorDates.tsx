@@ -49,7 +49,7 @@ export function usePageFilterDates(options: UsePageFilterDatesOptions = {}) {
   const queryKeyExtra = recomputeQueryKey ?? [];
 
   const {data} = useQuery({
-    queryKey: ['pageFilterDates', start, end, period, ...queryKeyExtra] as const,
+    queryKey: ['pageFilterDates', start, end, period, ...queryKeyExtra] as any,
     queryFn,
     initialData: queryFn(),
     staleTime: 0,

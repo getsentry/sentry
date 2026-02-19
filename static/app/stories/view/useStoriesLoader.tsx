@@ -78,7 +78,9 @@ interface UseStoriesLoaderOptions {
 export function useStoriesLoader(
   options: UseStoriesLoaderOptions
 ): UseQueryResult<StoryDescriptor[], Error> {
+  // @ts-expect-error - Incorrectly typed query key
   return useQuery({
+    // @ts-expect-error - Incorrectly typed query key
     queryKey: [options.files],
     queryFn: (): Promise<StoryDescriptor[]> => {
       return Promise.all(options.files.map(importStory));

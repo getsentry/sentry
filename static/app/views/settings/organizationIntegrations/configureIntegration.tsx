@@ -192,7 +192,11 @@ function ConfigureIntegration() {
     refetchPlugins();
 
     queryClient.removeQueries({
-      queryKey: [`/organizations/${organization.slug}/config/integrations/`],
+      queryKey: [
+        getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
     });
     refetchConfig();
 

@@ -71,7 +71,10 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
     if (!isSyncing) {
       queryClient.invalidateQueries({
         queryKey: [
-          `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repositories/`,
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/',
+            {path: {organizationIdOrSlug: organization.slug, owner: integratedOrgId!}}
+          ),
           {query: {term: searchValue}},
         ],
       });

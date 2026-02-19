@@ -25,6 +25,7 @@ function useMockHookImpl({
 }) {
   const api = useApi();
   const result = useQuery({
+    // @ts-expect-error - Incorrectly typed query key
     queryKey: ['/test', {query: {samplingMode: queryExtras?.samplingMode, query}}],
     queryFn: () =>
       api.requestPromise('/test', {

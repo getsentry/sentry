@@ -1,4 +1,5 @@
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   useMutation,
@@ -46,7 +47,11 @@ export function useBulkUpdateRepositorySettings(
     ...options,
     onSettled: (data, error, variables, context) => {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/repos/`],
+        queryKey: [
+          getApiUrl(`/organizations/$organizationIdOrSlug/repos/`, {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
       });
       (data ?? []).forEach(repo => {
         const queryKey = getRepositoryWithSettingsQueryKey(organization, repo.id);

@@ -91,12 +91,30 @@ export function useTogglePluginMutation({
       addErrorMessage(
         shouldEnable ? t('Unable to enable plugin') : t('Unable to disable plugin')
       );
-      const pluginDetailsQueryKey = `/projects/${organization.slug}/${projectSlug}/plugins/${pluginId}/`;
+      const pluginDetailsQueryKey = getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/$pluginId/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            pluginId,
+          },
+        }
+      );
       queryClient.invalidateQueries({queryKey: [pluginsQueryKey]});
       queryClient.invalidateQueries({queryKey: [pluginDetailsQueryKey]});
     },
     onSettled: (_data, _error, {pluginId}) => {
-      const pluginDetailsQueryKey = `/projects/${organization.slug}/${projectSlug}/plugins/${pluginId}/`;
+      const pluginDetailsQueryKey = getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/$pluginId/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            pluginId,
+          },
+        }
+      );
       queryClient.invalidateQueries({queryKey: [pluginsQueryKey]});
       queryClient.invalidateQueries({queryKey: [pluginDetailsQueryKey]});
     },

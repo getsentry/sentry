@@ -130,6 +130,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
     }
 
     const queuedAggregatableBatch = queuedQueriesBatch.map(
+      // @ts-expect-error - Internal cache key accessing index 4
       ({queryKey}) => queryKey[4] as AggregatableQueryKey
     );
 
@@ -137,11 +138,13 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
 
     try {
       queryClient.removeQueries({
+        // @ts-expect-error - Internal cache key, not an API URL
         queryKey: ['aggregate', cacheKey, key, 'queued'],
         predicate: isQueryKeyInBatch,
       });
       queuedAggregatableBatch.forEach(queryKey => {
         queryClient.setQueryData<boolean>(
+          // @ts-expect-error - Internal cache key, not an API URL
           ['aggregate', cacheKey, key, 'inFlight', queryKey],
           true
         );
@@ -156,6 +159,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
       const observer = new QueryObserver(queryClient, {queryKey});
       const unsubscribe = observer.subscribe(_result => {
         queryClient.removeQueries({
+          // @ts-expect-error - Internal cache key, not an API URL
           queryKey: ['aggregate', cacheKey, key, 'inFlight'],
           predicate: isQueryKeyInBatch,
         });
@@ -200,6 +204,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
           queryKey: ['aggregate', cacheKey, key],
           predicate: isQueryKeyInList(prevQueryKeys.current),
         })
+        // @ts-expect-error - Internal cache key, not an API URL
         .map(({queryKey}) => queryKey[4] as AggregatableQueryKey);
 
       // Don't request aggregates multiple times.
@@ -208,6 +213,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
       // Cache sentinel data for the new cacheKeys
       newQueryKeys
         .map(agg => ['aggregate', cacheKey, key, 'queued', agg])
+        // @ts-expect-error - Internal cache key, not an API URL
         .forEach(queryKey => queryClient.setQueryData<boolean>(queryKey, true));
 
       if (newQueryKeys.length) {

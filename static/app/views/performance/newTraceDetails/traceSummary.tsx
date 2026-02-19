@@ -60,7 +60,11 @@ function useTraceSummary(traceSlug: string) {
 
   const refresh = () => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/trace-summary/`],
+      queryKey: [
+        getApiUrl(`/organizations/$organizationIdOrSlug/trace-summary/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
       exact: false,
     });
     refetch();

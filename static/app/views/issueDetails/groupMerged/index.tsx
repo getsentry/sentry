@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -58,7 +59,12 @@ function GroupMergedView(props: Props) {
 
   const {refetch} = useQuery({
     queryKey: [
-      `/organizations/${organization.slug}/issues/${groupId}/hashes/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/issues/$issueId/hashes/`, {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: groupId,
+        },
+      }),
       {query: {...location.query, limit: 50, query: location.query.query ?? ''}},
     ] as const,
     queryFn: ({queryKey}) => {

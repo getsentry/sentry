@@ -24,7 +24,8 @@ type TableRow = Simplify<
 type TableResponse = [{confidence: any; meta: EventsMetaType; data?: TableRow[]}];
 
 // The query key used for the starred segments table request, this key is used to reference that query and update the starred segment state
-export const STARRED_SEGMENT_TABLE_QUERY_KEY = ['starred-segment-table'];
+// @ts-expect-error - Incorrectly typed query key
+export const STARRED_SEGMENT_TABLE_QUERY_KEY = ['starred-segment-table'] as ApiQueryKey;
 
 export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props) {
   const queryClient = useQueryClient();

@@ -19,6 +19,7 @@ type LayerData = {
 
 export function useAwsLambdaLayers() {
   const awsLambdaLayers = useQuery<Record<string, LayerData>>({
+    // @ts-expect-error - Incorrectly typed query key
     queryKey: ['aws-lambda-layers'],
     queryFn: async () => {
       const response = await fetch(
@@ -28,7 +29,7 @@ export function useAwsLambdaLayers() {
     },
   });
 
-  return awsLambdaLayers.data;
+  return awsLambdaLayers.data as Record<string, LayerData> | undefined;
 }
 
 export function AwsLambdaArnSelector({

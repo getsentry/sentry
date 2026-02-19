@@ -17,6 +17,7 @@ export function useTestSuites() {
   const organization = useOrganization();
   const {integratedOrgId, repository} = usePreventContext();
 
+  // @ts-expect-error - Incorrectly typed query key
   const {data, ...rest} = useQuery<TestSuite, Error, TestSuite, QueryKey>({
     queryKey: [
       `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-suites/`,

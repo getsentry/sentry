@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
@@ -11,7 +12,11 @@ export function useResetDashboardLists() {
 
   return useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/dashboards/`],
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
     });
     getStarredDashboards.refetch();
   }, [queryClient, organization, getStarredDashboards]);

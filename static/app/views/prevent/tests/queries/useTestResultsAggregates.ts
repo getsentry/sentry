@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
-import type {QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,8 +25,6 @@ type TestResultAggregate = {
   totalSlowTestsPercentChange: number | null;
 };
 
-type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
-
 export function useTestResultsAggregates() {
   const api = useApi();
   const organization = useOrganization();
@@ -43,10 +42,19 @@ export function useTestResultsAggregates() {
     TestResultAggregate,
     Error,
     TestResultAggregate,
-    QueryKey
+    ApiQueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results-aggregates/`,
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/prevent/owner/$owner/repository/$repository/test-results-aggregates/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            owner: integratedOrgId!,
+            repository: repository!,
+          },
+        }
+      ),
       {query: {preventPeriod, branch}},
     ],
     queryFn: async ({queryKey: [url]}): Promise<TestResultAggregate> => {

@@ -89,7 +89,7 @@ export function useBootstrapProjectsQuery(orgSlug: string | null) {
 
 export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
   return queryOptions({
-    queryKey: ['bootstrap-organization', orgSlug],
+    queryKey: ['bootstrap-organization', orgSlug] as any,
     queryFn: orgSlug
       ? async (): Promise<Organization> => {
           // Get the preloaded data promise
@@ -138,7 +138,7 @@ function createTeamsObject(response: ApiResult): {
 
 export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
   return queryOptions({
-    queryKey: ['bootstrap-teams', orgSlug],
+    queryKey: ['bootstrap-teams', orgSlug] as any,
     queryFn: orgSlug
       ? async (): Promise<{
           cursor: string | null;
@@ -174,7 +174,7 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
 
 export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
   return queryOptions({
-    queryKey: ['bootstrap-projects', orgSlug],
+    queryKey: ['bootstrap-projects', orgSlug] as any,
     queryFn: orgSlug
       ? async (): Promise<Project[]> => {
           // Get the preloaded data promise

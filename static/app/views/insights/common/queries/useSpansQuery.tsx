@@ -12,7 +12,11 @@ import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuer
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {keepPreviousData as keepPreviousDataFn} from 'sentry/utils/queryClient';
+import {
+  keepPreviousData as keepPreviousDataFn,
+  type ApiQueryKey,
+  type InfiniteApiQueryKey,
+} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {
@@ -243,7 +247,7 @@ function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
 
 type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
-  additionalQueryKey?: string[];
+  additionalQueryKey?: ApiQueryKey | InfiniteApiQueryKey;
   allowAggregateConditions?: boolean;
   caseInsensitive?: CaseInsensitive;
   cursor?: string;

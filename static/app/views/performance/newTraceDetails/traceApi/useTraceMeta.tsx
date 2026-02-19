@@ -171,7 +171,12 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
       apiErrors: Error[];
       meta: TraceMeta | EAPTraceMeta;
     },
-    Error
+    Error,
+    {
+      apiErrors: Error[];
+      meta: TraceMeta | EAPTraceMeta;
+    },
+    any
   >({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],

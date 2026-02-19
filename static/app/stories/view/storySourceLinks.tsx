@@ -14,6 +14,7 @@ type GithubCommitResponse = Array<{commit: {committer: {date: string}}}>;
 
 export function StorySourceLinks() {
   const {story} = useStory();
+  // @ts-expect-error - Incorrectly typed query key
   const {data} = useQuery<GithubCommitResponse, Error, GithubCommitResponse, [string]>({
     queryKey: [
       `https://api.github.com/repos/getsentry/sentry/commits?&page=1per_page=1&path=static/${story.filename}`,

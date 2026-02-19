@@ -180,8 +180,11 @@ function FilterSelector({
   const queryKey = useDebouncedValue(baseQueryKey);
 
   const queryResult = useQuery({
+    // @ts-expect-error - Incorrectly typed query key
     queryKey,
+    // @ts-expect-error - Incorrectly typed query key
     queryFn: async ctx => {
+      // @ts-expect-error - Incorrectly typed query key
       const result = await searchBarData.getTagValues(ctx.queryKey[1], ctx.queryKey[3]);
       return result ?? [];
     },
@@ -236,6 +239,7 @@ function FilterSelector({
       );
     });
     // Filter values fetched using getTagValues
+    // @ts-expect-error - Incorrectly typed query result
     fetchedFilterValues?.forEach(value => addOption(value, optionMap));
 
     // Allow setting a custom filter value based on search input
@@ -317,6 +321,7 @@ function FilterSelector({
       activeFilterValues={filterValues}
       operator={stagedOperator}
       options={translatedOptions}
+      // @ts-expect-error - Incorrectly typed query result
       queryResult={queryResult}
     />
   );

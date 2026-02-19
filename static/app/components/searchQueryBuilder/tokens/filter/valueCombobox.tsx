@@ -381,8 +381,9 @@ function useFilterSuggestions({
 
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery({
-    queryKey,
-    queryFn: ctx => getTagValues(...ctx.queryKey[1]),
+    queryKey: queryKey as any,
+    // @ts-expect-error - TS2556 spread with any type
+    queryFn: ctx => getTagValues(...(ctx.queryKey as any)[1]),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });

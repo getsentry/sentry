@@ -405,7 +405,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
 
   const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: [...additionalQueryKey, route, apiPayload],
+    queryKey: [...additionalQueryKey, route, apiPayload] as any,
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
         skipAbort: props.skipAbort,

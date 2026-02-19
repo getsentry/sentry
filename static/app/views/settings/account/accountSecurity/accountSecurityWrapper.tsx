@@ -21,6 +21,7 @@ export default function AccountSecurityWrapper() {
   const {authId} = useParams<{authId?: string}>();
 
   const orgRequest = useQuery<OrganizationSummary[]>({
+    // @ts-expect-error - Incorrectly typed query key
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['organizations'],
     queryFn: () => fetchOrganizations(api),
@@ -96,6 +97,7 @@ export default function AccountSecurityWrapper() {
   const enrolled =
     authenticators.filter(auth => auth.isEnrolled && !auth.isBackupInterface) || [];
   const countEnrolled = enrolled.length;
+  // @ts-expect-error - Incorrectly typed data
   const orgsRequire2fa = organizations.filter(org => org.require2FA) || [];
   const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
   const hasVerifiedEmail = emails.some(({isVerified}) => isVerified);

@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -12,11 +13,29 @@ export default function useMarkReplayViewed() {
 
   return useMutation<TData, TError, TVariables, TContext>({
     mutationFn: ({projectSlug, replayId}) => {
-      const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
+      const url = getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/viewed-by/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            replayId,
+          },
+        }
+      );
       return fetchMutation({method: 'POST', url});
     },
     onSuccess(_data, {projectSlug, replayId}) {
-      const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
+      const url = getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/viewed-by/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            replayId,
+          },
+        }
+      );
       queryClient.refetchQueries({queryKey: [url]});
     },
     retry: false,

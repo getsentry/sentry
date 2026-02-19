@@ -1,5 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openTokenRegenerationConfirmationModal} from 'sentry/actionCreators/modal';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
@@ -29,13 +30,30 @@ export function useRegenerateRepositoryToken() {
       // Invalidate the query responsible for fetching the repository tokens to update the table
       queryClient.invalidateQueries({
         queryKey: [
-          `/organizations/${variables.orgSlug}/prevent/owner/${variables.integratedOrgId}/repositories/tokens/`,
+          getApiUrl(
+            `/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/tokens/`,
+            {
+              path: {
+                organizationIdOrSlug: variables.orgSlug,
+                owner: variables.integratedOrgId,
+              },
+            }
+          ),
         ],
       });
       // Invalidate the specific repository query
       queryClient.invalidateQueries({
         queryKey: [
-          `/organizations/${variables.orgSlug}/prevent/owner/${variables.integratedOrgId}/repository/${variables.repository}/`,
+          getApiUrl(
+            `/organizations/$organizationIdOrSlug/prevent/owner/$owner/repository/$repository/`,
+            {
+              path: {
+                organizationIdOrSlug: variables.orgSlug,
+                owner: variables.integratedOrgId,
+                repository: variables.repository,
+              },
+            }
+          ),
         ],
       });
     },

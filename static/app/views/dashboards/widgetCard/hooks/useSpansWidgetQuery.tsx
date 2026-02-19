@@ -130,7 +130,7 @@ export function useSpansSeriesQuery(
           method: 'GET' as const,
           query: queryParams,
         },
-      ] satisfies ApiQueryKey;
+      ] as ApiQueryKey;
     });
     return keys;
   }, [filteredWidget, organization, pageFilters, samplingMode]);
@@ -350,7 +350,7 @@ export function useSpansTableQuery(
           method: 'GET' as const,
           query: queryParams,
         },
-      ];
+      ] as ApiQueryKey;
 
       return [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseQueryKey];
     });
@@ -385,6 +385,7 @@ export function useSpansTableQuery(
   // Use native useQueries with queue-integrated queryFn
   // React Query auto-refetches when keys change, but API calls go through the queue
   const queryResults = useQueries({
+    // @ts-expect-error - Incorrectly typed query key
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),

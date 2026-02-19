@@ -172,10 +172,14 @@ function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
     // a flicker from stale data on refetch
     return () => {
       queryClient.removeQueries({
-        queryKey: [`${ENDPOINT}${dashboardId}/`],
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+            path: {organizationIdOrSlug: organization.slug, dashboardId},
+          }),
+        ],
       });
     };
-  }, [dashboardId, ENDPOINT, queryClient]);
+  }, [dashboardId, organization.slug, queryClient]);
 
   const childrenProps = useMemo(
     () => ({

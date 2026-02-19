@@ -67,7 +67,7 @@ const userSchema = baseUserSchema.refine(
 );
 
 const userQuery = queryOptions({
-  queryKey: ['user', 'example'],
+  queryKey: ['user', 'example'] as any,
   queryFn: async () => {
     await sleep(500);
     return userSchema.parse({
@@ -99,7 +99,7 @@ const addressMutationOptions = (client: QueryClient) =>
       };
     },
     onSuccess: data => {
-      client.setQueryData(['user', 'example'], oldData => {
+      client.setQueryData(['user', 'example'] as any, oldData => {
         if (!oldData) {
           return oldData;
         }
@@ -130,7 +130,7 @@ const userMutationOptions = (client: QueryClient) =>
       };
     },
     onSuccess: data => {
-      client.setQueryData(['user', 'example'], data);
+      client.setQueryData(['user', 'example'] as any, data);
     },
   });
 

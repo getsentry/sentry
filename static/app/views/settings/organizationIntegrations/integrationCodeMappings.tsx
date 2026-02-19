@@ -123,7 +123,11 @@ function useDeletePathConfig() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/code-mappings/`],
+        queryKey: [
+          getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
       });
     },
   });
@@ -200,7 +204,11 @@ export default function IntegrationCodeMappings({
 
   const invalidateCodeMappings = useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/code-mappings/`],
+      queryKey: [
+        getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
     });
   }, [queryClient, organization.slug]);
 

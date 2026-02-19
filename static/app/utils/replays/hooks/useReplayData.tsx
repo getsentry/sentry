@@ -255,17 +255,34 @@ function useReplayData({
 
   const clearQueryCache = useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/replays/$replayId/', {
+          path: {organizationIdOrSlug: orgSlug, replayId: replayId!},
+        }),
+      ],
     });
     queryClient.invalidateQueries({
       queryKey: [
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
+          {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              projectIdOrSlug: projectSlug!,
+              replayId: replayId!,
+            },
+          }
+        ),
       ],
     });
     // The next one isn't optimized
     // This statement will invalidate the cache of fetched error events for all replayIds
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${orgSlug}/replays-events-meta/`],
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/replays-events-meta/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
+      ],
     });
   }, [orgSlug, replayId, projectSlug, queryClient]);
 

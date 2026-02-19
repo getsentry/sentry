@@ -133,7 +133,11 @@ export function PrivateGamingSdkAccessModal({
       }
 
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/console-sdk-invites/`],
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
       });
     },
     onError: errorResponse => {

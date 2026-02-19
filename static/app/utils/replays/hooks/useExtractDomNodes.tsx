@@ -11,7 +11,7 @@ interface Params {
 
 export default function useExtractDomNodes({replay, frame, enabled = true}: Params) {
   return useQuery<Extraction | null>({
-    queryKey: ['getDomNodes', frame, replay],
+    queryKey: ['getDomNodes', frame, replay] as any,
     // Note: we filter out `style` mutations due to perf issues.
     // We can do this as long as we only need the HTML and not need to
     // visualize the rendered elements

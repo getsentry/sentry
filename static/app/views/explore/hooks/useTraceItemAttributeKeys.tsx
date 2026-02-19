@@ -55,7 +55,7 @@ export function useTraceItemAttributeKeys({
 
   const {data, isFetching, error} = useQuery<TagCollection>({
     enabled,
-    queryKey: [...queryKey, search],
+    queryKey: [...queryKey, search] as any,
     queryFn: () => getTraceItemAttributeKeys(search),
   });
 

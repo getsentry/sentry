@@ -73,6 +73,7 @@ export async function clearQueryCache() {
   if (hasIndexedDb) {
     // Mark queries as stale so they won't be re-cached
     appQueryClient.invalidateQueries({
+      // @ts-expect-error - Incorrectly typed query key
       queryKey: ['bootstrap-projects'],
       refetchType: 'none',
     });

@@ -31,6 +31,7 @@ import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -140,7 +141,16 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
           if (ruleId) {
             queryClient.invalidateQueries({
               queryKey: [
-                `/projects/${organization.slug}/${projectSlug}/uptime/${ruleId}/`,
+                getApiUrl(
+                  '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/',
+                  {
+                    path: {
+                      organizationIdOrSlug: organization.slug,
+                      projectIdOrSlug: projectSlug,
+                      uptimeDetectorId: ruleId,
+                    },
+                  }
+                ),
               ],
               exact: true,
             });

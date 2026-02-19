@@ -23,6 +23,7 @@ export function useReleasesDrawer() {
   const {openDrawer} = useDrawer();
   // Dynamically import the ReleasesDrawer component to avoid unnecessary bundle size + circular deps with version & versionHoverCard components
   const {data: ReleasesDrawer, isPending} = useQuery({
+    // @ts-expect-error - Incorrectly typed query key
     queryKey: ['ReleasesDrawerComponent'],
     queryFn: async () => {
       return (await import('sentry/views/releases/drawer/releasesDrawer')).ReleasesDrawer;
@@ -32,6 +33,7 @@ export function useReleasesDrawer() {
   useEffect(() => {
     if (rd === 'show') {
       openDrawer(
+        // @ts-expect-error - Incorrectly typed data
         () => (!isPending && ReleasesDrawer ? <ReleasesDrawer /> : <LoadingIndicator />),
         {
           shouldCloseOnLocationChange: nextLocation => {

@@ -4,6 +4,7 @@ import {
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   getApiQueryData,
@@ -69,7 +70,11 @@ export function useUpdateProjectSeerPreferences(project: Project) {
     onSettled: () => {
       queryClient.invalidateQueries({queryKey});
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/autofix/automation-settings/`],
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/autofix/automation-settings/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
       });
     },
   });

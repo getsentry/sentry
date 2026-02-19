@@ -8,6 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
@@ -139,13 +140,26 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
   const doRefresh = useCallback(async () => {
     trackAnalytics('replay.details-refresh-clicked', {organization});
     await queryClient.refetchQueries({
-      queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/replays/$replayId/', {
+          path: {organizationIdOrSlug: orgSlug, replayId: replayId!},
+        }),
+      ],
       exact: true,
       type: 'all',
     });
     await queryClient.invalidateQueries({
       queryKey: [
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
+          {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              projectIdOrSlug: projectSlug!,
+              replayId: replayId!,
+            },
+          }
+        ),
       ],
       type: 'all',
     });

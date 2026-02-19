@@ -7,7 +7,9 @@ import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
@@ -79,9 +81,11 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
         return {
           queryKey: [
-            `/organizations/${organization.slug}/sessions/`,
+            getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
             {method: 'GET' as const, query: requestData},
-          ],
+          ] satisfies ApiQueryKey,
           queryIndex,
           useSessionAPI: requestData.useSessionAPI,
         };
@@ -272,9 +276,11 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
         return {
           queryKey: [
-            `/organizations/${organization.slug}/sessions/`,
+            getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
             {method: 'GET' as const, query: requestData},
-          ],
+          ] satisfies ApiQueryKey,
           queryIndex,
           useSessionAPI: requestData.useSessionAPI,
         };

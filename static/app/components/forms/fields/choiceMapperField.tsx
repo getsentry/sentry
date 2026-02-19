@@ -170,6 +170,7 @@ function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
   }, [api]);
 
   const {data, isFetching} = useQuery({
+    // @ts-expect-error - Incorrectly typed query key
     queryKey: [url, buildQueryParams(debouncedQuery)],
     queryFn: async () => {
       // This exists because /extensions/type/search API is not prefixed with /api/0/

@@ -261,7 +261,7 @@ export default function useExtractDiffMutations({
       replay,
       rangeStartTimestampMs,
       rangeEndTimestampMs,
-    ],
+    ] as any,
     queryFn: () =>
       extractDiffMutations({replay, rangeStartTimestampMs, rangeEndTimestampMs}),
     enabled: true,

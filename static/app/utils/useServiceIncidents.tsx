@@ -28,7 +28,7 @@ export function useServiceIncidents({
   const {statuspage} = useLegacyStore(ConfigStore);
   const {api_host, id} = statuspage ?? {};
 
-  return useQuery<StatuspageIncident[] | null>({
+  return useQuery<StatuspageIncident[] | null, Error, StatuspageIncident[] | null, any>({
     queryKey: ['statuspage-incidents', {api_host, id, includeResolved}],
     queryFn: async () => {
       if (!api_host || !id) {

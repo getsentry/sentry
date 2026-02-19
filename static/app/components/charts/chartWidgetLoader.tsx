@@ -130,7 +130,7 @@ const CHART_MAP = {
  */
 export function ChartWidgetLoader(props: Props) {
   const query = useQuery<{default: React.FC<LoadableChartWidgetProps>}>({
-    queryKey: [`widget-${props.id}`],
+    queryKey: [`widget-${props.id}`] as any,
     queryFn: () => {
       if (CHART_MAP.hasOwnProperty(props.id)) {
         const importChartFn = CHART_MAP[props.id];
