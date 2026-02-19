@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - mchen/xdist-n-workers
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -131,7 +132,7 @@ jobs:
           echo "=== Tier 1: $(wc -l < /tmp/tier1-tests.txt) scopes, shard ${{ matrix.instance }}/5 ==="
           python3 -b -m pytest tests \
             --reuse-db \
-            -n 3 \
+            -n 4 \
             --dist=loadfile \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
@@ -178,7 +179,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '3'
+      XDIST_WORKERS: '2'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
