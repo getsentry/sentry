@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.db.models import QuerySet
 
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -251,22 +251,13 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         self.provisioning_args.provision_options.slug = conflicting_slug
         org_with_conflicting_slug = self.provision_organization()
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            with pytest.raises(RpcRemoteException):
-                control_organization_provisioning_rpc_service.update_organization_slug(
-                    organization_id=test_org_slug_reservation.organization_id,
-                    desired_slug=conflicting_slug,
-                    require_exact=True,
-                    region_name=self.region_name,
-                )
-        else:
-            with pytest.raises(IntegrityError):
-                control_organization_provisioning_rpc_service.update_organization_slug(
-                    organization_id=test_org_slug_reservation.organization_id,
-                    desired_slug=conflicting_slug,
-                    require_exact=True,
-                    region_name=self.region_name,
-                )
+        result = control_organization_provisioning_rpc_service.update_organization_slug(
+            organization_id=test_org_slug_reservation.organization_id,
+            desired_slug=conflicting_slug,
+            require_exact=True,
+            region_name=self.region_name,
+        )
+        assert result is None
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_slug_reservation = OrganizationSlugReservation.objects.get(

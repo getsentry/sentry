@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone as django_timezone
 
 from sentry import features, roles
@@ -188,7 +188,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
         organization_id: int,
         desired_slug: str,
         require_exact: bool = True,
-    ) -> RpcOrganizationSlugReservation:
+    ) -> RpcOrganizationSlugReservation | None:
         existing_slug_reservations = list(
             OrganizationSlugReservation.objects.filter(organization_id=organization_id)
         )
@@ -216,27 +216,34 @@ class DatabaseBackedControlOrganizationProvisioningService(
         if not require_exact:
             slug_base = self._generate_org_slug(region_name=region_name, slug=slug_base)
 
-        with outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
-        ):
-            OrganizationSlugReservation(
-                slug=slug_base,
-                organization_id=organization_id,
-                user_id=-1,
-                region_name=region_name,
-                reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
-            ).save(unsafe_write=True)
+        try:
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+            ):
+                OrganizationSlugReservation(
+                    slug=slug_base,
+                    organization_id=organization_id,
+                    user_id=-1,
+                    region_name=region_name,
+                    reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
+                ).save(unsafe_write=True)
 
-            org_mapping = OrganizationMapping.objects.filter(
-                organization_id=organization_id
-            ).first()
-            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
-            if org and features.has("organizations:revoke-org-auth-on-slug-rename", org):
-                # Changing a slug invalidates all org tokens, so revoke them all.
-                auth_tokens = OrgAuthToken.objects.filter(
-                    organization_id=organization_id, date_deactivated__isnull=True
+                org_mapping = OrganizationMapping.objects.filter(
+                    organization_id=organization_id
+                ).first()
+                org = (
+                    serialize_organization_mapping(org_mapping) if org_mapping is not None else None
                 )
-                auth_tokens.update(date_deactivated=django_timezone.now())
+                if org and features.has("organizations:revoke-org-auth-on-slug-rename", org):
+                    # Changing a slug invalidates all org tokens, so revoke them all.
+                    auth_tokens = OrgAuthToken.objects.filter(
+                        organization_id=organization_id, date_deactivated__isnull=True
+                    )
+                    auth_tokens.update(date_deactivated=django_timezone.now())
+        except IntegrityError:
+            if require_exact:
+                return None
+            raise
 
         primary_slug = self._validate_primary_slug_updated(
             organization_id=organization_id, slug_base=slug_base

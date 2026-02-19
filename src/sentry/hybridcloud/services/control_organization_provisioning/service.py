@@ -57,7 +57,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         organization_id: int,
         desired_slug: str,
         require_exact: bool = True,
-    ) -> RpcOrganizationSlugReservation:
+    ) -> RpcOrganizationSlugReservation | None:
         """
         Updates an organization's slug via an outbox based confirmation flow to ensure that the control
         and region silos stay in sync.
@@ -71,7 +71,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         :param desired_slug: The slug to update the organization with
         :param require_exact: Determines whether the slug can be modified with a unique suffix in the
         case of a slug collision.
-        :return:
+        :return: The updated slug reservation, or None if require_exact=True and the slug is already taken.
         """
 
     @abstractmethod

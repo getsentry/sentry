@@ -114,6 +114,9 @@ class OrganizationProvisioningService:
             )
         )
 
+        if rpc_slug_reservation is None:
+            raise OrganizationSlugCollisionException
+
         rpc_org = organization_service.get(id=rpc_slug_reservation.organization_id)
 
         if rpc_org is None:
