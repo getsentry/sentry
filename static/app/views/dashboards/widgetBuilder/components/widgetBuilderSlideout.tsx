@@ -39,6 +39,7 @@ import {
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
+import WidgetBuilderDescriptionField from 'sentry/views/dashboards/widgetBuilder/components/descriptionField';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
@@ -134,17 +135,20 @@ function WidgetBuilderSlideout({
       : t('Custom Widget Builder');
   const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
   const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
+  const isTextWidget = state.displayType === DisplayType.TEXT;
 
-  const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
-  const showQueryFilterBuilder = !(
-    state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType)
-  );
+  const showVisualizeSection = state.displayType !== DisplayType.DETAILS && !isTextWidget;
+  const showQueryFilterBuilder =
+    !isTextWidget &&
+    !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
 
   // Group By is used by time-series chart widgets to break down data by a field.
   // - Time-series widgets: show Group By to allow breaking down by fields
   // - Issue widgets: don't support Group By (issues have their own grouping)
   // - Categorical Bar widgets: group by is not supported yet, but may be in the future
-  const showGroupBySelector = isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE);
+  // - Text widgets: don't support Group By (no data visualization)
+  const showGroupBySelector =
+    !isTextWidget && isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE);
 
   // X-Axis selector is only for Categorical Bar widgets, other chart widgets
   // always use time as the X-axis
@@ -156,10 +160,12 @@ function WidgetBuilderSlideout({
   // - Table: Always show to control row ordering
   // - Line, Area, Bar (Time Series): Show to control which top N groups are displayed
   // - Bar (Categorical): Show to control category ordering (like tables)
+  // - Text widgets: don't need Sort By (no data)
   const showSortByStep =
-    isCategoricalBarWidget ||
-    (isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
-    state.displayType === DisplayType.TABLE;
+    !isTextWidget &&
+    (isCategoricalBarWidget ||
+      (isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
+      state.displayType === DisplayType.TABLE);
 
   const observer = useMemo(
     () =>
@@ -381,13 +387,24 @@ function WidgetBuilderSlideout({
                       />
                     </Section>
                   </DisableTransactionWidget>
-                  <Section>
-                    <WidgetBuilderDatasetSelector />
-                  </Section>
+                  {!isTextWidget && (
+                    <Section>
+                      <WidgetBuilderDatasetSelector />
+                    </Section>
+                  )}
                   <DisableTransactionWidget>
                     <Section>
                       <WidgetBuilderTypeSelector error={error} setError={setError} />
                     </Section>
+                    {isTextWidget && (
+                      <Section>
+                        <WidgetBuilderDescriptionField
+                          rows={12}
+                          placeholder={t('Write your markdown here...')}
+                          autosize={false}
+                        />
+                      </Section>
+                    )}
                     <div ref={observeForDraggablePreview}>
                       {isSmallScreen && (
                         <Section>

@@ -6,7 +6,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
+import {IconCase, IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -29,6 +29,7 @@ const typeIcons: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
   [DisplayType.DETAILS]: <IconSettings key="details" />,
   [DisplayType.CATEGORICAL_BAR]: <IconGraph key="categorical_bar" type="bar" />,
+  [DisplayType.TEXT]: <IconCase key="text" />,
 };
 
 interface WidgetBuilderTypeSelectorProps {
@@ -59,6 +60,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
   const hasCategoricalBar = organization.features.includes(
     'dashboards-categorical-bar-charts'
   );
+  const hasTextWidget = organization.features.includes('dashboards-text-widgets');
 
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
@@ -71,6 +73,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
     {type: DisplayType.LINE, label: t('Line')},
     {type: DisplayType.TABLE, label: t('Table')},
     {type: DisplayType.BIG_NUMBER, label: t('Big Number')},
+    ...(hasTextWidget ? [{type: DisplayType.TEXT, label: t('Text (Markdown)')}] : []),
     ...(hasDetailsWidget ? [{type: DisplayType.DETAILS, label: t('Details')}] : []),
   ];
 
@@ -124,7 +127,8 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
             label,
             value: type,
             disabled:
-              !config.supportedDisplayTypes.includes(type) ||
+              (type !== DisplayType.TEXT &&
+                !config.supportedDisplayTypes.includes(type)) ||
               shouldDisabledIssueDisplayType(type),
           }))}
           clearable={false}
@@ -149,6 +153,13 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
                 dispatch({
                   type: BuilderStateAction.SET_QUERY,
                   payload: [state.query[0]!],
+                });
+              }
+              // Clear queries when switching to text widget
+              if (newValue.value === DisplayType.TEXT) {
+                dispatch({
+                  type: BuilderStateAction.SET_QUERY,
+                  payload: [],
                 });
               }
             }

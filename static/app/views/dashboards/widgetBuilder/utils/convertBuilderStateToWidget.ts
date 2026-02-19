@@ -16,6 +16,20 @@ import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/uti
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
+  // Text widgets don't need queries or data fields
+  if (state.displayType === DisplayType.TEXT) {
+    return {
+      title: state.title ?? '',
+      description: state.description,
+      displayType: DisplayType.TEXT,
+      interval: '1m',
+      queries: [],
+      widgetType: undefined,
+      limit: undefined,
+      thresholds: undefined,
+    };
+  }
+
   const datasetConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
   const defaultQuery = datasetConfig.defaultWidgetQuery;
 
