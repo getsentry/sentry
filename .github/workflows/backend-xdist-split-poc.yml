@@ -298,7 +298,7 @@ jobs:
           # ── Foreground: pytest starts immediately ──
           # Collection overlaps with service startup. The _wait_for_services
           # session fixture blocks on /tmp/services-ready before running tests.
-          echo "=== Tier 2: $(wc -l < /tmp/tier2-tests.txt) scopes, shard ${{ matrix.instance }}/17 ==="
+          echo "=== Tier 2: $(wc -l < /tmp/tier2-shards/shard-${{ matrix.instance }}.txt) scopes, shard ${{ matrix.instance }}/17 ==="
           PYTEST_EXIT=0
           SERVICES_READY_FILE=/tmp/services-ready \
           python3 -b -m pytest tests \
