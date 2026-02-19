@@ -2,6 +2,7 @@
 
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -54,7 +55,9 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     meta: EventsMetaType;
   }>(
     [
-      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/spans-samples/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           query: search?.formatString(),

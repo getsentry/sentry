@@ -6,14 +6,16 @@ import {Link} from '@sentry/scraps/link';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Collapsible from 'sentry/components/collapsible';
 import IdBadge from 'sentry/components/idBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 
-import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
+import {SectionHeadingWrapper, SidebarSection} from './styles';
 
 type Props = {
   organization: Organization;
@@ -21,8 +23,12 @@ type Props = {
 };
 
 function ProjectTeamAccess({organization, project}: Props) {
+  const location = useLocation();
   const hasEditPermissions = organization.access.includes('project:write');
-  const settingsLink = `/settings/${organization.slug}/projects/${project?.slug}/teams/`;
+  const settingsLink = {
+    pathname: `/settings/${organization.slug}/projects/${project?.slug}/teams/`,
+    query: extractSelectionParameters(location.query),
+  };
 
   function renderInnerBody() {
     if (!project) {
@@ -73,15 +79,19 @@ function ProjectTeamAccess({organization, project}: Props) {
     <StyledSidebarSection>
       <SectionHeadingWrapper>
         <SectionHeading>{t('Team Access')}</SectionHeading>
-        <SectionHeadingLink to={settingsLink}>
+        <StyledIconLink to={settingsLink}>
           <IconOpen />
-        </SectionHeadingLink>
+        </StyledIconLink>
       </SectionHeadingWrapper>
 
       <div>{renderInnerBody()}</div>
     </StyledSidebarSection>
   );
 }
+
+const StyledIconLink = styled(Link)`
+  display: flex;
+`;
 
 const StyledSidebarSection = styled(SidebarSection)`
   font-size: ${p => p.theme.font.size.md};

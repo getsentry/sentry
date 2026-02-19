@@ -638,6 +638,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for moving accepted outcome emission from Relay to EAP.
+register(
+    "relay.eap-outcomes.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout rate for double writing sessions to EAP.
 register(
     "relay.sessions-eap.rollout-rate",
@@ -964,6 +972,9 @@ register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODI
 
 # A rate that enables statsd item sending (DDM data) to s4s
 register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Sample rate for transaction/span data sent to S4S upstream (1.0 = keep all, 0.05 = keep 5%)
+register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Mock out integrations and services for tests
 register("mocks.jira", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1407,6 +1418,16 @@ register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODI
 
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# When True, schedule_invalidate_project_config calls the invalidation callback
+# directly when outside an atomic block, instead of going through
+# transaction.on_commit(). This fixes TransactionManagementError in the
+# taskworker where autocommit is off.
+register(
+    "relay.invalidation-direct-outside-atomic",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
 # In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
@@ -3054,22 +3075,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# TODO: Temporary options to let us play around with expiry times and see what hit rates they give
-# us. Once we've decided, we can stick our values into the two expiry options above and get rid of
-# these two options.
-register(
-    "grouping.ingest_grouphash_existence_cache_expiry.trial_values",
-    type=Sequence,
-    default=[60, 120, 600],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "grouping.ingest_grouphash_object_cache_expiry.trial_values",
-    type=Sequence,
-    default=[60, 120, 600],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Sample rate for double writing to experimental dsn
 register(
@@ -3203,6 +3208,11 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.buffer.flusher-cumulative-logger-enabled",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
@@ -3211,23 +3221,6 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# ZSET to SET migration options.
-register(
-    "spans.buffer.write-to-zset",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.buffer.write-to-set",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.buffer.read-from-set",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Segments consumer
@@ -3398,6 +3391,7 @@ register(
 )
 
 # Controls the rate of using the sentry api shared secret for communicating to sentry.
+# DEPRECATED: will be removed after the shared secret is confirmed to always be set.
 register(
     "seer.api.use-shared-secret",
     default=0.0,
@@ -3866,6 +3860,29 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Lists all the consumers we need verbose multiprocess logs for.
+# We observed some consumers hanging after restarts. We narrowed down the
+# issue to the shared memory manager initialization. Specifically,
+# the consumer hangs when the shared memory manager initializes a subprocess.
+register(
+    "consumer.verbose_multiprocessing_logs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Forces ArroyoRunTaskWithMultiprocessing steps to instruct the SharedMemoryManager to
+# spawn processes rather than forking.
+# As this impacts the shared memory manager initialization, which happens during
+# the creation of the strategy, a rebalance or a restart is needed for this
+# option change to take effect.
+register(
+    "consumer.shared_memory_spawn_process",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
@@ -4017,4 +4034,12 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TODO(telkins): Remove once we no longer need integration_id on SLO metrics
+register(
+    "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

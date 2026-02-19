@@ -17,6 +17,7 @@ from sentry.integrations.github.blame import (
     generate_file_path_mapping,
     is_graphql_response,
 )
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
@@ -24,6 +25,10 @@ from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
     FileBlameInfo,
     SourceLineInfo,
+)
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
@@ -98,7 +103,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
             token = self.jwt
 
         prepared_request.headers["Authorization"] = f"Bearer {token}"
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        prepared_request.headers["Accept"] = GITHUB_API_ACCEPT_HEADER
         return prepared_request
 
     def get_installation_info(self, installation_id: int | str) -> dict[str, Any]:
@@ -290,7 +295,7 @@ class GithubProxyClient(IntegrationProxyClient):
             return prepared_request
 
         prepared_request.headers["Authorization"] = f"Bearer {token}"
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        prepared_request.headers["Accept"] = GITHUB_API_ACCEPT_HEADER
         if prepared_request.headers.get("Content-Type") == "application/raw; charset=utf-8":
             prepared_request.headers["Accept"] = "application/vnd.github.raw"
 
@@ -410,7 +415,12 @@ class GitHubBaseClient(
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_RATE_LIMIT,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture():
+            return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
     # This method is used by RepoTreesIntegration
     def get_remaining_api_requests(self) -> int:
@@ -799,6 +809,15 @@ class GitHubBaseClient(
         """
         endpoint = f"/repos/{repo}/check-runs"
         return self.post(endpoint, data=data)
+
+    def get_check_run(self, repo: str, check_run_id: int) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#get-a-check-run
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/check-runs/{check_run_id}"
+        return self.get(endpoint)
 
     def get_check_runs(self, repo: str, sha: str) -> Any:
         """

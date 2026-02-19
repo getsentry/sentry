@@ -144,8 +144,7 @@ function BaseExploreFieldRenderer({
 
   const field = String(column.key);
 
-  const otelFriendlyUI = organization?.features.includes('performance-otel-friendly-ui');
-  const renderer = getExploreFieldRenderer(field, meta, projectsMap, otelFriendlyUI);
+  const renderer = getExploreFieldRenderer(field, meta, projectsMap);
 
   let rendered = renderer(data, {
     location,
@@ -314,16 +313,12 @@ function BaseExploreFieldRenderer({
 function getExploreFieldRenderer(
   field: string,
   meta: MetaType,
-  projects: Record<string, Project>,
-  otelFriendlyUI: boolean
+  projects: Record<string, Project>
 ): ReturnType<typeof getFieldRenderer> {
   if (field === 'id' || field === 'span_id') {
     return eventIdRenderFunc(field);
   }
-  if (field === 'span.description' && !otelFriendlyUI) {
-    return spanDescriptionRenderFunc('span.description', projects);
-  }
-  if (field === SpanFields.NAME && otelFriendlyUI) {
+  if (field === SpanFields.NAME) {
     return spanDescriptionRenderFunc(SpanFields.NAME, projects);
   }
   return getFieldRenderer(field, meta, false);

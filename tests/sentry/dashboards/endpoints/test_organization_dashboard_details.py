@@ -1357,7 +1357,62 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Ensure this value is less than or equal to 10" in response.content
+        assert b"The maximum limit for this display type is 10" in response.content
+
+    def test_add_categorical_bar_widget_with_valid_limit(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Categorical Bar Widget",
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 20,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        assert widgets[0].limit == 20
+
+    def test_add_categorical_bar_widget_with_invalid_limit_above_maximum(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Categorical Bar Widget",
+                    "displayType": "categorical_bar",
+                    "interval": "5m",
+                    "limit": 26,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"The maximum limit for this display type is 25" in response.content
 
     def test_add_widget_with_invalid_limit_below_minimum(self) -> None:
         data = {
@@ -2499,7 +2554,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "False"},
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2516,7 +2571,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "false"},
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2536,7 +2591,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
 
         assert permission.is_editable_by_everyone is True
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2716,7 +2771,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2752,7 +2807,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2783,7 +2838,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2810,7 +2865,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         self.create_environment(project=mock_project, name="mock_env")
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2856,7 +2911,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3482,6 +3537,115 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Linked dashboard does not appear in the fields of the query" in response.content
+
+    def test_rejects_cross_org_linked_dashboard(self) -> None:
+        other_org = self.create_organization(name="other-org")
+        other_dashboard = Dashboard.objects.create(
+            title="Other Org Dashboard",
+            created_by_id=self.user.id,
+            organization=other_org,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Cross-Org Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": other_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not exist" in response.content
+
+        # Verify no DashboardFieldLink was created
+        assert DashboardFieldLink.objects.count() == 0
+
+    def test_allows_same_org_linked_dashboard_after_fix(self) -> None:
+        same_org_dashboard = Dashboard.objects.create(
+            title="Same Org Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Same-Org Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": same_org_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data.get("widgets")[0].get("queries")[0].get("linkedDashboards") == [
+            {
+                "field": "project",
+                "dashboardId": same_org_dashboard.id,
+            }
+        ]
+
+    def test_rejects_nonexistent_linked_dashboard(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Nonexistent Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [{"field": "project", "dashboardId": 999999999}],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not exist" in response.content
 
     def test_cannot_delete_prebuilt_insights_dashboard(self) -> None:
         dashboard = Dashboard.objects.create(

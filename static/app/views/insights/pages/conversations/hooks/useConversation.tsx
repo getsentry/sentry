@@ -95,7 +95,7 @@ function createNodeFromApiSpan(
     sdk_name: '',
     transaction: '',
     transaction_id: '',
-    name: apiSpan['span.name'] || apiSpan['span.description'],
+    name: apiSpan['span.description'] || apiSpan['span.name'] || '',
     errors: [],
     occurrences: [],
     additional_attributes: {

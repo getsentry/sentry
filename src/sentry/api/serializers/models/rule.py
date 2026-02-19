@@ -469,7 +469,7 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             owner = self._fetch_workflow_owner(workflow)
             if owner:
-                result[workflow]["created_by"] = owner
+                result[workflow]["owner"] = owner
 
             result[workflow]["environment"] = workflow.environment
             result[workflow]["projects"] = list(workflow_to_projects[workflow])
