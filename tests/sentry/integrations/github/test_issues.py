@@ -157,7 +157,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     def _stub_create_issue_config_dependencies(
         self,
-    ) -> tuple[tuple[str, str], list[tuple[str, str]]]:
+    ) -> tuple[str, list[tuple[str, str]]]:
         default_repo = "getsentry/sentry"
         repo_choices = [("getsentry/sentry", "sentry")]
         return (default_repo, repo_choices)
