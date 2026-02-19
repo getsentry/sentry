@@ -8,8 +8,8 @@ export type ApiResponse<TResponseData = unknown> = {
   headers: {
     Endpoint: string | undefined;
     Link: string | undefined;
-    'X-Hits': string | undefined;
-    'X-Max-Hits': string | undefined;
+    'X-Hits': number | undefined;
+    'X-Max-Hits': number | undefined;
   };
   json: TResponseData;
 };
@@ -28,12 +28,14 @@ export default async function apiFetch<TData = unknown>(
     headers: options?.headers,
   });
 
+  const xhits = response!.getResponseHeader('X-Hits');
+  const xmaxhits = response!.getResponseHeader('X-Max-Hits');
   return {
     headers: {
       Endpoint: response!.getResponseHeader('Endpoint') ?? undefined,
       Link: response!.getResponseHeader('Link') ?? undefined,
-      'X-Hits': response!.getResponseHeader('X-Hits') ?? undefined,
-      'X-Max-Hits': response!.getResponseHeader('X-Max-Hits') ?? undefined,
+      'X-Hits': xhits === null ? undefined : parseInt(xhits, 10),
+      'X-Max-Hits': xmaxhits === null ? undefined : parseInt(xmaxhits, 10),
     },
     json: json as TData,
   };
