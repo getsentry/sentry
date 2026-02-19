@@ -86,6 +86,7 @@ from sentry.dynamic_sampling.utils import (
     is_project_mode_sampling,
 )
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
+from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -107,10 +108,7 @@ from sentry.organizations.services.organization.model import (
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.services.organization.provisioning import (
-    OrganizationSlugCollisionException,
-    organization_provisioning_service,
-)
+from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
@@ -1196,10 +1194,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     organization_provisioning_service.change_organization_slug(
                         organization_id=organization.id, slug=slug
                     )
-                except OrganizationSlugCollisionException:
+                except RpcValidationException:
                     return self.respond(
-                        {"slug": ["An organization with this slug already exists."]},
-                        status=status.HTTP_409_CONFLICT,
+                        {"slug": [f'The slug "{slug}" is in use by another organization.']},
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
