@@ -594,3 +594,16 @@ find . -not -path './.venv/*' -type f -name "*.pyc" -delete 2>/dev/null || true
 - `relay.py` — `from sentry.runner.commands.devservices import get_docker_client` (pulls in Docker SDK) + `ephemeral_port_reserve` + `requests`.
 
 **Fix:** Move these imports inside the fixture/function bodies that use them. Python caches modules in `sys.modules`, so the first call pays the import cost and subsequent calls are O(1) dict lookups. Zero functional impact.
+
+### Measured result (run `22197334992`)
+
+Comparing against the previous warm-cache run (workflow_dispatch `22168142281`):
+
+| Metric        | baseline (22168142281) | post-fix (22197334992) | delta           |
+| ------------- | ---------------------- | ---------------------- | --------------- |
+| Wall clock    | ~11m10s                | ~10m53s                | **-17s**        |
+| Runner-min    | ~219m                  | ~211m                  | **-8m (-3.7%)** |
+| T1 bottleneck | 10m54s                 | 10m36s                 | -18s            |
+| T2 bottleneck | 10m25s                 | 10m38s                 | +13s            |
+
+**Caveat:** Single data point; T2 shard spread is wide (7m50s–10m38s) so the -17s improvement is within normal run-to-run variance. The `Setup sentry env` step showed no discrete improvement (35s → 36s flat) because venv pyc recompilation cost is distributed across test collection/import time, not a single step. Both fixes are still correct — need more data points to confirm magnitude.
