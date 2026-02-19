@@ -8,11 +8,7 @@
  */
 
 import type {ApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {
-  ApiQueryKey,
-  InfiniteApiQueryKey,
-  SentryQueryKeyOptions,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
 declare module '@tanstack/query-core' {
   interface Register {
