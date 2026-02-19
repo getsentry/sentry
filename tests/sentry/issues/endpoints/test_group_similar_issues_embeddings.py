@@ -141,6 +141,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     def test_get_formatted_results_deduplicates_groups(self) -> None:
         event_from_second_similar_group = save_new_event({"message": "example"}, self.project)
+        assert self.similar_event.group_id is not None
+        assert event_from_second_similar_group.group_id is not None
 
         second_hash = GroupHash.objects.create(
             project=self.project,
