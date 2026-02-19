@@ -518,7 +518,7 @@ def massage_sessions_result(
             row[ts_col] = row[ts_col][:19] + "Z"
 
         rows.sort(key=lambda row: row[ts_col])
-        fields: list[tuple[str, Any, list[float | None]]]
+        fields: list[tuple[str, Field, list[float | None]]]
         fields = [(name, field, []) for name, field in query.fields.items()]
         group_index = 0
 
