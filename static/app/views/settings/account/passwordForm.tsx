@@ -31,9 +31,6 @@ export function PasswordForm() {
         method: 'PUT',
         data,
       }),
-    onError: () => {
-      addErrorMessage(t('Error changing password'));
-    },
   });
 
   const form = useScrapsForm({
@@ -53,7 +50,9 @@ export function PasswordForm() {
           formApi.reset();
           addSuccessMessage(t('Password has been changed'));
         })
-        .catch(() => {});
+        .catch(() => {
+          addErrorMessage(t('Error changing password'));
+        });
     },
   });
 
