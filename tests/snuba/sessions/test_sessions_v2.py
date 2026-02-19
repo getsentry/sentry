@@ -6,11 +6,11 @@ from django.http import QueryDict
 
 from sentry.exceptions import InvalidParams
 from sentry.release_health.base import AllowedResolution
+from sentry.snuba.outcomes import massage_sessions_result
 from sentry.snuba.sessions_v2 import (
     QueryDefinition,
     get_constrained_date_range,
     get_timestamps,
-    massage_sessions_result,
 )
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
