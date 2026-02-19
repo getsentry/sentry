@@ -11,7 +11,7 @@ optimization and a convenient, typed deserialization library.
 
 import time
 from collections.abc import Callable
-from typing import cast
+from typing import assert_never, cast
 
 import msgspec
 import sentry_sdk
@@ -318,8 +318,10 @@ def deserialize_event(event: str, event_type: EventTypeHint) -> EventType:
         return deserialize_check_run_event(event)
     elif event_type == "comment":
         return deserialize_comment_event(event)
-    else:
+    elif event_type == "pull_request":
         return deserialize_pull_request_event(event)
+    else:
+        assert_never(event_type)
 
 
 def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
@@ -348,8 +350,10 @@ def serialize_event(event: EventType) -> str:
         return serialize_check_run_event(event)
     elif isinstance(event, CommentEvent):
         return serialize_comment_event(event)
-    else:
+    elif isinstance(event, PullRequestEvent):
         return serialize_pull_request_event(event)
+    else:
+        assert_never(event)
 
 
 # $$$$$$$\            $$\       $$\ $$\           $$\
@@ -394,9 +398,11 @@ def produce_to_listeners(
     elif isinstance(parsed_event, CommentEvent):
         event_type_hint = "comment"
         listeners = list(stream.comment_listeners.keys())
-    else:
+    elif isinstance(parsed_event, PullRequestEvent):
         event_type_hint = "pull_request"
         listeners = list(stream.pull_request_listeners.keys())
+    else:
+        assert_never(parsed_event)
 
     for listener in listeners:
         produce_to_listener(message, cast(EventTypeHint, event_type_hint), listener, silo)
@@ -410,8 +416,10 @@ def produce_to_listener(
 ) -> None:
     if silo == "control":
         run_webhook_handler_control_task.delay(listener_name, message, event_type_hint)
-    else:
+    elif silo == "region":
         run_webhook_handler_region_task.delay(listener_name, message, event_type_hint)
+    else:
+        assert_never(silo)
 
 
 @instrumented_task(
@@ -509,8 +517,10 @@ def run_listener(
         exec_listener(listener, stream.check_run_listeners, event, record_count)
     elif isinstance(event, CommentEvent):
         exec_listener(listener, stream.comment_listeners, event, record_count)
-    else:
+    elif isinstance(event, PullRequestEvent):
         exec_listener(listener, stream.pull_request_listeners, event, record_count)
+    else:
+        assert_never(event)
 
     end = get_current_time()
     received = event.subscription_event["received_at"]
@@ -554,5 +564,4 @@ def exec_listener[T](
         return listeners[listener](arg)
     except Exception:
         record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "internal", "fn": listener})
-        raise
         raise

@@ -94,11 +94,11 @@ def handle_pr(event: PullRequestEvent) -> None:
     ...
 ```
 
-When registering listeners it is critcal that these listeners are imported into the listeners
+When registering listeners it is critical that these listeners are imported into the listeners
 module at src/sentry/scm/stream.py. Importing the module registers it with the scm_event_stream
 singleton and ensures we can dispatch events to your listener.
 
-Listeners run asynchronously on a task queue; specfically taskbroker. Listeners run in the region
+Listeners run asynchronously on a task queue; specifically taskbroker. Listeners run in the region
 they were scheduled (either a region or control silo). Listeners are logically isolated from one
 another. Unhandled exceptions within a listener will only impact that listener and not other
 listeners.
