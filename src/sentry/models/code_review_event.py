@@ -25,6 +25,10 @@ class CodeReviewEventStatus(StrEnum):
     REVIEW_COMPLETED = "review_completed"
     REVIEW_FAILED = "review_failed"
 
+    @classmethod
+    def as_choices(cls) -> tuple[tuple[str, str], ...]:
+        return tuple((status.value, status.value) for status in cls)
+
 
 @region_silo_model
 class CodeReviewEvent(Model):
@@ -58,7 +62,11 @@ class CodeReviewEvent(Model):
     target_commit_sha = models.CharField(max_length=64, null=True)
 
     # Pipeline status
-    status = models.CharField(max_length=32)
+    status = models.CharField(
+        max_length=32,
+        choices=CodeReviewEventStatus.as_choices(),
+        default=CodeReviewEventStatus.WEBHOOK_RECEIVED,
+    )
     denial_reason = models.TextField(null=True)
 
     # Timestamps for pipeline stages
@@ -72,7 +80,7 @@ class CodeReviewEvent(Model):
 
     # Seer callback data
     seer_run_id = models.CharField(max_length=64, null=True)
-    comments_posted = models.IntegerField(null=True)
+    comments_posted = BoundedPositiveIntegerField(null=True)
     review_result = models.JSONField(null=True)
 
     class Meta:
