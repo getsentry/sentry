@@ -151,20 +151,13 @@ interface AutoSaveFieldProps<
    * confirm={(value) => value === 'dangerous' ? "This is irreversible!" : undefined}
    */
   confirm?: ConfirmConfig<z.infer<TSchema>[TFieldName]>;
-
-  /**
-   * Called when the user dismisses the confirmation dialog without confirming.
-   * Useful for reverting optimistic UI state that was updated before confirmation.
-   */
-  onCancel?: () => void;
 }
 
 export function AutoSaveField<
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
 >(props: AutoSaveFieldProps<TSchema, TFieldName>) {
-  const {name, schema, initialValue, mutationOptions, confirm, onCancel, children} =
-    props;
+  const {name, schema, initialValue, mutationOptions, confirm, children} = props;
   const id = useId();
   const mutation = useMutation(mutationOptions);
   // Track pending confirmation to prevent duplicate modals
@@ -223,7 +216,6 @@ export function AutoSaveField<
               // after a successful confirm
               if (pendingConfirmRef.current) {
                 form.reset();
-                onCancel?.();
                 resolve();
               }
               pendingConfirmRef.current = false;

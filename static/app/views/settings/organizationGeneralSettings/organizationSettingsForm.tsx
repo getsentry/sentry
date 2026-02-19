@@ -139,10 +139,6 @@ function OrganizationMembershipSettingsBase({
   const hasOrgWrite = access.has('org:write');
   const hasOrgAdmin = access.has('org:admin');
 
-  const [hasGranularReplay, setHasGranularReplay] = useState(
-    organization.hasGranularReplayPermissions ?? false
-  );
-
   const roleOptions = (organization.orgRoleList ?? []).map(r => ({
     value: r.id,
     label: r.name,
@@ -386,31 +382,30 @@ function OrganizationMembershipSettingsBase({
           }
         >
           {field => (
-            <field.Layout.Row
-              label={t('Restrict Replay Access')}
-              hintText={t(
-                'Allow granular access to replay data by selecting specific members of your organization.'
-              )}
-            >
-              <field.Switch
-                checked={field.state.value}
-                onChange={value => {
-                  field.handleChange(value);
-                  setHasGranularReplay(value);
-                }}
-                disabled={!hasOrgWrite}
-              />
-            </field.Layout.Row>
+            <Fragment>
+              <field.Layout.Row
+                label={t('Restrict Replay Access')}
+                hintText={t(
+                  'Allow granular access to replay data by selecting specific members of your organization.'
+                )}
+              >
+                <field.Switch
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={!hasOrgWrite}
+                />
+              </field.Layout.Row>
+
+              {field.state.value ? (
+                <ReplayAccessMembersField
+                  organization={organization}
+                  onSave={onSave}
+                  disabled={!hasOrgWrite}
+                />
+              ) : null}
+            </Fragment>
           )}
         </AutoSaveField>
-      )}
-
-      {features.has('granular-replay-permissions') && hasGranularReplay && (
-        <ReplayAccessMembersField
-          organization={organization}
-          onSave={onSave}
-          disabled={!hasOrgWrite}
-        />
       )}
     </FieldGroup>
   );

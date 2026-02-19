@@ -225,7 +225,7 @@ describe('OrganizationSettingsForm', () => {
     expect(checkbox).not.toBeChecked();
   });
 
-  it('shows hideAiFeatures toggle for DE region', async () => {
+  it('shows hideAiFeatures toggle for DE region', () => {
     // Mock the region util to return DE region
     jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
       name: 'de',
@@ -247,7 +247,7 @@ describe('OrganizationSettingsForm', () => {
     expect(toggle).toBeEnabled();
   });
 
-  it('disables "Show Generative AI Features" toggle when feature flag is off', async () => {
+  it('disables "Show Generative AI Features" toggle when feature flag is off', () => {
     render(
       <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
       {
@@ -267,7 +267,7 @@ describe('OrganizationSettingsForm', () => {
   });
 
   describe('AI Code Review field', () => {
-    it('renders AI Code Review field', async () => {
+    it('renders AI Code Review field', () => {
       render(
         <OrganizationSettingsForm
           initialData={OrganizationFixture({hideAiFeatures: true})}
@@ -298,7 +298,7 @@ describe('OrganizationSettingsForm', () => {
       expect(aiCodeReviewLink).toBeInTheDocument();
     });
 
-    it('hides AI Code Review field when AI features are disabled', async () => {
+    it('hides AI Code Review field when AI features are disabled', () => {
       render(
         <OrganizationSettingsForm
           // This logic is inverted from the variable name
@@ -319,7 +319,7 @@ describe('OrganizationSettingsForm', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('shows PR Review and Test Generation field when AI features are enabled', async () => {
+    it('shows PR Review and Test Generation field when AI features are enabled', () => {
       render(
         <OrganizationSettingsForm
           initialData={OrganizationFixture({hideAiFeatures: true})}
@@ -376,7 +376,7 @@ describe('OrganizationSettingsForm', () => {
     });
 
     describe('region and access behavior', () => {
-      it('is enabled when US region', async () => {
+      it('is enabled when US region', () => {
         jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
           name: 'us',
           displayName: 'United States of America (US)',
@@ -404,7 +404,7 @@ describe('OrganizationSettingsForm', () => {
         expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
       });
 
-      it('is visible when seer-added or code-review-beta feature flag is on', async () => {
+      it('is visible when seer-added or code-review-beta feature flag is on', () => {
         jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
           name: 'us',
           displayName: 'United States of America (US)',
@@ -431,7 +431,7 @@ describe('OrganizationSettingsForm', () => {
         ).toBeInTheDocument();
       });
 
-      it('is enabled when EU region', async () => {
+      it('is enabled when EU region', () => {
         jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
           name: 'de',
           displayName: 'Europe (Frankfurt)',
@@ -459,7 +459,7 @@ describe('OrganizationSettingsForm', () => {
         expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
       });
 
-      it('is enabled when user is an admin (has org:write access)', async () => {
+      it('is enabled when user is an admin (has org:write access)', () => {
         jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
           name: 'us',
           displayName: 'United States of America (US)',
@@ -557,7 +557,7 @@ describe('OrganizationSettingsForm', () => {
         ).toBeInTheDocument();
       });
 
-      it('is hidden when seat-based-seer-enabled feature is on', async () => {
+      it('is hidden when seat-based-seer-enabled feature is on', () => {
         jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
           name: 'us',
           displayName: 'United States of America (US)',
