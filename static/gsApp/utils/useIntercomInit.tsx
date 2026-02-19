@@ -52,6 +52,7 @@ export function useIntercomInit(): void {
           company_id: jwtData.userData.organizationId,
           name: jwtData.userData.organizationName,
         },
+        hide_default_launcher: true,
       });
       hasBootedRef.current = true;
     }
