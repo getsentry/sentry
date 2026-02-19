@@ -28,7 +28,7 @@ function UsageOverviewActions({organization}: {organization: Organization}) {
   const shouldCollapseActions = shouldCollapseOnLargeScreen || shouldCollapseOnMobile;
 
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
-  const hasBillingPerms = organization.access.includes('org:billing');
+  const hasBillingPerms = organization.access?.includes('org:billing');
   if (!hasBillingPerms) {
     return null;
   }

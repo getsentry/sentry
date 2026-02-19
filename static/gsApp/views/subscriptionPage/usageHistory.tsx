@@ -86,6 +86,8 @@ function UsageHistory({subscription}: Props) {
   const organization = useOrganization();
   const location = useLocation();
 
+  const hasBillingPerms = organization.access?.includes('org:billing');
+
   const {
     data: usageList,
     isPending,
@@ -103,11 +105,11 @@ function UsageHistory({subscription}: Props) {
     ],
     {
       staleTime: 0,
+      enabled: hasBillingPerms,
     }
   );
 
   const usageListPageLinks = getResponseHeader?.('Link');
-  const hasBillingPerms = organization.access?.includes('org:billing');
 
   return (
     <SubscriptionPageContainer background="primary">

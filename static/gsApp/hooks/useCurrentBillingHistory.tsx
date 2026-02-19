@@ -9,6 +9,8 @@ import type {BillingHistory} from 'getsentry/types';
 export function useCurrentBillingHistory() {
   const organization = useOrganization();
 
+  const hasBillingPerms = organization.access?.includes('org:billing');
+
   const {
     data: history,
     isPending,
@@ -21,6 +23,7 @@ export function useCurrentBillingHistory() {
     ],
     {
       staleTime: 0,
+      enabled: hasBillingPerms,
     }
   );
 
