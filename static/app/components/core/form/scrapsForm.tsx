@@ -120,7 +120,6 @@ type InferFormData<T> = T extends {state: {values: infer D}} ? D : never;
  *   'address.city': { message: 'City not found' },
  * });
  * ```
- * @public
  */
 export function setFieldErrors<
   TForm extends {setErrorMap: (...args: any[]) => unknown; state: {values: unknown}},

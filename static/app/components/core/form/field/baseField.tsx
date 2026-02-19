@@ -15,7 +15,6 @@ type FieldChildrenProps = {
 
 export const useFieldStateIndicator = () => {
   const field = useFieldContext();
-  const hasValidationError = field.state.meta.isTouched && !field.state.meta.isValid;
   const status = useAutoSaveContext()?.status;
 
   if (status === 'pending') {
@@ -28,7 +27,7 @@ export const useFieldStateIndicator = () => {
     return <Checkmark variant="success" size="sm" />;
   }
 
-  if (hasValidationError) {
+  if (!field.state.meta.isValid) {
     const errorMessage = field.state.meta.errors.map(e => e?.message).join(',');
     return (
       <Tooltip position="bottom" offset={8} title={errorMessage} forceVisible skipWrapper>
