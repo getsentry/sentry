@@ -35,7 +35,7 @@ def serialize_event_data_as_item(
         ),
         retention_days=event_data.get("retention_days", 90),
         attributes=encode_attributes(
-            event, event_data, ignore_fields={"event_id", "timestamp", "tags"}
+            event, event_data, ignore_fields={"event_id", "timestamp", "tags", "spans", "'spans'"}
         ),
     )
 
