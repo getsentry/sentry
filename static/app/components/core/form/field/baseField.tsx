@@ -67,7 +67,13 @@ export function BaseField(
   const location = useLocation();
 
   useEffect(() => {
-    if (location.hash.slice(1) !== field.name) {
+    let hash = '';
+    try {
+      hash = decodeURIComponent(location.hash.slice(1));
+    } catch {
+      return;
+    }
+    if (hash !== field.name) {
       return;
     }
     ref.current?.scrollIntoView({block: 'nearest', behavior: 'smooth'});
