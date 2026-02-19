@@ -8,6 +8,7 @@ import {
   ComparisonType,
   OpType,
   PreviewCheckStatus,
+  type Assertion,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 describe('TestUptimeMonitorButton', () => {
@@ -377,7 +378,7 @@ describe('TestUptimeMonitorButton', () => {
   });
 
   it('sends assertion data to the preview endpoint', async () => {
-    const mockAssertion = {
+    const mockAssertion: Assertion = {
       root: {
         id: 'root',
         op: OpType.AND,

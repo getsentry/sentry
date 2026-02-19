@@ -377,7 +377,7 @@ describe('UptimeAssertionsField', () => {
 
 describe('normalizeAssertion', () => {
   it('handles NaN status code value by defaulting to 200', () => {
-    const op = {
+    const op: StatusCodeOp = {
       id: 'test-1',
       op: OpType.STATUS_CODE_CHECK,
       operator: {cmp: ComparisonType.EQUALS},
@@ -393,14 +393,14 @@ describe('normalizeAssertion', () => {
   });
 
   it('clamps status code values to valid HTTP range', () => {
-    const tooLow = {
+    const tooLow: StatusCodeOp = {
       id: 'test-1',
       op: OpType.STATUS_CODE_CHECK,
       operator: {cmp: ComparisonType.EQUALS},
       value: 50,
     };
 
-    const tooHigh = {
+    const tooHigh: StatusCodeOp = {
       id: 'test-2',
       op: OpType.STATUS_CODE_CHECK,
       operator: {cmp: ComparisonType.EQUALS},
@@ -412,7 +412,7 @@ describe('normalizeAssertion', () => {
   });
 
   it('preserves valid status code values', () => {
-    const valid = {
+    const valid: StatusCodeOp = {
       id: 'test-1',
       op: OpType.STATUS_CODE_CHECK,
       operator: {cmp: ComparisonType.EQUALS},
@@ -423,7 +423,7 @@ describe('normalizeAssertion', () => {
   });
 
   it('recursively normalizes nested assertions in and/or groups', () => {
-    const nested = {
+    const nested: AndOp = {
       id: 'group-1',
       op: OpType.AND,
       children: [

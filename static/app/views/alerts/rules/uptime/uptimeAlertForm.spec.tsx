@@ -16,7 +16,11 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {ComparisonType, OpType} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  ComparisonType,
+  OpType,
+  type Assertion,
+} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 
 describe('Uptime Alert Form', () => {
@@ -504,7 +508,7 @@ describe('Uptime Alert Form', () => {
     });
     OrganizationStore.onUpdate(orgWithAssertions);
 
-    const assertion = {
+    const assertion: Assertion = {
       root: {
         op: OpType.AND,
         children: [
@@ -719,7 +723,7 @@ describe('Uptime Alert Form', () => {
     });
     OrganizationStore.onUpdate(orgWithoutAssertions);
 
-    const existingAssertion = {
+    const existingAssertion: Assertion = {
       root: {
         op: OpType.AND,
         children: [
