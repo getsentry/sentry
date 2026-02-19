@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
@@ -38,6 +39,7 @@ interface Props {
   aggregate: string;
   eventTypes: EventTypes[];
   onChange: (value: string, meta: Record<string, any>) => void;
+  project?: Project;
 }
 
 const SUPPORTED_MULTI_PARAM_AGGREGATES = [
@@ -69,11 +71,7 @@ const LOG_OPERATIONS = [
   value: aggregate as OurLogsAggregate,
 })) satisfies Array<{label: string; value: OurLogsAggregate}>;
 
-function EAPFieldWrapper({aggregate, onChange, eventTypes}: Props) {
-  return <EAPField aggregate={aggregate} onChange={onChange} eventTypes={eventTypes} />;
-}
-
-function EAPField({aggregate, onChange, eventTypes}: Props) {
+export default function EAPField({aggregate, onChange, eventTypes, project}: Props) {
   const traceItemType =
     getTraceItemTypeForDatasetAndEventType(
       Dataset.EVENTS_ANALYTICS_PLATFORM,
@@ -85,8 +83,8 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
   };
 
   const traceItemAttributeConfig = useMemo(
-    () => ({traceItemType, enabled: true}),
-    [traceItemType]
+    () => ({traceItemType, enabled: true, projects: project ? [project] : undefined}),
+    [traceItemType, project]
   );
 
   const {attributes: storedNumberTags} = useTraceItemAttributes(
@@ -321,8 +319,6 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
     </Flex>
   );
 }
-
-export default EAPFieldWrapper;
 
 const FlexWrapper = styled('div')`
   flex: 1;
