@@ -433,6 +433,30 @@ class WorkflowRuleSerializerTest(TestCase):
         )
         self.assert_equal_serializers(rule)
 
+    def test_msteams_action(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = self.create_integration(
+                organization=self.organization,
+                name="My Team",
+                provider="msteams",
+                external_id="msteams:1",
+                metadata={"installation_type": "team"},
+            )
+        action_data = {
+            "team": self.integration.id,
+            "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+            "channel_id": "19:abc123@thread.tacv2",
+            "channel": "General",
+        }
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
     def test_opsgenie_action(self) -> None:
         team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
         with assume_test_silo_mode(SiloMode.CONTROL):
