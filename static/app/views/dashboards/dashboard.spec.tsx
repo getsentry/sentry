@@ -460,9 +460,9 @@ describe('Dashboards > Dashboard', () => {
       groups: [],
     };
 
-    // useChartInterval computes the active interval from PageFiltersStore's
-    // datetime selection. FiltersBar uses the same hook, so clicking a new
-    // option updates both the URL and widgetInterval together.
+    // Mirrors DashboardDetailWithInjectedProps: useChartInterval always provides
+    // the validated interval for the current period, keeping the FiltersBar
+    // dropdown and widget requests in sync.
     // Accepts an optional dashboard prop so tests can supply a different period.
     function DashboardWithIntervalSelector({
       dashboard = dashboardWithWidget,

@@ -8,7 +8,6 @@ import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import {createParser, useQueryState} from 'nuqs';
 
 import {
   createDashboard,
@@ -1382,11 +1381,6 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-// 'auto' means "let widgets decide their own interval"; treat it as absent.
-const parseIntervalParam = createParser({
-  parse: (value: string): string | null => (value === 'auto' ? null : value),
-  serialize: (value: string) => value,
-});
 
 interface DashboardDetailWithInjectedPropsProps extends Omit<
   Props,
@@ -1412,16 +1406,15 @@ export default function DashboardDetailWithInjectedProps(
   const params = useParams<RouteParams>();
   const router = useRouter();
   const [chartInterval] = useChartInterval();
-  const [intervalParam] = useQueryState('interval', parseIntervalParam);
 
-  // Validate the URL interval against the current page filter period so widgets
-  // never make requests with an interval that is too granular (e.g. 1m over 30d).
-  // intervalParam is null when absent or 'auto' (both mean "let widgets decide").
-  const validatedWidgetInterval =
-    organization.features.includes('dashboards-interval-selection') &&
-    intervalParam !== null
-      ? chartInterval
-      : undefined;
+  // Always use the validated chart interval so the UI dropdown and widget
+  // requests stay in sync. chartInterval is validated against the current page
+  // filter period (e.g. won't return 1m for a 30d range) and always has a value.
+  const validatedWidgetInterval = organization.features.includes(
+    'dashboards-interval-selection'
+  )
+    ? chartInterval
+    : undefined;
 
   return (
     <DashboardDetail
