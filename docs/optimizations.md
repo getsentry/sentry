@@ -1045,3 +1045,88 @@ Wall clock improved −5s (now T2-dominated at 10m3s). Runner-minutes dropped �
 **T1 spread narrowed dramatically** (83s → 40s): the 5 T1 shards ran from 8m52s to 9m32s instead of 8m45s to 10m8s. This indicates the Unix socket makes postgres response times more consistent, reducing shard imbalance.
 
 **Conclusion:** Unix domain socket provides a real T1 benefit (~36s max reduction) and saves runner-minutes. The implementation is pure workflow + 2-line sentry.py change — no sentry-shared-postgres modification required. Worth landing on the clean branch. The T2 wall clock is now the bottleneck at ~10m3s.
+
+---
+
+## Experiment: T1 n=5 xdist workers
+
+**Hypothesis:** T1 uses `-n 4` on a 4-CPU runner. At n=4, vmstat shows T1 run queue 3.3–3.8 (22% idle). Adding a 5th worker might fill the remaining idle time since T1 tests are largely I/O-bound (postgres round-trips), allowing workers to yield the CPU while waiting.
+
+**Config:** Branch `mchen/t1-n5` (run [`22204042209`](https://github.com/getsentry/sentry/actions/runs/22204042209)). T1 `-n 5`, T2 `-n 3`, pg-socket applied on T1 (same as clean branch).
+
+**Results:**
+
+| Metric         | pg-socket baseline (run `22204003661`) | T1 n=5 (run `22204042209`) | Delta  |
+| -------------- | -------------------------------------- | -------------------------- | ------ |
+| T1 max         | 10m8s                                  | **10m9s**                  | +1s    |
+| T1 spread      | 40s                                    | —                          | ~same  |
+| T2 max         | 9m39s                                  | 9m59s                      | +20s   |
+| **Wall clock** | **10m8s**                              | **10m9s**                  | **~0** |
+| Runner-min     | ~196m                                  | ~196m                      | ~0     |
+
+**Analysis:** No improvement. A 5th worker on a 4-CPU runner doesn't reduce wall clock because the 4 existing workers already saturate available compute. Even though T1 tests are I/O-bound, the OS scheduler handles preemption efficiently — 5 workers competing for 4 CPUs adds context-switch overhead that offsets any additional concurrency gains. The 22% CPU idle in vmstat is consumed by OS scheduling and postgres process work, not available for extra pytest workers.
+
+**Conclusion:** n=4 is optimal for T1 on a 4-CPU runner. n=5 provides no benefit.
+
+---
+
+## Experiment: Cumulative pg-socket + ClickHouse max_threads=2
+
+**Hypothesis:** Combining both confirmed optimizations (pg-socket from `mchen/pg-socket`, CH cap from `mchen/clickhouse-maxthreads`) should stack: −36s from pg-socket on T1, −9s from CH cap on T2. Expected wall clock: ~9m30s.
+
+**Config:** Branch `mchen/cumulative-opts` (run [`22204046073`](https://github.com/getsentry/sentry/actions/runs/22204046073)). Both T1 postgres socket restart and T2 `ALTER USER default SETTINGS max_threads = 2` applied.
+
+**Results:**
+
+| Metric         | pg-socket-only baseline (run `22204003661`) | pg-socket + CH cap (run `22204046073`) | Delta            |
+| -------------- | ------------------------------------------- | -------------------------------------- | ---------------- |
+| T1 max         | 10m8s                                       | **9m25s**                              | **−43s**         |
+| T2 max         | 9m39s                                       | **10m23s**                             | **+44s (worse)** |
+| **Wall clock** | **10m8s**                                   | **10m23s**                             | **+15s (+2.5%)** |
+| Runner-min     | ~196m                                       | ~200m                                  | +4m              |
+
+**Analysis:** T1 improved further (−43s vs −36s from socket alone) — additional single-run variance benefit. However, T2 regressed by +44s vs the pg-socket-only baseline. The CH cap at max_threads=2 appears to slow Snuba HTTP query responses enough to hurt T2 test throughput. The CPU headroom gained from capping ClickHouse doesn't offset the slower Snuba response times when pg-socket is already reducing postgres overhead.
+
+This might be single-run variance, but the directionality is consistent with the theory: CH cap is most beneficial when T2 is CPU-constrained by ClickHouse competing with pytest. If postgres is no longer a significant CPU consumer (due to socket overhead reduction), CH cap provides less benefit while still slowing queries.
+
+**Conclusion:** The two optimizations don't stack positively. CH max_threads=2 should not be combined with pg-socket. The pg-socket improvement stands on its own; CH cap is marginal and counterproductive in combination.
+
+---
+
+## Experiment: postgres synchronous_commit=off (warm venv cache re-run)
+
+**Motivation:** The initial `pg-sync-commit` run (`22203204826`) was confounded by a cold venv cache (new branch, no cache inheritance). A warm-cache re-run should give a cleaner signal.
+
+**Config:** Branch `mchen/pg-sync-commit` (run [`22203981251`](https://github.com/getsentry/sentry/actions/runs/22203981251)). Triggered by pushing an empty commit to warm up the cache from the previous run.
+
+**Results:**
+
+| Metric         | New baseline (run `22203192423`) | pg-sync-commit warm (run `22203981251`) | Delta                         |
+| -------------- | -------------------------------- | --------------------------------------- | ----------------------------- |
+| T1 max         | 10m8s                            | **12m17s** (shard 0 outlier)            | +2m9s (slow runner)           |
+| T2 max         | 9m59s                            | **10m18s**                              | +19s                          |
+| **Wall clock** | **10m8s**                        | **12m17s**                              | **+2m9s (outlier-dominated)** |
+
+**Analysis:** Shard T1(0) hit 12m17s — a clear slow-runner outlier (GitHub Actions occasionally assigns underpowered runners). This invalidates the wall-clock comparison. T2 at 10m18s is within the variance range of the baseline (9m59s ± 30–60s typical). No clear signal either way — the outlier consumed any useful signal.
+
+**Conclusion:** `synchronous_commit=off` shows no measurable benefit in two attempted runs. The commit overhead is not the limiting factor in this workload (most time is in query execution + round-trip latency, not WAL sync). Not worth retesting.
+
+---
+
+## Experiment: LPT-balanced T2 sharding by test count
+
+**Hypothesis:** The current tier2 sharding uses `sha256(nodeid) % 17` (roundrobin) which distributes individual tests uniformly but ignores per-file test density. A file with 200 tests lands entirely on one shard and dominates its load. Using Longest Processing Time (LPT) bin packing by test count per file should reduce the worst-shard time.
+
+**Implementation:**
+
+- `split-tests-by-tier.py` extended with `--shards N --output-dir DIR` flags and LPT algorithm weighted by test count.
+- The split-tiers job now produces per-shard files (`/tmp/tier2-shards/shard-{i}.txt`) instead of a single `tier2-tests.txt`.
+- Each T2 matrix instance reads its pre-assigned file; `TOTAL_TEST_GROUPS=1` / `TEST_GROUP=0` override disables the hash-based second filter in `pytest_collection_modifyitems`.
+
+**Run status:** Run [`22204128092`](https://github.com/getsentry/sentry/actions/runs/22204128092) **FAILED** due to an echo statement in the T2 run step still referencing `/tmp/tier2-tests.txt` (the old single file path, replaced by per-shard files). The `wc -l` call on the non-existent file caused all 17 T2 jobs to fail with "No such file or directory" before pytest even started.
+
+Additionally, the first shard results that did run showed extreme imbalance — test count is a poor proxy for actual duration. T2(3) hit 17m9s while T2(7) hit 13m38s, compared to a baseline spread of ~90–130s. Heavy integration test files (slow per test) concentrated on certain shards while light files concentrated on others.
+
+**Echo bug fix:** Corrected the echo statement from `wc -l < /tmp/tier2-tests.txt` to `wc -l < /tmp/tier2-shards/shard-${{ matrix.instance }}.txt`. Re-run triggered on commit `1783d438350` (run [`22204823884`](https://github.com/getsentry/sentry/actions/runs/22204823884), in progress at time of writing).
+
+**Conclusion (preliminary):** Test count is a poor proxy for test duration. The LPT approach is architecturally sound but requires actual per-file duration data (available from GCS-stored `pytest.json` artifacts via the `collect-test-data` action) to be useful. A follow-up using historical durations should show genuine improvement. The fixed re-run will confirm whether the echo bug was the sole cause of failure.
