@@ -433,6 +433,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-on-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Workflows in Slack
     manager.add("organizations:seer-slack-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Additionally allow users with `autofix-on-explorer` flags to use this feature.
+    manager.add("organizations:seer-slack-workflows-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new compact issue alert UI in Slack
     manager.add("organizations:slack-compact-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer in Slack via @mentions
