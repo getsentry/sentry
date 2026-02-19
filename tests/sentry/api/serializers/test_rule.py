@@ -422,7 +422,8 @@ class WorkflowRuleSerializerTest(TestCase):
             "workspace": self.integration.id,
             "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
             "channel_id": "C0123456789",
-            "tags": "",
+            "tags": "hellboy, meow",
+            "notes": "this is a note",
             "channel": "test-notifications",
         }
         rule = self.create_project_rule(

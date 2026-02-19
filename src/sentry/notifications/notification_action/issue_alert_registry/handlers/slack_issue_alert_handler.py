@@ -33,7 +33,9 @@ class SlackIssueAlertHandler(BaseIssueAlertHandler):
         label = f"Send a notification to the {workspace} Slack workspace to #{channel}"
         has_tags = True if blob["tags"] != "" else False
         if has_tags:
-            formatted_tags = "[{}]".format(", ".join(blob["tags"]))
+            formatted_tags = "[{}]".format(
+                ", ".join(tag.strip() for tag in blob["tags"].split(","))
+            )
             label += f" and show tags {formatted_tags}"
 
         notes = blob["notes"]

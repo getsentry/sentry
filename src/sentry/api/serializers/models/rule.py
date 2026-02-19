@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
-from django.db.models import Max, Prefetch, Q, Subquery, prefetch_related_objects
+from django.db.models import Max, Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
@@ -25,7 +25,6 @@ from sentry.workflow_engine.models import (
     AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
-    DataConditionGroupAction,
     Workflow,
     WorkflowDataConditionGroup,
 )
@@ -411,10 +410,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         return None
 
     def _fetch_actions(self, condition_group: DataConditionGroup) -> BaseQuerySet[Action]:
-        dcgas = DataConditionGroupAction.objects.filter(
-            condition_group=condition_group
-        ).values_list("action_id", flat=True)
-        return Action.objects.filter(id__in=Subquery(dcgas))
+        return Action.objects.filter(dataconditiongroupaction__condition_group=condition_group)
 
     def _generate_rule_conditions_filters(
         self, workflow: Workflow, project: Project, workflow_dcg: WorkflowDataConditionGroup
@@ -510,8 +506,10 @@ class WorkflowEngineRuleSerializer(Serializer):
                 ):
                     action_data["targetIdentifier"] = ""
 
-                # XXX: manually remove notes which would only apply to legacy metric alerts or single written alerts
-                action_data.pop("notes", None)
+                # XXX: remove notes unless it actually has content
+                if action.data.get("notes") == "":
+                    action_data.pop("notes")
+
                 serialized_actions.append(action_data)
 
             # Generate conditions and filters
