@@ -43,7 +43,7 @@ type TypedTraceItemAttributesResult = TypedTraceItemAttributes &
 
 type TraceItemAttributeType = 'number' | 'string' | 'boolean';
 
-export type TraceItemAttributeResult = {
+type TraceItemAttributeResult = {
   attributes: TagCollection;
   isLoading: boolean;
   secondaryAliases: TagCollection;
@@ -53,7 +53,7 @@ const TraceItemAttributeContext = createContext<
   TypedTraceItemAttributesResult | undefined
 >(undefined);
 
-export type TraceItemAttributeConfig = {
+type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
   projects?: Project[];
