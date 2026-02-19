@@ -9,7 +9,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Placeholder from 'sentry/components/placeholder';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import GridEditable from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -81,18 +81,18 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
     <GridEditable
       emptyMessage={t('No matching uptime checks found')}
       data={uptimeChecks}
+      fit="max-content"
       columnOrder={[
-        {key: 'traceItemId', width: 100, name: t('ID')},
-        {key: 'timestamp', width: 150, name: t('Timestamp')},
-        {key: 'checkStatus', width: 230, name: t('Status')},
-        {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
-        {key: 'durationMs', width: 100, name: t('Duration')},
-        {key: 'regionName', width: 190, name: t('Region')},
-        {key: 'traceId', width: 100, name: t('Trace')},
+        {key: 'traceItemId', width: 95, name: t('ID')},
+        {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
+        {key: 'checkStatus', width: COL_WIDTH_UNDEFINED, name: t('Status')},
+        {key: 'httpStatusCode', width: COL_WIDTH_UNDEFINED, name: t('HTTP Code')},
+        {key: 'durationMs', width: COL_WIDTH_UNDEFINED, name: t('Duration')},
+        {key: 'regionName', width: COL_WIDTH_UNDEFINED, name: t('Region')},
+        {key: 'traceId', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
       ]}
       columnSortBy={[]}
       grid={{
-        renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
             column={column as GridColumnOrder<ColumnKey>}
@@ -217,7 +217,7 @@ function CheckInBodyCell({
 
       const badge =
         totalSpanCount === undefined ? (
-          <Placeholder height="20px" width="70px" />
+          <Placeholder height="20px" width="60px" />
         ) : hasOnlySystemSpans ? (
           <Tooltip
             isHoverable
@@ -295,9 +295,7 @@ const TimeCell = styled(Cell)`
 `;
 
 const TraceCell = styled(Cell)`
-  display: grid;
-  grid-template-columns: 65px max-content;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 const StatusCell = styled(Cell)<{color: string}>`
