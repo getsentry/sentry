@@ -180,10 +180,8 @@ class ItemHelpersTest(TestCase):
         )
         result = encode_attributes(event, event_data)
 
-        # "tags" field itself gets encoded as a non-scalar value in the loop
-        # Then tags are processed separately, but empty list adds no tag attributes
-        assert len(result) == 2
-        assert result["tags"] == AnyValue(array_value=ArrayValue(values=[]))
+        assert len(result) == 1
+        assert "tag_keys" in result
 
     def test_encode_attributes_with_complex_types(self) -> None:
         event_data = {

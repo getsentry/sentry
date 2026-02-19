@@ -43,38 +43,53 @@ def serialize_event_data_as_item(
 def encode_attributes(
     event: Event | GroupEvent, event_data: Mapping[str, Any], ignore_fields: set[str] | None = None
 ) -> Mapping[str, AnyValue]:
-    attributes = {}
-    ignore_fields = ignore_fields or set()
-
-    for key, value in event_data.items():
-        if key in ignore_fields:
-            continue
-        if value is None:
-            continue
-        attributes[key] = encode_value(value)
-
-    if event.group_id:
-        attributes["group_id"] = AnyValue(int_value=event.group_id)
-
-    tag_keys = set()
-    tags = event_data.get("tags")
-    if tags is not None:
-        for tag in tags:
+    tags_dict: dict[str, str] = {}
+    raw_tags = event_data.get("tags")
+    if raw_tags is not None:
+        for tag in raw_tags:
             if tag is None:
                 continue
             key, value = tag
             if value is None:
                 continue
-            formatted_key = f"tags[{key}]"
-            attributes[formatted_key] = encode_value(value)
-            tag_keys.add(formatted_key)
+            tags_dict[key] = value
 
-    attributes["tag_keys"] = encode_value(sorted(tag_keys))
+    all_ignore = (ignore_fields or set()) | {"tags"}
+    attributes = build_occurrence_attributes(event_data, tags=tags_dict, ignore_fields=all_ignore)
+
+    if event.group_id:
+        attributes["group_id"] = AnyValue(int_value=event.group_id)
 
     return attributes
 
 
-def encode_value(value: Any, _depth: int = 0) -> AnyValue:
+def build_occurrence_attributes(
+    data: Mapping[str, Any],
+    tags: Mapping[str, str] | None = None,
+    ignore_fields: set[str] | None = None,
+) -> dict[str, AnyValue]:
+    attributes: dict[str, AnyValue] = {}
+    ignore = ignore_fields or set()
+
+    for key, value in data.items():
+        if key in ignore:
+            continue
+        if value is None:
+            continue
+        attributes[key] = _encode_value(value)
+
+    tag_keys: list[str] = []
+    if tags:
+        for key, value in tags.items():
+            formatted_key = f"tags[{key}]"
+            attributes[formatted_key] = _encode_value(value)
+            tag_keys.append(formatted_key)
+    attributes["tag_keys"] = _encode_value(sorted(tag_keys))
+
+    return attributes
+
+
+def _encode_value(value: Any, _depth: int = 0) -> AnyValue:
     if _depth > _ENCODE_MAX_DEPTH:
         # Beyond max depth, stringify to prevent protobuf nesting limit errors.
         return AnyValue(string_value=json.dumps(value))
@@ -96,7 +111,7 @@ def encode_value(value: Any, _depth: int = 0) -> AnyValue:
         # Not yet processed on EAP side
         return AnyValue(
             array_value=ArrayValue(
-                values=[encode_value(v, _depth + 1) for v in value if v is not None]
+                values=[_encode_value(v, _depth + 1) for v in value if v is not None]
             )
         )
     elif isinstance(value, dict):
@@ -104,7 +119,7 @@ def encode_value(value: Any, _depth: int = 0) -> AnyValue:
         return AnyValue(
             kvlist_value=KeyValueList(
                 values=[
-                    KeyValue(key=str(kv[0]), value=encode_value(kv[1], _depth + 1))
+                    KeyValue(key=str(kv[0]), value=_encode_value(kv[1], _depth + 1))
                     for kv in value.items()
                     if kv[1] is not None
                 ]

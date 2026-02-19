@@ -82,7 +82,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
-from sentry.eventstream.item_helpers import encode_value
+from sentry.eventstream.item_helpers import build_occurrence_attributes
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
@@ -3542,36 +3542,21 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         timestamp_proto = Timestamp()
         timestamp_proto.FromDatetime(timestamp)
 
-        # Build attributes using the internal names that EAP stores
-        occurrence_attributes: dict[str, Any] = {
+        data: dict[str, Any] = {
             "level": level,
             "title": title,
             "type": occurrence_type,
         }
         if group_id is not None:
-            occurrence_attributes["group_id"] = group_id
+            data["group_id"] = group_id
         if environment is not None:
-            occurrence_attributes["environment"] = environment
+            data["environment"] = environment
         if transaction is not None:
-            occurrence_attributes["transaction"] = transaction
-
-        attributes_proto: dict[str, AnyValue] = {
-            k: encode_value(v) for k, v in occurrence_attributes.items()
-        }
-
-        # Encode tags as tags[key] attributes with a tag_keys array
-        tag_key_names: list[str] = []
-        if tags:
-            for key, value in tags.items():
-                formatted_key = f"tags[{key}]"
-                attributes_proto[formatted_key] = encode_value(value)
-                tag_key_names.append(formatted_key)
-        attributes_proto["tag_keys"] = encode_value(sorted(tag_key_names))
-
-        # Merge any extra attributes
+            data["transaction"] = transaction
         if attributes:
-            for k, v in attributes.items():
-                attributes_proto[k] = encode_value(v)
+            data.update(attributes)
+
+        attributes_proto = build_occurrence_attributes(data, tags=tags)
 
         return TraceItem(
             organization_id=organization.id,
