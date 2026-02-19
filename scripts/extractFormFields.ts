@@ -4,7 +4,7 @@
  * Static analysis script to extract form field definitions from useScrapsForm usage
  * Parses TypeScript/TSX files to find <form.AppField> components and extract metadata
  */
-import {execSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -411,7 +411,7 @@ ${registryEntries}
 `;
 
   fs.writeFileSync(outputPath, registryContent, 'utf-8');
-  execSync('pnpm', ['prettier', '--write', outputPath], {stdio: 'ignore'});
+  execFileSync('pnpm', ['prettier', '--write', outputPath], {stdio: 'ignore'});
   console.log(`✅ Generated ${dedupedFields.length} field definitions in ${outputPath}`);
 }
 
