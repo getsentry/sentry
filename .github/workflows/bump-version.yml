@@ -66,10 +66,11 @@ jobs:
 
           git push origin HEAD --quiet
 
-          gh pr create --fill ${{ inputs.pr_options }}
+          gh pr create --fill "$PR_OPTIONS"
         env:
           GH_TOKEN: ${{ secrets.BUMP_SENTRY_TOKEN }}
           PACKAGE: ${{ inputs.package }}
           VERSION: ${{ inputs.version }}
+          PR_OPTIONS: ${{ inputs.pr_options }}
           SENDER: ${{ github.event.sender.login }}
           SENDER_ID: ${{ github.event.sender.id }}
