@@ -21,7 +21,6 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.workflow_engine.models.action import Action
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -130,7 +129,6 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.installation2.sentry_app_id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
