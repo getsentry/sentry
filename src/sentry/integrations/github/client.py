@@ -334,9 +334,6 @@ class GitHubBaseClient(
         """
         See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
-
-        GitHub's compare endpoint returns at most 250 commits per page.
-        We paginate to fetch all commits in the range.
         """
         return self._get_with_pagination(
             f"/repos/{repo}/compare/{start_sha}...{end_sha}",
