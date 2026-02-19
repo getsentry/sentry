@@ -216,10 +216,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
             <LegendCheckbox
               color={item.color}
               checked={selected[item.name] !== false}
-              onChange={e => {
-                e.stopPropagation();
-                toggleItem(item.name);
-              }}
+              onChange={() => {}}
               aria-label={item.label}
             />
 
