@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -251,7 +250,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
     organization.features.includes('data-secrecy') && !isSelfHosted;
 
   return (
-    <Fragment>
+    <div data-test-id="organization-settings-security-and-privacy">
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
       <SettingsPageHeader title={title} />
 
@@ -531,6 +530,6 @@ export default function OrganizationSecurityAndPrivacyContent() {
         disabled={disabled}
         onSubmitSuccess={data => handleUpdateOrganization({...organization, ...data})}
       />
-    </Fragment>
+    </div>
   );
 }
