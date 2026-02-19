@@ -20,7 +20,8 @@ export function LegendCheckbox({
   'aria-label': ariaLabel,
 }: LegendCheckboxProps) {
   const theme = useTheme();
-  const needsBorder = !checked || blendsIntoBackground(color, theme.type === 'dark');
+  const colorBlendsIn = blendsIntoBackground(color, theme.type === 'dark');
+  const needsBorder = !checked || colorBlendsIn;
 
   return (
     <Flex
@@ -53,7 +54,12 @@ export function LegendCheckbox({
         aria-hidden
       >
         {checked && (
-          <CheckIcon viewBox="0 0 7 7">
+          <CheckIcon
+            viewBox="0 0 7 7"
+            style={{
+              stroke: colorBlendsIn ? theme.tokens.graphics.neutral.vibrant : 'white',
+            }}
+          >
             <path d="M0.75 3.85639C1.59868 4.70507 2.94787 6.0325 2.92611 6.0325L6.0325 0.75" />
           </CheckIcon>
         )}
@@ -98,7 +104,6 @@ const CheckIcon = styled('svg')`
   width: ${ICON_SIZE};
   height: ${ICON_SIZE};
   fill: none;
-  stroke: white;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.5px;
