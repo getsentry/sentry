@@ -5,6 +5,7 @@ import {DSN_PATTERN} from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
 import {IconIssues, IconList, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,7 +17,9 @@ export function useDsnLookupActions(query: string): CommandPaletteActionWithKey[
 
   const {data} = useApiQuery<DsnLookupResponse>(
     [
-      `/organizations/${organization?.slug ?? ''}/dsn-lookup/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/dsn-lookup/', {
+        path: {organizationIdOrSlug: organization?.slug ?? ''},
+      }),
       {query: {dsn: debouncedQuery}},
     ],
     {
