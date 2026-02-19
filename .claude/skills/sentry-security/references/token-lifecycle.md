@@ -47,13 +47,13 @@ OAuth applications with org-level access did not require `organization_id`, allo
 
 ### Member disabled states in Sentry
 
-| State                 | Field / Flag                                          | Can log in? | Reachable in OAuth? | Where enforced                                                                     |
-| --------------------- | ----------------------------------------------------- | ----------- | ------------------- | ---------------------------------------------------------------------------------- |
-| Account deactivated   | `OrganizationMember.user_is_active=False`             | No          | No — login blocked  | Login flow                                                                         |
-| Pending invitation    | `OrganizationMember.is_pending`                       | No          | No — requires login | Login flow                                                                         |
-| Seat-limit restricted | `OrganizationMember.flags["member-limit:restricted"]` | **Yes**     | **Yes**             | `determine_access()` via `is_member_disabled_from_limit()` in `api/permissions.py` |
+| State                 | Field / Flag                                          | Can log in? | Reachable in OAuth? | Where enforced                                                                    |
+| --------------------- | ----------------------------------------------------- | ----------- | ------------------- | --------------------------------------------------------------------------------- |
+| Account deactivated   | `OrganizationMember.user_is_active=False`             | No          | No — login blocked  | Login flow                                                                        |
+| Pending invitation    | `OrganizationMember.is_pending`                       | No          | No — requires login | Login flow                                                                        |
+| Seat-limit restricted | `OrganizationMember.flags["member-limit:restricted"]` | **Yes**     | **Yes**             | `OrganizationPermission.determine_access()` via `is_member_disabled_from_limit()` |
 
-The seat-limit restricted state is the one that matters for OAuth and token issuance reviews. The user can still log in and complete an OAuth flow, but all DRF API endpoints block the resulting token via `is_member_disabled_from_limit()`.
+The seat-limit restricted state is the one that matters for OAuth and token issuance reviews. The user can still log in and complete an OAuth flow, but all organization-scoped DRF endpoints block the resulting token via `is_member_disabled_from_limit()` in `OrganizationPermission`.
 
 ### Real vulnerability: Disabled member tokens (PR #92616)
 
@@ -94,7 +94,7 @@ Impersonated sessions (staff acting as a user) had no rate limiting, allowing un
 □ Token issuance/refresh endpoints for org-scoped tokens require and validate organization_id
   (authentication classes reading existing tokens are exempt — org scoping is enforced by from_rpc_auth())
 □ Member active status is checked before token issuance
-  If missing at issuance but enforced at usage via is_member_disabled_from_limit() in base SentryPermission → LOW (centralized, do not report)
+  If missing at issuance but enforced at usage via is_member_disabled_from_limit() in OrganizationPermission → LOW (centralized, do not report)
   If enforced only in specific endpoint subclasses → MEDIUM
 □ Auth method is appropriate for the operation (org token vs personal token)
 □ Impersonated sessions are rate-limited
