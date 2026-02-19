@@ -293,23 +293,14 @@ function keySupportsWildcard(fieldDefinition: FieldDefinition | null) {
 
 function useSelectionIndex({
   inputRef,
-  inputValue,
-  canSelectMultipleValues,
+  initialLength,
 }: {
-  canSelectMultipleValues: boolean;
+  initialLength: number;
   inputRef: React.RefObject<HTMLInputElement | null>;
-  inputValue: string;
 }) {
   const [selectionIndex, setSelectionIndex] = useState<number | null>(
-    () => inputValue.length
+    () => initialLength
   );
-
-  useEffect(() => {
-    if (canSelectMultipleValues) {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setSelectionIndex(inputValue.length);
-    }
-  }, [canSelectMultipleValues, inputValue]);
 
   const updateSelectionIndex = useCallback(() => {
     if (inputRef.current?.selectionStart === inputRef.current?.selectionEnd) {
@@ -321,6 +312,7 @@ function useSelectionIndex({
 
   return {
     selectionIndex,
+    setSelectionIndex,
     updateSelectionIndex,
   };
 }
@@ -439,41 +431,92 @@ function useFilterSuggestions({
     return [{sectionText: '', suggestions: suggestions ?? []}];
   }, [data, predefinedValues, shouldFetchValues, key?.key]);
 
-  // Grouped sections for rendering purposes
+  // Track suggestion groups identity to detect when a fresh sort is needed
+  // (e.g. combobox reopened, filter key changed, or new data fetched)
+  const prevSuggestionGroupsRef = useRef<SuggestionSection[] | null>(null);
+  const frozenOrderRef = useRef<Array<{sectionText: string; values: string[]}> | null>(
+    null
+  );
+
+  if (prevSuggestionGroupsRef.current !== suggestionGroups) {
+    prevSuggestionGroupsRef.current = suggestionGroups;
+    frozenOrderRef.current = null;
+  }
+
+  // Grouped sections for rendering purposes.
+  // Uses two paths:
+  //   Path A (fresh open): sorts selected items to the top, then freezes the order.
+  //   Path B (subsequent toggles): preserves frozen order, only updates checkbox states.
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
-    const itemsWithoutSection = suggestionGroups
-      .filter(group => group.sectionText === '')
-      .flatMap(group => group.suggestions)
-      .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value));
-    const sections = suggestionGroups.filter(group => group.sectionText !== '');
+    const selectedValueMap = new Map(
+      selectedValues.map(v => [v.value, v.selected] as const)
+    );
+    const allSuggestions = new Map(
+      suggestionGroups.flatMap(group => group.suggestions.map(s => [s.value, s] as const))
+    );
 
-    return [
-      {
-        sectionText: '',
-        items: getItemsWithKeys([
-          ...selectedValues.map(value => {
-            const matchingSuggestion = suggestionGroups
-              .flatMap(group => group.suggestions)
-              .find(suggestion => suggestion.value === value.value);
+    if (!frozenOrderRef.current) {
+      // PATH A: Fresh open — sort selected items to top (original behavior)
+      const itemsWithoutSection = suggestionGroups
+        .filter(group => group.sectionText === '')
+        .flatMap(group => group.suggestions)
+        .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value));
+      const sections = suggestionGroups.filter(group => group.sectionText !== '');
 
-            if (matchingSuggestion) {
-              return createItem(matchingSuggestion, value.selected);
-            }
+      const result: SuggestionSectionItem[] = [
+        {
+          sectionText: '',
+          items: getItemsWithKeys([
+            ...selectedValues.map(value => {
+              const matchingSuggestion = allSuggestions.get(value.value);
+              if (matchingSuggestion) {
+                return createItem(matchingSuggestion, value.selected);
+              }
+              return createItem({value: value.value}, value.selected);
+            }),
+            ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
+          ]),
+        },
+        ...sections.map(group => ({
+          sectionText: group.sectionText,
+          items: getItemsWithKeys(
+            group.suggestions
+              .filter(
+                suggestion => !selectedValues.some(v => v.value === suggestion.value)
+              )
+              .map(suggestion => createItem(suggestion))
+          ),
+        })),
+      ];
 
-            return createItem({value: value.value}, value.selected);
-          }),
-          ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
-        ]),
-      },
-      ...sections.map(group => ({
-        sectionText: group.sectionText,
-        items: getItemsWithKeys(
-          group.suggestions
-            .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value))
-            .map(suggestion => createItem(suggestion))
-        ),
-      })),
-    ];
+      // Freeze the item order for subsequent renders within this session
+      frozenOrderRef.current = result.map(section => ({
+        sectionText: section.sectionText,
+        values: section.items.map(item => item.value),
+      }));
+
+      return result;
+    }
+
+    // PATH B: Subsequent toggle — preserve frozen order, update checkbox states only
+    const frozenValues = new Set(frozenOrderRef.current.flatMap(s => s.values));
+    const newCustomValues = selectedValues.filter(
+      v => !frozenValues.has(v.value) && !allSuggestions.has(v.value)
+    );
+
+    return frozenOrderRef.current.map((section, i) => ({
+      sectionText: section.sectionText,
+      items: getItemsWithKeys([
+        ...(i === 0
+          ? newCustomValues.map(v => createItem({value: v.value}, v.selected))
+          : []),
+        ...section.values.map(value => {
+          const suggestion = allSuggestions.get(value) ?? {value};
+          const isSelected = selectedValueMap.get(value);
+          return createItem(suggestion, isSelected ?? false);
+        }),
+      ]),
+    }));
   }, [createItem, selectedValues, suggestionGroups]);
 
   // Flat list used for state management
@@ -577,10 +620,9 @@ export function SearchQueryBuilderValueCombobox({
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
-  const {selectionIndex, updateSelectionIndex} = useSelectionIndex({
+  const {selectionIndex, setSelectionIndex, updateSelectionIndex} = useSelectionIndex({
     inputRef,
-    inputValue,
-    canSelectMultipleValues,
+    initialLength: inputValue.length,
   });
 
   const [showDatePicker, setShowDatePicker] = useState(() => {
@@ -609,7 +651,12 @@ export function SearchQueryBuilderValueCombobox({
 
   useEffect(() => {
     if (canSelectMultipleValues) {
-      setInputValue(getMultiSelectInputValue(token));
+      const newInputValue = getMultiSelectInputValue(token);
+      // Batch both updates to avoid an intermediate render where
+      // selectionIndex is stale, which would cause filterValue to
+      // temporarily change and trigger item filtering flicker.
+      setInputValue(newInputValue);
+      setSelectionIndex(newInputValue.length);
     }
     // We want to avoid resetting the input value if the token text doesn't actually change
     // eslint-disable-next-line react-hooks/exhaustive-deps

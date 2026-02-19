@@ -2638,6 +2638,71 @@ describe('SearchQueryBuilder', () => {
         expect(within(valueButton).getAllByText('or')).toHaveLength(2);
       });
 
+      it('does not reorder items when toggling a selection', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const listbox = await screen.findByRole('listbox');
+        const initialOptions = within(listbox)
+          .getAllByRole('option')
+          .map(option => option.textContent);
+
+        // Toggle Chrome on via checkbox
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        // Wait for the value to be committed
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+
+        // Options should remain in the same order
+        const optionsAfterToggle = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
+      it('does not reorder items when deselecting a value', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[Chrome,Firefox]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const listbox = await screen.findByRole('listbox');
+        const initialOptions = within(listbox)
+          .getAllByRole('option')
+          .map(option => option.textContent);
+
+        // Deselect Chrome via checkbox
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        // Wait for the value to be committed
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:Firefox'})
+        ).toBeInTheDocument();
+
+        // Options should remain in the same order
+        const optionsAfterToggle = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
       it.each([
         ['spaces', 'a b', '"a b"'],
         ['quotes', 'a"b', '"a\\"b"'],
