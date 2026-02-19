@@ -38,7 +38,11 @@ from sentry.preprod.vcs.status_checks.size.templates import (
     format_no_quota_messages,
     format_status_check_messages,
 )
-from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
+from sentry.preprod.vcs.status_checks.size.types import (
+    RuleArtifactType,
+    StatusCheckRule,
+    TriggeredRule,
+)
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,
@@ -80,6 +84,57 @@ preprod_artifact_search_config = SearchConfig.create_from(
         "build_configuration_name",
     },
 )
+
+RULE_ARTIFACT_TYPE_TO_METRICS_ARTIFACT_TYPE = {
+    RuleArtifactType.MAIN_ARTIFACT: PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+    RuleArtifactType.WATCH_ARTIFACT: PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+    RuleArtifactType.ANDROID_DYNAMIC_FEATURE_ARTIFACT: PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+}
+
+
+def _get_candidate_metrics_for_rule(
+    rule: StatusCheckRule,
+    size_metrics_list: list[PreprodArtifactSizeMetrics],
+) -> list[PreprodArtifactSizeMetrics]:
+    """Return candidate metrics for a rule based on the rule's artifact type.
+
+    - MAIN/WATCH/DYNAMIC_FEATURE rules only evaluate matching metric types.
+    - ALL_ARTIFACTS evaluates all available metrics for the artifact.
+    - Returned metrics are sorted for ALL_ARTIFACTS for deterministic behavior.
+    """
+    resolved_artifact_type = rule.artifact_type or RuleArtifactType.MAIN_ARTIFACT
+
+    if resolved_artifact_type == RuleArtifactType.ALL_ARTIFACTS:
+        return sorted(
+            size_metrics_list,
+            key=lambda metric: (metric.metrics_artifact_type or 0, metric.identifier or ""),
+        )
+
+    target_metric_type = RULE_ARTIFACT_TYPE_TO_METRICS_ARTIFACT_TYPE.get(resolved_artifact_type)
+    if target_metric_type is None:
+        return []
+
+    return [m for m in size_metrics_list if m.metrics_artifact_type == target_metric_type]
+
+
+def _get_matching_base_metric(
+    base_metrics: list[PreprodArtifactSizeMetrics],
+    metric: PreprodArtifactSizeMetrics,
+) -> PreprodArtifactSizeMetrics | None:
+    """Find the base metric that corresponds to a head metric.
+
+    Matching requires both `metrics_artifact_type` and `identifier` to be equal
+    so main/watch/dynamic-feature values are compared against the correct peer.
+    """
+    return next(
+        (
+            base_metric
+            for base_metric in base_metrics
+            if base_metric.metrics_artifact_type == metric.metrics_artifact_type
+            and base_metric.identifier == metric.identifier
+        ),
+        None,
+    )
 
 
 @instrumented_task(
@@ -395,6 +450,10 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
 
             filter_query_raw = rule_dict.get("filterQuery", "")
             filter_query = str(filter_query_raw) if filter_query_raw is not None else ""
+            artifact_type = (
+                RuleArtifactType.from_raw(rule_dict.get("artifactType"))
+                or RuleArtifactType.MAIN_ARTIFACT
+            )
 
             rules.append(
                 StatusCheckRule(
@@ -403,6 +462,7 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
                     measurement=rule_dict["measurement"],
                     value=float(rule_dict["value"]),
                     filter_query=filter_query,
+                    artifact_type=artifact_type,
                 )
             )
         return rules
@@ -685,32 +745,20 @@ def _compute_overall_status(
                 context = _get_artifact_filter_context(artifact)
                 size_metrics_list = size_metrics_map.get(artifact.id, [])
 
-                main_metrics_list = [
-                    m
-                    for m in size_metrics_list
-                    if m.metrics_artifact_type
-                    == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
-                ]
-                main_metric = main_metrics_list[0] if main_metrics_list else None
-
-                # Rules only evaluate MAIN_ARTIFACT metrics
-                base_main_metric = None
+                base_metrics_list: list[PreprodArtifactSizeMetrics] = []
                 if base_artifact_map and base_metrics_by_artifact:
                     base_artifact = base_artifact_map.get(artifact.id)
                     if base_artifact:
-                        base_main_metric = next(
-                            (
-                                m
-                                for m in base_metrics_by_artifact.get(base_artifact.id, [])
-                                if m.metrics_artifact_type
-                                == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
-                            ),
-                            None,
-                        )
+                        base_metrics_list = base_metrics_by_artifact.get(base_artifact.id, [])
 
                 for rule in rules:
-                    if _rule_matches_artifact(rule, context):
-                        if _evaluate_rule_threshold(rule, main_metric, base_main_metric):
+                    if not _rule_matches_artifact(rule, context):
+                        continue
+
+                    candidate_metrics = _get_candidate_metrics_for_rule(rule, size_metrics_list)
+                    for candidate_metric in candidate_metrics:
+                        base_metric = _get_matching_base_metric(base_metrics_list, candidate_metric)
+                        if _evaluate_rule_threshold(rule, candidate_metric, base_metric):
                             logger.info(
                                 "preprod.status_checks.rule_triggered",
                                 extra={
@@ -719,6 +767,9 @@ def _compute_overall_status(
                                     "metric": rule.metric,
                                     "measurement": rule.measurement,
                                     "threshold": rule.value,
+                                    "rule_artifact_type": rule.artifact_type,
+                                    "metrics_artifact_type": candidate_metric.metrics_artifact_type,
+                                    "identifier": candidate_metric.identifier,
                                 },
                             )
                             triggered_rules.append(
@@ -727,6 +778,8 @@ def _compute_overall_status(
                                     artifact_id=artifact.id,
                                     app_id=artifact.app_id,
                                     platform=artifact.get_platform_label(),
+                                    metrics_artifact_type=candidate_metric.metrics_artifact_type,
+                                    identifier=candidate_metric.identifier,
                                 )
                             )
 

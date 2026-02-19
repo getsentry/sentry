@@ -21,7 +21,6 @@ from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
     SentryAppDataBlob,
-    SentryAppIdentifier,
     TicketDataBlob,
     TicketFieldMappingKeys,
     issue_alert_action_translator_mapping,
@@ -36,7 +35,6 @@ class TestNotificationActionMigrationUtils(TestCase):
     def assert_ticketing_action_data_blob(
         self, action: Action, compare_dict: dict[str, Any], exclude_keys: list[str]
     ) -> None:
-
         # Check dynamic_form_fields
         assert action.data.get(
             TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {}
@@ -1104,7 +1102,6 @@ class TestNotificationActionMigrationUtils(TestCase):
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
             assert action.config.get("target_identifier") == str(install.sentry_app.id)
-            assert action.config.get("sentry_app_identifier") == SentryAppIdentifier.SENTRY_APP_ID
 
     def test_dry_run_flag(self) -> None:
         """Test that the dry_run flag prevents database writes."""

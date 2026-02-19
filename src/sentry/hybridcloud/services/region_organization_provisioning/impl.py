@@ -48,9 +48,9 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         user_id: int | None = None,
         email: str | None = None,
     ) -> Organization:
-        assert (user_id is None and email) or (
-            user_id and email is None
-        ), "Must set either user_id or email"
+        assert (user_id is None and email) or (user_id and email is None), (
+            "Must set either user_id or email"
+        )
         truncated_name = organization_name[:ORGANIZATION_NAME_MAX_LENGTH]
         org = Organization.objects.create(
             id=organization_id, name=truncated_name, slug=slug, is_test=is_test

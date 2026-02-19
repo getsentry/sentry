@@ -903,11 +903,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features"})
-    @patch(
-        "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    def test_build_group_block_with_ai_summary(self, mock_get_seer_org_acknowledgement):
+    def test_build_group_block_with_ai_summary(self):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -966,13 +962,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features"})
-    @patch(
-        "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    def test_build_group_block_with_ai_summary_text_truncation(
-        self, mock_get_seer_org_acknowledgement
-    ):
+    def test_build_group_block_with_ai_summary_text_truncation(self):
         # Test case for multi-line exception text
         multiline_text = "First line of text\nSecond line of text\nThird line of text"
         event1 = self.store_event(
@@ -1107,38 +1097,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 title_block = blocks["blocks"][0]["text"]["text"]
                 assert f": {expected_headline_part}*>" in title_block, f"Failed for {name}"
 
-    @override_options({"alerts.issue_summary_timeout": 5})
-    @patch(
-        "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
-        return_value=False,
-    )
-    @patch(
-        "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary",
-        return_value=(None, 403),
-    )
-    @with_feature({"organizations:gen-ai-features"})
-    def test_build_group_block_with_ai_summary_without_org_acknowledgement(
-        self, mock_get_issue_summary, mock_get_seer_org_acknowledgement
-    ):
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "IntegrationError",
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
-        assert event.group
-        group = event.group
-        group.type = ErrorGroupType.type_id
-        group.save()
-        assert group.issue_category == GroupCategory.ERROR
-
-        mock_get_issue_summary.assert_not_called()
-
-        blocks = SlackIssuesMessageBuilder(group).build()
-        assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
-
     @with_feature("organizations:slack-compact-alerts")
     def test_compact_alerts_basic_layout(self) -> None:
         """
@@ -1179,11 +1137,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     @with_feature("organizations:slack-compact-alerts")
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features"})
-    @patch(
-        "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    def test_compact_alerts_with_ai_summary(self, mock_get_seer_org_acknowledgement) -> None:
+    def test_compact_alerts_with_ai_summary(self) -> None:
         """
         Test that with the slack-compact-alerts flag enabled and AI summary available:
         - Title uses build_attachment_title() (not AI headline)
@@ -1289,9 +1243,61 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                         found_old_suggested_assignees = True
 
         assert found_suggested_in_context, "Suggested assignees should be in context block"
-        assert (
-            not found_old_suggested_assignees
-        ), "Old 'Suggested Assignees:' format should not appear"
+        assert not found_old_suggested_assignees, (
+            "Old 'Suggested Assignees:' format should not appear"
+        )
+
+    def _has_autofix_button(self, blocks: dict[str, Any]) -> bool:
+        for block in blocks.get("blocks", []):
+            if block.get("type") == "actions":
+                for element in block.get("elements", []):
+                    action_id = element.get("action_id", "")
+                    if SlackAction.SEER_AUTOFIX_START.value in action_id:
+                        return True
+        return False
+
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-slack-workflows": True,
+        }
+    )
+    def test_autofix_button_shown_when_all_conditions_met(self, mock_quota: MagicMock) -> None:
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
+        group = self.create_group(project=self.project)
+        blocks = SlackIssuesMessageBuilder(group).build()
+        assert self._has_autofix_button(blocks)
+
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-slack-workflows": False,
+        }
+    )
+    def test_autofix_button_hidden_without_slack_workflows_flag(
+        self, mock_quota: MagicMock
+    ) -> None:
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
+        group = self.create_group(project=self.project)
+        blocks = SlackIssuesMessageBuilder(group).build()
+        assert not self._has_autofix_button(blocks)
+
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-slack-workflows": True,
+        }
+    )
+    def test_autofix_button_hidden_without_enhanced_alerts_option(
+        self, mock_quota: MagicMock
+    ) -> None:
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
+        group = self.create_group(project=self.project)
+        blocks = SlackIssuesMessageBuilder(group).build()
+        assert not self._has_autofix_button(blocks)
 
 
 class BuildGroupAttachmentReplaysTest(TestCase):

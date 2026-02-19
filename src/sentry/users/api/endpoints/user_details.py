@@ -24,6 +24,7 @@ from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -163,7 +164,8 @@ class BaseUserSerializer(CamelSnakeModelSerializer[User]):
             # Django throws an exception if `id` is `None`, which it will be when we're importing
             # new users via the relocation logic on the `User` model. So we cast `None` to `0` to
             # make Django happy here.
-            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0).exists()
+            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0)
+            .exists()
         ):
             raise serializers.ValidationError("That username is already in use.")
         return value
@@ -492,6 +494,8 @@ class UserDetailsEndpoint(UserEndpoint):
             )
         else:
             User.objects.filter(id=user.id).update(is_active=False)
+            for auth_identity in AuthIdentity.objects.filter(user_id=user.id):
+                auth_identity.delete()
             delete_logger.info("user.deactivate", extra=logging_data)
             record_user_deactivation(
                 user=user,

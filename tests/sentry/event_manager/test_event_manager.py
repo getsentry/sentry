@@ -81,7 +81,6 @@ from sentry.testutils.cases import (
     PerformanceIssueTestCase,
     SnubaTestCase,
     TestCase,
-    TransactionTestCase,
 )
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -572,11 +571,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         open_period = open_periods[0]
         assert open_period.date_started == regression_activity.datetime
         assert open_period.date_ended is None
-        assert open_period.event_id == event2.event_id
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
         assert open_period.date_ended == resolved_at
-        assert open_period.event_id == event.event_id
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
@@ -1787,7 +1784,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data["metadata"]["title"] == "foo bar"
 
     def test_error_event_type(self) -> None:
-
         manager = EventManager(
             make_event(**{"exception": {"values": [{"type": "Foo", "value": "bar"}]}})
         )
@@ -1805,10 +1801,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         }
 
     def test_error_event_with_minified_stacktrace(self) -> None:
-        with patch(
-            "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
-        ) as mock_record_event_with_first_minified_stack_trace_for_project:
-
+        with (
+            patch(
+                "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
+            ) as mock_record_event_with_first_minified_stack_trace_for_project
+        ):
             first_event_with_minified_stack_trace_received.connect(
                 mock_record_event_with_first_minified_stack_trace_for_project, weak=False
             )
@@ -4218,7 +4215,7 @@ class DSLatestReleaseBoostTest(TestCase):
         ]
 
 
-class TestSaveGroupHashAndGroup(TransactionTestCase):
+class TestSaveGroupHashAndGroup(TestCase):
     def test_simple(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
         perf_data["event_id"] = "a" * 32

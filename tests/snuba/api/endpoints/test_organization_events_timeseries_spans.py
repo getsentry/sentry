@@ -2562,3 +2562,56 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         # Verify the None release actually has the span with no release
         none_values = [v for v in time_series_by_release[None]["values"] if v["value"] > 0]
         assert len(none_values) > 0, "None release should have at least one data point"
+
+    def test_sort_by_equation_and_top_events(self) -> None:
+        # "foo" has 3 spans, "bar" has 1 span so foo should sort first with -equation|count()
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+            ],
+        )
+
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "equation|count()",
+                "sort": "-equation|count()",
+                "dataset": "spans",
+                "groupBy": "transaction",
+                "query": "",
+                "topEvents": 5,
+                "project": self.project.id,
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        time_series_by_transaction = {
+            ts["groupBy"][0]["value"]: ts
+            for ts in response.data["timeSeries"]
+            if ts["groupBy"] is not None
+        }
+        assert "foo" in time_series_by_transaction
+        assert "bar" in time_series_by_transaction
+        # foo has 3 spans, bar has 1 — descending count() means foo should be ordered first
+        assert (
+            time_series_by_transaction["foo"]["meta"]["order"]
+            < time_series_by_transaction["bar"]["meta"]["order"]
+        )

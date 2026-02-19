@@ -104,11 +104,11 @@ function InviteRequestRow({
           onClick={() => onDeny(inviteRequest)}
           icon={<IconClose />}
           disabled={!canApprove}
-          title={
-            canApprove
+          tooltipProps={{
+            title: canApprove
               ? undefined
-              : t('This request needs to be reviewed by a privileged user')
-          }
+              : t('This request needs to be reviewed by a privileged user'),
+          }}
         >
           {t('Deny')}
         </Button>
@@ -129,16 +129,16 @@ function InviteRequestRow({
             priority="primary"
             size="sm"
             busy={inviteRequestBusy[inviteRequest.id]}
-            title={
-              canApprove
+            tooltipProps={{
+              title: canApprove
                 ? roleDisallowed
                   ? t(
                       `You do not have permission to approve a user of this role.
                       Select a different role to approve this user.`
                     )
                   : undefined
-                : t('This request needs to be reviewed by a privileged user')
-            }
+                : t('This request needs to be reviewed by a privileged user'),
+            }}
             icon={<IconCheckmark />}
           >
             {t('Approve')}

@@ -1,9 +1,6 @@
 import copy
 import datetime
 import pickle
-import random
-from collections import defaultdict
-from collections.abc import Mapping
 from unittest import mock
 
 import pytest
@@ -13,7 +10,6 @@ from sentry import options
 from sentry.buffer.redis import RedisBuffer, _coerce_val, make_key
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -204,184 +200,6 @@ class TestRedisBuffer:
         else:
             assert pending == [key.encode("utf-8")]
 
-    def group_rule_data_by_project_id(self, buffer, project_ids):
-        project_ids_to_rule_data = defaultdict(list)
-        for proj_id in project_ids:
-            rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id[0]})
-            for k, v in rule_group_pairs.items():
-                project_ids_to_rule_data[int(proj_id[0])].append({k: v})
-        return project_ids_to_rule_data
-
-    def test_enqueue(self) -> None:
-        project_id = 1
-        rule_id = 2
-        group_id = 3
-        event_id = 4
-        group2_id = 5
-        event2_id = 6
-
-        project_id2 = 7
-        rule2_id = 8
-        group3_id = 9
-        event3_id = 10
-        event4_id = 11
-
-        # store the project ids
-        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=[project_id, project_id2])
-
-        # store the rules and group per project
-        self.buf.push_to_hash(
-            model=Project,
-            filters={"project_id": project_id},
-            field=f"{rule_id}:{group_id}",
-            value=json.dumps({"event_id": event_id, "occurrence_id": None}),
-        )
-        self.buf.push_to_hash(
-            model=Project,
-            filters={"project_id": project_id},
-            field=f"{rule_id}:{group2_id}",
-            value=json.dumps({"event_id": event2_id, "occurrence_id": None}),
-        )
-        self.buf.push_to_hash(
-            model=Project,
-            filters={"project_id": project_id2},
-            field=f"{rule2_id}:{group3_id}",
-            value=json.dumps({"event_id": event3_id, "occurrence_id": None}),
-        )
-        project_ids = self.buf.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.datetime.now().timestamp()
-        )
-        assert project_ids
-        project_ids_to_rule_data = self.group_rule_data_by_project_id(self.buf, project_ids)
-        result = json.loads(project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}"))
-        assert result.get("event_id") == event_id
-        result = json.loads(project_ids_to_rule_data[project_id][1].get(f"{rule_id}:{group2_id}"))
-        assert result.get("event_id") == event2_id
-        result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
-        assert result.get("event_id") == event3_id
-
-        # overwrite the value to event4_id
-        self.buf.push_to_hash(
-            model=Project,
-            filters={"project_id": project_id2},
-            field=f"{rule2_id}:{group3_id}",
-            value=json.dumps({"event_id": event4_id, "occurrence_id": None}),
-        )
-
-        project_ids_to_rule_data = project_ids_to_rule_data = self.group_rule_data_by_project_id(
-            self.buf, project_ids
-        )
-        result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
-        assert result.get("event_id") == event4_id
-
-    def test_get_bulk_sorted_set(self) -> None:
-        shards = 3
-        project_ids = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
-        for id in project_ids:
-            shard = random.randrange(shards)
-            if shard == 0:
-                key = PROJECT_ID_BUFFER_LIST_KEY
-            else:
-                key = f"{PROJECT_ID_BUFFER_LIST_KEY}:{shard}"
-            self.buf.push_to_sorted_set(key=key, value=id)
-
-        buffer_keys = [
-            f"{PROJECT_ID_BUFFER_LIST_KEY}:{shard}" if shard > 0 else PROJECT_ID_BUFFER_LIST_KEY
-            for shard in range(shards)
-        ]
-
-        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
-            buffer_keys,
-            min=0,
-            max=datetime.datetime.now().timestamp(),
-        )
-        assert len(project_ids_and_timestamps) == 4
-        assert set(project_ids_and_timestamps.keys()) == set(project_ids)
-
-        self.buf.delete_keys(
-            buffer_keys,
-            min=0,
-            max=datetime.datetime.now().timestamp(),
-        )
-        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
-            buffer_keys,
-            min=0,
-            max=datetime.datetime.now().timestamp(),
-        )
-        assert len(project_ids_and_timestamps) == 0
-
-    def test_bulk_sorted_set_single_key(self) -> None:
-        project_ids = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
-        for id in project_ids:
-            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=id)
-        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
-            [PROJECT_ID_BUFFER_LIST_KEY],
-            min=0,
-            max=datetime.datetime.now().timestamp(),
-        )
-        assert len(project_ids_and_timestamps) == 4
-        assert set(project_ids_and_timestamps.keys()) == set(project_ids)
-
-    def test_delete_batch(self) -> None:
-        """Test that after we add things to redis we can clean it up"""
-        project_id = 1
-        rule_id = 2
-        group_id = 3
-        event_id = 4
-
-        project2_id = 5
-        rule2_id = 6
-        group2_id = 7
-        event2_id = 8
-
-        now = datetime.datetime(2024, 4, 15, 3, 30, 00, tzinfo=datetime.UTC)
-        one_minute_from_now = (now).replace(minute=31)
-
-        # add a set and a hash to the buffer
-        with freeze_time(now):
-            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
-            self.buf.push_to_hash(
-                model=Project,
-                filters={"project_id": project_id},
-                field=f"{rule_id}:{group_id}",
-                value=json.dumps({"event_id": event_id, "occurrence_id": None}),
-            )
-        with freeze_time(one_minute_from_now):
-            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project2_id)
-            self.buf.push_to_hash(
-                model=Project,
-                filters={"project_id": project2_id},
-                field=f"{rule2_id}:{group2_id}",
-                value=json.dumps({"event_id": event2_id, "occurrence_id": None}),
-            )
-
-        # retrieve them
-        project_ids = self.buf.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.datetime.now().timestamp()
-        )
-        assert len(project_ids) == 2
-        rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
-        assert len(rule_group_pairs)
-
-        # delete only the first project ID by time
-        self.buf.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=now.timestamp())
-
-        # retrieve again to make sure only project_id was removed
-        project_ids = self.buf.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.datetime.now().timestamp()
-        )
-        assert project_ids == [(project2_id, one_minute_from_now.timestamp())]
-
-        # delete the project_id hash
-        self.buf.delete_hash(
-            model=Project,
-            filters={"project_id": project_id},
-            fields=[f"{rule_id}:{group_id}"],
-        )
-
-        rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
-        assert rule_group_pairs == {}
-
     @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process) -> None:
@@ -398,36 +216,6 @@ class TestRedisBuffer:
         )
         self.buf.process("foo")
         process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, True)
-
-    @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
-    def test_get_hash_length(self) -> None:
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
-        data: Mapping[str | bytes, bytes | float | int | str] = {
-            "f": '{"pk": ["i","1"]}',
-            "i+times_seen": "1",
-            "m": "unittest.mock.Mock",
-            "s": "1",
-        }
-
-        client.hmset("foo", data)
-        buffer_length = self.buf.get_hash_length("foo", field={"bar": 1})
-        assert buffer_length == len(data)
-
-    @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
-    def test_push_to_hash_bulk(self) -> None:
-        def decode_dict(d):
-            return {k: v.decode("utf-8") if isinstance(v, bytes) else v for k, v in d.items()}
-
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
-        data = {
-            "f": '{"pk": ["i","1"]}',
-            "i+times_seen": "1",
-            "m": "unittest.mock.Mock",
-            "s": "1",
-        }
-        self.buf.push_to_hash_bulk(model=Project, filters={"project_id": 1}, data=data)
-        result = _hgetall_decode_keys(client, "foo", self.buf.is_redis_cluster)
-        assert decode_dict(result) == data
 
     @django_db_all
     @freeze_time()

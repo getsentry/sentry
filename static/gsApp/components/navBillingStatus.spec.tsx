@@ -296,7 +296,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     );
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       body: freeSub,
     });
 

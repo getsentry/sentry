@@ -40,6 +40,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_coding_agent_handoff,
 )
 from sentry.seer.autofix.coding_agent import poll_github_copilot_agents
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
 from sentry.seer.models import SeerPermissionError
@@ -252,6 +253,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             # This event_id is the event that the user is looking at when they click the "Fix" button
             event_id=data.get("event_id"),
             user=request.user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction=data.get("instruction"),
             pr_to_comment_on_url=data.get("pr_to_comment_on_url"),
             stopping_point=stopping_point,

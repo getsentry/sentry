@@ -704,7 +704,7 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
 
         TODO: Refactor to not violate the type system
         """
-        model.id = None  # type: ignore[assignment]
+        model.id = None
 
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
@@ -1995,7 +1995,7 @@ def get_slack_channel_ids(
     slack_actions = get_slack_actions_with_async_lookups(organization, data)
     mapped_slack_channels = {}
     for action in slack_actions:
-        if not action["target_identifier"] in mapped_slack_channels:
+        if action["target_identifier"] not in mapped_slack_channels:
             target = get_target_identifier_display_for_integration(
                 action["type"].value,
                 action["target_identifier"],

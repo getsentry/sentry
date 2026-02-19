@@ -7,7 +7,10 @@ from pathlib import Path
 import pytest
 
 _mod = runpy.run_path(
-    str(Path(__file__).resolve().parents[2] / ".github/workflows/scripts/compute-selected-tests.py")
+    str(
+        Path(__file__).resolve().parents[2]
+        / ".github/workflows/scripts/selective-testing/compute-selected-tests.py"
+    )
 )
 should_run_full_suite = _mod["should_run_full_suite"]
 get_changed_test_files = _mod["get_changed_test_files"]

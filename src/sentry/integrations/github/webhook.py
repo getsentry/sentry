@@ -884,7 +884,6 @@ class PullRequestEventWebhook(GitHubWebhook):
             )
 
             if created:
-
                 try:
                     pr_repo_private = pull_request["head"]["repo"]["private"]
                 except (KeyError, AttributeError, TypeError):

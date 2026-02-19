@@ -28,7 +28,12 @@ export function LinkButton({
   });
 
   return (
-    <Tooltip skipWrapper {...tooltipProps} title={props.title} disabled={!props.title}>
+    <Tooltip
+      skipWrapper
+      {...tooltipProps}
+      title={tooltipProps?.title}
+      disabled={!tooltipProps?.title}
+    >
       <StyledLinkButton
         aria-label={accessibleLabel}
         aria-disabled={disabled}
@@ -71,7 +76,7 @@ export function LinkButton({
 }
 
 const StyledLinkButton = styled(
-  ({size: _size, title: _title, ...props}: LinkButtonProps) => {
+  ({size: _size, ...props}: LinkButtonProps) => {
     if ('to' in props && props.to) {
       return <Link {...props} to={props.to} role="button" />;
     }

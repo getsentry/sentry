@@ -13,7 +13,11 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.utils import json
 from sentry.utils.eap import hex_to_item_id
+
+# Max depth for recursive encoding to protobuf AnyValue.
+_ENCODE_MAX_DEPTH = 6
 
 
 def serialize_event_data_as_item(
@@ -36,7 +40,11 @@ def serialize_event_data_as_item(
     )
 
 
-def _encode_value(value: Any) -> AnyValue:
+def _encode_value(value: Any, _depth: int = 0) -> AnyValue:
+    if _depth > _ENCODE_MAX_DEPTH:
+        # Beyond max depth, stringify to prevent protobuf nesting limit errors.
+        return AnyValue(string_value=json.dumps(value))
+
     if isinstance(value, str):
         return AnyValue(string_value=value)
     elif isinstance(value, bool):
@@ -53,14 +61,16 @@ def _encode_value(value: Any) -> AnyValue:
     elif isinstance(value, list) or isinstance(value, tuple):
         # Not yet processed on EAP side
         return AnyValue(
-            array_value=ArrayValue(values=[_encode_value(v) for v in value if v is not None])
+            array_value=ArrayValue(
+                values=[_encode_value(v, _depth + 1) for v in value if v is not None]
+            )
         )
     elif isinstance(value, dict):
         # Not yet processed on EAP side
         return AnyValue(
             kvlist_value=KeyValueList(
                 values=[
-                    KeyValue(key=str(kv[0]), value=_encode_value(kv[1]))
+                    KeyValue(key=str(kv[0]), value=_encode_value(kv[1], _depth + 1))
                     for kv in value.items()
                     if kv[1] is not None
                 ]

@@ -685,9 +685,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
-        expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
-            assignee=self.external_id
-        )
+        expect_status = f"*Issue assigned to <@{self.external_id}> by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[3]["text"]["text"].endswith(expect_status), text
 
@@ -712,9 +710,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
-        expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
-            assignee=self.external_id
-        )
+        expect_status = f"*Issue assigned to <@{self.external_id}> by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[3]["text"]["text"].endswith(expect_status), text
 

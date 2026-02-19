@@ -81,11 +81,11 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
 
         if not is_integration and has_integration_id:
             raise serializers.ValidationError(
-                f"Integration ID is not allowed for action type {attrs["type"]}"
+                f"Integration ID is not allowed for action type {attrs['type']}"
             )
         if is_integration and not has_integration_id:
             raise serializers.ValidationError(
-                f"Integration ID is required for action type {attrs["type"]}"
+                f"Integration ID is required for action type {attrs['type']}"
             )
 
         try:

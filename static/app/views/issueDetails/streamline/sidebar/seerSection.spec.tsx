@@ -37,10 +37,6 @@ describe('SeerSection', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -105,34 +101,6 @@ describe('SeerSection', () => {
   });
 
   describe('Seer button text', () => {
-    it('shows "Fix it for me" when Seer needs setup and no run already', async () => {
-      const customOrganization = OrganizationFixture({
-        hideAiFeatures: false,
-        features: ['gen-ai-features'],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: false,
-            userHasAcknowledged: false,
-          },
-          integration: {ok: false, reason: null},
-          githubWriteIntegration: {ok: false, repos: []},
-        }),
-      });
-
-      render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
-        organization: customOrganization,
-      });
-
-      expect(
-        await screen.findByText('Meet Seer, the AI debugging agent.')
-      ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Fix with Seer'})).toBeInTheDocument();
-    });
-
     it('shows issue summary and "Fix with Seer" when consent flow is removed and there is no autofix quota', async () => {
       const orgWithConsentFlowRemoved = OrganizationFixture({
         hideAiFeatures: false,
@@ -142,10 +110,6 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
           integration: {ok: true, reason: null},
           githubWriteIntegration: {ok: true, repos: []},
           billing: {hasAutofixQuota: false},
@@ -175,10 +139,6 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
           integration: {ok: false, reason: null},
           githubWriteIntegration: {ok: false, repos: []},
         }),
@@ -205,10 +165,6 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
           integration: {ok: true, reason: null},
           githubWriteIntegration: {ok: true, repos: []},
         }),
@@ -243,10 +199,6 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
           integration: {ok: true, reason: null},
           githubWriteIntegration: {ok: true, repos: []},
         }),

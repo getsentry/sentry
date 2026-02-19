@@ -32,7 +32,7 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Root Cause Analysis'), key: 'fixes'},
+  {title: t('Auto-Triggered Fixes'), key: 'fixes'},
   {
     title: (organization: Organization) => (
       <Flex gap="sm" align="center">
@@ -209,10 +209,11 @@ export default function ProjectTableHeader({
             {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
             <a onClick={selectAll}>
               {queryString
-                ? tct('Select all projects that match: [queryString].', {
+                ? tct('Select all [count] projects that match: [queryString].', {
+                    count: listItemCheckboxState.hits,
                     queryString: <var>{queryString}</var>,
                   })
-                : t('Select all projects.')}
+                : t('Select all %s projects.', listItemCheckboxState.hits)}
             </a>
           </Flex>
         </FullGridAlert>
@@ -223,7 +224,8 @@ export default function ProjectTableHeader({
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString
-                ? tct('Selected all projects matching: [queryString].', {
+                ? tct('Selected all [count] projects matching: [queryString].', {
+                    count: countSelected,
                     queryString: <var>{queryString}</var>,
                   })
                 : countSelected > projects.length

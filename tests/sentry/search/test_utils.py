@@ -916,6 +916,6 @@ def test_valid_device_class_mapping() -> None:
     # should all be integers
     device_classes = {key: {int(value) for value in values} for key, values in DEVICE_CLASS.items()}
 
-    assert all(
-        0 not in values for values in device_classes.values()
-    ), "`0` is not a valid classes as it represents unclassified"
+    assert all(0 not in values for values in device_classes.values()), (
+        "`0` is not a valid classes as it represents unclassified"
+    )

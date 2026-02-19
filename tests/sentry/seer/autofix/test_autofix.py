@@ -18,6 +18,7 @@ from sentry.seer.autofix.autofix import (
     get_all_tags_overview,
     trigger_autofix,
 )
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
@@ -813,7 +814,6 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
 @requires_snuba
 @pytest.mark.django_db
 @with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         super().setUp()
@@ -834,7 +834,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_profile,
         mock_get_tags,
         mock_record_seer_run,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a specified event_id."""
         # Setup test data
@@ -860,6 +859,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             group=group,
             event_id=event.event_id,
             user=test_user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction="Test instruction",
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
         )
@@ -901,7 +901,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_serialized_event,
         mock_get_latest_event,
         mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests error handling when no event can be found for the group."""
         mock_get_recommended_event.return_value = None
@@ -912,7 +911,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group = self.create_group()
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
 
         assert response.status_code == 400
         assert (
@@ -936,7 +940,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_profile,
         mock_get_tags,
         mock_record_seer_run,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a web vitals issue."""
         # Setup test data
@@ -970,7 +973,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
         assert response.status_code == 202
         mock_record_seer_run.assert_called_once()
 
@@ -978,47 +986,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 @requires_snuba
 @pytest.mark.django_db
 @with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
-class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-
-        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
-
-    @patch("sentry.models.Group.get_recommended_event_for_environments")
-    @patch("sentry.models.Group.get_latest_event")
-    @patch("sentry.seer.autofix.autofix._get_serialized_event")
-    def test_trigger_autofix_without_org_acknowledgement(
-        self,
-        mock_get_serialized_event,
-        mock_get_latest_event,
-        mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
-    ):
-        """Tests error handling when no event can be found for the group."""
-        mock_get_recommended_event.return_value = None
-        mock_get_latest_event.return_value = None
-        # We should never reach _get_serialized_event since we have no event
-        mock_get_serialized_event.return_value = (None, None)
-
-        group = self.create_group()
-        user = Mock(spec=AnonymousUser)
-
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
-
-        assert response.status_code == 403
-        assert (
-            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
-            in response.data["detail"]
-        )
-        # Verify _get_serialized_event was not called since we have no event
-        mock_get_serialized_event.assert_not_called()
-
-
-@requires_snuba
-@pytest.mark.django_db
-@with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1034,7 +1001,6 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         mock_get_serialized_event,
         mock_get_latest_event,
         mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests that autofix is blocked when organization has hideAiFeatures set to True"""
         mock_get_recommended_event.return_value = None
@@ -1045,7 +1011,12 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         group = self.create_group()
         user = self.create_user()
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
 
         assert response.status_code == 403
         assert "AI features are disabled for this organization" in response.data["detail"]
@@ -1097,6 +1068,7 @@ class TestCallAutofix(TestCase):
             trace_tree=trace_tree,
             logs=logs,
             tags_overview=tags_overview,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",

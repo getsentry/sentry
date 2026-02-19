@@ -5,6 +5,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
@@ -29,7 +30,16 @@ export default function PullRequestDetails() {
   const pullRequestQuery: UseApiQueryResult<PullRequestDetailsResponse, RequestError> =
     useApiQuery<PullRequestDetailsResponse>(
       [
-        `/projects/${organization.slug}/pullrequest-details/${params.repoOrg}/${params.repoName}/${params.prId}/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/pullrequest-details/$repoName/$prNumber/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              repoName: params.repoName,
+              prNumber: params.prId,
+            },
+          }
+        ),
       ],
       {
         staleTime: 0,
