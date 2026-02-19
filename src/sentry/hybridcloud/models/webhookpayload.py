@@ -131,6 +131,22 @@ class WebhookPayload(Model):
             **cls.get_attributes_from_request(request),
         )
 
+    def as_dict(self) -> dict[str, Any]:
+        """Return payload attributes as a dict for logging context."""
+        return {
+            "attempts": self.attempts,
+            "date_added": self.date_added.isoformat() if self.date_added else None,
+            "destination_type": self.destination_type,
+            "id": self.id,
+            "integration_id": self.integration_id,
+            "mailbox_name": self.mailbox_name,
+            "provider": self.provider,
+            "region_name": self.region_name,
+            "request_method": self.request_method,
+            "request_path": self.request_path,
+            "schedule_for": self.schedule_for.isoformat() if self.schedule_for else None,
+        }
+
     def schedule_next_attempt(self) -> None:
         attempts = self.attempts + 1
         backoff = BACKOFF_INTERVAL * BACKOFF_RATE**attempts
