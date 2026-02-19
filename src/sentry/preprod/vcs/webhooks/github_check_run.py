@@ -42,7 +42,7 @@ def handle_preprod_check_run_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration | None = None,
+    integration: RpcIntegration,
     **kwargs: Any,
 ) -> None:
     """
