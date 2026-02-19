@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -7,18 +7,23 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
-  fetchDashboardHistory,
-  restoreDashboardSnapshot,
+  makeDashboardHistoryQueryKey,
   type DashboardHistoryEntry,
 } from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useApi from 'sentry/utils/useApi';
+import {
+  fetchMutation,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {DashboardDetails} from './types';
@@ -34,6 +39,19 @@ export default function DashboardHistoryButton({
 }: DashboardHistoryButtonProps) {
   const {openDrawer} = useDrawer();
   const organization = useOrganization();
+
+  const isValidDashboard =
+    !!dashboard.id && dashboard.id !== 'default-overview' && !dashboard.prebuiltId;
+
+  const {data: history} = useApiQuery<DashboardHistoryEntry[]>(
+    makeDashboardHistoryQueryKey(organization.slug, dashboard.id),
+    {
+      staleTime: 30_000,
+      enabled: isValidDashboard,
+    }
+  );
+
+  const hasHistory = (history?.length ?? 0) > 0;
 
   const handleClick = useCallback(() => {
     openDrawer(
@@ -51,18 +69,24 @@ export default function DashboardHistoryButton({
     );
   }, [openDrawer, dashboard.id, organization.slug, onRestore]);
 
-  // Don't show for new/unsaved/prebuilt dashboards
-  if (!dashboard.id || dashboard.id === 'default-overview' || dashboard.prebuiltId) {
+  if (!isValidDashboard) {
     return null;
   }
 
   return (
-    <Tooltip title={t('Dashboard History')}>
+    <Tooltip
+      title={
+        hasHistory
+          ? t('Dashboard History')
+          : t('No history yet. History is recorded when the dashboard is edited.')
+      }
+    >
       <Button
         size="sm"
         icon={<IconClock />}
         aria-label={t('Dashboard History')}
         onClick={handleClick}
+        disabled={!hasHistory}
       />
     </Tooltip>
   );
@@ -77,46 +101,35 @@ function DashboardHistoryDrawerContent({
   onRestore: (restoredDashboard: DashboardDetails) => void;
   orgSlug: string;
 }) {
-  const api = useApi();
-  const [history, setHistory] = useState<DashboardHistoryEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const {data: history, isPending} = useApiQuery<DashboardHistoryEntry[]>(
+    makeDashboardHistoryQueryKey(orgSlug, dashboardId),
+    {
+      staleTime: 30_000,
+    }
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchDashboardHistory(api, orgSlug, dashboardId).then(
-      data => {
-        if (!cancelled) {
-          setHistory(data);
-          setIsLoading(false);
-        }
-      },
-      () => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [api, orgSlug, dashboardId]);
-
-  async function handleRestore(historyId: string) {
-    try {
-      setRestoringId(historyId);
-      const restored = await restoreDashboardSnapshot(
-        api,
-        orgSlug,
-        dashboardId,
-        historyId
-      );
+  const {mutate: restoreSnapshot, isPending: isRestoring} = useMutation<
+    DashboardDetails,
+    RequestError,
+    {historyId: string}
+  >({
+    mutationFn: ({historyId}) =>
+      fetchMutation({
+        url: `/organizations/${orgSlug}/dashboards/${dashboardId}/history/${historyId}/restore/`,
+        method: 'POST',
+      }),
+    onSuccess: restored => {
+      queryClient.invalidateQueries({
+        queryKey: makeDashboardHistoryQueryKey(orgSlug, dashboardId),
+      });
       addSuccessMessage(t('Dashboard restored successfully'));
       onRestore(restored);
-    } finally {
-      setRestoringId(null);
-    }
-  }
+    },
+    onError: () => {
+      addErrorMessage(t('Unable to restore dashboard'));
+    },
+  });
 
   return (
     <Fragment>
@@ -126,9 +139,9 @@ function DashboardHistoryDrawerContent({
         </Flex>
       </DrawerHeader>
       <DrawerBody>
-        {isLoading ? (
+        {isPending ? (
           <LoadingIndicator />
-        ) : history.length === 0 ? (
+        ) : history?.length === 0 ? (
           <p>
             {t(
               'No history entries yet. History is recorded when the dashboard is edited.'
@@ -136,7 +149,7 @@ function DashboardHistoryDrawerContent({
           </p>
         ) : (
           <HistoryList>
-            {history.map(entry => (
+            {history?.map(entry => (
               <HistoryItem key={entry.id}>
                 <HistoryInfo>
                   <HistoryTitleRow>
@@ -159,9 +172,8 @@ function DashboardHistoryDrawerContent({
                 </HistoryInfo>
                 <Button
                   size="xs"
-                  onClick={() => handleRestore(entry.id)}
-                  disabled={restoringId !== null}
-                  busy={restoringId === entry.id}
+                  onClick={() => restoreSnapshot({historyId: entry.id})}
+                  disabled={isRestoring}
                 >
                   {t('Restore')}
                 </Button>

@@ -163,10 +163,15 @@ export function fetchDashboard(
   return promise;
 }
 
+export function makeDashboardHistoryQueryKey(orgSlug: string, dashboardId: string) {
+  return [`/organizations/${orgSlug}/dashboards/${dashboardId}/history/`] as const;
+}
+
 export function updateDashboard(
   api: Client,
   orgId: string,
-  dashboard: DashboardDetails
+  dashboard: DashboardDetails,
+  queryClient?: QueryClient
 ): Promise<DashboardDetails> {
   const {title, widgets, projects, environment, period, start, end, filters, utc} =
     dashboard;
@@ -194,19 +199,28 @@ export function updateDashboard(
     }
   );
 
-  // We let the callers of `updateDashboard` handle adding a success message, so
-  // that it can be more specific than just "Dashboard updated," but do the
-  // error-handling here, since it doesn't depend on the caller's context
-  promise.catch(response => {
-    const errorResponse = response?.responseJSON ?? null;
+  promise.then(
+    () => {
+      if (queryClient && dashboard.id) {
+        queryClient.invalidateQueries({
+          queryKey: makeDashboardHistoryQueryKey(orgId, dashboard.id),
+        });
+      }
+    },
+    // We let the callers of `updateDashboard` handle adding a success message, so
+    // that it can be more specific than just "Dashboard updated," but do the
+    // error-handling here, since it doesn't depend on the caller's context
+    response => {
+      const errorResponse = response?.responseJSON ?? null;
 
-    if (errorResponse) {
-      const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
-    } else {
-      addErrorMessage(t('Unable to update dashboard'));
+      if (errorResponse) {
+        const errors = flattenErrors(errorResponse, {});
+        addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      } else {
+        addErrorMessage(t('Unable to update dashboard'));
+      }
     }
-  });
+  );
 
   return promise;
 }

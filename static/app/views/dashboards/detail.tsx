@@ -46,6 +46,8 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {QueryClient} from 'sentry/utils/queryClient';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
@@ -137,6 +139,7 @@ type Props = {
   organization: Organization;
   params: RouteParams;
   projects: Project[];
+  queryClient: QueryClient;
   router: InjectedRouter;
   theme: Theme;
   children?: React.ReactNode;
@@ -570,7 +573,12 @@ class DashboardDetail extends Component<Props, State> {
     if (this.isEditingDashboard || this.isPreview) {
       return null;
     }
-    return updateDashboard(api, organization.slug, newModifiedDashboard).then(
+    return updateDashboard(
+      api,
+      organization.slug,
+      newModifiedDashboard,
+      this.props.queryClient
+    ).then(
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
@@ -892,7 +900,12 @@ class DashboardDetail extends Component<Props, State> {
           this.setState({
             isCommittingChanges: true,
           });
-          updateDashboard(api, organization.slug, modifiedDashboard).then(
+          updateDashboard(
+            api,
+            organization.slug,
+            modifiedDashboard,
+            this.props.queryClient
+          ).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
@@ -1257,7 +1270,8 @@ class DashboardDetail extends Component<Props, State> {
                                   await updateDashboard(
                                     api,
                                     organization.slug,
-                                    newModifiedDashboard
+                                    newModifiedDashboard,
+                                    this.props.queryClient
                                   ).then(
                                     (newDashboard: DashboardDetails) => {
                                       addSuccessMessage(t('Dashboard filters updated'));
@@ -1407,6 +1421,7 @@ export default function DashboardDetailWithInjectedProps(
   const location = useLocation();
   const params = useParams<RouteParams>();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   return (
     <DashboardDetail
@@ -1419,6 +1434,7 @@ export default function DashboardDetailWithInjectedProps(
       location={location}
       params={params}
       router={router}
+      queryClient={queryClient}
     />
   );
 }
