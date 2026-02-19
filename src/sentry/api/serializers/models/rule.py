@@ -503,8 +503,11 @@ class WorkflowEngineRuleSerializer(Serializer):
                     action_data["fallthroughType"] = action_data.get("fallthrough_type")
                     del action_data["fallthrough_type"]
 
-                # XXX: add a targetIdentifier empty string
-                if action_data.get("targetIdentifier") is None:
+                # XXX: add a targetIdentifier empty string for email only
+                if (
+                    action.type == Action.Type.EMAIL.value
+                    and action_data.get("targetIdentifier") is None
+                ):
                     action_data["targetIdentifier"] = ""
 
                 # XXX: manually remove notes which would only apply to legacy metric alerts or single written alerts
