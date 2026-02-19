@@ -79,6 +79,15 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
       {
         dataset: WidgetType.SPANS,
         tag: {
+          key: 'os.name',
+          name: 'os.name',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
           key: 'transaction',
           name: 'transaction',
           kind: FieldKind.TAG,

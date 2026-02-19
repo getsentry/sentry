@@ -34,7 +34,7 @@ const COLD_START_BIG_NUMBER_WIDGET: Widget = {
   layout: {
     h: 1,
     x: 0,
-    y: 1,
+    y: 0,
     w: 1,
     minH: 1,
   },
@@ -67,7 +67,7 @@ const WARM_START_BIG_NUMBER_WIDGET: Widget = {
   layout: {
     h: 1,
     x: 1,
-    y: 1,
+    y: 0,
     w: 1,
     minH: 1,
   },
@@ -94,7 +94,7 @@ const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
   layout: {
     h: 1,
     x: 2,
-    y: 1,
+    y: 0,
     w: 1,
     minH: 1,
   },
@@ -121,7 +121,7 @@ const AVG_TTFD_BIG_NUMBER_WIDGET: Widget = {
   layout: {
     h: 1,
     x: 3,
-    y: 1,
+    y: 0,
     w: 1,
     minH: 1,
   },
@@ -165,7 +165,7 @@ const SLOW_FRAME_RATE_WIDGET: Widget = {
   layout: {
     h: 1,
     x: 0,
-    y: 0,
+    y: 1,
     w: 2,
     minH: 1,
   },
@@ -209,7 +209,7 @@ const FROZEN_FRAME_RATE_WIDGET: Widget = {
   layout: {
     h: 1,
     x: 2,
-    y: 0,
+    y: 1,
     w: 2,
     minH: 1,
   },
@@ -236,7 +236,7 @@ const AVG_FRAME_DELAY_WIDGET: Widget = {
   layout: {
     h: 1,
     x: 4,
-    y: 0,
+    y: 1,
     w: 2,
     minH: 1,
   },
@@ -398,16 +398,16 @@ const SCREEN_LOAD_TABLE: Widget = {
 };
 
 const FIRST_ROW_WIDGETS: Widget[] = [
-  SLOW_FRAME_RATE_WIDGET,
-  FROZEN_FRAME_RATE_WIDGET,
-  AVG_FRAME_DELAY_WIDGET,
-];
-
-const SECOND_ROW_WIDGETS: Widget[] = [
   COLD_START_BIG_NUMBER_WIDGET,
   WARM_START_BIG_NUMBER_WIDGET,
   AVG_TTID_BIG_NUMBER_WIDGET,
   AVG_TTFD_BIG_NUMBER_WIDGET,
+];
+
+const SECOND_ROW_WIDGETS: Widget[] = [
+  SLOW_FRAME_RATE_WIDGET,
+  FROZEN_FRAME_RATE_WIDGET,
+  AVG_FRAME_DELAY_WIDGET,
 ];
 
 export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -423,6 +423,15 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   ],
   filters: {
     globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: 'os.name',
+          name: 'os.name',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
       {
         dataset: WidgetType.SPANS,
         tag: {
