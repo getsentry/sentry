@@ -16,23 +16,15 @@ import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsFields,
   useQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 function Wrapper({children}: {children: ReactNode}) {
-  return (
-    <SpansQueryParamsProvider>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        {children}
-      </TraceItemAttributeProvider>
-    </SpansQueryParamsProvider>
-  );
+  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
 
 jest.mock('sentry/utils/analytics');
@@ -332,7 +324,7 @@ describe('SpansTabContent', () => {
     beforeEach(() => {
       const useSpanTagsSpy = jest
         .spyOn(spanTagsModule, 'useTraceItemTags')
-        .mockImplementation(type => {
+        .mockImplementation((_config, type) => {
           switch (type) {
             case 'number':
               return {tags: mockNumberTags, isLoading: false, secondaryAliases: {}};

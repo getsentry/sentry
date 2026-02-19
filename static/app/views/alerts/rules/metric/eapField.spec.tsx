@@ -5,8 +5,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 describe('EAPField', () => {
   const organization = OrganizationFixture();
@@ -21,13 +19,11 @@ describe('EAPField', () => {
 
   it('renders', () => {
     render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <EAPField
-          aggregate="count(span.duration)"
-          onChange={() => {}}
-          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
-        />
-      </TraceItemAttributeProvider>
+      <EAPField
+        aggregate="count(span.duration)"
+        onChange={() => {}}
+        eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+      />
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -54,13 +50,11 @@ describe('EAPField', () => {
 
   it('renders epm with argument disabled', () => {
     render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <EAPField
-          aggregate="epm()"
-          onChange={() => {}}
-          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
-        />
-      </TraceItemAttributeProvider>
+      <EAPField
+        aggregate="epm()"
+        onChange={() => {}}
+        eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+      />
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -81,13 +75,11 @@ describe('EAPField', () => {
 
   it('renders failure_rate with argument disabled', () => {
     render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <EAPField
-          aggregate="failure_rate()"
-          onChange={() => {}}
-          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
-        />
-      </TraceItemAttributeProvider>
+      <EAPField
+        aggregate="failure_rate()"
+        onChange={() => {}}
+        eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+      />
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -115,13 +107,11 @@ describe('EAPField', () => {
   it('should call onChange with the new aggregate string when switching aggregates', async () => {
     const onChange = jest.fn();
     render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <EAPField
-          aggregate="count(span.duration)"
-          onChange={onChange}
-          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
-        />
-      </TraceItemAttributeProvider>
+      <EAPField
+        aggregate="count(span.duration)"
+        onChange={onChange}
+        eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+      />
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -144,13 +134,11 @@ describe('EAPField', () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <EAPField
-            aggregate={aggregate}
-            onChange={setAggregate}
-            eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
-          />
-        </TraceItemAttributeProvider>
+        <EAPField
+          aggregate={aggregate}
+          onChange={setAggregate}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+        />
       );
     }
 
@@ -177,13 +165,11 @@ describe('EAPField', () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <EAPField
-            aggregate={aggregate}
-            onChange={setAggregate}
-            eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
-          />
-        </TraceItemAttributeProvider>
+        <EAPField
+          aggregate={aggregate}
+          onChange={setAggregate}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+        />
       );
     }
 
@@ -212,13 +198,11 @@ describe('EAPField', () => {
 
   it('renders count with argument disabled for logs', () => {
     render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-        <EAPField
-          aggregate="count(message)"
-          onChange={() => {}}
-          eventTypes={[EventTypes.TRACE_ITEM_LOG]}
-        />
-      </TraceItemAttributeProvider>
+      <EAPField
+        aggregate="count(message)"
+        onChange={() => {}}
+        eventTypes={[EventTypes.TRACE_ITEM_LOG]}
+      />
     );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -246,13 +230,11 @@ describe('EAPField', () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(message)');
       return (
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <EAPField
-            aggregate={aggregate}
-            onChange={setAggregate}
-            eventTypes={[EventTypes.TRACE_ITEM_LOG]}
-          />
-        </TraceItemAttributeProvider>
+        <EAPField
+          aggregate={aggregate}
+          onChange={setAggregate}
+          eventTypes={[EventTypes.TRACE_ITEM_LOG]}
+        />
       );
     }
 
@@ -281,13 +263,11 @@ describe('EAPField', () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(message)');
       return (
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <EAPField
-            aggregate={aggregate}
-            onChange={setAggregate}
-            eventTypes={[EventTypes.TRACE_ITEM_LOG]}
-          />
-        </TraceItemAttributeProvider>
+        <EAPField
+          aggregate={aggregate}
+          onChange={setAggregate}
+          eventTypes={[EventTypes.TRACE_ITEM_LOG]}
+        />
       );
     }
 
@@ -316,13 +296,11 @@ describe('EAPField', () => {
     function Component() {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <EAPField
-            aggregate={aggregate}
-            onChange={setAggregate}
-            eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
-          />
-        </TraceItemAttributeProvider>
+        <EAPField
+          aggregate={aggregate}
+          onChange={setAggregate}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+        />
       );
     }
 
@@ -345,13 +323,11 @@ describe('EAPField', () => {
   it('should call onChange with correct apdex aggregate when switching to apdex', async () => {
     const onChange = jest.fn();
     render(
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <EAPField
-          aggregate="count(span.duration)"
-          onChange={onChange}
-          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
-        />
-      </TraceItemAttributeProvider>
+      <EAPField
+        aggregate="count(span.duration)"
+        onChange={onChange}
+        eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+      />
     );
 
     await userEvent.click(screen.getByText('count'));
@@ -368,16 +344,14 @@ describe('EAPField', () => {
     function Component() {
       const [aggregate, setAggregate] = useState('apdex(span.duration,300)');
       return (
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <EAPField
-            aggregate={aggregate}
-            onChange={newAggregate => {
-              setAggregate(newAggregate);
-              onChange(newAggregate, {});
-            }}
-            eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
-          />
-        </TraceItemAttributeProvider>
+        <EAPField
+          aggregate={aggregate}
+          onChange={newAggregate => {
+            setAggregate(newAggregate);
+            onChange(newAggregate, {});
+          }}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+        />
       );
     }
 

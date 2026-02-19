@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -12,10 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -23,11 +21,7 @@ jest.mock('sentry/components/lazyRender', () => ({
 
 function Wrapper() {
   return function ({children}: {children: ReactNode}) {
-    return (
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        {children}
-      </TraceItemAttributeProvider>
-    );
+    return <Fragment>{children}</Fragment>;
   };
 }
 
