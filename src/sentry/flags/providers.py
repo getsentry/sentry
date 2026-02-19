@@ -304,7 +304,7 @@ def _get_user(validated_event: dict[str, Any]) -> tuple[str, int]:
         pass
 
     if "createdByUserId" in validated_event:
-        return validated_event["createdByUserId"], CREATED_BY_TYPE_MAP["id"]
+        return str(validated_event["createdByUserId"]), CREATED_BY_TYPE_MAP["id"]
     return created_by, CREATED_BY_TYPE_MAP["name"]
 
 
