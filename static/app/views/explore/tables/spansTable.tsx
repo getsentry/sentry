@@ -31,6 +31,7 @@ import {
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {FieldRenderer} from './fieldRenderer';
 
@@ -61,9 +62,10 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const meta = result.meta ?? {};
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
+  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
+  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
+  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'samples',

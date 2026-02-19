@@ -46,6 +46,7 @@ import {
   type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {MultiQueryFieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const TABLE_HEIGHT = 258;
 
@@ -96,9 +97,10 @@ function AggregatesTable({
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
+  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
+  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
+  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles} = useTableStyles(fields, tableRef, {
@@ -234,9 +236,10 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
     [fields]
   );
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
+  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
+  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
+  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {

@@ -67,12 +67,13 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
   spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
   spanSearchQueryBuilderProviderProps: UseTraceItemSearchQueryBuilderPropsReturnType;
 } {
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
   const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemTags('number');
+    useTraceItemTags(spansConfig, 'number');
   const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemTags('string');
+    useTraceItemTags(spansConfig, 'string');
   const {tags: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemTags('boolean');
+    useTraceItemTags(spansConfig, 'boolean');
 
   const stringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in stringAttributes) {

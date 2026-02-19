@@ -18,6 +18,7 @@ import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface VisualizeEquationProps {
   onDelete: () => void;
@@ -34,9 +35,10 @@ export function VisualizeEquation({
 }: VisualizeEquationProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
+  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
+  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
+  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
 
   const functionArguments: FunctionArgument[] = useMemo(() => {
     return [

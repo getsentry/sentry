@@ -30,6 +30,7 @@ import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
@@ -52,9 +53,10 @@ export function ExploreTables(props: ExploreTablesProps) {
   const fields = useQueryParamsFields();
   const setFields = useSetQueryParamsFields();
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
+  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
+  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
+  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
 
   const openColumnEditor = useCallback(() => {
     openModal(

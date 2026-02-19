@@ -50,6 +50,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 
 interface AggregatesTableProps {
@@ -102,9 +103,10 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const meta = result.meta ?? {};
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
+  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
+  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
+  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 

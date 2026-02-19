@@ -97,12 +97,19 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
     });
   }, [organization]);
 
-  const {tags: numberTags = [], isLoading: numberTagsLoading} =
-    useTraceItemTags('number');
-  const {tags: stringTags = [], isLoading: stringTagsLoading} =
-    useTraceItemTags('string');
-  const {tags: booleanTags = [], isLoading: booleanTagsLoading} =
-    useTraceItemTags('boolean');
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
+  const {tags: numberTags = [], isLoading: numberTagsLoading} = useTraceItemTags(
+    spansConfig,
+    'number'
+  );
+  const {tags: stringTags = [], isLoading: stringTagsLoading} = useTraceItemTags(
+    spansConfig,
+    'string'
+  );
+  const {tags: booleanTags = [], isLoading: booleanTagsLoading} = useTraceItemTags(
+    spansConfig,
+    'boolean'
+  );
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'

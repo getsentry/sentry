@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {
@@ -13,7 +13,6 @@ import {
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -86,42 +85,27 @@ function ToolbarGroupByItem({
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  return (
-    <TraceItemAttributeProvider
-      enabled
-      traceItemType={TraceItemDataset.SPANS}
-      search={debouncedSearch}
-    >
-      <ToolbarGroupByItemContent
-        canDelete={canDelete}
-        column={column}
-        onColumnChange={onColumnChange}
-        onColumnDelete={onColumnDelete}
-        groupBys={groupBys}
-        onSearch={setSearch}
-        onClose={() => setSearch(undefined)}
-      />
-    </TraceItemAttributeProvider>
+  const spansConfig = useMemo(
+    () => ({
+      traceItemType: TraceItemDataset.SPANS,
+      enabled: true,
+      search: debouncedSearch,
+    }),
+    [debouncedSearch]
   );
-}
 
-interface ToolbarGroupByItemContentProps extends ToolbarGroupByItemProps {
-  onClose: () => void;
-  onSearch: (search: string) => void;
-}
-
-function ToolbarGroupByItemContent({
-  groupBys,
-  canDelete,
-  column,
-  onColumnChange,
-  onColumnDelete,
-  onSearch,
-  onClose,
-}: ToolbarGroupByItemContentProps) {
-  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
-  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
-  const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags('boolean');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags(
+    spansConfig,
+    'number'
+  );
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags(
+    spansConfig,
+    'string'
+  );
+  const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags(
+    spansConfig,
+    'boolean'
+  );
 
   const options = useGroupByFields({
     groupBys,
@@ -138,8 +122,8 @@ function ToolbarGroupByItemContent({
       column={column}
       options={options}
       loading={loading}
-      onClose={onClose}
-      onSearch={onSearch}
+      onClose={() => setSearch(undefined)}
+      onSearch={setSearch}
       canDelete={canDelete}
       onColumnChange={onColumnChange}
       onColumnDelete={onColumnDelete}

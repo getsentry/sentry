@@ -43,7 +43,6 @@ import {
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsCrossEvents,
   useQueryParamsFields,
@@ -127,17 +126,20 @@ const SpansTabCrossEventSearchBar = memo(
     const crossEvents = useQueryParamsCrossEvents();
     const setCrossEvents = useSetQueryParamsCrossEvents();
 
-    const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-      useTraceItemTags('number');
-    const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-      useTraceItemTags('string');
-    const {tags: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-      useTraceItemTags('boolean');
+    const traceItemType =
+      type === 'logs' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
 
-    let traceItemType = TraceItemDataset.SPANS;
-    if (type === 'logs') {
-      traceItemType = TraceItemDataset.LOGS;
-    }
+    const crossEventConfig = useMemo(
+      () => ({traceItemType, enabled: true}),
+      [traceItemType]
+    );
+
+    const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+      useTraceItemTags(crossEventConfig, 'number');
+    const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+      useTraceItemTags(crossEventConfig, 'string');
+    const {tags: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+      useTraceItemTags(crossEventConfig, 'boolean');
 
     const eapSpanSearchQueryBuilderProps = useMemo(
       () => ({
@@ -308,13 +310,11 @@ function SpansTabCrossEventSearchBars() {
             />
           </SearchQueryBuilderProvider>
         ) : (
-          <TraceItemAttributeProvider traceItemType={traceItemType} enabled>
-            <SpansTabCrossEventSearchBar
-              index={index}
-              query={crossEvent.query}
-              type={crossEvent.type}
-            />
-          </TraceItemAttributeProvider>
+          <SpansTabCrossEventSearchBar
+            index={index}
+            query={crossEvent.query}
+            type={crossEvent.type}
+          />
         )}
         <Button
           icon={<IconDelete />}
@@ -380,12 +380,23 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const hasCrossEvents =
     hasCrossEventQueryingFlag && defined(crossEvents) && crossEvents.length > 0;
 
-  const {tags: numberAttributes, isLoading: numberAttributesLoading} =
-    useTraceItemTags('number');
-  const {tags: stringAttributes, isLoading: stringAttributesLoading} =
-    useTraceItemTags('string');
-  const {tags: booleanAttributes, isLoading: booleanAttributesLoading} =
-    useTraceItemTags('boolean');
+  const spansConfig = useMemo(
+    () => ({traceItemType: TraceItemDataset.SPANS, enabled: true}),
+    []
+  );
+
+  const {tags: numberAttributes, isLoading: numberAttributesLoading} = useTraceItemTags(
+    spansConfig,
+    'number'
+  );
+  const {tags: stringAttributes, isLoading: stringAttributesLoading} = useTraceItemTags(
+    spansConfig,
+    'string'
+  );
+  const {tags: booleanAttributes, isLoading: booleanAttributesLoading} = useTraceItemTags(
+    spansConfig,
+    'boolean'
+  );
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);

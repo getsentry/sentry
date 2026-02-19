@@ -26,6 +26,7 @@ import {
   useSetQueryParamsAggregateSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function ToolbarSortBy() {
   const mode = useQueryParamsMode();
@@ -47,7 +48,13 @@ export function ToolbarSortBy() {
   // traces table is only sorted by timestamp so disable the sort by
   const disabled = mode === Mode.SAMPLES && tab === Tab.TRACE;
 
+  const spansConfig = useMemo(
+    () => ({traceItemType: TraceItemDataset.SPANS, enabled: true}),
+    []
+  );
+
   const fieldOptions = useSortByFields({
+    config: spansConfig,
     fields,
     yAxes: visualizes.map(v => v.yAxis),
     groupBys,

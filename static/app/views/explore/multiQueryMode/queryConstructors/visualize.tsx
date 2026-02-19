@@ -30,9 +30,10 @@ type Props = {
 };
 
 export function VisualizeSection({query, index}: Props) {
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
+  const {tags: stringTags} = useTraceItemTags(spansConfig, 'string');
+  const {tags: numberTags} = useTraceItemTags(spansConfig, 'number');
+  const {tags: booleanTags} = useTraceItemTags(spansConfig, 'boolean');
 
   const parsedFunction = findFirstFunction(query.yAxes);
 

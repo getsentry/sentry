@@ -7,18 +7,20 @@ import {classifyTagKey, prettifyTagKey} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import type {TraceItemAttributeConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
 interface Props {
+  config: TraceItemAttributeConfig;
   fields: readonly string[];
   groupBys: readonly string[];
   mode: Mode;
   yAxes: string[];
 }
 
-export function useSortByFields({fields, yAxes, groupBys, mode}: Props) {
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+export function useSortByFields({config, fields, yAxes, groupBys, mode}: Props) {
+  const {tags: numberTags} = useTraceItemTags(config, 'number');
+  const {tags: stringTags} = useTraceItemTags(config, 'string');
+  const {tags: booleanTags} = useTraceItemTags(config, 'boolean');
 
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
     const uniqueOptions: string[] = [];
