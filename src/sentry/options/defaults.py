@@ -3072,22 +3072,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# TODO: Temporary options to let us play around with expiry times and see what hit rates they give
-# us. Once we've decided, we can stick our values into the two expiry options above and get rid of
-# these two options.
-register(
-    "grouping.ingest_grouphash_existence_cache_expiry.trial_values",
-    type=Sequence,
-    default=[60, 120, 600],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "grouping.ingest_grouphash_object_cache_expiry.trial_values",
-    type=Sequence,
-    default=[60, 120, 600],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Sample rate for double writing to experimental dsn
 register(
@@ -3218,6 +3202,11 @@ register(
 )
 register(
     "spans.buffer.evalsha-cumulative-logger-enabled",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.flusher-cumulative-logger-enabled",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3876,6 +3865,18 @@ register(
     "consumer.verbose_multiprocessing_logs",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Forces ArroyoRunTaskWithMultiprocessing steps to instruct the SharedMemoryManager to
+# spawn processes rather than forking.
+# As this impacts the shared memory manager initialization, which happens during
+# the creation of the strategy, a rebalance or a restart is needed for this
+# option change to take effect.
+register(
+    "consumer.shared_memory_spawn_process",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
