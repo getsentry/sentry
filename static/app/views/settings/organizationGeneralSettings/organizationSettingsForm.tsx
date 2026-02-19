@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -32,7 +32,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import slugify from 'sentry/utils/slugify';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -79,15 +79,9 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
-  // initialData.hideAiFeatures is pre-processed by index.tsx to be the form value
-  // (true = switch ON = AI shown, false = switch OFF = AI hidden).
-  // When the feature flag is off, force the switch OFF regardless of initialData.
-  const hideAiFeaturesInitialValue = hasGenAiFeatureFlag
-    ? (initialData.hideAiFeatures ?? false)
-    : false;
-  const [aiEnabled, setAiEnabled] = useState(hideAiFeaturesInitialValue);
-  // Tracks the committed (last successfully saved or initial) value so we can revert on error.
-  const committedAiEnabled = useRef(hideAiFeaturesInitialValue);
+  const [aiEnabled, setAiEnabled] = useState(
+    hasGenAiFeatureFlag ? (initialData.hideAiFeatures ?? false) : false
+  );
 
   const jsonFormSettings = useMemo(
     () => ({
@@ -109,19 +103,23 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     onError: () => addErrorMessage(t('Unable to save change')),
   });
 
+  const slugMutationOptions = mutationOptions({
+    mutationFn: (data: {slug: string}) =>
+      fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
+    onSuccess: updated => {
+      onSave(initialData, updated);
+    },
+    onError: () => addErrorMessage(t('Unable to save change')),
+  });
+
+  const {mutateAsync: updateSlug} = useMutation(slugMutationOptions);
+
   // Slug form — uses explicit Save button instead of auto-save
   const slugForm = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {slug: initialData.slug},
     validators: {onDynamic: slugSchema},
-    onSubmit: ({value}) =>
-      fetchMutation<Organization>({
-        method: 'PUT',
-        url: endpoint,
-        data: {slug: slugify(value.slug)},
-      })
-        .then(updated => onSave(initialData, updated))
-        .catch(() => addErrorMessage(t('Unable to save change'))),
+    onSubmit: ({value}) => updateSlug({slug: value.slug}),
   });
 
   return (
@@ -255,7 +253,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
         <AutoSaveField
           name="hideAiFeatures"
           schema={generalSchema}
-          initialValue={hideAiFeaturesInitialValue}
+          initialValue={aiEnabled}
           mutationOptions={mutationOptions({
             mutationFn: (data: Partial<GeneralSchema>) =>
               fetchMutation<Organization>({
@@ -265,12 +263,10 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 data: {hideAiFeatures: !data.hideAiFeatures},
               }),
             onSuccess: updated => {
-              // Sync the committed ref from server truth (API hideAiFeatures is inverted from form value)
-              committedAiEnabled.current = !updated.hideAiFeatures;
               onSave(initialData, updated);
+              setAiEnabled(prev => !prev);
             },
             onError: () => {
-              setAiEnabled(committedAiEnabled.current);
               addErrorMessage(t('Unable to save change'));
             },
           })}
@@ -289,10 +285,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
             >
               <field.Switch
                 checked={field.state.value ?? false}
-                onChange={value => {
-                  field.handleChange(value);
-                  setAiEnabled(value);
-                }}
+                onChange={field.handleChange}
                 disabled={!hasGenAiFeatureFlag || !hasWriteAccess}
               />
             </field.Layout.Row>
@@ -354,7 +347,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
         </AutoSaveField>
 
         {/* Enable AI Code Review — visible when AI enabled and not using new Seer */}
-        {aiEnabled && !showNewSeer(organization) && (
+        {!showNewSeer(organization) && aiEnabled && (
           <AutoSaveField
             name="enablePrReviewTestGeneration"
             schema={generalSchema}
