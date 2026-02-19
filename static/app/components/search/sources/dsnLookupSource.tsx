@@ -19,7 +19,7 @@ function DsnLookupSource({query, children}: Props) {
   const hasDsnLookup = organization?.features?.includes('cmd-k-dsn-lookup') ?? false;
   const isDsn = DSN_PATTERN.test(query);
 
-  const {data, isPending} = useApiQuery<DsnLookupResponse>(
+  const {data, isLoading} = useApiQuery<DsnLookupResponse>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/dsn-lookup/', {
         path: {organizationIdOrSlug: organization?.slug ?? ''},
@@ -53,7 +53,7 @@ function DsnLookupSource({query, children}: Props) {
     }));
   }, [data]);
 
-  return children({isLoading: isPending, results});
+  return children({isLoading, results});
 }
 
 export default DsnLookupSource;
