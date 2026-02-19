@@ -196,7 +196,13 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   }
 
   return (
-    <Flex ref={wrapperRef} align="center" gap="xs" wrap="nowrap">
+    <Flex
+      ref={wrapperRef}
+      align="center"
+      gap="xs"
+      wrap="nowrap"
+      style={{height: theme.form.xs.height}}
+    >
       <Flex
         ref={containerRef}
         align="center"
@@ -225,7 +231,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
               aria-label={item.label}
             />
 
-            <Text size="xs" ellipsis>
+            <Text size="xs" ellipsis style={{maxWidth: MAX_LABEL_WIDTH}}>
               {item.label}
             </Text>
           </LegendItemButton>
@@ -254,6 +260,8 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     </Flex>
   );
 }
+
+const MAX_LABEL_WIDTH = 160;
 
 const LegendItemButton = styled(Flex)`
   cursor: pointer;
