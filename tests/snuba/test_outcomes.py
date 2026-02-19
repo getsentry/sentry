@@ -2,19 +2,13 @@ import math
 
 from django.http import QueryDict
 
-from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.snuba.outcomes import massage_sessions_result
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.testutils.helpers.datetime import freeze_time
 
 
-def _make_query(qs, allow_minute_resolution=True, params=None):
-    query_config = SessionsQueryConfig(
-        (AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour),
-        allow_session_status_query=False,
-        restrict_date_range=True,
-    )
-    return QueryDefinition(QueryDict(qs), params or {}, query_config)
+def _make_query(qs, params=None):
+    return QueryDefinition(QueryDict(qs), params or {})
 
 
 def result_sorted(result):

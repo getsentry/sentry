@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import datetime
 from typing import Any, Generic, NotRequired, TypeVar
 from typing import TypedDict as TypingTypedDict
 
@@ -23,7 +24,6 @@ from sentry.snuba.sessions_v2 import (
     InvalidField,
     SimpleGroupBy,
     get_constrained_date_range,
-    get_timestamps,
     isoformat_z,
 )
 from sentry.utils.outcomes import Outcome
@@ -518,7 +518,7 @@ def massage_sessions_result(
             row[ts_col] = row[ts_col][:19] + "Z"
 
         rows.sort(key=lambda row: row[ts_col])
-        fields: list[tuple[str, Any, list[float | None]]]
+        fields: list[tuple[str, Field, list[float | None]]]
         fields = [(name, field, []) for name, field in query.fields.items()]
         group_index = 0
 
@@ -726,3 +726,15 @@ def massage_sessions_result_summary(
         "end": isoformat_z(query.end),
         "projects": formatted_projects,
     }
+
+
+def get_timestamps(query):
+    """
+    Generates a list of timestamps according to `query`.
+    The timestamps are returned as ISO strings for now.
+    """
+    rollup = query.rollup
+    start = int(query.start.timestamp())
+    end = int(query.end.timestamp())
+
+    return [datetime.fromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
