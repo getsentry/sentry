@@ -136,16 +136,19 @@ class GitHubAppsProviderTest(TestCase):
             **page1_data["commits"][0],
             "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         }
-        compare_url = "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef"
 
         responses.add(
             responses.GET,
-            compare_url,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
             json=page1_data,
-            headers={"Link": f'<{compare_url}?page=2>; rel="next"'},
+            headers={
+                "Link": '<https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef?page=2>; rel="next"'
+            },
         )
         responses.add(
-            responses.GET, f"{compare_url}?page=2", json={**page1_data, "commits": [page2_commit]}
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef?page=2",
+            json={**page1_data, "commits": [page2_commit]},
         )
         responses.add(
             responses.GET,
