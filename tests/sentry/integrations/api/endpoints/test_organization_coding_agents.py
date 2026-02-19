@@ -1237,7 +1237,10 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
             assert response.data["failed_count"] >= 1
             failure = response.data["failures"][0]
             assert failure["failure_type"] == "generic"
-            assert "not licensed" in failure["error_message"] or "Copilot license" in failure["error_message"]
+            assert (
+                "not licensed" in failure["error_message"]
+                or "Copilot license" in failure["error_message"]
+            )
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
