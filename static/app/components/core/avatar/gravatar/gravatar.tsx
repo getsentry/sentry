@@ -19,7 +19,7 @@ import {LetterAvatar} from '../letterAvatar/letterAvatar';
  * histrically hijacked the ref and attached it to the container element, and we would need
  * to eliminate the wrapper before we can enable ref support.
  */
-export interface GravatarProps
+interface GravatarProps
   extends BaseAvatarStyleProps, Omit<ImageAvatarProps, 'src' | 'identifier'> {
   gravatarId: string;
 }

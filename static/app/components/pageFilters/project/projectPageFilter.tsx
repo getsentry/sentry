@@ -418,6 +418,7 @@ export function ProjectPageFilter({
   const stagedSelect = useStagedCompactSelect({
     value,
     defaultValue,
+    options,
     onChange: handleChange,
     onStagedValueChange: setStagedValue,
     onToggle,

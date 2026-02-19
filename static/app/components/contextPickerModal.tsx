@@ -22,7 +22,7 @@ import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import Projects from 'sentry/utils/projects';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
@@ -407,7 +407,7 @@ class ContextPickerModal extends Component<Props> {
 }
 
 type ContainerProps = SharedProps & {
-  configUrl?: string;
+  configQueryKey?: ApiQueryKey;
 
   /**
    * List of slugs we want to be able to choose from
@@ -415,18 +415,20 @@ type ContainerProps = SharedProps & {
   projectSlugs?: string[];
 };
 
-export default function ContextPickerModalContainer(props: ContainerProps) {
-  const {configUrl, projectSlugs, ...sharedProps} = props;
-
+export default function ContextPickerModalContainer({
+  configQueryKey,
+  projectSlugs,
+  ...sharedProps
+}: ContainerProps) {
   const {organizations} = useLegacyStore(OrganizationsStore);
 
   const {organization} = useLegacyStore(OrganizationStore);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
 
-  if (configUrl) {
+  if (configQueryKey) {
     return (
       <ConfigUrlContainer
-        configUrl={configUrl}
+        configQueryKey={configQueryKey}
         selectedOrgSlug={selectedOrgSlug}
         setSelectedOrgSlug={setSelectedOrgSlug}
         {...sharedProps}
@@ -469,16 +471,16 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
 
 function ConfigUrlContainer(
   props: SharedProps & {
-    configUrl: string;
+    configQueryKey: ApiQueryKey;
     selectedOrgSlug: string | undefined;
     setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
   }
 ) {
-  const {configUrl, selectedOrgSlug, setSelectedOrgSlug, ...sharedProps} = props;
+  const {configQueryKey, selectedOrgSlug, setSelectedOrgSlug, ...sharedProps} = props;
 
   const {organizations} = useLegacyStore(OrganizationsStore);
 
-  const {data, isError, isPending, refetch} = useApiQuery<Integration[]>([configUrl], {
+  const {data, isError, isPending, refetch} = useApiQuery<Integration[]>(configQueryKey, {
     staleTime: Infinity,
   });
 

@@ -71,6 +71,7 @@ import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
+import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -732,6 +733,8 @@ function GroupDetailsContent({
     organization,
     hasAutofixQuota,
   });
+
+  useEngagedViewTracking({group, project});
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,

@@ -63,6 +63,7 @@ describe('HybridFilter', () => {
       const stagedSelect = useStagedCompactSelect({
         value: [] as string[],
         defaultValue: [],
+        options,
         onChange: () => {},
         multiple: true,
       });
@@ -116,6 +117,7 @@ describe('HybridFilter', () => {
       const stagedSelect = useStagedCompactSelect({
         value,
         defaultValue: [],
+        options,
         onChange,
         multiple: true,
       });
@@ -176,6 +178,7 @@ describe('HybridFilter', () => {
       const stagedSelect = useStagedCompactSelect({
         value,
         defaultValue: [],
+        options,
         onChange: newValue => {
           onChange(newValue);
           setValue(newValue);
@@ -251,6 +254,7 @@ describe('HybridFilter', () => {
       const stagedSelect = useStagedCompactSelect({
         value: [] as string[],
         defaultValue: [],
+        options,
         onChange,
         multiple: true,
       });
@@ -312,6 +316,7 @@ describe('HybridFilter', () => {
       const stagedSelect = useStagedCompactSelect({
         value,
         defaultValue: ['one'] as string[],
+        options,
         onChange: newValue => {
           onChange(newValue);
           setValue(newValue);
@@ -381,6 +386,7 @@ describe('HybridFilter', () => {
       const stagedSelect = useStagedCompactSelect({
         value: [] as string[],
         defaultValue: [],
+        options,
         onChange,
         multiple: true,
       });
@@ -442,5 +448,412 @@ describe('HybridFilter', () => {
     // Click "Apply" button, onChange is called
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
     expect(onChange).toHaveBeenCalledWith(['one']);
+  });
+
+  describe('Shift-click range selection', () => {
+    it('selects range forward (first to third)', async () => {
+      const onChange = jest.fn();
+
+      function TestComponent() {
+        const [value, setValue] = useState<string[]>([]);
+        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+        const options = useTestOptions(hybridFilterRef);
+        const stagedSelect = useStagedCompactSelect({
+          value,
+          defaultValue: [],
+          options,
+          onChange: newValue => {
+            onChange(newValue);
+            setValue(newValue);
+          },
+          multiple: true,
+        });
+
+        return (
+          <HybridFilter
+            searchable
+            ref={hybridFilterRef}
+            options={options}
+            stagedSelect={stagedSelect}
+            menuFooter={
+              stagedSelect.hasStagedChanges ? (
+                <div>
+                  <HybridFilterComponents.CancelButton
+                    onClick={() => stagedSelect.removeStagedChanges()}
+                  />
+                  <HybridFilterComponents.ApplyButton
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </div>
+              ) : null
+            }
+          />
+        );
+      }
+
+      render(<TestComponent />);
+
+      // Open the menu
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+      // Ctrl-click row for Option One to set anchor (works with modifier keys)
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Control}');
+
+      // Shift-click row for Option Three to select range
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
+      await userEvent.keyboard('{/Shift}');
+
+      // Apply the changes
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // Should select all items from one to three
+      expect(onChange).toHaveBeenLastCalledWith(['one', 'two', 'three']);
+    });
+
+    it('selects range backward (third to first)', async () => {
+      const onChange = jest.fn();
+
+      function TestComponent() {
+        const [value, setValue] = useState<string[]>([]);
+        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+        const options = useTestOptions(hybridFilterRef);
+        const stagedSelect = useStagedCompactSelect({
+          value,
+          defaultValue: [],
+          options,
+          onChange: newValue => {
+            onChange(newValue);
+            setValue(newValue);
+          },
+          multiple: true,
+        });
+
+        return (
+          <HybridFilter
+            searchable
+            ref={hybridFilterRef}
+            options={options}
+            stagedSelect={stagedSelect}
+            menuFooter={
+              stagedSelect.hasStagedChanges ? (
+                <div>
+                  <HybridFilterComponents.ApplyButton
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </div>
+              ) : null
+            }
+          />
+        );
+      }
+
+      render(<TestComponent />);
+
+      // Open the menu
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+      // Ctrl-click row for Option Three to set anchor (works with modifier keys)
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
+      await userEvent.keyboard('{/Control}');
+
+      // Shift-click row for Option One to select range backward
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Shift}');
+
+      // Apply the changes
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // Should select all items from one to three
+      expect(onChange).toHaveBeenLastCalledWith(['one', 'two', 'three']);
+    });
+
+    it('first shift-click acts as normal click', async () => {
+      const onChange = jest.fn();
+
+      function TestComponent() {
+        const [value, setValue] = useState<string[]>([]);
+        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+        const options = useTestOptions(hybridFilterRef);
+        const stagedSelect = useStagedCompactSelect({
+          value,
+          defaultValue: [],
+          options,
+          onChange: newValue => {
+            onChange(newValue);
+            setValue(newValue);
+          },
+          multiple: true,
+        });
+
+        return (
+          <HybridFilter
+            searchable
+            ref={hybridFilterRef}
+            options={options}
+            stagedSelect={stagedSelect}
+            menuFooter={
+              stagedSelect.hasStagedChanges ? (
+                <div>
+                  <HybridFilterComponents.ApplyButton
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </div>
+              ) : null
+            }
+          />
+        );
+      }
+
+      render(<TestComponent />);
+
+      // Open the menu
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+      // Shift-click row for Option Two (no previous selection)
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
+      await userEvent.keyboard('{/Shift}');
+
+      // Apply the changes
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // Should only select option two
+      expect(onChange).toHaveBeenLastCalledWith(['two']);
+    });
+
+    it('deselects range when shift-clicking already selected item', async () => {
+      const onChange = jest.fn();
+
+      function TestComponent() {
+        const [value, setValue] = useState<string[]>(['one', 'two', 'three']);
+        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+        const options = useTestOptions(hybridFilterRef);
+        const stagedSelect = useStagedCompactSelect({
+          value,
+          defaultValue: [],
+          options,
+          onChange: newValue => {
+            onChange(newValue);
+            setValue(newValue);
+          },
+          multiple: true,
+        });
+
+        return (
+          <HybridFilter
+            searchable
+            ref={hybridFilterRef}
+            options={options}
+            stagedSelect={stagedSelect}
+            menuFooter={
+              stagedSelect.hasStagedChanges ? (
+                <div>
+                  <HybridFilterComponents.ApplyButton
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </div>
+              ) : null
+            }
+          />
+        );
+      }
+
+      render(<TestComponent />);
+
+      // Open the menu
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+      // Ctrl-click row for Option One to deselect and set anchor
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Control}');
+
+      // Shift-click row for Option Three to deselect range
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
+      await userEvent.keyboard('{/Shift}');
+
+      // Apply the changes
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // Should deselect all items from one to three
+      expect(onChange).toHaveBeenLastCalledWith([]);
+    });
+
+    it('keeps menu open during shift-click', async () => {
+      function TestComponent() {
+        const [value, setValue] = useState<string[]>([]);
+        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+        const options = useTestOptions(hybridFilterRef);
+        const stagedSelect = useStagedCompactSelect({
+          value,
+          defaultValue: [],
+          options,
+          onChange: setValue,
+          multiple: true,
+        });
+
+        return (
+          <HybridFilter
+            searchable
+            ref={hybridFilterRef}
+            options={options}
+            stagedSelect={stagedSelect}
+            menuFooter={
+              stagedSelect.hasStagedChanges ? (
+                <div>
+                  <HybridFilterComponents.ApplyButton
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </div>
+              ) : null
+            }
+          />
+        );
+      }
+
+      render(<TestComponent />);
+
+      // Open the menu
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+      // Ctrl-click row for Option One (works with modifier keys)
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Control}');
+
+      // Shift-click row for Option Two
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
+      await userEvent.keyboard('{/Shift}');
+
+      // Menu should still be open
+      expect(screen.getByRole('row', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Apply'})).toBeInTheDocument();
+    });
+
+    it('works with rows and modifier keys', async () => {
+      const onChange = jest.fn();
+
+      function TestComponent() {
+        const [value, setValue] = useState<string[]>([]);
+        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+        const options = useTestOptions(hybridFilterRef);
+        const stagedSelect = useStagedCompactSelect({
+          value,
+          defaultValue: [],
+          options,
+          onChange: newValue => {
+            onChange(newValue);
+            setValue(newValue);
+          },
+          multiple: true,
+        });
+
+        return (
+          <HybridFilter
+            searchable
+            ref={hybridFilterRef}
+            options={options}
+            stagedSelect={stagedSelect}
+            menuFooter={
+              stagedSelect.hasStagedChanges ? (
+                <div>
+                  <HybridFilterComponents.ApplyButton
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </div>
+              ) : null
+            }
+          />
+        );
+      }
+
+      render(<TestComponent />);
+
+      // Open the menu
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+      // Ctrl-click row for Option One to set anchor
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.keyboard('{/Control}');
+
+      // Shift-click row for Option Three to select range
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
+      await userEvent.keyboard('{/Shift}');
+
+      // Apply the changes
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // Should select all items from one to three
+      expect(onChange).toHaveBeenLastCalledWith(['one', 'two', 'three']);
+    });
+
+    it('Cmd/Ctrl still works for individual toggle', async () => {
+      const onChange = jest.fn();
+
+      function TestComponent() {
+        const [value, setValue] = useState<string[]>([]);
+        const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+        const options = useTestOptions(hybridFilterRef);
+        const stagedSelect = useStagedCompactSelect({
+          value,
+          defaultValue: [],
+          options,
+          onChange: newValue => {
+            onChange(newValue);
+            setValue(newValue);
+          },
+          multiple: true,
+        });
+
+        return (
+          <HybridFilter
+            searchable
+            ref={hybridFilterRef}
+            options={options}
+            stagedSelect={stagedSelect}
+            menuFooter={
+              stagedSelect.hasStagedChanges ? (
+                <div>
+                  <HybridFilterComponents.ApplyButton
+                    onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  />
+                </div>
+              ) : null
+            }
+          />
+        );
+      }
+
+      render(<TestComponent />);
+
+      // Open the menu
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+      // Ctrl-click checkbox for Option One
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+      await userEvent.keyboard('{/Control}');
+
+      // Ctrl-click checkbox for Option Three (should not select two)
+      await userEvent.keyboard('{Control>}');
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option Three'}));
+      await userEvent.keyboard('{/Control}');
+
+      // Apply the changes
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // Should only select options one and three (not two)
+      expect(onChange).toHaveBeenLastCalledWith(['one', 'three']);
+    });
   });
 });

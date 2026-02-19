@@ -19,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   fetchMutation,
@@ -87,9 +88,12 @@ export function PrivateGamingSdkAccessModal({
     isError,
     data: userIdentities,
     refetch,
-  } = useApiQuery<UserIdentityConfig[]>(['/users/me/user-identities/'], {
-    staleTime: Infinity,
-  });
+  } = useApiQuery<UserIdentityConfig[]>(
+    [getApiUrl('/users/$userId/user-identities/', {path: {userId: 'me'}})],
+    {
+      staleTime: Infinity,
+    }
+  );
 
   const mutation = useMutation<
     ConsoleSdkInviteResponse,
