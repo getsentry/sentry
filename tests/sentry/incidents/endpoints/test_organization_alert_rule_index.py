@@ -267,6 +267,60 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         )
 
 
+@freeze_time("2024-12-11 03:21:34")
+class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
+    """Delta tests comparing old vs new serializer output for the list endpoint."""
+
+    def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
+        """New serializer output on the list endpoint must match old serializer output."""
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        with self.feature("organizations:incidents"):
+            old_resp = self.get_success_response(self.organization.slug)
+        old_data = old_resp.data
+        assert len(old_data) > 0
+
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:workflow-engine-rule-serializers"),
+        ):
+            new_resp = self.get_success_response(self.organization.slug)
+        new_data = new_resp.data
+        assert len(new_data) == len(old_data)
+
+        mismatches: list[str] = []
+        for old_rule, new_rule in zip(old_data, new_data):
+            for field in set(list(old_rule.keys()) + list(new_rule.keys())):
+                if field == "triggers":
+                    continue
+                if field not in new_rule:
+                    mismatches.append(f"Missing from new: {field}")
+                elif field not in old_rule:
+                    mismatches.append(f"Extra in new: {field}")
+                elif old_rule[field] != new_rule[field]:
+                    mismatches.append(f"{field}: old={old_rule[field]!r}, new={new_rule[field]!r}")
+
+            old_triggers = sorted(old_rule.get("triggers", []), key=lambda t: t.get("label", ""))
+            new_triggers = sorted(new_rule.get("triggers", []), key=lambda t: t.get("label", ""))
+            if len(old_triggers) != len(new_triggers):
+                mismatches.append(
+                    f"trigger count: old={len(old_triggers)}, new={len(new_triggers)}"
+                )
+            for old_t, new_t in zip(old_triggers, new_triggers):
+                for tfield in set(list(old_t.keys()) + list(new_t.keys())):
+                    if tfield == "actions":
+                        continue
+                    if old_t.get(tfield) != new_t.get(tfield):
+                        mismatches.append(
+                            f"trigger[{old_t.get('label')}].{tfield}: "
+                            f"old={old_t.get(tfield)!r}, new={new_t.get(tfield)!r}"
+                        )
+
+        assert not mismatches, "List old vs new serializer differences:\n" + "\n".join(mismatches)
+
+
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     method = "post"
@@ -2063,6 +2117,72 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_success_response(self.organization.slug, status_code=201, **data)
         assert resp.data["owner"] == f"team:{other_team.id}"
+
+
+@freeze_time("2024-12-11 03:21:34")
+class AlertRuleCreateDeltaTest(AlertRuleIndexBase, SnubaTestCase):
+    """Delta tests comparing old vs new serializer output for the create endpoint."""
+
+    method = "post"
+
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+    def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
+        """New serializer output on the create endpoint must match old serializer output."""
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        # Create with old serializer
+        old_dict = deepcopy(self.alert_rule_dict)
+        old_dict["name"] = "OldSerializerRule"
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            old_resp = self.get_success_response(
+                self.organization.slug, status_code=201, **old_dict
+            )
+        old_data = old_resp.data
+
+        # Create with new serializer
+        new_dict = deepcopy(self.alert_rule_dict)
+        new_dict["name"] = "NewSerializerRule"
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:workflow-engine-rule-serializers",
+                ]
+            ),
+        ):
+            new_resp = self.get_success_response(
+                self.organization.slug, status_code=201, **new_dict
+            )
+        new_data = new_resp.data
+
+        # id, name, dates differ because these are different objects
+        skip_fields = {"id", "name", "dateModified", "dateCreated", "triggers"}
+        mismatches: list[str] = []
+        for field in set(list(old_data.keys()) + list(new_data.keys())):
+            if field in skip_fields:
+                continue
+            if field not in new_data:
+                mismatches.append(f"Missing from new: {field}")
+            elif field not in old_data:
+                mismatches.append(f"Extra in new: {field}")
+            elif old_data[field] != new_data[field]:
+                mismatches.append(f"{field}: old={old_data[field]!r}, new={new_data[field]!r}")
+
+        assert not mismatches, "POST old vs new serializer differences:\n" + "\n".join(mismatches)
 
 
 @freeze_time()

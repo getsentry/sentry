@@ -17,12 +17,18 @@ from sentry.incidents.endpoints.serializers.workflow_engine_data_condition impor
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineIncidentSerializer,
 )
-from sentry.incidents.models.alert_rule import AlertRuleStatus
+from sentry.incidents.models.alert_rule import (
+    AlertRuleActivity,
+    AlertRuleActivityType,
+    AlertRuleStatus,
+    AlertRuleThresholdType,
+)
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import ExtrapolationMode, QuerySubscription, SnubaQueryEventType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -36,6 +42,7 @@ from sentry.workflow_engine.models import (
     Detector,
     DetectorWorkflow,
 )
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -277,10 +284,52 @@ class WorkflowEngineDetectorSerializer(Serializer):
             sentry_app_installations_by_sentry_app_id,
             serialized_data_conditions,
         )
+        # derive thresholdType and sensitivity/seasonality from trigger data conditions
+        for detector in detectors.values():
+            wcg = detector.workflow_condition_group
+            if wcg:
+                trigger_dc = detector_trigger_data_conditions.filter(condition_group=wcg).first()
+                if trigger_dc:
+                    if trigger_dc.type == Condition.ANOMALY_DETECTION:
+                        result[detector]["thresholdType"] = trigger_dc.comparison.get(
+                            "threshold_type"
+                        )
+                        result[detector]["sensitivity"] = trigger_dc.comparison.get("sensitivity")
+                        result[detector]["seasonality"] = trigger_dc.comparison.get("seasonality")
+                    else:
+                        result[detector]["thresholdType"] = (
+                            AlertRuleThresholdType.ABOVE.value
+                            if trigger_dc.type == Condition.GREATER
+                            else AlertRuleThresholdType.BELOW.value
+                        )
+                        result[detector]["sensitivity"] = None
+                        result[detector]["seasonality"] = None
+
         self.add_projects(result, detectors)
         self.add_created_by(result, list(detectors.values()))
         self.add_owner(result, list(detectors.values()))
-        # skipping snapshot data
+
+        # add originalAlertRuleId from snapshot activities
+        alert_rule_ids = list(
+            AlertRuleDetector.objects.filter(detector_id__in=detector_ids).values_list(
+                "alert_rule_id", flat=True
+            )
+        )
+        if "original_alert_rule" in self.expand and alert_rule_ids:
+            snapshot_activities = AlertRuleActivity.objects.filter(
+                alert_rule_id__in=alert_rule_ids,
+                type=AlertRuleActivityType.SNAPSHOT.value,
+            )
+            alert_rule_id_to_detector = {
+                ard.alert_rule_id: detectors[ard.detector_id]
+                for ard in AlertRuleDetector.objects.filter(detector_id__in=detector_ids)
+            }
+            for activity in snapshot_activities:
+                matched_detector = alert_rule_id_to_detector.get(activity.alert_rule_id)
+                if matched_detector:
+                    result[matched_detector]["originalAlertRuleId"] = (
+                        activity.previous_alert_rule_id
+                    )
 
         if "latestIncident" in self.expand:
             # to get the actions for a detector, we need to go from detector -> workflow -> action filters for that workflow -> actions
@@ -309,23 +358,60 @@ class WorkflowEngineDetectorSerializer(Serializer):
             self.add_latest_incident(result, user, detectors, detector_to_action_ids)
 
         # add information from snubaquery
-        data_source_detectors = DataSourceDetector.objects.filter(detector_id__in=detectors.keys())
+        data_source_detectors = DataSourceDetector.objects.filter(
+            detector_id__in=detectors.keys()
+        ).select_related("data_source")
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[dsd.data_source.source_id for dsd in data_source_detectors]
-        )
+        ).select_related("snuba_query__environment")
 
+        snuba_query_ids = []
         for detector in detectors.values():
             data_source_detector = data_source_detectors.get(Q(detector=detector))
             query_subscription = query_subscriptions.get(
                 Q(id=data_source_detector.data_source.source_id)
             )
             snuba_query = query_subscription.snuba_query
+            snuba_query_ids.append(snuba_query.id)
             result[detector]["query"] = snuba_query.query
             result[detector]["aggregate"] = snuba_query.aggregate
             result[detector]["timeWindow"] = snuba_query.time_window / 60
             result[detector]["resolution"] = snuba_query.resolution / 60
             env = snuba_query.environment
             result[detector]["environment"] = env.name if env else None
+            result[detector]["queryType"] = snuba_query.type
+            result[detector]["dataset"] = snuba_query.dataset
+            extrapolation_mode = snuba_query.extrapolation_mode
+            result[detector]["extrapolationMode"] = (
+                ExtrapolationMode(extrapolation_mode).name.lower()
+                if extrapolation_mode is not None
+                else None
+            )
+            result[detector]["snuba_query_id"] = snuba_query.id
+
+        # add event types from SnubaQueryEventType
+        event_types_by_snuba_query: defaultdict[int, list[str]] = defaultdict(list)
+        for event_type in SnubaQueryEventType.objects.filter(snuba_query_id__in=snuba_query_ids):
+            event_types_by_snuba_query[event_type.snuba_query_id].append(
+                SnubaQueryEventType.EventType(event_type.type).name.lower()
+            )
+        for detector in detectors.values():
+            sq_id: int | None = result[detector].get("snuba_query_id")
+            result[detector]["event_types"] = sorted(
+                event_types_by_snuba_query[sq_id] if sq_id is not None else []
+            )
+
+        # add snooze status
+        snooze_rules = RuleSnooze.objects.filter(
+            alert_rule_id__in=alert_rule_ids,
+        )
+        snoozed_alert_rule_ids = set(snooze_rules.values_list("alert_rule_id", flat=True))
+        alert_rule_id_to_detector = {
+            ard.alert_rule_id: detectors[ard.detector_id]
+            for ard in AlertRuleDetector.objects.filter(detector_id__in=detector_ids)
+        }
+        for ar_id, detector in alert_rule_id_to_detector.items():
+            result[detector]["snooze"] = ar_id in snoozed_alert_rule_ids
 
         return result
 
@@ -345,6 +431,8 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 # but we need to return *something*
                 alert_rule_id = get_fake_id_from_object_id(obj.id)
 
+        comparison_delta = obj.config.get("comparison_delta")
+
         data: AlertRuleSerializerResponse = {
             "id": str(alert_rule_id),
             "name": obj.name,
@@ -354,22 +442,43 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 if obj.enabled is True
                 else AlertRuleStatus.DISABLED.value
             ),
+            "queryType": attrs.get("queryType"),
+            "dataset": attrs.get("dataset"),
             "query": attrs.get("query"),
             "aggregate": attrs.get("aggregate"),
+            "thresholdType": attrs.get("thresholdType"),
+            "resolveThreshold": triggers[0].get("resolveThreshold") if triggers else None,
             "timeWindow": attrs.get("timeWindow"),
-            "resolution": attrs.get("resolution"),
             "environment": attrs.get("environment"),
+            "resolution": attrs.get("resolution"),
             "thresholdPeriod": 1,  # unset on detectors
             "triggers": triggers,
             "projects": sorted(attrs.get("projects", [])),
             "owner": attrs.get("owner", None),
+            "originalAlertRuleId": attrs.get("originalAlertRuleId", None),
+            "comparisonDelta": comparison_delta / 60 if comparison_delta else None,
             "dateModified": obj.date_updated,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by"),
             "description": obj.description if obj.description else "",
+            "sensitivity": attrs.get("sensitivity"),
+            "seasonality": attrs.get("seasonality"),
             "detectionType": obj.config.get("detection_type"),
         }
+
+        snooze = attrs.get("snooze", False)
+        if snooze:
+            data["snooze"] = True
+        else:
+            data["snooze"] = False
+
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
+
+        extrapolation_mode = attrs.get("extrapolationMode")
+        if extrapolation_mode is not None:
+            data["extrapolationMode"] = extrapolation_mode
+
+        data["eventTypes"] = attrs.get("event_types", [])
 
         return data
