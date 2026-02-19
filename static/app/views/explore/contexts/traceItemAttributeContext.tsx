@@ -336,18 +336,6 @@ export function useTraceItemAttributes(
   return processTraceItemAttributes(typedAttributesResult, args.type, args.hiddenKeys);
 }
 
-/**
- * @deprecated Use `useTraceItemAttributes` with a config argument instead.
- */
-export function useTraceItemAttributesWithConfig(
-  config: TraceItemAttributeConfig,
-  type?: TraceItemAttributeType,
-  hiddenKeys?: string[]
-) {
-  const typedAttributesResult = useTraceItemAttributeConfig(config);
-  return processTraceItemAttributes(typedAttributesResult, type, hiddenKeys);
-}
-
 function getDefaultStringAttributes(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SENTRY_SPAN_STRING_TAGS;

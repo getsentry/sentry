@@ -39,10 +39,7 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {
-  useTraceItemAttributes,
-  useTraceItemAttributesWithConfig,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -160,11 +157,11 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useTraceItemAttributes(traceItemAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useTraceItemAttributes(traceItemAttributeConfig, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
+    useTraceItemAttributes(traceItemAttributeConfig, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

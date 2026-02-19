@@ -66,7 +66,7 @@ import {
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -152,11 +152,11 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useTraceItemAttributes(traceItemAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useTraceItemAttributes(traceItemAttributeConfig, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
+    useTraceItemAttributes(traceItemAttributeConfig, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

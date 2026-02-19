@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface PreprodSearchBarProps {
@@ -77,11 +77,11 @@ export function PreprodSearchBar({
   const hiddenKeys = allowedKeys ? undefined : HIDDEN_PREPROD_ATTRIBUTES;
 
   const {attributes: rawStringAttributes, secondaryAliases: rawStringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string', hiddenKeys);
+    useTraceItemAttributes(traceItemAttributeConfig, 'string', hiddenKeys);
   const {attributes: rawNumberAttributes, secondaryAliases: rawNumberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number', hiddenKeys);
+    useTraceItemAttributes(traceItemAttributeConfig, 'number', hiddenKeys);
   const {attributes: rawBooleanAttributes, secondaryAliases: rawBooleanSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean', hiddenKeys);
+    useTraceItemAttributes(traceItemAttributeConfig, 'boolean', hiddenKeys);
 
   const stringAttributes = useMemo(
     () =>
