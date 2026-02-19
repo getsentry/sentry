@@ -10,13 +10,13 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import Dashboard from 'sentry/views/dashboards/dashboard';
 import FiltersBar from 'sentry/views/dashboards/filtersBar';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
@@ -438,6 +438,28 @@ describe('Dashboards > Dashboard', () => {
       period: '24h',
     };
 
+    // 30d variants used by the "URL interval not valid" tests.
+    const thirtyDayDashboard: DashboardDetails = {
+      ...mockDashboard,
+      widgets: [spansWidget],
+      period: '30d',
+    };
+    const thirtyDayReleaseDashboard: DashboardDetails = {
+      ...mockDashboard,
+      widgets: [releasesWidget],
+      period: '30d',
+    };
+
+    // Minimal valid SessionApiResponse — enough for the releases hook to
+    // consider the query complete without trying to render chart data.
+    const emptySessionsBody = {
+      start: '2021-08-07T00:00:00Z',
+      end: '2021-09-06T00:00:00Z',
+      query: '',
+      intervals: [],
+      groups: [],
+    };
+
     // useChartInterval computes the active interval from PageFiltersStore's
     // datetime selection. FiltersBar uses the same hook, so clicking a new
     // option updates both the URL and widgetInterval together.
@@ -478,14 +500,13 @@ describe('Dashboards > Dashboard', () => {
     }
 
     beforeEach(() => {
-      // Initialize page filters from the dashboard's saved time range so that
-      // FiltersBar's interval selector computes valid options for a 24h window
-      // (5m, 15m, 30m, 1h).
+      // Reset the saved page filters.
       PageFiltersStore.init();
       PageFiltersStore.onInitializeUrlState(
         getSavedFiltersAsPageFilters(dashboardWithWidget)
       );
-      // FiltersBar renders the interval selector and needs these endpoints.
+      // FiltersBar's global filter search and releases filter trigger these
+      // endpoints whenever FiltersBar mounts, even in interval-selector tests.
       MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/measurements-meta/',
@@ -510,7 +531,7 @@ describe('Dashboards > Dashboard', () => {
 
         // No interval in the URL — the 5m default is derived purely from the
         // dashboard's saved 24h period via PageFiltersStore → useChartInterval.
-        render(<DashboardWithIntervalSelector />, {
+        const {router} = render(<DashboardWithIntervalSelector />, {
           initialRouterConfig: {location: {pathname: '/'}},
         });
 
@@ -525,6 +546,7 @@ describe('Dashboards > Dashboard', () => {
         await userEvent.click(screen.getByRole('option', {name: '1 hour'}));
 
         await waitFor(() => expect(hourlyIntervalMock).toHaveBeenCalled());
+        expect(router.location.query.interval).toBe('1h');
       });
     });
 
@@ -543,7 +565,14 @@ describe('Dashboards > Dashboard', () => {
           match: [MockApiClient.matchQuery({interval: '5m'})],
         });
 
-        render(<DashboardWithIntervalSelector />, {
+        const hourlyIntervalMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          body: [],
+          match: [MockApiClient.matchQuery({interval: '1h'})],
+        });
+
+        const {router} = render(<DashboardWithIntervalSelector />, {
           initialRouterConfig: {location: {pathname: '/', query: {interval: '30m'}}},
         });
 
@@ -555,25 +584,26 @@ describe('Dashboards > Dashboard', () => {
         // The widget queries use the URL interval.
         await waitFor(() => expect(thirtyMinuteMock).toHaveBeenCalled());
         expect(fiveMinuteMock).not.toHaveBeenCalled();
+
+        // Selecting a new interval updates the URL and triggers a re-fetch.
+        await userEvent.click(screen.getByRole('button', {name: '30 minutes'}));
+        await userEvent.click(screen.getByRole('option', {name: '1 hour'}));
+
+        await waitFor(() => expect(hourlyIntervalMock).toHaveBeenCalled());
+        expect(router.location.query.interval).toBe('1h');
       });
     });
 
     describe('URL interval not valid for the dashboard period', () => {
-      it('ignores the URL interval and falls back to the period default', async () => {
-        // For a 30d period the valid intervals are 3h, 12h, and 1d — 5m is out of range.
-        // The selector and the widget query should both use 3h (smallest valid option).
-        const thirtyDayDashboard: DashboardDetails = {
-          ...mockDashboard,
-          widgets: [spansWidget],
-          period: '30d',
-        };
-
-        // Override the beforeEach 24h store setup with the 30d period.
+      beforeEach(() => {
+        // Override the outer 24h store setup — valid intervals for 30d are 3h, 12h, 1d.
         PageFiltersStore.init();
         PageFiltersStore.onInitializeUrlState(
           getSavedFiltersAsPageFilters(thirtyDayDashboard)
         );
+      });
 
+      it('ignores the URL interval and falls back to the period default', async () => {
         const threeHourMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           method: 'GET',
@@ -604,32 +634,17 @@ describe('Dashboards > Dashboard', () => {
     });
 
     describe('URL interval not valid for the dashboard period (releases widget)', () => {
-      it('ignores the URL interval and falls back to the period default', async () => {
-        // Mirror the spans test but with a RELEASE widget whose queries hit the
-        // /sessions/ endpoint (session.status in columns → useSessionAPI=true).
-        // This is the endpoint that surfaces "intervals too granular" in the UI
-        // when a 5m interval is used with a 30d period.
-        const thirtyDayReleaseDashboard: DashboardDetails = {
-          ...mockDashboard,
-          widgets: [releasesWidget],
-          period: '30d',
-        };
-
+      beforeEach(() => {
+        // Mirror the spans describe's 30d override but for the releases widget.
         PageFiltersStore.init();
         PageFiltersStore.onInitializeUrlState(
           getSavedFiltersAsPageFilters(thirtyDayReleaseDashboard)
         );
+      });
 
-        // Minimal valid SessionApiResponse — enough for the hook to consider the
-        // query complete without trying to render chart data.
-        const emptySessionsBody = {
-          start: '2021-08-07T00:00:00Z',
-          end: '2021-09-06T00:00:00Z',
-          query: '',
-          intervals: [],
-          groups: [],
-        };
-
+      it('ignores the URL interval and falls back to the period default', async () => {
+        // Uses the /sessions/ endpoint (session.status in columns → useSessionAPI=true),
+        // which surfaces the "intervals too granular" error in production.
         const threeHourMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/sessions/',
           method: 'GET',

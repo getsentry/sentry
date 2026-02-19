@@ -8,6 +8,7 @@ import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
+import {createParser, useQueryState} from 'nuqs';
 
 import {
   createDashboard,
@@ -51,6 +52,7 @@ import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -73,7 +75,6 @@ import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetB
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
@@ -1381,6 +1382,12 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
+// 'auto' means "let widgets decide their own interval"; treat it as absent.
+const parseIntervalParam = createParser({
+  parse: (value: string): string | null => (value === 'auto' ? null : value),
+  serialize: (value: string) => value,
+});
+
 interface DashboardDetailWithInjectedPropsProps extends Omit<
   Props,
   | 'theme'
@@ -1405,13 +1412,14 @@ export default function DashboardDetailWithInjectedProps(
   const params = useParams<RouteParams>();
   const router = useRouter();
   const [chartInterval] = useChartInterval();
+  const [intervalParam] = useQueryState('interval', parseIntervalParam);
 
   // Validate the URL interval against the current page filter period so widgets
   // never make requests with an interval that is too granular (e.g. 1m over 30d).
-  const rawInterval = location.query.interval as string | undefined;
+  // intervalParam is null when absent or 'auto' (both mean "let widgets decide").
   const validatedWidgetInterval =
     organization.features.includes('dashboards-interval-selection') &&
-    rawInterval !== 'auto'
+    intervalParam !== null
       ? chartInterval
       : undefined;
 

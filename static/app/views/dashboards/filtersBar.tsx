@@ -27,6 +27,7 @@ import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -41,7 +42,6 @@ import {
   PREBUILT_DASHBOARDS,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -201,7 +201,6 @@ export default function FiltersBar({
     'dashboards-interval-selection'
   );
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const [intervalMenuOpen, setIntervalMenuOpen] = useState(false);
 
   return (
     <Wrapper>
@@ -333,12 +332,8 @@ export default function FiltersBar({
           <CompactSelect
             value={interval}
             onChange={option => setInterval(option.value)}
-            onOpenChange={setIntervalMenuOpen}
             trigger={triggerProps => (
-              <Tooltip
-                title={t('Time interval used by chart visualizations (e.g., 5m)')}
-                disabled={intervalMenuOpen}
-              >
+              <Tooltip title={t('Time interval used by chart visualizations (e.g., 5m)')}>
                 <OverlayTrigger.Button
                   {...triggerProps}
                   icon={<IconClock />}

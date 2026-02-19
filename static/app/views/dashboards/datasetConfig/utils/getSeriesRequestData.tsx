@@ -30,13 +30,8 @@ export function getSeriesRequestData(
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
-  const interval = getWidgetInterval(
-    widget,
-    {start, end, period: statsPeriod},
-    widgetInterval ?? '1m',
-    undefined,
-    !!widgetInterval
-  );
+  const interval =
+    widgetInterval ?? getWidgetInterval(widget, {start, end, period: statsPeriod}, '1m');
 
   let requestData: EventsStatsOptions<true>;
   if (displayType === DisplayType.TOP_N) {
