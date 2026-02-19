@@ -276,16 +276,14 @@ export function ProjectPageFilter({
         value: parseInt(project.id, 10),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
-          <Flex align="center" gap="sm" flex="1 1 100%">
-            <HybridFilterComponents.Checkbox
-              checked={isSelected}
-              onChange={() =>
-                hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
-              }
-              aria-label={t('Select %s', project.slug)}
-              tabIndex={-1}
-            />
-          </Flex>
+          <HybridFilterComponents.Checkbox
+            checked={isSelected}
+            onChange={() =>
+              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+            }
+            aria-label={t('Select %s', project.slug)}
+            tabIndex={-1}
+          />
         ),
         label: (
           <Flex align="center" gap="sm" flex="1 1 100%">

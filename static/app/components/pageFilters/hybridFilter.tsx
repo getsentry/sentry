@@ -27,7 +27,7 @@ import type {
   SelectSection,
 } from '@sentry/scraps/compactSelect';
 import {CompactSelect, ControlContext} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
@@ -550,21 +550,20 @@ export const HybridFilterComponents = {
 
   Checkbox(props: CheckboxProps) {
     return (
-      <CheckboxHitAreaWrapper>
+      <StyledFlex as="label" position="relative" margin="0">
         <Checkbox {...props} />
-      </CheckboxHitAreaWrapper>
+      </StyledFlex>
     );
   },
 };
 
-const CheckboxHitAreaWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
-
-  /* Expand clickable area using wrapper padding and negative margin */
-  padding: ${p => p.theme.space.md};
-  margin: -${p => p.theme.space.md};
+const StyledFlex = styled(Flex)`
+  cursor: pointer;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -${p => p.theme.space.sm};
+  }
 `;
 
 const ResetButton = styled(Button)`
