@@ -13,19 +13,18 @@ function getMaxIssueSeverity(
   const issues = [...errors, ...occurrences];
   return issues.reduce((acc, issue) => {
     const severity = getTraceIssueSeverityClassName(issue);
-
     if (severity === 'fatal') {
       return 'fatal';
     }
-
     if (severity === 'error') {
       return acc === 'fatal' ? 'fatal' : 'error';
     }
-
     if (severity === 'warning') {
       return acc === 'fatal' || acc === 'error' ? acc : 'warning';
     }
-
+    if (severity === 'occurence') {
+      return 'occurence';
+    }
     return acc;
   }, 'default');
 }
@@ -103,9 +102,7 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
                   width: (1 - left) * 100 + '%',
                 }}
               >
-                <div
-                  className={`TracePattern ${severity === 'default' ? 'occurence' : severity}`}
-                />
+                <div className={`TracePattern ${severity}`} />
               </div>
             );
           })}
