@@ -2,6 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+
 import {FTCConsentLocation} from 'getsentry/types';
 
 import InnerIntentForm from './innerIntentForm';
@@ -17,7 +19,7 @@ describe('InnerIntentForm', () => {
     location: 0,
     isSubmitting: false,
     cardMode: 'setup' as const,
-    intentDataEndpoint: '',
+    intentDataQueryKey: [''] as unknown as ApiQueryKey,
   };
 
   beforeEach(() => {

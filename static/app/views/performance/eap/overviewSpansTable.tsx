@@ -1,23 +1,19 @@
 import {Fragment} from 'react';
-import {useTheme, type Theme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {LinkButton} from '@sentry/scraps/button';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {decodeScalar} from 'sentry/utils/queryString';
+import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -25,53 +21,62 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {ModuleName} from 'sentry/views/insights/types';
 import {
   SEGMENT_SPANS_COLUMN_ORDER,
   type SegmentSpansColumn,
   type SegmentSpansRow,
-} from 'sentry/views/performance/otlp/types';
-import {useSegmentSpansQuery} from 'sentry/views/performance/otlp/useSegmentSpansQuery';
-import {
-  getOTelTransactionsListSort,
-  SEGMENT_SPANS_CURSOR,
-} from 'sentry/views/performance/otlp/utils';
-import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+} from 'sentry/views/performance/eap/types';
+import {useSegmentSpansQuery} from 'sentry/views/performance/eap/useSegmentSpansQuery';
+import {SEGMENT_SPANS_CURSOR} from 'sentry/views/performance/eap/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
-const LIMIT = 5;
-const PAGINATION_CURSOR_SIZE = 'xs';
+const LIMIT = 50;
 
 type Props = {
   eventView: EventView;
-  handleDropdownChange: (k: string) => void;
   totalValues: Record<string, number> | null;
   transactionName: string;
-  showViewSampledEventsButton?: boolean;
 };
 
-export function SegmentSpansTable({
-  eventView,
-  handleDropdownChange,
-  totalValues,
-  transactionName,
-  showViewSampledEventsButton,
-}: Props) {
-  const theme = useTheme();
+export function OverviewSpansTable({eventView, totalValues, transactionName}: Props) {
+  const {selection} = usePageFilters();
   const location = useLocation();
-  const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const organization = useOrganization();
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
-  const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
-  const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const eventViewQuery = new MutableSearch('');
-  if (selected.value === TransactionFilterOptions.SLOW && p95) {
-    eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
-  }
+  const defaultQuery = new MutableSearch('');
+  defaultQuery.addFilterValue('is_transaction', '1');
+  defaultQuery.addFilterValue('transaction', transactionName);
+
+  const countQuery = new MutableSearch('');
+  countQuery.addFilterValue('is_transaction', '1');
+  countQuery.addFilterValue('transaction', transactionName);
+
+  const {data: numEvents, error: numEventsError} = useSpans(
+    {
+      search: countQuery,
+      fields: ['count()'],
+      pageFilters: selection,
+    },
+    'api.insights.segment-spans-table-count'
+  );
+
+  const pageEventsCount = Math.min(numEvents[0]?.['count()'] ?? 0, LIMIT);
+
+  const paginationCaption = tct(
+    'Showing [pageEventsCount] of [totalEventsCount] events',
+    {
+      pageEventsCount: pageEventsCount.toLocaleString(),
+      totalEventsCount: numEvents[0]?.['count()']?.toLocaleString() ?? '...',
+    }
+  );
 
   const {
     data: tableData,
@@ -80,8 +85,11 @@ export function SegmentSpansTable({
     meta,
     error,
   } = useSegmentSpansQuery({
-    query: eventViewQuery.formatString(),
-    sort: selected.sort,
+    query: defaultQuery.formatString(),
+    sort: {
+      field: 'span.duration',
+      kind: 'desc',
+    },
     transactionName,
     p95,
     limit: LIMIT,
@@ -103,50 +111,8 @@ export function SegmentSpansTable({
     });
   };
 
-  const handleViewSampledEvents = () => {
-    if (!projectSlug) {
-      return;
-    }
-
-    navigate({
-      pathname: `${location.pathname}events/`,
-      query: {
-        ...location.query,
-        transaction: transactionName,
-        project: `${eventView.project}`,
-      },
-    });
-  };
-
   return (
     <Fragment>
-      <Header>
-        <CompactSelect
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
-          )}
-          value={selected.value}
-          options={options}
-          onChange={opt => handleDropdownChange(opt.value)}
-        />
-        <Flex>
-          {showViewSampledEventsButton && (
-            <Button
-              size="xs"
-              data-test-id="transaction-events-open"
-              onClick={handleViewSampledEvents}
-            >
-              {t('View Sampled Events')}
-            </Button>
-          )}
-        </Flex>
-        <CustomPagination
-          pageLinks={pageLinks}
-          onCursor={handleCursor}
-          isLoading={isLoading}
-        />
-      </Header>
-
       <GridEditable
         isLoading={isLoading}
         error={error}
@@ -161,6 +127,12 @@ export function SegmentSpansTable({
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
         }}
+      />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={handleCursor}
+        size="md"
+        caption={numEventsError ? undefined : paginationCaption}
       />
     </Fragment>
   );
@@ -242,44 +214,3 @@ function renderBodyCell(
 
   return rendered;
 }
-
-// A wrapper component that handles the isLoading state. This will allow the component to not disappear when the data is loading.
-function CustomPagination({
-  pageLinks,
-  onCursor,
-  isLoading,
-}: {
-  isLoading: boolean;
-  onCursor: CursorHandler;
-  pageLinks: string | undefined;
-}) {
-  if (isLoading) {
-    return (
-      <StyledPagination
-        pageLinks="n/a"
-        disabled
-        onCursor={() => {}}
-        size={PAGINATION_CURSOR_SIZE}
-      />
-    );
-  }
-
-  return (
-    <StyledPagination
-      pageLinks={pageLinks}
-      onCursor={onCursor}
-      size={PAGINATION_CURSOR_SIZE}
-    />
-  );
-}
-
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  margin-bottom: ${space(1)};
-  align-items: center;
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
-`;

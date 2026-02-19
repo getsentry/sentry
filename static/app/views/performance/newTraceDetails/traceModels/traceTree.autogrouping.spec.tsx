@@ -729,7 +729,7 @@ describe('autogrouping', () => {
       });
 
       it('groups spans with the same op and name', () => {
-        const OTELOrganization = OrganizationFixture();
+        const EAPOrganization = OrganizationFixture();
 
         const tree = TraceTree.FromTrace(
           makeEAPTrace([
@@ -784,12 +784,12 @@ describe('autogrouping', () => {
           ]),
           {
             ...traceMetadata,
-            organization: OTELOrganization,
+            organization: EAPOrganization,
           }
         );
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, {
-          organization: OTELOrganization,
+          organization: EAPOrganization,
         });
         expect(tree.build().serialize()).toMatchSnapshot();
       });

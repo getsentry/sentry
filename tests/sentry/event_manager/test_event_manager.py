@@ -81,7 +81,6 @@ from sentry.testutils.cases import (
     PerformanceIssueTestCase,
     SnubaTestCase,
     TestCase,
-    TransactionTestCase,
 )
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -4216,7 +4215,7 @@ class DSLatestReleaseBoostTest(TestCase):
         ]
 
 
-class TestSaveGroupHashAndGroup(TransactionTestCase):
+class TestSaveGroupHashAndGroup(TestCase):
     def test_simple(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
         perf_data["event_id"] = "a" * 32

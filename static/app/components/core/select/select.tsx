@@ -361,7 +361,7 @@ function MultiValueRemove(
 }
 
 function SelectLoadingIndicator() {
-  return <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />;
+  return <LoadingIndicator mini size={14} style={{height: 14, width: 14}} />;
 }
 
 function SingleValue(props: React.ComponentProps<typeof selectComponents.SingleValue>) {

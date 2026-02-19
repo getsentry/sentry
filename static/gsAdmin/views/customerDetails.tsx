@@ -103,7 +103,12 @@ function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
 }
 
 function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
-  return [`/customers/${orgId}/billing-config/?tier=all`];
+  return [
+    getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {query: {tier: 'all'}},
+  ];
 }
 
 export default function CustomerDetails() {
