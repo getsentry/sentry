@@ -1,8 +1,9 @@
 import logging
 from collections import defaultdict
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from sentry.uptime.subscriptions.regions import get_region_config
 
@@ -53,7 +54,7 @@ class SerializedIssue(SerializedEvent):
     issue_id: int
     level: str
     start_timestamp: float
-    end_timestamp: NotRequired[datetime]
+    end_timestamp: NotRequired[float]
     culprit: str | None
     short_id: str | None
     issue_type: str
@@ -92,6 +93,24 @@ class SerializedUptimeCheck(SerializedEvent):
     additional_attributes: dict[str, Any]
 
 
+class TraceIssueOccurrenceData(TypedDict):
+    occurrence: IssueOccurrence
+    issue_id: int
+
+
+class TraceOccurrenceEventData(TypedDict):
+    start_timestamp: float
+    end_timestamp: float
+    project_slug: str
+    transaction: str
+
+
+class TraceOccurrenceEvent(TypedDict):
+    event_type: Literal["occurrence"]
+    event_data: TraceOccurrenceEventData
+    issue_data: TraceIssueOccurrenceData
+
+
 def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -> SerializedIssue:
     def _qualify_short_id(project: str, short_id: int | None) -> str | None:
         """Logic for qualified_short_id is copied from property on the Group model
@@ -103,7 +122,7 @@ def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -
 
     if event.get("event_type") == "occurrence":
         occurrence = event["issue_data"]["occurrence"]
-        span = event["span"]
+        event_data = event["event_data"]
         issue_id = event["issue_data"]["issue_id"]
         if issue_id in group_cache:
             issue = group_cache[issue_id]
@@ -113,16 +132,16 @@ def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -
         return SerializedIssue(
             event_id=occurrence.event_id,
             project_id=occurrence.project_id,
-            project_slug=span["project.slug"],
-            start_timestamp=span["precise.start_ts"],
-            end_timestamp=span["precise.finish_ts"],
-            transaction=span["transaction"],
+            project_slug=event_data["project_slug"],
+            start_timestamp=event_data["start_timestamp"],
+            end_timestamp=event_data["end_timestamp"],
+            transaction=event_data["transaction"],
             description=occurrence.issue_title,
             level=occurrence.level,
             issue_id=issue_id,
             event_type="occurrence",
             culprit=issue.culprit,
-            short_id=_qualify_short_id(span["project.slug"], issue.short_id),
+            short_id=_qualify_short_id(event_data["project_slug"], issue.short_id),
             issue_type=issue.type,
         )
     elif event.get("event_type") == "error":
@@ -302,9 +321,11 @@ def _perf_issues_query(snuba_params: SnubaParams, trace_id: str) -> DiscoverQuer
 
 
 @sentry_sdk.tracing.trace
-def _run_perf_issues_query(occurrence_query: DiscoverQueryBuilder):
-    result = occurrence_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
-    occurrence_data = occurrence_query.process_results(result)["data"]
+def _run_perf_issues_query(
+    occurrence_query: DiscoverQueryBuilder,
+) -> list[TraceIssueOccurrenceData]:
+    snuba_result = occurrence_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
+    occurrence_data = occurrence_query.process_results(snuba_result)["data"]
 
     occurrence_ids = defaultdict(list)
     occurrence_issue_ids = defaultdict(list)
@@ -320,7 +341,7 @@ def _run_perf_issues_query(occurrence_query: DiscoverQueryBuilder):
                 project_id,
             )
         )
-    result = []
+    result: list[TraceIssueOccurrenceData] = []
     for issue in issue_occurrences:
         if issue:
             for issue_id in occurrence_issue_ids.get(issue.id, []):
@@ -375,6 +396,7 @@ def _run_uptime_results_query(uptime_query: TraceItemTableRequest) -> list[Trace
 def _serialize_columnar_uptime_item(
     row_dict: dict[str, AttributeValue],
     project_slugs: dict[int, str],
+    check_id_to_occurrences: Mapping[str, list[TraceIssueOccurrenceData]] | None = None,
 ) -> dict[str, Any]:
     """Convert a columnar uptime row to a serialized uptime check span format"""
     columns_by_name = {col.internal_name: col for col in UPTIME_ATTRIBUTE_DEFINITIONS.values()}
@@ -419,6 +441,29 @@ def _serialize_columnar_uptime_item(
             if resolved_val is not None:
                 additional_attrs[resolved_column.public_alias] = resolved_val
 
+    start_timestamp = actual_check_time_us / 1_000_000
+    end_timestamp = (actual_check_time_us + check_duration_us) / 1_000_000
+
+    check_id_attr = row_dict.get("check_id")
+    check_id = check_id_attr.val_str if check_id_attr else None
+    occurrences: list[TraceOccurrenceEvent] = (
+        [
+            {
+                "event_type": "occurrence",
+                "event_data": {
+                    "start_timestamp": start_timestamp,
+                    "end_timestamp": end_timestamp,
+                    "project_slug": project_slug,
+                    "transaction": "uptime.check",
+                },
+                "issue_data": issue_data,
+            }
+            for issue_data in (check_id_to_occurrences or {}).get(check_id, [])
+        ]
+        if check_id
+        else []
+    )
+
     uptime_check = {
         "event_type": "uptime_check",
         "event_id": item_id_str,
@@ -428,15 +473,15 @@ def _serialize_columnar_uptime_item(
         "transaction_id": trace_id,
         "name": request_url,
         "op": "uptime.request",
-        "start_timestamp": actual_check_time_us / 1_000_000,
-        "end_timestamp": (actual_check_time_us + check_duration_us) / 1_000_000,
+        "start_timestamp": start_timestamp,
+        "end_timestamp": end_timestamp,
         "duration": check_duration_us / 1_000.0,
         "description": f"Uptime Check Request [{check_status}]",
         "region_name": region_name,
         "additional_attributes": additional_attrs,
         "children": [],
         "errors": [],
-        "occurrences": [],
+        "occurrences": occurrences,
     }
 
     return uptime_check
@@ -519,8 +564,19 @@ def query_trace_data(
                     "id", "slug"
                 )
             }
+
+            check_id_to_occurrences: defaultdict[str, list[TraceIssueOccurrenceData]] = defaultdict(
+                list
+            )
+            for event in occurrence_data:
+                occurrence = event["occurrence"]
+                check_id = occurrence.evidence_data.get("check_id")
+                if check_id:
+                    check_id_to_occurrences[check_id].append(event)
+
             uptime_checks = [
-                _serialize_columnar_uptime_item(item, project_slugs) for item in trace_items
+                _serialize_columnar_uptime_item(item, project_slugs, check_id_to_occurrences)
+                for item in trace_items
             ]
             uptime_checks.sort(
                 key=lambda s: s.get("additional_attributes", {}).get("request_sequence", 0)
@@ -563,16 +619,20 @@ def query_trace_data(
                 errors = id_to_error.pop(span["id"])
                 span["errors"].extend(errors)
             if span["id"] in id_to_occurrence:
-                span["occurrences"].extend(
-                    [
-                        {
-                            "event_type": "occurrence",
-                            "span": span,
-                            "issue_data": occurrence,
-                        }
-                        for occurrence in id_to_occurrence[span["id"]]
-                    ]
-                )
+                occurrences: list[TraceOccurrenceEvent] = [
+                    {
+                        "event_type": "occurrence",
+                        "event_data": {
+                            "start_timestamp": span["precise.start_ts"],
+                            "end_timestamp": span["precise.finish_ts"],
+                            "project_slug": span["project.slug"],
+                            "transaction": span["transaction"],
+                        },
+                        "issue_data": occurrence,
+                    }
+                    for occurrence in id_to_occurrence[span["id"]]
+                ]
+                span["occurrences"].extend(occurrences)
 
         # These are offset from the params start & end
         if span_min_ts is not None:
