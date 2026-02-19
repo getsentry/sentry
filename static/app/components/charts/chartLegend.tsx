@@ -37,6 +37,7 @@ interface ChartLegendProps {
  */
 export function ChartLegend({items, selected, onSelectionChange}: ChartLegendProps) {
   const theme = useTheme();
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -45,12 +46,17 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   const innerGap = parseInt(theme.space.md, 10);
 
   const computeOverflowIndex = useCallback(() => {
+    const wrapper = wrapperRef.current;
     const container = containerRef.current;
-    if (!container) {
+    if (!wrapper || !container) {
       return;
     }
 
-    const containerWidth = container.offsetWidth;
+    // Use the wrapper's width as the total available space, then subtract
+    // the trigger width ourselves. This avoids double-counting: the items
+    // container has flex:1 so its offsetWidth already shrinks when the
+    // trigger is rendered — reading it directly would under-count space.
+    const totalWidth = wrapper.offsetWidth;
     const triggerWidth = triggerRef.current?.offsetWidth ?? 0;
 
     const children = Array.from(container.children);
@@ -64,11 +70,11 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       }
       usedWidth += childWidth;
 
-      // Reserve space for the trigger + the gap between container and trigger
+      // Reserve space for the trigger + the gap between wrapper children
       const remainingItems = children.length - i - 1;
       const reservedSpace = remainingItems > 0 ? triggerWidth + outerGap : 0;
 
-      if (usedWidth > containerWidth - reservedSpace) {
+      if (usedWidth > totalWidth - reservedSpace) {
         newFirstOverflowIndex = i;
         break;
       }
@@ -78,26 +84,25 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   }, [outerGap, innerGap]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) {
       return () => {};
     }
 
     computeOverflowIndex();
 
-    // Re-compute when the container resizes. ResizeObserver callbacks are
-    // already coalesced per-frame by the spec, but we defer measurement to a
-    // microtask as a precaution against forced reflows if the resulting
-    // state update synchronously changes layout.
+    // Re-compute when the wrapper resizes. We observe the wrapper (not the
+    // items container) because the wrapper's width reflects total available
+    // space, while the container's width fluctuates as the trigger appears.
     const resizeObserver = new ResizeObserver(() => {
       scheduleMicroTask(computeOverflowIndex);
     });
-    resizeObserver.observe(container);
+    resizeObserver.observe(wrapper);
 
     return () => {
       resizeObserver.disconnect();
     };
-  }, [computeOverflowIndex, items.length]);
+  }, [computeOverflowIndex, items]);
 
   const hasTrigger = firstOverflowIndex !== null;
 
@@ -191,7 +196,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   }
 
   return (
-    <Flex align="center" gap="xs" wrap="nowrap">
+    <Flex ref={wrapperRef} align="center" gap="xs" wrap="nowrap">
       <Flex
         ref={containerRef}
         align="center"

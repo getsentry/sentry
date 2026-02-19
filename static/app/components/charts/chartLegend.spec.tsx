@@ -25,7 +25,11 @@ class MockResizeObserver {
  */
 function mockContainerWidth(width: number) {
   const itemsContainer = screen.getByTestId('legend-items');
-  Object.defineProperty(itemsContainer, 'offsetWidth', {
+  // Mock the wrapper (parent) offsetWidth — computeOverflowIndex reads
+  // the wrapper's width as total available space to avoid double-counting
+  // when the trigger shrinks the flex:1 items container.
+  const wrapper = itemsContainer.parentElement!;
+  Object.defineProperty(wrapper, 'offsetWidth', {
     value: width,
     configurable: true,
   });
