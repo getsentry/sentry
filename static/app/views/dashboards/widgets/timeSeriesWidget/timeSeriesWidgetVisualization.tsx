@@ -567,31 +567,22 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     [onLegendSelectionChange]
   );
 
-  // Build legend items from plottables using their assigned colors.
-  // For plottables with pre-configured colors (needsColor=false), we extract
-  // the color from the generated ECharts series since the Plottable interface
-  // doesn't expose it directly.
+  // Build legend items by extracting colors from the generated ECharts
+  // series. This is the single source of truth for color — we avoid
+  // re-deriving palette assignments so legend swatches can never diverge
+  // from the actual chart series. Some plottables (e.g. Samples) use a
+  // callback function for itemStyle.color; in that case we fall back to
+  // a neutral theme color for the legend swatch.
   const chartLegendItems: LegendItem[] = useMemo(() => {
     if (!usesChartLegendComponent) {
       return [];
     }
-    let colorIndex = 0;
     const items: LegendItem[] = props.plottables.map(plottable => {
-      let color = '';
-      if (plottable.needsColor) {
-        color = palette[colorIndex % palette.length]!;
-        colorIndex += 1;
-      } else {
-        // Extract color from the generated series for this plottable.
-        // Some plottables (e.g. Samples) use a callback function for
-        // itemStyle.color to color each data point differently. In that
-        // case we fall back to a neutral theme color for the legend swatch.
-        const series = seriesFromPlottables.find(s => s.name === plottable.name);
-        const seriesColor =
-          (series as {color?: unknown})?.color ??
-          (series as {itemStyle?: {color?: unknown}})?.itemStyle?.color;
-        color = typeof seriesColor === 'string' ? seriesColor : theme.colors.gray300;
-      }
+      const series = seriesFromPlottables.find(s => s.name === plottable.name);
+      const seriesColor =
+        (series as {color?: unknown})?.color ??
+        (series as {itemStyle?: {color?: unknown}})?.itemStyle?.color;
+      const color = typeof seriesColor === 'string' ? seriesColor : theme.colors.gray300;
       return {
         name: plottable.name,
         label: plottable.label ?? plottable.name,
@@ -613,7 +604,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   }, [
     usesChartLegendComponent,
     props.plottables,
-    palette,
     seriesFromPlottables,
     releaseSeries,
     theme.colors.gray300,
