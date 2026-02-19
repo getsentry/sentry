@@ -144,6 +144,14 @@ export function ExploreSecondaryNav() {
           >
             {t('Releases')}
           </SecondaryNav.Item>
+          <Feature features="pr-review-dashboard">
+            <SecondaryNav.Item
+              to={`${baseUrl}/pr-review/`}
+              analyticsItemName="explore_pr_review"
+            >
+              {t('Seer PR Reviews')}
+            </SecondaryNav.Item>
+          </Feature>
         </SecondaryNav.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>
           <SecondaryNav.Section id="explore-all-queries">
