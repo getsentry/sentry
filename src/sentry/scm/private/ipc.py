@@ -494,9 +494,9 @@ def run_listener(
         assert_never(event)
 
     end = get_current_time()
-    received = event.subscription_event["received_at"]
+    received_at = event.subscription_event["received_at"]
 
-    # Sucess and timing metrics are tracked below. These metrics enable us to validate the
+    # Success and timing metrics are tracked below. These metrics enable us to validate the
     # performance of the platform. Failure metrics are recorded elsewhere but follow the same
     # pattern. Failed listeners should never influence timing metrics. Failures can execute
     # abnormally quickly because they are not performing the full computation.
@@ -506,7 +506,7 @@ def run_listener(
     #
     #   * real_time indicates the total time taken from webhook received to webhook processed.
     #   * task_time indicates the total time taken to process the task from start to finish.
-    #   * start_time identifies the time from webhook received to task started. It measures total
+    #   * queue_time identifies the time from webhook received to task started. It measures total
     #     system latency.
     record_count(f"{METRIC_PREFIX}.success", 1, {"fn": listener})
     record_distribution(
@@ -515,9 +515,9 @@ def run_listener(
         {"provider": event.subscription_event["type"], "event_type_hint": event_type_hint},
         "byte",
     )
-    record_timer(f"{METRIC_PREFIX}.start_time", start - received, {"fn": listener})
+    record_timer(f"{METRIC_PREFIX}.queue_time", start - received_at, {"fn": listener})
     record_timer(f"{METRIC_PREFIX}.task_time", end - start, {"fn": listener})
-    record_timer(f"{METRIC_PREFIX}.real_time", received - start, {"fn": listener})
+    record_timer(f"{METRIC_PREFIX}.real_time", end - received_at, {"fn": listener})
 
 
 def exec_listener[T](

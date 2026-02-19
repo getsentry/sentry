@@ -259,7 +259,7 @@ def test_run_listener_metrics_recorded():
         {"provider": "github", "event_type_hint": "check_run"},
         "byte",
     )
-    assert any(key == "sentry.scm.run_listener.start_time" for key, _, _ in timers)
+    assert any(key == "sentry.scm.run_listener.queue_time" for key, _, _ in timers)
     assert any(key == "sentry.scm.run_listener.task_time" for key, _, _ in timers)
     assert any(key == "sentry.scm.run_listener.real_time" for key, _, _ in timers)
 
