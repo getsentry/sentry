@@ -25,7 +25,7 @@ class SentryAppActionHandler(ActionHandler):
             },
         },
         "required": ["target_type", "target_identifier"],
-        "additionalProperties": False,
+        "additionalProperties": True,
     }
 
     data_schema = {
