@@ -590,7 +590,28 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             issue_title="Error Rate Alert",
             subtitle="Critical: Number of events in the last 5 minutes above 100",
             resource_id=None,
-            evidence_data={"alert_id": 42, "window": "5m"},
+            evidence_data={
+                "alert_id": 42,
+                "value": 5026.1,
+                "conditions": [
+                    {
+                        "type": "gt",
+                        "comparison": 0,
+                        "condition_result": 1,
+                    }
+                ],
+                "data_sources": [
+                    {
+                        "query_obj": {
+                            "snuba_query": {
+                                "dataset": "metrics",
+                                "aggregate": "p50(value,dashboards.widget_query_queue.time_to_empty,distribution,-)",
+                                "time_window": 3600,
+                            }
+                        }
+                    }
+                ],
+            },
             evidence_display=[],
             type=MetricIssue,
             detection_time=before_now(minutes=1),
@@ -601,8 +622,16 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         description = self.install.get_group_description(group_event.group, group_event)
 
         assert "Metric Details:" in description
-        assert "- **alert_id**: 42" in description
-        assert "- **window**: 5m" in description
+        assert "- **Metric Alert**: [View alert rule](" in description
+        assert "/alerts/rules/" in description
+        assert "- **Dataset**: Metrics" in description
+        assert (
+            "- **Aggregate**: p50(value,dashboards.widget_query_queue.time_to_empty,distribution,-)"
+            in description
+        )
+        assert "- **Interval**: 1 hour" in description
+        assert "- **Condition**: Above 0" in description
+        assert "- **Evaluated Value**: 5,026.1" in description
         assert "|  |  |" not in description
 
     def test_error_issues_content(self) -> None:
@@ -777,7 +806,28 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             issue_title="Error Rate Alert",
             subtitle="Critical: Number of events in the last 5 minutes above 100",
             resource_id=None,
-            evidence_data={"alert_id": 42},
+            evidence_data={
+                "alert_id": 42,
+                "value": 5026.1,
+                "conditions": [
+                    {
+                        "type": "gt",
+                        "comparison": 0,
+                        "condition_result": 1,
+                    }
+                ],
+                "data_sources": [
+                    {
+                        "query_obj": {
+                            "snuba_query": {
+                                "dataset": "metrics",
+                                "aggregate": "p50(value,dashboards.widget_query_queue.time_to_empty,distribution,-)",
+                                "time_window": 3600,
+                            }
+                        }
+                    }
+                ],
+            },
             evidence_display=[],
             type=MetricIssue,
             detection_time=before_now(minutes=1),
@@ -803,7 +853,9 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
         description_field = next(field for field in fields if field["name"] == "description")
         assert "Metric Details:" in description_field["default"]
-        assert "alert_id: 42" in description_field["default"]
+        assert "- **Metric Alert**: [View alert rule](" in description_field["default"]
+        assert "- **Condition**: Above 0" in description_field["default"]
+        assert "- **Evaluated Value**: 5,026.1" in description_field["default"]
         assert "Evidence:" not in description_field["default"]
 
     def test_get_create_issue_config_enhanced_defaults_preserves_event_context_markdown(

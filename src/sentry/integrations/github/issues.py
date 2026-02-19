@@ -9,6 +9,8 @@ from django.urls import reverse
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.incidents.utils.format_duration import format_duration_idiomatic
+from sentry.integrations.metric_alerts import build_title_link
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
@@ -42,21 +44,115 @@ CODE_BLOCK_EVIDENCE_NAME_PARTS = frozenset({"query", "offending spans", "selecto
 
 
 class GitHubIssuesSpec(SourceCodeIssueIntegration):
-    def _get_metric_issue_body(self, occurrence: IssueOccurrence) -> str:
-        details = ["Metric Details:"]
-        details_added = 0
+    _METRIC_CONDITION_LABELS = {
+        "gt": "Above",
+        "gte": "At or above",
+        "lt": "Below",
+        "lte": "At or below",
+        "eq": "Equal to",
+        "ne": "Not equal to",
+    }
 
-        for key, value in occurrence.evidence_data.items():
-            if value is None or not isinstance(value, (str, int, float, bool)):
-                continue
+    def _get_metric_issue_body(self, group: Group, occurrence: IssueOccurrence) -> str:
+        details: list[str] = ["Metric Details:"]
 
-            details.append(f"- **{key}**: {value}")
-            details_added += 1
+        alert_id = occurrence.evidence_data.get("alert_id")
+        try:
+            alert_rule_id = int(alert_id)
+        except (TypeError, ValueError):
+            alert_rule_id = None
 
-            if details_added >= MAX_EVIDENCE_ITEMS:
-                break
+        if alert_rule_id is not None:
+            details.append(
+                "- **Metric Alert**: "
+                f"[View alert rule]({build_title_link(alert_rule_id, group.organization, {'referrer': 'github_integration'})})"
+            )
 
-        if details_added == 0:
+        snuba_query: Mapping[str, Any] = {}
+        raw_data_sources = occurrence.evidence_data.get("data_sources")
+        if isinstance(raw_data_sources, list):
+            for data_source in raw_data_sources:
+                if not isinstance(data_source, Mapping):
+                    continue
+                query_obj = data_source.get("query_obj")
+                if not isinstance(query_obj, Mapping):
+                    continue
+                maybe_query = query_obj.get("snuba_query")
+                if isinstance(maybe_query, Mapping):
+                    snuba_query = maybe_query
+                    break
+
+        dataset = self._normalize_text(
+            snuba_query.get("dataset"), normalize_whitespace=True
+        ).replace("_", " ")
+        if dataset:
+            details.append(f"- **Dataset**: {dataset.capitalize()}")
+
+        aggregate = self._normalize_text(
+            snuba_query.get("aggregate"), MAX_EVIDENCE_VALUE_LENGTH, normalize_whitespace=True
+        )
+        if aggregate:
+            details.append(f"- **Aggregate**: {aggregate}")
+
+        raw_time_window = snuba_query.get("time_window", snuba_query.get("timeWindow"))
+        try:
+            time_window_minutes = int(float(raw_time_window)) // 60
+        except (TypeError, ValueError):
+            time_window_minutes = 0
+        if time_window_minutes > 0:
+            interval = format_duration_idiomatic(time_window_minutes)
+            if " " not in interval:
+                interval = f"1 {interval}"
+            details.append(f"- **Interval**: {interval}")
+
+        raw_conditions = occurrence.evidence_data.get("conditions")
+        selected_condition: Mapping[str, Any] | None = None
+        if isinstance(raw_conditions, list):
+            priority = occurrence.priority
+            if priority is not None:
+                selected_condition = next(
+                    (
+                        condition
+                        for condition in raw_conditions
+                        if isinstance(condition, Mapping)
+                        and (
+                            condition.get("condition_result") == priority
+                            or str(condition.get("condition_result")) == str(priority)
+                        )
+                    ),
+                    None,
+                )
+            if selected_condition is None:
+                selected_condition = next(
+                    (condition for condition in raw_conditions if isinstance(condition, Mapping)),
+                    None,
+                )
+
+        if selected_condition is not None:
+            condition_type = self._normalize_text(
+                selected_condition.get("type"), normalize_whitespace=True
+            ).lower()
+            comparison = self._normalize_text(
+                selected_condition.get("comparison"), normalize_whitespace=True
+            )
+            condition = self._METRIC_CONDITION_LABELS.get(condition_type, condition_type)
+            if comparison:
+                condition = f"{condition} {comparison}"
+            details.append(f"- **Condition**: {condition}")
+
+        raw_value = occurrence.evidence_data.get("value")
+        if isinstance(raw_value, bool):
+            value = str(raw_value)
+        elif isinstance(raw_value, (int, float)):
+            value = f"{raw_value:,}"
+        else:
+            value = self._normalize_text(
+                raw_value, MAX_EVIDENCE_VALUE_LENGTH, normalize_whitespace=True
+            )
+        if value:
+            details.append(f"- **Evaluated Value**: {value}")
+
+        if len(details) == 1:
             details.append("- No metric details available.")
 
         return "\n".join(details)
@@ -174,15 +270,23 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                 for evidence in evidence_items:
                     output.extend(self._get_formatted_evidence_lines(evidence.name, evidence.value))
             else:
-                detail_lines = self._get_occurrence_detail_lines(event.occurrence.evidence_data)
-                if detail_lines:
+                if event.occurrence.type.category_v2 == GroupCategory.METRIC.value:
                     output.extend(
                         [
                             "",
-                            f"{self._get_occurrence_details_section_title(event.occurrence)}:",
-                            *detail_lines,
+                            self._get_metric_issue_body(group, event.occurrence),
                         ]
                     )
+                else:
+                    detail_lines = self._get_occurrence_detail_lines(event.occurrence.evidence_data)
+                    if detail_lines:
+                        output.extend(
+                            [
+                                "",
+                                f"{self._get_occurrence_details_section_title(event.occurrence)}:",
+                                *detail_lines,
+                            ]
+                        )
         else:
             body = self.get_group_body(group, event)
             if body:
@@ -290,12 +394,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return body.rstrip("\n")  # remove the last new line
 
-    def get_generic_issue_body(self, occurrence: IssueOccurrence) -> str:
+    def get_generic_issue_body(self, group: Group, occurrence: IssueOccurrence) -> str:
         if (
             occurrence.type.category_v2 == GroupCategory.METRIC.value
             and len(occurrence.evidence_display) == 0
         ):
-            return self._get_metric_issue_body(occurrence)
+            return self._get_metric_issue_body(group, occurrence)
 
         body = "|  |  |\n"
         body += "| ------------- | --------------- |\n"
@@ -314,7 +418,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             if group.issue_category == GroupCategory.FEEDBACK:
                 body = self.get_feedback_issue_body(event.occurrence)
             else:
-                body = self.get_generic_issue_body(event.occurrence)
+                body = self.get_generic_issue_body(group, event.occurrence)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
