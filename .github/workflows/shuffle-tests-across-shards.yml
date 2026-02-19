@@ -90,7 +90,7 @@ jobs:
         run: |
           test -f "$GITHUB_WORKSPACE/failing-testid" || exit 0
           read -r FAILING_TESTID < "$GITHUB_WORKSPACE/failing-testid"
-          python .github/workflows/scripts/detect-test-pollution.py \
+          python .github/workflows/scripts/detect_test_pollution.py \
             --failing-test "$FAILING_TESTID" \
             --testids-file "$GITHUB_WORKSPACE/testids" \
             | tee "$GITHUB_WORKSPACE/detect-test-pollution-output"

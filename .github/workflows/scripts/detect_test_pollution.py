@@ -37,9 +37,10 @@ import pytest
 TESTIDS_INPUT_OPTION = "--dtp-testids-input-file"
 TESTIDS_OUTPUT_OPTION = "--dtp-testids-output-file"
 RESULTS_OUTPUT_OPTION = "--dtp-results-output-file"
+_PLUGIN_NAME = __name__ if __name__ != "__main__" else "detect_test_pollution"
 PYTEST_OPTIONS = (
     "-p",
-    __name__,
+    _PLUGIN_NAME,
     # disable known test-randomization plugins
     "-p",
     "no:randomly",
@@ -97,10 +98,16 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 def _run_pytest(*args: str) -> None:
+    env = None
+    if __name__ == "__main__":
+        env = os.environ.copy()
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        env["PYTHONPATH"] = script_dir + os.pathsep + env.get("PYTHONPATH", "")
     # XXX: this is potentially difficult to debug? maybe --verbose?
     subprocess.check_call(
         (sys.executable, "-mpytest", *PYTEST_OPTIONS, *args),
         stdout=subprocess.DEVNULL,
+        env=env,
     )
 
 
