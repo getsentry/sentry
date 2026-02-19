@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - mchen/t1-n5
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -148,7 +149,7 @@ jobs:
           echo "=== Tier 1: $(wc -l < /tmp/tier1-tests.txt) scopes, shard ${{ matrix.instance }}/5 ==="
           python3 -b -m pytest tests \
             --reuse-db \
-            -n 4 \
+            -n 5 \
             --dist=loadfile \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
