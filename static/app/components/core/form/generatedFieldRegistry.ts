@@ -100,23 +100,92 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'organization-settings-form',
     route: '/settings/:orgId/',
     label: t('Early Adopter'),
+    hintText: tct("Opt-in to [link:new features] before they're released to the public", {
+      link: (
+        <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter/" />
+      ),
+    }),
   },
   'organization-settings-form.hideAiFeatures': {
     name: 'hideAiFeatures',
     formId: 'organization-settings-form',
     route: '/settings/:orgId/',
     label: t('Show Generative AI Features'),
+    hintText: tct('Allows organization members to access [link:generative AI features]', {
+      link: (
+        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/#ai-powered-features" />
+      ),
+    }),
   },
   'organization-settings-form.codecovAccess': {
     name: 'codecovAccess',
     formId: 'organization-settings-form',
     route: '/settings/:orgId/',
-    label: t('Enable Code Coverage Insights'),
+    label: (
+      <PoweredByCodecov>
+        {t('Enable Code Coverage Insights')}{' '}
+        <Feature
+          hookName="feature-disabled:codecov-integration-setting"
+          renderDisabled={p => (
+            <Hovercard
+              body={
+                <FeatureDisabled
+                  features={p.features}
+                  hideHelpToggle
+                  featureName={t('Codecov Coverage')}
+                />
+              }
+            >
+              <Tag variant="muted" role="status" icon={<IconLock locked />}>
+                {t('disabled')}
+              </Tag>
+            </Hovercard>
+          )}
+          features="organizations:codecov-integration"
+        >
+          {() => null}
+        </Feature>
+      </PoweredByCodecov>
+    ),
+    hintText: (
+      <PoweredByCodecov>
+        {t('powered by')} <IconCodecov /> Codecov{' '}
+        <HookCodecovSettingsLink organization={organization} />
+      </PoweredByCodecov>
+    ),
   },
   'organization-settings-form.enablePrReviewTestGeneration': {
     name: 'enablePrReviewTestGeneration',
     formId: 'organization-settings-form',
     route: '/settings/:orgId/',
-    label: t('Enable AI Code Review'),
+    label: (
+      <Flex gap="sm" align="center">
+        {t('Enable AI Code Review')}
+        <FeatureBadge
+          type="beta"
+          {...(isSelfHosted ? {tooltipProps: {position: 'top'}} : {})}
+        />
+        {isSelfHosted && (
+          <Tooltip
+            title={t('This feature is not available for self-hosted instances')}
+            position="top"
+          >
+            <Tag
+              variant="muted"
+              role="status"
+              icon={<IconLock locked />}
+              data-test-id="prevent-ai-disabled-tag"
+            >
+              {t('disabled')}
+            </Tag>
+          </Tooltip>
+        )}
+      </Flex>
+    ),
+    hintText: tct('Use AI to review and find bugs in pull requests [link:Learn more]', {
+      link: (
+        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+      ),
+    }),
   },
 };
