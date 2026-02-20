@@ -275,7 +275,7 @@ describe('UptimeAssertionsField', () => {
     });
   });
 
-  it('shows empty UI when editing monitor with no assertions', () => {
+  it('shows empty UI when editing monitor with no assertions', async () => {
     // When editing a monitor that has no assertions, pass empty assertion structure
     // (FormField converts null to '' so we can't use null directly)
     const emptyAssertion: UptimeAssertion = {
@@ -298,9 +298,25 @@ describe('UptimeAssertionsField', () => {
     // Should NOT have any assertion inputs (no default 2xx assertions)
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
 
+    // Should show a warning about no assertions with a button to add the default
+    expect(
+      screen.getByText(
+        'Without any Assertions all uptime checks will be marked as success!',
+        {exact: false}
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Add a 2xx status code assertion.'})
+    ).toBeInTheDocument();
+
     // getValue should return null for empty assertions
-    const transformedData = model.getTransformedData();
-    expect(transformedData.assertion).toBeNull();
+    expect(model.getTransformedData().assertion).toBeNull();
+
+    // Clicking the button should add the default 2xx assertions
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Add a 2xx status code assertion.'})
+    );
+    expect(screen.getAllByRole('textbox')).toHaveLength(2);
   });
 
   it('allows adding assertions when editing monitor with no assertions', async () => {
@@ -368,6 +384,17 @@ describe('UptimeAssertionsField', () => {
     await waitFor(() => {
       expect(screen.queryAllByRole('textbox')).toHaveLength(0);
     });
+
+    // Should now show the no-assertions warning with the add button
+    expect(
+      screen.getByText(
+        'Without any Assertions all uptime checks will be marked as success!',
+        {exact: false}
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Add a 2xx status code assertion.'})
+    ).toBeInTheDocument();
 
     // getValue should return null when all assertions are deleted
     const transformedData = model.getTransformedData();
