@@ -1,5 +1,4 @@
-import {Fragment} from 'react';
-
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -14,41 +13,45 @@ interface AlertDetailsProps {
 
 export function AlertDetails({workflow}: AlertDetailsProps) {
   return (
-    <Fragment>
-      <Stack gap="lg">
+    <Disclosure defaultExpanded>
+      <Disclosure.Title>
         <Heading as="h2">Settings</Heading>
-        <Container background="primary" padding="lg" radius="md" border="primary">
-          <Stack gap="sm">
-            {Object.entries(workflow).map(([key, value]) => (
-              <AlertDataAttribute dataKey={key} key={key} value={value} />
-            ))}
-          </Stack>
-        </Container>
-      </Stack>
+      </Disclosure.Title>
+      <Disclosure.Content>
+        <Stack gap="lg">
+          <Container background="primary" padding="lg" radius="md" border="primary">
+            <Stack gap="sm">
+              {Object.entries(workflow).map(([key, value]) => (
+                <AlertDataAttribute dataKey={key} key={key} value={value} />
+              ))}
+            </Stack>
+          </Container>
 
-      <Flex gap="xl">
-        <Stack flex="1" gap="xl">
-          <Heading as="h3">Workflow Triggers</Heading>
-          {workflow.triggers ? (
-            <AlertConditionGroup group={workflow.triggers} />
-          ) : (
-            <Text>None</Text>
-          )}
-        </Stack>
+          <Flex gap="xl">
+            <Stack flex="1" gap="xl">
+              <Heading as="h3">Workflow Triggers</Heading>
+              {workflow.triggers ? (
+                <AlertConditionGroup group={workflow.triggers} />
+              ) : (
+                <Text>None</Text>
+              )}
+            </Stack>
 
-        {workflow.actionFilters && (
-          <Stack flex="1" gap="xl">
-            <Heading as="h3">Action Filters</Heading>
-            {workflow.actionFilters.length === 0 ? (
-              <Text>None</Text>
-            ) : (
-              workflow.actionFilters.map(actionFilter => (
-                <AlertConditionGroup key={actionFilter.id} group={actionFilter} />
-              ))
+            {workflow.actionFilters && (
+              <Stack flex="1" gap="xl">
+                <Heading as="h3">Action Filters</Heading>
+                {workflow.actionFilters.length === 0 ? (
+                  <Text>None</Text>
+                ) : (
+                  workflow.actionFilters.map(actionFilter => (
+                    <AlertConditionGroup key={actionFilter.id} group={actionFilter} />
+                  ))
+                )}
+              </Stack>
             )}
-          </Stack>
-        )}
-      </Flex>
-    </Fragment>
+          </Flex>
+        </Stack>
+      </Disclosure.Content>
+    </Disclosure>
   );
 }

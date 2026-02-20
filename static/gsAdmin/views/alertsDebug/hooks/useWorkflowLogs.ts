@@ -40,7 +40,11 @@ export interface WorkflowLogsOptions {
   statsPeriod?: string; // Relative: '24h', '7d', etc. (mutually exclusive with start/end)
 }
 
-const LOG_FIELDS = [
+// Minimal fields for list view - only what's needed for the header row
+const LIST_FIELDS = ['id', 'timestamp', 'message', 'severity'];
+
+// All fields for detail view - fetched on-demand when expanding a log entry
+export const DETAIL_FIELDS = [
   'id',
   'timestamp',
   'message',
@@ -52,6 +56,13 @@ const LOG_FIELDS = [
   'detector_id',
   'organization_id',
   'project_id',
+  'detection_type',
+  'triggered_workflow_ids',
+  'delayed_conditions',
+  'action_filter_group_ids',
+  'triggered_action_ids',
+  'debug_msg',
+  'context_id',
 ];
 
 const GROUPED_LOG_FIELDS = ['message', 'count(message)'];
@@ -86,7 +97,8 @@ export function useWorkflowLogs(
     : `message:${WildcardOperators.STARTS_WITH}workflow_engine.process_workflows.evaluation workflow_ids:${WildcardOperators.CONTAINS}${workflowId}`;
 
   // When grouping, change fields to include count aggregation
-  const fields = groupByMessage ? GROUPED_LOG_FIELDS : LOG_FIELDS;
+  // For list view, use minimal fields - details are fetched on-demand
+  const fields = groupByMessage ? GROUPED_LOG_FIELDS : LIST_FIELDS;
   const sort = groupByMessage ? '-count_message' : '-timestamp';
 
   // Build time filter params - use statsPeriod OR start/end, not both

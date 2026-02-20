@@ -20,5 +20,6 @@ export function useAdminWorkflow(
   return useApiQuery<Automation>([url], {
     staleTime: 0,
     enabled: !!organizationIdOrSlug && !!workflowId,
+    retry: 0,
   });
 }

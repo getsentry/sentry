@@ -1,4 +1,5 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useState, type ReactNode} from 'react';
+import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -7,10 +8,12 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {KeyValueData} from 'sentry/components/keyValueData';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {TimeRangeSelector, type ChangeData} from 'sentry/components/timeRangeSelector';
 
+import {useLogDetails} from 'admin/views/alertsDebug/hooks/useLogDetails';
 import {useWorkflowLogs} from 'admin/views/alertsDebug/hooks/useWorkflowLogs';
 
 interface WorkflowLogsProps {
@@ -19,6 +22,9 @@ interface WorkflowLogsProps {
 }
 
 type ViewMode = 'list' | 'byType';
+
+// Fields to exclude from detail display (shown in header already)
+const HEADER_FIELDS = ['id', 'timestamp', 'message', 'severity'];
 
 function getSeverityVariant(
   severity: string
@@ -46,26 +52,63 @@ function formatTimestamp(timestamp: string): string {
   return new Date(timestamp).toLocaleString();
 }
 
-function formatLogValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return '';
+interface LogEntryDetailsProps {
+  logId: string;
+  organizationId: string | undefined;
+  timestamp: string;
+}
+
+function LogEntryDetails({logId, timestamp, organizationId}: LogEntryDetailsProps) {
+  const {data, isPending, isError} = useLogDetails(logId, timestamp, organizationId);
+
+  if (isPending) {
+    return (
+      <Flex gap="sm" align="center" padding="sm">
+        <LoadingIndicator mini />
+        <Text size="sm" variant="muted">
+          Loading details...
+        </Text>
+      </Flex>
+    );
   }
-  if (typeof value === 'object') {
-    return JSON.stringify(value);
+
+  if (isError || !data?.data?.[0]) {
+    return (
+      <Text size="sm" variant="danger">
+        Failed to load log details
+      </Text>
+    );
   }
-  if (
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean'
-  ) {
-    return String(value);
+
+  const logDetails = data.data[0];
+  const contentItems = Object.entries(logDetails)
+    .filter(
+      ([key, value]) =>
+        !HEADER_FIELDS.includes(key) && value !== null && value !== undefined
+    )
+    .map(([key, value]) => ({
+      item: {key, subject: key, value: value as ReactNode},
+    }));
+
+  if (contentItems.length === 0) {
+    return (
+      <Text size="sm" variant="muted">
+        No additional details available
+      </Text>
+    );
   }
-  return '';
+
+  return (
+    <StyledKeyValueCard>
+      <KeyValueData.Card contentItems={contentItems} sortAlphabetically />
+    </StyledKeyValueCard>
+  );
 }
 
 /**
  * Displays workflow-related logs from the Logging product.
- * Shows the latest 25 logs with expandable details for each entry.
+ * Shows the latest logs with expandable details for each entry.
+ * Details are fetched on-demand when expanding a log entry.
  * Supports time range filtering and grouping by message.
  */
 export function WorkflowLogs({workflowId, organizationId}: WorkflowLogsProps) {
@@ -78,6 +121,7 @@ export function WorkflowLogs({workflowId, organizationId}: WorkflowLogsProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [messageFilter, setMessageFilter] = useState<string | null>(null);
+  const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
 
   const {data, isPending, isError, getResponseHeader} = useWorkflowLogs(
     workflowId,
@@ -95,16 +139,18 @@ export function WorkflowLogs({workflowId, organizationId}: WorkflowLogsProps) {
   const logs = data?.data ?? [];
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
-  // Handle time range changes - reset cursor
+  // Handle time range changes - reset cursor and expanded state
   const handleTimeRangeChange = (newTimeRange: ChangeData) => {
     setTimeRange(newTimeRange);
     setCursor(undefined);
+    setExpandedLogIds(new Set());
   };
 
-  // Handle view mode changes - reset cursor
+  // Handle view mode changes - reset cursor and expanded state
   const handleViewModeChange = (newMode: ViewMode) => {
     setViewMode(newMode);
     setCursor(undefined);
+    setExpandedLogIds(new Set());
   };
 
   // Handle clicking a grouped log - switch to list view with filter
@@ -112,12 +158,27 @@ export function WorkflowLogs({workflowId, organizationId}: WorkflowLogsProps) {
     setMessageFilter(message);
     setViewMode('list');
     setCursor(undefined);
+    setExpandedLogIds(new Set());
   };
 
   // Clear message filter
   const handleShowAll = () => {
     setMessageFilter(null);
     setCursor(undefined);
+    setExpandedLogIds(new Set());
+  };
+
+  // Handle disclosure expand/collapse - track which logs are expanded
+  const handleExpandedChange = (logId: string, isExpanded: boolean) => {
+    setExpandedLogIds(prev => {
+      const next = new Set(prev);
+      if (isExpanded) {
+        next.add(logId);
+      } else {
+        next.delete(logId);
+      }
+      return next;
+    });
   };
 
   return (
@@ -214,11 +275,16 @@ export function WorkflowLogs({workflowId, organizationId}: WorkflowLogsProps) {
                   <Container
                     key={log.id}
                     padding="sm"
-                    background="secondary"
+                    background="primary"
                     radius="md"
                     border="primary"
                   >
-                    <Disclosure size="sm">
+                    <Disclosure
+                      size="sm"
+                      onExpandedChange={isExpanded =>
+                        handleExpandedChange(log.id, isExpanded)
+                      }
+                    >
                       <Disclosure.Title>
                         <Flex gap="md" align="center" flex="1">
                           <Text size="sm" variant="muted">
@@ -235,28 +301,15 @@ export function WorkflowLogs({workflowId, organizationId}: WorkflowLogsProps) {
                           </Text>
                         </Flex>
                       </Disclosure.Title>
+
                       <Disclosure.Content>
-                        <Stack gap="xs">
-                          {Object.entries(log)
-                            .filter(
-                              ([key, value]) =>
-                                !['id', 'timestamp', 'message', 'severity'].includes(
-                                  key
-                                ) &&
-                                value !== null &&
-                                value !== undefined
-                            )
-                            .map(([key, value]) => (
-                              <Flex key={key} gap="sm">
-                                <Text size="sm" bold style={{minWidth: 120}}>
-                                  {key}:
-                                </Text>
-                                <Text size="sm" variant="muted">
-                                  {formatLogValue(value)}
-                                </Text>
-                              </Flex>
-                            ))}
-                        </Stack>
+                        {expandedLogIds.has(log.id) && (
+                          <LogEntryDetails
+                            logId={log.id}
+                            timestamp={log.timestamp}
+                            organizationId={organizationId}
+                          />
+                        )}
                       </Disclosure.Content>
                     </Disclosure>
                   </Container>
@@ -270,3 +323,13 @@ export function WorkflowLogs({workflowId, organizationId}: WorkflowLogsProps) {
     </Disclosure>
   );
 }
+
+const StyledKeyValueCard = styled('div')`
+  & > div {
+    padding: 0;
+    border: none;
+    border-top: 1px solid ${p => p.theme.border};
+    border-radius: 0;
+    background: ${p => p.theme.background};
+  }
+`;

@@ -12,7 +12,6 @@ import PageHeader from 'admin/components/pageHeader';
 import {AlertDebugForm} from 'admin/views/alertsDebug/components/alertDebugForm';
 import {AlertDetails} from 'admin/views/alertsDebug/components/alertDetails';
 import {WorkflowLogs} from 'admin/views/alertsDebug/components/workflowLogs';
-import {MOCK_WORKFLOW} from 'admin/views/alertsDebug/fixtures';
 import {useAdminWorkflow} from 'admin/views/alertsDebug/hooks/useAdminWorkflow';
 
 /**
@@ -30,13 +29,10 @@ export default function AlertsDebug() {
   const [workflowId, setWorkflowId] = useState<number>();
 
   const {
-    data: asyncWorkflow,
+    data: workflow,
     isPending,
     isError,
   } = useAdminWorkflow(organizationIdOrSlug, workflowId?.toString());
-
-  // Use mock workflow if there's an error fetching (for dev purposes)
-  const workflow = isError ? MOCK_WORKFLOW : asyncWorkflow;
 
   const workflowForm = useScrapsForm({
     ...defaultFormOptions,
@@ -124,16 +120,24 @@ export default function AlertsDebug() {
           )}
 
           {isError && (
-            <Text variant="danger">
-              Error loading workflow. Using mock data for debugging.
-            </Text>
+            <Stack gap="lg">
+              <Text variant="danger">
+                Error, Workflow '{workflowId}' not found in '{organizationIdOrSlug}'.
+              </Text>
+
+              <div>
+                <Button size="sm" onClick={handleChangeWorkflow}>
+                  Change Workflow
+                </Button>
+              </div>
+            </Stack>
           )}
 
           {workflow && (
             <Stack gap="lg">
               <Flex justify="between" align="center">
                 <Heading as="h1">Workflow: {workflowId}</Heading>
-                <Button size="sm" onClick={handleChangeWorkflow}>
+                <Button priority="primary" size="sm" onClick={handleChangeWorkflow}>
                   Change Workflow
                 </Button>
               </Flex>
