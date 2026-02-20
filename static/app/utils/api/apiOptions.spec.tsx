@@ -105,7 +105,7 @@ describe('apiOptions', () => {
       body: ['Project 1', 'Project 2'],
       headers: {
         Link: 'my-link',
-        'X-Hits': 'some-hits',
+        'X-Hits': '14',
       },
     });
 
@@ -120,7 +120,7 @@ describe('apiOptions', () => {
 
     expect(result.current.data).toEqual({
       content: ['Project 1', 'Project 2'],
-      headers: {Link: 'my-link', 'X-Hits': 'some-hits'},
+      headers: {Link: 'my-link', 'X-Hits': 14},
     });
 
     // headers should be narrowly typed

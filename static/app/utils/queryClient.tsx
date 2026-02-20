@@ -96,11 +96,7 @@ function isInfiniteQueryKey(
   return queryKey[0] === 'infinite';
 }
 
-export function parseQueryKey(queryKey: undefined | ApiQueryKey | InfiniteApiQueryKey) {
-  if (!queryKey) {
-    return {isInfinite: false, url: undefined, options: undefined};
-  }
-
+export function parseQueryKey(queryKey: ApiQueryKey | InfiniteApiQueryKey) {
   if (isInfiniteQueryKey(queryKey)) {
     return {
       isInfinite: true,
