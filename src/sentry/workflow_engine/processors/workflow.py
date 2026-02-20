@@ -500,11 +500,14 @@ def process_workflows(
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
 
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
-    sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
 
     workflow_evaluation_data.action_groups = actions_to_trigger
     workflow_evaluation_data.triggered_actions = set(actions)
     workflow_evaluation_data.delayed_conditions = queue_items_by_workflow_id
+
+    sentry_sdk.set_tag(
+        "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
+    )
 
     if not actions:
         return WorkflowEvaluation(
