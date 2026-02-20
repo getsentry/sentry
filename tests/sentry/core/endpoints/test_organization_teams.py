@@ -1,8 +1,10 @@
+from sentry import audit_log
 from sentry.integrations.utils.providers import get_provider_string
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
@@ -198,6 +200,11 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True
         ).exists()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
+            target_user_id=self.user.id,
+        )
 
     def test_without_slug(self) -> None:
         resp = self.get_success_response(

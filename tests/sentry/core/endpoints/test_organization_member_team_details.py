@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from rest_framework import status
 
+from sentry import audit_log
 from sentry.auth import access
 from sentry.core.endpoints.organization_member_team_details import ERR_INSUFFICIENT_ROLE
 from sentry.models.groupassignee import GroupAssignee
@@ -14,6 +15,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -862,6 +864,11 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.member_on_team
         )
         assert updated_omt.role == "admin"
+        assert_org_audit_log_exists(
+            organization=self.org,
+            event=audit_log.get_event_id("MEMBER_EDIT"),
+            target_user_id=self.member_on_team.user_id,
+        )
 
     @with_feature("organizations:team-roles")
     def test_team_admin_can_promote_member(self) -> None:

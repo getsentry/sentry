@@ -530,6 +530,12 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert foo.slug in teams
         assert bar.slug in teams
 
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
+            target_user_id=member.id,
+        )
+
     @with_feature("organizations:team-roles")
     def test_can_update_teams_with_feature_flag(self) -> None:
         self.test_can_update_teams()

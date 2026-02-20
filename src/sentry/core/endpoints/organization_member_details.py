@@ -312,9 +312,28 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
 
         if team_roles:
-            save_team_assignments(member, None, team_roles)
+            diff = save_team_assignments(member, None, team_roles)
         else:
-            save_team_assignments(member, teams)
+            diff = save_team_assignments(member, teams)
+
+        for team in diff.added:
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=member.id,
+                target_user_id=member.user_id,
+                event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
+                data={"email": member.get_email(), "team_slug": team.slug},
+            )
+        for team in diff.removed:
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=member.id,
+                target_user_id=member.user_id,
+                event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
+                data={"email": member.get_email(), "team_slug": team.slug},
+            )
 
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 

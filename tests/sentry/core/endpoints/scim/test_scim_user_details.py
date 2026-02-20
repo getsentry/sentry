@@ -5,12 +5,14 @@ import pytest
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.core.endpoints.scim.utils import SCIMFilterError, parse_filter_conditions
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase, SCIMAzureTestCase, SCIMTestCase
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.users.services.user.model import RpcUser
@@ -247,6 +249,11 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert resp.data["sentryOrgRole"] == self.organization.default_role
         assert self.unrestricted_custom_role_member.role == self.organization.default_role
         assert self.unrestricted_custom_role_member.flags["idp:role-restricted"]
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MEMBER_EDIT"),
+            target_object=self.unrestricted_custom_role_member.id,
+        )
 
         # current restricted default role + default sentryOrgRole -> restricted default role (no change)
         resp = self.get_success_response(

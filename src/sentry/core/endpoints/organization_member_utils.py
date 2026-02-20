@@ -80,11 +80,17 @@ class RelaxedMemberPermission(OrganizationPermission):
         return False
 
 
+class TeamAssignmentDiff:
+    def __init__(self, added: list[Team], removed: list[Team]) -> None:
+        self.added = added
+        self.removed = removed
+
+
 def save_team_assignments(
     organization_member: OrganizationMember,
     teams: list[Team] | None,
     teams_with_roles: list[tuple[Team, str]] | None = None,
-) -> None:
+) -> TeamAssignmentDiff:
     # https://github.com/getsentry/sentry/pull/6054/files/8edbdb181cf898146eda76d46523a21d69ab0ec7#r145798271
     lock = locks.get(
         f"org:member:{organization_member.id}", duration=5, name="save_team_assignment"
@@ -105,6 +111,9 @@ def save_team_assignments(
 
         with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             existing = OrganizationMemberTeam.objects.filter(organizationmember=organization_member)
+            old_team_ids = set(existing.values_list("team_id", flat=True))
+            new_team_ids = {team.id for team in target_teams}
+
             OrganizationMemberTeam.objects.bulk_delete(existing)
             OrganizationMemberTeam.objects.bulk_create(
                 [
@@ -114,6 +123,13 @@ def save_team_assignments(
                     for team, role in new_assignments
                 ]
             )
+
+        added_ids = new_team_ids - old_team_ids
+        removed_ids = old_team_ids - new_team_ids
+        teams_by_id = {team.id: team for team in target_teams}
+        added = [teams_by_id[tid] for tid in added_ids if tid in teams_by_id]
+        removed_teams = list(Team.objects.filter(id__in=removed_ids)) if removed_ids else []
+        return TeamAssignmentDiff(added=added, removed=removed_teams)
 
 
 def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
