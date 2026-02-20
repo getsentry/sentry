@@ -7,25 +7,30 @@ import {getQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {queryOptions} from 'sentry/utils/queryClient';
 
 // TODO: verify these types against the Python endpoint source
-interface OrganizationSeerOnboardingCheckResponse {
-  hasSupportedScmIntegration: boolean;
-  isAutofixEnabled: boolean;
-  isCodeReviewEnabled: boolean;
-  isSeerConfigured: boolean;
-  needsConfigReminder: boolean;
+interface OrganizationEventsRelatedIssuesResponse {
+  detail: unknown;
 }
 
-type TQueryData = ApiResponse<OrganizationSeerOnboardingCheckResponse>;
-type TData = OrganizationSeerOnboardingCheckResponse;
+interface OrganizationEventsRelatedIssuesQueryParams {
+  end?: string;
+  environment?: string;
+  project?: string;
+  start?: string;
+  statsPeriod?: string;
+}
 
-/**
- * @public
- * Check if the organization has completed Seer onboarding/configuration.
- */
-export function organizationSeerOnboardingCheckOptions(organization: Organization) {
+type TQueryData = ApiResponse<OrganizationEventsRelatedIssuesResponse>;
+type TData = OrganizationEventsRelatedIssuesResponse;
+
+/** @public */
+export function organizationEventsRelatedIssuesOptions(
+  organization: Organization,
+  query?: OrganizationEventsRelatedIssuesQueryParams
+) {
   return queryOptions({
-    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/seer/onboarding-check/', {
+    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/related-issues/', {
       path: {organizationIdOrSlug: organization.slug},
+      query,
     }),
     queryFn: apiFetch,
     select: (data: TQueryData): TData => data.json,

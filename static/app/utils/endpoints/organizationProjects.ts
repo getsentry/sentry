@@ -7,25 +7,31 @@ import {getQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {queryOptions} from 'sentry/utils/queryClient';
 
 // TODO: verify these types against the Python endpoint source
-interface OrganizationSeerOnboardingCheckResponse {
-  hasSupportedScmIntegration: boolean;
-  isAutofixEnabled: boolean;
-  isCodeReviewEnabled: boolean;
-  isSeerConfigured: boolean;
-  needsConfigReminder: boolean;
+interface OrganizationProjectsResponse {
+  detail: unknown;
+  error: unknown;
 }
 
-type TQueryData = ApiResponse<OrganizationSeerOnboardingCheckResponse>;
-type TData = OrganizationSeerOnboardingCheckResponse;
+interface OrganizationProjectsQueryParams {
+  /** A pointer to the last object fetched and its sort order; used to retrieve the next or previous results. */
+  cursor?: string;
+}
+
+type TQueryData = ApiResponse<OrganizationProjectsResponse>;
+type TData = OrganizationProjectsResponse;
 
 /**
  * @public
- * Check if the organization has completed Seer onboarding/configuration.
+ * Return a list of projects bound to a organization.
  */
-export function organizationSeerOnboardingCheckOptions(organization: Organization) {
+export function organizationProjectsOptions(
+  organization: Organization,
+  query?: OrganizationProjectsQueryParams
+) {
   return queryOptions({
-    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/seer/onboarding-check/', {
+    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: organization.slug},
+      query,
     }),
     queryFn: apiFetch,
     select: (data: TQueryData): TData => data.json,

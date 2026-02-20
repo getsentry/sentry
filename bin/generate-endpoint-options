@@ -1,0 +1,829 @@
+#!/usr/bin/env python3
+"""
+Generate TypeScript queryOptions files for Sentry API endpoints.
+
+Reads .claude/plans/endpoints_report.json (and optionally frontend_validation_report.json)
+and emits one TypeScript file per endpoint into static/app/utils/endpoints/.
+
+Usage:
+    # Generate a few examples
+    python bin/generate-endpoint-options --examples
+
+    # Generate for specific endpoints by class name
+    python bin/generate-endpoint-options OrganizationEventsEndpoint OrganizationSeerOnboardingCheck
+
+    # Generate all endpoints that have known URLs and GET methods
+    python bin/generate-endpoint-options --all
+
+    # Only generate endpoints already called from the frontend
+    python bin/generate-endpoint-options --frontend-matched
+
+Output: static/app/utils/endpoints/{camelCaseName}.ts
+"""
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).parent.parent
+ENDPOINTS_REPORT = REPO_ROOT / ".claude/plans/endpoints_report.json"
+FRONTEND_REPORT = REPO_ROOT / ".claude/plans/frontend_validation_report.json"
+OUTPUT_DIR = REPO_ROOT / "static/app/utils/endpoints"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# URL / name transformation helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Maps the Python path-param name to (TS param name, TS type, import source, slug accessor)
+# Entries without an import source use a plain string param.
+PATH_PARAM_MAP: dict[str, dict] = {
+    "organization_id_or_slug": {
+        "tsName": "organizationIdOrSlug",
+        "paramName": "organization",
+        "tsType": "Organization",
+        "import": "sentry/types/organization",
+        "accessor": "organization.slug",
+    },
+    "project_id_or_slug": {
+        "tsName": "projectIdOrSlug",
+        "paramName": "project",
+        "tsType": "Project",
+        "import": "sentry/types/project",
+        "accessor": "project.slug",
+    },
+    "team_id_or_slug": {
+        "tsName": "teamIdOrSlug",
+        "paramName": "team",
+        "tsType": "Team",
+        "import": "sentry/types/team",
+        "accessor": "team.slug",
+    },
+    "member_id": {
+        "tsName": "memberId",
+        "paramName": "memberId",
+        "tsType": "string",
+        "accessor": "memberId",
+    },
+    "user_id": {
+        "tsName": "userId",
+        "paramName": "userId",
+        "tsType": "string",
+        "accessor": "userId",
+    },
+    "issue_id": {
+        "tsName": "issueId",
+        "paramName": "issueId",
+        "tsType": "string",
+        "accessor": "issueId",
+    },
+    "event_id": {
+        "tsName": "eventId",
+        "paramName": "eventId",
+        "tsType": "string",
+        "accessor": "eventId",
+    },
+    "version": {
+        "tsName": "version",
+        "paramName": "version",
+        "tsType": "string",
+        "accessor": "version",
+    },
+    "dashboard_id": {
+        "tsName": "dashboardId",
+        "paramName": "dashboardId",
+        "tsType": "string",
+        "accessor": "dashboardId",
+    },
+    "key": {
+        "tsName": "key",
+        "paramName": "key",
+        "tsType": "string",
+        "accessor": "key",
+    },
+    "team_id": {
+        "tsName": "teamIdOrSlug",
+        "paramName": "teamIdOrSlug",
+        "tsType": "string",
+        "accessor": "teamIdOrSlug",
+    },
+    # "var" is a reserved JS keyword — map it to a safe alias
+    "var": {
+        "tsName": "varParam",
+        "paramName": "varParam",
+        "tsType": "string",
+        "accessor": "varParam",
+    },
+}
+
+# JS/TS reserved words that cannot be used as identifiers
+_JS_RESERVED = {
+    "break",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "debugger",
+    "default",
+    "delete",
+    "do",
+    "else",
+    "export",
+    "extends",
+    "false",
+    "finally",
+    "for",
+    "function",
+    "if",
+    "import",
+    "in",
+    "instanceof",
+    "let",
+    "new",
+    "null",
+    "return",
+    "static",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typeof",
+    "var",
+    "void",
+    "while",
+    "with",
+    "yield",
+}
+
+
+def safe_identifier(name: str) -> str:
+    """Append 'Param' suffix if name is a reserved JS/TS keyword."""
+    return f"{name}Param" if name in _JS_RESERVED else name
+
+
+def snake_to_camel(name: str) -> str:
+    """Convert snake_case to camelCase."""
+    parts = name.split("_")
+    return parts[0] + "".join(p.capitalize() for p in parts[1:])
+
+
+def _load_known_urls() -> frozenset[str]:
+    """Load KnownSentryApiUrls from the generated TypeScript file."""
+    known_file = REPO_ROOT / "static/app/utils/api/knownSentryApiUrls.generated.ts"
+    if not known_file.exists():
+        return frozenset()
+    urls = set()
+    for line in known_file.read_text().splitlines():
+        m = re.search(r"'(/[^']*)'", line)
+        if m:
+            urls.add(m.group(1))
+    return frozenset(urls)
+
+
+KNOWN_URLS: frozenset[str] = _load_known_urls()
+
+
+def python_url_to_ts_template(url_path: str) -> str:
+    """
+    Convert /api/0/organizations/{organization_id_or_slug}/events/
+    to /organizations/$organizationIdOrSlug/events/
+
+    Also strips /internal prefix for internal/* endpoints, and prepends /groups
+    for /{issue_id}/* endpoints, matching the KnownSentryApiUrls format.
+    Removes stray non-param characters that appear outside {} in some URL patterns.
+    """
+    # Strip /api/0 prefix; resolve_ts_url handles /internal variants
+    url = url_path.removeprefix("/api/0")
+
+    # Remove stray characters that appear right after a closing } (e.g. "/{trace_id})/")
+    url = re.sub(r"\}[^/{]+", "}", url)
+
+    def replace_param(m: re.Match) -> str:
+        raw = m.group(1)
+        info = PATH_PARAM_MAP.get(raw)
+        if info:
+            return f"${info['tsName']}"
+        return f"${safe_identifier(snake_to_camel(raw))}"
+
+    url = re.sub(r"\{([^}]+)\}", replace_param, url)
+
+    # issue_id endpoints are registered under /groups/ in the API
+    if url.startswith("/$issueId/"):
+        url = "/groups" + url
+
+    return url
+
+
+def resolve_ts_url(ts_url: str) -> str | None:
+    """
+    Return a URL string that is present in KnownSentryApiUrls, or None if not found.
+
+    Tries each candidate in order:
+    1. Exact match
+    2. Without trailing slash
+    3. With trailing slash
+    4. Repeat 1-3 after stripping a leading /internal segment (some endpoints are
+       recorded under /internal in URL confs but mounted without it in Django routing)
+    """
+    if not KNOWN_URLS:
+        return ts_url  # Can't validate — pass through
+
+    def _try(url: str) -> str | None:
+        if url in KNOWN_URLS:
+            return url
+        stripped = url.rstrip("/")
+        if stripped in KNOWN_URLS:
+            return stripped
+        if url + "/" in KNOWN_URLS:
+            return url + "/"
+        return None
+
+    result = _try(ts_url)
+    if result:
+        return result
+    # Try without the /internal prefix for endpoints that Django mounts at root
+    if ts_url.startswith("/internal/"):
+        result = _try(ts_url.removeprefix("/internal"))
+        if result:
+            return result
+    return None
+
+
+def extract_path_params(url_path: str) -> list[str]:
+    """Return the list of raw Python param names in the URL, in order."""
+    return re.findall(r"\{([^}]+)\}", url_path)
+
+
+def class_name_to_function_name(class_name: str) -> str:
+    """OrganizationEventsEndpoint → organizationEventsOptions"""
+    name = class_name
+    for suffix in ("Endpoint", "View"):
+        if name.endswith(suffix):
+            name = name[: -len(suffix)]
+            break
+    # lowercase first letter
+    return name[0].lower() + name[1:] + "Options"
+
+
+def class_name_to_file_name(class_name: str) -> str:
+    """OrganizationEventsEndpoint → organizationEvents"""
+    name = class_name
+    for suffix in ("Endpoint", "View"):
+        if name.endswith(suffix):
+            name = name[: -len(suffix)]
+            break
+    return name[0].lower() + name[1:]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TypeScript type inference from research data
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Maps a query param name to a well-known TypeScript type and its import source.
+# Overrides the generic field-type inference for commonly-named params.
+QUERY_PARAM_TYPE_MAP: dict[str, dict] = {
+    "sort": {
+        "tsType": "Sort",
+        "import": "sentry/utils/discover/fields",
+        # serializer: standalone function to import and call as serializer(v)
+        "serializer": "encodeSort",
+        "serializerImport": "sentry/utils/discover/eventView",
+    },
+    "query": {
+        "tsType": "string | MutableSearch",
+        "import": "sentry/utils/tokenizeSearch",
+        # serializeExpr: expression template using {v} as the param variable
+        # Use when the transform is a method call rather than a standalone function
+        "serializeExpr": "typeof {v} === 'string' ? {v} : {v}.formatString()",
+    },
+}
+
+SERIALIZER_TYPE_MAP = {
+    "CharField": "string",
+    "IntegerField": "number",
+    "FloatField": "number",
+    "BooleanField": "boolean",
+    "NullBooleanField": "boolean",
+    "DateTimeField": "string",
+    "DateField": "string",
+    "ListField": "string[]",
+    "ListSerializer": "string[]",
+    "ChoiceField": "string",  # overridden when choices are present
+    "DecimalField": "number",
+    "UUIDField": "string",
+    "SlugField": "string",
+    "URLField": "string",
+    "EmailField": "string",
+}
+
+OPENAPI_TYPE_MAP = {
+    "string": "string",
+    "integer": "number",
+    "number": "number",
+    "boolean": "boolean",
+    "array": "string[]",  # refined below when items type is known
+}
+
+
+def param_to_ts_type(param: dict) -> str:
+    """
+    Derive a TypeScript type string for a query param entry.
+    Handles named-type overrides, choices → literal union, array types, and basic scalars.
+    """
+    # Named override takes highest priority (e.g. sort → Sort)
+    named = QUERY_PARAM_TYPE_MAP.get(param.get("name", ""))
+    if named:
+        return named["tsType"]
+
+    choices = param.get("choices")
+    if choices:
+        return " | ".join(f"'{c}'" for c in choices)
+
+    # OpenAPI schema takes precedence when available
+    schema = param.get("schema") or {}
+    if schema:
+        schema_type = schema.get("type")
+        if schema_type == "array":
+            item_type = (schema.get("items") or {}).get("type", "string")
+            return f"{OPENAPI_TYPE_MAP.get(item_type, 'string')}[]"
+        if schema_type:
+            return OPENAPI_TYPE_MAP.get(schema_type, "string")
+
+    # Fall back to serializer field type
+    field_type = param.get("type", "")
+    if "List" in field_type:
+        return "string[]"
+    if param.get("multi"):
+        return "string[]"
+    return SERIALIZER_TYPE_MAP.get(field_type, "string")
+
+
+def response_key_to_ts_type(key: str) -> str:
+    """Guess a TypeScript type for a response key based on its name."""
+    lower = key.lower()
+    BOOL_PREFIXES = (
+        "is",
+        "has",
+        "can",
+        "should",
+        "needs",
+        "need",
+        "want",
+        "allow",
+        "enable",
+        "disable",
+        "show",
+        "hide",
+        "require",
+    )
+    if any(lower.startswith(p) for p in BOOL_PREFIXES):
+        return "boolean"
+    if any(
+        lower.endswith(s) for s in ("count", "total", "size", "limit", "offset", "num", "number")
+    ):
+        return "number"
+    if lower.endswith("id"):
+        return "string | number"
+    if any(lower.endswith(s) for s in ("at", "date", "time", "timestamp")):
+        return "string"
+    if any(
+        lower.endswith(s)
+        for s in (
+            "url",
+            "path",
+            "slug",
+            "name",
+            "type",
+            "status",
+            "message",
+            "description",
+            "label",
+            "title",
+            "key",
+            "token",
+            "hash",
+            "version",
+            "platform",
+        )
+    ):
+        return "string"
+    return "unknown"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Code generation
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def generate_ts_file(ep: dict) -> str | None:
+    """
+    Generate the TypeScript source for a single endpoint.
+    Returns None if the endpoint is not suitable for generation.
+    """
+    url_path = ep.get("url_path", "UNKNOWN")
+    if url_path == "UNKNOWN":
+        return None
+
+    methods = ep.get("methods", {})
+    if "GET" not in methods:
+        return None  # Only generating GET query options for now
+
+    get_info = methods["GET"]
+    class_name = ep["class_name"]
+    ts_url_candidate = python_url_to_ts_template(url_path)
+    ts_url = resolve_ts_url(ts_url_candidate)
+    if ts_url is None:
+        return None  # URL not in KnownSentryApiUrls — skip to avoid invalid getQueryKey calls
+    path_param_names = extract_path_params(url_path)
+    function_name = class_name_to_function_name(class_name)
+
+    # ── Collect path param metadata ──────────────────────────────────────────
+    path_params = []
+    for raw_name in path_param_names:
+        info = PATH_PARAM_MAP.get(raw_name)
+        if info:
+            path_params.append(info)
+        else:
+            # Unknown param: emit as plain string, guarding against reserved words
+            camel = safe_identifier(snake_to_camel(raw_name))
+            path_params.append(
+                {
+                    "tsName": camel,
+                    "paramName": camel,
+                    "tsType": "string",
+                    "accessor": camel,
+                }
+            )
+
+    # ── Collect query params ──────────────────────────────────────────────────
+    # Prefer OpenAPI params (more complete) for public endpoints, fall back to AST
+    openapi = get_info.get("openapi")
+    if openapi and openapi.get("query_params"):
+        raw_query_params = openapi["query_params"]
+    else:
+        raw_query_params = get_info.get("query_params", [])
+
+    query_params = [p for p in raw_query_params if p.get("name")]
+
+    # ── Collect response keys for skeleton interface ──────────────────────────
+    response_keys = get_info.get("response_keys", [])
+    openapi_response_schema = None
+    if openapi:
+        resp_200 = (openapi.get("responses") or {}).get("200") or {}
+        openapi_response_schema = resp_200.get("schema")
+
+    # ── Determine required imports ────────────────────────────────────────────
+    imports: dict[str, set[str]] = {}  # import_source → {names}
+    serializer_imports: dict[str, set[str]] = {}  # for non-type (value) imports
+    for pp in path_params:
+        src = pp.get("import")
+        if src and pp["tsType"] not in ("string", "number"):
+            imports.setdefault(src, set()).add(pp["tsType"])
+    # Built-in TS types that should never appear in import statements
+    _TS_PRIMITIVES = {
+        "string",
+        "number",
+        "boolean",
+        "null",
+        "undefined",
+        "unknown",
+        "any",
+        "void",
+        "never",
+    }
+
+    for p in query_params:
+        named = QUERY_PARAM_TYPE_MAP.get(p.get("name", ""))
+        if named and named.get("import"):
+            # tsType may be a union like "string | MutableSearch" — only import non-primitives
+            for part in named["tsType"].split("|"):
+                name = part.strip()
+                if name and name not in _TS_PRIMITIVES:
+                    imports.setdefault(named["import"], set()).add(name)
+        if named and named.get("serializer") and named.get("serializerImport"):
+            serializer_imports.setdefault(named["serializerImport"], set()).add(named["serializer"])
+
+    # Params that need serialization (typed params that must be transformed before passing to getQueryKey)
+    serialized_params = [
+        (p["name"], QUERY_PARAM_TYPE_MAP[p["name"]])
+        for p in query_params
+        if p.get("name") in QUERY_PARAM_TYPE_MAP
+        and (
+            QUERY_PARAM_TYPE_MAP[p["name"]].get("serializer")
+            or QUERY_PARAM_TYPE_MAP[p["name"]].get("serializeExpr")
+        )
+    ]
+
+    has_query = bool(query_params)
+
+    # ── Build the interface name ──────────────────────────────────────────────
+    # Strip "Endpoint" suffix from class name for the interface
+    iface_base = class_name
+    for suffix in ("Endpoint", "View"):
+        if iface_base.endswith(suffix):
+            iface_base = iface_base[: -len(suffix)]
+            break
+    response_iface = f"{iface_base}Response"
+    query_iface = f"{iface_base}QueryParams" if has_query else None
+
+    # ── Assemble file lines ───────────────────────────────────────────────────
+    lines: list[str] = []
+
+    lines.append("// GENERATED FILE. Run `python bin/generate-endpoint-options` to regenerate.")
+    lines.append("// Review and commit after filling in TODOs.")
+    lines.append("")
+
+    # Imports
+    for src in sorted(imports):
+        names = sorted(imports[src])
+        lines.append(f"import type {{{', '.join(names)}}} from '{src}';")
+    for src in sorted(serializer_imports):
+        names = sorted(serializer_imports[src])
+        lines.append(f"import {{{', '.join(names)}}} from '{src}';")
+
+    lines.append("import apiFetch, {type ApiResponse} from 'sentry/utils/api/apiFetch';")
+    lines.append("import {getQueryKey} from 'sentry/utils/api/apiQueryKey';")
+    lines.append("import {queryOptions} from 'sentry/utils/queryClient';")
+    lines.append("")
+
+    # Response interface
+    if openapi_response_schema and openapi_response_schema.get("properties"):
+        # Public endpoint: emit accurate types from OpenAPI schema
+        props = openapi_response_schema["properties"]
+        required_set = set(openapi_response_schema.get("required") or [])
+        lines.append(f"interface {response_iface} {{")
+        for prop_name, prop_schema in sorted(props.items()):
+            prop_type = OPENAPI_TYPE_MAP.get(prop_schema.get("type", ""), "unknown")
+            if prop_schema.get("type") == "array":
+                item_type = (prop_schema.get("items") or {}).get("type", "unknown")
+                prop_type = f"{OPENAPI_TYPE_MAP.get(item_type, 'unknown')}[]"
+            optional = "" if prop_name in required_set else "?"
+            lines.append(f"  {prop_name}{optional}: {prop_type};")
+        lines.append("}")
+    elif response_keys:
+        # Private endpoint: skeleton interface with guessed types
+        lines.append("// TODO: verify these types against the Python endpoint source")
+        lines.append(f"interface {response_iface} {{")
+        for key in sorted(response_keys):
+            ts_type = response_key_to_ts_type(key)
+            lines.append(f"  {key}: {ts_type};")
+        lines.append("}")
+    else:
+        lines.append("// TODO: define response shape from the Python endpoint source")
+        lines.append(f"interface {response_iface} {{")
+        lines.append("  // No response keys detected — fill in manually")
+        lines.append("}")
+
+    lines.append("")
+
+    # Query params interface
+    if has_query:
+        # typescript-sort-keys/interface requires: required keys first (alpha), then optional (alpha)
+        query_params = sorted(query_params, key=lambda p: (not p.get("required", False), p["name"]))
+        lines.append(f"interface {query_iface} {{")
+        for p in query_params:
+            name = p["name"]
+            required = p.get("required", False)
+            ts_type = param_to_ts_type(p)
+            description = p.get("description", "").strip()
+            if description:
+                # Collapse whitespace/newlines and truncate to keep JSDoc on one line
+                description_clean = " ".join(description.split())[:120]
+                lines.append(f"  /** {description_clean} */")
+            optional = "" if required else "?"
+            lines.append(f"  {name}{optional}: {ts_type};")
+        lines.append("}")
+        lines.append("")
+
+    # Wrapper types
+    lines.append(f"type TQueryData = ApiResponse<{response_iface}>;")
+    lines.append(f"type TData = {response_iface};")
+    lines.append("")
+
+    # Function signature
+    fn_params: list[str] = []
+    for pp in path_params:
+        fn_params.append(f"{pp['paramName']}: {pp['tsType']}")
+    if has_query:
+        fn_params.append(f"query?: {query_iface}")
+    fn_signature = ", ".join(fn_params)
+
+    # Docstring from Python
+    docstring = get_info.get("docstring") or ep.get("docstring")
+    if docstring:
+        lines.append("/**")
+        lines.append(" * @public")
+        for line in docstring.strip().splitlines():
+            lines.append(f" * {line}")
+        lines.append(" */")
+    else:
+        lines.append("/** @public */")
+
+    lines.append(f"export function {function_name}({fn_signature}) {{")
+
+    # If any query params need serialization, destructure and transform them
+    query_var = "query"
+    if has_query and serialized_params:
+        rest_name = "restQuery"
+        destructure_parts = []
+        # Local variable names used in the serialization expressions
+        # A param named "query" would shadow the outer "query" arg — rename it
+        local_names: dict[str, str] = {}
+        for param_name, _ in serialized_params:
+            local = f"{param_name}Param" if param_name == query_var else param_name
+            local_names[param_name] = local
+            if local != param_name:
+                destructure_parts.append(f"{param_name}: {local}")
+            else:
+                destructure_parts.append(param_name)
+        destructure_parts.append(f"...{rest_name}")
+        lines.append(f"  const {{{', '.join(destructure_parts)}}} = {query_var} ?? {{}};")
+        serialized_entries = []
+        for param_name, override in serialized_params:
+            local = local_names[param_name]
+            if override.get("serializeExpr"):
+                expr = override["serializeExpr"].replace("{v}", local)
+            else:
+                fn = override["serializer"]
+                expr = f"{fn}({local})"
+            serialized_entries.append(
+                f"...({local} !== undefined ? {{{param_name}: {expr}}} : {{}})"
+            )
+        lines.append(
+            f"  const serializedQuery = {{...{rest_name}, {', '.join(serialized_entries)}}};"
+        )
+        query_var = "serializedQuery"
+        lines.append("")
+
+    lines.append("  return queryOptions({")
+
+    # queryKey
+    path_entries = [f"{pp['tsName']}: {pp['accessor']}" for pp in path_params]
+    if path_entries:
+        path_block = "{" + ", ".join(path_entries) + "}"
+        if has_query:
+            lines.append(f"    queryKey: getQueryKey('{ts_url}', {{")
+            lines.append(f"      path: {path_block},")
+            lines.append(f"      query: {query_var},")
+            lines.append("    }),")
+        else:
+            lines.append(f"    queryKey: getQueryKey('{ts_url}', {{")
+            lines.append(f"      path: {path_block},")
+            lines.append("    }),")
+    else:
+        if has_query:
+            lines.append(f"    queryKey: getQueryKey('{ts_url}', {{{query_var}}}),")
+        else:
+            lines.append(f"    queryKey: getQueryKey('{ts_url}'),")
+
+    lines.append("    queryFn: apiFetch,")
+    lines.append("    select: (data: TQueryData): TData => data.json,")
+    lines.append("    staleTime: 0, // TODO: set appropriate stale time")
+    lines.append("  });")
+    lines.append("}")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLI
+# ─────────────────────────────────────────────────────────────────────────────
+
+EXAMPLES = [
+    "OrganizationSeerOnboardingCheck",  # simple GET, org path param, no query params
+    "OrganizationEventsHistogramEndpoint",  # GET with rich typed query params + choices
+    "ProjectArtifactLookupEndpoint",  # GET with org + project path params
+    "OrganizationEventsEndpoint",  # public endpoint with OpenAPI schema
+]
+
+
+def load_reports() -> list[dict]:
+    if not ENDPOINTS_REPORT.exists():
+        print(
+            f"ERROR: {ENDPOINTS_REPORT} not found. Run research_endpoints.py first.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    with open(ENDPOINTS_REPORT) as f:
+        report = json.load(f)
+
+    return report["endpoints"]
+
+
+def run(args: argparse.Namespace) -> None:
+    endpoints = load_reports()
+    by_class = {ep["class_name"]: ep for ep in endpoints}
+
+    if args.examples:
+        targets = [by_class[n] for n in EXAMPLES if n in by_class]
+    elif args.all:
+        targets = [
+            ep for ep in endpoints if ep["url_path"] != "UNKNOWN" and "GET" in ep.get("methods", {})
+        ]
+    elif args.frontend_matched:
+        # Only endpoints whose URLs appear in the frontend validation report
+        matched_urls = set()
+        if FRONTEND_REPORT.exists():
+            with open(FRONTEND_REPORT) as f:
+                fr = json.load(f)
+            for m in fr.get("matched_endpoints", []):
+                matched_urls.add(m["normalized_url"])
+
+        def normalize(url: str) -> str:
+            url = re.sub(r"^/api/0", "", url)
+            url = re.sub(r"\{[^}]+\}", "*", url)
+            if not url.endswith("/"):
+                url += "/"
+            return url
+
+        targets = [
+            ep
+            for ep in endpoints
+            if normalize(ep["url_path"]) in matched_urls and "GET" in ep.get("methods", {})
+        ]
+    else:
+        targets = [by_class[n] for n in args.class_names if n in by_class]
+        missing = [n for n in args.class_names if n not in by_class]
+        if missing:
+            print(f"WARNING: class names not found: {', '.join(missing)}", file=sys.stderr)
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    generated_paths: list[str] = []
+    skipped = 0
+
+    for ep in targets:
+        file_name = class_name_to_file_name(ep["class_name"]) + ".ts"
+        out_path = OUTPUT_DIR / file_name
+        source = generate_ts_file(ep)
+        if source is None:
+            # Can't generate a valid file — delete any stale copy when overwriting
+            if args.overwrite and out_path.exists():
+                out_path.unlink()
+                print(f"  deleted (invalid URL) {out_path.relative_to(REPO_ROOT)}")
+            skipped += 1
+            continue
+        if out_path.exists() and not args.overwrite:
+            print(f"  skipped (exists) {out_path.relative_to(REPO_ROOT)}")
+            skipped += 1
+            continue
+        out_path.write_text(source, encoding="utf-8")
+        print(f"  wrote {out_path.relative_to(REPO_ROOT)}")
+        generated_paths.append(str(out_path))
+
+    print(f"\nGenerated {len(generated_paths)} files, skipped {skipped}.")
+    if skipped:
+        print(
+            "Skipped reasons: unknown URL, no GET method, generation failed, or file exists (use --overwrite)."
+        )
+
+    if generated_paths:
+        print("\nRunning pnpm fix:eslint on generated files...")
+        subprocess.run(
+            ["pnpm", "fix:eslint", *generated_paths],
+            cwd=REPO_ROOT,
+            check=False,
+        )
+        print("Running pnpm fix:prettier on generated files...")
+        subprocess.run(
+            ["pnpm", "fix:prettier", *generated_paths],
+            cwd=REPO_ROOT,
+            check=False,
+        )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--examples", action="store_true", help="Generate the built-in example set")
+    mode.add_argument("--all", action="store_true", help="Generate all eligible endpoints")
+    mode.add_argument(
+        "--frontend-matched", action="store_true", help="Only endpoints called from the frontend"
+    )
+    parser.add_argument(
+        "class_names",
+        nargs="*",
+        metavar="CLASS_NAME",
+        help="Specific endpoint class names to generate",
+    )
+    parser.add_argument(
+        "--overwrite", action="store_true", help="Overwrite existing files (default: skip)"
+    )
+    args = parser.parse_args()
+
+    if not args.examples and not args.all and not args.frontend_matched and not args.class_names:
+        parser.print_help()
+        sys.exit(1)
+
+    run(args)
+
+
+if __name__ == "__main__":
+    main()

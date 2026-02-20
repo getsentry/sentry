@@ -7,25 +7,30 @@ import {getQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {queryOptions} from 'sentry/utils/queryClient';
 
 // TODO: verify these types against the Python endpoint source
-interface OrganizationSeerOnboardingCheckResponse {
-  hasSupportedScmIntegration: boolean;
-  isAutofixEnabled: boolean;
-  isCodeReviewEnabled: boolean;
-  isSeerConfigured: boolean;
-  needsConfigReminder: boolean;
+interface OrganizationEnvironmentsResponse {
+  detail: unknown;
 }
 
-type TQueryData = ApiResponse<OrganizationSeerOnboardingCheckResponse>;
-type TData = OrganizationSeerOnboardingCheckResponse;
+interface OrganizationEnvironmentsQueryParams {
+  /** The visibility of the environments to filter by. Defaults to `visible`. */
+  visibility?: 'all' | 'hidden' | 'visible';
+}
+
+type TQueryData = ApiResponse<OrganizationEnvironmentsResponse>;
+type TData = OrganizationEnvironmentsResponse;
 
 /**
  * @public
- * Check if the organization has completed Seer onboarding/configuration.
+ * Lists an organization's environments.
  */
-export function organizationSeerOnboardingCheckOptions(organization: Organization) {
+export function organizationEnvironmentsOptions(
+  organization: Organization,
+  query?: OrganizationEnvironmentsQueryParams
+) {
   return queryOptions({
-    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/seer/onboarding-check/', {
+    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/environments/', {
       path: {organizationIdOrSlug: organization.slug},
+      query,
     }),
     queryFn: apiFetch,
     select: (data: TQueryData): TData => data.json,

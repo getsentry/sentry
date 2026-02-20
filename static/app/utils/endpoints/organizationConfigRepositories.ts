@@ -7,24 +7,17 @@ import {getQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {queryOptions} from 'sentry/utils/queryClient';
 
 // TODO: verify these types against the Python endpoint source
-interface OrganizationSeerOnboardingCheckResponse {
-  hasSupportedScmIntegration: boolean;
-  isAutofixEnabled: boolean;
-  isCodeReviewEnabled: boolean;
-  isSeerConfigured: boolean;
-  needsConfigReminder: boolean;
+interface OrganizationConfigRepositoriesResponse {
+  providers: unknown;
 }
 
-type TQueryData = ApiResponse<OrganizationSeerOnboardingCheckResponse>;
-type TData = OrganizationSeerOnboardingCheckResponse;
+type TQueryData = ApiResponse<OrganizationConfigRepositoriesResponse>;
+type TData = OrganizationConfigRepositoriesResponse;
 
-/**
- * @public
- * Check if the organization has completed Seer onboarding/configuration.
- */
-export function organizationSeerOnboardingCheckOptions(organization: Organization) {
+/** @public */
+export function organizationConfigRepositoriesOptions(organization: Organization) {
   return queryOptions({
-    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/seer/onboarding-check/', {
+    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/config/repos/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
     queryFn: apiFetch,

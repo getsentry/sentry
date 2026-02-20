@@ -7,24 +7,30 @@ import {getQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {queryOptions} from 'sentry/utils/queryClient';
 
 // TODO: verify these types against the Python endpoint source
-interface OrganizationSeerOnboardingCheckResponse {
-  hasSupportedScmIntegration: boolean;
-  isAutofixEnabled: boolean;
-  isCodeReviewEnabled: boolean;
-  isSeerConfigured: boolean;
-  needsConfigReminder: boolean;
+interface ChunkUploadResponse {
+  accept: unknown;
+  chunkSize: number;
+  chunksPerRequest: unknown;
+  compression: unknown;
+  concurrency: unknown;
+  hashAlgorithm: boolean;
+  maxFileSize: number;
+  maxRequestSize: number;
+  url: string;
 }
 
-type TQueryData = ApiResponse<OrganizationSeerOnboardingCheckResponse>;
-type TData = OrganizationSeerOnboardingCheckResponse;
+type TQueryData = ApiResponse<ChunkUploadResponse>;
+type TData = ChunkUploadResponse;
 
 /**
  * @public
- * Check if the organization has completed Seer onboarding/configuration.
+ * Return chunk upload parameters
+ *         ``````````````````````````````
+ *         :auth: required
  */
-export function organizationSeerOnboardingCheckOptions(organization: Organization) {
+export function chunkUploadOptions(organization: Organization) {
   return queryOptions({
-    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/seer/onboarding-check/', {
+    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/chunk-upload/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
     queryFn: apiFetch,

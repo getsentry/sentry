@@ -7,25 +7,33 @@ import {getQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {queryOptions} from 'sentry/utils/queryClient';
 
 // TODO: verify these types against the Python endpoint source
-interface OrganizationSeerOnboardingCheckResponse {
-  hasSupportedScmIntegration: boolean;
-  isAutofixEnabled: boolean;
-  isCodeReviewEnabled: boolean;
-  isSeerConfigured: boolean;
-  needsConfigReminder: boolean;
+interface PromptsActivityResponse {
+  data: unknown;
+  detail: unknown;
+  details: unknown;
+  features: unknown;
 }
 
-type TQueryData = ApiResponse<OrganizationSeerOnboardingCheckResponse>;
-type TData = OrganizationSeerOnboardingCheckResponse;
+interface PromptsActivityQueryParams {
+  feature?: string[];
+  project_id?: string;
+}
+
+type TQueryData = ApiResponse<PromptsActivityResponse>;
+type TData = PromptsActivityResponse;
 
 /**
  * @public
- * Check if the organization has completed Seer onboarding/configuration.
+ * Return feature prompt status if dismissed or in snoozed period
  */
-export function organizationSeerOnboardingCheckOptions(organization: Organization) {
+export function promptsActivityOptions(
+  organization: Organization,
+  query?: PromptsActivityQueryParams
+) {
   return queryOptions({
-    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/seer/onboarding-check/', {
+    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/prompts-activity/', {
       path: {organizationIdOrSlug: organization.slug},
+      query,
     }),
     queryFn: apiFetch,
     select: (data: TQueryData): TData => data.json,

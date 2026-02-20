@@ -7,24 +7,22 @@ import {getQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {queryOptions} from 'sentry/utils/queryClient';
 
 // TODO: verify these types against the Python endpoint source
-interface OrganizationSeerOnboardingCheckResponse {
-  hasSupportedScmIntegration: boolean;
-  isAutofixEnabled: boolean;
-  isCodeReviewEnabled: boolean;
-  isSeerConfigured: boolean;
-  needsConfigReminder: boolean;
+interface OrganizationAlertRuleDetectorIndexResponse {
+  alertRuleId: string | number;
+  detectorId: string | number;
+  ruleId: string | number;
 }
 
-type TQueryData = ApiResponse<OrganizationSeerOnboardingCheckResponse>;
-type TData = OrganizationSeerOnboardingCheckResponse;
+type TQueryData = ApiResponse<OrganizationAlertRuleDetectorIndexResponse>;
+type TData = OrganizationAlertRuleDetectorIndexResponse;
 
 /**
  * @public
- * Check if the organization has completed Seer onboarding/configuration.
+ * Returns a dual-written rule/alert rule and its associated detector.
  */
-export function organizationSeerOnboardingCheckOptions(organization: Organization) {
+export function organizationAlertRuleDetectorIndexOptions(organization: Organization) {
   return queryOptions({
-    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/seer/onboarding-check/', {
+    queryKey: getQueryKey('/organizations/$organizationIdOrSlug/alert-rule-detector/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
     queryFn: apiFetch,
