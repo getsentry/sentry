@@ -6,6 +6,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -640,6 +641,13 @@ describe('Dashboards > Dashboard', () => {
         PageFiltersStore.onInitializeUrlState(
           getSavedFiltersAsPageFilters(thirtyDayReleaseDashboard)
         );
+        // Use a date well past METRICS_BACKED_SESSIONS_START_DATE (2022-07-12) so
+        // a 30d period doesn't trigger the "data only available from Jul 12" error.
+        setMockDate(new Date('2024-01-15'));
+      });
+
+      afterEach(() => {
+        resetMockDate();
       });
 
       it('ignores the URL interval and falls back to the period default', async () => {

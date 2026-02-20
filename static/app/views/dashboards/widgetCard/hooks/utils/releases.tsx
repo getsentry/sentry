@@ -1,5 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
+import {t} from 'sentry/locale';
 import type {DateString, PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
@@ -13,6 +14,8 @@ import {
   requiresCustomReleaseSorting,
   resolveDerivedStatusFields,
 } from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+
+const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
 
 const RATE_FUNCTIONS = [
   'unhealthy_rate',
@@ -68,6 +71,31 @@ export function getReleasesRequestData(
 ) {
   const {environments, projects, datetime} = pageFilters;
   const {start, end, period} = datetime;
+
+  let showIncompleteDataAlert = false;
+
+  if (start) {
+    let startDate: Date | undefined = undefined;
+    if (typeof start === 'string') {
+      startDate = new Date(start);
+    } else {
+      startDate = start;
+    }
+    showIncompleteDataAlert = startDate < METRICS_BACKED_SESSIONS_START_DATE;
+  } else if (period) {
+    const periodInDays = statsPeriodToDays(period);
+    const current = new Date();
+    const prior = new Date(new Date().setDate(current.getDate() - periodInDays));
+    showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
+  }
+
+  if (showIncompleteDataAlert) {
+    throw new Error(
+      t(
+        'Releases data is only available from Jul 12. Please retry your query with a more recent date range.'
+      )
+    );
+  }
 
   // Only time we need to use sessions API is when session.status is requested
   // as a group by, or we are using a rate function.

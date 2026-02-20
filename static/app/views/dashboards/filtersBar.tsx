@@ -7,7 +7,6 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -328,20 +327,18 @@ export default function FiltersBar({
         )}
       <ToggleOnDemand />
       {hasIntervalSelection && (
-        <Flex align="center" marginLeft="auto">
+        <Flex marginLeft="auto">
           <CompactSelect
             value={interval}
             onChange={option => setInterval(option.value)}
             trigger={triggerProps => (
-              <Tooltip title={t('Time interval used by chart visualizations (e.g., 5m)')}>
-                <OverlayTrigger.Button
-                  {...triggerProps}
-                  icon={<IconClock />}
-                  priority="transparent"
-                  showChevron={false}
-                  size="xs"
-                />
-              </Tooltip>
+              <OverlayTrigger.Button
+                {...triggerProps}
+                icon={<IconClock />}
+                priority="transparent"
+                showChevron={false}
+                size="xs"
+              />
             )}
             menuTitle={t('Interval')}
             options={intervalOptions}
