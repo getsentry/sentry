@@ -582,3 +582,166 @@ describe('SwitchField with confirm', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('SwitchField resetOnError', () => {
+  it('resets switch to initial value when mutation fails and resetOnError is true', async () => {
+    const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox).not.toBeChecked();
+
+    await userEvent.click(checkbox);
+
+    // After mutation failure, switch should revert to unchecked
+    await waitFor(() => {
+      expect(checkbox).not.toBeChecked();
+    });
+  });
+
+  it('resets switch after confirmed mutation fails with resetOnError', async () => {
+    renderGlobalModal();
+    const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+        confirm="Are you sure?"
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    await userEvent.click(checkbox);
+
+    // Confirm the modal
+    await screen.findByText('Are you sure?');
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    // After mutation failure, switch should revert to unchecked
+    await waitFor(() => {
+      expect(checkbox).not.toBeChecked();
+    });
+  });
+});
+
+describe('SwitchField failed to save error', () => {
+  it('shows "Failed to save" error when mutation fails', async () => {
+    const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    await userEvent.click(screen.getByRole('checkbox'));
+
+    // "Failed to save" error should appear
+    expect(await screen.findByText('Failed to save')).toBeInTheDocument();
+
+    // Field should be marked as invalid
+    expect(screen.getByRole('checkbox')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('shows "Failed to save" error after confirmed mutation fails', async () => {
+    renderGlobalModal();
+    const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+        confirm="Are you sure?"
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    await userEvent.click(screen.getByRole('checkbox'));
+
+    // Confirm the modal
+    await screen.findByText('Are you sure?');
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    // "Failed to save" error should appear
+    expect(await screen.findByText('Failed to save')).toBeInTheDocument();
+  });
+
+  it('clears "Failed to save" error on next successful save', async () => {
+    let shouldFail = true;
+    const mutationFn = jest.fn((data: {enabled: boolean}) => {
+      if (shouldFail) {
+        return Promise.reject(new Error('Network error'));
+      }
+      return Promise.resolve(data);
+    });
+
+    render(
+      <AutoSaveField
+        name="enabled"
+        schema={testSchema}
+        initialValue={false}
+        mutationOptions={{mutationFn}}
+      >
+        {field => (
+          <field.Layout.Row label="Enable Feature">
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+
+    // First click fails
+    await userEvent.click(checkbox);
+    expect(await screen.findByText('Failed to save')).toBeInTheDocument();
+
+    // Next click should succeed
+    shouldFail = false;
+    await userEvent.click(checkbox);
+
+    // Error should be cleared after successful save
+    await waitFor(() => {
+      expect(screen.queryByText('Failed to save')).not.toBeInTheDocument();
+    });
+  });
+});

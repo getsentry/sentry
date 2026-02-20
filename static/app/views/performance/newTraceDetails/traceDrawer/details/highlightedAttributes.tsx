@@ -193,6 +193,7 @@ function getAISpanAttributes({
         platform: platform?.toString() ?? 'unknown',
         version: version?.toString() ?? 'unknown',
         org_id: orgId?.toString() ?? 'unknown',
+        ai_cost_warning: 'true', // we use this for assigning ownership
       },
       extra: {
         total_costs: totalCosts,

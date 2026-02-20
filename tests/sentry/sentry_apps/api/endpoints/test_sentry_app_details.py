@@ -25,7 +25,6 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.workflow_engine.models.action import Action
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -947,7 +946,6 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.internal_integration.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )

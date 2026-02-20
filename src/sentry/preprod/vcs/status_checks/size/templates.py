@@ -108,14 +108,12 @@ def format_status_check_messages(
         failed_artifacts = [a for a in artifacts if a.id in failed_artifact_ids]
         passed_artifacts = [a for a in artifacts if a.id not in failed_artifact_ids]
 
-        failed_metrics_count = sum(
-            len(size_metrics_map.get(a.id, [])) or 1 for a in failed_artifacts
-        )
+        failed_checks_count = len(triggered_rules)
         failed_header = ngettext(
             "## ❌ %(count)d Failed Size Check",
             "## ❌ %(count)d Failed Size Checks",
-            failed_metrics_count,
-        ) % {"count": failed_metrics_count}
+            failed_checks_count,
+        ) % {"count": failed_checks_count}
 
         summary_parts = []
 
@@ -313,7 +311,8 @@ def _get_settings_url(
     """Build the settings URL for the project's preprod settings page."""
     base_url = f"/settings/projects/{project.slug}/mobile-builds/"
     if triggered_rules:
-        expanded_params = "&".join(f"expanded={tr.rule.id}" for tr in triggered_rules)
+        unique_rule_ids = list(dict.fromkeys(tr.rule.id for tr in triggered_rules))
+        expanded_params = "&".join(f"expanded={rule_id}" for rule_id in unique_rule_ids)
         return project.organization.absolute_url(base_url, query=expanded_params)
     return project.organization.absolute_url(base_url)
 
@@ -351,8 +350,12 @@ def _format_failed_checks_details(
             metric_display = _get_metric_display_name(tr.rule.metric)
             measurement_display = _get_measurement_display_name(tr.rule.measurement)
             threshold_display = _format_threshold_value(tr.rule.value, tr.rule.measurement)
+            artifact_type_display = _get_triggered_metric_type_display_name(
+                tr.metrics_artifact_type, tr.identifier
+            )
+            artifact_type_suffix = f" — {artifact_type_display}" if artifact_type_display else ""
             details_content.append(
-                f"- **{metric_display} ({measurement_display})** > **{threshold_display}**"
+                f"- **{metric_display} ({measurement_display})** > **{threshold_display}**{artifact_type_suffix}"
             )
 
     return (
@@ -477,6 +480,23 @@ def _get_size_metric_type_display_name(
             return "Dynamic Feature"
         case _:
             return None
+
+
+def _get_triggered_metric_type_display_name(
+    metric_type: PreprodArtifactSizeMetrics.MetricsArtifactType | int | None,
+    identifier: str | None,
+) -> str:
+    match metric_type:
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT:
+            return "Main App"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT:
+            return "Watch App"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE:
+            if identifier:
+                return f"Dynamic Feature ({identifier})"
+            return "Dynamic Feature"
+        case _:
+            return ""
 
 
 def _create_sorted_artifact_metric_rows(

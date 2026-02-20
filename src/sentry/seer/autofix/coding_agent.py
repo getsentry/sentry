@@ -6,6 +6,7 @@ import string
 from typing import Any
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
@@ -294,6 +295,7 @@ def _launch_agents_for_repos(
                 {
                     "repo_name": repo_name,
                     "error_message": f"Repository {repo_name} not found in autofix state",
+                    "failure_type": "generic",
                 }
             )
             continue
@@ -322,19 +324,35 @@ def _launch_agents_for_repos(
                 },
             )
             error_message = str(e)
+            failure_type = "generic"
+            github_installation_id: str | None = None
             if isinstance(e, ApiError):
                 url_part = f" ({e.url})" if e.url else ""
-                if e.code == 401:
+                if e.code == 403 and client is not None:
+                    failure_type = "github_app_permissions"
+                    error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
+                    if repo and repo.integration_id:
+                        try:
+                            sentry_integration = integration_service.get_integration(
+                                integration_id=int(repo.integration_id)
+                            )
+                            if sentry_integration:
+                                github_installation_id = sentry_integration.external_id
+                        except Exception:
+                            sentry_sdk.capture_exception(level="warning")
+                elif e.code == 401:
                     error_message = f"Failed to make request to coding agent{url_part}. Please check that your API credentials are correct: {e.code} Error: {e.text}"
                 else:
                     error_message = f"Failed to make request to coding agent{url_part}. {e.code} Error: {e.text}"
 
-            failures.append(
-                {
-                    "repo_name": repo_name,
-                    "error_message": error_message,
-                }
-            )
+            failure: dict = {
+                "repo_name": repo_name,
+                "error_message": error_message,
+                "failure_type": failure_type,
+            }
+            if github_installation_id:
+                failure["github_installation_id"] = github_installation_id
+            failures.append(failure)
             continue
 
         states_to_store.append(coding_agent_state)
