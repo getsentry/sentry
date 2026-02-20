@@ -586,12 +586,21 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "",
+                            "fields": ["equation|user_misery(span.duration,300)"],
+                            "aggregates": ["equation|user_misery(span.duration,300)"],
+                            "columns": [],
+                            "conditions": "is_transaction:true",
+                            "orderby": "",
+                        }
+                    ]
+                    if is_transactions_deprecation_enabled
+                    else [
+                        {
+                            "name": "",
                             "fields": ["user_misery(300)"],
                             "aggregates": ["user_misery(300)"],
                             "columns": [],
-                            "conditions": "is_transaction:true"
-                            if is_transactions_deprecation_enabled
-                            else "",
+                            "conditions": "",
                             "orderby": "",
                         },
                     ],
@@ -638,12 +647,21 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "",
+                            "fields": ["transaction", "equation|user_misery(span.duration,300)"],
+                            "aggregates": ["equation|user_misery(span.duration,300)"],
+                            "columns": ["transaction"],
+                            "conditions": "is_transaction:true",
+                            "orderby": "-equation|user_misery(span.duration,300)",
+                        },
+                    ]
+                    if is_transactions_deprecation_enabled
+                    else [
+                        {
+                            "name": "",
                             "fields": ["transaction", "user_misery(300)"],
                             "aggregates": ["user_misery(300)"],
                             "columns": ["transaction"],
-                            "conditions": "is_transaction:true"
-                            if is_transactions_deprecation_enabled
-                            else "",
+                            "conditions": "",
                             "orderby": "-user_misery(300)",
                         },
                     ],
