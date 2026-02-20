@@ -53,7 +53,7 @@ type ParamsType = {
   query?: string;
 };
 
-export type UpdateParams = ParamsType & {
+type UpdateParams = ParamsType & {
   orgId: string;
   projectId?: string;
 };

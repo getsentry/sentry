@@ -18,7 +18,7 @@ import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 
-export type AssignIssueVariables = {
+type AssignIssueVariables = {
   actor: Pick<Actor, 'id' | 'type'> | null;
   groupId: string;
   orgSlug: string;
