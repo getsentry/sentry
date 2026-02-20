@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, memo, useCallback, useRef, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
@@ -37,6 +37,10 @@ interface ProjectItem {
   sampleRate: string;
   subProjects: SubProject[];
   error?: string;
+}
+
+interface ProjectTableItem extends ProjectItem {
+  isExpanded: boolean;
 }
 
 interface Props {
@@ -85,30 +89,34 @@ export function ProjectsTable({
     setTableSort(value => (value === 'asc' ? 'desc' : 'asc'));
   }, []);
 
-  const itemsWithExpanded = items.map(item => ({
-    ...item,
-    isExpanded: expandedItems.has(item.project.id),
-  }));
+  const sortedItems = useMemo(() => {
+    const itemsWithExpanded: ProjectTableItem[] = items.map(item => ({
+      ...item,
+      isExpanded: expandedItems.has(item.project.id),
+    }));
 
-  const sortedItems = itemsWithExpanded.toSorted((a: any, b: any) => {
-    if (a.count === b.count) {
-      return a.project.slug.localeCompare(b.project.slug);
-    }
-    if (tableSort === 'asc') {
-      return a.count - b.count;
-    }
-    return b.count - a.count;
-  });
+    itemsWithExpanded.sort((a, b) => {
+      if (a.count === b.count) {
+        return a.project.slug.localeCompare(b.project.slug);
+      }
+      if (tableSort === 'asc') {
+        return a.count - b.count;
+      }
+      return b.count - a.count;
+    });
+
+    return itemsWithExpanded;
+  }, [items, expandedItems, tableSort]);
 
   const virtualizer = useVirtualizer({
     count: sortedItems.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: index =>
-      sortedItems[index].isExpanded
+      sortedItems[index]?.isExpanded
         ? BASE_ROW_HEIGHT + (sortedItems[index].subProjects.length + 1) * 21
         : BASE_ROW_HEIGHT,
     overscan: 5,
-    getItemKey: index => sortedItems[index].project.id,
+    getItemKey: index => sortedItems[index]?.project.id ?? index,
   });
 
   return (
