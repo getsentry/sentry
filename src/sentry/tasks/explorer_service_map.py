@@ -86,7 +86,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
             result = Spans.run_table_query(
                 params=snuba_params,
                 query_string="is_transaction:true has:parent_span",
-                selected_columns=["id", "parent_span", "project.id", "project.slug"],
+                selected_columns=["id", "parent_span", "project.id", "project.slug", "timestamp"],
                 orderby=["-timestamp"],
                 offset=offset,
                 limit=page_limit,
@@ -123,6 +123,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                         "parent_span",
                         "project.id",
                         "project.slug",
+                        "timestamp",
                     ],
                     orderby=["-timestamp"],
                     offset=offset,
