@@ -159,7 +159,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         failures = results["failures"]
 
         response_data: LaunchResponse = {
-            "success": True,
+            "success": len(successes) > 0,
             "launched_count": len(successes),
             "failed_count": len(failures),
         }
