@@ -140,6 +140,10 @@ export function CompactSelect<Value extends SelectKey>({
   const controlDisabled = disabled ?? options?.length === 0;
 
   const allItemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
+  const duplicateOptionKeys = useMemo(
+    () => getDuplicateOptionKeys(allItemsWithKey),
+    [allItemsWithKey]
+  );
   const longestOptionItemsWithKey = useMemo(() => {
     if (needsMeasuring) {
       const longestOption = maxBy(options, option => {
@@ -180,6 +184,7 @@ export function CompactSelect<Value extends SelectKey>({
             trackVirtualizationMetrics(
               allItemsWithKey,
               virtualizeThreshold,
+              duplicateOptionKeys.length,
               typeof controlProps.menuTitle === 'string'
                 ? controlProps.menuTitle
                 : undefined
@@ -239,6 +244,28 @@ export function CompactSelect<Value extends SelectKey>({
   );
 }
 
+function getDuplicateOptionKeys<Value extends SelectKey>(
+  items: Array<SelectOptionOrSectionWithKey<Value>>
+): string[] {
+  const keyCounts = new Map<string, number>();
+
+  const collectOptionKeys = (list: Array<SelectOptionOrSectionWithKey<Value>>) => {
+    list.forEach(item => {
+      if ('options' in item) {
+        collectOptionKeys(item.options);
+        return;
+      }
+
+      const key = String(item.key);
+      keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1);
+    });
+  };
+
+  collectOptionKeys(items);
+
+  return [...keyCounts.entries()].filter(([, count]) => count > 1).map(([key]) => key);
+}
+
 function shouldVirtualize<Value extends SelectKey>(
   items: Array<SelectOptionOrSection<Value>>,
   virtualizeThreshold = 150
@@ -254,6 +281,7 @@ function shouldVirtualize<Value extends SelectKey>(
 function trackVirtualizationMetrics<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   virtualizeThreshold = 150,
+  duplicateOptionKeyCount = 0,
   title = 'unknown'
 ) {
   const hasSections = items.some(item => 'options' in item);
@@ -269,6 +297,7 @@ function trackVirtualizationMetrics<Value extends SelectKey>(
         has_sections: hasSections,
         component_title: title,
         count: optionCount,
+        duplicate_option_key_count: duplicateOptionKeyCount,
         threshold,
       },
     });
@@ -278,6 +307,7 @@ function trackVirtualizationMetrics<Value extends SelectKey>(
     attributes: {
       has_sections: hasSections,
       component_title: title,
+      duplicate_option_key_count: duplicateOptionKeyCount,
     },
   });
 }
