@@ -15,8 +15,6 @@ from datetime import datetime, timedelta, timezone
 from typing import cast
 
 import orjson
-import requests
-from django.conf import settings
 from django.utils import timezone as django_timezone
 
 from sentry import options
@@ -24,7 +22,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.base import instrumented_task
@@ -126,7 +123,6 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                         "parent_span",
                         "project.id",
                         "project.slug",
-                        "timestamp",
                     ],
                     orderby=["-timestamp"],
                     offset=offset,
@@ -334,22 +330,7 @@ def _send_to_seer(org_id: int, nodes: list[dict]) -> None:
         },
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{SEER_SERVICE_MAP_PATH}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-        timeout=30,
-    )
-    response.raise_for_status()
-
-    result = response.json()
-    logger.info(
-        "Successfully sent service map to Seer",
-        extra={"org_id": org_id, "seer_response": result},
-    )
+    # TODO: Add endpoint in seer before making the actual request
 
 
 @instrumented_task(
@@ -375,13 +356,8 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
         extra={"org_id": organization_id},
     )
 
-    # Check feature flags
     if not options.get("explorer.service_map.enable"):
         logger.info("explorer.service_map.enable flag is disabled")
-        return
-
-    if options.get("explorer.service_map.killswitch"):
-        logger.info("explorer.service_map.killswitch enabled")
         return
 
     try:
@@ -448,14 +424,8 @@ def schedule_service_map_builds() -> None:
     """
     logger.info("Started schedule_service_map_builds task")
 
-    # Check master enable flag
     if not options.get("explorer.service_map.enable"):
         logger.info("explorer.service_map.enable flag is disabled")
-        return
-
-    # Check killswitch
-    if options.get("explorer.service_map.killswitch"):
-        logger.info("explorer.service_map.killswitch enabled")
         return
 
     # Get eligible organizations

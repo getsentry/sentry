@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from unittest import mock
 from uuid import uuid4
 
+import orjson
 import pytest
 import responses
 from django.conf import settings
@@ -34,7 +35,6 @@ def _make_snuba_params(organization, projects):
     return SnubaParams(start=start, end=end, projects=projects, organization=organization)
 
 
-@django_db_all
 @django_db_all
 class TestSendToSeer(TestCase):
     @responses.activate
@@ -70,8 +70,6 @@ class TestSendToSeer(TestCase):
         assert len(responses.calls) == 1
         request = responses.calls[0].request
 
-        import orjson
-
         body = orjson.loads(request.body)
         assert body["organization_id"] == org.id
         assert body["nodes"] == nodes
@@ -98,19 +96,6 @@ class TestBuildServiceMap(TestCase):
         org = self.create_organization()
 
         with override_options({"explorer.service_map.enable": False}):
-            with mock.patch(
-                "sentry.tasks.explorer_service_map._query_service_dependencies"
-            ) as mock_query:
-                build_service_map(org.id)
-
-        mock_query.assert_not_called()
-
-    def test_respects_killswitch(self):
-        org = self.create_organization()
-
-        with override_options(
-            {"explorer.service_map.enable": True, "explorer.service_map.killswitch": True}
-        ):
             with mock.patch(
                 "sentry.tasks.explorer_service_map._query_service_dependencies"
             ) as mock_query:
@@ -258,23 +243,6 @@ class TestScheduleServiceMapBuilds(TestCase):
         with override_options(
             {
                 "explorer.service_map.enable": False,
-                "explorer.service_map.allowed_organizations": [org.id],
-            }
-        ):
-            with mock.patch(
-                "sentry.tasks.explorer_service_map.build_service_map.apply_async"
-            ) as mock_task:
-                schedule_service_map_builds()
-
-        mock_task.assert_not_called()
-
-    def test_respects_killswitch(self):
-        org = self.create_organization()
-
-        with override_options(
-            {
-                "explorer.service_map.enable": True,
-                "explorer.service_map.killswitch": True,
                 "explorer.service_map.allowed_organizations": [org.id],
             }
         ):

@@ -1147,12 +1147,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "explorer.service_map.killswitch",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "explorer.service_map.allowed_organizations",
     default=[],
     type=Sequence,
@@ -1168,7 +1162,7 @@ register(
     "explorer.service_map.max_segments",
     default=10_000,
     type=Int,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
     ttl=60 * 5,
 )
 register(
