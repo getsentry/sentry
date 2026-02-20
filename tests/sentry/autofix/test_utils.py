@@ -269,8 +269,6 @@ class TestAutomationRateLimiting(TestCase):
         assert is_rate_limited is True
         mock_track_outcome.assert_called_once()
 
-        mock_track_outcome.assert_not_called()
-
     @patch("sentry.seer.autofix.utils.ratelimits.backend.is_limited_with_value")
     @patch("sentry.seer.autofix.utils.track_outcome")
     def test_autofix_rate_limited_logic(
