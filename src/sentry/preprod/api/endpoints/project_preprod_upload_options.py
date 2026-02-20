@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.conf import settings
 from django.urls import reverse
+from objectstore_client import TimeToLive
+from objectstore_client.metadata import format_expiration
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,6 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models.project import Project
+from sentry.objectstore.types import ObjectstoreUploadOptions
 from sentry.utils.http import absolute_uri
 
 
@@ -30,7 +35,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
 
         organization = project.organization
 
-        objectstore_upload_url = absolute_uri(
+        url = absolute_uri(
             reverse(
                 "sentry-api-0-organization-objectstore",
                 kwargs={
@@ -40,14 +45,13 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
             )
         )
 
-        return Response(
-            {
-                "objectstoreUploadUrl": objectstore_upload_url,
-                "objectstoreScopes": {
-                    "orgId": organization.id,
-                    "projectId": project.id,
-                },
-                "objectstoreToken": "placeholder",
-                "retentionDays": 396,
-            }
+        options = ObjectstoreUploadOptions(
+            url=url,
+            scopes={
+                "org": str(organization.id),
+                "project": str(project.id),
+            },
+            expirationPolicy=format_expiration(TimeToLive(timedelta(days=396))),
         )
+
+        return Response({"objectstore": options})

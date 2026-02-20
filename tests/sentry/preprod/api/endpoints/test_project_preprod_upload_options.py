@@ -20,16 +20,14 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
-        data = response.data
+        data = response.data["objectstore"]
 
-        assert "objectstoreUploadUrl" in data
-        assert f"/api/0/organizations/{self.org.id}/objectstore/" in data["objectstoreUploadUrl"]
+        assert f"/api/0/organizations/{self.org.id}/objectstore/" in data["url"]
 
-        assert data["objectstoreScopes"]["orgId"] == self.org.id
-        assert data["objectstoreScopes"]["projectId"] == self.project.id
+        assert data["scopes"]["org"] == str(self.org.id)
+        assert data["scopes"]["project"] == str(self.project.id)
 
-        assert data["objectstoreToken"] == "placeholder"
-        assert data["retentionDays"] == 396
+        assert data["expirationPolicy"] == "ttl:396 days"
 
     def test_without_feature_flag(self):
         response = self.client.get(self.url)
