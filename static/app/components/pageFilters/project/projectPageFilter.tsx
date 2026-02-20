@@ -471,7 +471,13 @@ export function ProjectPageFilter({
                 />
                 <HybridFilterComponents.ApplyButton
                   disabled={stagedSelect.disableCommit}
-                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                  onClick={() =>
+                    stagedSelect.commit(
+                      stagedSelect.stagedValue.length === 0
+                        ? [ALL_ACCESS_PROJECTS]
+                        : stagedSelect.stagedValue
+                    )
+                  }
                 />
               </Flex>
             ) : (

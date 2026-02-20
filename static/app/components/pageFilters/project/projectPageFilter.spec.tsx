@@ -197,6 +197,26 @@ describe('ProjectPageFilter', () => {
     expect(router.location.query).toEqual({project: '-1'});
   });
 
+  it('defaults to all projects when deselecting everything and clicking apply', async () => {
+    const {router} = render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
+    });
+
+    // Open menu and deselect all member projects
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
+
+    // Click "Apply" with nothing selected — should fall back to All Projects
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(screen.getByRole('button', {name: 'All Projects'})).toBeInTheDocument();
+    expect(router.location.query).toEqual({project: '-1'});
+  });
+
   it('responds to page filter changes, async e.g. from back button nav', async () => {
     const mockRouter = RouterFixture({
       location: {pathname: '/organizations/org-slug/issues/', query: {}},
