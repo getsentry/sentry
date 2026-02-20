@@ -27,6 +27,7 @@ export {
 } from './styles';
 
 export type {
+  SearchMatchResult,
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
   SelectSectionWithKey,
@@ -36,6 +37,7 @@ export {
   getItemsWithKeys,
   getDisabledOptions,
   getHiddenOptions,
+  getSortedItems,
   itemIsSectionWithKey,
   SectionToggle,
   getEscapedKey,
