@@ -544,9 +544,9 @@ export default function ContextPickerModalContainer({
 function ContextPickerModalWithOrgSelection(
   props: SharedProps & {
     organizations: Organization[];
-    projectSlugs?: string[];
     selectedOrgSlug: string;
     setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
+    projectSlugs?: string[];
   }
 ) {
   const {
@@ -570,7 +570,11 @@ function ContextPickerModalWithOrgSelection(
   });
 
   return (
-    <Projects orgId={selectedOrgSlug} allProjects={!projectSlugs?.length} slugs={projectSlugs}>
+    <Projects
+      orgId={selectedOrgSlug}
+      allProjects={!projectSlugs?.length}
+      slugs={projectSlugs}
+    >
       {({projects, initiallyLoaded}) => (
         <ContextPickerModal
           {...sharedProps}
