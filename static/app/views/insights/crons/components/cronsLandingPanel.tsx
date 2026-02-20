@@ -103,7 +103,11 @@ export function CronsLandingPanel() {
         <PanelBody withPadding>
           <h3>{t('Get Started with %s', platform.label)}</h3>
 
-          <Tabs onChange={key => setPlatformGuide(platformKey, key)} value={guideKey}>
+          <Tabs
+            disableOverflow
+            onChange={key => setPlatformGuide(platformKey, key)}
+            value={guideKey}
+          >
             <Flex justify="between" align="center">
               <TabList>
                 {[
