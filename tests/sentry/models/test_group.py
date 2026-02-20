@@ -99,6 +99,10 @@ class GroupTest(TestCase, SnubaTestCase):
         with pytest.raises(Group.DoesNotExist):
             get_group_with_redirect(duplicate_id)
 
+    def test_get_group_with_redirect_overflow_id(self) -> None:
+        with pytest.raises(Group.DoesNotExist):
+            get_group_with_redirect("12345678901234567890")
+
     def test_get_group_with_redirect_from_qualified_short_id(self) -> None:
         group = self.create_group()
         assert group.qualified_short_id

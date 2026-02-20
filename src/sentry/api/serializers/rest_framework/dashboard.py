@@ -996,6 +996,23 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     "Linked dashboard does not appear in the fields of the query"
                 )
 
+            # Validate all linked dashboard IDs belong to this organization
+            linked_dashboard_ids = {
+                int(ld["dashboard_id"])
+                for ld in linked_dashboards
+                if ld.get("field") and ld.get("dashboard_id")
+            }
+            if linked_dashboard_ids:
+                valid_ids = set(
+                    Dashboard.objects.filter(
+                        id__in=linked_dashboard_ids,
+                        organization_id=organization.id,
+                    ).values_list("id", flat=True)
+                )
+                invalid_ids = linked_dashboard_ids - valid_ids
+                if invalid_ids:
+                    raise serializers.ValidationError("Linked dashboard does not exist")
+
             for link_data in linked_dashboards:
                 field = link_data.get("field")
                 dashboard_id = link_data.get("dashboard_id")

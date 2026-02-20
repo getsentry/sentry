@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
@@ -12,6 +13,7 @@ from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, DestinationTy
 from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import (
     MAX_MAILBOX_DRAIN,
+    SLOW_DELIVERY_THRESHOLD,
     drain_mailbox,
     drain_mailbox_parallel,
     schedule_webhook_delivery,
@@ -933,6 +935,46 @@ class DrainMailboxParallelTest(TestCase):
         assert hook.attempts == 1
 
         assert len(responses.calls) == 1
+
+
+@control_silo_test
+class SlowDeliveryLoggingTest(TestCase):
+    @responses.activate
+    @override_regions(region_config)
+    def test_slow_delivery_logged(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+            provider="github",
+            request_body='{"repository": {"owner": {"login": "getsentry"}}}',
+        )
+        # date_added is 11 minutes ago (10 min threshold + 1 min)
+        WebhookPayload.objects.filter(id=webhook.id).update(
+            date_added=timezone.now() - SLOW_DELIVERY_THRESHOLD - timedelta(minutes=1)
+        )
+        # Update in-memory webhook object with the updated date_added
+        webhook.refresh_from_db()
+        expected_date_added = webhook.date_added.isoformat()
+
+        with self.assertLogs("sentry.hybridcloud.tasks.deliver_webhooks", level="WARNING") as cm:
+            drain_mailbox(webhook.id)
+
+        slow_log = next(r for r in cm.records if "deliver_webhook.slow_delivery" in r.msg)
+        # extra dict from logger becomes attributes on LogRecord at runtime
+        log_extra: Any = slow_log
+        assert log_extra.id == webhook.id
+        assert log_extra.mailbox_name == "github:123"
+        assert log_extra.provider == "github"
+        assert log_extra.region_name == "us"
+        # date_added is logged as ISO string; attempts reflects the count before the successful attempt
+        assert log_extra.date_added == expected_date_added
+        assert log_extra.attempts == 0
 
 
 @control_silo_test

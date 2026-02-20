@@ -348,6 +348,12 @@ class DemoSafePermission(SentryPermission):
 class SentryIsAuthenticated(IsAuthenticated):
     """
     Used to deny access for demo users in both view and object permission checks.
+
+    WARNING: Setting ``permission_classes = (SentryIsAuthenticated,)`` on an endpoint grants
+    access to ANY authenticated user, regardless of the endpoint's base class. For example,
+    an endpoint that extends ``OrganizationEndpoint`` will NOT enforce organization membership
+    or scoped access — any logged-in user can call it. Only use this permission class on
+    endpoints that are intentionally open to all authenticated users.
     """
 
     def has_permission(self, request: Request, view: APIView) -> bool:
