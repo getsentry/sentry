@@ -1160,7 +1160,7 @@ register(
 )
 register(
     "explorer.service_map.max_segments",
-    default=10_000,
+    default=500,
     type=Int,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
     ttl=60 * 5,
