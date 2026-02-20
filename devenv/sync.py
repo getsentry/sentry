@@ -219,7 +219,9 @@ def main(context: dict[str, str]) -> int:
         return 1
 
     # Agent skills are non-fatal — private skill repos may not be accessible in CI
-    if os.path.exists(f"{reporoot}/agents.toml") and shutil.which("pnpm"):
+    if os.path.exists(f"{reporoot}/agents.toml") and shutil.which(
+        "pnpm", path=f"{reporoot}/.devenv/bin"
+    ):
         if not run_procs(
             repo,
             reporoot,
