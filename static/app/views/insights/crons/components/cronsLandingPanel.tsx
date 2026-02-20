@@ -117,13 +117,15 @@ export function CronsLandingPanel() {
                   <TabList.Item key="manual">{t('Manual')}</TabList.Item>,
                 ]}
               </TabList>
-              <CopySetupInstructionsGate>
-                <CopyMarkdownButton
-                  borderless
-                  getMarkdown={getGuideMarkdown}
-                  source="crons_upsert_guide"
-                />
-              </CopySetupInstructionsGate>
+              {guideKey !== 'manual' && (
+                <CopySetupInstructionsGate>
+                  <CopyMarkdownButton
+                    borderless
+                    getMarkdown={getGuideMarkdown}
+                    source="crons_upsert_guide"
+                  />
+                </CopySetupInstructionsGate>
+              )}
             </Flex>
             <TabPanels>
               {[
