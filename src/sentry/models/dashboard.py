@@ -9,6 +9,7 @@ from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
@@ -409,7 +410,12 @@ class DashboardLastVisited(DefaultFieldsModel):
 
 def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
     error_events_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
-    transaction_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
+    transaction_type = (
+        DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.SPANS)
+        if features.has("organizations:discover-saved-queries-deprecation", organization, user)
+        else DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
+    )
+
     return [
         {
             # This should match the general template in static/app/views/dashboardsV2/data.tsx
