@@ -640,8 +640,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:span-v2-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables experimental trace attachment processing in Relay.
     manager.add("projects:trace-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable the new Replay pipeline in Relay.
-    manager.add("organizations:new-replay-processing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     manager.add("projects:project-detail-apple-app-hang-rate", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable supergroup RCA embedding generation from autofix explorer runs
