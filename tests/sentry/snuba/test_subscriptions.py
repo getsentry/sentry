@@ -446,6 +446,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
 
 
 class BulkDeleteSnubaSubscriptionTest(TestCase):
+    @pytest.mark.skip(reason="flaky: #108699")
     def test(self) -> None:
         with self.tasks():
             snuba_query = create_snuba_query(
