@@ -455,7 +455,7 @@ class BaseTestProvider(Provider):
         raw = make_github_pull_request()
         return ActionResult(
             data=PullRequest(
-                id=raw["id"],
+                id=str(raw["id"]),
                 number=raw["number"],
                 title=raw["title"],
                 body=raw["body"],
@@ -807,7 +807,7 @@ class BaseTestProvider(Provider):
         return [
             ActionResult(
                 data=PullRequest(
-                    id=raw["id"],
+                    id=str(raw["id"]),
                     number=raw["number"],
                     title=raw["title"],
                     body=raw["body"],
@@ -835,7 +835,7 @@ class BaseTestProvider(Provider):
         raw = make_github_pull_request(title=title, body=body)
         return ActionResult(
             data=PullRequest(
-                id=raw["id"],
+                id=str(raw["id"]),
                 number=raw["number"],
                 title=raw["title"],
                 body=raw["body"],
@@ -865,7 +865,7 @@ class BaseTestProvider(Provider):
         )
         return ActionResult(
             data=PullRequest(
-                id=raw["id"],
+                id=str(raw["id"]),
                 number=raw["number"],
                 title=raw["title"],
                 body=raw["body"],

@@ -664,7 +664,7 @@ def _check_update_pull_request(result: Any) -> None:
 
 def _check_review_comment(result: Any) -> None:
     rc = result["data"]
-    assert rc["id"] == 100
+    assert rc["id"] == "100"
     assert rc["html_url"] == "https://github.com/test-org/test-repo/pull/1#discussion_r100"
     assert rc["path"] == "src/main.py"
     assert rc["body"] == "Looks good"
@@ -673,14 +673,14 @@ def _check_review_comment(result: Any) -> None:
 
 def _check_review(result: Any) -> None:
     r = result["data"]
-    assert r["id"] == 200
+    assert r["id"] == "200"
     assert r["html_url"] == "https://github.com/test-org/test-repo/pull/1#pullrequestreview-200"
     assert result["type"] == "github"
 
 
 def _check_check_run(result: Any) -> None:
     cr = result["data"]
-    assert cr["id"] == 300
+    assert cr["id"] == "300"
     assert cr["name"] == "Seer Review"
     assert cr["status"] == "completed"
     assert cr["conclusion"] == "success"
@@ -690,7 +690,7 @@ def _check_check_run(result: Any) -> None:
 
 def _check_updated_check_run(result: Any) -> None:
     cr = result["data"]
-    assert cr["id"] == 300
+    assert cr["id"] == "300"
     assert cr["status"] == "completed"
     assert cr["conclusion"] == "failure"
     assert result["type"] == "github"
