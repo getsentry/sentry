@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -80,9 +80,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
-  const [aiEnabled, setAiEnabled] = useState(
-    hasGenAiFeatureFlag ? (initialData.hideAiFeatures ?? false) : false
-  );
+  const aiEnabled = hasGenAiFeatureFlag ? (initialData.hideAiFeatures ?? false) : false;
 
   const jsonFormSettings = useMemo(
     () => ({
@@ -269,7 +267,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 }),
               onSuccess: updated => {
                 onSave(initialData, updated);
-                setAiEnabled(prev => !prev);
               },
               onError: () => {
                 addErrorMessage(t('Unable to save change'));
