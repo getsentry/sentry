@@ -1,34 +1,35 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+import {mutationOptions} from '@tanstack/react-query';
 import moment from 'moment-timezone';
+import {z} from 'zod';
 
-import {Switch} from '@sentry/scraps/switch';
+import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
+  fetchMutation,
   setApiQueryData,
   useApiQuery,
-  useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = getApiUrl('/users/$userId/subscriptions/', {path: {userId: 'me'}});
+
+const subscriptionSchema = z.object({
+  subscribed: z.boolean(),
+});
 
 export type Subscription = {
   email: string;
@@ -51,53 +52,13 @@ function AccountSubscriptions() {
   });
 
   const queryClient = useQueryClient();
-  const api = useApi();
-
-  const {mutate: updateSubscription} = useMutation({
-    mutationFn: (data: Subscription) =>
-      api.requestPromise(ENDPOINT, {
-        method: 'PUT',
-        data,
-      }),
-    onSuccess: (_resp, subscription: Subscription) => {
-      addSuccessMessage(
-        `${subscription.subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
-      );
-
-      // Update the subscription in the list
-      setApiQueryData<Subscription[]>(queryClient, [ENDPOINT], subs => {
-        return subs?.map(sub => {
-          if (sub.listId === subscription.listId) {
-            return subscription;
-          }
-
-          return sub;
-        });
-      });
-    },
-    onError: (subscription: Subscription) => {
-      if (subscription) {
-        addErrorMessage(
-          `Unable to ${subscription.subscribed ? '' : 'un'}subscribe to ${subscription.listName}`
-        );
-      } else {
-        addErrorMessage('An unknown error occurred, please try again later.');
-      }
-    },
-  });
 
   if (isPending) {
     return <LoadingIndicator />;
   }
 
   if (isError) {
-    return (
-      <LoadingError
-        onRetry={() => {
-          refetch();
-        }}
-      />
-    );
+    return <LoadingError onRetry={refetch} />;
   }
 
   const subGroups = Object.entries(
@@ -108,15 +69,6 @@ function AccountSubscriptions() {
   );
 
   subGroups.sort(([a], [b]) => a[0]?.localeCompare(b[0]!)!);
-
-  const handleToggle = (subscription: Subscription) => {
-    const subscribed = !subscription.subscribed;
-
-    updateSubscription({
-      ...subscription,
-      subscribed,
-    });
-  };
 
   const subscriptionText = t('Subscriptions');
   return (
@@ -131,77 +83,112 @@ function AccountSubscriptions() {
       </TextBlock>
 
       <TextBlock>
-        {t(`As part of our compliance with the EU’s General Data Protection
-              Regulation (GDPR), starting on 25 May 2018, we’ll only email you
-              according to the marketing categories to which you’ve explicitly
+        {t(`As part of our compliance with the EU's General Data Protection
+              Regulation (GDPR), starting on 25 May 2018, we'll only email you
+              according to the marketing categories to which you've explicitly
               opted-in.`)}
       </TextBlock>
 
-      <Panel>
-        {subscriptions?.length ? (
-          <div>
-            <PanelHeader>{t('Subscription')}</PanelHeader>
-            <PanelBody>
-              {subGroups.map(([email, subs]) => (
-                <Fragment key={email}>
-                  {subGroups.length > 1 && (
-                    <Heading>
-                      <IconSliders /> {t('Subscriptions for %s', email)}
-                    </Heading>
-                  )}
+      {subscriptions.length ? (
+        <FormSearch route="/settings/account/subscriptions/">
+          {subGroups.map(([email, subs]) => (
+            <FieldGroup
+              key={email}
+              title={
+                subGroups.length > 1 ? (
+                  <Flex gap="sm" align="center">
+                    <IconSliders />
+                    <Text>{t('Subscriptions for %s', email)}</Text>
+                  </Flex>
+                ) : (
+                  t('Subscription')
+                )
+              }
+            >
+              {subs
+                .sort((a, b) => a.listId - b.listId)
+                .map((subscription, i) => {
+                  const subMutationOptions = mutationOptions({
+                    mutationFn: (data: z.infer<typeof subscriptionSchema>) =>
+                      fetchMutation({
+                        url: ENDPOINT,
+                        method: 'PUT',
+                        data: {...subscription, ...data},
+                      }),
+                    onSuccess: (_, variables) => {
+                      addSuccessMessage(
+                        `${variables.subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
+                      );
+                      setApiQueryData<Subscription[]>(
+                        queryClient,
+                        [ENDPOINT],
+                        cachedSubs =>
+                          cachedSubs?.map(sub =>
+                            sub.listId === subscription.listId
+                              ? {...sub, ...variables}
+                              : sub
+                          )
+                      );
+                    },
+                    onError: () => {
+                      addErrorMessage(
+                        `Unable to ${subscription.subscribed ? 'un' : ''}subscribe to ${subscription.listName}`
+                      );
+                    },
+                  });
 
-                  {subs
-                    .sort((a, b) => a.listId - b.listId)
-                    .map((subscription, i) => (
-                      <PanelItem center key={`${email}-${subscription.listId}-${i}`}>
-                        <SubscriptionDetails
-                          htmlFor={`${subscription.email}-${subscription.listId}`}
-                          aria-label={subscription.listName}
-                        >
-                          <SubscriptionName>{subscription.listName}</SubscriptionName>
-                          {subscription.listDescription && (
-                            <Description>{subscription.listDescription}</Description>
-                          )}
-                          {subscription.subscribed ? (
-                            <SubscribedDescription>
-                              <div>
-                                {tct('[email] on [date]', {
-                                  email: subscription.email,
-                                  date: (
-                                    <DateTime
-                                      date={moment(subscription.subscribedDate)}
-                                    />
-                                  ),
-                                })}
-                              </div>
-                            </SubscribedDescription>
-                          ) : (
-                            <SubscribedDescription>
-                              {t('Not currently subscribed')}
-                            </SubscribedDescription>
-                          )}
-                        </SubscriptionDetails>
-                        <div>
-                          <Switch
-                            id={`${subscription.email}-${subscription.listId}`}
-                            checked={subscription.subscribed}
-                            size="lg"
-                            onChange={() => handleToggle(subscription)}
-                          />
-                        </div>
-                      </PanelItem>
-                    ))}
-                </Fragment>
-              ))}
-            </PanelBody>
-          </div>
-        ) : (
+                  return (
+                    <AutoSaveField
+                      key={`${email}-${subscription.listId}-${i}`}
+                      name="subscribed"
+                      schema={subscriptionSchema}
+                      initialValue={subscription.subscribed}
+                      mutationOptions={subMutationOptions}
+                    >
+                      {field => {
+                        const isSubscribed = field.state.value;
+                        const statusText = isSubscribed
+                          ? subscription.subscribedDate
+                            ? `${subscription.email} on ${moment(subscription.subscribedDate).format('ll')}`
+                            : undefined
+                          : t('You are currently unsubscribed from this list.');
+
+                        const hintText =
+                          subscription.listDescription || statusText ? (
+                            <Fragment>
+                              {subscription.listDescription}
+                              {subscription.listDescription && statusText ? <br /> : null}
+                              {statusText}
+                            </Fragment>
+                          ) : undefined;
+
+                        return (
+                          <field.Layout.Row
+                            label={subscription.listName}
+                            hintText={hintText}
+                          >
+                            <field.Switch
+                              checked={field.state.value}
+                              onChange={field.handleChange}
+                            />
+                          </field.Layout.Row>
+                        );
+                      }}
+                    </AutoSaveField>
+                  );
+                })}
+            </FieldGroup>
+          ))}
+        </FormSearch>
+      ) : (
+        <Panel>
           <EmptyMessage>{t("There's no subscription backend present.")}</EmptyMessage>
-        )}
-      </Panel>
+        </Panel>
+      )}
+
       <TextBlock>
-        {t(`We’re applying GDPR consent and privacy policies to all Sentry
-              contacts, regardless of location. You’ll be able to manage your
+        {t(`We're applying GDPR consent and privacy policies to all Sentry
+              contacts, regardless of location. You'll be able to manage your
               subscriptions here and from an Unsubscribe link in the footer of
               all marketing emails.`)}
       </TextBlock>
@@ -215,42 +202,5 @@ function AccountSubscriptions() {
     </div>
   );
 }
-
-const Heading = styled(PanelItem)`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
-  align-items: center;
-  font-size: ${p => p.theme.font.size.md};
-  padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.tokens.background.secondary};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const SubscriptionDetails = styled('label')`
-  font-weight: initial;
-  padding-right: ${space(2)};
-  width: 85%;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 75%;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    width: 50%;
-  }
-`;
-
-const SubscriptionName = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-`;
-const Description = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(0.5)};
-`;
-
-const SubscribedDescription = styled(Description)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
 
 export default AccountSubscriptions;

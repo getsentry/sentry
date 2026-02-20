@@ -137,6 +137,12 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200
         assert response.data["id"] == "default-overview"
 
+    def test_get_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            response = self.do_request("get", self.url("default-overview"))
+            assert response.status_code == 200
+            assert response.data["widgets"][7]["widgetType"] == "spans"
+
     def test_prebuilt_dashboard_with_discover_split_feature_flag(self) -> None:
         response = self.do_request("get", self.url("default-overview"))
         assert response.status_code == 200, response.data
@@ -2180,6 +2186,31 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         queries = self.get_widget_queries(widgets[0])
         assert len(queries) == 1
         assert DashboardTombstone.objects.filter(slug=slug).exists()
+
+    def test_update_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "New title",
+                    "displayType": "line",
+                    "widgetType": "transaction-like",
+                    "queries": [
+                        {
+                            "name": "transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        },
+                    ],
+                },
+            ],
+        }
+        slug = "default-overview"
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            response = self.do_request("put", self.url(slug), data=data)
+            assert response.status_code == 400, response.data
 
     def test_update_unknown_prebuilt(self) -> None:
         data = {
