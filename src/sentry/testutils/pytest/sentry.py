@@ -363,6 +363,10 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
         with open(f"{outdir}/failing-testid", "w") as f:
             f.write(failing_testid + "\n")
+        longrepr = getattr(session, "_shuffle_failing_longrepr", None)
+        if longrepr:
+            with open(f"{outdir}/failing-testid-longrepr", "w") as f:
+                f.write(longrepr)
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
@@ -519,6 +523,7 @@ def pytest_runtest_makereport(
     # in pytest_sessionfinish only when the session actually fails).
     if os.environ.get("SENTRY_SHUFFLE_TESTS") and report.failed and report.when == "call":
         item.session._shuffle_failing_testid = item.nodeid  # type: ignore[attr-defined]
+        item.session._shuffle_failing_longrepr = str(report.longrepr)  # type: ignore[attr-defined]
 
 
 def pytest_xdist_setupnodes() -> None:

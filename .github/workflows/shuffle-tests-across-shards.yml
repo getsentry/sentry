@@ -98,7 +98,7 @@ jobs:
           echo "detected test pollution: \`pytest $POLLUTING_TESTID $FAILING_TESTID\`" >> "$GITHUB_STEP_SUMMARY"
           echo "sentry sha: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Create GitHub issue
+      - name: Create GitHub issue for test pollution
         if: failure() && steps.detect-test-pollution.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -109,3 +109,23 @@ jobs:
             --title "Test pollution: $FAILING_TESTID" \
             --label test-pollution \
             --body "$(cat "$GITHUB_STEP_SUMMARY")"
+
+      - name: Create GitHub issue for flaky test
+        if: failure() && steps.detect-test-pollution.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -f "$GITHUB_WORKSPACE/failing-testid" || exit 0
+          read -r FAILING_TESTID < "$GITHUB_WORKSPACE/failing-testid"
+          LONGREPR=$(cat "$GITHUB_WORKSPACE/failing-testid-longrepr" 2>/dev/null || echo "no failure detail available")
+          BODY="Failing test: \`$FAILING_TESTID\`
+          Sentry sha: ${{ github.sha }}
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          \`\`\`
+          $LONGREPR
+          \`\`\`"
+          gh issue create \
+            --title "Flaky test: $FAILING_TESTID" \
+            --label flaky-test \
+            --body "$BODY"
