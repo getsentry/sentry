@@ -332,9 +332,11 @@ def _run_parallel_delivery_batch(
     Run one batch of parallel deliveries for the mailbox.
     Returns (delivered_count, request_failed, no_more_messages).
     """
-    query = WebhookPayload.objects.filter(
-        id__gte=payload.id, mailbox_name=payload.mailbox_name
-    ).order_by("id")
+    query = (
+        WebhookPayload.objects.using_replica()
+        .filter(id__gte=payload.id, mailbox_name=payload.mailbox_name)
+        .order_by("id")
+    )
 
     with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
         futures = {
@@ -377,7 +379,7 @@ def drain_mailbox_parallel(payload_id: int) -> None:
     indicates that we have hit the start of another batch that has been scheduled.
     """
     try:
-        payload = WebhookPayload.objects.get(id=payload_id)
+        payload = WebhookPayload.objects.using_replica().get(id=payload_id)
     except WebhookPayload.DoesNotExist:
         # We could have hit a race condition. Since we've lost already return
         # and let the other process continue, or a future process.

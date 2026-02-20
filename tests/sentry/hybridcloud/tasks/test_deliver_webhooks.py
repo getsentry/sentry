@@ -936,6 +936,42 @@ class DrainMailboxParallelTest(TestCase):
 
         assert len(responses.calls) == 1
 
+    def test_drain_missing_payload_uses_replica(self) -> None:
+        # Calling with a nonexistent ID should use the replica and exit with outcome=race.
+        with patch.object(
+            WebhookPayload.objects,
+            "using_replica",
+            wraps=WebhookPayload.objects.using_replica,
+        ) as mock_replica:
+            drain_mailbox_parallel(99999)
+
+        mock_replica.assert_called()
+
+    @responses.activate
+    @override_regions(region_config)
+    def test_drain_batch_query_uses_replica(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook_one = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+        )
+
+        with patch.object(
+            WebhookPayload.objects,
+            "using_replica",
+            wraps=WebhookPayload.objects.using_replica,
+        ) as mock_replica:
+            drain_mailbox_parallel(webhook_one.id)
+
+        # using_replica() should be called for both the initial payload fetch
+        # and the batch query in _run_parallel_delivery_batch.
+        assert mock_replica.call_count >= 2
+
 
 @control_silo_test
 class SlowDeliveryLoggingTest(TestCase):
