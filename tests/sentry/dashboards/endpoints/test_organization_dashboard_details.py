@@ -1658,7 +1658,9 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200
 
         widgets = self.get_widgets(self.dashboard.id)
-        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+        assert len(widgets) == 4
+        widget_1 = next(w for w in widgets if w.id == self.widget_1.id)
+        self.assert_serialized_widget(data["widgets"][0], widget_1)
 
     def test_update_widget_add_query(self) -> None:
         data: dict[str, Any] = {
