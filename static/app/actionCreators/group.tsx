@@ -1,50 +1,11 @@
 import type {RequestCallbacks, RequestOptions} from 'sentry/api';
 import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group, Tag as GroupTag, TagValue} from 'sentry/types/group';
+import type {Tag as GroupTag, TagValue} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-type AssignedBy = 'suggested_assignee' | 'assignee_selector';
-
-export function clearAssignment(
-  groupId: string,
-  orgSlug: string,
-  assignedBy: AssignedBy
-): Promise<Group> {
-  const api = new Client();
-
-  const endpoint = `/organizations/${orgSlug}/issues/${groupId}/`;
-
-  const id = uniqueId();
-
-  GroupStore.onAssignTo(id, groupId, {
-    email: '',
-  });
-
-  const request = api.requestPromise(endpoint, {
-    method: 'PUT',
-    // Sending an empty value to assignedTo is the same as "clear"
-    data: {
-      assignedTo: '',
-      assignedBy,
-    },
-  });
-
-  request
-    .then(data => {
-      GroupStore.onAssignToSuccess(id, groupId, data);
-      return data;
-    })
-    .catch(data => {
-      GroupStore.onAssignToError(id, groupId, data);
-      throw data;
-    });
-
-  return request;
-}
 
 type ParamsType = {
   environment?: string | string[] | null;

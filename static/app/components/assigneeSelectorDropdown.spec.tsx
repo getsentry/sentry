@@ -5,7 +5,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {clearAssignment} from 'sentry/actionCreators/group';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import AssigneeSelectorDropdown, {
@@ -142,7 +141,14 @@ describe('AssigneeSelectorDropdown', () => {
         },
       });
     } else {
-      await clearAssignment(group.id, 'org-slug', 'assignee_selector');
+      const api = new Client();
+      await api.requestPromise(`/organizations/org-slug/issues/${group.id}/`, {
+        method: 'PUT',
+        data: {
+          assignedTo: '',
+          assignedBy: 'assignee_selector',
+        },
+      });
     }
   };
 
