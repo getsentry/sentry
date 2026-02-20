@@ -12,29 +12,29 @@ from sentry.scm.helpers import (
     map_repository_model_to_repository,
 )
 from sentry.scm.types import (
-    CheckRunActionResult,
+    ActionResult,
+    CheckRun,
     CheckRunOutput,
-    CommentActionResult,
-    CommitActionResult,
-    CommitComparisonActionResult,
-    FileContentActionResult,
-    GitBlobActionResult,
-    GitCommitObjectActionResult,
-    GitRefActionResult,
-    GitTreeActionResult,
+    Comment,
+    Commit,
+    CommitComparison,
+    FileContent,
+    GitBlob,
+    GitCommitObject,
+    GitRef,
+    GitTree,
     InputTreeEntry,
     Provider,
-    PullRequestActionResult,
-    PullRequestCommitActionResult,
-    PullRequestDiffActionResult,
-    PullRequestFileActionResult,
+    PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Reaction,
     ReactionResult,
     Referrer,
     Repository,
     RepositoryId,
-    ReviewActionResult,
-    ReviewCommentActionResult,
+    Review,
+    ReviewComment,
     ReviewCommentInput,
 )
 
@@ -117,7 +117,7 @@ class SourceCodeManager:
             provider_fn=provider_fn,
         )
 
-    def get_issue_comments(self, issue_id: str) -> list[CommentActionResult]:
+    def get_issue_comments(self, issue_id: str) -> list[ActionResult[Comment]]:
         """Get comments on an issue."""
         return self._exec(lambda r, p: p.get_issue_comments(r, issue_id))
 
@@ -129,11 +129,11 @@ class SourceCodeManager:
         """Delete a comment on an issue."""
         return self._exec(lambda r, p: p.delete_issue_comment(r, comment_id))
 
-    def get_pull_request(self, pull_request_id: str) -> PullRequestActionResult:
+    def get_pull_request(self, pull_request_id: str) -> ActionResult[PullRequest]:
         """Get a pull request."""
         return self._exec(lambda r, p: p.get_pull_request(r, pull_request_id))
 
-    def get_pull_request_comments(self, pull_request_id: str) -> list[CommentActionResult]:
+    def get_pull_request_comments(self, pull_request_id: str) -> list[ActionResult[Comment]]:
         """Get comments on a pull request."""
         return self._exec(lambda r, p: p.get_pull_request_comments(r, pull_request_id))
 
@@ -199,11 +199,11 @@ class SourceCodeManager:
             lambda r, p: p.delete_pull_request_reaction(r, pull_request_id, reaction_id)
         )
 
-    def get_branch(self, branch: str) -> GitRefActionResult:
+    def get_branch(self, branch: str) -> ActionResult[GitRef]:
         """Get a branch reference."""
         return self._exec(lambda r, p: p.get_branch(r, branch))
 
-    def create_branch(self, branch: str, sha: str) -> GitRefActionResult:
+    def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]:
         """Create a new branch pointing at the given SHA."""
         return self._exec(lambda r, p: p.create_branch(r, branch, sha))
 
@@ -211,58 +211,60 @@ class SourceCodeManager:
         """Update a branch to point at a new SHA."""
         return self._exec(lambda r, p: p.update_branch(r, branch, sha, force))
 
-    def create_git_blob(self, content: str, encoding: str) -> GitBlobActionResult:
+    def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]:
         """Create a git blob object."""
         return self._exec(lambda r, p: p.create_git_blob(r, content, encoding))
 
-    def get_file_content(self, path: str, ref: str | None = None) -> FileContentActionResult:
+    def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]:
         return self._exec(lambda r, p: p.get_file_content(r, path, ref))
 
-    def get_commit(self, sha: str) -> CommitActionResult:
+    def get_commit(self, sha: str) -> ActionResult[Commit]:
         return self._exec(lambda r, p: p.get_commit(r, sha))
 
     def get_commits(
         self,
         sha: str | None = None,
         path: str | None = None,
-    ) -> list[CommitActionResult]:
+    ) -> list[ActionResult[Commit]]:
         return self._exec(lambda r, p: p.get_commits(r, sha=sha, path=path))
 
-    def compare_commits(self, start_sha: str, end_sha: str) -> CommitComparisonActionResult:
+    def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
         return self._exec(lambda r, p: p.compare_commits(r, start_sha, end_sha))
 
-    def get_tree(self, tree_sha: str, recursive: bool = True) -> GitTreeActionResult:
+    def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]:
         return self._exec(lambda r, p: p.get_tree(r, tree_sha, recursive=recursive))
 
-    def get_git_commit(self, sha: str) -> GitCommitObjectActionResult:
+    def get_git_commit(self, sha: str) -> ActionResult[GitCommitObject]:
         return self._exec(lambda r, p: p.get_git_commit(r, sha))
 
     def create_git_tree(
         self,
         tree: list[InputTreeEntry],
         base_tree: str | None = None,
-    ) -> GitTreeActionResult:
+    ) -> ActionResult[GitTree]:
         return self._exec(lambda r, p: p.create_git_tree(r, tree, base_tree=base_tree))
 
     def create_git_commit(
         self, message: str, tree_sha: str, parent_shas: list[str]
-    ) -> GitCommitObjectActionResult:
+    ) -> ActionResult[GitCommitObject]:
         return self._exec(lambda r, p: p.create_git_commit(r, message, tree_sha, parent_shas))
 
-    def get_pull_request_files(self, pull_request_id: str) -> PullRequestFileActionResult:
+    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
         return self._exec(lambda r, p: p.get_pull_request_files(r, pull_request_id))
 
-    def get_pull_request_commits(self, pull_request_id: str) -> PullRequestCommitActionResult:
+    def get_pull_request_commits(
+        self, pull_request_id: str
+    ) -> ActionResult[list[PullRequestCommit]]:
         return self._exec(lambda r, p: p.get_pull_request_commits(r, pull_request_id))
 
-    def get_pull_request_diff(self, pull_request_id: str) -> PullRequestDiffActionResult:
+    def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
         return self._exec(lambda r, p: p.get_pull_request_diff(r, pull_request_id))
 
     def get_pull_requests(
         self,
         state: str = "open",
         head: str | None = None,
-    ) -> list[PullRequestActionResult]:
+    ) -> list[ActionResult[PullRequest]]:
         return self._exec(lambda r, p: p.get_pull_requests(r, state, head))
 
     def create_pull_request(
@@ -272,7 +274,7 @@ class SourceCodeManager:
         head: str,
         base: str,
         draft: bool = False,
-    ) -> PullRequestActionResult:
+    ) -> ActionResult[PullRequest]:
         return self._exec(
             lambda r, p: p.create_pull_request(r, title, body, head, base, draft=draft)
         )
@@ -283,7 +285,7 @@ class SourceCodeManager:
         title: str | None = None,
         body: str | None = None,
         state: str | None = None,
-    ) -> PullRequestActionResult:
+    ) -> ActionResult[PullRequest]:
         return self._exec(
             lambda r, p: p.update_pull_request(
                 r, pull_request_id, title=title, body=body, state=state
@@ -303,7 +305,7 @@ class SourceCodeManager:
         side: str | None = None,
         start_line: int | None = None,
         start_side: str | None = None,
-    ) -> ReviewCommentActionResult:
+    ) -> ActionResult[ReviewComment]:
         return self._exec(
             lambda r, p: p.create_review_comment(
                 r,
@@ -325,7 +327,7 @@ class SourceCodeManager:
         event: str,
         comments: list[ReviewCommentInput],
         body: str | None = None,
-    ) -> ReviewActionResult:
+    ) -> ActionResult[Review]:
         return self._exec(
             lambda r, p: p.create_review(r, pull_request_id, commit_sha, event, comments, body=body)
         )
@@ -340,7 +342,7 @@ class SourceCodeManager:
         started_at: str | None = None,
         completed_at: str | None = None,
         output: CheckRunOutput | None = None,
-    ) -> CheckRunActionResult:
+    ) -> ActionResult[CheckRun]:
         return self._exec(
             lambda r, p: p.create_check_run(
                 r,
@@ -355,7 +357,7 @@ class SourceCodeManager:
             )
         )
 
-    def get_check_run(self, check_run_id: str) -> CheckRunActionResult:
+    def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]:
         return self._exec(lambda r, p: p.get_check_run(r, check_run_id))
 
     def update_check_run(
@@ -364,7 +366,7 @@ class SourceCodeManager:
         status: str | None = None,
         conclusion: str | None = None,
         output: CheckRunOutput | None = None,
-    ) -> CheckRunActionResult:
+    ) -> ActionResult[CheckRun]:
         return self._exec(
             lambda r, p: p.update_check_run(
                 r, check_run_id, status=status, conclusion=conclusion, output=output

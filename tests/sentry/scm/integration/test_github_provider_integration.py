@@ -72,11 +72,11 @@ class TestGitHubProviderIntegration(TestCase):
         comments = self.provider.get_issue_comments(self.repository, "1347")
 
         assert len(comments) == 1
-        assert comments[0]["comment"]["id"] == "1"
-        assert comments[0]["comment"]["body"] == "Me too"
-        assert comments[0]["comment"]["author"] is not None
-        assert comments[0]["comment"]["author"]["id"] == "1"
-        assert comments[0]["comment"]["author"]["username"] == "octocat"
+        assert comments[0]["data"]["id"] == "1"
+        assert comments[0]["data"]["body"] == "Me too"
+        assert comments[0]["data"]["author"] is not None
+        assert comments[0]["data"]["author"]["id"] == "1"
+        assert comments[0]["data"]["author"]["username"] == "octocat"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -163,7 +163,7 @@ class TestGitHubProviderIntegration(TestCase):
 
         result = self.provider.get_pull_request(self.repository, "1347")
 
-        pr = result["pull_request"]
+        pr = result["data"]
         assert pr["head"]["sha"] == "6dcb09b5b57875f334f61aebed695e2e4193db5e"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -209,11 +209,11 @@ class TestGitHubProviderIntegration(TestCase):
         result = self.provider.get_pull_request_comments(self.repository, "1")
 
         assert len(result) == 1
-        assert result[0]["comment"]["id"] == "IC_10"
-        assert result[0]["comment"]["body"] == "Great stuff!"
-        assert result[0]["comment"]["author"] is not None
-        assert result[0]["comment"]["author"]["username"] == "octocat"
-        assert result[0]["provider"] == "github"
+        assert result[0]["data"]["id"] == "IC_10"
+        assert result[0]["data"]["body"] == "Great stuff!"
+        assert result[0]["data"]["author"] is not None
+        assert result[0]["data"]["author"]["username"] == "octocat"
+        assert result[0]["type"] == "github"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

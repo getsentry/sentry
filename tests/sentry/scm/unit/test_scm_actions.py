@@ -173,27 +173,27 @@ def make_scm():
 
 def _check_issue_comments(result: Any) -> None:
     assert len(result) == 1
-    assert result[0]["comment"]["id"] == "101"
-    assert result[0]["comment"]["body"] == "Test comment"
-    assert result[0]["comment"]["author"]["username"] == "testuser"
+    assert result[0]["data"]["id"] == "101"
+    assert result[0]["data"]["body"] == "Test comment"
+    assert result[0]["data"]["author"]["username"] == "testuser"
 
 
 def _check_pull_request(result: Any) -> None:
-    pr = result["pull_request"]
+    pr = result["data"]
     assert pr["id"] == 42
     assert pr["number"] == 1
     assert pr["title"] == "Test PR"
     assert pr["head"]["sha"] == "abc123"
     assert pr["head"]["ref"] == "feature-branch"
     assert pr["base"]["sha"] == "def456"
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_pull_request_comments(result: Any) -> None:
     assert len(result) == 1
-    assert result[0]["comment"]["id"] == "201"
-    assert result[0]["comment"]["body"] == "PR review comment"
-    assert result[0]["comment"]["author"]["username"] == "reviewer"
+    assert result[0]["data"]["id"] == "201"
+    assert result[0]["data"]["body"] == "PR review comment"
+    assert result[0]["data"]["author"]["username"] == "reviewer"
 
 
 def _check_comment_reactions(result: Any) -> None:
@@ -233,113 +233,113 @@ def _check_pr_reactions(result: Any) -> None:
 
 
 def _check_get_branch(result: Any) -> None:
-    assert result["git_ref"]["ref"] == "refs/heads/main"
-    assert result["git_ref"]["sha"] == "abc123def456"
-    assert result["provider"] == "test"
+    assert result["data"]["ref"] == "refs/heads/main"
+    assert result["data"]["sha"] == "abc123def456"
+    assert result["type"] == "test"
 
 
 def _check_create_branch(result: Any) -> None:
-    assert result["git_ref"]["ref"] == "refs/heads/feature"
-    assert result["git_ref"]["sha"] == "abc123"
-    assert result["provider"] == "test"
+    assert result["data"]["ref"] == "refs/heads/feature"
+    assert result["data"]["sha"] == "abc123"
+    assert result["type"] == "test"
 
 
 def _check_create_git_blob(result: Any) -> None:
-    assert result["git_blob"]["sha"] == "blob123abc"
-    assert result["provider"] == "test"
+    assert result["data"]["sha"] == "blob123abc"
+    assert result["type"] == "test"
 
 
 def _check_file_content(result: Any) -> None:
-    fc = result["file_content"]
+    fc = result["data"]
     assert fc["path"] == "README.md"
     assert fc["content"] == "SGVsbG8gV29ybGQ="
     assert fc["encoding"] == "base64"
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_get_commit(result: Any) -> None:
-    c = result["commit"]
+    c = result["data"]
     assert c["sha"] == "abc123"
     assert c["message"] == "Fix bug"
     assert c["author"]["name"] == "Test User"
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_get_commits(result: Any) -> None:
     assert len(result) == 1
-    assert result[0]["commit"]["sha"] == "abc123"
-    assert result[0]["provider"] == "test"
+    assert result[0]["data"]["sha"] == "abc123"
+    assert result[0]["type"] == "test"
 
 
 def _check_compare_commits(result: Any) -> None:
-    assert result["comparison"]["ahead_by"] == 3
-    assert result["comparison"]["behind_by"] == 1
-    assert result["provider"] == "test"
+    assert result["data"]["ahead_by"] == 3
+    assert result["data"]["behind_by"] == 1
+    assert result["type"] == "test"
 
 
 def _check_get_tree(result: Any) -> None:
-    gt = result["git_tree"]
+    gt = result["data"]
     assert len(gt["tree"]) == 1
     assert gt["tree"][0]["path"] == "src/main.py"
     assert gt["truncated"] is False
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_get_git_commit(result: Any) -> None:
-    gc = result["git_commit"]
+    gc = result["data"]
     assert gc["sha"] == "abc123"
     assert gc["tree"]["sha"] == "tree456"
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_create_git_tree(result: Any) -> None:
-    gt = result["git_tree"]
+    gt = result["data"]
     assert len(gt["tree"]) == 1
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_create_git_commit(result: Any) -> None:
-    gc = result["git_commit"]
+    gc = result["data"]
     assert gc["sha"] == "newcommit123"
     assert gc["message"] == "msg"
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_pr_files(result: Any) -> None:
-    assert len(result["files"]) == 1
-    assert result["files"][0]["filename"] == "src/main.py"
-    assert result["provider"] == "test"
+    assert len(result["data"]) == 1
+    assert result["data"][0]["filename"] == "src/main.py"
+    assert result["type"] == "test"
 
 
 def _check_pr_commits(result: Any) -> None:
-    assert len(result["commits"]) == 1
-    assert result["commits"][0]["sha"] == "commit123"
-    assert result["commits"][0]["message"] == "Fix bug"
-    assert result["provider"] == "test"
+    assert len(result["data"]) == 1
+    assert result["data"][0]["sha"] == "commit123"
+    assert result["data"][0]["message"] == "Fix bug"
+    assert result["type"] == "test"
 
 
 def _check_pr_diff(result: Any) -> None:
-    assert "diff --git" in result["diff"]
-    assert result["provider"] == "test"
+    assert "diff --git" in result["data"]
+    assert result["type"] == "test"
 
 
 def _check_list_pull_requests(result: Any) -> None:
     assert len(result) == 1
-    assert result[0]["pull_request"]["number"] == 1
-    assert result[0]["provider"] == "test"
+    assert result[0]["data"]["number"] == 1
+    assert result[0]["type"] == "test"
 
 
 def _check_create_pull_request(result: Any) -> None:
-    pr = result["pull_request"]
+    pr = result["data"]
     assert pr["title"] == "T"
     assert pr["body"] == "B"
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_update_pull_request(result: Any) -> None:
-    pr = result["pull_request"]
+    pr = result["data"]
     assert pr["title"] == "Test PR"
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_none(result: Any) -> None:
@@ -347,36 +347,36 @@ def _check_none(result: Any) -> None:
 
 
 def _check_review_comment(result: Any) -> None:
-    rc = result["review_comment"]
+    rc = result["data"]
     assert rc["id"] == 100
     assert rc["path"] == "f.py"
     assert rc["body"] == "comment"
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_review(result: Any) -> None:
-    r = result["review"]
+    r = result["data"]
     assert r["id"] == 200
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_create_check_run(result: Any) -> None:
-    cr = result["check_run"]
+    cr = result["data"]
     assert cr["name"] == "check"
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_get_check_run(result: Any) -> None:
-    cr = result["check_run"]
+    cr = result["data"]
     assert cr["id"] == 300
     assert cr["status"] == "completed"
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 def _check_update_check_run(result: Any) -> None:
-    cr = result["check_run"]
+    cr = result["data"]
     assert cr["id"] == 300
-    assert result["provider"] == "test"
+    assert result["type"] == "test"
 
 
 ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]], ...] = (
