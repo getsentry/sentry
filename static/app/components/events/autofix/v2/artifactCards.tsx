@@ -570,17 +570,20 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
     typedData.suggested_assignee?.name
   );
 
-  const handleAssign = () => {
+  const handleAssignSuggested = () => {
     if (!assigneeUser) {
       addErrorMessage(t('Unable to find user to assign'));
       return;
     }
 
-    handleAssigneeChange({
-      assignee: assigneeUser,
-      id: assigneeUser.id,
-      type: 'user',
-    });
+    handleAssigneeChange(
+      {
+        assignee: assigneeUser,
+        id: assigneeUser.id,
+        type: 'user',
+      },
+      {assignedBy: 'suggested_assignee'}
+    );
   };
 
   // Create a minimal user object for avatar display
@@ -675,7 +678,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                       {hasAssigneeMatch ? (
                         <Button
                           size="sm"
-                          onClick={handleAssign}
+                          onClick={handleAssignSuggested}
                           disabled={assigneeLoading}
                         >
                           {assigneeLoading

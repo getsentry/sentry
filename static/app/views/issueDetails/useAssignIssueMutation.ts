@@ -16,7 +16,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-type AssignedBy = 'suggested_assignee' | 'assignee_selector';
+export type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 
 type AssignIssueVariables = {
   actor: Pick<Actor, 'id' | 'type'> | null;
@@ -33,12 +33,8 @@ function makeActorId(actor: Pick<Actor, 'id' | 'type'>) {
   switch (actor.type) {
     case 'user':
       return buildUserId(actor.id);
-      break;
-
     case 'team':
       return buildTeamId(actor.id);
-      break;
-
     default:
       Sentry.withScope(scope => {
         scope.setExtra('actor', actor);
@@ -96,7 +92,9 @@ export function useAssignIssueMutation(
     onError: (error, variables, context) => {
       // TODO: Remove this when we no longer rely on GroupStore for updates
       // This will show an alert to the user, remember to replace that functionality
-      GroupStore.onAssignToError(context!.changeId, variables.groupId, error);
+      if (context) {
+        GroupStore.onAssignToError(context.changeId, variables.groupId, error);
+      }
       options.onError?.(error, variables, context);
     },
   });

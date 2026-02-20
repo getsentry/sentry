@@ -12,12 +12,22 @@ import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
+import {
+  useAssignIssueMutation,
+  type AssignedBy,
+} from 'sentry/views/issueDetails/useAssignIssueMutation';
+
+type HandleAssignOptions = {
+  assignedBy?: AssignedBy;
+};
 
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;
   group: Group;
-  handleAssigneeChange: (assignedActor: AssignableEntity | null) => void;
+  handleAssigneeChange: (
+    assignedActor: AssignableEntity | null,
+    options?: HandleAssignOptions
+  ) => void;
   additionalMenuFooterItems?: React.ReactNode;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
@@ -45,13 +55,16 @@ export function useHandleAssigneeChange({
 }) {
   const {mutate: assignMutate, isPending: assigneeLoading} = useAssignIssueMutation();
 
-  const handleAssigneeChange = (newAssignee: AssignableEntity | null) => {
+  const handleAssigneeChange = (
+    newAssignee: AssignableEntity | null,
+    {assignedBy = 'assignee_selector'}: HandleAssignOptions = {}
+  ) => {
     assignMutate(
       {
         groupId: group.id,
         orgSlug: organization.slug,
         actor: newAssignee ? {id: newAssignee.id, type: newAssignee.type} : null,
-        assignedBy: 'assignee_selector',
+        assignedBy,
       },
       {
         onSuccess: updatedGroup => {
