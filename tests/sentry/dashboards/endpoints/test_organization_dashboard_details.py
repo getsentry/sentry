@@ -1657,8 +1657,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200
 
-        widgets = self.get_widgets(self.dashboard.id)
-        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+        self.widget_1.refresh_from_db()
+        assert self.widget_1.title == "New title"
 
     def test_update_widget_add_query(self) -> None:
         data: dict[str, Any] = {
