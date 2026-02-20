@@ -141,6 +141,12 @@ export function getHiddenOptions<Value extends SelectKey>(
   // First, filter options using `search` value
   //
   const filterOption = (opt: SelectOptionWithKey<Value>) => {
+    // When there is no active search query, all options match. Do not call the
+    // searchMatcher — a custom matcher may return score 0 for an empty query,
+    // which would incorrectly hide all options.
+    if (!search) {
+      return true;
+    }
     const result = matcher(opt, search);
     if (result.score > 0) {
       if (searchMatcher) {
