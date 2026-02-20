@@ -5,7 +5,7 @@ import {createParser, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -203,147 +203,147 @@ export default function FiltersBar({
 
   return (
     <Wrapper>
-      <PageFilterBar condensed>
-        <ProjectPageFilter
-          disabled={isEditingDashboard}
-          onChange={() => {
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'project',
+      <FiltersRow>
+        <PageFilterBar condensed>
+          <ProjectPageFilter
+            disabled={isEditingDashboard}
+            onChange={() => {
+              trackAnalytics('dashboards2.filter.change', {
+                organization,
+                filter_type: 'project',
+              });
+            }}
+          />
+          <EnvironmentPageFilter
+            disabled={isEditingDashboard}
+            onChange={() => {
+              trackAnalytics('dashboards2.filter.change', {
+                organization,
+                filter_type: 'environment',
+              });
+            }}
+          />
+          <DatePageFilter
+            disabled={isEditingDashboard}
+            maxPickableDays={maxPickableDaysOptions.maxPickableDays}
+            onChange={() => {
+              trackAnalytics('dashboards2.filter.change', {
+                organization,
+                filter_type: 'date',
+              });
+            }}
+          />
+        </PageFilterBar>
+        <SortableReleasesSelect
+          sortBy={releaseSort}
+          selectedReleases={selectedReleases}
+          isDisabled={isEditingDashboard}
+          handleChangeFilter={activeFilters => {
+            onDashboardFilterChange({
+              ...activeFilters,
+              [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
             });
           }}
+          onSortChange={setReleaseSort}
         />
-        <EnvironmentPageFilter
-          disabled={isEditingDashboard}
-          onChange={() => {
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'environment',
-            });
-          }}
-        />
-        <DatePageFilter
-          disabled={isEditingDashboard}
-          maxPickableDays={maxPickableDaysOptions.maxPickableDays}
-          onChange={() => {
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'date',
-            });
-          }}
-        />
-      </PageFilterBar>
-      <SortableReleasesSelect
-        sortBy={releaseSort}
-        selectedReleases={selectedReleases}
-        isDisabled={isEditingDashboard}
-        handleChangeFilter={activeFilters => {
-          onDashboardFilterChange({
-            ...activeFilters,
-            [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
-          });
-        }}
-        onSortChange={setReleaseSort}
-      />
-      {organization.features.includes('dashboards-global-filters') && (
-        <Fragment>
-          {activeGlobalFilters.map(filter => (
-            <GenericFilterSelector
-              disableRemoveFilter={
-                isPrebuiltDashboard &&
-                prebuiltDashboardFilters.some(
-                  prebuiltFilter =>
-                    prebuiltFilter.tag.key === filter.tag.key &&
-                    prebuiltFilter.dataset === filter.dataset
-                )
-              }
-              key={filter.tag.key + filter.value}
-              globalFilter={filter}
-              searchBarData={getSearchBarData(filter.dataset)}
-              onUpdateFilter={updatedFilter => {
-                updateGlobalFilters(
-                  activeGlobalFilters.map(f =>
-                    globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
+        {organization.features.includes('dashboards-global-filters') && (
+          <Fragment>
+            {activeGlobalFilters.map(filter => (
+              <GenericFilterSelector
+                disableRemoveFilter={
+                  isPrebuiltDashboard &&
+                  prebuiltDashboardFilters.some(
+                    prebuiltFilter =>
+                      prebuiltFilter.tag.key === filter.tag.key &&
+                      prebuiltFilter.dataset === filter.dataset
                   )
-                );
-              }}
-              onRemoveFilter={removedFilter => {
-                updateGlobalFilters(
-                  activeGlobalFilters.filter(
-                    f => !globalFilterKeysAreEqual(f, removedFilter)
-                  )
-                );
-                trackAnalytics('dashboards2.global_filter.remove', {
+                }
+                key={filter.tag.key + filter.value}
+                globalFilter={filter}
+                searchBarData={getSearchBarData(filter.dataset)}
+                onUpdateFilter={updatedFilter => {
+                  updateGlobalFilters(
+                    activeGlobalFilters.map(f =>
+                      globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
+                    )
+                  );
+                }}
+                onRemoveFilter={removedFilter => {
+                  updateGlobalFilters(
+                    activeGlobalFilters.filter(
+                      f => !globalFilterKeysAreEqual(f, removedFilter)
+                    )
+                  );
+                  trackAnalytics('dashboards2.global_filter.remove', {
+                    organization,
+                  });
+                }}
+              />
+            ))}
+            <AddFilter
+              globalFilters={activeGlobalFilters}
+              getSearchBarData={getSearchBarData}
+              onAddFilter={newFilter => {
+                updateGlobalFilters([...activeGlobalFilters, newFilter]);
+                trackAnalytics('dashboards2.global_filter.add', {
                   organization,
                 });
               }}
             />
-          ))}
-          <AddFilter
-            globalFilters={activeGlobalFilters}
-            getSearchBarData={getSearchBarData}
-            onAddFilter={newFilter => {
-              updateGlobalFilters([...activeGlobalFilters, newFilter]);
-              trackAnalytics('dashboards2.global_filter.add', {
-                organization,
-              });
-            }}
-          />
-        </Fragment>
-      )}
-      {!hasTemporaryFilters &&
-        hasUnsavedChanges &&
-        !isEditingDashboard &&
-        !isPreview &&
-        !isPrebuiltDashboard && (
-          <Grid flow="column" align="center" gap="md">
-            <Button
-              tooltipProps={{
-                title:
-                  !hasEditAccess &&
-                  t('You do not have permission to edit this dashboard'),
-              }}
-              priority="primary"
-              onClick={async () => {
-                await onSave?.();
-                invalidateStarredDashboards();
-              }}
-              disabled={!hasEditAccess}
-              busy={shouldBusySaveButton}
-            >
-              {t('Save')}
-            </Button>
-            <Button
-              data-test-id="filter-bar-cancel"
-              onClick={() => {
-                onCancel?.();
-                setActiveGlobalFilters(filters.globalFilter ?? []);
-                onDashboardFilterChange(filters);
-              }}
-            >
-              {t('Cancel')}
-            </Button>
-          </Grid>
+          </Fragment>
         )}
-      <ToggleOnDemand />
+        {!hasTemporaryFilters &&
+          hasUnsavedChanges &&
+          !isEditingDashboard &&
+          !isPreview &&
+          !isPrebuiltDashboard && (
+            <Grid flow="column" align="center" gap="md">
+              <Button
+                tooltipProps={{
+                  title:
+                    !hasEditAccess &&
+                    t('You do not have permission to edit this dashboard'),
+                }}
+                priority="primary"
+                onClick={async () => {
+                  await onSave?.();
+                  invalidateStarredDashboards();
+                }}
+                disabled={!hasEditAccess}
+                busy={shouldBusySaveButton}
+              >
+                {t('Save')}
+              </Button>
+              <Button
+                data-test-id="filter-bar-cancel"
+                onClick={() => {
+                  onCancel?.();
+                  setActiveGlobalFilters(filters.globalFilter ?? []);
+                  onDashboardFilterChange(filters);
+                }}
+              >
+                {t('Cancel')}
+              </Button>
+            </Grid>
+          )}
+        <ToggleOnDemand />
+      </FiltersRow>
       {hasIntervalSelection && (
-        <Flex marginLeft="auto">
-          <CompactSelect
-            value={interval}
-            onChange={option => setInterval(option.value)}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                icon={<IconClock />}
-                priority="transparent"
-                showChevron={false}
-                size="xs"
-              />
-            )}
-            menuTitle={t('Interval')}
-            options={intervalOptions}
-          />
-        </Flex>
+        <CompactSelect
+          value={interval}
+          onChange={option => setInterval(option.value)}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconClock />}
+              priority="transparent"
+              showChevron={false}
+              size="xs"
+            />
+          )}
+          menuTitle={t('Interval')}
+          options={intervalOptions}
+        />
       )}
     </Wrapper>
   );
@@ -364,7 +364,15 @@ const Wrapper = styled('div')`
   flex-direction: row;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
+  align-items: flex-start;
+`;
+
+const FiltersRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1.5)};
   flex-wrap: wrap;
+  flex: 1;
 
   & button[aria-haspopup] {
     height: 100%;

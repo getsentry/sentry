@@ -18,7 +18,6 @@ import FiltersBar from 'sentry/views/dashboards/filtersBar';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -254,20 +253,19 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <OrganizationContext value={initialData.organization}>
-        <MEPSettingProvider forceTransactions={false}>
-          <Dashboard
-            dashboard={dashboardWithOneWidget}
-            isEditingDashboard={false}
-            onUpdate={mockOnUpdate}
-            handleUpdateWidgetList={mockHandleUpdateWidgetList}
-            handleAddCustomWidget={() => undefined}
-            widgetLimitReached={false}
-            onSetNewWidget={() => undefined}
-            widgetLegendState={widgetLegendState}
-          />
-        </MEPSettingProvider>
-      </OrganizationContext>
+      <MEPSettingProvider forceTransactions={false}>
+        <Dashboard
+          dashboard={dashboardWithOneWidget}
+          isEditingDashboard={false}
+          onUpdate={mockOnUpdate}
+          handleUpdateWidgetList={mockHandleUpdateWidgetList}
+          handleAddCustomWidget={() => undefined}
+          widgetLimitReached={false}
+          onSetNewWidget={() => undefined}
+          widgetLegendState={widgetLegendState}
+        />
+      </MEPSettingProvider>,
+      {organization: initialData.organization}
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -314,20 +312,19 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <OrganizationContext value={initialData.organization}>
-        <MEPSettingProvider forceTransactions={false}>
-          <Dashboard
-            dashboard={dashboardWithOneWidget}
-            isEditingDashboard={false}
-            onUpdate={() => undefined}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
-            widgetLimitReached={false}
-            isEmbedded
-            widgetLegendState={widgetLegendState}
-          />
-        </MEPSettingProvider>
-      </OrganizationContext>
+      <MEPSettingProvider forceTransactions={false}>
+        <Dashboard
+          dashboard={dashboardWithOneWidget}
+          isEditingDashboard={false}
+          onUpdate={() => undefined}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={() => undefined}
+          widgetLimitReached={false}
+          isEmbedded
+          widgetLegendState={widgetLegendState}
+        />
+      </MEPSettingProvider>,
+      {organization: initialData.organization}
     );
 
     await screen.findByText('Test Widget');
@@ -341,19 +338,18 @@ describe('Dashboards > Dashboard', () => {
 
     const mount = (dashboard: DashboardDetails) => {
       render(
-        <OrganizationContext value={initialData.organization}>
-          <MEPSettingProvider forceTransactions={false}>
-            <Dashboard
-              dashboard={dashboard}
-              isEditingDashboard={false}
-              onUpdate={() => undefined}
-              handleUpdateWidgetList={() => undefined}
-              handleAddCustomWidget={() => undefined}
-              widgetLimitReached={false}
-              widgetLegendState={widgetLegendState}
-            />
-          </MEPSettingProvider>
-        </OrganizationContext>
+        <MEPSettingProvider forceTransactions={false}>
+          <Dashboard
+            dashboard={dashboard}
+            isEditingDashboard={false}
+            onUpdate={() => undefined}
+            handleUpdateWidgetList={() => undefined}
+            handleAddCustomWidget={() => undefined}
+            widgetLimitReached={false}
+            widgetLegendState={widgetLegendState}
+          />
+        </MEPSettingProvider>,
+        {organization: initialData.organization}
       );
     };
 
@@ -473,30 +469,28 @@ describe('Dashboards > Dashboard', () => {
       const location = useLocation();
       const [widgetInterval] = useChartInterval();
       return (
-        <OrganizationContext value={orgWithFlag}>
-          <MEPSettingProvider forceTransactions={false}>
-            <FiltersBar
-              dashboard={dashboard}
-              filters={{}}
-              hasUnsavedChanges={false}
-              isEditingDashboard={false}
-              isPreview={false}
-              location={location}
-              onDashboardFilterChange={() => undefined}
-            />
-            <Dashboard
-              dashboard={dashboard}
-              isEditingDashboard={false}
-              onUpdate={() => undefined}
-              handleUpdateWidgetList={() => undefined}
-              handleAddCustomWidget={() => undefined}
-              widgetLimitReached={false}
-              widgetLegendState={widgetLegendState}
-              widgetInterval={widgetInterval}
-              useTimeseriesVisualization
-            />
-          </MEPSettingProvider>
-        </OrganizationContext>
+        <MEPSettingProvider forceTransactions={false}>
+          <FiltersBar
+            dashboard={dashboard}
+            filters={{}}
+            hasUnsavedChanges={false}
+            isEditingDashboard={false}
+            isPreview={false}
+            location={location}
+            onDashboardFilterChange={() => undefined}
+          />
+          <Dashboard
+            dashboard={dashboard}
+            isEditingDashboard={false}
+            onUpdate={() => undefined}
+            handleUpdateWidgetList={() => undefined}
+            handleAddCustomWidget={() => undefined}
+            widgetLimitReached={false}
+            widgetLegendState={widgetLegendState}
+            widgetInterval={widgetInterval}
+            useTimeseriesVisualization
+          />
+        </MEPSettingProvider>
       );
     }
 
@@ -533,6 +527,7 @@ describe('Dashboards > Dashboard', () => {
         // No interval in the URL — the 5m default is derived purely from the
         // dashboard's saved 24h period via PageFiltersStore → useChartInterval.
         const {router} = render(<DashboardWithIntervalSelector />, {
+          organization: orgWithFlag,
           initialRouterConfig: {location: {pathname: '/'}},
         });
 
@@ -574,6 +569,7 @@ describe('Dashboards > Dashboard', () => {
         });
 
         const {router} = render(<DashboardWithIntervalSelector />, {
+          organization: orgWithFlag,
           initialRouterConfig: {location: {pathname: '/', query: {interval: '30m'}}},
         });
 
@@ -620,6 +616,7 @@ describe('Dashboards > Dashboard', () => {
 
         // 5m is in the URL but is not a valid interval for a 30d window.
         render(<DashboardWithIntervalSelector dashboard={thirtyDayDashboard} />, {
+          organization: orgWithFlag,
           initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
         });
 
@@ -667,6 +664,7 @@ describe('Dashboards > Dashboard', () => {
         });
 
         render(<DashboardWithIntervalSelector dashboard={thirtyDayReleaseDashboard} />, {
+          organization: orgWithFlag,
           initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
         });
 
@@ -688,25 +686,25 @@ describe('Dashboards > Dashboard', () => {
     let widgets: Widget[];
     const mount = ({dashboard, isPreview = false, onEditWidget = jest.fn()}: any) => {
       const getDashboardComponent = () => (
-        <OrganizationContext value={initialData.organization}>
-          <MEPSettingProvider forceTransactions={false}>
-            <Dashboard
-              dashboard={dashboard}
-              isEditingDashboard
-              onUpdate={newWidgets => {
-                widgets.splice(0, widgets.length, ...newWidgets);
-              }}
-              handleUpdateWidgetList={() => undefined}
-              handleAddCustomWidget={() => undefined}
-              widgetLimitReached={false}
-              isPreview={isPreview}
-              onEditWidget={onEditWidget}
-              widgetLegendState={widgetLegendState}
-            />
-          </MEPSettingProvider>
-        </OrganizationContext>
+        <MEPSettingProvider forceTransactions={false}>
+          <Dashboard
+            dashboard={dashboard}
+            isEditingDashboard
+            onUpdate={newWidgets => {
+              widgets.splice(0, widgets.length, ...newWidgets);
+            }}
+            handleUpdateWidgetList={() => undefined}
+            handleAddCustomWidget={() => undefined}
+            widgetLimitReached={false}
+            isPreview={isPreview}
+            onEditWidget={onEditWidget}
+            widgetLegendState={widgetLegendState}
+          />
+        </MEPSettingProvider>
       );
-      const {rerender} = render(getDashboardComponent());
+      const {rerender} = render(getDashboardComponent(), {
+        organization: initialData.organization,
+      });
       return {rerender: () => rerender(getDashboardComponent())};
     };
 

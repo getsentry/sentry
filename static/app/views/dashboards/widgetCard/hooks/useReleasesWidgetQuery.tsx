@@ -60,15 +60,13 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
         const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
         const includeTotals = query.columns.length > 0 ? 1 : 0;
-        const interval =
-          widgetInterval ??
-          getWidgetInterval(
-            filteredWidget,
-            {start, end, period},
-            '5m',
-            // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-            isCustomReleaseSorting ? 'medium' : undefined
-          );
+        // When custom release sorting is active the metrics API cannot handle
+        // high-fidelity series data for many rows, so always use medium fidelity
+        // regardless of any user-selected interval.
+        const interval = isCustomReleaseSorting
+          ? getWidgetInterval(filteredWidget, {start, end, period}, '5m', 'medium')
+          : (widgetInterval ??
+            getWidgetInterval(filteredWidget, {start, end, period}, '5m'));
 
         const requestData = getReleasesRequestData(
           1, // includeSeries

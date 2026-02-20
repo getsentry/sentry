@@ -143,7 +143,7 @@ type Props = {
   children?: React.ReactNode;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   useTimeseriesVisualization?: boolean;
-  validatedWidgetInterval?: string;
+  widgetInterval?: string;
 };
 
 type State = {
@@ -1313,7 +1313,7 @@ class DashboardDetail extends Component<Props, State> {
                                       useTimeseriesVisualization={
                                         useTimeseriesVisualization
                                       }
-                                      widgetInterval={this.props.validatedWidgetInterval}
+                                      widgetInterval={this.props.widgetInterval}
                                     />
                                   </WidgetQueryQueueProvider>
 
@@ -1403,9 +1403,7 @@ export default function DashboardDetailWithInjectedProps(
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
-  const validatedWidgetInterval = organization.features.includes(
-    'dashboards-interval-selection'
-  )
+  const widgetInterval = organization.features.includes('dashboards-interval-selection')
     ? chartInterval
     : undefined;
 
@@ -1420,7 +1418,7 @@ export default function DashboardDetailWithInjectedProps(
       location={location}
       params={params}
       router={router}
-      validatedWidgetInterval={validatedWidgetInterval}
+      widgetInterval={widgetInterval}
     />
   );
 }
