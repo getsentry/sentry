@@ -245,9 +245,9 @@ export function WorkflowLogs({workflowId, organizationId}: WorkflowLogsProps) {
               {logs.map(log => (
                 <Container
                   key={log.message}
-                  padding="sm"
-                  background="secondary"
-                  radius="md"
+                  padding="lg"
+                  background="primary"
+                  radius="sm"
                   border="primary"
                   onClick={() => handleGroupedLogClick(log.message)}
                   style={{cursor: 'pointer'}}
@@ -255,6 +255,7 @@ export function WorkflowLogs({workflowId, organizationId}: WorkflowLogsProps) {
                   <Flex gap="md" align="center" justify="between">
                     <Text
                       size="sm"
+                      bold
                       style={{flex: 1, overflow: 'hidden', textOverflow: 'ellipsis'}}
                     >
                       {log.message}
