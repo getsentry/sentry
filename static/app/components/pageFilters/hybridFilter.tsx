@@ -550,6 +550,7 @@ export const HybridFilterComponents = {
         }}
       />
     );
+  },
   Checkbox(props: CheckboxProps) {
     return <Checkbox {...props} />;
   },
