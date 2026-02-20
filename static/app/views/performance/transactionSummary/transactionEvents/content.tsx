@@ -31,8 +31,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {OverviewSpansTable} from 'sentry/views/performance/otlp/overviewSpansTable';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
+import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import Filter, {
   filterToSearchConditions,
@@ -173,9 +173,9 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
+  const shouldUseEAP = useTransactionSummaryEAP();
 
-  const table = shouldUseOTelFriendlyUI ? (
+  const table = shouldUseEAP ? (
     <OverviewSpansTable
       eventView={eventView}
       totalValues={null}
@@ -247,7 +247,7 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
+  const shouldUseEAP = useTransactionSummaryEAP();
 
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.TRANSACTIONS],
@@ -256,8 +256,8 @@ function Search(props: Props) {
 
   return (
     <FilterActions>
-      {shouldUseOTelFriendlyUI ? (
-        <SpanCategoryFilter serviceEntrySpanName={transactionName} />
+      {shouldUseEAP ? (
+        <SpanCategoryFilter segmentSpanName={transactionName} />
       ) : (
         <Filter
           organization={organization}

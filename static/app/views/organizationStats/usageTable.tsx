@@ -139,22 +139,17 @@ class UsageTable extends Component<Props> {
         <Grid flow="column" align="center" gap="md">
           <Button
             icon={<IconGraph type="bar" />}
-            tooltipProps={{title: 'Go to project level stats'}}
             data-test-id={project.slug}
             size="xs"
             onClick={() => {
               this.loadProject(parseInt(stat.project.id, 10));
             }}
           >
-            {t('View Stats')}
+            {t('View Project Stats')}
           </Button>
-          <LinkButton
-            icon={<IconSettings />}
-            size="xs"
-            aria-label={t('Project Settings')}
-            tooltipProps={{title: t('Go to project settings')}}
-            to={stat.projectSettingsLink}
-          />
+          <LinkButton icon={<IconSettings />} size="xs" to={stat.projectSettingsLink}>
+            {t('Project Settings')}
+          </LinkButton>
         </Grid>
       </CellStat>,
     ];

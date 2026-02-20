@@ -3166,19 +3166,22 @@ class UptimeTestCaseMixin:
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
+        guid: str | None = None,
         status: CheckStatus = CHECKSTATUS_FAILURE,
         scheduled_check_time: datetime | None = None,
         uptime_region: str | None = "us-west",
     ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
+        if guid is None:
+            guid = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
         optional_fields: _OptionalCheckResult = {}
         if uptime_region is not None:
             optional_fields["region"] = uptime_region
         return {
-            "guid": uuid.uuid4().hex,
+            "guid": guid,
             "subscription_id": subscription_id,
             "status": status,
             "status_reason": {

@@ -215,7 +215,7 @@ export function generateTransactionEventsEventView({
 }: {
   location: Location;
   organization: Organization;
-  shouldUseOTelFriendlyUI: boolean;
+  shouldUseEAP: boolean;
   transactionName: string;
 }): EventView {
   const query = decodeScalar(location.query.query, '');
