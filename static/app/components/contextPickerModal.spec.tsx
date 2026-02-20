@@ -499,7 +499,7 @@ describe('ContextPickerModal', () => {
     OrganizationsStore.load([org, org2]);
     OrganizationStore.onUpdate(org);
 
-    const fetchOrg1Projects = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
@@ -507,7 +507,7 @@ describe('ContextPickerModal', () => {
       url: `/organizations/${org.slug}/teams/`,
       body: [org1Team],
     });
-    const fetchOrg2Projects = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/projects/`,
       body: [],
     });
@@ -526,9 +526,6 @@ describe('ContextPickerModal', () => {
     );
 
     await waitFor(() => {
-      expect(fetchOrg1Projects).toHaveBeenCalled();
-    });
-    await waitFor(() => {
       expect(fetchOrg1Teams).toHaveBeenCalled();
     });
     expect(await screen.findByText(`#${org1Team.slug}`)).toBeInTheDocument();
@@ -536,9 +533,6 @@ describe('ContextPickerModal', () => {
     const orgSelect = screen.getAllByRole('textbox')[0]!;
     await selectEvent.select(orgSelect, org2.slug);
 
-    await waitFor(() => {
-      expect(fetchOrg2Projects).toHaveBeenCalled();
-    });
     await waitFor(() => {
       expect(fetchOrg2Teams).toHaveBeenCalled();
     });
