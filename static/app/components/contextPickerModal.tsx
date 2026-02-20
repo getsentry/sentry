@@ -275,6 +275,9 @@ class ContextPickerModal extends Component<Props> {
     if (needOrg && needProject) {
       return t('Select an organization and a project to continue');
     }
+    if (needOrg && needTeam) {
+      return t('Select an organization and a team to continue');
+    }
     if (needOrg) {
       return t('Select an organization to continue');
     }

@@ -55,7 +55,7 @@ describe('ContextPickerModal', () => {
     props: Partial<React.ComponentProps<typeof ContextPickerModal>> = {}
   ) => (
     <ContextPickerModal
-      Header={() => <div />}
+      Header={headerProps => <div>{headerProps.children}</div>}
       Body={ModalBody}
       nextPath="/test/:orgId/path/"
       needOrg
@@ -389,6 +389,34 @@ describe('ContextPickerModal', () => {
     expect(await screen.findByText('Select a Team to continue')).toBeInTheDocument();
     expect(screen.getByText(`#${team1.slug}`)).toBeInTheDocument();
     expect(screen.getByText(`#${team2.slug}`)).toBeInTheDocument();
+  });
+
+  it('renders org and team header when both are required', async () => {
+    const team1 = TeamFixture({id: '1', slug: 'team-one'});
+    const team2 = TeamFixture({id: '2', slug: 'team-two'});
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+    TeamStore.loadInitialData([team1, team2]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: false,
+        needTeam: true,
+        nextPath: '/settings/:orgId/teams/:teamId/settings/',
+      })
+    );
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Select an organization and a team to continue',
+      })
+    ).toBeInTheDocument();
   });
 
   it('selects a team and navigates to the correct path', async () => {
