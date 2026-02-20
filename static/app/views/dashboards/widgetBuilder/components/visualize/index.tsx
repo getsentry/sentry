@@ -59,10 +59,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {
-  BuilderStateAction,
-  generateSortField,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
@@ -733,19 +730,6 @@ function Visualize({error, setError}: VisualizeProps) {
                                     type: BuilderStateAction.SET_SELECTED_AGGREGATE,
                                     payload: index,
                                   });
-                                  // For categorical bar, sync sort to the selected
-                                  // aggregate so bars are ordered by the displayed metric.
-                                  if (isCategoricalBarWidget && fields?.[index]) {
-                                    dispatch({
-                                      type: BuilderStateAction.SET_SORT,
-                                      payload: [
-                                        {
-                                          kind: state.sort?.[0]?.kind ?? 'desc',
-                                          field: generateSortField(fields, index),
-                                        },
-                                      ],
-                                    });
-                                  }
                                 }}
                                 onClick={() => {
                                   trackAnalytics(

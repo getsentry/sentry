@@ -161,11 +161,6 @@ export interface WidgetBuilderState {
   yAxis?: Column[];
 }
 
-type SetStateFn<T> = (
-  value: T | undefined,
-  options?: WidgetBuilderStateActionOptions
-) => void;
-
 /**
  * Generate the sort field string for an aggregate at the given index.
  * Equations use the alias format (equation[N]) where N is the equation's
@@ -185,22 +180,27 @@ export function generateSortField(aggregates: Column[], aggregateIndex: number):
 
 /**
  * Validate the current sort against a new set of aggregates for categorical
- * bar charts. If the sort field is no longer valid, fall back to the aggregate
- * at `fallbackIndex` (defaults to the last aggregate). Also handles the case
- * where no sort exists yet.
+ * bar charts. Returns the corrected sort if the current sort field is invalid,
+ * or null if no change is needed. Falls back to the aggregate at
+ * `fallbackIndex` (defaults to the last aggregate). If `xAxisFields` is
+ * provided, sorting by an X-axis column is also treated as valid.
  */
 function fixupCategoricalBarSort(
   aggregates: Column[],
   sort: Sort[] | undefined,
   fallbackIndex: number | undefined,
-  setSort: SetStateFn<Sort[]>,
-  options?: WidgetBuilderStateActionOptions
-): void {
+  xAxisFields?: Column[]
+): Sort[] | null {
   if (aggregates.length === 0) {
-    return;
+    return null;
   }
   const currentSortField = sort?.[0]?.field;
   if (currentSortField) {
+    // Sorting by the X-axis column is always valid
+    if (xAxisFields?.some(f => generateFieldAsString(f) === currentSortField)) {
+      return null;
+    }
+
     const hasMatchingSort = aggregates.some(
       f => generateFieldAsString(f) === currentSortField
     );
@@ -218,34 +218,33 @@ function fixupCategoricalBarSort(
         aggregates,
         aggregates[idx] ? idx : aggregates.length - 1
       );
-      setSort([{kind: sort[0]?.kind ?? 'desc', field: sortField}], options);
+      return [{kind: sort[0]?.kind ?? 'desc', field: sortField}];
     }
-  } else {
-    // No sort exists yet — set default to fallback aggregate
-    const idx = fallbackIndex ?? aggregates.length - 1;
-    const sortField = generateSortField(aggregates, idx);
-    setSort([{kind: 'desc', field: sortField}], options);
+    return null;
   }
+  // No sort exists yet — set default to fallback aggregate
+  const idx = fallbackIndex ?? aggregates.length - 1;
+  const sortField = generateSortField(aggregates, idx);
+  return [{kind: 'desc', field: sortField}];
 }
 
 /**
- * Fix up the sort for a table widget after a field is removed. Falls back
+ * Compute the corrected sort for a table widget after a field is removed.
+ * Returns the new sort value, or null if no change is needed. Falls back
  * to the first valid sort option, respecting dataset-specific constraints
  * (Issue widgets allow external sorts, Release widgets have a deny list).
  */
 function fixupTableSortOnRemoval(
   newFields: Column[],
   sort: Sort[] | undefined,
-  dataset: WidgetType | undefined,
-  setSort: SetStateFn<Sort[]>,
-  options?: WidgetBuilderStateActionOptions
-): void {
+  dataset: WidgetType | undefined
+): Sort[] | null {
   if (
     newFields.length === 0 ||
     newFields.some(f => generateFieldAsString(f) === sort?.[0]?.field) ||
     dataset === WidgetType.ISSUE
   ) {
-    return;
+    return null;
   }
   let validSortOptions: QueryFieldValue[] = [];
   const firstNotEquation = newFields.find(f => f.kind !== FieldValueKind.EQUATION);
@@ -257,12 +256,9 @@ function fixupTableSortOnRemoval(
   } else if (firstNotEquation) {
     validSortOptions = [firstNotEquation];
   }
-  setSort(
-    validSortOptions.length > 0
-      ? [{kind: 'desc', field: generateFieldAsString(validSortOptions[0]!)}]
-      : [],
-    options
-  );
+  return validSortOptions.length > 0
+    ? [{kind: 'desc', field: generateFieldAsString(validSortOptions[0]!)}]
+    : [];
 }
 
 function useWidgetBuilderState(): {
@@ -677,7 +673,10 @@ function useWidgetBuilderState(): {
             }
 
             if (isRemoved) {
-              fixupTableSortOnRemoval(action.payload, sort, dataset, setSort, options);
+              const fixedSort = fixupTableSortOnRemoval(action.payload, sort, dataset);
+              if (fixedSort) {
+                setSort(fixedSort, options);
+              }
             } else {
               const firstActionPayloadNotEquation: QueryFieldValue | undefined =
                 action.payload.find(field => field.kind !== FieldValueKind.EQUATION);
@@ -859,6 +858,29 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_SELECTED_AGGREGATE:
           setSelectedAggregate(action.payload, options);
+          // For categorical bar, sync sort to the selected aggregate so
+          // bars are ordered by the displayed metric.
+          if (
+            displayType === DisplayType.CATEGORICAL_BAR &&
+            action.payload !== undefined &&
+            fields
+          ) {
+            const aggregates = fields.filter(
+              f =>
+                f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+            );
+            if (aggregates[action.payload]) {
+              setSort(
+                [
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateSortField(aggregates, action.payload),
+                  },
+                ],
+                options
+              );
+            }
+          }
           break;
         case BuilderStateAction.SET_STATE:
           setDataset(action.payload.dataset, options);
@@ -982,19 +1004,21 @@ function useWidgetBuilderState(): {
             // Reset sort if it references a field no longer in the widget.
             // Falls back to the selected aggregate (or last, matching Big Number).
             if (existingAggregates.length > 0) {
-              fixupCategoricalBarSort(
+              const fixedSort = fixupCategoricalBarSort(
                 existingAggregates,
                 sort,
                 selectedAggregate,
-                setSort,
-                options
+                [newXAxisField]
               );
+              if (fixedSort) {
+                setSort(fixedSort, options);
+              }
             } else {
               setSort([], options);
             }
           }
           break;
-        case BuilderStateAction.SET_CATEGORICAL_AGGREGATE:
+        case BuilderStateAction.SET_CATEGORICAL_AGGREGATE: {
           // Only applies to categorical bar charts
           if (displayType === DisplayType.CATEGORICAL_BAR) {
             // Preserve existing X-axis field, update only the aggregates
@@ -1002,12 +1026,32 @@ function useWidgetBuilderState(): {
               fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
             setFields([...existingXAxisFields, ...action.payload], options);
 
+            // If the sort was on an aggregate that got edited in-place, fall
+            // back to the same index so the sort follows the edit.
+            const oldAggregates =
+              fields?.filter(
+                f =>
+                  f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+              ) ?? [];
+            const sortedOldIndex = oldAggregates.findIndex(
+              f => generateFieldAsString(f) === sort?.[0]?.field
+            );
+
             // Recompute sort when the current sort field is no longer valid
             // in the new aggregates (e.g., after editing or adding a field).
             // Deletions are handled atomically by DELETE_AGGREGATE.
-            fixupCategoricalBarSort(action.payload, sort, undefined, setSort, options);
+            const fixedSort = fixupCategoricalBarSort(
+              action.payload,
+              sort,
+              sortedOldIndex >= 0 ? sortedOldIndex : undefined,
+              existingXAxisFields
+            );
+            if (fixedSort) {
+              setSort(fixedSort, options);
+            }
           }
           break;
+        }
         case BuilderStateAction.DELETE_AGGREGATE: {
           const deleteIndex = action.payload;
 
@@ -1026,7 +1070,15 @@ function useWidgetBuilderState(): {
             setFields([...xAxisFields, ...newAggregates], options);
 
             // Recompute sort if the deleted aggregate was the current sort target
-            fixupCategoricalBarSort(newAggregates, sort, undefined, setSort, options);
+            const fixedSort = fixupCategoricalBarSort(
+              newAggregates,
+              sort,
+              undefined,
+              xAxisFields
+            );
+            if (fixedSort) {
+              setSort(fixedSort, options);
+            }
           } else if (displayType === DisplayType.BIG_NUMBER) {
             // Big Number: fields list is flat (no X-axis separation), delete by index
             const newFields = fields?.filter((_, i) => i !== deleteIndex) ?? [];
@@ -1085,7 +1137,10 @@ function useWidgetBuilderState(): {
             // Table sort fixup: fall back to a valid sort field when the
             // current sort target was the deleted field
             if (displayType === DisplayType.TABLE) {
-              fixupTableSortOnRemoval(newFields, sort, dataset, setSort, options);
+              const fixedSort = fixupTableSortOnRemoval(newFields, sort, dataset);
+              if (fixedSort) {
+                setSort(fixedSort, options);
+              }
             }
           }
 

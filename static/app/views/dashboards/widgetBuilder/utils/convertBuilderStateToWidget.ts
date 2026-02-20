@@ -1,5 +1,9 @@
 import {defined} from 'sentry/utils';
-import {generateFieldAsString, isEquation} from 'sentry/utils/discover/fields';
+import {
+  generateFieldAsString,
+  getEquation,
+  isEquation,
+} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
@@ -54,7 +58,10 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
         return axis.field;
       }) ?? [];
   } else if (state.yAxis?.length) {
-    aggregates = state.yAxis?.map(generateFieldAsString) ?? [];
+    aggregates =
+      state.yAxis
+        ?.map(generateFieldAsString)
+        .filter(f => !isEquation(f) || getEquation(f).trim() !== '') ?? [];
   } else {
     aggregates =
       state.fields
@@ -64,7 +71,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
           )
         )
         .map(generateFieldAsString)
-        .filter(Boolean) ?? [];
+        .filter(f => f && (!isEquation(f) || getEquation(f).trim() !== '')) ?? [];
   }
 
   const columns = state.fields
