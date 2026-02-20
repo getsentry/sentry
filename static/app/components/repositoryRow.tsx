@@ -69,10 +69,12 @@ export default function RepositoryRow({
       >
         <StyledButton
           size="xs"
+          priority="danger"
           icon={<IconDelete />}
-          aria-label={t('delete')}
           disabled={!hasAccess}
-        />
+        >
+          {t('Delete')}
+        </StyledButton>
       </Confirm>
     </Tooltip>
   );
