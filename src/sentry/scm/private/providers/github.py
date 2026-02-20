@@ -178,7 +178,7 @@ def _transform_commit_author(raw_author: dict[str, Any] | None) -> CommitAuthor 
 def _transform_commit_file(raw_file: dict[str, Any]) -> CommitFile:
     return CommitFile(
         filename=raw_file["filename"],
-        status=raw_file.get("status", ""),
+        status=raw_file.get("status", "modified"),
         patch=raw_file.get("patch"),
     )
 
@@ -297,7 +297,10 @@ def _transform_check_run(raw: dict[str, Any]) -> ActionResult[CheckRun]:
 def _transform_graphql_author(raw_author: dict[str, Any] | None) -> Author | None:
     if raw_author is None:
         return None
-    return Author(id=raw_author.get("login", ""), username=raw_author.get("login", ""))
+    return Author(
+        id=str(raw_author["databaseId"]) if "databaseId" in raw_author else "",
+        username=raw_author.get("login", ""),
+    )
 
 
 def _transform_graphql_comment(
@@ -346,7 +349,7 @@ def _transform_graphql_pr_comments(raw: dict[str, Any]) -> list[ActionResult[Com
 def _transform_pull_request_file(raw_file: dict[str, Any]) -> PullRequestFile:
     return PullRequestFile(
         filename=raw_file["filename"],
-        status=raw_file.get("status", ""),
+        status=raw_file.get("status", "modified"),
         patch=raw_file.get("patch"),
         changes=raw_file.get("changes", 0),
         sha=raw_file.get("sha", ""),
@@ -832,7 +835,7 @@ class GitHubProvider:
 
     def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]:
         try:
-            raw = self.client.get_check_run(self.repository["name"], check_run_id)
+            raw = self.client.get_check_run(self.repository["name"], int(check_run_id))
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
         return _transform_check_run(raw)

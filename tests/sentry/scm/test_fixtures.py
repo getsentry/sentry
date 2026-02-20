@@ -334,6 +334,7 @@ def make_github_graphql_issue_comment(
     body: str = "Test issue comment",
     is_minimized: bool = False,
     author_login: str = "testuser",
+    author_database_id: int = 123,
     author_typename: str = "User",
 ) -> dict[str, Any]:
     """Factory for GraphQL issue comment nodes."""
@@ -341,7 +342,11 @@ def make_github_graphql_issue_comment(
         "id": node_id,
         "body": body,
         "isMinimized": is_minimized,
-        "author": {"login": author_login, "__typename": author_typename},
+        "author": {
+            "login": author_login,
+            "databaseId": author_database_id,
+            "__typename": author_typename,
+        },
     }
 
 
@@ -360,6 +365,7 @@ def make_github_graphql_review_thread_comment(
     reactions: list[dict[str, Any]] | None = None,
     reactions_total_count: int = 0,
     author_login: str = "reviewer",
+    author_database_id: int = 456,
     author_typename: str = "User",
 ) -> dict[str, Any]:
     """Factory for GraphQL review thread comment nodes."""
@@ -379,7 +385,11 @@ def make_github_graphql_review_thread_comment(
             "nodes": reactions if reactions is not None else [],
             "totalCount": reactions_total_count,
         },
-        "author": {"login": author_login, "__typename": author_typename},
+        "author": {
+            "login": author_login,
+            "databaseId": author_database_id,
+            "__typename": author_typename,
+        },
     }
 
 

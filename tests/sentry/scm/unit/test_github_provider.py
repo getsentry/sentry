@@ -389,7 +389,7 @@ CLIENT_DELEGATION_TESTS: list[
     (
         "get_check_run",
         {"check_run_id": "300"},
-        ("get_check_run", ("test-org/test-repo", "300"), {}),
+        ("get_check_run", ("test-org/test-repo", 300), {}),
     ),
     (
         "update_check_run",
@@ -475,6 +475,7 @@ def _check_graphql_pr_comments(result: Any) -> None:
     assert result[0]["data"]["id"] == "IC_abc123"
     assert result[0]["data"]["body"] == "Test issue comment"
     assert result[0]["data"]["author"] is not None
+    assert result[0]["data"]["author"]["id"] == "123"
     assert result[0]["data"]["author"]["username"] == "testuser"
     assert result[0]["type"] == "github"
     assert result[0]["raw"]["comment_type"] == "issue_comment"
@@ -482,6 +483,7 @@ def _check_graphql_pr_comments(result: Any) -> None:
     assert result[1]["data"]["id"] == "PRRC_abc123"
     assert result[1]["data"]["body"] == "Review thread comment"
     assert result[1]["data"]["author"] is not None
+    assert result[1]["data"]["author"]["id"] == "456"
     assert result[1]["data"]["author"]["username"] == "reviewer"
     assert result[1]["type"] == "github"
     assert result[1]["raw"]["comment_type"] == "pull_request_review_comment"
@@ -998,6 +1000,28 @@ class TestGetCommitEdgeCases:
 
         assert result["data"]["files"][0]["patch"] is None
 
+    def test_unknown_file_status_passes_through(self):
+        repository = make_repository()
+        raw = make_github_commit(
+            files=[make_github_commit_file(filename="file.py", status="unknown_status")]
+        )
+        client = _make_client(commit_data=raw)
+        provider = GitHubProvider(client, repository)
+
+        result = provider.get_commit("abc123")
+
+        assert result["data"]["files"][0]["status"] == "unknown_status"
+
+    def test_missing_file_status_defaults_to_modified(self):
+        repository = make_repository()
+        raw = make_github_commit(files=[{"filename": "file.py"}])
+        client = _make_client(commit_data=raw)
+        provider = GitHubProvider(client, repository)
+
+        result = provider.get_commit("abc123")
+
+        assert result["data"]["files"][0]["status"] == "modified"
+
 
 class TestGetFileContentEdgeCases:
     def test_passes_ref_to_client(self):
@@ -1305,6 +1329,35 @@ class TestGetPullRequestCommentsEdgeCases:
 
         assert len(result) == 1
         assert result[0]["data"]["author"] is None
+
+    def test_graphql_author_without_database_id(self):
+        """Author without databaseId should have empty string id."""
+        repository = make_repository()
+        comment = make_github_graphql_issue_comment()
+        del comment["author"]["databaseId"]
+        raw = make_github_graphql_pr_comments_response(issue_comments=[comment], review_threads=[])
+        client = _make_client(graphql_pr_comments_data=raw)
+        provider = GitHubProvider(client, repository)
+
+        result = provider.get_pull_request_comments("42")
+
+        assert len(result) == 1
+        assert result[0]["data"]["author"]["id"] == ""
+        assert result[0]["data"]["author"]["username"] == "testuser"
+
+    def test_graphql_author_database_id_used_as_id(self):
+        """Author databaseId should be used as the author id."""
+        repository = make_repository()
+        comment = make_github_graphql_issue_comment(author_database_id=999)
+        raw = make_github_graphql_pr_comments_response(issue_comments=[comment], review_threads=[])
+        client = _make_client(graphql_pr_comments_data=raw)
+        provider = GitHubProvider(client, repository)
+
+        result = provider.get_pull_request_comments("42")
+
+        assert len(result) == 1
+        assert result[0]["data"]["author"]["id"] == "999"
+        assert result[0]["data"]["author"]["username"] == "testuser"
 
     def test_flattens_issue_comments_and_thread_comments(self):
         repository = make_repository()

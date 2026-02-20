@@ -72,7 +72,7 @@ class SourceCodeManager:
         :type fetch_repository: Callable[[int, RepositoryId], Repository | None]
         :param fetch_service_provider: Translates a "Repository" type into a "Provider" instance.
         Abstracts integration lookup and API client acquisition.
-        :type fetch_service_provider: Callable[[int, int], Provider]
+        :type fetch_service_provider: Callable[[int, Repository], Provider]
         """
         self.organization_id = organization_id
         self.repository_id = repository_id
