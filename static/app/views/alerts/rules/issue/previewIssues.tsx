@@ -171,7 +171,11 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
           return {
             ...group,
             assignedTo: newAssignee
-              ? {id: newAssignee.id, name: '', type: newAssignee.type}
+              ? {
+                  id: newAssignee.id,
+                  name: newAssignee.assignee.name,
+                  type: newAssignee.type,
+                }
               : null,
           };
         })
