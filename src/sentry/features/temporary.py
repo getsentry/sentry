@@ -464,8 +464,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:transaction-widget-deprecation-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Normalize URL transaction names during ingestion.
     manager.add("organizations:transaction-name-normalize", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
-    # Enables unlimited auto-triggered autofix runs
-    manager.add("organizations:unlimited-auto-triggered-autofix-runs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables view hierarchy attachment scrubbing
     manager.add("organizations:view-hierarchy-scrubbing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable AI-powered assertion suggestions for uptime monitors
