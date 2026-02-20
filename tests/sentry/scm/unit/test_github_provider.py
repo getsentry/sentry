@@ -117,12 +117,12 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
 
 @pytest.mark.parametrize(("method", "kwargs"), ALL_PROVIDER_METHODS)
 def test_raises_scm_provider_exception_on_api_error(method: str, kwargs: dict[str, Any]):
-    client = _make_client(raise_api_error=True)
-    provider = GitHubProvider(client)
     repository = make_repository()
+    client = _make_client(raise_api_error=True)
+    provider = GitHubProvider(client, repository)
 
     with pytest.raises(SCMProviderException):
-        getattr(provider, method)(repository, **kwargs)
+        getattr(provider, method)(**kwargs)
 
 
 CLIENT_DELEGATION_TESTS: list[
@@ -433,11 +433,11 @@ def test_delegates_to_correct_client_method(
     kwargs: dict[str, Any],
     expected_call: tuple[str, tuple[Any, ...], dict[str, Any]],
 ):
-    client = _make_client()
-    provider = GitHubProvider(client)
     repository = make_repository()
+    client = _make_client()
+    provider = GitHubProvider(client, repository)
 
-    getattr(provider, method)(repository, **kwargs)
+    getattr(provider, method)(**kwargs)
 
     assert expected_call in client.calls
 
@@ -891,11 +891,11 @@ def test_transforms_response(
     client_attrs: dict[str, Any],
     check: Callable[[Any], None],
 ):
-    client = _make_client(**client_attrs)
-    provider = GitHubProvider(client)
     repository = make_repository()
+    client = _make_client(**client_attrs)
+    provider = GitHubProvider(client, repository)
 
-    result = getattr(provider, method)(repository, **kwargs)
+    result = getattr(provider, method)(**kwargs)
 
     check(result)
 
@@ -905,11 +905,11 @@ def test_transforms_response(
 
 class TestGetIssueCommentsEdgeCases:
     def test_returns_none_author_when_user_is_none(self):
-        client = _make_client(issue_comments=[{"id": 1, "body": "ghost comment", "user": None}])
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client(issue_comments=[{"id": 1, "body": "ghost comment", "user": None}])
+        provider = GitHubProvider(client, repository)
 
-        comments = provider.get_issue_comments(repository, "42")
+        comments = provider.get_issue_comments("42")
 
         assert len(comments) == 1
         assert comments[0]["data"]["id"] == "1"
@@ -917,13 +917,13 @@ class TestGetIssueCommentsEdgeCases:
         assert comments[0]["data"]["author"] is None
 
     def test_returns_none_body_when_body_is_none(self):
+        repository = make_repository()
         client = _make_client(
             issue_comments=[{"id": 1, "body": None, "user": {"id": 1, "login": "testuser"}}]
         )
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        comments = provider.get_issue_comments(repository, "42")
+        comments = provider.get_issue_comments("42")
 
         assert len(comments) == 1
         assert comments[0]["data"]["id"] == "1"
@@ -934,21 +934,21 @@ class TestGetIssueCommentsEdgeCases:
 
 class TestGetPullRequestEdgeCases:
     def test_raises_key_error_on_malformed_response(self):
-        client = _make_client(pull_request_data={"id": 1, "title": "test"})
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client(pull_request_data={"id": 1, "title": "test"})
+        provider = GitHubProvider(client, repository)
 
         with pytest.raises(KeyError):
-            provider.get_pull_request(repository, "42")
+            provider.get_pull_request("42")
 
 
 class TestGetIssueReactionsEdgeCases:
     def test_returns_none_author_when_user_is_none(self):
-        client = _make_client(issue_reactions=[{"id": 1, "content": "eyes", "user": None}])
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client(issue_reactions=[{"id": 1, "content": "eyes", "user": None}])
+        provider = GitHubProvider(client, repository)
 
-        reactions = provider.get_issue_reactions(repository, "42")
+        reactions = provider.get_issue_reactions("42")
 
         assert len(reactions) == 1
         assert reactions[0]["id"] == "1"
@@ -956,56 +956,56 @@ class TestGetIssueReactionsEdgeCases:
         assert reactions[0]["author"] is None
 
     def test_raises_key_error_on_malformed_response(self):
-        client = _make_client(issue_reactions=[{"id": 1}])
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client(issue_reactions=[{"id": 1}])
+        provider = GitHubProvider(client, repository)
 
         with pytest.raises(KeyError):
-            provider.get_issue_reactions(repository, "42")
+            provider.get_issue_reactions("42")
 
 
 class TestGetCommitEdgeCases:
     def test_handles_missing_author(self):
+        repository = make_repository()
         raw = {"sha": "abc", "commit": {"message": "msg", "author": None}, "files": []}
         client = _make_client(commit_data=raw)
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_commit(repository, "abc")
+        result = provider.get_commit("abc")
 
         assert result["data"]["author"] is None
         assert result["data"]["message"] == "msg"
 
     def test_handles_missing_files(self):
+        repository = make_repository()
         raw = {"sha": "abc", "commit": {"message": "msg"}}
         client = _make_client(commit_data=raw)
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_commit(repository, "abc")
+        result = provider.get_commit("abc")
 
         assert result["data"]["files"] == []
 
     def test_handles_binary_file_without_patch(self):
+        repository = make_repository()
         raw = make_github_commit(
             files=[make_github_commit_file(filename="image.png", status="added", patch=None)]
         )
         client = _make_client(commit_data=raw)
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_commit(repository, "abc123")
+        result = provider.get_commit("abc123")
 
         assert result["data"]["files"][0]["patch"] is None
 
 
 class TestGetFileContentEdgeCases:
     def test_passes_ref_to_client(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
-        provider.get_file_content(repository, "README.md", ref="feature-branch")
+        provider.get_file_content("README.md", ref="feature-branch")
 
         assert (
             "get_file_content",
@@ -1014,12 +1014,12 @@ class TestGetFileContentEdgeCases:
         ) in client.calls
 
     def test_handles_empty_content(self):
+        repository = make_repository()
         raw = make_github_file_content(content="", encoding="", size=0)
         client = _make_client(file_content_data=raw)
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_file_content(repository, "empty.txt")
+        result = provider.get_file_content("empty.txt")
 
         assert result["data"]["content"] == ""
         assert result["data"]["size"] == 0
@@ -1027,22 +1027,22 @@ class TestGetFileContentEdgeCases:
 
 class TestListPullRequestsEdgeCases:
     def test_returns_empty_list_when_no_prs(self):
-        client = _make_client(pull_requests_data=[])
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client(pull_requests_data=[])
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_pull_requests(repository)
+        result = provider.get_pull_requests()
 
         assert result == []
 
 
 class TestCreatePullRequestEdgeCases:
     def test_passes_draft_flag(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
-        provider.create_pull_request(repository, "T", "B", "feature", "main", draft=True)
+        provider.create_pull_request("T", "B", "feature", "main", draft=True)
 
         assert (
             "create_pull_request",
@@ -1056,11 +1056,11 @@ class TestCreatePullRequestEdgeCases:
 
 class TestUpdatePullRequestEdgeCases:
     def test_only_includes_non_none_fields(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
-        provider.update_pull_request(repository, "42", title="New title")
+        provider.update_pull_request("42", title="New title")
 
         assert (
             "update_pull_request",
@@ -1069,11 +1069,11 @@ class TestUpdatePullRequestEdgeCases:
         ) in client.calls
 
     def test_empty_update_sends_empty_data(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
-        provider.update_pull_request(repository, "42")
+        provider.update_pull_request("42")
 
         assert (
             "update_pull_request",
@@ -1084,13 +1084,13 @@ class TestUpdatePullRequestEdgeCases:
 
 class TestPullRequestCommitEdgeCases:
     def test_handles_none_author(self):
+        repository = make_repository()
         raw = make_github_pull_request_commit(author_login=None)
         raw["commit"]["author"] = None
         client = _make_client(pr_commits_data=[raw])
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_pull_request_commits(repository, "42")
+        result = provider.get_pull_request_commits("42")
 
         assert len(result["data"]) == 1
         assert result["data"][0]["author"] is None
@@ -1098,11 +1098,11 @@ class TestPullRequestCommitEdgeCases:
 
 class TestCreateReviewCommentEdgeCases:
     def test_only_required_fields(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
-        provider.create_review_comment(repository, "42", "comment", "abc123", "src/main.py")
+        provider.create_review_comment("42", "comment", "abc123", "src/main.py")
 
         assert (
             "create_review_comment",
@@ -1115,12 +1115,11 @@ class TestCreateReviewCommentEdgeCases:
         ) in client.calls
 
     def test_with_positioning_fields(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
         provider.create_review_comment(
-            repository,
             "42",
             "comment",
             "abc123",
@@ -1152,11 +1151,11 @@ class TestCreateReviewCommentEdgeCases:
 
 class TestCreateReviewEdgeCases:
     def test_with_empty_comments(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
-        provider.create_review(repository, "42", "abc123", "APPROVE", [])
+        provider.create_review("42", "abc123", "APPROVE", [])
 
         assert (
             "create_review",
@@ -1169,11 +1168,11 @@ class TestCreateReviewEdgeCases:
         ) in client.calls
 
     def test_with_body(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
-        provider.create_review(repository, "42", "abc123", "COMMENT", [], body="Overall looks good")
+        provider.create_review("42", "abc123", "COMMENT", [], body="Overall looks good")
 
         assert (
             "create_review",
@@ -1193,12 +1192,11 @@ class TestCreateReviewEdgeCases:
 
 class TestCreateCheckRunEdgeCases:
     def test_with_output(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
         provider.create_check_run(
-            repository,
             "Seer Review",
             "abc123",
             status="completed",
@@ -1224,11 +1222,11 @@ class TestCreateCheckRunEdgeCases:
 
 class TestUpdateCheckRunEdgeCases:
     def test_only_conclusion(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
-        provider.update_check_run(repository, "300", conclusion="failure")
+        provider.update_check_run("300", conclusion="failure")
 
         assert (
             "update_check_run",
@@ -1237,11 +1235,11 @@ class TestUpdateCheckRunEdgeCases:
         ) in client.calls
 
     def test_empty_update_sends_empty_data(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
-        provider.update_check_run(repository, "300")
+        provider.update_check_run("300")
 
         assert (
             "update_check_run",
@@ -1252,30 +1250,31 @@ class TestUpdateCheckRunEdgeCases:
 
 class TestGetPullRequestCommentsEdgeCases:
     def test_empty_comments_and_threads(self):
+        repository = make_repository()
         raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[])
         client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_pull_request_comments(repository, "42")
+        result = provider.get_pull_request_comments("42")
 
         assert result == []
 
     def test_review_thread_comment_with_null_author(self):
+        repository = make_repository()
         comment = make_github_graphql_review_thread_comment(author_login="ghost")
         comment["author"] = None
         thread = make_github_graphql_review_thread(comments=[comment])
         raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[thread])
         client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_pull_request_comments(repository, "42")
+        result = provider.get_pull_request_comments("42")
 
         assert len(result) == 1
         assert result[0]["data"]["author"] is None
 
     def test_review_thread_comment_with_reactions(self):
+        repository = make_repository()
         comment = make_github_graphql_review_thread_comment(
             reactions=[{"content": "THUMBS_UP"}, {"content": "HEART"}],
             reactions_total_count=2,
@@ -1283,10 +1282,9 @@ class TestGetPullRequestCommentsEdgeCases:
         thread = make_github_graphql_review_thread(comments=[comment])
         raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[thread])
         client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_pull_request_comments(repository, "42")
+        result = provider.get_pull_request_comments("42")
 
         assert len(result) == 1
         # Reactions are preserved in the raw dict
@@ -1296,19 +1294,20 @@ class TestGetPullRequestCommentsEdgeCases:
         assert result[0]["raw"]["reactions"]["totalCount"] == 2
 
     def test_issue_comment_with_null_author(self):
+        repository = make_repository()
         comment = make_github_graphql_issue_comment()
         comment["author"] = None
         raw = make_github_graphql_pr_comments_response(issue_comments=[comment], review_threads=[])
         client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_pull_request_comments(repository, "42")
+        result = provider.get_pull_request_comments("42")
 
         assert len(result) == 1
         assert result[0]["data"]["author"] is None
 
     def test_flattens_issue_comments_and_thread_comments(self):
+        repository = make_repository()
         issue_comment = make_github_graphql_issue_comment(node_id="IC_1", body="issue comment")
         thread_comment = make_github_graphql_review_thread_comment(
             node_id="PRRC_1", body="thread comment"
@@ -1318,10 +1317,9 @@ class TestGetPullRequestCommentsEdgeCases:
             issue_comments=[issue_comment], review_threads=[thread]
         )
         client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_pull_request_comments(repository, "42")
+        result = provider.get_pull_request_comments("42")
 
         assert len(result) == 2
         assert result[0]["data"]["id"] == "IC_1"
@@ -1332,6 +1330,7 @@ class TestGetPullRequestCommentsEdgeCases:
         assert result[1]["raw"]["comment_type"] == "pull_request_review_comment"
 
     def test_thread_metadata_injected_into_raw(self):
+        repository = make_repository()
         comment = make_github_graphql_review_thread_comment(node_id="PRRC_1")
         thread = make_github_graphql_review_thread(
             node_id="PRT_resolved",
@@ -1342,10 +1341,9 @@ class TestGetPullRequestCommentsEdgeCases:
         )
         raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[thread])
         client = _make_client(graphql_pr_comments_data=raw)
-        provider = GitHubProvider(client)
-        repository = make_repository()
+        provider = GitHubProvider(client, repository)
 
-        result = provider.get_pull_request_comments(repository, "42")
+        result = provider.get_pull_request_comments("42")
 
         assert len(result) == 1
         assert result[0]["raw"]["thread_id"] == "PRT_resolved"
@@ -1354,11 +1352,11 @@ class TestGetPullRequestCommentsEdgeCases:
         assert result[0]["raw"]["isCollapsed"] is True
 
     def test_splits_owner_repo_correctly(self):
-        client = _make_client()
-        provider = GitHubProvider(client)
         repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository)
 
-        provider.get_pull_request_comments(repository, "42")
+        provider.get_pull_request_comments("42")
 
         assert (
             "get_pull_request_comments_graphql",

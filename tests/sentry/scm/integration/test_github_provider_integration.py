@@ -38,7 +38,9 @@ class TestGitHubProviderIntegration(TestCase):
             status=ObjectStatus.ACTIVE,
         )
         self.repository = map_repository_model_to_repository(self.repo_model)
-        self.provider = map_integration_to_provider(self.organization.id, self.integration)
+        self.provider = map_integration_to_provider(
+            self.organization.id, self.integration, self.repository
+        )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -69,7 +71,7 @@ class TestGitHubProviderIntegration(TestCase):
             ],
         )
 
-        comments = self.provider.get_issue_comments(self.repository, "1347")
+        comments = self.provider.get_issue_comments("1347")
 
         assert len(comments) == 1
         assert comments[0]["data"]["id"] == "1"
@@ -106,7 +108,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        self.provider.create_issue_comment(self.repository, "1", "hello")
+        self.provider.create_issue_comment("1", "hello")
 
         assert len(responses.calls) == 1
         assert (
@@ -161,7 +163,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        result = self.provider.get_pull_request(self.repository, "1347")
+        result = self.provider.get_pull_request("1347")
 
         pr = result["data"]
         assert pr["head"]["sha"] == "6dcb09b5b57875f334f61aebed695e2e4193db5e"
@@ -206,7 +208,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        result = self.provider.get_pull_request_comments(self.repository, "1")
+        result = self.provider.get_pull_request_comments("1")
 
         assert len(result) == 1
         assert result[0]["data"]["id"] == "IC_10"
@@ -242,7 +244,7 @@ class TestGitHubProviderIntegration(TestCase):
             headers={},
         )
 
-        reactions = self.provider.get_issue_comment_reactions(self.repository, "42")
+        reactions = self.provider.get_issue_comment_reactions("42")
 
         assert len(reactions) == 2
         assert reactions[0]["id"] == "1"
@@ -275,7 +277,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        self.provider.create_issue_comment_reaction(self.repository, "42", "heart")
+        self.provider.create_issue_comment_reaction("42", "heart")
 
         assert len(responses.calls) == 1
 
@@ -318,7 +320,7 @@ class TestGitHubProviderIntegration(TestCase):
             headers={},
         )
 
-        reactions = self.provider.get_issue_reactions(self.repository, "42")
+        reactions = self.provider.get_issue_reactions("42")
 
         assert len(reactions) == 2
         assert reactions[0]["id"] == "1"
@@ -355,7 +357,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        self.provider.create_issue_reaction(self.repository, "42", "rocket")
+        self.provider.create_issue_reaction("42", "rocket")
 
         assert len(responses.calls) == 1
 
@@ -373,7 +375,7 @@ class TestGitHubProviderIntegration(TestCase):
         )
 
         with pytest.raises(SCMProviderException):
-            self.provider.get_issue_comments(self.repository, "42")
+            self.provider.get_issue_comments("42")
 
     def test_repository_conversion_preserves_fields(self):
         assert self.repository["name"] == REPO_NAME

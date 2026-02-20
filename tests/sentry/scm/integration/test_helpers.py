@@ -108,10 +108,17 @@ class TestMapIntegrationToProvider(TestCase):
             name="Github Test Org",
             external_id="1",
         )
+        repository = {
+            "integration_id": integration.id,
+            "name": "test-org/test-repo",
+            "organization_id": self.organization.id,
+            "status": 0,
+        }
 
         provider = map_integration_to_provider(
             self.organization.id,
             integration,
+            repository,
             get_installation=lambda _, oid: MagicMock(),
         )
 
@@ -124,11 +131,18 @@ class TestMapIntegrationToProvider(TestCase):
             name="Unsupported Provider Test",
             external_id="1",
         )
+        repository = {
+            "integration_id": integration.id,
+            "name": "test-org/test-repo",
+            "organization_id": self.organization.id,
+            "status": 0,
+        }
 
         with pytest.raises(SCMCodedError) as exc_info:
             map_integration_to_provider(
                 self.organization.id,
                 integration,
+                repository,
                 get_installation=lambda _, oid: MagicMock(),
             )
 
@@ -146,17 +160,28 @@ class TestFetchServiceProvider(TestCase):
 
         provider = fetch_service_provider(
             self.organization.id,
-            integration.id,
-            map_to_provider=lambda i, oid: map_integration_to_provider(
-                oid, i, get_installation=lambda _, __: MagicMock()
+            {
+                "integration_id": integration.id,
+                "name": "test-org/test-repo",
+                "organization_id": self.organization.id,
+                "status": 0,
+            },
+            map_to_provider=lambda i, oid, r: map_integration_to_provider(
+                oid, i, r, get_installation=lambda _, __: MagicMock()
             ),
         )
 
         assert isinstance(provider, GitHubProvider)
 
     def test_raises_error_for_nonexistent_integration(self):
+        repository = {
+            "integration_id": 99999,
+            "name": "test-org/test-repo",
+            "organization_id": self.organization.id,
+            "status": 0,
+        }
         with pytest.raises(SCMCodedError) as exc_info:
-            fetch_service_provider(self.organization.id, 99999)
+            fetch_service_provider(self.organization.id, repository)
 
         assert exc_info.value.code == "integration_not_found"
 

@@ -566,9 +566,7 @@ def test_provider_exception_is_not_wrapped():
     """SCMProviderException should pass through exec_provider_fn, not be wrapped as SCMUnhandledException."""
 
     class FailingProvider(BaseTestProvider):
-        def get_issue_reactions(
-            self, repository: Repository, issue_id: str
-        ) -> list[ReactionResult]:
+        def get_issue_reactions(self, issue_id: str) -> list[ReactionResult]:
             raise SCMProviderException("GitHub API error")
 
     scm = SourceCodeManager(
