@@ -51,6 +51,8 @@ function useVirtualizedGrid({
     estimateSize: () => rowHeight,
     getScrollElement: () => scrollContainerRef.current,
     overscan,
+    scrollPaddingStart: 20,
+    scrollPaddingEnd: 20,
   });
 
   const virtualRows = virtualizer.getVirtualItems();
