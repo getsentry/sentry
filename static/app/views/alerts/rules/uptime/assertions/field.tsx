@@ -1,5 +1,10 @@
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
+import {tct} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {resolveErroredAssertionOp} from 'sentry/views/alerts/rules/uptime/formErrors';
 import {usePreviewCheckResult} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
@@ -94,17 +99,38 @@ function UptimeAssertionsControl({onChange, onBlur, value, trailingButtons}: any
   const erroredOp = resolveErroredAssertionOp(previewCheckResult, rootOp) ?? undefined;
 
   return (
-    <AssertionOpGroup
-      root
-      value={rootOp}
-      erroredOp={erroredOp}
-      onChange={op => {
-        previewCheckResult?.resetPreviewCheckResult();
-        onChange({root: op}, {});
-        onBlur({root: op}, {});
-      }}
-      trailingButtons={trailingButtons}
-    />
+    <Flex direction="column" gap="md">
+      {rootOp.children.length === 0 && (
+        <Alert variant="warning">
+          {tct(
+            'Without any Assertions all uptime checks will be marked as success! [addDefault:Add a 2xx status code assertion.]',
+            {
+              addDefault: (
+                <Button
+                  priority="link"
+                  onClick={() => {
+                    const defaultRoot = createDefaultAssertionRoot();
+                    onChange({root: defaultRoot}, {});
+                    onBlur({root: defaultRoot}, {});
+                  }}
+                />
+              ),
+            }
+          )}
+        </Alert>
+      )}
+      <AssertionOpGroup
+        root
+        value={rootOp}
+        erroredOp={erroredOp}
+        onChange={op => {
+          previewCheckResult?.resetPreviewCheckResult();
+          onChange({root: op}, {});
+          onBlur({root: op}, {});
+        }}
+        trailingButtons={trailingButtons}
+      />
+    </Flex>
   );
 }
 
