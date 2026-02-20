@@ -950,32 +950,49 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
         assert roles[project_api.id] == "hub"
 
     def test_peripheral_classification(self):
-        """Test classification of peripheral service (low connectivity)"""
+        """Test classification of peripheral service (low connectivity in both directions)
 
-        # Setup projects with chain: frontend → api → database, peripheral has minimal connections
-        project_frontend = self.create_project(organization=self.organization, slug="frontend")
-        project_api = self.create_project(organization=self.organization, slug="api")
-        project_isolated = self.create_project(organization=self.organization, slug="isolated")
+        To produce a peripheral node we need avg degree > 1, which requires more edges
+        than nodes. Graph: svc_a→svc_b, svc_b→svc_a, svc_a→svc_c, svc_b→svc_c,
+        peripheral→svc_a (5 edges, 4 nodes, avg=1.25).
+
+        Resulting degrees:
+          svc_a:    out=2, in=2  → hub
+          svc_b:    out=2, in=1  → caller
+          svc_c:    out=0, in=2  → callee
+          peripheral: out=1, in=0 → peripheral (both < 1.25)
+        """
+        project_a = self.create_project(organization=self.organization, slug="svc-a")
+        project_b = self.create_project(organization=self.organization, slug="svc-b")
+        project_c = self.create_project(organization=self.organization, slug="svc-c")
+        project_p = self.create_project(organization=self.organization, slug="peripheral")
 
         start_ts = self.ten_mins_ago
         spans = []
 
-        # Create high-traffic frontend → api edge
-        for i in range(5):
-            trace_id = uuid4().hex
-            frontend_span_id = uuid4().hex[:16]
+        # Each tuple is (source_project, source_tx, target_project, target_tx)
+        edges = [
+            (project_a, "/a/calls-b", project_b, "/b/from-a"),
+            (project_b, "/b/calls-a", project_a, "/a/from-b"),
+            (project_a, "/a/calls-c", project_c, "/c/from-a"),
+            (project_b, "/b/calls-c", project_c, "/c/from-b"),
+            (project_p, "/p/calls-a", project_a, "/a/from-p"),
+        ]
 
+        for src_proj, src_tx, tgt_proj, tgt_tx in edges:
+            trace_id = uuid4().hex
+            src_span_id = uuid4().hex[:16]
             spans.extend(
                 [
                     self.create_span(
                         extra_data={
                             "trace_id": trace_id,
-                            "span_id": frontend_span_id,
+                            "span_id": src_span_id,
                             "parent_span_id": "0000000000000000",
                             "is_segment": True,
-                            "sentry_tags": {"transaction": "/frontend/page"},
+                            "sentry_tags": {"transaction": src_tx},
                         },
-                        project=project_frontend,
+                        project=src_proj,
                         start_ts=start_ts,
                         duration=2000,
                     ),
@@ -983,57 +1000,23 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
                         extra_data={
                             "trace_id": trace_id,
                             "span_id": uuid4().hex[:16],
-                            "parent_span_id": frontend_span_id,
+                            "parent_span_id": src_span_id,
                             "is_segment": True,
-                            "sentry_tags": {"transaction": "/api/users"},
+                            "sentry_tags": {"transaction": tgt_tx},
                         },
-                        project=project_api,
+                        project=tgt_proj,
                         start_ts=start_ts,
                         duration=1000,
                     ),
                 ]
             )
 
-        # Create single low-traffic edge to isolated service
-        trace_isolated = uuid4().hex
-        api_span_id = uuid4().hex[:16]
-
-        spans.extend(
-            [
-                self.create_span(
-                    extra_data={
-                        "trace_id": trace_isolated,
-                        "span_id": api_span_id,
-                        "parent_span_id": "0000000000000000",
-                        "is_segment": True,
-                        "sentry_tags": {"transaction": "/api/users"},
-                    },
-                    project=project_api,
-                    start_ts=start_ts,
-                    duration=2000,
-                ),
-                self.create_span(
-                    extra_data={
-                        "trace_id": trace_isolated,
-                        "span_id": uuid4().hex[:16],
-                        "parent_span_id": api_span_id,
-                        "is_segment": True,
-                        "sentry_tags": {"transaction": "/isolated/endpoint"},
-                    },
-                    project=project_isolated,
-                    start_ts=start_ts,
-                    duration=1000,
-                ),
-            ]
-        )
-
         self.store_spans(spans)
 
-        edges = _query_service_dependencies(self._snuba_params())
-        roles = _classify_service_roles(edges)
+        detected_edges = _query_service_dependencies(self._snuba_params())
+        roles = _classify_service_roles(detected_edges)
 
-        # Isolated should have low connectivity classification
-        assert roles[project_isolated.id] == "peripheral"
+        assert roles[project_p.id] == "peripheral"
 
 
 @pytest.mark.django_db(databases="__all__")
