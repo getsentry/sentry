@@ -44,8 +44,8 @@ def should_allow_superuser_access_v2(
     :param organization_context: The organization context to check.
     :return: True if a superuser session is allowed for the organization, False otherwise.
 
-    Note: This method is not currently used. It will be rolled out when rest of Data Secrecy V2 is ready.
-    It is an in-place replacement for should_allow_superuser_access.
+    This is the v2 replacement for should_allow_superuser_access, adding Break the Glass
+    (data access grant) support.
     """
 
     if settings.SENTRY_SELF_HOSTED:
@@ -56,10 +56,6 @@ def should_allow_superuser_access_v2(
         organization = organization_context.organization
     else:
         organization = organization_context
-
-    # If organization does not have data-secrecy-v2 feature, allow superuser access
-    if not features.has("organizations:data-secrecy-v2", organization):
-        return True
 
     # If organization's prevent_superuser_access bitflag is False, allow superuser access
     if not organization.flags.prevent_superuser_access:
