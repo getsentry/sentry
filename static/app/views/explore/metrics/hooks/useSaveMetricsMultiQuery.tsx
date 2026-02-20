@@ -1,12 +1,12 @@
 import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';

@@ -6,10 +6,6 @@ export function getIsExecuteToolSpan(genAiOpType: string | undefined) {
   return genAiOpType === 'tool';
 }
 
-export function getIsHandoffSpan(genAiOpType: string | undefined) {
-  return genAiOpType === 'handoff';
-}
-
 export function getIsAiGenerationSpan(genAiOpType: string | undefined) {
   return genAiOpType === 'ai_client';
 }
@@ -30,7 +26,7 @@ export const getAIGenerationsFilter = () => {
   return `gen_ai.operation.type:ai_client`;
 };
 
-enum GenAiOperationType {
+export enum GenAiOperationType {
   AGENT = 'agent',
   TOOL = 'tool',
   HANDOFF = 'handoff',

@@ -214,7 +214,6 @@ class UptimeValidatorBase(CamelSnakeSerializer):
 
 @extend_schema_serializer()
 class UptimeCheckPreviewValidator(UptimeValidatorBase):
-
     def validate(self, attrs):
         _validate_request_size(
             attrs.get("method", "GET"),

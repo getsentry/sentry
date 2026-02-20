@@ -46,7 +46,7 @@ interface UseActionableItemsProps {
 
 export function useActionableItems(props?: UseActionableItemsProps) {
   return useApiQuery<ActionableItemsResponse>(
-    props ? actionableItemsQuery(props) : [''],
+    props ? actionableItemsQuery(props) : ([''] as unknown as ApiQueryKey),
     {
       staleTime: Infinity,
       retry: false,

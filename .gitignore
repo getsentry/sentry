@@ -1,3 +1,4 @@
+.warden/logs
 .env
 .cache/
 .code-workspace

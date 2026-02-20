@@ -133,13 +133,13 @@ def create_assigned_to_filter(
 def create_issue_category_filter(
     data_condition: DataCondition, is_filter: bool = False
 ) -> ConditionAndFilters:
-    payload = {
+    payload: dict[str, Any] = {
         "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
         "value": data_condition.comparison["value"],
     }
     include = data_condition.comparison.get("include")
     if isinstance(include, bool):
-        payload["include"] = include
+        payload["include"] = "true" if include else "false"
 
     return {}, [payload]
 

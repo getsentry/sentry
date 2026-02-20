@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -105,8 +105,8 @@ export function TraceLinkNavigationButton({
         position: 'top',
         delay: 400,
         isHoverable: true,
+        title,
       }}
-      title={title}
       onClick={closeSpanDetailsDrawer}
       disabled={!traceId || isTraceLoading || !isTraceAvailable}
       to={getTraceDetailsUrl({

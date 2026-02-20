@@ -424,7 +424,6 @@ def top_events_timeseries(
     *,
     referrer: str,
 ) -> SnubaTSResult | dict[str, Any]:
-
     if top_events is None:
         top_events = query(
             selected_columns,

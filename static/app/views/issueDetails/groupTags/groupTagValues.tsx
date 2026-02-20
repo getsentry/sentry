@@ -11,12 +11,11 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
@@ -211,10 +210,13 @@ export function GroupTagValues() {
         <Fragment key={tagValueIdx}>
           <NameColumn>
             <NameWrapper data-test-id="group-tag-value">
-              <GlobalSelectionLink
+              <Link
                 to={{
                   pathname: `${baseUrl}events/`,
-                  query: {query: issuesQuery},
+                  query: {
+                    ...extractSelectionParameters(location.query),
+                    query: issuesQuery,
+                  },
                 }}
               >
                 {key === 'user' ? (
@@ -226,7 +228,7 @@ export function GroupTagValues() {
                 ) : (
                   <DeviceName value={tagName} />
                 )}
-              </GlobalSelectionLink>
+              </Link>
             </NameWrapper>
 
             {tagValue.email && (

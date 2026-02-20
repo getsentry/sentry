@@ -339,7 +339,6 @@ describe('UpdateRetentionSettingsModal', () => {
     await userEvent.clear(getSpinbutton('Org Retention'));
 
     await userEvent.clear(getSpinbutton('Spans Standard'));
-    await userEvent.type(getSpinbutton('Spans Standard'), '90');
 
     await userEvent.clear(getSpinbutton('Spans Downsampled'));
 
@@ -362,7 +361,7 @@ describe('UpdateRetentionSettingsModal', () => {
             },
             retentions: {
               spans: {
-                standard: 90,
+                standard: null,
                 downsampled: null,
               },
               logBytes: {

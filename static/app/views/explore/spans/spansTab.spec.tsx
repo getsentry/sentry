@@ -10,8 +10,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
@@ -78,7 +78,7 @@ describe('SpansTabContent', () => {
       datetime: {period: '7d', start: null, end: null, utc: null},
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -111,12 +111,7 @@ describe('SpansTabContent', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
-      }),
+      body: AutofixSetupFixture({}),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -189,7 +184,7 @@ describe('SpansTabContent', () => {
 
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
@@ -212,7 +207,7 @@ describe('SpansTabContent', () => {
     await userEvent.click(samples);
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
@@ -406,18 +401,6 @@ describe('SpansTabContent', () => {
   });
 
   describe('Ask Seer', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
-        }),
-      });
-    });
-
     describe('when the AI features are disabled', () => {
       it('does not display the Ask Seer combobox', async () => {
         render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {

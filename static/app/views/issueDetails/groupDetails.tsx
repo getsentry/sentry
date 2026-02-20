@@ -12,7 +12,7 @@ import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFee
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
@@ -71,6 +71,7 @@ import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
+import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -732,6 +733,8 @@ function GroupDetailsContent({
     organization,
     hasAutofixQuota,
   });
+
+  useEngagedViewTracking({group, project});
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,

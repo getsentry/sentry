@@ -27,6 +27,7 @@ import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import GroupList from 'sentry/components/issues/groupList';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {
@@ -51,7 +52,6 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {type GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
@@ -314,7 +314,11 @@ function useSeerExplorerRun(runId: number | undefined) {
   const organization = useOrganization();
 
   return useApiQuery<SeerExplorerRunResponse>(
-    [`/organizations/${organization.slug}/seer/explorer-chat/${runId}/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
+        path: {organizationIdOrSlug: organization.slug, runId: runId!},
+      }),
+    ],
     {
       staleTime: 60000,
       enabled: runId !== undefined && runId > 0,
@@ -400,7 +404,9 @@ function useClusterTagFacets(groupIds: number[]) {
 
   const queryResult = useApiQuery<DiscoverFacetTag[]>(
     [
-      `/organizations/${organization.slug}/events-facets/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events-facets/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           dataset: DiscoverDatasets.ERRORS,

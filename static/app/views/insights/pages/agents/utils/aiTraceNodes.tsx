@@ -91,17 +91,33 @@ export const getIsAiAgentNode = createGetIsAiNode(getIsAiAgentSpan);
 export const getIsAiGenerationNode = createGetIsAiNode(getIsAiGenerationSpan);
 export const getIsExecuteToolNode = createGetIsAiNode(getIsExecuteToolSpan);
 
+export function getStringAttr(node: AITraceSpanNode, field: string): string | undefined {
+  const val = getTraceNodeAttribute(field, node);
+  return typeof val === 'string' ? val : undefined;
+}
+
+export function getNumberAttr(node: AITraceSpanNode, field: string): number | undefined {
+  const val = getTraceNodeAttribute(field, node);
+  if (typeof val === 'number') {
+    return val;
+  }
+  if (typeof val === 'string') {
+    const num = Number(val);
+    return Number.isFinite(num) ? num : undefined;
+  }
+  return undefined;
+}
+
 export function hasError(node: AITraceSpanNode): boolean {
   if (node.errors.size > 0) {
     return true;
   }
-  const spanStatus = node.attributes?.[SpanFields.SPAN_STATUS] as string | undefined;
-  if (spanStatus && typeof spanStatus === 'string') {
+
+  const spanStatus = getStringAttr(node, SpanFields.SPAN_STATUS);
+  if (spanStatus) {
+    // Preserve precedence: when span.status exists, legacy status should not override it.
     return spanStatus.includes('error');
   }
-  const status = node.attributes?.status;
-  if (status && typeof status === 'string') {
-    return status.includes('error');
-  }
-  return false;
+
+  return !!getStringAttr(node, 'status')?.includes('error');
 }

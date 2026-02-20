@@ -21,6 +21,7 @@ from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autof
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
+    AutofixReferrer,
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
@@ -34,7 +35,6 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.models import SummarizeIssueResponse
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -53,6 +53,12 @@ auto_run_source_map = {
     SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
     SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
+}
+
+referrer_map = {
+    SeerAutomationSource.ISSUE_DETAILS: AutofixReferrer.ISSUE_SUMMARY_FIXABILITY,
+    SeerAutomationSource.ALERT: AutofixReferrer.ISSUE_SUMMARY_ALERT_FIXABILITY,
+    SeerAutomationSource.POST_PROCESS: AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
 }
 
 STOPPING_POINT_HIERARCHY = {
@@ -149,6 +155,7 @@ def _trigger_autofix_task(
     event_id: str,
     user_id: int | None,
     auto_run_source: str,
+    referrer: AutofixReferrer = AutofixReferrer.UNKNOWN,
     stopping_point: AutofixStoppingPoint | None = None,
 ):
     """
@@ -189,6 +196,7 @@ def _trigger_autofix_task(
                 group=group,
                 event_id=event_id,
                 user=user,
+                referrer=referrer,
                 auto_run_source=auto_run_source,
                 stopping_point=stopping_point,
             )
@@ -350,7 +358,7 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
-    # Check event count for ALERT source with triage-signals-v0-org
+    # Check event count for ALERT source with seat-based tier
     if is_seer_seat_based_tier_enabled(group.organization):
         if source == SeerAutomationSource.ALERT:
             # Use times_seen_with_pending if available (set by post_process), otherwise fall back
@@ -362,20 +370,9 @@ def run_automation(
             if times_seen < 10:
                 return
 
-        try:
-            times_seen = group.times_seen_with_pending
-        except (AssertionError, AttributeError):
-            times_seen = group.times_seen
-        logger.info(
-            "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
-            group.id,
-            group.project.slug,
-            source.value,
-            times_seen,
-        )
-
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
+    referrer = referrer_map.get(source, AutofixReferrer.UNKNOWN)
 
     sentry_sdk.set_tags(
         {
@@ -408,6 +405,7 @@ def run_automation(
         event_id=event.event_id,
         user_id=user_id,
         auto_run_source=auto_run_source,
+        referrer=referrer,
         stopping_point=stopping_point,
     )
 
@@ -540,9 +538,6 @@ def get_issue_summary(
 
     if group.organization.get_option("sentry:hide_ai_features"):
         return {"detail": "AI features are disabled for this organization."}, 403
-
-    if not get_seer_org_acknowledgement(group.organization):
-        return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 
     cache_key = get_issue_summary_cache_key(group.id)
     lock_key, lock_name = get_issue_summary_lock_key(group.id)

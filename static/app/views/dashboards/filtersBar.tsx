@@ -6,10 +6,11 @@ import {createParser, useQueryState} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   DEFAULT_RELEASES_SORT,
   RELEASES_SORT_OPTIONS,
@@ -24,7 +25,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
@@ -289,9 +289,11 @@ export default function FiltersBar({
         !isPrebuiltDashboard && (
           <Grid flow="column" align="center" gap="md">
             <Button
-              title={
-                !hasEditAccess && t('You do not have permission to edit this dashboard')
-              }
+              tooltipProps={{
+                title:
+                  !hasEditAccess &&
+                  t('You do not have permission to edit this dashboard'),
+              }}
               priority="primary"
               onClick={async () => {
                 await onSave?.();

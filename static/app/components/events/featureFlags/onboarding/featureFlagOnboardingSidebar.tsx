@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -31,7 +32,6 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -196,10 +196,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     label?: ReactNode;
   }>(sdkProviderOptions[0]!);
 
-  const defaultTab = 'sdkSelect';
-  const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
+  const [setupMode, setSetupMode] = useQueryState(
     'mode',
-    defaultTab
+    parseAsString.withDefault('sdkSelect').withOptions({history: 'push', throttleMs: 0})
   );
 
   const currentPlatform = currentProject.platform
@@ -249,7 +248,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                     options={sdkProviderOptions}
                     position="bottom-end"
                     key={sdkProvider.value}
-                    disabled={setupMode() === 'generic'}
+                    disabled={setupMode === 'generic'}
                   />
                 ),
               })}
@@ -262,7 +261,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
             </div>,
           ],
         ]}
-        value={setupMode()}
+        value={setupMode}
         onChange={value => {
           setSetupMode(value);
           if (value === 'generic') {
@@ -325,7 +324,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         <FeatureFlagOtherPlatformOnboarding
           projectSlug={currentProject.slug}
           integration={
-            setupMode() === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
+            setupMode === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
           }
         />
       </Fragment>
@@ -348,7 +347,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         platformKey={currentPlatform.id}
         project={currentProject}
         integration={
-          setupMode() === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
+          setupMode === 'generic' ? SdkProviderEnum.GENERIC : sdkProvider.value
         }
         configType="featureFlagOnboarding"
       />

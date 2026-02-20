@@ -1,16 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventTitleError from 'sentry/components/eventTitleError';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getLocation, isTombstone} from 'sentry/utils/events';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
@@ -54,6 +57,7 @@ interface IssueTitleProps {
 }
 function IssueTitle(props: IssueTitleProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const commonEleProps = {
     'data-test-id': status === 'resolved' ? 'resolved-issue' : undefined,
   };
@@ -73,6 +77,7 @@ function IssueTitle(props: IssueTitleProps) {
         pathname: props.event_id
           ? `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`
           : `/organizations/${organization.slug}/issues/${props.data.id}/`,
+        query: extractSelectionParameters(location.query),
       }}
     >
       <IssueTitleChildren data={props.data} organization={organization} />
@@ -134,7 +139,7 @@ const IconWrapper = styled('span')`
   margin-right: 5px;
 `;
 
-const TitleWithLink = styled(GlobalSelectionLink)`
+const TitleWithLink = styled(Link)`
   align-items: center;
   display: block;
   width: 100%;

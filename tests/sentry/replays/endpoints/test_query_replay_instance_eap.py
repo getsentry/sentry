@@ -142,12 +142,12 @@ class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
         assert "count_segments" in replay1_data
         assert "agg_project_id" in replay1_data
 
-        assert isinstance(
-            replay1_data["agg_project_id"], int
-        ), f"agg_project_id should be int after normalization, got {type(replay1_data['agg_project_id'])}"
-        assert (
-            replay1_data["agg_project_id"] == self.project.id
-        ), f"project_id mismatch: got {replay1_data['agg_project_id']}, expected {self.project.id}"
+        assert isinstance(replay1_data["agg_project_id"], int), (
+            f"agg_project_id should be int after normalization, got {type(replay1_data['agg_project_id'])}"
+        )
+        assert replay1_data["agg_project_id"] == self.project.id, (
+            f"project_id mismatch: got {replay1_data['agg_project_id']}, expected {self.project.id}"
+        )
         assert "count_errors" in replay1_data
         assert "count_warnings" in replay1_data
         assert "count_dead_clicks" in replay1_data

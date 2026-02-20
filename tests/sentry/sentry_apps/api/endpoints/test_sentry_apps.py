@@ -380,7 +380,9 @@ class GetSentryAppsTest(SentryAppsTest):
 
     def test_billing_users_dont_see_apps(self) -> None:
         mock_org_roles = MockOrganizationRoles()
-        with (patch("sentry.roles.organization_roles.get", mock_org_roles.get),):
+        with (
+            patch("sentry.roles.organization_roles.get", mock_org_roles.get),
+        ):
             alice = self.create_member(
                 user=self.create_user(), organization=self.organization, role="alice"
             )

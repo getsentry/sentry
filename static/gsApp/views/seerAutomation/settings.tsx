@@ -188,7 +188,7 @@ export default function SeerAutomationSettings() {
                           'Enable Seer workflows that streamline creating code changes for your review, such as the ability to create pull requests or branches. [docs:Read the docs] to learn more.',
                           {
                             docs: (
-                              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/#disabling-generative-ai-features" />
+                              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/root-cause-analysis/#code-generation" />
                             ),
                           }
                         )}

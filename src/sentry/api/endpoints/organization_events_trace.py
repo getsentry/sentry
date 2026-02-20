@@ -6,7 +6,7 @@ from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
+from typing import Any, Optional, TypedDict, TypeVar, cast
 
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse
@@ -1172,7 +1172,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         error_map = self.construct_error_map(errors)
         parent_events: dict[str, TraceEvent] = {}
         results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
-        to_check: Deque[SnubaTransaction] = deque()
+        to_check: deque[SnubaTransaction] = deque()
         snuba_params = self.get_snuba_params(self.request, self.request.organization)
         # The root of the orphan tree we're currently navigating through
         orphan_root: SnubaTransaction | None = None

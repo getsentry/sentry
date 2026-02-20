@@ -14,7 +14,6 @@ class WarningStatusCheck(StatusCheck):
         self.__warning_set = warning_set
 
     def check(self) -> list[Problem]:
-
         url = None
         try:
             url = urljoin(reverse("sentry-admin-overview"), "status/warnings/")

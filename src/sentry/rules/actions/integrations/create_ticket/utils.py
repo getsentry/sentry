@@ -50,9 +50,9 @@ def create_link(
         - metadata: Optional Object. Can contain `display_name`.
     """
 
-    assert isinstance(
-        installation, IssueBasicIntegration
-    ), "Installation must be an IssueBasicIntegration to create a link"
+    assert isinstance(installation, IssueBasicIntegration), (
+        "Installation must be an IssueBasicIntegration to create a link"
+    )
     external_issue_key = installation.make_external_key(response)
 
     external_issue = ExternalIssue.objects.create(
@@ -138,9 +138,9 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         installation = integration.get_installation(organization.id)
 
-        assert isinstance(
-            installation, IssueBasicIntegration
-        ), "Installation must be an IssueBasicIntegration to create a ticket"
+        assert isinstance(installation, IssueBasicIntegration), (
+            "Installation must be an IssueBasicIntegration to create a ticket"
+        )
         data["title"] = installation.get_group_title(event.group, event)
 
         workflow_id = data.get("workflow_id")

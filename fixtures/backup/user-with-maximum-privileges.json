@@ -40,7 +40,7 @@
             "created_at": "2023-07-27T16:30:53.325Z",
             "last_used_at": null,
             "type": 1,
-            "config": "\"\""
+            "config": ""
         }
     },
     {
@@ -74,7 +74,7 @@
             "project_id": null,
             "organization_id": null,
             "key": "timezone",
-            "value": "\"Europe/Vienna\""
+            "value": "Europe/Vienna"
         }
     },
     {
@@ -92,7 +92,7 @@
             "date_updated": "2023-06-22T23:00:00.123Z",
             "date_added": "2023-06-22T22:54:27.960Z",
             "name": "Super Admin",
-            "permissions": "['broadcasts.admin', 'users.admin', 'options.admin']"
+            "permissions": ["broadcasts.admin", "users.admin", "options.admin"]
         }
     },
     {

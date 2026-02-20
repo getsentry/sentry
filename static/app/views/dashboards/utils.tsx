@@ -14,7 +14,7 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -651,11 +651,12 @@ export const widgetFetchesOwnData = (widgetType: DisplayType) => {
   return widgetTypesThatFetchOwnData.includes(widgetType);
 };
 
-// Custom widgets for prebuilt dashboards are not editable at this time
+// Custom widgets from the widget library that are not editable but still have menu options
 export const isWidgetEditable = (widgetType: DisplayType) => {
   const nonEditableWidgetTypes = [
     DisplayType.SERVER_TREE,
     DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.WHEEL,
   ];
   return !nonEditableWidgetTypes.includes(widgetType);
 };

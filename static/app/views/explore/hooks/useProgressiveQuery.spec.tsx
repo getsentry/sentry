@@ -2,17 +2,17 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   SAMPLING_MODE,
   useProgressiveQuery,
   type SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function useMockHookImpl({
   enabled,

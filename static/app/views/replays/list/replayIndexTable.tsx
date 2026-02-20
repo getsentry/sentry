@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
@@ -23,7 +24,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import BulkDeleteAlert from 'sentry/views/replays/list/bulkDeleteAlert';

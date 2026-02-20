@@ -16,8 +16,11 @@ from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.safestring import SafeString, mark_safe
 from django.utils.timezone import is_aware
-from simplejson import _default_decoder  # type: ignore[attr-defined]  # noqa: S003
-from simplejson import JSONDecodeError, JSONEncoder  # noqa: S003
+from simplejson import (  # type: ignore[attr-defined]  # noqa: S003
+    JSONDecodeError,
+    JSONEncoder,
+    _default_decoder,  # noqa: S003
+)
 
 from bitfield.types import BitHandler
 
@@ -30,7 +33,6 @@ def datetime_to_str(o: datetime.datetime) -> str:
 
 
 def better_default_encoder(o: object) -> object:
-
     if isinstance(o, uuid.UUID):
         return o.hex
     elif isinstance(o, datetime.datetime):
@@ -91,6 +93,13 @@ _default_encoder = JSONEncoder(
     default=better_default_encoder,
 )
 
+_default_sorted_encoder = JSONEncoder(
+    separators=(",", ":"),
+    ignore_nan=True,
+    default=better_default_encoder,
+    sort_keys=True,
+)
+
 _default_escaped_encoder = JSONEncoderForHTML(
     separators=(",", ":"),
     ignore_nan=True,
@@ -105,10 +114,12 @@ def dump(value: Any, fp: IO[str], **kwargs: NoReturn) -> None:
 
 
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def dumps(value: Any, escape: bool = False, **kwargs: NoReturn) -> str:
+def dumps(value: Any, escape: bool = False, sort_keys: bool = False, **kwargs: NoReturn) -> str:
     # Legacy use. Do not use. Use dumps_htmlsafe
     if escape:
         return _default_escaped_encoder.encode(value)
+    if sort_keys:
+        return _default_sorted_encoder.encode(value)
     return _default_encoder.encode(value)
 
 

@@ -898,7 +898,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.autofix.issue_summary",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
-    "sentry.seer.entrypoints.integrations.slack",
+    "sentry.seer.entrypoints.slack.messaging",
     "sentry.snuba.tasks",
     "sentry.tasks.activity",
     "sentry.tasks.assemble",
@@ -978,10 +978,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
         "schedule": timedelta(seconds=10),
-    },
-    "flush-buffers-batch": {
-        "task": "buffer:sentry.tasks.process_buffer.process_pending_batch",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
@@ -1439,6 +1435,12 @@ SENTRY_ORGANIZATION: int | None = None
 
 # Organization ID for granting superuser/staff privileges.
 SUPERUSER_ORG_ID: int | None = None
+
+# SCIM team slugs for managing privileged access.
+# When set, adding/removing members from these teams will grant/revoke the corresponding privileges.
+SENTRY_SCIM_STAFF_TEAM_SLUG: str | None = None
+SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG: str | None = None
+SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG: str | None = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
@@ -2184,7 +2186,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.1.0"
+SELF_HOSTED_STABLE_VERSION = "26.2.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

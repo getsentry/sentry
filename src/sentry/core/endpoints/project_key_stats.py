@@ -38,7 +38,6 @@ class ProjectKeyStatsEndpoint(ProjectKeyEndpoint, StatsMixin):
     )
 
     def get(self, request: Request, project: Project, project_key: ProjectKey) -> Response:
-
         try:
             stats_params = self._parse_args(request)
         except Exception:

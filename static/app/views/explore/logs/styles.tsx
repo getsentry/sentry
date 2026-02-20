@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {HighlightComponent} from 'sentry/components/highlight';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
@@ -404,12 +404,14 @@ export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
   ${p =>
     p.sidebarOpen &&
     css`
-      margin-left: -13px;
+      margin-left: -17px;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
 
       &::after {
         border-left-color: ${p.theme.tokens.border.primary};
-        border-top-left-radius: 0px;
-        border-bottom-left-radius: 0px;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
       }
     `}
 `;

@@ -12,7 +12,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
@@ -35,7 +35,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useRouter from 'sentry/utils/useRouter';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
@@ -66,7 +66,7 @@ type Props = {
   generateEventView: (props: {
     location: Location;
     organization: Organization;
-    shouldUseOTelFriendlyUI: boolean;
+    shouldUseEAP: boolean;
     theme: Theme;
     transactionName: string;
   }) => EventView;
@@ -182,7 +182,7 @@ function PageLayout(props: Props) {
     [getNewRoute, tab, organization, location, projects]
   );
 
-  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
+  const shouldUseEAP = useTransactionSummaryEAP();
 
   if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
@@ -193,7 +193,7 @@ function PageLayout(props: Props) {
     location,
     organization,
     transactionName,
-    shouldUseOTelFriendlyUI,
+    shouldUseEAP,
     theme,
   });
 

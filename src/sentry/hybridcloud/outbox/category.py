@@ -200,9 +200,9 @@ class OutboxCategory(IntEnum):
         from sentry.models.organization import Organization
         from sentry.users.models.user import User
 
-        assert (model is not None) ^ (
-            object_identifier is not None
-        ), "Either model or object_identifier must be specified"
+        assert (model is not None) ^ (object_identifier is not None), (
+            "Either model or object_identifier must be specified"
+        )
 
         if model is not None and hasattr(model, "id"):
             object_identifier = model.id
@@ -236,9 +236,9 @@ class OutboxCategory(IntEnum):
                 elif hasattr(model, "api_token_id"):
                     shard_identifier = model.api_token_id
 
-        assert (
-            model is not None
-        ) or shard_identifier is not None, "Either model or shard_identifier must be specified"
+        assert (model is not None) or shard_identifier is not None, (
+            "Either model or shard_identifier must be specified"
+        )
 
         assert object_identifier is not None
         assert shard_identifier is not None
@@ -358,9 +358,9 @@ class OutboxScope(IntEnum):
 
 
 _missing_categories = set(OutboxCategory) - _used_categories
-assert (
-    not _missing_categories
-), f"OutboxCategories {_missing_categories} not registered to an OutboxScope"
+assert not _missing_categories, (
+    f"OutboxCategories {_missing_categories} not registered to an OutboxScope"
+)
 
 
 class WebhookProviderIdentifier(IntEnum):

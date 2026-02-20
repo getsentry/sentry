@@ -79,9 +79,9 @@ def invoke_future_with_error_handling(
 ) -> None:
     # WorkflowEventData should only ever be a GroupEvent in this context, so we
     # narrow the type here to keep mypy happy.
-    assert isinstance(
-        event_data.event, GroupEvent
-    ), f"Expected a GroupEvent, received: {type(event_data.event).__name__}"
+    assert isinstance(event_data.event, GroupEvent), (
+        f"Expected a GroupEvent, received: {type(event_data.event).__name__}"
+    )
     try:
         callback(event_data.event, future)
     except EXCEPTION_IGNORE_LIST:
@@ -150,15 +150,24 @@ class BaseIssueAlertHandler(ABC):
         return {}
 
     @classmethod
+    def get_action_mapping(cls, action: Action) -> ActionFieldMapping:
+        mapping = ACTION_FIELD_MAPPINGS.get(Action.Type(action.type))
+        if mapping is None:
+            raise ValueError(f"No mapping found for action type: {action.type}")
+        return mapping
+
+    @classmethod
+    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        return "Send a notification"
+
+    @classmethod
     def build_rule_action_blob(
         cls,
         action: Action,
         organization_id: int,
     ) -> dict[str, Any]:
         """Build the base action blob using the standard mapping"""
-        mapping = ACTION_FIELD_MAPPINGS.get(Action.Type(action.type))
-        if mapping is None:
-            raise ValueError(f"No mapping found for action type: {action.type}")
+        mapping = cls.get_action_mapping(action)
         blob: dict[str, Any] = {
             "id": mapping["id"],
         }
@@ -451,7 +460,6 @@ class BaseMetricAlertHandler(ABC):
 
     @classmethod
     def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
-
         event = invocation.event_data.event
 
         # Extract evidence data and priority based on event type

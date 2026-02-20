@@ -118,14 +118,18 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
+  const previousOverflowRef = useRef<string>(null);
   const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
+    previousOverflowRef.current ??= document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     overwriteDrawerConfig({renderer, options});
     options.onOpen?.();
   }, []);
-  const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(
-    () => overwriteDrawerConfig(undefined),
-    []
-  );
+  const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(() => {
+    document.body.style.overflow = previousOverflowRef.current ?? '';
+    previousOverflowRef.current = null;
+    overwriteDrawerConfig(undefined);
+  }, []);
 
   const handleClose = useCallback(() => {
     currentDrawerConfig?.options?.onClose?.();

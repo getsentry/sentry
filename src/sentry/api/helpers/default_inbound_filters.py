@@ -16,7 +16,6 @@ def set_default_inbound_filters(
         "filtered-transaction",
     ),
 ) -> None:
-
     browser_subfilters = [
         "ie",
         "firefox",
