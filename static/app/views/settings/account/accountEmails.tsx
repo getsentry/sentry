@@ -6,7 +6,7 @@ import {z} from 'zod';
 import {AlertLink} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -83,30 +83,32 @@ function AccountEmails() {
       <SentryDocumentTitle title={t('Emails')} />
       <SettingsPageHeader title={t('Email Addresses')} />
       <EmailAddresses />
-      <form.AppForm>
-        <form.FormWrapper>
-          <form.FieldGroup title={t('Add Secondary Emails')}>
-            <form.AppField name="email">
-              {field => (
-                <field.Layout.Row
-                  label={t('Additional Email')}
-                  hintText={t('Designate an alternative email for this account')}
-                >
-                  <field.Input
-                    type="email"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    placeholder={t('e.g. secondary@example.com')}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-          </form.FieldGroup>
-          <Flex justify="end">
-            <form.SubmitButton>{t('Add email')}</form.SubmitButton>
-          </Flex>
-        </form.FormWrapper>
-      </form.AppForm>
+      <FormSearch route="/settings/account/emails/">
+        <form.AppForm>
+          <form.FormWrapper>
+            <form.FieldGroup title={t('Add Secondary Emails')}>
+              <form.AppField name="email">
+                {field => (
+                  <field.Layout.Row
+                    label={t('Additional Email')}
+                    hintText={t('Designate an alternative email for this account')}
+                  >
+                    <field.Input
+                      type="email"
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      placeholder={t('e.g. secondary@example.com')}
+                    />
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
+            </form.FieldGroup>
+            <Flex justify="end">
+              <form.SubmitButton>{t('Add email')}</form.SubmitButton>
+            </Flex>
+          </form.FormWrapper>
+        </form.AppForm>
+      </FormSearch>
 
       <AlertLink.Container>
         <AlertLink
