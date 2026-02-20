@@ -9,7 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {
@@ -29,36 +29,39 @@ export default function SnapshotsPage() {
     snapshotId: string;
   }>();
 
-  const {data, isLoading, isError} = useApiQuery<SnapshotDetailsApiResponse>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug,
-            snapshotId,
-          },
-        }
-      ),
-      {query: {limit: 100}},
-    ],
-    {
+  const {data, isPending, isError, hasNextPage, isFetchingNextPage, fetchNextPage} =
+    useInfiniteApiQuery<SnapshotDetailsApiResponse>({
+      queryKey: [
+        'infinite',
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: projectSlug,
+              snapshotId,
+            },
+          }
+        ),
+        {query: {per_page: 20}},
+      ],
       staleTime: 0,
       enabled: !!projectSlug && !!snapshotId,
-    }
-  );
+    });
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroupName, setSelectedGroupName] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
 
+  const firstPageData = data?.pages[0]?.[0];
+
   const groupedImages = useMemo(() => {
-    if (!data?.images) {
+    if (!data?.pages) {
       return new Map<string, SnapshotImage[]>();
     }
+    const allImages = data.pages.flatMap(page => page[0].images);
     const groups = new Map<string, SnapshotImage[]>();
-    for (const image of data.images) {
+    for (const image of allImages) {
       const name = image.display_name ?? image.file_name;
       const existing = groups.get(name);
       if (existing) {
@@ -68,7 +71,7 @@ export default function SnapshotsPage() {
       }
     }
     return new Map([...groups.entries()].sort(([a], [b]) => a.localeCompare(b)));
-  }, [data?.images]);
+  }, [data?.pages]);
 
   const filteredGroups = useMemo(() => {
     if (!searchQuery) {
@@ -98,7 +101,7 @@ export default function SnapshotsPage() {
     setVariantIndex(0);
   };
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Layout.Page>
@@ -110,7 +113,7 @@ export default function SnapshotsPage() {
     );
   }
 
-  if (isError || !data) {
+  if (isError || !firstPageData) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Layout.Page>
@@ -126,7 +129,7 @@ export default function SnapshotsPage() {
     <SentryDocumentTitle title={t('Snapshot')}>
       <Layout.Page>
         <Layout.Header>
-          <SnapshotHeaderContent projectId={projectId} data={data} />
+          <SnapshotHeaderContent projectId={projectId} data={firstPageData} />
         </Layout.Header>
         <Flex direction="row" gap="0" height="100%" width="100%">
           <SnapshotSidebarContent
@@ -135,6 +138,9 @@ export default function SnapshotsPage() {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onSelectGroupName={handleSelectGroupName}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            fetchNextPage={fetchNextPage}
           />
           <Separator orientation="vertical" />
           <SnapshotMainContent

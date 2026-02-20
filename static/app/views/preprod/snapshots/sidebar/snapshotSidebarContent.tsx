@@ -1,3 +1,4 @@
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -5,13 +6,17 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SnapshotSidebarContentProps {
   currentGroupName: string | null;
+  fetchNextPage: () => Promise<unknown>;
   filteredGroups: Map<string, SnapshotImage[]>;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
   onSearchChange: (query: string) => void;
   onSelectGroupName: (name: string) => void;
   searchQuery: string;
@@ -23,7 +28,30 @@ export function SnapshotSidebarContent({
   searchQuery,
   onSearchChange,
   onSelectGroupName,
+  hasNextPage,
+  isFetchingNextPage,
+  fetchNextPage,
 }: SnapshotSidebarContentProps) {
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !hasNextPage) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      {threshold: 0}
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
     <Flex direction="column" gap="md" minWidth="300px">
       <Container padding="xl">
@@ -60,11 +88,17 @@ export function SnapshotSidebarContent({
             </SidebarItem>
           );
         })}
-        {filteredGroups.size === 0 && (
+        {filteredGroups.size === 0 && !hasNextPage && !isFetchingNextPage && (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
               {t('No images found.')}
             </Text>
+          </Flex>
+        )}
+        <div ref={loadMoreRef} />
+        {isFetchingNextPage && (
+          <Flex align="center" justify="center" padding="md">
+            <LoadingIndicator size={20} />
           </Flex>
         )}
       </Stack>
