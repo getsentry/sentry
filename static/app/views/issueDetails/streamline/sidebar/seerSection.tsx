@@ -118,7 +118,6 @@ export default function SeerSection({
     !issueTypeConfig.autofix && !issueTypeConfig.issueSummary;
 
   const organization = useOrganization();
-  const removeConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
   const isExplorerEnabled =
     isSeerExplorerEnabled(organization) &&
     organization.features.includes('autofix-on-explorer');
@@ -165,11 +164,7 @@ export default function SeerSection({
   // Determine what content to show in the section body
   const renderSectionContent = () => {
     // Welcome entrypoint for orgs that need consent
-    if (
-      (aiConfig.orgNeedsGenAiAcknowledgement ||
-        (!removeConsentFlow && !aiConfig.hasAutofixQuota)) &&
-      !aiConfig.isAutofixSetupLoading
-    ) {
+    if (aiConfig.orgNeedsGenAiAcknowledgement && !aiConfig.isAutofixSetupLoading) {
       return <SeerWelcomeEntrypoint />;
     }
 

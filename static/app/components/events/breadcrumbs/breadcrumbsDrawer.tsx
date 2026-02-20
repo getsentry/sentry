@@ -2,9 +2,10 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
@@ -100,7 +101,7 @@ export function BreadcrumbsDrawer({
   );
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <InputGroup>
         <SearchInput
           size="xs"
@@ -200,8 +201,8 @@ export function BreadcrumbsDrawer({
         value={timeDisplay}
         options={Object.values(BREADCRUMB_TIME_DISPLAY_OPTIONS)}
       />
-      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} borderless />
-    </ButtonBar>
+      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} />
+    </Grid>
   );
 
   return (

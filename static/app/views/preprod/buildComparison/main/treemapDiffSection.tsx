@@ -5,7 +5,7 @@ import type {ECharts, TreemapSeriesOption} from 'echarts';
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
-import {Separator} from '@sentry/scraps/separator/separator';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';

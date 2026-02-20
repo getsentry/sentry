@@ -79,9 +79,9 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
             response = self.client.put(self.url, data)
 
         # Verify our mock was called instead of making real HTTP requests
-        assert (
-            self.codeowner_mock.called
-        ), "Mock should have been called - no external HTTP requests made"
+        assert self.codeowner_mock.called, (
+            "Mock should have been called - no external HTTP requests made"
+        )
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.codeowners.id)

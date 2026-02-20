@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -18,6 +18,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -27,12 +28,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import withSubscription from 'getsentry/components/withSubscription';
 import {ANNUAL} from 'getsentry/constants';
 import subscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
-import {checkForPromptBasedPromotion} from 'getsentry/utils/promotionUtils';
-import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type CancelReason = [string, React.ReactNode];
@@ -104,7 +102,11 @@ function CancelSubscriptionForm() {
   const navigate = useNavigate();
   const api = useApi();
   const {data: subscription, isPending} = useApiQuery<Subscription>(
-    [`/customers/${organization.slug}/`],
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {staleTime: 0}
   );
   const [state, setState] = useState<State>({
@@ -294,36 +296,7 @@ const ButtonList = styled('div')`
   margin-top: ${space(1)};
 `;
 
-interface CancelSubscriptionWrapperProps {
-  subscription: Subscription;
-}
-
-function CancelSubscriptionWrapper({subscription}: CancelSubscriptionWrapperProps) {
-  const api = useApi();
-  const organization = useOrganization();
-  const navigate = useNavigate();
-  const {refetch, data: promotionData} = usePromotionTriggerCheck(organization);
-  const switchToBillingOverview = useCallback(() => {
-    navigate(
-      normalizeUrl({
-        pathname: `/settings/${organization.slug}/billing/overview/`,
-      })
-    );
-  }, [navigate, organization.slug]);
-  useEffect(() => {
-    // when we mount, we know someone is thinking about canceling their subscription
-    if (promotionData) {
-      checkForPromptBasedPromotion({
-        organization,
-        onRefetch: refetch,
-        promptFeature: 'cancel_subscription',
-        subscription,
-        promotionData,
-        onAcceptConditions: switchToBillingOverview,
-      });
-    }
-  }, [api, organization, refetch, subscription, promotionData, switchToBillingOverview]);
-
+function CancelSubscriptionPage() {
   const title = t('Cancel Subscription');
   return (
     <SubscriptionPageContainer background="secondary" data-test-id="cancel-subscription">
@@ -361,6 +334,4 @@ const ExtraContainer = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-export default withSubscription(CancelSubscriptionWrapper, {
-  noLoader: true,
-});
+export default CancelSubscriptionPage;

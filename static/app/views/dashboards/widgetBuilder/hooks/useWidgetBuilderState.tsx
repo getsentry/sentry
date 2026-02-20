@@ -19,11 +19,12 @@ import {
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
+  DEFAULT_CATEGORICAL_BAR_LIMIT,
   DisplayType,
   WidgetType,
   type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
@@ -86,6 +87,9 @@ export const BuilderStateAction = {
   SET_STATE: 'SET_STATE',
   SET_THRESHOLDS: 'SET_THRESHOLDS',
   SET_TRACE_METRIC: 'SET_TRACE_METRIC',
+  // Categorical bar chart specific actions
+  SET_CATEGORICAL_X_AXIS: 'SET_CATEGORICAL_X_AXIS',
+  SET_CATEGORICAL_AGGREGATE: 'SET_CATEGORICAL_AGGREGATE',
 } as const;
 
 type WidgetAction =
@@ -109,6 +113,14 @@ type WidgetAction =
   | {
       payload: TraceMetric | undefined;
       type: typeof BuilderStateAction.SET_TRACE_METRIC;
+    }
+  | {
+      payload: string;
+      type: typeof BuilderStateAction.SET_CATEGORICAL_X_AXIS;
+    }
+  | {
+      payload: Column[];
+      type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE;
     };
 type WidgetBuilderStateActionOptions = {
   updateUrl?: boolean;
@@ -118,6 +130,13 @@ export interface WidgetBuilderState {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
+  /**
+   * Fields/columns used by the widget. Usage varies by display type:
+   * - Table: all columns (both plain fields and aggregates)
+   * - Big Number: aggregate fields
+   * - Line, Area, Bar (Time Series): grouping fields (non-aggregates)
+   * - Bar (Categorical): exactly one (FIELD kind) and exactly one (FUNCTION kind)
+   */
   fields?: Column[];
   legendAlias?: string[];
   limit?: number;
@@ -128,6 +147,10 @@ export interface WidgetBuilderState {
   thresholds?: ThresholdsConfig | null;
   title?: string;
   traceMetric?: TraceMetric;
+  /**
+   * Y-axis aggregates for time-series charts (area, bar, line).
+   * Not used by tables, big numbers, or categorical bar widgets.
+   */
   yAxis?: Column[];
 }
 
@@ -336,6 +359,56 @@ function useWidgetBuilderState(): {
               options
             );
             setQuery(query?.slice(0, 1), options);
+          } else if (action.payload === DisplayType.CATEGORICAL_BAR) {
+            // Categorical bar widgets store both X-axis field (FIELD kind) and
+            // aggregate (FUNCTION kind) in state.fields, not yAxis
+            setYAxis([], options);
+            setLegendAlias([], options);
+
+            // Build the aggregate list from existing state, similar to time-series charts
+            const nextAggregates = [
+              ...aggregatesWithoutAlias.slice(0, 1),
+              ...(yAxisWithoutAlias?.slice(0, 1) ?? []),
+            ];
+
+            // If no existing aggregate found, use the dataset's default
+            if (nextAggregates.length === 0) {
+              nextAggregates.push({
+                ...currentDatasetConfig.defaultField,
+                alias: undefined,
+              });
+            }
+
+            // Get an X-axis field from existing columns or use the dataset's default
+            const nextColumns = [...columnsWithoutAlias.slice(0, 1)];
+            if (nextColumns.length === 0 && currentDatasetConfig.defaultCategoryField) {
+              nextColumns.push({
+                kind: FieldValueKind.FIELD,
+                field: currentDatasetConfig.defaultCategoryField,
+                alias: undefined,
+              });
+            }
+
+            const categoricalBarFields = [...nextColumns, ...nextAggregates.slice(0, 1)];
+            setFields(categoricalBarFields, options);
+
+            // Set default sort to descending on the aggregate (like tables)
+            const aggregateField = nextAggregates[0];
+            if (aggregateField) {
+              setSort(
+                [
+                  {
+                    kind: 'desc',
+                    field: generateFieldAsString(aggregateField),
+                  },
+                ],
+                options
+              );
+            }
+
+            setQuery(query?.slice(0, 1), options);
+            // Categorical bars show more categories than time-series groupings
+            setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [
@@ -390,7 +463,44 @@ function useWidgetBuilderState(): {
           setDataset(action.payload, options);
           setDisplayType(nextDisplayType, options);
 
-          if (isChartDisplayType(nextDisplayType)) {
+          if (nextDisplayType === DisplayType.CATEGORICAL_BAR) {
+            // Categorical bar charts need both an X-axis field and aggregate
+            setYAxis([], options);
+
+            const categoricalBarFields: Column[] = [];
+
+            // Add X-axis field from dataset config
+            if (config.defaultCategoryField) {
+              categoricalBarFields.push({
+                kind: FieldValueKind.FIELD,
+                field: config.defaultCategoryField,
+              });
+            }
+
+            // Add aggregate from dataset config
+            if (config.defaultField) {
+              categoricalBarFields.push({
+                ...config.defaultField,
+                alias: undefined,
+              });
+            }
+            setFields(categoricalBarFields, options);
+
+            // Sort by the aggregate descending
+            const aggregateField = categoricalBarFields.find(
+              f => f.kind === FieldValueKind.FUNCTION
+            );
+            if (aggregateField) {
+              setSort(
+                [{kind: 'desc', field: generateFieldAsString(aggregateField)}],
+                options
+              );
+            } else {
+              setSort([], options);
+            }
+            // Categorical bars show more categories than time-series groupings
+            setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
+          } else if (usesTimeSeriesData(nextDisplayType)) {
             setFields([], options);
             setYAxis(
               config.defaultWidgetQuery.aggregates?.map(aggregate =>
@@ -399,6 +509,7 @@ function useWidgetBuilderState(): {
               options
             );
             setSort(decodeSorts(config.defaultWidgetQuery.orderby), options);
+            setLimit(undefined, options);
           } else {
             setYAxis([], options);
             setFields(
@@ -411,13 +522,13 @@ function useWidgetBuilderState(): {
                 : decodeSorts(config.defaultWidgetQuery.orderby),
               options
             );
+            setLimit(undefined, options);
           }
 
           setThresholds(undefined, options);
           setQuery([config.defaultWidgetQuery.conditions], options);
           setLegendAlias([], options);
           setSelectedAggregate(undefined, options);
-          setLimit(undefined, options);
           setLinkedDashboards([], options);
           break;
         }
@@ -676,7 +787,7 @@ function useWidgetBuilderState(): {
             // Check the validity of the aggregates against the new trace metric and
             // set fields and sorting accordingly
             let updatedAggregates: Column[] = [];
-            const aggregateSource = isChartDisplayType(displayType) ? yAxis : fields;
+            const aggregateSource = usesTimeSeriesData(displayType) ? yAxis : fields;
             const validAggregateOptions = OPTIONS_BY_TYPE[action.payload.type] ?? [];
 
             if (aggregateSource && validAggregateOptions.length > 0) {
@@ -705,7 +816,7 @@ function useWidgetBuilderState(): {
               });
 
               // Update the appropriate source
-              if (isChartDisplayType(displayType)) {
+              if (usesTimeSeriesData(displayType)) {
                 setYAxis(updatedAggregates, options);
               } else {
                 setFields(updatedAggregates, options);
@@ -722,8 +833,8 @@ function useWidgetBuilderState(): {
                 action.payload,
                 // Depending on the display type, the updated aggregates can be either
                 // the yAxis or the fields
-                isChartDisplayType(displayType) ? updatedAggregates : yAxis,
-                isChartDisplayType(displayType) ? fields : updatedAggregates
+                usesTimeSeriesData(displayType) ? updatedAggregates : yAxis,
+                usesTimeSeriesData(displayType) ? fields : updatedAggregates
               )
             ) {
               if (updatedAggregates.length > 0) {
@@ -742,6 +853,63 @@ function useWidgetBuilderState(): {
               } else {
                 setSort([], options);
               }
+            }
+          }
+          break;
+        case BuilderStateAction.SET_CATEGORICAL_X_AXIS:
+          // Only applies to categorical bar charts
+          if (displayType === DisplayType.CATEGORICAL_BAR) {
+            // Preserve existing aggregates, update only the X-axis field
+            const existingAggregates =
+              fields?.filter(f => f.kind === FieldValueKind.FUNCTION) ?? [];
+            const newXAxisField: Column = {
+              kind: FieldValueKind.FIELD,
+              field: action.payload,
+            };
+            setFields([newXAxisField, ...existingAggregates], options);
+
+            // If sort was on the old X-axis field, reset to first aggregate
+            // (sort options for categorical bars are columns + aggregates)
+            const currentSortField = sort?.[0]?.field;
+            const oldXAxisField = fields?.find(f => f.kind === FieldValueKind.FIELD);
+            const wasOnOldXAxis =
+              oldXAxisField && currentSortField === generateFieldAsString(oldXAxisField);
+
+            if (wasOnOldXAxis && existingAggregates.length > 0) {
+              setSort(
+                [
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateFieldAsString(existingAggregates[0]!),
+                  },
+                ],
+                options
+              );
+            } else if (wasOnOldXAxis) {
+              // No aggregates to fall back to, clear the sort
+              setSort([], options);
+            }
+          }
+          break;
+        case BuilderStateAction.SET_CATEGORICAL_AGGREGATE:
+          // Only applies to categorical bar charts
+          if (displayType === DisplayType.CATEGORICAL_BAR) {
+            // Preserve existing X-axis field, update only the aggregates
+            const existingXAxisFields =
+              fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
+            setFields([...existingXAxisFields, ...action.payload], options);
+
+            // Update sort to use the first aggregate (if any)
+            if (action.payload.length > 0) {
+              setSort(
+                [
+                  {
+                    kind: 'desc',
+                    field: generateFieldAsString(action.payload[0]!),
+                  },
+                ],
+                options
+              );
             }
           }
           break;

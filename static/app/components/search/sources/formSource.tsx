@@ -1,15 +1,17 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
-import type {Field, FieldObject, JsonFormObject} from 'sentry/components/forms/types';
+import {FORM_FIELD_REGISTRY} from '@sentry/scraps/form';
+
+import type {Field, JsonFormObject} from 'sentry/components/forms/types';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 
-import type {ChildProps, Result, ResultItem} from './types';
+import type {ChildProps, Result} from './types';
 import {makeResolvedTs, strGetFn} from './utils';
 
-export type FormSearchField = {
+type FormSearchField = {
   description: React.ReactNode;
-  field: FieldObject;
+  field: {name: string};
   route: string;
   title: React.ReactNode;
 };
@@ -51,17 +53,32 @@ function createSearchMap({
   }));
 }
 
-function getSearchMap() {
-  if (ALL_FORM_FIELDS_CACHED !== null) {
-    return ALL_FORM_FIELDS_CACHED;
-  }
+/**
+ * Get fields from the new Scraps form system (statically extracted)
+ */
+function getNewFormFields() {
+  return Object.values(FORM_FIELD_REGISTRY).map(f => ({
+    title: f.label ?? f.name,
+    description: f.hintText ?? '',
+    route: f.route,
+    field: {
+      name: f.name,
+      label: f.label,
+      help: f.hintText,
+    },
+  }));
+}
 
+/**
+ * Get fields from the old form system (data/forms/*.tsx files)
+ */
+function getOldFormFields(): FormSearchField[] {
   // Load all form configuration files via webpack that export a named `route`
   // as well as either `fields` or `formGroups`
   const context = require.context('sentry/data/forms', true, /\.tsx?$/);
 
   // Get a list of all form fields defined in `../data/forms`
-  const allFormFields: FormSearchField[] = context.keys().flatMap((key: any) => {
+  return context.keys().flatMap((key: any) => {
     const mod = context(key);
 
     // Since we're dynamically importing an entire directly, there could be malformed modules defined?
@@ -83,9 +100,23 @@ function getSearchMap() {
 
     return [];
   });
+}
 
-  ALL_FORM_FIELDS_CACHED = allFormFields;
-  return allFormFields;
+function getSearchMap() {
+  if (ALL_FORM_FIELDS_CACHED !== null) {
+    return ALL_FORM_FIELDS_CACHED;
+  }
+
+  const oldFormFields = getOldFormFields();
+  const newFormFields = getNewFormFields();
+
+  // Merge both sources, with new form fields taking precedence for same route+field
+  const fieldMap = new Map<string, FormSearchField>();
+  oldFormFields.forEach(f => fieldMap.set(`${f.route}#${f.field.name}`, f));
+  newFormFields.forEach(f => fieldMap.set(`${f.route}#${f.field.name}`, f));
+
+  ALL_FORM_FIELDS_CACHED = Array.from(fieldMap.values());
+  return ALL_FORM_FIELDS_CACHED;
 }
 
 /**
@@ -132,7 +163,7 @@ function FormSource({searchOptions, query, children}: Props) {
           resultType: 'field',
           to: {pathname: item.route, hash: `#${encodeURIComponent(item.field.name)}`},
           resolvedTs,
-        } as ResultItem,
+        },
         ...rest,
       })) ?? []
     );

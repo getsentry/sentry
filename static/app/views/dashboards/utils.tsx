@@ -14,7 +14,7 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -621,14 +621,42 @@ export function applyDashboardFilters(
   return baseQuery;
 }
 
-export const isChartDisplayType = (displayType?: DisplayType) => {
+/**
+ * Returns true if the display type uses time-series data (events-stats endpoint)
+ * and stores aggregates in yAxis state. Returns false for display types that
+ * use table-style data (events endpoint) and store everything in fields state.
+ */
+export const usesTimeSeriesData = (displayType?: DisplayType) => {
   if (!displayType) {
     return true;
   }
   return ![
     DisplayType.BIG_NUMBER,
-    DisplayType.TABLE,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.DETAILS,
+    DisplayType.SERVER_TREE,
+    DisplayType.TABLE,
     DisplayType.WHEEL,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
   ].includes(displayType);
+};
+
+// Custom widgets that fetch their own data (and don't use genericWidgetQueries)
+// handle error state and loading state on their own
+export const widgetFetchesOwnData = (widgetType: DisplayType) => {
+  const widgetTypesThatFetchOwnData = [
+    DisplayType.SERVER_TREE,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
+  ];
+  return widgetTypesThatFetchOwnData.includes(widgetType);
+};
+
+// Custom widgets from the widget library that are not editable but still have menu options
+export const isWidgetEditable = (widgetType: DisplayType) => {
+  const nonEditableWidgetTypes = [
+    DisplayType.SERVER_TREE,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.WHEEL,
+  ];
+  return !nonEditableWidgetTypes.includes(widgetType);
 };

@@ -822,12 +822,12 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert found_long_tag is not None, f"Expected trimmed tag not found. Tags: {root['tags']}"
 
         # Verify the tag key and value are trimmed to approximately 200 characters
-        assert (
-            len(found_long_tag["key"]) <= 200
-        ), f"Tag key too long: {len(found_long_tag['key'])} chars"
-        assert (
-            len(found_long_tag["value"]) <= 200
-        ), f"Tag value too long: {len(found_long_tag['value'])} chars"
+        assert len(found_long_tag["key"]) <= 200, (
+            f"Tag key too long: {len(found_long_tag['key'])} chars"
+        )
+        assert len(found_long_tag["value"]) <= 200, (
+            f"Tag value too long: {len(found_long_tag['value'])} chars"
+        )
 
         # Verify they start with the expected pattern (not None)
         assert found_long_tag["key"].startswith("somethinglongsomethinglong")

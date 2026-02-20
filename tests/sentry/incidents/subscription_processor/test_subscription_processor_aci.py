@@ -933,7 +933,6 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
 
     @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     def test_crash_rate_detector_when_session_count_is_higher_than_minimum_threshold(self) -> None:
-
         # Send Critical Update
         update_value = (1 - self.critical_threshold / 100) + 0.05
         self.send_crash_rate_detector_update(
@@ -948,7 +947,6 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
     def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(
         self, helper_metrics: MagicMock
     ) -> None:
-
         update_value = (1 - self.critical_threshold / 100) + 0.05
         self.send_crash_rate_detector_update(
             value=update_value,

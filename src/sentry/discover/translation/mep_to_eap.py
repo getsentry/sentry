@@ -145,6 +145,7 @@ def column_switcheroo(term):
         "timestamp.to_day": "timestamp",
         "timestamp.to_hour": "timestamp",
         "platform.name": "platform",
+        "span.module": "span.category",
         # parsed MRI column names that need to be swapped
         "duration": "span.duration",
         "exclusive_time": "span.self_time",
@@ -353,7 +354,6 @@ def translate_equations(equations):
     dropped_equations = []
 
     for equation in equations:
-
         flattened_equation: list[str] = []
 
         # strip equation prefix

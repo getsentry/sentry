@@ -220,11 +220,53 @@ jobs:
           DEBUG_PRINT_LIMIT: 0
         run: pnpm run test-ci --forceExit
 
+  form-field-registry:
+    if: needs.files-changed.outputs.frontend_all == 'true'
+    needs: files-changed
+    name: form field registry
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        id: setup-node
+        with:
+          node-version-file: '.node-version'
+
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
+
+      - name: node_modules cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.node-version') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate form field registry
+        run: node --experimental-transform-types scripts/extractFormFields.ts
+
+      - name: Check for changes
+        run: |
+          if ! git diff --exit-code static/app/components/core/form/generatedFieldRegistry.ts; then
+            echo ""
+            echo "❌ Form field registry is out of sync!"
+            echo ""
+            echo "Run the following command and commit the changes:"
+            echo "  node --experimental-transform-types scripts/extractFormFields.ts"
+            echo ""
+            exit 1
+          fi
+
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
   frontend-required-check:
-    needs: [files-changed, frontend-jest-tests, typescript, eslint, knip]
+    needs:
+      [files-changed, frontend-jest-tests, typescript, eslint, knip, form-field-registry]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()

@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
@@ -74,16 +74,12 @@ function WelcomeScreen({
   group: Group;
   project: Project;
 }) {
-  const organization = useOrganization();
-  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
-
   return (
     <Stack gap="2xl">
-      {skipConsentFlow && (
-        <StyledCard>
-          <GroupSummary group={group} event={event} project={project} />
-        </StyledCard>
-      )}
+      <StyledCard>
+        <GroupSummary group={group} event={event} project={project} />
+      </StyledCard>
+
       <AiSetupDataConsent groupId={group.id} />
     </Stack>
   );
@@ -92,15 +88,12 @@ function WelcomeScreen({
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
-  const seerOnboardingCheck = useSeerOnboardingCheck();
+  const {isPending, data} = useSeerOnboardingCheck();
 
   const seatBasedSeer = organization.features.includes('seat-based-seer-enabled');
 
   // Handle loading state at the top level
-  if (
-    aiConfig.isAutofixSetupLoading ||
-    (seatBasedSeer && seerOnboardingCheck.isPending)
-  ) {
+  if (aiConfig.isAutofixSetupLoading || (seatBasedSeer && isPending)) {
     return (
       <SeerDrawerContainer className="seer-drawer-container">
         <SeerDrawerHeader>
@@ -150,12 +143,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       noAutofixQuota ||
       // needs to configure repos
       !aiConfig.seerReposLinked ||
-      // needs to have autofix enabled for this group's project
-      !aiConfig.autofixEnabled ||
-      // needs to enable autofix
-      !seerOnboardingCheck.data?.isAutofixEnabled ||
-      // catch all, ensure seer is configured
-      !seerOnboardingCheck.data?.isSeerConfigured
+      !data?.hasSupportedScmIntegration
     ) {
       return (
         <SeerDrawerContainer className="seer-drawer-container">
@@ -422,13 +410,13 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           />
         </Flex>
         <ButtonBarWrapper data-test-id="seer-button-bar">
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Feature features={['organizations:autofix-seer-preferences']}>
               <LinkButton
                 external
                 href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 size="xs"
-                title={t('Project Settings for Seer')}
+                tooltipProps={{title: t('Project Settings for Seer')}}
                 aria-label={t('Project Settings for Seer')}
                 icon={<IconSettings />}
               />
@@ -440,19 +428,19 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
                   reset();
                   aiConfig.refetchAutofixSetup?.();
                 }}
-                title={
-                  autofixData?.last_triggered_at
+                tooltipProps={{
+                  title: autofixData?.last_triggered_at
                     ? tct('Last run at [date]', {
                         date: <DateTime date={lastTriggeredAt} />,
                       })
-                    : null
-                }
+                    : null,
+                }}
                 disabled={!autofixData}
               >
                 {t('Start Over')}
               </Button>
             )}
-          </ButtonBar>
+          </Grid>
         </ButtonBarWrapper>
       </SeerDrawerNavigator>
 
@@ -527,10 +515,12 @@ export const useOpenSeerDrawer = ({
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
-      drawerCss: css`
-        height: fit-content;
-        max-height: 100%;
-      `,
+      drawerCss: isExplorerVersion
+        ? undefined
+        : css`
+            height: fit-content;
+            max-height: 100%;
+          `,
       resizable: !isExplorerVersion,
       drawerWidth: isExplorerVersion ? '50%' : undefined,
       shouldCloseOnInteractOutside: () => {
@@ -593,6 +583,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 
@@ -602,6 +593,9 @@ const SeerDrawerBody = styled(DrawerBody)`
   scroll-behavior: smooth;
   /* Move the scrollbar to the left edge */
   scroll-margin: 0 ${space(2)};
+  display: flex;
+  gap: ${space(2)};
+  flex-direction: column;
   direction: rtl;
   * {
     direction: ltr;

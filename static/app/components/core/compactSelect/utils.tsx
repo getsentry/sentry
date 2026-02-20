@@ -116,11 +116,12 @@ export function getHiddenOptions<Value extends SelectKey>(
   //
   // First, filter options using `search` value
   //
-  const filterOption = (opt: SelectOption<Value>) =>
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    `${opt.label ?? ''}${opt.textValue ?? ''}`
-      .toLowerCase()
-      .includes(search.toLowerCase());
+  const filterOption = (opt: SelectOption<Value>) => {
+    // Build search string: use textValue if provided, otherwise use label only if it's a string
+    const searchableText =
+      opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
+    return searchableText.toLowerCase().includes(search.toLowerCase());
+  };
 
   const hiddenOptionsSet = new Set<SelectKey>();
   const remainingItems = items

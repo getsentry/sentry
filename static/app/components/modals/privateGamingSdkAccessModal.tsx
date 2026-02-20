@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Prose} from '@sentry/scraps/text/prose';
+import {Prose} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -19,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   fetchMutation,
@@ -87,9 +88,12 @@ export function PrivateGamingSdkAccessModal({
     isError,
     data: userIdentities,
     refetch,
-  } = useApiQuery<UserIdentityConfig[]>(['/users/me/user-identities/'], {
-    staleTime: Infinity,
-  });
+  } = useApiQuery<UserIdentityConfig[]>(
+    [getApiUrl('/users/$userId/user-identities/', {path: {userId: 'me'}})],
+    {
+      staleTime: Infinity,
+    }
+  );
 
   const mutation = useMutation<
     ConsoleSdkInviteResponse,
@@ -430,7 +434,7 @@ export function PrivateGamingSdkAccessModal({
         )}
       </Body>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {hasNewGitHubFlow ? (
             // New flow footer
             showSuccessView ? (
@@ -466,7 +470,7 @@ export function PrivateGamingSdkAccessModal({
               </Button>
             </Fragment>
           )}
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

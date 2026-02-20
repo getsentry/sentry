@@ -5,14 +5,13 @@ from collections import deque
 from collections.abc import Mapping, MutableMapping, Sequence
 from concurrent.futures import Future
 from functools import partial
-from typing import Any, Deque, NamedTuple
+from typing import Any, NamedTuple
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import Commit, Message, Partition, Topic
-from confluent_kafka import KafkaError, KafkaException
+from confluent_kafka import KafkaError, KafkaException, Producer
 from confluent_kafka import Message as ConfluentMessage
-from confluent_kafka import Producer
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +90,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         self.__message_router = message_router
         self.__closed = False
         self.__offsets_to_be_committed: MutableMapping[Partition, int] = {}
-        self.__queue: Deque[tuple[Mapping[Partition, int], Future[str]]] = deque()
+        self.__queue: deque[tuple[Mapping[Partition, int], Future[str]]] = deque()
         self.__all_producers = message_router.get_all_producers()
 
     def poll(self) -> None:
@@ -143,13 +142,15 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
 
         future: Future[str] = Future()
         future.set_running_or_notify_cancel()
-        producer.produce(
-            topic=topic.name,
-            value=output_message.payload.value,
-            key=output_message.payload.key,
-            headers=output_message.payload.headers,
-            on_delivery=partial(self.__delivery_callback, future),
-        ),
+        (
+            producer.produce(
+                topic=topic.name,
+                value=output_message.payload.value,
+                key=output_message.payload.key,
+                headers=output_message.payload.headers,
+                on_delivery=partial(self.__delivery_callback, future),
+            ),
+        )
         self.__queue.append((output_message.committable, future))
 
     def terminate(self) -> None:

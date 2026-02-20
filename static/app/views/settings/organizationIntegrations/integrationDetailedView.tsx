@@ -19,6 +19,7 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
   getIntegrationStatus,
@@ -70,7 +71,9 @@ function makeIntegrationQueryKey({
   orgSlug: string;
 }): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/integrations/`,
+    getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       query: {
         provider_key: integrationSlug,
@@ -101,7 +104,9 @@ export default function IntegrationDetailedView() {
     isError: isInformationError,
   } = useApiQuery<IntegrationInformation>(
     [
-      `/organizations/${organization.slug}/config/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           provider_key: integrationSlug,

@@ -633,8 +633,8 @@ class Factories:
                 },
                 {
                     "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                    "service": "mail",
-                    "name": "Send a notification via mail",
+                    "service": "webhooks",
+                    "name": "Send a notification via webhooks",
                 },
             ]
             actions = action_data
@@ -1066,7 +1066,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_user(
-        email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs
+        email=None, is_superuser=False, is_staff=False, is_active=True, is_test_user=True, **kwargs
     ) -> User:
         if email is None:
             email = uuid4().hex + "@example.com"
@@ -1078,7 +1078,9 @@ class Factories:
         )
         if kwargs.get("password") is None:
             user.set_password("admin")
-        user.save()
+        # XXX: while we're using the email_unique field as a db-level constraint on new users with existing emails,
+        # we should ignore the email_unique field for any tests that require creating users with the same email
+        user.save(is_test_user=is_test_user)
 
         # UserEmail is created by a signal
         assert UserEmail.objects.filter(user=user, email=email).update(is_verified=True)

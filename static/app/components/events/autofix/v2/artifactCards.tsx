@@ -473,7 +473,7 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
             path: {organizationIdOrSlug: organization.slug},
           }),
         ]
-      : ([''] as ApiQueryKey),
+      : ([''] as unknown as ApiQueryKey),
     {
       enabled: !!email,
       staleTime: 0,
@@ -490,7 +490,7 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
           }),
           {query: {query: name}},
         ]
-      : ([''] as ApiQueryKey),
+      : ([''] as unknown as ApiQueryKey),
     {
       enabled: !!shouldTryNameMatch,
       staleTime: 0,
@@ -650,7 +650,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                     <Flex justify="between">
                       <Flex align="center" gap="md" paddingLeft="xs">
                         {hasAssigneeMatch && userForAvatar ? (
-                          <UserAvatar user={userForAvatar} size={24} gravatar />
+                          <UserAvatar user={userForAvatar} size={24} />
                         ) : (
                           <IconUser size="md" variant="muted" />
                         )}

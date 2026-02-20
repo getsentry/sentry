@@ -2,9 +2,8 @@ import {useState} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
-import {CompositeSelect} from './composite';
 
 describe('CompositeSelect', () => {
   it('renders', async () => {

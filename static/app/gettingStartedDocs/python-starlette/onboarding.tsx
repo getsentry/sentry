@@ -64,14 +64,11 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'Install [code:sentry-sdk] from PyPI with the [code:starlette] extra:',
-            {
-              code: <code />,
-            }
-          ),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
+            code: <code />,
+          }),
         },
-        getPythonInstallCodeBlock({packageName: 'sentry-sdk[starlette]'}),
+        getPythonInstallCodeBlock({additionalPackage: 'starlette'}),
       ],
     },
   ],

@@ -11,7 +11,9 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -35,11 +37,36 @@ function WidgetTemplatesList({
 }: WidgetTemplatesListProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const [selectedWidget, setSelectedWidget] = useState<number | null>(0);
+  const location = useLocation();
+  const widgets = getTopNConvertedDefaultWidgets(organization);
+
+  const widgetTemplateId = decodeScalar(location.query?.widgetTemplateId);
+  const initialSelectedIndex = widgetTemplateId
+    ? Math.max(
+        0,
+        widgets.findIndex(w => w.id === widgetTemplateId)
+      )
+    : null;
+  const [selectedWidget, setSelectedWidget] = useState<number | null>(
+    initialSelectedIndex
+  );
 
   const {dispatch} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const api = useApi();
+
+  useEffect(() => {
+    if (initialSelectedIndex !== null) {
+      const initialWidget = widgets[initialSelectedIndex];
+      if (initialWidget) {
+        dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: convertWidgetToBuilderStateParams(initialWidget),
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     trackAnalytics('dashboards_views.widget_builder.templates.open', {
@@ -48,8 +75,6 @@ function WidgetTemplatesList({
     // We only want to track this once when the component is mounted
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const widgets = getTopNConvertedDefaultWidgets(organization);
 
   const handleSave = useCallback(
     async (widget: Widget) => {
@@ -94,26 +119,28 @@ function WidgetTemplatesList({
                 <WidgetDescription>{widget.description}</WidgetDescription>
                 {selectedWidget === index && (
                   <Flex marginTop="xl" gap="2xl">
-                    <Button
-                      size="sm"
-                      onClick={e => {
-                        e.stopPropagation();
-                        setOpenWidgetTemplates(false);
-                        setCustomizeFromLibrary(true);
-                        // reset preview when customizing templates
-                        setIsPreviewDraggable(false);
-                        trackAnalytics(
-                          'dashboards_views.widget_builder.templates.customize',
-                          {
-                            title: widget.title,
-                            widget_type: widget.widgetType ?? '',
-                            organization,
-                          }
-                        );
-                      }}
-                    >
-                      {t('Customize')}
-                    </Button>
+                    {widget.isCustomizable && (
+                      <Button
+                        size="sm"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setOpenWidgetTemplates(false);
+                          setCustomizeFromLibrary(true);
+                          // reset preview when customizing templates
+                          setIsPreviewDraggable(false);
+                          trackAnalytics(
+                            'dashboards_views.widget_builder.templates.customize',
+                            {
+                              title: widget.title,
+                              widget_type: widget.widgetType ?? '',
+                              organization,
+                            }
+                          );
+                        }}
+                      >
+                        {t('Customize')}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       onClick={e => {

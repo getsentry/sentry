@@ -21,11 +21,6 @@ export interface DO_NOT_USE_CommonButtonProps {
    */
   analyticsParams?: Record<string, any>;
   /**
-   * Removes borders from the button.
-   * @deprecated Use `priority="transparent"` instead.
-   */
-  borderless?: boolean;
-  /**
    * Indicates that the button is "doing" something.
    */
   busy?: boolean;
@@ -45,13 +40,16 @@ export interface DO_NOT_USE_CommonButtonProps {
    */
   size?: 'zero' | 'xs' | 'sm' | 'md';
   /**
-   * Display a tooltip for the button.
+   * Button Tooltip Props
    */
+  tooltipProps?: ButtonTooltipProps;
+}
+
+interface ButtonTooltipProps extends Omit<
+  TooltipProps,
+  'children' | 'skipWrapper' | 'title'
+> {
   title?: TooltipProps['title'];
-  /**
-   * Additional properties for the Tooltip when `title` is set.
-   */
-  tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
 }
 
 type ButtonElementProps = Omit<

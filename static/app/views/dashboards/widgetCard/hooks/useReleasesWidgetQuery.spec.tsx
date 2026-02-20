@@ -5,7 +5,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {SessionField} from 'sentry/types/sessions';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -448,6 +448,50 @@ describe('useReleasesTableQuery', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             per_page: 25,
+          }),
+        })
+      );
+    });
+  });
+
+  it('passes per_page to sessions endpoint when using session.status grouping', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      limit: 6,
+      queries: [
+        {
+          name: 'test',
+          fields: [SessionField.STATUS, `sum(${SessionField.SESSION})`],
+          aggregates: [`sum(${SessionField.SESSION})`],
+          columns: [SessionField.STATUS],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sessions/',
+      body: SessionsFieldFixture(`sum(${SessionField.SESSION})`),
+    });
+
+    renderHook(
+      () =>
+        useReleasesTableQuery({
+          widget,
+          organization,
+          pageFilters,
+          enabled: true,
+        }),
+      {wrapper: createWrapper()}
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/sessions/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 6,
           }),
         })
       );

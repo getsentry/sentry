@@ -1,9 +1,9 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 
-import {Button} from '@sentry/scraps/button/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openAttributeBreakdownViewerModal} from 'sentry/actionCreators/modal';
 import {IconExpand} from 'sentry/icons';
@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
+import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 
 import {
   CHART_BASELINE_SERIES_NAME,
@@ -38,6 +39,7 @@ export function Chart({
   cohort2Total: number;
   theme: Theme;
 }) {
+  const query = useQueryParamsQuery();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartWidth, setChartWidth] = useState(0);
 
@@ -155,6 +157,7 @@ export function Chart({
                 attribute,
                 cohort1Total,
                 cohort2Total,
+                query,
               })
             }
           />

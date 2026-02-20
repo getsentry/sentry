@@ -83,7 +83,7 @@ export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCar
             size="zero"
             priority="transparent"
             icon={isFiltered ? <IconClose /> : <IconFilter />}
-            title={filterLabel}
+            tooltipProps={{title: filterLabel}}
             aria-label={filterLabel}
           />
         )}

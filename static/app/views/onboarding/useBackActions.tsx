@@ -65,7 +65,7 @@ export function useBackActions({
   }, [api, organization, onboardingContext, recentCreatedProject]);
 
   const backStepActions = useCallback(
-    ({
+    async ({
       prevStep,
       browserBackButton,
     }: {
@@ -105,7 +105,10 @@ export function useBackActions({
           platform: recentCreatedProject.slug,
           project_id: recentCreatedProject.id,
         });
-        deleteRecentCreatedProject();
+        // Await deletion so the projects store is updated before navigating
+        // back. Without this, re-selecting the same platform can see stale
+        // store data and skip project creation.
+        await deleteRecentCreatedProject();
       }
 
       if (!browserBackButton) {

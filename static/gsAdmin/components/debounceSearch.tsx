@@ -49,7 +49,7 @@ function DebounceSearch({
   const api = useApi();
 
   const debouncedSearch = useRef(
-    debounce(async (searchHost, value) => {
+    debounce(async (searchHost, searchPath, value) => {
       // Avoid slow-fetch race conditions
       api.clear();
       setError('');
@@ -61,7 +61,7 @@ function DebounceSearch({
             query: [queryParam, value].filter(v => v).join(':'),
             per_page: 10,
           };
-          const results = await api.requestPromise(path, {
+          const results = await api.requestPromise(searchPath, {
             method: 'GET',
             host: searchHost,
             data: queryParams,
@@ -81,9 +81,9 @@ function DebounceSearch({
       value ? setLoading(true) : setLoading(false);
       value ? setShowResults(true) : setShowResults(false);
       setQuery(value);
-      debouncedSearch(host, value);
+      debouncedSearch(host, path, value);
     },
-    [host, debouncedSearch]
+    [host, path, debouncedSearch]
   );
 
   useEffect(() => {
@@ -120,7 +120,7 @@ function DebounceSearch({
     setLoading(false);
     setQueryResults([]);
     setShowResults(false);
-  }, [escapePress, debouncedSearch, api, host]);
+  }, [escapePress, debouncedSearch, api, host, path]);
 
   const renderSuggestion = (item: any, idx: number) => {
     return (

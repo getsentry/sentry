@@ -2,7 +2,8 @@ import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -218,7 +219,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
   }
 
   const actions = alertButton && (
-    <ButtonBar gap="lg">
+    <Grid flow="column" align="center" gap="lg">
       {alertButton}
       <Button
         icon={<IconClose size="sm" />}
@@ -234,10 +235,10 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         }}
         size="zero"
         priority="transparent"
-        title={t('Dismiss')}
+        tooltipProps={{title: t('Dismiss')}}
         aria-label={t('Dismiss trial notice')}
       />
-    </ButtonBar>
+    </Grid>
   );
 
   return (

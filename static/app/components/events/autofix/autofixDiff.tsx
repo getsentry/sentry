@@ -479,7 +479,7 @@ function DiffHunkContent({
                   size="xs"
                   icon={<IconEdit size="xs" />}
                   aria-label={t('Edit changes')}
-                  title={t('Edit')}
+                  tooltipProps={{title: t('Edit')}}
                   onClick={() => handleEditClick(index)}
                   isHovered={hoveredGroup === index}
                 />
@@ -487,7 +487,7 @@ function DiffHunkContent({
                   size="xs"
                   icon={<IconClose size="xs" />}
                   aria-label={t('Reject changes')}
-                  title={t('Reject')}
+                  tooltipProps={{title: t('Reject')}}
                   onClick={() => rejectChanges(index)}
                   isHovered={hoveredGroup === index}
                 />
@@ -548,7 +548,7 @@ function DiffHunkContent({
                   onClick={handleClearChanges}
                   aria-label={t('Clear changes')}
                   icon={<IconDelete size="xs" />}
-                  title={t('Clear all new lines')}
+                  tooltipProps={{title: t('Clear all new lines')}}
                 />
               </TextAreaWrapper>
             </OverlayContent>

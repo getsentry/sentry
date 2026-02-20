@@ -9,9 +9,9 @@ from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.explorer.utils import normalize_description
-from sentry.seer.sentry_data_models import TraceMetadata
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.tasks.llm_issue_detection.detection import TraceMetadataWithSpanCount
 
 logger = logging.getLogger(__name__)
 
@@ -25,16 +25,16 @@ def get_valid_trace_ids_by_span_count(
     trace_ids: list[str],
     snuba_params: SnubaParams,
     config: SearchResolverConfig,
-) -> set[str]:
+) -> dict[str, int]:
     """
     Query span counts for all trace_ids in one query.
-    Return set of trace_ids with valid span counts.
+    Returns a dict mapping trace_id to span count for traces with valid span counts.
 
     This filters out traces that are too small (lack context) or too large
     (exceed LLM context limits) before sending to Seer for analysis.
     """
     if not trace_ids:
-        return set()
+        return {}
 
     result = Spans.run_table_query(
         params=snuba_params,
@@ -49,7 +49,7 @@ def get_valid_trace_ids_by_span_count(
     )
 
     return {
-        row["trace"]
+        row["trace"]: row["count()"]
         for row in result.get("data", [])
         if LOWER_SPAN_LIMIT <= row["count()"] <= UPPER_SPAN_LIMIT
     }
@@ -59,7 +59,7 @@ def get_project_top_transaction_traces_for_llm_detection(
     project_id: int,
     limit: int,
     start_time_delta_minutes: int,
-) -> list[TraceMetadata]:
+) -> list[TraceMetadataWithSpanCount]:
     """
     Get top transactions by total time spent, return one semi-randomly chosen trace per transaction.
     Filters traces by span count before returning.
@@ -102,9 +102,9 @@ def get_project_top_transaction_traces_for_llm_detection(
         sampling_mode="NORMAL",
     )
 
-    trace_metadata = []
-    seen_names = set()
-    seen_trace_ids = set()
+    trace_ids: list[str] = []
+    seen_names: set[str] = set()
+    seen_trace_ids: set[str] = set()
     random_offset = random.randint(1, 8)
     trace_snuba_params = _build_snuba_params(start_time + timedelta(minutes=random_offset))
 
@@ -130,7 +130,6 @@ def get_project_top_transaction_traces_for_llm_detection(
             sampling_mode="NORMAL",
         )
 
-        # Get the first (and only) result
         data = trace_result.get("data", [])
         if not data:
             continue
@@ -139,21 +138,20 @@ def get_project_top_transaction_traces_for_llm_detection(
         if not trace_id or trace_id in seen_trace_ids:
             continue
 
-        trace_metadata.append(
-            TraceMetadata(
-                trace_id=trace_id,
-                transaction_name=normalized_name,
-            )
-        )
+        trace_ids.append(trace_id)
         seen_names.add(normalized_name)
         seen_trace_ids.add(trace_id)
 
-    if not trace_metadata:
+    if not trace_ids:
         return []
 
-    all_trace_ids = [t.trace_id for t in trace_metadata]
-    valid_trace_ids = get_valid_trace_ids_by_span_count(
-        all_trace_ids, transaction_snuba_params, config
-    )
+    valid_trace_ids = get_valid_trace_ids_by_span_count(trace_ids, transaction_snuba_params, config)
 
-    return [t for t in trace_metadata if t.trace_id in valid_trace_ids]
+    return [
+        TraceMetadataWithSpanCount(
+            trace_id=trace_id,
+            span_count=valid_trace_ids[trace_id],
+        )
+        for trace_id in trace_ids
+        if trace_id in valid_trace_ids
+    ]

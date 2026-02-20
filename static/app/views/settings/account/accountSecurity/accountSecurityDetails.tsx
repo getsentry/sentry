@@ -7,7 +7,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
@@ -16,6 +17,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -30,7 +32,12 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {AuthenticatorHeader} from './components/authenticatorHeader';
 
 const ENDPOINT = '/users/me/authenticators/';
-const getAuthenticatorQueryKey = (authId: string) => [`${ENDPOINT}${authId}/`] as const;
+const getAuthenticatorQueryKey = (authId: string) =>
+  [
+    getApiUrl('/users/$userId/authenticators/$authId/', {
+      path: {userId: 'me', authId},
+    }),
+  ] as const;
 
 interface AuthenticatorDateProps {
   /**
@@ -149,7 +156,7 @@ export default function AccountSecurityDetails() {
           />
         }
         action={
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
               <LinkButton
                 to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}
@@ -160,20 +167,20 @@ export default function AccountSecurityDetails() {
             {authenticator.isEnrolled && authenticator.removeButton && (
               <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
                 <Button
-                  title={
-                    deleteDisabled
+                  tooltipProps={{
+                    title: deleteDisabled
                       ? t(
                           "Two-factor authentication is required for at least one organization you're a member of."
                         )
-                      : undefined
-                  }
+                      : undefined,
+                  }}
                   priority="danger"
                 >
                   {authenticator.removeButton}
                 </Button>
               </RemoveConfirm>
             )}
-          </ButtonBar>
+          </Grid>
         }
       />
 

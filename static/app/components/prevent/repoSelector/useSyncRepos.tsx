@@ -10,7 +10,6 @@ import {
   useMutation,
   useQueryClient,
   type ApiQueryKey,
-  type QueryFunctionContext,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,8 +19,6 @@ const POLLING_INTERVAL_MS = 2000;
 type SyncReposResponse = {
   isSyncing: boolean;
 };
-
-type QueryKey = [url: string];
 
 export function useSyncRepos({searchValue}: {searchValue?: string}) {
   /**
@@ -59,12 +56,10 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
   const isSyncing = mutationData.isPending || isSyncingInCache;
 
   // useQuery periodically pings the endpoint to check if the sync is complete and updates the cache
-  useQuery<boolean, Error, boolean, QueryKey>({
+  useQuery<boolean, Error, boolean, ApiQueryKey>({
     queryKey: [syncReposUrl],
     queryFn: async context => {
-      const result = await fetchDataQuery<SyncReposResponse>(
-        context as unknown as QueryFunctionContext<ApiQueryKey, unknown>
-      );
+      const result = await fetchDataQuery<SyncReposResponse>(context);
 
       return result[0].isSyncing;
     },

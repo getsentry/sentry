@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -109,7 +110,7 @@ export default function TempestSettings() {
       <SettingsPageHeader
         title={getPageTitle()}
         action={
-          <ButtonBar gap="lg">
+          <Grid flow="column" align="center" gap="lg">
             <FeedbackButton />
             <RequestSdkAccessButton
               gamingPlatform="playstation"
@@ -117,7 +118,7 @@ export default function TempestSettings() {
               projectId={project.id}
               origin="project-settings"
             />
-          </ButtonBar>
+          </Grid>
         }
       />
 
@@ -132,7 +133,7 @@ export default function TempestSettings() {
                   icon={<IconClose />}
                   onClick={dismissPS5Warning}
                   aria-label={t('Dismiss Alert')}
-                  title={t('Dismiss Alert')}
+                  tooltipProps={{title: t('Dismiss Alert')}}
                   size="zero"
                 />
               }

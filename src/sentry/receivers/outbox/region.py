@@ -34,7 +34,6 @@ from sentry.relocation.services.relocation_export.service import control_relocat
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.region import get_local_region
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,6 @@ def update_sentry_app_action_data(
         action = Action.objects.get(
             id=shard_identifier,
             type=Action.Type.SENTRY_APP,
-            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
         )
         installs = app_service.get_many(
             filter={
@@ -70,16 +68,16 @@ def update_sentry_app_action_data(
 
         if not installs:
             logger.info(
-                "No sentry app installation found",
+                "No sentry app installation found, deleting the action",
                 extra={
                     "action_id": action.id,
                     "installation_uuid": action.config.get("target_identifier"),
                 },
             )
+            action.delete()
             return
 
         action.config["target_identifier"] = str(installs[0].sentry_app.id)
-        action.config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
         action.save()
 
     except Action.DoesNotExist:

@@ -136,7 +136,6 @@ class LinkSharedEventTest(BaseEventTest):
         },
     )
     def test_share_links_failure(self, mock_match_link, mock_record) -> None:
-
         with patch("slack_sdk.web.client.WebClient.chat_unfurl") as custom_mock:
             # Your custom behavior
             custom_mock.side_effect = SlackApiError(

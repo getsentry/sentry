@@ -1,13 +1,18 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {
+  CopyMarkdownButton,
+  CopySetupInstructionsGate,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
@@ -201,6 +206,7 @@ const guideToSelectOption = ({key, label, icon}: {key: string} & OnboardingGuide
 
 export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   const org = useOrganization();
+  const guideContainerRef = useRef<HTMLDivElement>(null);
 
   const {data: projectKeys} = useApiQuery<ProjectKey[]>(
     [
@@ -235,6 +241,30 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   const [selectedGuide, setSelectedGuide] = useState(defaultExample);
   const {Guide} = onboardingGuides[selectedGuide]!;
 
+  const guideProps: QuickStartProps = {
+    slug: monitorSlug,
+    orgSlug: org.slug,
+    orgId: org.id,
+    projectId: project.id,
+    cronsUrl: projectKeys?.[0]?.dsn.crons,
+    dsnKey: projectKeys?.[0]?.dsn.public,
+  };
+
+  // TODO: Migrate crons guides to the content block system so we can use
+  // structured stepsToMarkdown() instead of innerHTML scraping. The innerHTML
+  // approach may include rendered UI chrome and won't substitute auth tokens.
+  const getGuideMarkdown = () => {
+    if (!guideContainerRef.current) {
+      return '';
+    }
+    try {
+      const html = guideContainerRef.current.innerHTML;
+      return simpleHtmlToMarkdown(html);
+    } catch {
+      return '';
+    }
+  };
+
   return (
     <Flex gap="xl" direction="column">
       <Text>
@@ -257,14 +287,14 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
         onChange={({value}) => setSelectedGuide(value)}
         size="sm"
       />
-      <Guide
-        slug={monitorSlug}
-        orgSlug={org.slug}
-        orgId={org.id}
-        projectId={project.id}
-        cronsUrl={projectKeys?.[0]!.dsn.crons}
-        dsnKey={projectKeys?.[0]!.dsn.public}
-      />
+      <CopySetupInstructionsGate>
+        <Container paddingBottom="md">
+          <CopyMarkdownButton getMarkdown={getGuideMarkdown} source="crons_onboarding" />
+        </Container>
+      </CopySetupInstructionsGate>
+      <div ref={guideContainerRef}>
+        <Guide {...guideProps} />
+      </div>
     </Flex>
   );
 }

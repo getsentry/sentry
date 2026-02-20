@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
@@ -23,12 +24,13 @@ import {IconDelete, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UserEmail} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-const ENDPOINT = '/users/me/emails/';
+const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});
 
 function AccountEmails() {
   const queryClient = useQueryClient();
@@ -200,7 +202,7 @@ function EmailRow({
         {!isVerified && <Tag variant="warning">{t('Unverified')}</Tag>}
         {isPrimary && <Tag variant="success">{t('Primary')}</Tag>}
       </EmailTags>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         {!isPrimary && isVerified && (
           <Button size="sm" onClick={() => onSetPrimary?.(email)}>
             {t('Set as primary')}
@@ -228,7 +230,7 @@ function EmailRow({
             />
           </Confirm>
         )}
-      </ButtonBar>
+      </Grid>
     </EmailItem>
   );
 }

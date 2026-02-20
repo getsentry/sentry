@@ -1,3 +1,4 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -17,7 +18,6 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {SizeUnit} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   DatasetConfig,
   SearchBarData,
@@ -199,14 +199,18 @@ function useMobileAppSizeSearchBarDataProvider(
     useTraceItemAttributes('string', HIDDEN_PREPROD_ATTRIBUTES);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributes('number', HIDDEN_PREPROD_ATTRIBUTES);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributes('boolean', HIDDEN_PREPROD_ATTRIBUTES);
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.PREPROD,
       numberAttributes,
       stringAttributes,
+      booleanAttributes,
       numberSecondaryAliases,
       stringSecondaryAliases,
+      booleanSecondaryAliases,
       searchSource: 'dashboards',
       initialQuery: props.widgetQuery?.conditions ?? '',
       projects,

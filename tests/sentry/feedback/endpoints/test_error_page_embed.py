@@ -20,10 +20,8 @@ class ErrorPageEmbedTest(TestCase):
         self.key = self.create_project_key(self.project)
         self.event_id = uuid4().hex
         self.path = reverse("sentry-error-page-embed")
-        self.path_with_qs = "{}?eventId={}&dsn={}".format(
-            self.path,
-            quote(self.event_id),
-            quote(self.key.dsn_public),
+        self.path_with_qs = (
+            f"{self.path}?eventId={quote(self.event_id)}&dsn={quote(self.key.dsn_public)}"
         )
 
     def test_invalid_referer(self) -> None:
@@ -118,17 +116,10 @@ class ErrorPageEmbedTest(TestCase):
             "labelClose",
         ]
         for key in option_keys:
-            user_feedback_options[key] = "<img src=x onerror=alert({0})>XSS_{0}".format(key).encode(
-                "utf-8"
-            )
+            user_feedback_options[key] = f"<img src=x onerror=alert({key})>XSS_{key}".encode()
 
         user_feedback_options_qs = urlencode(user_feedback_options)
-        path_with_qs = "{}?eventId={}&dsn={}&{}".format(
-            self.path,
-            quote(self.event_id),
-            quote(self.key.dsn_public),
-            user_feedback_options_qs,
-        )
+        path_with_qs = f"{self.path}?eventId={quote(self.event_id)}&dsn={quote(self.key.dsn_public)}&{user_feedback_options_qs}"
         resp = self.client.get(
             path_with_qs,
             HTTP_REFERER="http://example.com",
@@ -175,11 +166,7 @@ class ErrorPageEmbedTest(TestCase):
 
     def test_submission_invalid_event_id(self) -> None:
         self.event_id = "x" * 100
-        path = "{}?eventId={}&dsn={}".format(
-            self.path,
-            quote(self.event_id),
-            quote(self.key.dsn_public),
-        )
+        path = f"{self.path}?eventId={quote(self.event_id)}&dsn={quote(self.key.dsn_public)}"
 
         resp = self.client.post(
             path,

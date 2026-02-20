@@ -2,7 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -246,7 +247,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   }
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {feedbackButton}
       <FeatureFlagSettingsButton orgSlug={organization.slug} />
       {hasFlags && (
@@ -255,7 +256,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
             aria-label={t('Open Feature Flag Search')}
             icon={<IconSearch size="xs" />}
             size="xs"
-            title={t('Open Search')}
+            tooltipProps={{title: t('Open Search')}}
             onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
           />
           <FeatureFlagSort
@@ -280,7 +281,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           />
         </Fragment>
       )}
-    </ButtonBar>
+    </Grid>
   );
 
   const NUM_PREVIEW_FLAGS = 20;

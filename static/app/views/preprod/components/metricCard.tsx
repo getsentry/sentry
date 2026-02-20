@@ -1,6 +1,6 @@
 import type {CSSProperties, ReactNode} from 'react';
 
-import {Button} from '@sentry/scraps/button/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -56,7 +56,7 @@ export function MetricCard(props: MetricCardProps) {
             priority="link"
             icon={action.icon}
             aria-label={action.ariaLabel}
-            title={action.tooltip}
+            tooltipProps={{title: action.tooltip}}
             onClick={action.onClick}
           />
         )}

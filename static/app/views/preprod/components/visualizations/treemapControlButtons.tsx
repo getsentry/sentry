@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Flex} from '@sentry/scraps/layout';
 
 export interface TreemapControlButton {
   ariaLabel: string;
@@ -33,7 +33,7 @@ export function TreemapControlButtons({buttons}: TreemapControlButtonsProps) {
           key={button.onClick.toString()}
           size="xs"
           aria-label={button.ariaLabel}
-          title={button.title}
+          tooltipProps={{title: button.title}}
           priority="transparent"
           icon={button.icon}
           onClick={button.onClick}

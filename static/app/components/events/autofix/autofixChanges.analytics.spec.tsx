@@ -17,7 +17,7 @@ import {
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 
-jest.mock('sentry/components/core/button', () => ({
+jest.mock('@sentry/scraps/button', () => ({
   Button: jest.fn(props => {
     // Forward the click handler while allowing us to inspect props
     return <button onClick={props.onClick}>{props.children}</button>;
@@ -72,10 +72,6 @@ describe('AutofixChanges', () => {
       url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -128,10 +124,6 @@ describe('AutofixChanges', () => {
       url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {
           ok: true,
@@ -183,10 +175,6 @@ describe('AutofixChanges', () => {
       url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {
           ok: true,
@@ -243,10 +231,6 @@ describe('AutofixChanges', () => {
       url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {
           ok: true,

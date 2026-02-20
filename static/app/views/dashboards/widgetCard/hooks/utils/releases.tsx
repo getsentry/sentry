@@ -129,7 +129,7 @@ export function getReleasesRequestData(
       end,
       environment: environments,
       groupBy: columns,
-      limit: undefined,
+      limit,
       orderBy: '', // Orderby not supported with session.status
       interval,
       project: projects,

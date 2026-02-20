@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Alert} from '@sentry/scraps/alert';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
@@ -27,6 +28,21 @@ interface Props {
 const COLUMNS = [
   {title: t('Name'), key: 'name', sortKey: 'name'},
   {title: t('Code Review'), key: 'code_review'},
+  {
+    title: (
+      <Flex gap="sm" align="center">
+        {t('Trigger')}
+        <QuestionTooltip
+          title={tct(
+            'Code review can always be triggered manaully by mentioning [code:@sentry review].',
+            {code: <code />}
+          )}
+          size="xs"
+        />
+      </Flex>
+    ),
+    key: 'trigger',
+  },
 ];
 
 export default function SeerRepoTableHeader({
@@ -142,10 +158,11 @@ export default function SeerRepoTableHeader({
             {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
             <a onClick={selectAll}>
               {queryString
-                ? tct('Select all repositories that match: [queryString].', {
+                ? tct('Select all [count] repositories that match: [queryString].', {
+                    count: listItemCheckboxState.hits,
                     queryString: <var>{queryString}</var>,
                   })
-                : t('Select all repositories.')}
+                : t('Select all %s repositories.', listItemCheckboxState.hits)}
             </a>
           </Flex>
         </FullGridAlert>
@@ -156,7 +173,8 @@ export default function SeerRepoTableHeader({
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString
-                ? tct('Selected all repositories matching: [queryString].', {
+                ? tct('Selected all [count] repositories matching: [queryString].', {
+                    count: countSelected,
                     queryString: <var>{queryString}</var>,
                   })
                 : countSelected > repositories.length

@@ -155,7 +155,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         if not meta:
             raise PluginError(
-                "Error in JIRA configuration, no projects " "found for user %s." % client.username
+                "Error in JIRA configuration, no projects found for user %s." % client.username
             )
 
         # check if the issuetype was passed as a GET parameter
@@ -243,7 +243,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 "label": "Comment",
                 "default": absolute_uri(group.get_absolute_url(params={"referrer": "jira_plugin"})),
                 "type": "textarea",
-                "help": ("Leave blank if you don't want to " "add a comment to the JIRA issue."),
+                "help": ("Leave blank if you don't want to add a comment to the JIRA issue."),
                 "required": False,
             },
         ]
@@ -384,7 +384,6 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                     jira_query.get("project"), jira_query.get("username")
                 )
             except (ApiUnauthorized, ApiError) as e:
-
                 return Response(
                     {
                         "error_type": "validation",

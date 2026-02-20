@@ -21,5 +21,10 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.5",
     "@types/json-diff": "^0.7.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "lodash": ">=4.17.23"
+    }
   }
 }

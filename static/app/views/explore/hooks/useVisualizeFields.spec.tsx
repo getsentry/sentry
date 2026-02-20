@@ -34,9 +34,11 @@ function createWrapper(organization: Organization) {
 function useWrapper(yAxis: string) {
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
   return useVisualizeFields({
     numberTags,
     stringTags,
+    booleanTags,
     parsedFunction: parseFunction(yAxis) ?? undefined,
     traceItemType: TraceItemDataset.SPANS,
   });

@@ -1,5 +1,5 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreExport} from 'sentry/views/explore/components/exploreExport';
 import {QUERY_PAGE_LIMIT} from 'sentry/views/explore/logs/constants';
 import {isLogsExportEnabled} from 'sentry/views/explore/logs/isLogsEnabled';

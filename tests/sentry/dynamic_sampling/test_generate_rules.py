@@ -515,9 +515,12 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     t1_rate = 0.7
     implicit_rate = 0.037
     get_blended_sample_rate.return_value = project_sample_rate
-    get_transactions_resampling_rates.return_value = {
-        "t1": t1_rate,
-    }, implicit_rate
+    get_transactions_resampling_rates.return_value = (
+        {
+            "t1": t1_rate,
+        },
+        implicit_rate,
+    )
     boost_low_transactions_id = RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE]
     uniform_id = RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE]
     default_old_project.update_option(
@@ -587,9 +590,12 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    get_transactions_resampling_rates.return_value = {
-        "t1": 0.7,
-    }, 0.037
+    get_transactions_resampling_rates.return_value = (
+        {
+            "t1": 0.7,
+        },
+        0.037,
+    )
     uniform_id = RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE]
 
     default_old_project.update_option(
@@ -817,7 +823,6 @@ def test_generate_rules_minimum_sample_rate_correct_order(
     get_blended_sample_rate, default_old_project
 ):
     with Feature({"organizations:dynamic-sampling-minimum-sample-rate": True}):
-
         get_blended_sample_rate.return_value = 0.4
         default_old_project.update_option(
             "sentry:dynamic_sampling_biases",

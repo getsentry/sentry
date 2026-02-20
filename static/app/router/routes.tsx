@@ -342,9 +342,7 @@ function buildRoutes(): RouteObject[] {
           index: true,
           component: make(
             () =>
-              import(
-                'sentry/views/settings/account/notifications/notificationSettingsController'
-              )
+              import('sentry/views/settings/account/notifications/notificationSettingsController')
           ),
         },
         {
@@ -352,9 +350,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Fine Tune Alerts'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/account/accountNotificationFineTuningController'
-              )
+              import('sentry/views/settings/account/accountNotificationFineTuningController')
           ),
         },
       ],
@@ -382,9 +378,7 @@ function buildRoutes(): RouteObject[] {
         {
           component: make(
             () =>
-              import(
-                'sentry/views/settings/account/accountSecurity/accountSecurityWrapper'
-              )
+              import('sentry/views/settings/account/accountSecurity/accountSecurityWrapper')
           ),
           children: [
             {
@@ -406,9 +400,7 @@ function buildRoutes(): RouteObject[] {
               name: t('Details'),
               component: make(
                 () =>
-                  import(
-                    'sentry/views/settings/account/accountSecurity/accountSecurityDetails'
-                  )
+                  import('sentry/views/settings/account/accountSecurity/accountSecurityDetails')
               ),
             },
           ],
@@ -418,9 +410,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Enroll'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/account/accountSecurity/accountSecurityEnroll'
-              )
+              import('sentry/views/settings/account/accountSecurity/accountSecurityEnroll')
           ),
         },
       ],
@@ -574,8 +564,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'data-forwarding/',
-      name: t('Data Forwarding'),
-      component: make(() => import('sentry/views/settings/projectDataForwarding')),
+      redirectTo: '/settings/:orgId/data-forwarding/',
     },
     {
       path: 'seer/',
@@ -864,9 +853,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Details'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/organizationApiKeys/organizationApiKeyDetails'
-              )
+              import('sentry/views/settings/organizationApiKeys/organizationApiKeyDetails')
           ),
         },
       ],
@@ -1020,9 +1007,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Details'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/organizationIntegrations/sentryAppDetailedView'
-              )
+              import('sentry/views/settings/organizationIntegrations/sentryAppDetailedView')
           ),
         },
       ],
@@ -1040,9 +1025,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Details'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/organizationIntegrations/docIntegrationDetailedView'
-              )
+              import('sentry/views/settings/organizationIntegrations/docIntegrationDetailedView')
           ),
         },
       ],
@@ -1055,9 +1038,7 @@ function buildRoutes(): RouteObject[] {
           index: true,
           component: make(
             () =>
-              import(
-                'sentry/views/settings/organizationIntegrations/integrationListDirectory'
-              )
+              import('sentry/views/settings/organizationIntegrations/integrationListDirectory')
           ),
         },
         {
@@ -1065,9 +1046,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Integration Details'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/organizationIntegrations/integrationDetailedView'
-              )
+              import('sentry/views/settings/organizationIntegrations/integrationDetailedView')
           ),
         },
         {
@@ -1075,9 +1054,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Configure Integration'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/organizationIntegrations/configureIntegration'
-              )
+              import('sentry/views/settings/organizationIntegrations/configureIntegration')
           ),
         },
       ],
@@ -1097,9 +1074,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Create Integration'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
-              )
+              import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
           ),
         },
         {
@@ -1107,9 +1082,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Create Integration'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
-              )
+              import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
           ),
         },
         {
@@ -1117,9 +1090,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Edit Integration'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
-              )
+              import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
           ),
         },
         {
@@ -1127,9 +1098,7 @@ function buildRoutes(): RouteObject[] {
           name: t('Integration Dashboard'),
           component: make(
             () =>
-              import(
-                'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard'
-              )
+              import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard')
           ),
         },
       ],
@@ -1191,9 +1160,7 @@ function buildRoutes(): RouteObject[] {
               name: t('Add New Provider'),
               component: make(
                 () =>
-                  import(
-                    'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret'
-                  )
+                  import('sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret')
               ),
             },
           ],
@@ -1472,9 +1439,7 @@ function buildRoutes(): RouteObject[] {
           path: 'details/:ruleId/',
           component: make(
             () =>
-              import(
-                'sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleDetails'
-              )
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleDetails')
           ),
         },
         {
@@ -1500,9 +1465,7 @@ function buildRoutes(): RouteObject[] {
           path: ':projectId/:ruleId/details/',
           component: make(
             () =>
-              import(
-                'sentry/views/alerts/workflowEngineRedirectWrappers/issueAlertRuleDetails'
-              )
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/issueAlertRuleDetails')
           ),
         },
         {
@@ -1513,18 +1476,14 @@ function buildRoutes(): RouteObject[] {
               path: ':projectId/:detectorId/details/',
               component: make(
                 () =>
-                  import(
-                    'sentry/views/alerts/workflowEngineRedirectWrappers/uptimeAlertRuleDetails'
-                  )
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/uptimeAlertRuleDetails')
               ),
             },
             {
               path: 'existing-or-create/',
               component: make(
                 () =>
-                  import(
-                    'sentry/views/alerts/workflowEngineRedirectWrappers/uptimeExistingOrCreate'
-                  )
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/uptimeExistingOrCreate')
               ),
             },
           ],
@@ -1564,9 +1523,7 @@ function buildRoutes(): RouteObject[] {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import(
-                    'sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit'
-                  )
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit')
               ),
             },
           ],
@@ -1584,9 +1541,7 @@ function buildRoutes(): RouteObject[] {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import(
-                    'sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit'
-                  )
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit')
               ),
             },
           ],
@@ -1612,9 +1567,7 @@ function buildRoutes(): RouteObject[] {
       path: 'wizard/',
       component: make(
         () =>
-          import(
-            'sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider'
-          )
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
       ),
       children: [
         {
@@ -1651,9 +1604,7 @@ function buildRoutes(): RouteObject[] {
       path: ':projectId/',
       component: make(
         () =>
-          import(
-            'sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider'
-          )
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
       ),
       children: [
         {
@@ -2126,9 +2077,7 @@ function buildRoutes(): RouteObject[] {
               handle: {module: ModuleName.MCP_RESOURCES},
               component: make(
                 () =>
-                  import(
-                    'sentry/views/insights/mcp-resources/views/mcpResourcesLandingPage'
-                  )
+                  import('sentry/views/insights/mcp-resources/views/mcpResourcesLandingPage')
               ),
             },
           ],
@@ -2199,18 +2148,6 @@ function buildRoutes(): RouteObject[] {
               handle: {module: ModuleName.AGENT_TOOLS},
               component: make(
                 () => import('sentry/views/insights/agentTools/views/toolsLandingPage')
-              ),
-            },
-          ],
-        },
-        {
-          path: `${MODULE_BASE_URLS[ModuleName.AI_GENERATIONS]}/`,
-          children: [
-            {
-              index: true,
-              handle: {module: ModuleName.AI_GENERATIONS},
-              component: make(
-                () => import('sentry/views/insights/aiGenerations/views/overview')
               ),
             },
           ],
@@ -2959,7 +2896,7 @@ function buildRoutes(): RouteObject[] {
           },
           {
             path: 'data-forwarding/',
-            redirectTo: '/settings/:orgId/projects/:projectId/data-forwarding/',
+            redirectTo: '/settings/:orgId/data-forwarding/',
           },
           {
             path: 'debug-symbols/',

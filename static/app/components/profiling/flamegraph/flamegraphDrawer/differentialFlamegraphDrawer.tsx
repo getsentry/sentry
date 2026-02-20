@@ -343,7 +343,7 @@ const Separator = styled('li')`
   width: 1px;
   height: 66%;
   margin: 0 ${space(1)};
-  background: 1px solid ${p => p.theme.tokens.border.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translateY(29%);
 `;
 
@@ -398,7 +398,7 @@ const ProfilingDetailsListItem = styled('li')<{
 
   &.active button {
     font-weight: ${p => p.theme.font.weight.sans.medium};
-    border-bottom: 2px solid ${prop => prop.theme.tokens.interactive.link.accent.active};
+    border-bottom: 2px solid ${prop => prop.theme.tokens.border.accent};
   }
 `;
 

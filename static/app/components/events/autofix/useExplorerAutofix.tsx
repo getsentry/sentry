@@ -1,10 +1,13 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {
   needsGitHubAuth,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
@@ -16,6 +19,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import type {
   Artifact,
   Block,
@@ -298,21 +302,8 @@ export function useExplorerAutofix(
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const user = useUser();
   const orgSlug = organization.slug;
-
-  const intelligenceLevel = useMemo(() => {
-    const random = Math.random();
-
-    if (random < 1 / 3) {
-      return 'high';
-    }
-
-    if (random < 2 / 3) {
-      return 'medium';
-    }
-
-    return 'low';
-  }, []);
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
 
@@ -356,7 +347,7 @@ export function useExplorerAutofix(
             query: {mode: 'explorer'},
             data: {
               step,
-              intelligence_level: intelligenceLevel,
+              intelligence_level: 'low',
               ...(runId !== undefined && {run_id: runId}),
             },
           }
@@ -378,7 +369,7 @@ export function useExplorerAutofix(
         throw e;
       }
     },
-    [api, orgSlug, groupId, queryClient, intelligenceLevel]
+    [api, orgSlug, groupId, queryClient]
   );
 
   /**
@@ -436,6 +427,14 @@ export function useExplorerAutofix(
     async (runId: number, integration: CodingAgentIntegration) => {
       setWaitingForResponse(true);
 
+      trackAnalytics('coding_integration.send_to_agent_clicked', {
+        organization,
+        group_id: groupId,
+        provider: integration.provider,
+        source: 'explorer',
+        user_id: user.id,
+      });
+
       addLoadingMessage('Launching coding agent...');
 
       const data: Record<string, string | number> = {
@@ -450,23 +449,50 @@ export function useExplorerAutofix(
       }
 
       try {
-        const response: {failures: Array<{error_message: string}>; successes: unknown[]} =
-          await api.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
-              path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-            }),
-            {
-              method: 'POST',
-              query: {mode: 'explorer'},
-              data,
-            }
-          );
+        const response: {
+          failures: Array<{
+            error_message: string;
+            repo_name: string;
+            failure_type?: string;
+            github_installation_id?: string;
+          }>;
+          successes: unknown[];
+        } = await api.requestPromise(
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+            path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+          }),
+          {
+            method: 'POST',
+            query: {mode: 'explorer'},
+            data,
+          }
+        );
 
         // Check for failures in the response
         if (response.failures && response.failures.length > 0) {
-          const errorMessage =
-            response.failures[0]?.error_message ?? 'Failed to launch coding agent';
-          addErrorMessage(errorMessage);
+          const permissionFailures = response.failures.filter(
+            f => f.failure_type === 'github_app_permissions'
+          );
+          const otherFailures = response.failures.filter(
+            f => f.failure_type !== 'github_app_permissions'
+          );
+
+          if (permissionFailures.length > 0) {
+            const installationId = permissionFailures[0]?.github_installation_id;
+            const installationUrl = installationId
+              ? `https://github.com/settings/installations/${installationId}`
+              : undefined;
+            openModal(deps => (
+              <AutofixGithubAppPermissionsModal
+                {...deps}
+                installationUrl={installationUrl}
+              />
+            ));
+          }
+
+          otherFailures.forEach(failure => {
+            addErrorMessage(failure.error_message ?? 'Failed to launch coding agent');
+          });
         }
 
         // Invalidate to fetch fresh data
@@ -485,7 +511,7 @@ export function useExplorerAutofix(
         setWaitingForResponse(false);
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [api, orgSlug, groupId, queryClient, organization, user.id]
   );
 
   // Clear waiting state when we get a response

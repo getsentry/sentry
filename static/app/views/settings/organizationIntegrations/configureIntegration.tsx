@@ -24,6 +24,7 @@ import type {
   PluginWithProjectList,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -65,11 +66,19 @@ const makeIntegrationQuery = (
   organization: Organization,
   integrationId: string
 ): ApiQueryKey => {
-  return [`/organizations/${organization.slug}/integrations/${integrationId}/`];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/integrations/$integrationId/`, {
+      path: {organizationIdOrSlug: organization.slug, integrationId},
+    }),
+  ];
 };
 
 const makePluginQuery = (organization: Organization): ApiQueryKey => {
-  return [`/organizations/${organization.slug}/plugins/configs/`];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+  ];
 };
 
 function ConfigureIntegration() {
@@ -92,7 +101,14 @@ function ConfigureIntegration() {
     refetch: refetchConfig,
   } = useApiQuery<{
     providers: IntegrationProvider[];
-  }>([`/organizations/${organization.slug}/config/integrations/`], {staleTime: 0});
+  }>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {staleTime: 0}
+  );
   const {
     data: integration,
     isPending: isLoadingIntegration,

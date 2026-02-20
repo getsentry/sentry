@@ -12,8 +12,8 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import Version from 'sentry/components/version';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -83,7 +83,7 @@ function ReleaseHeader({
       count:
         numberOfMobileBuilds === 0 ? (
           <BadgeWrapper>
-            <FeatureBadge type="beta" />
+            <FeatureBadge type="new" />
           </BadgeWrapper>
         ) : (
           <React.Fragment>
@@ -91,7 +91,7 @@ function ReleaseHeader({
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
             </NavTabsBadge>
             <BadgeWrapper>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </BadgeWrapper>
           </React.Fragment>
         ),
@@ -149,7 +149,7 @@ function ReleaseHeader({
               priority="transparent"
               size="zero"
               text={version}
-              title={version}
+              tooltipProps={{title: version}}
               aria-label={t('Copy release version to clipboard')}
             />
           </IconWrapper>
