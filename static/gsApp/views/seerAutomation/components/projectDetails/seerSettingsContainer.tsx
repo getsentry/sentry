@@ -53,6 +53,10 @@ export default function SeerSettingsContainer({canWrite, preference, project}: P
   const showBackgroundAgentSection =
     organization.features.includes('integrations-cursor');
 
+  const showUnifiedPrToggle = organization.features.includes(
+    'seer-agent-pr-consolidation'
+  );
+
   return (
     <Stack gap="xl">
       <PanelNoMargin>
@@ -63,8 +67,20 @@ export default function SeerSettingsContainer({canWrite, preference, project}: P
       </PanelNoMargin>
 
       <PanelNoMargin>
-        <PanelHeader>{t('Seer Agent')}</PanelHeader>
+        <PanelHeader>
+          {showUnifiedPrToggle && showBackgroundAgentSection
+            ? t('Coding Agent')
+            : t('Seer Agent')}
+        </PanelHeader>
         <PanelBody>
+          {showUnifiedPrToggle && showBackgroundAgentSection && (
+            <BackgroundAgentPicker
+              supportedIntegrations={supportedIntegrations}
+              canWrite={canWrite}
+              project={project}
+              preference={preference}
+            />
+          )}
           <SeerAgentSection
             canWrite={canWrite}
             project={project}
@@ -73,7 +89,7 @@ export default function SeerSettingsContainer({canWrite, preference, project}: P
         </PanelBody>
       </PanelNoMargin>
 
-      {showBackgroundAgentSection && (
+      {showBackgroundAgentSection && !showUnifiedPrToggle && (
         <Fragment>
           <PanelNoMargin>
             <PanelHeader>{t('Coding Agent')}</PanelHeader>

@@ -82,7 +82,10 @@ export default function BackgroundAgentPicker({
                         handoff_point: 'root_cause',
                         target: 'cursor_background_agent',
                         integration_id: Number(integration.id),
-                        auto_create_pr: false,
+                        auto_create_pr: Boolean(
+                          preference?.automated_run_stopping_point &&
+                          preference.automated_run_stopping_point !== 'code_changes'
+                        ),
                       }
                     : undefined,
                 },
@@ -148,7 +151,10 @@ export default function BackgroundAgentPicker({
                   handoff_point: 'root_cause',
                   target: 'cursor_background_agent',
                   integration_id: Number(integration.id),
-                  auto_create_pr: false,
+                  auto_create_pr: Boolean(
+                    preference?.automated_run_stopping_point &&
+                    preference.automated_run_stopping_point !== 'code_changes'
+                  ),
                 }
               : undefined,
           },

@@ -18,7 +18,9 @@ interface Props {
 
 /**
  * Toggle for allowing PR auto creation within the Seer Agent section.
- * This is disabled when an external coding agent is configured.
+ * This is disabled when an external coding agent is configured (unless
+ * the seer-agent-pr-consolidation flag is on, in which case it controls
+ * automation_handoff.auto_create_pr when Cursor is active).
  */
 export default function SeerAgentSection({canWrite, project, preference}: Props) {
   const organization = useOrganization();
@@ -27,17 +29,21 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
   const isAutoFixEnabled = Boolean(
     project.autofixAutomationTuning && project.autofixAutomationTuning !== 'off'
   );
+  const isBackgroundAgentEnabled = Boolean(preference?.automation_handoff);
+  const showUnifiedPrToggle = organization.features.includes(
+    'seer-agent-pr-consolidation'
+  );
+
   const isCreatePrEnabled = Boolean(
     preference?.automated_run_stopping_point &&
     preference.automated_run_stopping_point !== 'code_changes'
   );
-  const isBackgroundAgentEnabled = Boolean(preference?.automation_handoff);
 
   const isDisabled =
     organization.enableSeerCoding === false ||
     !canWrite ||
     !isAutoFixEnabled ||
-    isBackgroundAgentEnabled;
+    (!showUnifiedPrToggle && isBackgroundAgentEnabled);
 
   let disabledReason: string | null = null;
   if (organization.enableSeerCoding === false) {
@@ -49,7 +55,7 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
     );
   } else if (!isAutoFixEnabled) {
     disabledReason = t('Turn on Auto-Triggered Fixes to use this feature.');
-  } else if (isBackgroundAgentEnabled) {
+  } else if (!showUnifiedPrToggle && isBackgroundAgentEnabled) {
     disabledReason = t(
       'This setting is not available when using an external coding agent.'
     );
@@ -89,14 +95,16 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
       }
       value={organization.enableSeerCoding !== false && isCreatePrEnabled}
       onChange={value => {
-        const newValue: ProjectSeerPreferences['automated_run_stopping_point'] = value
-          ? 'open_pr'
-          : 'code_changes';
+        const newStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'] =
+          value ? 'open_pr' : 'code_changes';
         updateProjectSeerPreferences(
           {
             repositories: preference?.repositories || [],
-            automated_run_stopping_point: newValue,
-            automation_handoff: preference?.automation_handoff,
+            automated_run_stopping_point: newStoppingPoint,
+            automation_handoff:
+              isBackgroundAgentEnabled && preference?.automation_handoff
+                ? {...preference.automation_handoff, auto_create_pr: value}
+                : preference?.automation_handoff,
           },
           {
             onSuccess: () =>
