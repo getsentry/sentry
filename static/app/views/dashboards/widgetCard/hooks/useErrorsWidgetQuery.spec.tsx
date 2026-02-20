@@ -64,16 +64,15 @@ describe('useErrorsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useErrorsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -126,16 +125,15 @@ describe('useErrorsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsSeriesQuery({
-          widget,
-          organization,
-          pageFilters: pageFiltersWithDates,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useErrorsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters: pageFiltersWithDates,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -172,19 +170,18 @@ describe('useErrorsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useErrorsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -251,16 +248,15 @@ describe('useErrorsSeriesQuery', () => {
       ],
     });
 
-    renderHook(
-      () =>
-        useErrorsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useErrorsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest1).toHaveBeenCalled();
@@ -301,16 +297,15 @@ describe('useErrorsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useErrorsTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -346,16 +341,15 @@ describe('useErrorsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useErrorsTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -391,19 +385,18 @@ describe('useErrorsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useErrorsTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -439,18 +432,17 @@ describe('useErrorsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-          cursor: '0:10:0',
-          limit: 50,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useErrorsTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+        cursor: '0:10:0',
+        limit: 50,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(

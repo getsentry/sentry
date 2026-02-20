@@ -76,7 +76,7 @@ describe('useCacheBuilderState', () => {
       dispatch: jest.fn(),
     });
 
-    const {result} = renderHook(() => useCacheBuilderState(), {
+    const {result} = renderHook(useCacheBuilderState, {
       wrapper: Wrapper,
     });
 
@@ -133,7 +133,7 @@ describe('useCacheBuilderState', () => {
       JSON.stringify(convertBuilderStateToWidget(cachedWidget))
     );
 
-    const {result} = renderHook(() => useCacheBuilderState(), {
+    const {result} = renderHook(useCacheBuilderState, {
       wrapper: Wrapper,
     });
 
@@ -189,7 +189,7 @@ describe('useCacheBuilderState', () => {
       JSON.stringify(convertBuilderStateToWidget(cachedWidget))
     );
 
-    const {result} = renderHook(() => useCacheBuilderState(), {
+    const {result} = renderHook(useCacheBuilderState, {
       wrapper: Wrapper,
     });
 

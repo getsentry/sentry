@@ -73,40 +73,39 @@ describe('useLogsTimeseries', () => {
       ],
     });
 
-    renderHookWithProviders(
-      () =>
-        useLogsTimeseries({
-          enabled: true,
-          timeseriesIngestDelay: 0n,
-          tableData: {
-            error: null,
-            isError: false,
-            isFetching: false,
-            isPending: false,
-            data: [],
-            meta: {
-              fields: {},
-              units: {},
-            },
-            isRefetching: false,
-            isEmpty: true,
-            fetchNextPage: () => Promise.resolve({} as any),
-            fetchPreviousPage: () => Promise.resolve({} as any),
-            refetch: () => Promise.resolve({} as any),
-            hasNextPage: false,
-            queryKey: [] as any,
-            hasPreviousPage: false,
-            isFetchingNextPage: false,
-            isFetchingPreviousPage: false,
-            lastPageLength: 0,
-            bytesScanned: 0,
-            dataScanned: undefined,
-            canResumeAutoFetch: false,
-            resumeAutoFetch: () => {},
+    renderHookWithProviders(useLogsTimeseries, {
+      additionalWrapper: Wrapper,
+      initialProps: {
+        enabled: true,
+        timeseriesIngestDelay: 0n,
+        tableData: {
+          error: null,
+          isError: false,
+          isFetching: false,
+          isPending: false,
+          data: [],
+          meta: {
+            fields: {},
+            units: {},
           },
-        }),
-      {additionalWrapper: Wrapper}
-    );
+          isRefetching: false,
+          isEmpty: true,
+          fetchNextPage: () => Promise.resolve({} as any),
+          fetchPreviousPage: () => Promise.resolve({} as any),
+          refetch: () => Promise.resolve({} as any),
+          hasNextPage: false,
+          queryKey: [] as any,
+          hasPreviousPage: false,
+          isFetchingNextPage: false,
+          isFetchingPreviousPage: false,
+          lastPageLength: 0,
+          bytesScanned: 0,
+          dataScanned: undefined,
+          canResumeAutoFetch: false,
+          resumeAutoFetch: () => {},
+        },
+      },
+    });
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);
     expect(mockNormalRequest).toHaveBeenCalledWith(

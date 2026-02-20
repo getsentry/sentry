@@ -26,17 +26,16 @@ describe('useMetricDetectorAnomalyThresholds', () => {
       },
     ];
 
-    renderHookWithProviders(
-      () =>
-        useMetricDetectorAnomalyThresholds({
-          detectorId: '123',
-          detectionType: 'static',
-          startTimestamp: 1609459200,
-          endTimestamp: 1609545600,
-          series,
-        }),
-      {organization}
-    );
+    renderHookWithProviders(useMetricDetectorAnomalyThresholds, {
+      organization,
+      initialProps: {
+        detectorId: '123',
+        detectionType: 'static',
+        startTimestamp: 1609459200,
+        endTimestamp: 1609545600,
+        series,
+      },
+    });
 
     expect(anomalyDataRequest).not.toHaveBeenCalled();
   });
@@ -68,17 +67,16 @@ describe('useMetricDetectorAnomalyThresholds', () => {
       },
     ];
 
-    renderHookWithProviders(
-      () =>
-        useMetricDetectorAnomalyThresholds({
-          detectorId: '123',
-          detectionType: 'dynamic',
-          startTimestamp: 1609459200,
-          endTimestamp: 1609545600,
-          series,
-        }),
-      {organization}
-    );
+    renderHookWithProviders(useMetricDetectorAnomalyThresholds, {
+      organization,
+      initialProps: {
+        detectorId: '123',
+        detectionType: 'dynamic',
+        startTimestamp: 1609459200,
+        endTimestamp: 1609545600,
+        series,
+      },
+    });
 
     await waitFor(() => {
       expect(anomalyDataRequest).toHaveBeenCalled();
@@ -102,17 +100,16 @@ describe('useMetricDetectorAnomalyThresholds', () => {
       },
     ];
 
-    renderHookWithProviders(
-      () =>
-        useMetricDetectorAnomalyThresholds({
-          detectorId: '123',
-          detectionType: undefined,
-          startTimestamp: 1609459200,
-          endTimestamp: 1609545600,
-          series,
-        }),
-      {organization}
-    );
+    renderHookWithProviders(useMetricDetectorAnomalyThresholds, {
+      organization,
+      initialProps: {
+        detectorId: '123',
+        detectionType: undefined,
+        startTimestamp: 1609459200,
+        endTimestamp: 1609545600,
+        series,
+      },
+    });
 
     expect(anomalyDataRequest).not.toHaveBeenCalled();
   });
@@ -145,18 +142,17 @@ describe('useMetricDetectorAnomalyThresholds', () => {
       },
     ];
 
-    renderHookWithProviders(
-      () =>
-        useMetricDetectorAnomalyThresholds({
-          detectorId: '123',
-          detectionType: 'dynamic',
-          startTimestamp: 1609459200,
-          endTimestamp: 1609545600,
-          series,
-          isLegacyAlert: true,
-        }),
-      {organization}
-    );
+    renderHookWithProviders(useMetricDetectorAnomalyThresholds, {
+      organization,
+      initialProps: {
+        detectorId: '123',
+        detectionType: 'dynamic',
+        startTimestamp: 1609459200,
+        endTimestamp: 1609545600,
+        series,
+        isLegacyAlert: true,
+      },
+    });
 
     await waitFor(() => {
       expect(anomalyDataRequest).toHaveBeenCalled();

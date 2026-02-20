@@ -98,9 +98,10 @@ describe('useInfiniteTestResults', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+    const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
       organization,
+      initialProps: {},
     });
 
     await waitFor(() => {
@@ -152,17 +153,14 @@ describe('useInfiniteTestResults', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useInfiniteTestResults({
-          cursor: 'next-cursor',
-          navigation: 'next',
-        }),
-      {
-        additionalWrapper,
-        organization,
-      }
-    );
+    const {result} = renderHookWithProviders(useInfiniteTestResults, {
+      additionalWrapper,
+      organization,
+      initialProps: {
+        cursor: 'next-cursor',
+        navigation: 'next',
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -194,9 +192,10 @@ describe('useInfiniteTestResults', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+    const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
       organization,
+      initialProps: {},
     });
 
     await waitFor(() => {
@@ -226,9 +225,10 @@ describe('useInfiniteTestResults', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+    const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
       organization,
+      initialProps: {},
     });
 
     await waitFor(() => {
@@ -277,9 +277,10 @@ describe('useInfiniteTestResults', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(() => useInfiniteTestResults({}), {
+    const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
       organization,
+      initialProps: {},
     });
 
     await waitFor(() => {

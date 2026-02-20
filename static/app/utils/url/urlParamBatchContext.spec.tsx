@@ -33,7 +33,7 @@ describe('UrlParamBatchProvider', () => {
   it('should batch updates to the URL query params', () => {
     setWindowLocation('http://localhost/');
 
-    const {result} = renderHook(() => useUrlBatchContext(), {
+    const {result} = renderHook(useUrlBatchContext, {
       wrapper: UrlParamBatchProvider,
     });
     const {batchUrlParamUpdates} = result.current;

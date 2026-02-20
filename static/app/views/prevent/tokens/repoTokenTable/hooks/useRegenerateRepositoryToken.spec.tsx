@@ -43,7 +43,7 @@ describe('useRegenerateRepositoryToken', () => {
       body: {token: mockToken},
     });
 
-    const {result} = renderHook(() => useRegenerateRepositoryToken(), {wrapper});
+    const {result} = renderHook(useRegenerateRepositoryToken, {wrapper});
 
     result.current.mutate(mockVariables);
 
@@ -70,7 +70,7 @@ describe('useRegenerateRepositoryToken', () => {
       body: {detail: 'Internal server error'},
     });
 
-    const {result} = renderHook(() => useRegenerateRepositoryToken(), {wrapper});
+    const {result} = renderHook(useRegenerateRepositoryToken, {wrapper});
 
     result.current.mutate(mockVariables);
 
@@ -93,7 +93,7 @@ describe('useRegenerateRepositoryToken', () => {
 
     const invalidateQueriesSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    const {result} = renderHook(() => useRegenerateRepositoryToken(), {wrapper});
+    const {result} = renderHook(useRegenerateRepositoryToken, {wrapper});
 
     result.current.mutate(mockVariables);
 

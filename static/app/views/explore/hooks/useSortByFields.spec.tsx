@@ -45,25 +45,22 @@ describe('useSortByFields', () => {
   });
 
   it('returns a valid list of field options in samples mode', () => {
-    const {result} = renderHook(
-      () =>
-        useSortByFields({
-          fields: [
-            'id',
-            'span.op',
-            'span.description',
-            'span.duration',
-            'transaction',
-            'timestamp',
-          ],
-          groupBys: [],
-          yAxes: ['avg(span.duration)'],
-          mode: Mode.SAMPLES,
-        }),
-      {
-        wrapper: createWrapper(organization),
-      }
-    );
+    const {result} = renderHook(useSortByFields, {
+      wrapper: createWrapper(organization),
+      initialProps: {
+        fields: [
+          'id',
+          'span.op',
+          'span.description',
+          'span.duration',
+          'transaction',
+          'timestamp',
+        ],
+        groupBys: [],
+        yAxes: ['avg(span.duration)'],
+        mode: Mode.SAMPLES,
+      },
+    });
 
     expect(result.current.map(field => field.value)).toEqual([
       'id',
@@ -76,18 +73,15 @@ describe('useSortByFields', () => {
   });
 
   it('returns a valid list of field options in aggregate mode', () => {
-    const {result} = renderHook(
-      () =>
-        useSortByFields({
-          fields: ['span.op', 'span.description'],
-          groupBys: ['span.op'],
-          yAxes: ['avg(span.duration)'],
-          mode: Mode.AGGREGATE,
-        }),
-      {
-        wrapper: createWrapper(organization),
-      }
-    );
+    const {result} = renderHook(useSortByFields, {
+      wrapper: createWrapper(organization),
+      initialProps: {
+        fields: ['span.op', 'span.description'],
+        groupBys: ['span.op'],
+        yAxes: ['avg(span.duration)'],
+        mode: Mode.AGGREGATE,
+      },
+    });
 
     expect(result.current.map(field => field.value)).toEqual([
       'avg(span.duration)',

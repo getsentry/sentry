@@ -67,16 +67,15 @@ describe('useTransactionsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTransactionsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useTransactionsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -113,17 +112,16 @@ describe('useTransactionsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTransactionsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-          mepSetting: MEPState.AUTO,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useTransactionsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+        mepSetting: MEPState.AUTO,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -172,16 +170,15 @@ describe('useTransactionsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTransactionsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useTransactionsTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -217,17 +214,16 @@ describe('useTransactionsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTransactionsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-          mepSetting: MEPState.AUTO,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useTransactionsTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+        mepSetting: MEPState.AUTO,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(

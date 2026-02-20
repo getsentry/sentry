@@ -45,17 +45,14 @@ describe('useExploreAggregatesTable', () => {
       ],
       method: 'GET',
     });
-    renderHookWithProviders(
-      () =>
-        useExploreAggregatesTable({
-          query: 'test value',
-          enabled: true,
-          limit: 100,
-        }),
-      {
-        additionalWrapper: Wrapper,
-      }
-    );
+    renderHookWithProviders(useExploreAggregatesTable, {
+      additionalWrapper: Wrapper,
+      initialProps: {
+        query: 'test value',
+        enabled: true,
+        limit: 100,
+      },
+    });
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(
@@ -96,25 +93,22 @@ describe('useExploreAggregatesTable', () => {
       method: 'GET',
     });
 
-    renderHookWithProviders(
-      () =>
-        useExploreAggregatesTable({
-          query: 'test value',
-          enabled: true,
-          limit: 100,
-        }),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              extrapolate: '0',
-            },
+    renderHookWithProviders(useExploreAggregatesTable, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            extrapolate: '0',
           },
         },
-      }
-    );
+      },
+      initialProps: {
+        query: 'test value',
+        enabled: true,
+        limit: 100,
+      },
+    });
 
     await waitFor(() => expect(mockNonExtrapolatedRequest).toHaveBeenCalledTimes(1));
     expect(mockNonExtrapolatedRequest).toHaveBeenCalledWith(

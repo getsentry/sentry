@@ -13,7 +13,7 @@ describe('useTourReducer', () => {
     orderedStepIds: ORDERED_TEST_TOUR,
   };
   function registerAllSteps() {
-    const {result} = renderHook(() => useTourReducer<TestTour>(initialState, {}));
+    const {result} = renderHook(useTourReducer, {initialProps: initialState});
     const {handleStepRegistration} = result.current;
     act(() => {
       ORDERED_TEST_TOUR.forEach(stepId => handleStepRegistration({id: stepId}));
@@ -22,7 +22,7 @@ describe('useTourReducer', () => {
   }
 
   it('handles step registration correctly', () => {
-    const {result} = renderHook(() => useTourReducer<TestTour>(initialState, {}));
+    const {result} = renderHook(useTourReducer, {initialProps: initialState});
     const {handleStepRegistration} = result.current;
     let unregister = () => {};
     // Should be false before any steps are registered

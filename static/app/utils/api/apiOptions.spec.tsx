@@ -88,7 +88,8 @@ describe('apiOptions', () => {
       body: ['Project 1', 'Project 2'],
     });
 
-    const {result} = renderHook(() => useQuery(options), {wrapper});
+    // @ts-expect-error initialProps is not typed correctly
+    const {result} = renderHook(useQuery, {wrapper, initialProps: options});
 
     await waitFor(() => result.current.isSuccess);
 
@@ -109,11 +110,11 @@ describe('apiOptions', () => {
       },
     });
 
-    const {result} = renderHook(
-      () =>
-        useQuery({...options, select: selectWithHeaders(['Link', 'X-Hits'] as const)}),
-      {wrapper}
-    );
+    const {result} = renderHook(useQuery, {
+      wrapper,
+      // @ts-expect-error select is not typed correctly
+      initialProps: {...options, select: selectWithHeaders(['Link', 'X-Hits'] as const)},
+    });
 
     await waitFor(() => result.current.isSuccess);
 
@@ -122,7 +123,7 @@ describe('apiOptions', () => {
       headers: {Link: 'my-link', 'X-Hits': 'some-hits'},
     });
 
-    // headers should be narrowly typed
+    // @ts-expect-error headers should be narrowly typed
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<{
       Link: string | undefined;
       'X-Hits': string | undefined;

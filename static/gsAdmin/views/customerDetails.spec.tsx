@@ -697,6 +697,7 @@ describe('Customer Details', () => {
     const data = StatsBillingPeriodFixture();
 
     const {result: chartData} = renderHook(
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       () => {
         const series = useSeries();
         return populateChartData(data.intervals, data.groups, series);

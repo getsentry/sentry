@@ -58,14 +58,13 @@ describe('useLogsAggregatesTable', () => {
       ],
     });
 
-    renderHookWithProviders(
-      () =>
-        useLogsAggregatesTable({
-          enabled: true,
-          limit: 100,
-        }),
-      {additionalWrapper: Wrapper}
-    );
+    renderHookWithProviders(useLogsAggregatesTable, {
+      additionalWrapper: Wrapper,
+      initialProps: {
+        enabled: true,
+        limit: 100,
+      },
+    });
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);
     expect(mockNormalRequest).toHaveBeenCalledWith(

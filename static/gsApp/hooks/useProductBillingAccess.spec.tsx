@@ -18,32 +18,26 @@ describe('useProductBillingAccess', () => {
     SubscriptionStore.set(organization.slug, subscription);
   });
   it('returns true if the org has billing access to the given product', () => {
-    const {result} = renderHookWithProviders(
-      () => useProductBillingAccess(DataCategory.ERRORS),
-      {
-        organization,
-      }
-    );
+    const {result} = renderHookWithProviders(useProductBillingAccess, {
+      organization,
+      initialProps: DataCategory.ERRORS,
+    });
     expect(result.current).toBe(true);
   });
 
   it('returns false if the org does not have billing access to the given product', () => {
-    const {result} = renderHookWithProviders(
-      () => useProductBillingAccess(DataCategory.TRANSACTIONS),
-      {
-        organization,
-      }
-    );
+    const {result} = renderHookWithProviders(useProductBillingAccess, {
+      organization,
+      initialProps: DataCategory.TRANSACTIONS,
+    });
     expect(result.current).toBe(false);
   });
 
   it('uses parent add-on context when appropriate', () => {
-    const {result: result1} = renderHookWithProviders(
-      () => useProductBillingAccess(DataCategory.SEER_USER),
-      {
-        organization,
-      }
-    );
+    const {result: result1} = renderHookWithProviders(useProductBillingAccess, {
+      organization,
+      initialProps: DataCategory.SEER_USER,
+    });
     expect(result1.current).toBe(false);
 
     act(() => {
@@ -55,12 +49,10 @@ describe('useProductBillingAccess', () => {
       SubscriptionStore.set(organization.slug, subscription);
     });
 
-    const {result: result2} = renderHookWithProviders(
-      () => useProductBillingAccess(DataCategory.SEER_USER),
-      {
-        organization,
-      }
-    );
+    const {result: result2} = renderHookWithProviders(useProductBillingAccess, {
+      organization,
+      initialProps: DataCategory.SEER_USER,
+    });
     expect(result2.current).toBe(false); // still false because add-on parent is not enabled
 
     act(() => {
@@ -71,12 +63,10 @@ describe('useProductBillingAccess', () => {
       SubscriptionStore.set(organization.slug, subscription);
     });
 
-    const {result: result3} = renderHookWithProviders(
-      () => useProductBillingAccess(DataCategory.SEER_USER),
-      {
-        organization,
-      }
-    );
+    const {result: result3} = renderHookWithProviders(useProductBillingAccess, {
+      organization,
+      initialProps: DataCategory.SEER_USER,
+    });
     expect(result3.current).toBe(true); // now true because add-on parent is enabled
   });
 });

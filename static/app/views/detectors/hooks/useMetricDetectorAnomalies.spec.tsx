@@ -56,8 +56,8 @@ describe('useMetricDetectorAnomalies', () => {
       },
     ];
 
-    const {result} = renderHookWithProviders(() =>
-      useMetricDetectorAnomalies({
+    const {result} = renderHookWithProviders(useMetricDetectorAnomalies, {
+      initialProps: {
         series,
         historicalSeries,
         thresholdType: AlertRuleThresholdType.ABOVE,
@@ -65,8 +65,8 @@ describe('useMetricDetectorAnomalies', () => {
         interval: 900, // 15 minutes
         projectId: '1',
         enabled: true,
-      })
-    );
+      },
+    });
 
     await waitFor(() => {
       expect(anomalyRequest).toHaveBeenCalledWith(

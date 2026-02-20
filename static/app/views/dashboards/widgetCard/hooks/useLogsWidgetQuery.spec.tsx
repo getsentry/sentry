@@ -60,16 +60,15 @@ describe('useLogsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useLogsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useLogsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -106,19 +105,18 @@ describe('useLogsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useLogsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useLogsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -165,16 +163,15 @@ describe('useLogsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useLogsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useLogsTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -210,18 +207,17 @@ describe('useLogsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useLogsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          limit: 50,
-          cursor: 'test-cursor',
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useLogsTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        limit: 50,
+        cursor: 'test-cursor',
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(

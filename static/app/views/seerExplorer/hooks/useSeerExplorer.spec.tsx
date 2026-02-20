@@ -17,7 +17,7 @@ describe('useSeerExplorer', () => {
 
   describe('Initial State', () => {
     it('returns initial state with no session data', () => {
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+      const {result} = renderHookWithProviders(useSeerExplorer, {
         organization,
       });
 
@@ -77,7 +77,7 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+      const {result} = renderHookWithProviders(useSeerExplorer, {
         organization,
       });
 
@@ -111,7 +111,7 @@ describe('useSeerExplorer', () => {
         body: {detail: 'Server error'},
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+      const {result} = renderHookWithProviders(useSeerExplorer, {
         organization,
       });
 
@@ -130,7 +130,7 @@ describe('useSeerExplorer', () => {
         body: {session: null},
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+      const {result} = renderHookWithProviders(useSeerExplorer, {
         organization,
       });
 
@@ -151,7 +151,7 @@ describe('useSeerExplorer', () => {
         body: {session: null},
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+      const {result} = renderHookWithProviders(useSeerExplorer, {
         organization,
       });
 
@@ -163,7 +163,7 @@ describe('useSeerExplorer', () => {
     });
 
     it('filters messages based on deleted index', () => {
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+      const {result} = renderHookWithProviders(useSeerExplorer, {
         organization,
       });
 
@@ -177,7 +177,7 @@ describe('useSeerExplorer', () => {
 
   describe('Polling Logic', () => {
     it('returns false for polling when no session exists', () => {
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+      const {result} = renderHookWithProviders(useSeerExplorer, {
         organization,
       });
 

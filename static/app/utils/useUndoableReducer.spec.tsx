@@ -153,6 +153,7 @@ describe('makeUndoableReducer', () => {
     const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
       action.type === 'add' ? state + 1 : state - 1;
 
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHook(() =>
       useReducer(makeUndoableReducer(makeCombinedReducers({simple: simpleReducer})), {
         previous: undefined,
@@ -178,6 +179,7 @@ describe('makeUndoableReducer', () => {
       math: (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
         action.type === 'add' ? state + 1 : state - 1,
     });
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHook(() =>
       useReducer(makeUndoableReducer(combinedReducers), {
         previous: undefined,

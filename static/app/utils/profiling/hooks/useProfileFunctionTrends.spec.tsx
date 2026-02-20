@@ -29,14 +29,13 @@ describe('useProfileFunctionTrendss', () => {
       body: {data: []},
     });
 
-    const hook = renderHook(
-      () =>
-        useProfileFunctionTrends({
-          trendFunction: 'p95()',
-          trendType: 'regression',
-        }),
-      {wrapper: TestContext}
-    );
+    const hook = renderHook(useProfileFunctionTrends<string>, {
+      wrapper: TestContext,
+      initialProps: {
+        trendFunction: 'p95()',
+        trendType: 'regression',
+      },
+    });
     expect(hook.result.current).toMatchObject(
       expect.objectContaining({
         isInitialLoading: true,
@@ -50,14 +49,13 @@ describe('useProfileFunctionTrendss', () => {
       body: {data: []},
     });
 
-    const hook = renderHook(
-      () =>
-        useProfileFunctionTrends({
-          trendFunction: 'p95()',
-          trendType: 'regression',
-        }),
-      {wrapper: TestContext}
-    );
+    const hook = renderHook(useProfileFunctionTrends<string>, {
+      wrapper: TestContext,
+      initialProps: {
+        trendFunction: 'p95()',
+        trendType: 'regression',
+      },
+    });
     expect(hook.result.current.isPending).toBe(true);
     expect(hook.result.current.isFetched).toBe(false);
     await waitFor(() =>

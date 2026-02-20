@@ -42,7 +42,7 @@ describe('useWidgetBuilderState', () => {
       })
     );
 
-    const {result} = renderHook(() => useWidgetBuilderState(), {
+    const {result} = renderHook(useWidgetBuilderState, {
       wrapper: WidgetBuilderProvider,
     });
 
@@ -51,7 +51,7 @@ describe('useWidgetBuilderState', () => {
   });
 
   it('sets the new title and description in the query params', () => {
-    const {result} = renderHook(() => useWidgetBuilderState(), {
+    const {result} = renderHook(useWidgetBuilderState, {
       wrapper: WidgetBuilderProvider,
     });
     act(() => {
@@ -85,7 +85,7 @@ describe('useWidgetBuilderState', () => {
   });
 
   it('does not update the url when the updateUrl option is false', () => {
-    const {result} = renderHook(() => useWidgetBuilderState(), {
+    const {result} = renderHook(useWidgetBuilderState, {
       wrapper: WidgetBuilderProvider,
     });
 
@@ -110,7 +110,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -124,7 +124,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -132,7 +132,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets the display type in the query params', () => {
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -164,7 +164,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -221,7 +221,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -283,7 +283,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -355,7 +355,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -410,7 +410,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -465,7 +465,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -520,7 +520,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -560,7 +560,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -581,7 +581,7 @@ describe('useWidgetBuilderState', () => {
         LocationFixture({query: {selectedAggregate: '0'}})
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -608,7 +608,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -638,7 +638,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -665,7 +665,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -690,7 +690,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -719,7 +719,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -745,7 +745,7 @@ describe('useWidgetBuilderState', () => {
     it('resets limit when the display type is switched to table', () => {
       mockedUsedLocation.mockReturnValue(LocationFixture({query: {limit: '3'}}));
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -777,7 +777,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -805,7 +805,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -828,7 +828,7 @@ describe('useWidgetBuilderState', () => {
         LocationFixture({query: {dataset: WidgetType.ISSUE}})
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -836,7 +836,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets the dataset in the query params', () => {
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -860,7 +860,7 @@ describe('useWidgetBuilderState', () => {
     it('returns errors as the default dataset', () => {
       mockedUsedLocation.mockReturnValue(LocationFixture({query: {dataset: 'invalid'}}));
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -874,7 +874,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -897,7 +897,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -929,7 +929,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -970,7 +970,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1008,7 +1008,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1040,7 +1040,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1072,7 +1072,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1099,7 +1099,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1126,7 +1126,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1156,7 +1156,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1179,7 +1179,7 @@ describe('useWidgetBuilderState', () => {
         LocationFixture({query: {field: ['event.type', 'potato', 'count()']}})
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1206,7 +1206,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1243,7 +1243,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1277,7 +1277,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1308,7 +1308,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1331,7 +1331,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1361,7 +1361,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1388,7 +1388,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1417,7 +1417,7 @@ describe('useWidgetBuilderState', () => {
           },
         })
       );
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1444,7 +1444,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1480,7 +1480,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1513,7 +1513,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1547,7 +1547,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1586,7 +1586,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1632,7 +1632,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1671,7 +1671,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1699,7 +1699,7 @@ describe('useWidgetBuilderState', () => {
           },
         })
       );
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1731,7 +1731,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1757,7 +1757,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1786,7 +1786,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1813,7 +1813,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1842,7 +1842,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1869,7 +1869,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1907,7 +1907,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -1960,7 +1960,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -2003,7 +2003,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -2046,7 +2046,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 
@@ -2108,7 +2108,7 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
+      const {result} = renderHook(useWidgetBuilderState, {
         wrapper: WidgetBuilderProvider,
       });
 

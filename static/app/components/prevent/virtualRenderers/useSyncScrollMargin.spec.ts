@@ -24,7 +24,7 @@ global.window.ResizeObserver = ResizeObserverMock;
 describe('useSyncScrollMargin', () => {
   describe('overlayRef is null', () => {
     it('returns undefined', () => {
-      const {result} = renderHook(() => useSyncScrollMargin({current: null}));
+      const {result} = renderHook(useSyncScrollMargin, {initialProps: {current: null}});
 
       expect(result.current).toBeUndefined();
     });
@@ -32,9 +32,9 @@ describe('useSyncScrollMargin', () => {
 
   describe('overlayRef is set', () => {
     it('returns the scroll margin', () => {
-      const {result} = renderHook(() =>
-        useSyncScrollMargin({current: {} as HTMLDivElement})
-      );
+      const {result} = renderHook(useSyncScrollMargin, {
+        initialProps: {current: {} as HTMLDivElement},
+      });
 
       expect(result.current).toBe(100);
     });

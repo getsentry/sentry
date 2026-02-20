@@ -87,15 +87,15 @@ describe('useMultiQueryTable', () => {
         ],
         method: 'GET',
       });
-      renderHookWithProviders(() =>
-        hook({
+      renderHookWithProviders(hook, {
+        initialProps: {
           enabled: true,
           groupBys: [],
           query: 'test value',
           sortBys: [],
           yAxes: [],
-        })
-      );
+        },
+      });
 
       expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
       expect(mockNormalRequestUrl).toHaveBeenCalledWith(

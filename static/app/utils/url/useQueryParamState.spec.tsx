@@ -30,8 +30,9 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'initial state'}})
     );
 
-    const {result} = renderHook(() => useQueryParamState({fieldName: 'testField'}), {
+    const {result} = renderHook(useQueryParamState, {
       wrapper: UrlParamBatchProvider,
+      initialProps: {fieldName: 'testField'},
     });
 
     expect(result.current[0]).toBe('initial state');
@@ -41,8 +42,9 @@ describe('useQueryParamState', () => {
     const mockedNavigate = jest.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
-    const {result} = renderHook(() => useQueryParamState({fieldName: 'testField'}), {
+    const {result} = renderHook(useQueryParamState, {
       wrapper: UrlParamBatchProvider,
+      initialProps: {fieldName: 'testField'},
     });
 
     act(() => {
@@ -84,12 +86,10 @@ describe('useQueryParamState', () => {
 
     const testDeserializer = (value: string) => `${value.toUpperCase()} - decoded`;
 
-    const {result} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', deserializer: testDeserializer}),
-      {
-        wrapper: UrlParamBatchProvider,
-      }
-    );
+    const {result} = renderHook(useQueryParamState, {
+      wrapper: UrlParamBatchProvider,
+      initialProps: {fieldName: 'testField', deserializer: testDeserializer},
+    });
 
     expect(result.current[0]).toBe('INITIAL STATE - decoded');
   });
@@ -107,12 +107,10 @@ describe('useQueryParamState', () => {
     const testSerializer = (value: TestType) =>
       `${value.value} - ${value.count} - ${value.isActive}`;
 
-    const {result} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', serializer: testSerializer}),
-      {
-        wrapper: UrlParamBatchProvider,
-      }
-    );
+    const {result} = renderHook(useQueryParamState, {
+      wrapper: UrlParamBatchProvider,
+      initialProps: {fieldName: 'testField', serializer: testSerializer},
+    });
 
     act(() => {
       result.current[1]({value: 'newValue', count: 2, isActive: true});
@@ -133,17 +131,14 @@ describe('useQueryParamState', () => {
     const mockedNavigate = jest.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
-    const {result} = renderHook(
-      () =>
-        useQueryParamState<Sort[]>({
-          fieldName: 'sort',
-          decoder: decodeSorts,
-          serializer: value => value.map(formatSort),
-        }),
-      {
-        wrapper: UrlParamBatchProvider,
-      }
-    );
+    const {result} = renderHook(useQueryParamState<Sort[]>, {
+      wrapper: UrlParamBatchProvider,
+      initialProps: {
+        fieldName: 'sort',
+        decoder: decodeSorts,
+        serializer: value => value.map(formatSort),
+      },
+    });
 
     expect(result.current[0]).toEqual([{field: 'testField', kind: 'desc'}]);
 
@@ -165,12 +160,10 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'initial state'}})
     );
 
-    const {result, rerender} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', syncStateWithUrl: false}),
-      {
-        wrapper: UrlParamBatchProvider,
-      }
-    );
+    const {result, rerender} = renderHook(useQueryParamState, {
+      wrapper: UrlParamBatchProvider,
+      initialProps: {fieldName: 'testField', syncStateWithUrl: false},
+    });
 
     expect(result.current[0]).toBe('initial state');
 
@@ -190,12 +183,10 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'initial state'}})
     );
 
-    const {result, rerender} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', syncStateWithUrl: true}),
-      {
-        wrapper: UrlParamBatchProvider,
-      }
-    );
+    const {result, rerender} = renderHook(useQueryParamState, {
+      wrapper: UrlParamBatchProvider,
+      initialProps: {fieldName: 'testField', syncStateWithUrl: true},
+    });
 
     expect(result.current[0]).toBe('initial state');
 

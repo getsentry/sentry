@@ -102,10 +102,11 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {result} = renderHookWithProviders(
-      () => useVirtualStreaming({data: mockData}),
-      {additionalWrapper: createWrapper({autoRefresh: 'enabled'}), organization}
-    );
+    const {result} = renderHookWithProviders(useVirtualStreaming, {
+      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      organization,
+      initialProps: {data: mockData},
+    });
 
     await waitFor(() => {
       expect(result.current.virtualStreamedTimestamp).toBeDefined();
@@ -127,10 +128,11 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {result} = renderHookWithProviders(
-      () => useVirtualStreaming({data: mockData}),
-      {additionalWrapper: createWrapper({autoRefresh: 'idle'}), organization}
-    );
+    const {result} = renderHookWithProviders(useVirtualStreaming, {
+      additionalWrapper: createWrapper({autoRefresh: 'idle'}),
+      organization,
+      initialProps: {data: mockData},
+    });
 
     expect(result.current.virtualStreamedTimestamp).toBeUndefined();
   });
@@ -145,9 +147,10 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    renderHookWithProviders(() => useVirtualStreaming({data: mockData}), {
+    renderHookWithProviders(useVirtualStreaming, {
       additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
       organization,
+      initialProps: {data: mockData},
     });
 
     await waitFor(() => {
@@ -165,10 +168,10 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {unmount} = renderHookWithProviders(
-      () => useVirtualStreaming({data: mockData}),
-      {additionalWrapper: createWrapper({autoRefresh: 'enabled'})}
-    );
+    const {unmount} = renderHookWithProviders(useVirtualStreaming, {
+      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      initialProps: {data: mockData},
+    });
 
     await waitFor(() => {
       expect(requestAnimationFrameSpy).toHaveBeenCalled();
@@ -177,9 +180,10 @@ describe('useVirtualStreaming', () => {
     unmount();
 
     // Re-render with disabled autorefresh
-    renderHookWithProviders(() => useVirtualStreaming({data: mockData}), {
+    renderHookWithProviders(useVirtualStreaming, {
       additionalWrapper: createWrapper({autoRefresh: 'idle'}),
       organization,
+      initialProps: {data: mockData},
     });
 
     await waitFor(() => {

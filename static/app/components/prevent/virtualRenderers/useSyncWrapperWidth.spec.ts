@@ -24,7 +24,7 @@ global.window.ResizeObserver = ResizeObserverMock;
 describe('useSyncWrapperWidth', () => {
   describe('wrapperRefState is null', () => {
     it('returns the wrapper width as 100%', () => {
-      const {result} = renderHook(() => useSyncWrapperWidth());
+      const {result} = renderHook(useSyncWrapperWidth);
 
       expect(result.current.wrapperWidth).toBe('100%');
     });
@@ -32,7 +32,7 @@ describe('useSyncWrapperWidth', () => {
 
   describe('wrapperRefState is set', () => {
     it('returns the wrapper width from the ResizeObserver entry', () => {
-      const {result} = renderHook(() => useSyncWrapperWidth());
+      const {result} = renderHook(useSyncWrapperWidth);
 
       act(() => {
         result.current.setWrapperRefState({} as HTMLDivElement);

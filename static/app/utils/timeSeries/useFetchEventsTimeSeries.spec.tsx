@@ -42,6 +42,7 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHookWithProviders(() =>
       useFetchEventsTimeSeries(
         DiscoverDatasets.SPANS,
@@ -71,6 +72,7 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHookWithProviders(() =>
       useFetchEventsTimeSeries(
         DiscoverDatasets.SPANS,
@@ -90,6 +92,7 @@ describe('useFetchEventsTimeSeries', () => {
 
   it('requires a referrer', () => {
     expect(() => {
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       renderHookWithProviders(() =>
         useFetchEventsTimeSeries(
           DiscoverDatasets.SPANS,
@@ -110,6 +113,7 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHookWithProviders(() =>
       useFetchEventsTimeSeries(
         DiscoverDatasets.SPANS,
@@ -153,6 +157,7 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHookWithProviders(() =>
       useFetchEventsTimeSeries(
         DiscoverDatasets.SPANS,
@@ -207,6 +212,7 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHookWithProviders(() =>
       useFetchEventsTimeSeries(
         DiscoverDatasets.SPANS,
@@ -257,6 +263,7 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHookWithProviders(() =>
       useFetchEventsTimeSeries(
         DiscoverDatasets.SPANS,

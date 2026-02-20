@@ -36,25 +36,22 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
       },
     };
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useTraceItemSearchQueryBuilderProps({
-          itemType: TraceItemDataset.SPANS,
-          booleanAttributes,
-          booleanSecondaryAliases,
-          numberAttributes: {},
-          numberSecondaryAliases: {},
-          stringAttributes: {},
-          stringSecondaryAliases: {},
-          initialQuery: '',
-          searchSource: 'test',
-        }),
-      {
-        organization: {
-          features: ['search-query-builder-explicit-boolean-filters'],
-        },
-      }
-    );
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      organization: {
+        features: ['search-query-builder-explicit-boolean-filters'],
+      },
+      initialProps: {
+        itemType: TraceItemDataset.SPANS,
+        booleanAttributes,
+        booleanSecondaryAliases,
+        numberAttributes: {},
+        numberSecondaryAliases: {},
+        stringAttributes: {},
+        stringSecondaryAliases: {},
+        initialQuery: '',
+        searchSource: 'test',
+      },
+    });
 
     expect(result.current.filterKeys['feature.enabled']).toBeDefined();
     expect(result.current.filterKeyAliases?.['feature.enabled_alias']).toBeDefined();

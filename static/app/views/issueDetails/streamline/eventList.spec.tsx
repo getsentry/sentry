@@ -84,6 +84,7 @@ describe('EventList', () => {
 
   it('renders the list using a discover event query', async () => {
     renderAllEvents();
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHook(() => useEventColumns(group, organization));
 
     expect(await screen.findByText('All Events')).toBeInTheDocument();

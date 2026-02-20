@@ -114,7 +114,7 @@ describe('useInfiniteLogsQuery', () => {
       );
     }
 
-    const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result, rerender} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper(),
       organization,
     });
@@ -204,7 +204,7 @@ describe('useInfiniteLogsQuery', () => {
       headers: linkHeaders,
     });
 
-    const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result, rerender} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper(),
       organization,
     });
@@ -287,8 +287,9 @@ describe('useInfiniteLogsQuery', () => {
       ],
     });
 
-    renderHookWithProviders(() => useInfiniteLogsQuery({}), {
+    renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper(),
+      initialProps: {},
     });
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);
@@ -379,12 +380,10 @@ describe('useInfiniteLogsQuery', () => {
         makeMockEventsResponse({cursor: 'page6', nextCursor: 'page7', hasNext: false}),
       ].map(response => MockApiClient.addMockResponse(response));
 
-      const {result} = renderHookWithProviders(
-        () => useInfiniteLogsQuery({highFidelity: true, maxAutoFetches: 3}),
-        {
-          additionalWrapper: createWrapper(),
-        }
-      );
+      const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
+        additionalWrapper: createWrapper(),
+        initialProps: {highFidelity: true, maxAutoFetches: 3},
+      });
 
       // the first 3 requests should have been called
       await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
@@ -432,12 +431,10 @@ describe('useInfiniteLogsQuery', () => {
         }),
       ].map(response => MockApiClient.addMockResponse(response));
 
-      const {result} = renderHookWithProviders(
-        () => useInfiniteLogsQuery({highFidelity: true, maxAutoFetches: 3}),
-        {
-          additionalWrapper: createWrapper(),
-        }
-      );
+      const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
+        additionalWrapper: createWrapper(),
+        initialProps: {highFidelity: true, maxAutoFetches: 3},
+      });
 
       // the first 2 requests should have been called and stop because it totals 1000 results
       await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
@@ -680,7 +677,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
       organization,
     });
@@ -708,7 +705,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper({autoRefresh: 'idle'}),
       organization,
     });
@@ -765,7 +762,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
       organization,
     });
@@ -827,7 +824,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+    const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
       additionalWrapper: createWrapper({autoRefresh: 'idle'}), // Disable auto refresh to avoid virtual streaming filtering
       organization,
     });
