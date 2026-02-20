@@ -152,14 +152,19 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not Detector.objects.filter(id=detector.id).exists()
         assert mock_remove_seat.call_count >= 1
 
+    @mock.patch("sentry.deletions.defaults.uptime_subscription.remove_uptime_seat")
     @mock.patch("sentry.uptime.subscriptions.subscriptions.remove_uptime_seat")
     def test_delete_uptime_detector_succeeds_when_remove_seat_fails(
-        self, mock_remove_seat: mock.MagicMock
+        self,
+        mock_remove_seat_subscriptions: mock.MagicMock,
+        mock_remove_seat_deletion: mock.MagicMock,
     ) -> None:
         """Detector deletion succeeds even if remove_uptime_seat raises in DetectorDeletionTask."""
-        # First call (from UptimeSubscriptionDeletionTask during child cascade) succeeds.
-        # Second call (from DetectorDeletionTask.delete_instance) fails.
-        mock_remove_seat.side_effect = [None, Exception("seat error")]
+        # DetectorDeletionTask.delete_instance does a lazy import from
+        # sentry.uptime.subscriptions.subscriptions, so it picks up this mock.
+        mock_remove_seat_subscriptions.side_effect = Exception("seat error")
+        # UptimeSubscriptionDeletionTask uses a top-level import bound at module
+        # load time, so we mock at the import target separately (default no-op).
         detector = self.create_uptime_detector()
         detector_id = detector.id
         self.ScheduledDeletion.schedule(instance=detector, days=0)
@@ -168,6 +173,8 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             run_scheduled_deletions()
 
         assert not Detector.objects.filter(id=detector_id).exists()
+        # Verify the error path in DetectorDeletionTask was actually exercised.
+        mock_remove_seat_subscriptions.assert_called_once()
 
     def test_delete_uptime_subscription_without_detector(self) -> None:
         """UptimeSubscription deletion proceeds when the detector no longer exists."""
