@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
@@ -28,6 +29,19 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         assert data["scopes"]["project"] == str(self.project.id)
 
         assert data["expirationPolicy"] == "ttl:396 days"
+
+    def test_objectstore_url_uses_region_endpoint(self):
+        with (
+            self.feature("organizations:preprod-snapshots"),
+            self.options({"system.region-api-url-template": "https://{region}.testserver"}),
+        ):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        url = response.data["objectstore"]["url"]
+        region = settings.SENTRY_REGION
+        assert url.startswith(f"https://{region}.testserver/")
+        assert f"/api/0/organizations/{self.org.id}/objectstore/" in url
 
     def test_without_feature_flag(self):
         response = self.client.get(self.url)

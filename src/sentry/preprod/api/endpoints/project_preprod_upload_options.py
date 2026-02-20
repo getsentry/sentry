@@ -14,9 +14,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.utils import generate_region_url
 from sentry.models.project import Project
 from sentry.objectstore.types import ObjectstoreUploadOptions
-from sentry.utils.http import absolute_uri
 
 
 @region_silo_endpoint
@@ -35,15 +35,15 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
 
         organization = project.organization
 
-        url = absolute_uri(
-            reverse(
-                "sentry-api-0-organization-objectstore",
-                kwargs={
-                    "organization_id_or_slug": organization.id,
-                    "path": "",
-                },
-            )
+        path = reverse(
+            "sentry-api-0-organization-objectstore",
+            kwargs={
+                "organization_id_or_slug": organization.id,
+                "path": "",
+            },
         )
+        region_base = generate_region_url()
+        url = region_base.rstrip("/") + "/" + path.lstrip("/")
 
         options = ObjectstoreUploadOptions(
             url=url,
