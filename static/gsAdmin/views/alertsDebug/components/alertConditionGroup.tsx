@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -40,9 +38,9 @@ export function AlertConditionGroup({group}: AlertConditionGroupProps) {
 
             <Stack gap="xs">
               {group.actions.map(action => (
-                <Fragment key={action.id}>
-                  <Text as="div">{action.id}</Text>
-                </Fragment>
+                <Text key={action.id} as="div">
+                  {action.id}
+                </Text>
               ))}
             </Stack>
           </Stack>

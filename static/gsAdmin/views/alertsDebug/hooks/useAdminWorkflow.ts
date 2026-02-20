@@ -10,7 +10,7 @@ export function useAdminWorkflow(
   organizationIdOrSlug: string | undefined,
   workflowId: string | undefined
 ) {
-  const url = getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
+  const url = getApiUrl(`/customers/${organizationIdOrSlug}/workflows/${workflowId}/`, {
     path: {
       organizationIdOrSlug: organizationIdOrSlug ?? '',
       workflowId: workflowId ?? '',
