@@ -1793,6 +1793,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert "You cannot use a query not owned by this widget" in response.data
 
+    @pytest.mark.django_db(transaction=True)
     def test_update_widget_invalid_orderby(self) -> None:
         data = {
             "title": "First dashboard",
@@ -1815,6 +1816,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Cannot sort by a field" in response.content
 
+    @pytest.mark.django_db(transaction=True)
     def test_remove_widget_and_add_new(self) -> None:
         # Remove a widget from the middle of the set and put a new widget there
         data = {
@@ -2040,6 +2042,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
         self.assert_serialized_widget(data["widgets"][1], widgets[1])
 
+    @pytest.mark.django_db(transaction=True)
     def test_reorder_widgets_has_no_effect(self) -> None:
         response = self.do_request(
             "put",
