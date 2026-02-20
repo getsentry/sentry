@@ -12,6 +12,15 @@ import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import * as utils from 'sentry/views/discover/savedQuery/utils';
 
 jest.mock('sentry/actionCreators/modal');
+jest.mock('sentry/views/discover/savedQuery/utils', () => {
+  const actual = jest.requireActual('sentry/views/discover/savedQuery/utils');
+  return {
+    ...actual,
+    handleCreateQuery: jest.fn(actual.handleCreateQuery),
+    handleDeleteQuery: jest.fn(actual.handleDeleteQuery),
+    handleUpdateQuery: jest.fn(actual.handleUpdateQuery),
+  };
+});
 
 function mount(
   location: ReturnType<typeof LocationFixture>,
@@ -87,11 +96,10 @@ describe('Discover > SaveQueryButtonGroup', () => {
   });
 
   describe('building on a new query', () => {
-    const mockUtils = jest
-      .spyOn(utils, 'handleCreateQuery')
-      .mockImplementation(() => Promise.resolve(savedQuery));
+    const mockUtils = jest.mocked(utils.handleCreateQuery);
 
     beforeEach(() => {
+      mockUtils.mockImplementation(() => Promise.resolve(savedQuery));
       mockUtils.mockClear();
     });
 
@@ -257,12 +265,10 @@ describe('Discover > SaveQueryButtonGroup', () => {
   });
 
   describe('viewing a saved query', () => {
-    let mockUtils: jest.SpyInstance;
+    const mockUtils = jest.mocked(utils.handleDeleteQuery);
 
     beforeEach(() => {
-      mockUtils = jest
-        .spyOn(utils, 'handleDeleteQuery')
-        .mockImplementation(() => Promise.resolve());
+      mockUtils.mockImplementation(() => Promise.resolve());
     });
 
     afterEach(() => {
@@ -340,7 +346,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
   });
 
   describe('modifying a saved query', () => {
-    let mockUtils: jest.SpyInstance;
+    let mockUtils: jest.Mock;
 
     it('renders the correct set of buttons', async () => {
       mount(
@@ -362,9 +368,8 @@ describe('Discover > SaveQueryButtonGroup', () => {
 
     describe('updates the saved query', () => {
       beforeEach(() => {
-        mockUtils = jest
-          .spyOn(utils, 'handleUpdateQuery')
-          .mockImplementation(() => Promise.resolve(savedQuery));
+        mockUtils = jest.mocked(utils.handleUpdateQuery);
+        mockUtils.mockImplementation(() => Promise.resolve(savedQuery));
       });
 
       afterEach(() => {
@@ -402,9 +407,8 @@ describe('Discover > SaveQueryButtonGroup', () => {
 
     describe('creates a separate query', () => {
       beforeEach(() => {
-        mockUtils = jest
-          .spyOn(utils, 'handleCreateQuery')
-          .mockImplementation(() => Promise.resolve(savedQuery));
+        mockUtils = jest.mocked(utils.handleCreateQuery);
+        mockUtils.mockImplementation(() => Promise.resolve(savedQuery));
       });
 
       afterEach(() => {

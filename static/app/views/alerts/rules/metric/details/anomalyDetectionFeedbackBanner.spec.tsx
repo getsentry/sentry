@@ -8,6 +8,14 @@ import * as analytics from 'sentry/utils/analytics';
 
 import AnomalyDetectionFeedbackBanner from './anomalyDetectionFeedbackBanner';
 
+jest.mock('sentry/utils/analytics', () => {
+  const actual = jest.requireActual('sentry/utils/analytics');
+  return {
+    ...actual,
+    trackAnalytics: jest.fn(actual.trackAnalytics),
+  };
+});
+
 describe('AnomalyDetectionFeedbackBanner', () => {
   const initialData = initializeOrg({
     organization: {
@@ -22,7 +30,7 @@ describe('AnomalyDetectionFeedbackBanner', () => {
   const project = initialData.project;
   const mockIncident = IncidentFixture({projects: [project.slug]});
   const mockIncident2 = IncidentFixture({id: '6702'});
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = jest.mocked(analytics.trackAnalytics);
 
   it('submits anomaly detection feedback (yes)', async () => {
     const {container} = render(

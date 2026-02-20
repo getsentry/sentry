@@ -9,6 +9,63 @@ import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/fil
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
+jest.mock('sentry/components/performance/spanSearchQueryBuilder', () => ({
+  useSpanSearchQueryBuilderProps: jest.fn(
+    ({
+      initialQuery,
+      onSearch,
+      onChange,
+    }: {
+      initialQuery: string;
+      onChange?: (query: string, state: {queryIsValid: boolean}) => void;
+      onSearch?: (query: string, state: {queryIsValid: boolean}) => void;
+    }) => ({
+      spanSearchQueryBuilderProps: {initialQuery, onSearch, onChange},
+    })
+  ),
+}));
+
+jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const {WildcardOperators: Operators} = jest.requireActual(
+    'sentry/components/searchSyntax/parser'
+  );
+
+  return {
+    TraceItemSearchQueryBuilder: ({
+      initialQuery,
+      onSearch,
+      onChange,
+    }: {
+      initialQuery?: string;
+      onChange?: (query: string, state: {queryIsValid: boolean}) => void;
+      onSearch?: (query: string, state: {queryIsValid: boolean}) => void;
+    }) => {
+      const [value, setValue] = React.useState(initialQuery ?? '');
+      return (
+        <input
+          role="combobox"
+          aria-label={initialQuery || 'Add a search term'}
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key !== 'Enter') {
+              return;
+            }
+
+            const [key, rawValue = ''] = value.split(':');
+            const submittedQuery =
+              key && rawValue ? `${key}:${Operators.CONTAINS}${rawValue}` : value;
+            const state = {queryIsValid: true};
+            onSearch?.(submittedQuery, state);
+            onChange?.(submittedQuery, state);
+          }}
+        />
+      );
+    },
+  };
+});
+
 // The endpoint seems to just return these fields, but the original TagValue type
 // has extra fields related to user information that we don't seem to need.
 interface MockedTagValue extends Pick<
