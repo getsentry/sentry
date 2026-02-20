@@ -165,21 +165,16 @@ export function CompactSelect<Value extends SelectKey>({
       typeof controlProps.menuTitle === 'string' ? controlProps.menuTitle : 'unknown',
     [controlProps.menuTitle]
   );
-  const lastLoggedDuplicateKeySignatureRef = useRef<string | undefined>(undefined);
-  const duplicateOptionKeys = useMemo(
-    () => getDuplicateOptionKeys(allItemsWithKey),
-    [allItemsWithKey]
-  );
-  const duplicateOptionKeySignature = useMemo(
-    () => duplicateOptionKeys.join(','),
-    [duplicateOptionKeys]
-  );
 
+  const lastLoggedDuplicateKeySignatureRef = useRef<string | undefined>(undefined);
   useEffect(() => {
+    const duplicateOptionKeys = getDuplicateOptionKeys(allItemsWithKey);
     if (duplicateOptionKeys.length === 0) {
       lastLoggedDuplicateKeySignatureRef.current = undefined;
       return;
     }
+
+    const duplicateOptionKeySignature = duplicateOptionKeys.join(',');
     if (lastLoggedDuplicateKeySignatureRef.current === duplicateOptionKeySignature) {
       return;
     }
@@ -195,13 +190,7 @@ export function CompactSelect<Value extends SelectKey>({
       }, 0),
       virtualize_threshold: virtualizeThreshold ?? 150,
     });
-  }, [
-    allItemsWithKey,
-    componentTitle,
-    duplicateOptionKeySignature,
-    duplicateOptionKeys.length,
-    virtualizeThreshold,
-  ]);
+  }, [allItemsWithKey, componentTitle, virtualizeThreshold]);
 
   return (
     <Control
@@ -223,8 +212,6 @@ export function CompactSelect<Value extends SelectKey>({
             trackVirtualizationMetrics(
               allItemsWithKey,
               virtualizeThreshold,
-              duplicateOptionKeys.length,
-              duplicateOptionKeySignature,
               componentTitle
             );
           });
@@ -297,8 +284,6 @@ function shouldVirtualize<Value extends SelectKey>(
 function trackVirtualizationMetrics<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   virtualizeThreshold = 150,
-  duplicateOptionKeyCount = 0,
-  duplicateOptionKeySignature = '',
   title = 'unknown'
 ) {
   const hasSections = items.some(item => 'options' in item);
@@ -314,8 +299,6 @@ function trackVirtualizationMetrics<Value extends SelectKey>(
         has_sections: hasSections,
         component_title: title,
         count: optionCount,
-        duplicate_option_key_count: duplicateOptionKeyCount,
-        duplicate_option_key_signature: duplicateOptionKeySignature,
         threshold,
       },
     });
@@ -325,8 +308,6 @@ function trackVirtualizationMetrics<Value extends SelectKey>(
     attributes: {
       has_sections: hasSections,
       component_title: title,
-      duplicate_option_key_count: duplicateOptionKeyCount,
-      duplicate_option_key_signature: duplicateOptionKeySignature,
     },
   });
 }
