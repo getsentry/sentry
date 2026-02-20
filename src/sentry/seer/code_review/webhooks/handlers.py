@@ -69,17 +69,20 @@ def handle_webhook_event(
         return
 
     # Set Sentry scope tags so all logs, errors, and spans in this scope carry them automatically.
-    tags = get_tags(
-        event,
-        github_event=github_event.value,
-        organization_id=organization.id,
-        organization_slug=organization.slug,
-        integration_id=integration.id,
-    )
-    sentry_sdk.set_tags(tags)
-    sentry_sdk.set_context("code_review_context", tags)
-    if github_delivery_id:
-        sentry_sdk.set_tag("github_delivery_id", github_delivery_id)
+    try:
+        tags = get_tags(
+            event,
+            github_event=github_event.value,
+            organization_id=organization.id,
+            organization_slug=organization.slug,
+            integration_id=integration.id,
+        )
+        sentry_sdk.set_tags(tags)
+        sentry_sdk.set_context("code_review_context", tags)
+        if github_delivery_id:
+            sentry_sdk.set_tag("github_delivery_id", github_delivery_id)
+    except Exception:
+        logger.warning("github.webhook.code_review.failed_to_set_tags")
 
     handler = EVENT_TYPE_TO_HANDLER[github_event]
 

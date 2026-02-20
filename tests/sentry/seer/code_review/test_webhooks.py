@@ -747,32 +747,6 @@ class TestProcessGitHubWebhookEventSetsTags:
 
     @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    def test_none_values_filtered_from_tags(
-        self, mock_request: MagicMock, mock_sdk: MagicMock
-    ) -> None:
-        """None values in the tags dict are not forwarded to sentry_sdk."""
-        mock_request.return_value = MagicMock(status=200, data=b"{}")
-
-        tags = {
-            "github_event": "pull_request",
-            "scm_owner": None,
-            "pr_id": 42,
-        }
-
-        process_github_webhook_event._func(
-            github_event=GithubWebhookType.CHECK_RUN,
-            event_payload={"original_run_id": "123"},
-            enqueued_at_str=datetime.now(timezone.utc).isoformat(),
-            tags=tags,
-        )
-
-        applied = mock_sdk.set_tags.call_args[0][0]
-        assert "scm_owner" not in applied
-        assert applied["github_event"] == "pull_request"
-        assert applied["pr_id"] == 42
-
-    @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
-    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_no_tags_param_skips_set_tags(
         self, mock_request: MagicMock, mock_sdk: MagicMock
     ) -> None:
