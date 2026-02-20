@@ -500,7 +500,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(group2.id)
 
     def test_perf_issue(self) -> None:
-        perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
+        event = self.store_event(
+            data={
+                "fingerprint": ["perf-issue"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        perf_group = event.group
+        perf_group.update(type=PerformanceNPlusOneGroupType.type_id)
         self.login_as(user=self.user)
         response = self.get_success_response(query="issue.category:performance")
         assert len(response.data) == 1
@@ -508,10 +516,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_has_seer_last_run(self) -> None:
         """Test filtering issues by whether they have seer_autofix_last_triggered set."""
-        # Create two groups - one with seer_autofix_last_triggered and one without
-        group_with_seer = self.create_group()
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["seer-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_with_seer = event1.group
         group_with_seer.update(seer_autofix_last_triggered=timezone.now())
-        group_without_seer = self.create_group()
+        event2 = self.store_event(
+            data={
+                "fingerprint": ["no-seer-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_without_seer = event2.group
 
         self.login_as(user=self.user)
         # Query for issues that have seer_autofix_last_triggered set
