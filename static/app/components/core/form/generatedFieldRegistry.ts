@@ -74,6 +74,13 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
   },
+  'account-emails.email': {
+    name: 'email',
+    formId: 'account-emails',
+    route: '/settings/account/emails/',
+    label: t('Additional Email'),
+    hintText: t('Designate an alternative email for this account'),
+  },
   'password-form.password': {
     name: 'password',
     formId: 'password-form',
