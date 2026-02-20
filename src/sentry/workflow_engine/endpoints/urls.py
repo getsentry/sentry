@@ -1,30 +1,25 @@
 from django.urls import re_path
 
-from sentry.workflow_engine.endpoints.organization_deduplicate_workflows import \
-    OrganizationDeduplicateWorkflowsEndpoint
+from sentry.workflow_engine.endpoints.organization_deduplicate_workflows import (
+    OrganizationDeduplicateWorkflowsEndpoint,
+)
 
-from .admin_debug_index import AdminWorkflowDetailEndpoint
-from .organization_alertrule_detector_index import \
-    OrganizationAlertRuleDetectorIndexEndpoint
-from .organization_alertrule_workflow_index import \
-    OrganizationAlertRuleWorkflowIndexEndpoint
-from .organization_available_action_index import \
-    OrganizationAvailableActionIndexEndpoint
-from .organization_data_condition_index import \
-    OrganizationDataConditionIndexEndpoint
-from .organization_detector_anomaly_data import \
-    OrganizationDetectorAnomalyDataEndpoint
+from .organization_alertrule_detector_index import OrganizationAlertRuleDetectorIndexEndpoint
+from .organization_alertrule_workflow_index import OrganizationAlertRuleWorkflowIndexEndpoint
+from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
+from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
+from .organization_detector_anomaly_data import OrganizationDetectorAnomalyDataEndpoint
 from .organization_detector_count import OrganizationDetectorCountEndpoint
 from .organization_detector_details import OrganizationDetectorDetailsEndpoint
 from .organization_detector_index import OrganizationDetectorIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
-from .organization_incident_groupopenperiod_index import \
-    OrganizationIncidentGroupOpenPeriodIndexEndpoint
+from .organization_incident_groupopenperiod_index import (
+    OrganizationIncidentGroupOpenPeriodIndexEndpoint,
+)
 from .organization_open_periods import OrganizationOpenPeriodsEndpoint
 from .organization_test_fire_action import OrganizationTestFireActionsEndpoint
 from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
-from .organization_workflow_group_history import \
-    OrganizationWorkflowGroupHistoryEndpoint
+from .organization_workflow_group_history import OrganizationWorkflowGroupHistoryEndpoint
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
 from .organization_workflow_stats import OrganizationWorkflowStatsEndpoint
 
@@ -113,14 +108,5 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/incident-groupopenperiod/$",
         OrganizationIncidentGroupOpenPeriodIndexEndpoint.as_view(),
         name="sentry-api-0-organization-incident-groupopenperiod-index",
-    ),
-]
-
-# These URLs power /_admin/alerts
-admin_urlpatterns = [
-    re_path(
-        r"^/workflow/(?P<workflow_id>[^/]+)/$",
-        AdminWorkflowDetailEndpoint.as_view(),
-        name="sentry-api-0-admin-workflow-details",
     ),
 ]
