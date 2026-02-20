@@ -441,22 +441,13 @@ def get_tags(
     github_event_action = event.get("action")
     if github_event_action:
         result["github_event_action"] = github_event_action
-        owner = result.get("scm_owner")
-        repo = result.get("scm_repo_name")
-        base_url = f"https://github.com/{owner}/{repo}"
         if github_event == "issue_comment":
             result["trigger"] = SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
-            pr_number = (event.get("pull_request", {}) or event.get("issue", {})).get("number")
-            comment_id = event.get("comment", {}).get("id")
-            if pr_number and comment_id:
-                result["scm_event_url"] = f"{base_url}/pull/{pr_number}#issuecomment-{comment_id}"
         elif github_event == "pull_request":
             if github_event_action in ("opened", "ready_for_review"):
                 result["trigger"] = SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value
             elif github_event_action == "synchronize":
                 result["trigger"] = SeerCodeReviewTrigger.ON_NEW_COMMIT.value
-                if target_commit_sha:
-                    result["scm_event_url"] = f"{base_url}/commit/{target_commit_sha}"
             elif github_event_action == "closed":
                 result["trigger"] = SeerCodeReviewTrigger.UNKNOWN.value
 
