@@ -11,6 +11,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {SUPPORTED_CODING_AGENT_INTEGRATION_PROVIDERS} from 'getsentry/views/seerAutomation/components/projectDetails/constants';
 
@@ -27,7 +28,12 @@ export default function BackgroundAgentPicker({
   project,
   supportedIntegrations,
 }: Props) {
+  const organization = useOrganization();
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
+
+  const showUnifiedPrToggle = organization.features.includes(
+    'seer-agent-pr-consolidation'
+  );
 
   const isAutoTriggeredFixesEnabled = Boolean(
     project.autofixAutomationTuning && project.autofixAutomationTuning !== 'off'
@@ -82,10 +88,12 @@ export default function BackgroundAgentPicker({
                         handoff_point: 'root_cause',
                         target: 'cursor_background_agent',
                         integration_id: Number(integration.id),
-                        auto_create_pr: Boolean(
-                          preference?.automated_run_stopping_point &&
-                          preference.automated_run_stopping_point !== 'code_changes'
-                        ),
+                        auto_create_pr: showUnifiedPrToggle
+                          ? Boolean(
+                              preference?.automated_run_stopping_point &&
+                              preference.automated_run_stopping_point !== 'code_changes'
+                            )
+                          : false,
                       }
                     : undefined,
                 },
