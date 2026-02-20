@@ -15,15 +15,14 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
-    SnapshotComparisonType,
     SnapshotDetailsApiResponse,
-    SnapshotGetRequest,
     SnapshotImageResponse,
 )
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
@@ -100,11 +99,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
-            request_data = SnapshotGetRequest(**request.GET.dict())
-        except Exception:
-            return Response({"detail": "Invalid query parameters"}, status=400)
-
-        try:
             artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
                 id=snapshot_id, project_id=project.id
             )
@@ -148,23 +142,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             pr_number=commit_comparison.pr_number if commit_comparison else None,
         )
 
-        offset = request_data.offset
-        limit = request_data.limit
-
-        # Paginate images: convert manifest dict to sorted list, apply offset/limit
-        sorted_images = sorted(manifest.images.items())
-        paginated = sorted_images[offset : offset + limit]
-        images = [
-            SnapshotImageResponse(
-                key=key,
-                display_name=metadata.display_name,
-                file_name=metadata.file_name,
-                width=metadata.width,
-                height=metadata.height,
-            )
-            for key, metadata in paginated
-        ]
-
         analytics.record(
             PreprodArtifactApiGetSnapshotDetailsEvent(
                 organization_id=project.organization_id,
@@ -174,16 +151,34 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             )
         )
 
-        response = SnapshotDetailsApiResponse(
-            head_artifact_id=str(artifact.id),
-            state=artifact.state,
-            comparison_type=SnapshotComparisonType.SOLO,
-            vcs_info=vcs_info,
-            images=images,
-            image_count=snapshot_metrics.image_count,
-        )
+        image_list = [
+            SnapshotImageResponse(
+                key=key,
+                display_name=metadata.display_name,
+                file_name=metadata.file_name,
+                width=metadata.width,
+                height=metadata.height,
+            )
+            for key, metadata in sorted(manifest.images.items())
+        ]
 
-        return Response(response.dict(), status=200)
+        def on_results(images: list[SnapshotImageResponse]) -> dict:
+            return SnapshotDetailsApiResponse(
+                head_artifact_id=str(artifact.id),
+                state=artifact.state,
+                vcs_info=vcs_info,
+                images=images,
+                image_count=snapshot_metrics.image_count,
+            ).dict()
+
+        return self.paginate(
+            request=request,
+            queryset=image_list,
+            paginator_cls=OffsetPaginator,
+            on_results=on_results,
+            default_per_page=20,
+            max_per_page=100,
+        )
 
     def post(self, request: Request, project: Project) -> Response:
         if not settings.IS_DEV and not features.has(

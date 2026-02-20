@@ -2,15 +2,10 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
 from sentry.preprod.models import PreprodArtifact
-
-
-class SnapshotComparisonType(StrEnum):
-    SOLO = "solo"
-    DIFF = "diff"
 
 
 class SnapshotDiffSection(StrEnum):
@@ -18,15 +13,6 @@ class SnapshotDiffSection(StrEnum):
     REMOVED = "removed"
     CHANGED = "changed"
     UNCHANGED = "unchanged"
-
-
-# GET request
-
-
-class SnapshotGetRequest(BaseModel):
-    offset: int = Field(default=0, ge=0)
-    limit: int = Field(default=20, ge=1, le=100)
-    section: SnapshotDiffSection | None = None
 
 
 # GET response
@@ -51,7 +37,6 @@ class SnapshotDetailsApiResponse(BaseModel):
     head_artifact_id: str
     base_artifact_id: str | None = None  # Only present for diffs
     state: PreprodArtifact.ArtifactState
-    comparison_type: SnapshotComparisonType
     vcs_info: BuildDetailsVcsInfo
 
     # Solo fields (comparison_type == SOLO)
