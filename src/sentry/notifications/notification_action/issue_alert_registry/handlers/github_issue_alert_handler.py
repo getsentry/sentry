@@ -5,4 +5,4 @@ from sentry.workflow_engine.models import Action
 
 @issue_alert_handler_registry.register(Action.Type.GITHUB)
 class GithubIssueAlertHandler(TicketingIssueAlertHandler):
-    pass
+    label = "Create a GitHub issue in {integration} with these "

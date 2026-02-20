@@ -340,6 +340,18 @@ class BaseIssueAlertHandler(ABC):
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
+    label = "Create a ticket in {integration}"
+
+    @classmethod
+    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        integration = integration_service.get_integration(
+            integration_id=blob.get("integration"),
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+        integration_name = integration.name if integration else "[removed]"
+        return cls.label.format(integration=integration_name)
+
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         return {}
