@@ -80,6 +80,7 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/account/emails/',
     label: t('Additional Email'),
     hintText: t('Designate an alternative email for this account'),
+  },
   'password-form.password': {
     name: 'password',
     formId: 'password-form',
