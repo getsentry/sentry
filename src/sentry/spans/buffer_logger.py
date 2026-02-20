@@ -256,8 +256,32 @@ def emit_observability_metrics(
                     latency_metrics_dict[key][2] + value,
                     latency_metrics_dict[key][3] + 1.0,
                 )
+
+        size_buckets = {
+            "<1000": 0,
+            "1000-2000": 0,
+            "2000-5000": 0,
+            "5000-10000": 0,
+            "10000-20000": 0,
+            ">20000": 0,
+        }
         for raw_key, value in evalsha_gauge_metrics:
             key = raw_key.decode("utf-8")
+            # Temporary metrics for potential limits being added
+            if key == "parent_span_set_after_size":
+                if value > 20000:
+                    size_buckets[">20000"] += 1
+                elif value > 10000:
+                    size_buckets["10000-20000"] += 1
+                elif value > 5000:
+                    size_buckets["5000-10000"] += 1
+                elif value > 2000:
+                    size_buckets["2000-5000"] += 1
+                elif value > 1000:
+                    size_buckets["1000-2000"] += 1
+                else:
+                    size_buckets["<1000"] += 1
+
             if key not in gauge_metrics_dict:
                 gauge_metrics_dict[key] = (value, value, value, 1.0)
             else:
@@ -267,6 +291,10 @@ def emit_observability_metrics(
                     gauge_metrics_dict[key][2] + value,
                     gauge_metrics_dict[key][3] + 1.0,
                 )
+
+    # Temporary metrics for potential limits being added
+    for size, count in size_buckets.items():
+        metrics.incr("spans.buffer.parent_span_set_after_size_bucket", count, tags={"size": size})
 
     for metric, (min_value, max_value, sum_value, count) in latency_metrics_dict.items():
         tags = {"stage": metric}
