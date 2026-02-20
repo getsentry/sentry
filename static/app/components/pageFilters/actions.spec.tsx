@@ -20,6 +20,17 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
+jest.mock('sentry/components/pageFilters/persistence', () => {
+  const actual = jest.requireActual('sentry/components/pageFilters/persistence');
+  return {
+    ...actual,
+    getPageFilterStorage: jest.fn(actual.getPageFilterStorage),
+  };
+});
+
+const actualGetPageFilterStorage = jest.requireActual<
+  typeof import('sentry/components/pageFilters/persistence')
+>('sentry/components/pageFilters/persistence').getPageFilterStorage;
 
 const {organization, projects} = initializeOrg({
   projects: [
@@ -33,6 +44,9 @@ describe('PageFilters ActionCreators', () => {
     jest.spyOn(PageFiltersStore, 'updateProjects');
     jest.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
     jest.clearAllMocks();
+    jest
+      .mocked(PageFilterPersistence.getPageFilterStorage)
+      .mockImplementation(actualGetPageFilterStorage);
     OrganizationStore.onUpdate(organization, {replace: true});
     ConfigStore.set('user', UserFixture());
   });
@@ -326,19 +340,17 @@ describe('PageFilters ActionCreators', () => {
 
     it('does not add non-pinned filters to query for pages with new page filters', () => {
       // Mock storage to have a saved value
-      const pageFilterStorageMock = jest
-        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
-        .mockReturnValueOnce({
-          state: {
-            project: [1],
-            environment: [],
-            start: null,
-            end: null,
-            period: '14d',
-            utc: null,
-          },
-          pinnedFilters: new Set(),
-        });
+      jest.mocked(PageFilterPersistence.getPageFilterStorage).mockReturnValueOnce({
+        state: {
+          project: [1],
+          environment: [],
+          start: null,
+          end: null,
+          period: '14d',
+          utc: null,
+        },
+        pinnedFilters: new Set(),
+      });
 
       // Initialize state with a page that shouldn't restore from local storage
       initializeUrlState({
@@ -351,8 +363,6 @@ describe('PageFilters ActionCreators', () => {
 
       // Confirm that query params are not restored from local storage
       expect(router.replace).not.toHaveBeenCalled();
-
-      pageFilterStorageMock.mockRestore();
     });
 
     it('defaults to all projects when user has no member projects but has accessible projects', () => {
@@ -396,19 +406,17 @@ describe('PageFilters ActionCreators', () => {
 
     it('uses pinned filters for pages with new page filters', () => {
       // Mock storage to have a saved/pinned value
-      const pageFilterStorageMock = jest
-        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
-        .mockReturnValueOnce({
-          state: {
-            project: [1],
-            environment: ['prod'],
-            start: null,
-            end: null,
-            period: '7d',
-            utc: null,
-          },
-          pinnedFilters: new Set(['environments', 'datetime', 'projects']),
-        });
+      jest.mocked(PageFilterPersistence.getPageFilterStorage).mockReturnValueOnce({
+        state: {
+          project: [1],
+          environment: ['prod'],
+          start: null,
+          end: null,
+          period: '7d',
+          utc: null,
+        },
+        pinnedFilters: new Set(['environments', 'datetime', 'projects']),
+      });
 
       // Initialize state with a page that uses pinned filters
       initializeUrlState({
@@ -429,8 +437,6 @@ describe('PageFilters ActionCreators', () => {
           },
         })
       );
-
-      pageFilterStorageMock.mockRestore();
     });
 
     it('fallbacks to global state with storageNamespace empty', () => {

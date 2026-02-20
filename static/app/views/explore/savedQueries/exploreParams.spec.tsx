@@ -4,6 +4,14 @@ import * as useDimensions from 'sentry/utils/useDimensions';
 
 import {ExploreParams} from './exploreParams';
 
+jest.mock('sentry/utils/useDimensions', () => {
+  const actual = jest.requireActual('sentry/utils/useDimensions');
+  return {
+    ...actual,
+    useDimensions: jest.fn(),
+  };
+});
+
 describe('ExploreParams', () => {
   it('should render', () => {
     jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 900, height: 100});

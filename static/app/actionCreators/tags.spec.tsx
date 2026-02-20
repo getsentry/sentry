@@ -5,6 +5,14 @@ import TagStore from 'sentry/stores/tagStore';
 
 import {loadOrganizationTags} from './tags';
 
+jest.mock('sentry/actionCreators/indicator', () => {
+  const actual = jest.requireActual('sentry/actionCreators/indicator');
+  return {
+    ...actual,
+    addErrorMessage: jest.fn(),
+  };
+});
+
 describe('loadOrganizationTags', () => {
   const api = new MockApiClient();
   const selection = {

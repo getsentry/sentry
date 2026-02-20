@@ -9,6 +9,14 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import type {OrgAuthToken} from 'sentry/types/user';
 import OrganizationAuthTokensNewAuthToken from 'sentry/views/settings/organizationAuthTokens/newAuthToken';
 
+jest.mock('sentry/actionCreators/indicator', () => {
+  const actual = jest.requireActual('sentry/actionCreators/indicator');
+  return {
+    ...actual,
+    addErrorMessage: jest.fn(),
+  };
+});
+
 describe('OrganizationAuthTokensNewAuthToken', () => {
   const ENDPOINT = '/organizations/org-slug/org-auth-tokens/';
 

@@ -16,6 +16,14 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import ProjectDetail from './projectDetail';
 import ProjectDetailContainer from './';
 
+jest.mock('sentry/components/pageFilters/actions', () => {
+  const actual = jest.requireActual('sentry/components/pageFilters/actions');
+  return {
+    ...actual,
+    updateProjects: jest.fn(),
+  };
+});
+
 jest.mock('sentry/actionCreators/organization');
 
 describe('ProjectDetail', () => {

@@ -6,10 +6,23 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
-import * as useMedia from 'sentry/utils/useMedia';
+import useMedia from 'sentry/utils/useMedia';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
+
+jest.mock('sentry/utils/useMedia', () => {
+  const actual = jest.requireActual('sentry/utils/useMedia');
+  return {
+    __esModule: true,
+    default: jest.fn(actual.default),
+  };
+});
+
+const actualUseMedia = jest.requireActual<typeof import('sentry/utils/useMedia')>(
+  'sentry/utils/useMedia'
+).default;
+const mockUseMedia = jest.mocked(useMedia);
 
 describe('UsageOverview', () => {
   const organization = OrganizationFixture();
@@ -22,7 +35,8 @@ describe('UsageOverview', () => {
   const usageData = CustomerUsageFixture();
 
   beforeEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
+    mockUseMedia.mockImplementation(actualUseMedia);
     organization.features = ['seer-billing'];
     organization.access = ['org:billing'];
     SubscriptionStore.set(organization.slug, subscription);
@@ -67,9 +81,7 @@ describe('UsageOverview', () => {
   });
 
   it('opens panel based with no query params', async () => {
-    jest
-      .spyOn(useMedia, 'default')
-      .mockImplementation(query => query.includes('min-width'));
+    mockUseMedia.mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
         subscription={subscription}
@@ -82,9 +94,7 @@ describe('UsageOverview', () => {
   });
 
   it('opens panel based on query params', async () => {
-    jest
-      .spyOn(useMedia, 'default')
-      .mockImplementation(query => query.includes('min-width'));
+    mockUseMedia.mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
         subscription={subscription}
@@ -106,9 +116,7 @@ describe('UsageOverview', () => {
   });
 
   it('defaults to last selected when query param is invalid', async () => {
-    jest
-      .spyOn(useMedia, 'default')
-      .mockImplementation(query => query.includes('min-width'));
+    mockUseMedia.mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
         subscription={subscription}
@@ -130,9 +138,7 @@ describe('UsageOverview', () => {
   });
 
   it('can switch panel by clicking table rows', async () => {
-    jest
-      .spyOn(useMedia, 'default')
-      .mockImplementation(query => query.includes('min-width'));
+    mockUseMedia.mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
         subscription={subscription}

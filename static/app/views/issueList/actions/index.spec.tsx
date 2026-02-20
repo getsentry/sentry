@@ -22,6 +22,14 @@ import {
 } from 'sentry/views/issueList/issueSelectionContext';
 import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
 
+jest.mock('sentry/utils/analytics', () => {
+  const actual = jest.requireActual('sentry/utils/analytics');
+  return {
+    ...actual,
+    trackAnalytics: jest.fn(),
+  };
+});
+
 const organization = OrganizationFixture();
 
 const defaultProps = {

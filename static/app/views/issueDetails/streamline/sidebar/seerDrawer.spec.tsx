@@ -16,7 +16,20 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
+import * as issueTypeConfig from 'sentry/utils/issueTypeConfig';
 import {SeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
+
+const actualGetConfigForIssueType = jest.requireActual<
+  typeof import('sentry/utils/issueTypeConfig')
+>('sentry/utils/issueTypeConfig').getConfigForIssueType;
+
+jest.mock('sentry/utils/issueTypeConfig', () => {
+  const actual = jest.requireActual('sentry/utils/issueTypeConfig');
+  return {
+    ...actual,
+    getConfigForIssueType: jest.fn(actual.getConfigForIssueType),
+  };
+});
 
 describe('SeerDrawer', () => {
   const organization = OrganizationFixture({
@@ -295,15 +308,12 @@ describe('SeerDrawer', () => {
       body: {autofix: null},
     });
 
-    // Use jest.spyOn instead of jest.mock inside the test
-    const issueTypeConfigModule = require('sentry/utils/issueTypeConfig');
-    const spy = jest
-      .spyOn(issueTypeConfigModule, 'getConfigForIssueType')
-      .mockImplementation(() => ({
-        autofix: false,
-        issueSummary: {enabled: true},
-        resources: null,
-      }));
+    const mockGetConfigForIssueType = jest.mocked(issueTypeConfig.getConfigForIssueType);
+    mockGetConfigForIssueType.mockImplementation(() => ({
+      autofix: false,
+      issueSummary: {enabled: true},
+      resources: null,
+    }));
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,
@@ -317,8 +327,8 @@ describe('SeerDrawer', () => {
     expect(screen.getByTestId('seer-button-bar')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Start Over'})).not.toBeInTheDocument();
 
-    // Restore the original implementation
-    spy.mockRestore();
+    mockGetConfigForIssueType.mockImplementation(actualGetConfigForIssueType);
+    mockGetConfigForIssueType.mockClear();
   });
 
   it('shows ButtonBarWrapper with disabled Start Over button when hasAutofix is true but no autofixData', async () => {

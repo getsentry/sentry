@@ -8,15 +8,33 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
+import * as modalActions from 'sentry/actionCreators/modal';
 import type {Organization} from 'sentry/types/organization';
 
 import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 
+jest.mock('sentry/actionCreators/indicator', () => {
+  const actual = jest.requireActual('sentry/actionCreators/indicator');
+  return {
+    ...actual,
+    addSuccessMessage: jest.fn(actual.addSuccessMessage),
+    addErrorMessage: jest.fn(actual.addErrorMessage),
+  };
+});
+
+jest.mock('sentry/actionCreators/modal', () => {
+  const actual = jest.requireActual('sentry/actionCreators/modal');
+  return {
+    ...actual,
+    openModal: jest.fn(actual.openModal),
+  };
+});
+
 describe('DeleteBillingMetricHistory', () => {
-  // Add afterEach to clean up after tests
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   const organization = OrganizationFixture({
@@ -131,11 +149,7 @@ describe('DeleteBillingMetricHistory', () => {
       },
     });
 
-    // Mock the success indicator
-    const successIndicator = jest.spyOn(
-      require('sentry/actionCreators/indicator'),
-      'addSuccessMessage'
-    );
+    const successIndicator = jest.mocked(indicators.addSuccessMessage);
 
     // Mock the API endpoint for deleting billing metric history
     const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
@@ -208,11 +222,7 @@ describe('DeleteBillingMetricHistory', () => {
       },
     });
 
-    // Mock the error indicator
-    const errorIndicator = jest.spyOn(
-      require('sentry/actionCreators/indicator'),
-      'addErrorMessage'
-    );
+    const errorIndicator = jest.mocked(indicators.addErrorMessage);
 
     // Mock the API endpoint to return an error
     const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
@@ -352,7 +362,7 @@ describe('deleteBillingMetricHistory export function', () => {
   it('opens modal with correct props', () => {
     const organization = OrganizationFixture();
     const onSuccess = jest.fn();
-    const openModalMock = jest.spyOn(require('sentry/actionCreators/modal'), 'openModal');
+    const openModalMock = jest.mocked(modalActions.openModal);
 
     deleteBillingMetricHistory({organization, onSuccess});
 

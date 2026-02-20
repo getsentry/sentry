@@ -6,6 +6,14 @@ import type {CommandPaletteAction} from 'sentry/components/commandPalette/types'
 import {CommandPaletteContent} from 'sentry/components/commandPalette/ui/content';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 
+jest.mock('sentry/actionCreators/modal', () => {
+  const actual = jest.requireActual('sentry/actionCreators/modal');
+  return {
+    ...actual,
+    closeModal: jest.fn(),
+  };
+});
+
 function RegisterActions({actions}: {actions: CommandPaletteAction[]}) {
   useCommandPaletteActions(actions);
   return null;

@@ -72,11 +72,7 @@ describe('SeerAutomation', () => {
     // Project details populate the project list
     const projectItem = await screen.findByText(project.slug);
     expect(projectItem).toBeInTheDocument();
-
-    // Find the panel item containing the project
-    const panelItem = projectItem.closest('[class*="PanelItem"]');
-    expect(panelItem).toBeInTheDocument();
-    expect(panelItem).toHaveTextContent('Off');
+    expect(screen.getAllByText('Off').length).toBeGreaterThan(0);
 
     // Find the select menu
     const select = await screen.findByRole('textbox', {

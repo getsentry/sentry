@@ -80,10 +80,6 @@ const config: KnipConfig = {
     'process', // rspack.ProvidePlugin, needs better knip plugin
     '@types/webpack-env', // needed to make require.context work
     '@types/gtag.js', // needed for global `gtag` namespace typings
-    '@babel/preset-env', // Still used in jest
-    '@babel/preset-react', // Still used in jest
-    '@babel/preset-typescript', // Still used in jest
-    '@emotion/babel-plugin', // Still used in jest
   ],
   rules: {
     binaries: 'off',

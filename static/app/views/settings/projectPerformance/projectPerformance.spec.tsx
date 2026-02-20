@@ -20,6 +20,14 @@ import ProjectPerformance, {
   DetectorConfigCustomer,
 } from 'sentry/views/settings/projectPerformance/projectPerformance';
 
+jest.mock('sentry/utils/isActiveSuperuser', () => {
+  const actual = jest.requireActual('sentry/utils/isActiveSuperuser');
+  return {
+    ...actual,
+    isActiveSuperuser: jest.fn(),
+  };
+});
+
 const manageDetectorData = [
   {label: 'N+1 DB Queries Detection', key: 'n_plus_one_db_queries_detection_enabled'},
   {label: 'Slow DB Queries Detection', key: 'slow_db_queries_detection_enabled'},

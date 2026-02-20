@@ -15,6 +15,14 @@ import {
   getTransactionViews,
 } from 'sentry/views/discover/results/data';
 
+jest.mock('sentry/components/pageFilters/persistence', () => {
+  const actual = jest.requireActual('sentry/components/pageFilters/persistence');
+  return {
+    ...actual,
+    getPageFilterStorage: jest.fn(),
+  };
+});
+
 const FIELDS = [
   {
     field: 'title',

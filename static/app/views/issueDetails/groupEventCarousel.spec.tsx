@@ -6,8 +6,19 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import * as useMedia from 'sentry/utils/useMedia';
+import useMedia from 'sentry/utils/useMedia';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
+
+jest.mock('sentry/utils/useMedia', () => {
+  const actual = jest.requireActual('sentry/utils/useMedia');
+  return {
+    __esModule: true,
+    ...actual,
+    default: jest.fn(actual.default),
+  };
+});
+
+const mockUseMedia = jest.mocked(useMedia);
 
 describe('GroupEventCarousel', () => {
   const group = GroupFixture({id: 'group-id'});
@@ -41,6 +52,7 @@ describe('GroupEventCarousel', () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     Object.assign(navigator, {
       clipboard: {
         writeText: jest.fn().mockResolvedValue(''),
@@ -70,7 +82,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('can navigate to the oldest event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      mockUseMedia.mockReturnValue(true);
 
       const {router} = render(<GroupEventCarousel {...defaultProps} />, {
         initialRouterConfig,
@@ -92,7 +104,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('can navigate to the latest event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      mockUseMedia.mockReturnValue(true);
 
       const {router} = render(<GroupEventCarousel {...defaultProps} />, {
         initialRouterConfig,
@@ -114,6 +126,8 @@ describe('GroupEventCarousel', () => {
     });
 
     it('can navigate to the recommended event', async () => {
+      mockUseMedia.mockReturnValue(true);
+
       const latestRouterConfig = {
         ...initialRouterConfig,
         location: {
@@ -121,7 +135,6 @@ describe('GroupEventCarousel', () => {
           pathname: `/organizations/org-slug/issues/${group.id}/events/latest/`,
         },
       };
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       const {router} = render(<GroupEventCarousel {...defaultProps} />, {
         initialRouterConfig: latestRouterConfig,
@@ -143,7 +156,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('will disable the dropdown if there is only one event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      mockUseMedia.mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
@@ -152,7 +165,7 @@ describe('GroupEventCarousel', () => {
 
     it('if user default is recommended, it will show it as default', async () => {
       ConfigStore.loadInitialData(ConfigFixture({user: recommendedUser}));
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      mockUseMedia.mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
@@ -163,7 +176,7 @@ describe('GroupEventCarousel', () => {
 
     it('if user default is latest, it will show it as default', async () => {
       ConfigStore.loadInitialData(ConfigFixture({user: latestUser}));
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      mockUseMedia.mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
@@ -172,7 +185,7 @@ describe('GroupEventCarousel', () => {
 
     it('if user default is oldest, it will show it as default', async () => {
       ConfigStore.loadInitialData(ConfigFixture({user: oldestUser}));
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      mockUseMedia.mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
@@ -232,7 +245,7 @@ describe('GroupEventCarousel', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: /copy event link/i}));
+    await userEvent.click(screen.getByRole('button', {name: /copy link/i}));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       `http://localhost/organizations/org-slug/issues/group-id/events/event-id/`
@@ -252,7 +265,7 @@ describe('GroupEventCarousel', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'JSON (7.0 B)'}));
+    await userEvent.click(screen.getByRole('button', {name: /view json/i}));
 
     expect(window.open).toHaveBeenCalledWith(
       `https://us.sentry.io/api/0/projects/org-slug/project-slug/events/event-id/json/`

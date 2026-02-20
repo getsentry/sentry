@@ -21,6 +21,23 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 import LogsPage from './content';
 
+jest.mock('sentry/components/onboarding/useRecentCreatedProject', () => {
+  const actual = jest.requireActual(
+    'sentry/components/onboarding/useRecentCreatedProject'
+  );
+  return {
+    ...actual,
+    useRecentCreatedProject: jest.fn(actual.useRecentCreatedProject),
+  };
+});
+
+const actualUseRecentCreatedProject = jest.requireActual<
+  typeof import('sentry/components/onboarding/useRecentCreatedProject')
+>('sentry/components/onboarding/useRecentCreatedProject').useRecentCreatedProject;
+const mockUseRecentCreatedProject = jest.mocked(
+  useRecentCreatedProjectHook.useRecentCreatedProject
+);
+
 describe('LogsPage', () => {
   let organization: Organization;
   let project: Project;
@@ -31,6 +48,8 @@ describe('LogsPage', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+    mockUseRecentCreatedProject.mockImplementation(actualUseRecentCreatedProject);
     const {
       organization: _organization,
       project: _project,
@@ -142,14 +161,12 @@ describe('LogsPage', () => {
       body: [],
     });
 
-    jest
-      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-      .mockImplementation(() => {
-        return {
-          project: onboardingProject,
-          isProjectActive: true,
-        };
-      });
+    mockUseRecentCreatedProject.mockImplementation(() => {
+      return {
+        project: onboardingProject,
+        isProjectActive: true,
+      };
+    });
 
     onboardingSetupPageFilters();
 

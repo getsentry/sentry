@@ -14,6 +14,14 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import TextField from 'sentry/components/forms/fields/textField';
 
+jest.mock('sentry/actionCreators/indicator', () => {
+  const actual = jest.requireActual('sentry/actionCreators/indicator');
+  return {
+    ...actual,
+    addSuccessMessage: jest.fn(),
+  };
+});
+
 describe('FeatureFeedback', () => {
   describe('default', () => {
     it('submits modal on click', async () => {

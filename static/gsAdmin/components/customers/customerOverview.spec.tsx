@@ -444,27 +444,18 @@ describe('CustomerOverview', () => {
   });
 
   it('renders admin-only product trials when feature flag is graduated (true)', () => {
-    // Mock BILLED_DATA_CATEGORY_INFO to simulate a graduated flag (adminOnlyProductTrialFeature: true)
-    const originalBilledDataCategoryInfo = constants.BILLED_DATA_CATEGORY_INFO;
+    const sizeAnalysisInfo =
+      constants.BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SIZE_ANALYSIS];
+    const originalAdminOnlyProductTrialFeature =
+      sizeAnalysisInfo.adminOnlyProductTrialFeature;
 
     try {
-      const mockedBilledDataCategoryInfo = {
-        ...originalBilledDataCategoryInfo,
-        [DataCategoryExact.SIZE_ANALYSIS]: {
-          ...originalBilledDataCategoryInfo[DataCategoryExact.SIZE_ANALYSIS],
-          adminOnlyProductTrialFeature: true, // Graduated - no feature flag check needed
-        },
-      };
+      (
+        sizeAnalysisInfo as {adminOnlyProductTrialFeature: string | true}
+      ).adminOnlyProductTrialFeature = true;
 
-      // Override the module export for this test
-      Object.defineProperty(constants, 'BILLED_DATA_CATEGORY_INFO', {
-        value: mockedBilledDataCategoryInfo,
-        configurable: true,
-      });
-
-      // Organization has NO feature flags - but graduated flag should still show
       const organization = OrganizationFixture({
-        features: [], // No feature flags!
+        features: [],
       });
       const subscription = SubscriptionFixture({
         organization,
@@ -481,17 +472,13 @@ describe('CustomerOverview', () => {
       );
 
       expect(screen.getByText('Product Trials')).toBeInTheDocument();
-      // SIZE_ANALYSIS should appear because the flag is graduated (true), not requiring feature flag
       expect(screen.getByText('Size Analysis Builds:')).toBeInTheDocument();
-      // Regular product trials should still appear
       expect(screen.getByText('Spans:')).toBeInTheDocument();
       expect(screen.getByText('Replays:')).toBeInTheDocument();
     } finally {
-      // Restore the original - always runs even if assertions fail
-      Object.defineProperty(constants, 'BILLED_DATA_CATEGORY_INFO', {
-        value: originalBilledDataCategoryInfo,
-        configurable: true,
-      });
+      (
+        sizeAnalysisInfo as {adminOnlyProductTrialFeature: string | true}
+      ).adminOnlyProductTrialFeature = originalAdminOnlyProductTrialFeature;
     }
   });
 

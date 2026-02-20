@@ -1,6 +1,14 @@
 import * as GroupActionCreators from 'sentry/actionCreators/group';
 import GroupingStore from 'sentry/stores/groupingStore';
 
+jest.mock('sentry/actionCreators/group', () => {
+  const actual = jest.requireActual('sentry/actionCreators/group');
+  return {
+    ...actual,
+    mergeGroups: jest.fn(actual.mergeGroups),
+  };
+});
+
 describe('Grouping Store', () => {
   let trigger!: jest.SpyInstance;
 
@@ -102,7 +110,7 @@ describe('Grouping Store', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.resetAllMocks();
+    jest.clearAllMocks();
     jest.restoreAllMocks();
   });
 
@@ -353,7 +361,7 @@ describe('Grouping Store', () => {
       });
 
       it('disables rows to be merged', async () => {
-        const mergeMock = jest.spyOn(GroupActionCreators, 'mergeGroups');
+        const mergeMock = jest.mocked(GroupActionCreators.mergeGroups);
 
         trigger.mockReset();
         GroupingStore.onToggleMerge('1');

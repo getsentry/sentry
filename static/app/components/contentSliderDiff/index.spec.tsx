@@ -1,12 +1,18 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import * as useDimensions from 'sentry/utils/useDimensions';
+import {useDimensions} from 'sentry/utils/useDimensions';
 
 import {ContentSliderDiff} from '.';
 
+jest.mock('sentry/utils/useDimensions', () => ({
+  useDimensions: jest.fn(),
+}));
+
+const mockUseDimensions = jest.mocked(useDimensions);
+
 describe('ContentSliderDiff', () => {
   it('divider can be dragged', async () => {
-    jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 300, height: 300});
+    mockUseDimensions.mockReturnValue({width: 300, height: 300});
 
     const mockDragHandleMouseDown = jest.fn();
 
@@ -30,7 +36,7 @@ describe('ContentSliderDiff', () => {
   });
 
   it('does not render content when dimensions are zero', () => {
-    jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 0, height: 0});
+    mockUseDimensions.mockReturnValue({width: 0, height: 0});
 
     render(
       <ContentSliderDiff.Body

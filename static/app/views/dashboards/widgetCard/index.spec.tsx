@@ -25,6 +25,22 @@ import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWid
 
 import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
+jest.mock('sentry/actionCreators/modal', () => {
+  const actual = jest.requireActual('sentry/actionCreators/modal');
+  return {
+    ...actual,
+    openDashboardWidgetQuerySelectorModal: jest.fn(),
+  };
+});
+
+jest.mock('sentry/components/charts/lineChart', () => {
+  const actual = jest.requireActual('sentry/components/charts/lineChart');
+  return {
+    ...actual,
+    LineChart: jest.fn(),
+  };
+});
+
 jest.mock('sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization', () => ({
   TableWidgetVisualization: jest.fn(() => <div />),
 }));

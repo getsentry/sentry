@@ -24,7 +24,6 @@ import {closeModal} from 'sentry/actionCreators/modal';
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
-import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 /**
  * Set locale to English
@@ -67,11 +66,17 @@ jest.mock('lodash/debounce', () =>
     return fn;
   })
 );
+jest.mock('sentry/utils/performanceForSentry', () => {
+  const actual = jest.requireActual('sentry/utils/performanceForSentry');
+  return {
+    ...actual,
+    VisuallyCompleteWithData: jest.fn(
+      (props: {children: ReactElement}) => props.children
+    ),
+  };
+});
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
-jest
-  .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
-  .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
 
 jest.mock('@stripe/stripe-js', () => ({
@@ -388,6 +393,19 @@ Object.defineProperty(global.self, 'crypto', {
   },
 });
 
-if (typeof globalThis.structuredClone === 'undefined') {
-  globalThis.structuredClone = nodeStructuredClone;
-}
+const structuredClonePolyfill =
+  typeof nodeStructuredClone === 'function'
+    ? nodeStructuredClone
+    : (value: unknown) => JSON.parse(JSON.stringify(value));
+
+Object.defineProperty(globalThis, 'structuredClone', {
+  value: structuredClonePolyfill,
+  configurable: true,
+  writable: true,
+});
+
+Object.defineProperty(window, 'structuredClone', {
+  value: structuredClonePolyfill,
+  configurable: true,
+  writable: true,
+});

@@ -8,6 +8,14 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import * as indicators from 'sentry/actionCreators/indicator';
 import ProjectPluginDetails from 'sentry/views/settings/projectPlugins/details';
 
+jest.mock('sentry/actionCreators/indicator', () => {
+  const actual = jest.requireActual('sentry/actionCreators/indicator');
+  return {
+    ...actual,
+    addSuccessMessage: jest.fn(),
+  };
+});
+
 describe('ProjectPluginDetails', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();

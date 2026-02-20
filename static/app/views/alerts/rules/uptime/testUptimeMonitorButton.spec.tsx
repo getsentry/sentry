@@ -6,6 +6,15 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import {TestUptimeMonitorButton} from 'sentry/views/alerts/rules/uptime/testUptimeMonitorButton';
 import {PreviewCheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 
+jest.mock('sentry/actionCreators/indicator', () => {
+  const actual = jest.requireActual('sentry/actionCreators/indicator');
+  return {
+    ...actual,
+    addErrorMessage: jest.fn(),
+    addSuccessMessage: jest.fn(),
+  };
+});
+
 describe('TestUptimeMonitorButton', () => {
   const organization = OrganizationFixture();
 
