@@ -12,10 +12,20 @@ from sentry.integrations.cursor.models import (
     CursorAgentLaunchResponse,
     CursorAgentSource,
     CursorApiKeyMetadata,
+    CursorModelsResponse,
 )
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiForbiddenError,
+    ApiRateLimitedError,
+    ApiUnauthorized,
+)
 
 logger = logging.getLogger(__name__)
+
+NON_RETRYABLE_ERRORS = (ApiUnauthorized, ApiForbiddenError, ApiRateLimitedError)
+MAX_MODEL_RETRIES = 3
 
 
 class CursorAgentClient(CodingAgentClient):
@@ -49,8 +59,53 @@ class CursorAgentClient(CodingAgentClient):
 
         return CursorApiKeyMetadata.validate(api_response.json)
 
+    def get_available_models(self) -> list[str]:
+        """Fetch available models from Cursor's /v0/models endpoint."""
+        api_response = self.get(
+            "/v0/models",
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **self._get_auth_headers(),
+            },
+            timeout=30,
+        )
+
+        return CursorModelsResponse.validate(api_response.json).models
+
+    def _post_launch(
+        self,
+        payload: CursorAgentLaunchRequestBody,
+        request: CodingAgentLaunchRequest,
+    ) -> CodingAgentState:
+        """Post a launch request and parse the response into a CodingAgentState."""
+        api_response = self.post(
+            "/v0/agents",
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **self._get_auth_headers(),
+            },
+            data=payload.dict(exclude_none=True),
+            json=True,
+            timeout=60,
+        )
+
+        launch_response = CursorAgentLaunchResponse.validate(api_response.json)
+
+        return CodingAgentState(
+            id=launch_response.id,
+            status=CodingAgentStatus.RUNNING,
+            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+            name=f"{request.repository.owner}/{request.repository.name}: {launch_response.name or f'Cursor Agent {launch_response.id}'}",
+            started_at=launch_response.createdAt,
+            agent_url=launch_response.target.url,
+        )
+
     def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
-        """Launch coding agent with webhook callback."""
+        """Launch coding agent with webhook callback.
+
+        Attempts launch with auto model selection first. On retryable failure,
+        fetches available models and retries with each model up to MAX_MODEL_RETRIES.
+        """
         payload = CursorAgentLaunchRequestBody(
             prompt=CursorAgentLaunchRequestPrompt(
                 text=request.prompt,
@@ -76,25 +131,54 @@ class CursorAgentClient(CodingAgentClient):
             },
         )
 
-        # Use shared ApiClient to get consistent error handling with body surfaced
-        api_response = self.post(
-            "/v0/agents",
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **self._get_auth_headers(),
-            },
-            data=payload.dict(exclude_none=True),
-            json=True,
-            timeout=60,
-        )
+        # First attempt with auto model selection (model=None)
+        initial_error: ApiError | None = None
+        try:
+            return self._post_launch(payload, request)
+        except NON_RETRYABLE_ERRORS:
+            raise
+        except ApiError as e:
+            initial_error = e
+            logger.warning(
+                "coding_agent.cursor.launch_failed_will_retry",
+                extra={
+                    "error": str(e),
+                    "status_code": e.code,
+                },
+            )
 
-        launch_response = CursorAgentLaunchResponse.validate(api_response.json)
+        # Fetch available models for retry
+        try:
+            models = self.get_available_models()
+        except Exception:
+            logger.exception("coding_agent.cursor.get_models_failed")
+            raise initial_error
 
-        return CodingAgentState(
-            id=launch_response.id,
-            status=CodingAgentStatus.RUNNING,  # Cursor agent doesn't send when it actually starts so we just assume it's running
-            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
-            name=f"{request.repository.owner}/{request.repository.name}: {launch_response.name or f'Cursor Agent {launch_response.id}'}",
-            started_at=launch_response.createdAt,
-            agent_url=launch_response.target.url,
-        )
+        if not models:
+            logger.warning("coding_agent.cursor.no_models_available")
+            raise initial_error
+
+        # Retry with each model up to MAX_MODEL_RETRIES
+        last_error: ApiError = initial_error
+        for model in models[:MAX_MODEL_RETRIES]:
+            try:
+                logger.info(
+                    "coding_agent.cursor.retry_with_model",
+                    extra={"model": model},
+                )
+                payload.model = model
+                return self._post_launch(payload, request)
+            except NON_RETRYABLE_ERRORS:
+                raise
+            except ApiError as e:
+                last_error = e
+                logger.warning(
+                    "coding_agent.cursor.retry_failed",
+                    extra={
+                        "model": model,
+                        "error": str(e),
+                        "status_code": e.code,
+                    },
+                )
+
+        raise last_error
