@@ -78,5 +78,7 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     name: 'subscribed',
     formId: 'account-subscriptions',
     route: '/settings/account/subscriptions/',
+    label: subscription.listName,
+    hintText,
   },
 };
