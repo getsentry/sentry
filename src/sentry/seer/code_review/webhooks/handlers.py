@@ -85,7 +85,7 @@ def handle_webhook_event(
     preflight = CodeReviewPreflightService(
         organization=organization,
         repo=repo,
-        integration_id=integration.id if integration else None,
+        integration_id=integration.id,
         pr_author_external_id=get_pr_author_id(event),
     ).check()
 
