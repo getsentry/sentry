@@ -39,7 +39,7 @@ R = TypeVar("R")
 T = TypeVar("T", bound=Mapping[str, Any])
 
 
-class WebhookTimeoutError(BaseException):
+class WebhookTimeoutError(Exception):
     """This error represents a user set hard timeout for when a
     webhook request should've completed within X seconds
     """
