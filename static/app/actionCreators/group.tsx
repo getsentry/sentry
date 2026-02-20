@@ -1,11 +1,7 @@
-import * as Sentry from '@sentry/react';
-
 import type {RequestCallbacks, RequestOptions} from 'sentry/api';
 import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Actor} from 'sentry/types/core';
 import type {Group, Tag as GroupTag, TagValue} from 'sentry/types/group';
-import {buildTeamId, buildUserId} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
@@ -48,62 +44,6 @@ export function clearAssignment(
     });
 
   return request;
-}
-
-type AssignToActorParams = {
-  actor: Pick<Actor, 'id' | 'type'>;
-  assignedBy: AssignedBy;
-  /**
-   * Issue id
-   */
-  id: string;
-  orgSlug: string;
-};
-
-export function assignToActor({
-  id,
-  actor,
-  assignedBy,
-  orgSlug,
-}: AssignToActorParams): Promise<Group> {
-  const api = new Client();
-
-  const endpoint = `/organizations/${orgSlug}/issues/${id}/`;
-
-  const guid = uniqueId();
-  let actorId = '';
-
-  GroupStore.onAssignTo(guid, id, {email: ''});
-
-  switch (actor.type) {
-    case 'user':
-      actorId = buildUserId(actor.id);
-      break;
-
-    case 'team':
-      actorId = buildTeamId(actor.id);
-      break;
-
-    default:
-      Sentry.withScope(scope => {
-        scope.setExtra('actor', actor);
-        Sentry.captureException('Unknown assignee type');
-      });
-  }
-
-  return api
-    .requestPromise(endpoint, {
-      method: 'PUT',
-      data: {assignedTo: actorId, assignedBy},
-    })
-    .then(data => {
-      GroupStore.onAssignToSuccess(guid, id, data);
-      return data;
-    })
-    .catch(data => {
-      GroupStore.onAssignToError(guid, id, data);
-      throw data;
-    });
 }
 
 type ParamsType = {
