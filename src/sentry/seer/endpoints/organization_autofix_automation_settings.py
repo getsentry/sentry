@@ -294,6 +294,15 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
                 if has_stopping_point_update:
                     pref_update["automated_run_stopping_point"] = automated_run_stopping_point
+                    # Sync auto_create_pr in automation_handoff so external coding agents
+                    # (e.g. Cursor) respect the same toggle — they read auto_create_pr
+                    # exclusively and never look at automated_run_stopping_point.
+                    if existing_automation_handoff := existing_pref.get("automation_handoff"):
+                        pref_update["automation_handoff"] = {
+                            **existing_automation_handoff,
+                            "auto_create_pr": automated_run_stopping_point
+                            != AutofixStoppingPoint.CODE_CHANGES.value,
+                        }
 
                 if has_repo_update:
                     repos_data = filtered_repo_mappings[proj_id]
