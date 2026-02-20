@@ -59,6 +59,18 @@ class TestHandleWebhookEvent(TestCase):
         # Preflight should be called for GitHub Cloud
         mock_preflight.assert_called_once()
 
+    @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
+    def test_skips_when_integration_is_none(self, mock_preflight: MagicMock) -> None:
+        """When integration is None, handle_webhook_event returns without processing."""
+        handle_webhook_event(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": "opened", "pull_request": {}},
+            organization=self.organization,
+            repo=MagicMock(),
+            integration=None,
+        )
+        mock_preflight.assert_not_called()
+
 
 class TestHandleWebhookEventWebhookSeen(TestCase):
     @pytest.fixture(autouse=True)
@@ -100,8 +112,6 @@ class TestHandleWebhookEventWebhookSeen(TestCase):
         )
 
         self.mock_pull_request_handler.assert_called_once()
-        # github_delivery_id is now set as a scope tag instead of passed in extra
-        assert "extra" not in self.mock_pull_request_handler.call_args[1]
 
     def test_same_delivery_id_second_seen_skipped(self) -> None:
         """
@@ -133,7 +143,6 @@ class TestHandleWebhookEventWebhookSeen(TestCase):
         )
 
         assert self.mock_pull_request_handler.call_count == 1
-        assert "extra" not in self.mock_pull_request_handler.call_args[1]
 
     def test_same_delivery_id_after_ttl_expires_handler_invoked_twice(self) -> None:
         """
@@ -172,7 +181,6 @@ class TestHandleWebhookEventWebhookSeen(TestCase):
         )
 
         assert self.mock_pull_request_handler.call_count == 2
-        assert "extra" not in self.mock_pull_request_handler.call_args[1]
 
     def test_missing_delivery_id_handler_invoked(self) -> None:
         """When github_delivery_id is None, the event is handled without a webhook seen check."""

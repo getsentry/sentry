@@ -46,7 +46,7 @@ def handle_webhook_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration,
+    integration: RpcIntegration | None,
     **kwargs: Any,
 ) -> None:
     """
@@ -58,9 +58,12 @@ def handle_webhook_event(
         event: The webhook event payload
         organization: The Sentry organization that the webhook event belongs to
         repo: The repository that the webhook event is for
-        integration: The GitHub integration
+        integration: The GitHub integration (optional; when None, processing is skipped)
         **kwargs: Additional keyword arguments
     """
+    if integration is None:
+        return
+
     # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
     if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         return

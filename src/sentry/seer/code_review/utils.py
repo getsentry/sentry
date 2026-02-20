@@ -482,6 +482,8 @@ def get_tags(
                 result["trigger"] = "on_ready_for_review"
             elif github_event_action == "synchronize":
                 result["trigger"] = "on_new_commit"
+            elif github_event_action == "closed":
+                result["trigger"] = "pr-closed"
 
     # Extract pr_id from the event.
     pr_id = event.get("pull_request", {}).get("number") or event.get("issue", {}).get("number")

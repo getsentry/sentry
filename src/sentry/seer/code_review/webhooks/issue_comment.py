@@ -50,7 +50,7 @@ def handle_issue_comment_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration,
+    integration: RpcIntegration | None,
     tags: Mapping[str, Any],
     **kwargs: Any,
 ) -> None:
