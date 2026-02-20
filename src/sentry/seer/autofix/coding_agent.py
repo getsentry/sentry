@@ -330,6 +330,7 @@ def _launch_agents_for_repos(
                 url_part = f" ({e.url})" if e.url else ""
                 if e.code == 403 and client is not None:
                     if e.text and "not licensed" in e.text:
+                        failure_type = "github_copilot_not_licensed"
                         error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
                     else:
                         failure_type = "github_app_permissions"
