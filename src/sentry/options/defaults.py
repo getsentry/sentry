@@ -3529,6 +3529,22 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Safe default limit for workflows. Should be high enough to cover almost all orgs,
+# low enough to have no concerns about stability impact.
+register(
+    "workflow_engine.max_workflows_per_org",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,
+# generally set to 'as high as we think we can safely handle for a handful of orgs'.
+register(
+    "workflow_engine.max_more_workflows_per_org",
+    type=Int,
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
