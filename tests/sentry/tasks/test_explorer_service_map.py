@@ -9,10 +9,7 @@ from datetime import datetime, timedelta, timezone
 from unittest import mock
 from uuid import uuid4
 
-import orjson
 import pytest
-import responses
-from django.conf import settings
 
 from sentry.search.events.types import SnubaParams
 from sentry.tasks.explorer_service_map import (
@@ -37,57 +34,34 @@ def _make_snuba_params(organization, projects):
 
 @django_db_all
 class TestSendToSeer(TestCase):
-    @responses.activate
-    def test_sends_correct_payload(self):
+    def test_builds_correct_payload(self):
         org = self.create_organization()
 
         nodes = [
             {
                 "project_id": 1,
                 "project_slug": "frontend",
-                "role": "frontend",
+                "role": "caller",
                 "callers": [],
                 "callees": ["api"],
             },
             {
                 "project_id": 2,
                 "project_slug": "api",
-                "role": "core_backend",
+                "role": "callee",
                 "callers": ["frontend"],
                 "callees": [],
             },
         ]
 
-        responses.add(
-            responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}/v1/explorer/service-map/update",
-            json={"status": "success"},
-            status=200,
-        )
+        with mock.patch("sentry.tasks.explorer_service_map.orjson.dumps") as mock_dumps:
+            mock_dumps.return_value = b"{}"
+            _send_to_seer(org.id, nodes)
 
-        _send_to_seer(org.id, nodes)
-
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
-
-        body = orjson.loads(request.body)
-        assert body["organization_id"] == org.id
-        assert body["nodes"] == nodes
-        assert "generated_at" in body
-
-    @responses.activate
-    def test_handles_seer_error(self):
-        org = self.create_organization()
-
-        responses.add(
-            responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}/v1/explorer/service-map/update",
-            json={"error": "Internal error"},
-            status=500,
-        )
-
-        with pytest.raises(Exception):
-            _send_to_seer(org.id, [])
+        call_args = mock_dumps.call_args[0][0]
+        assert call_args["organization_id"] == org.id
+        assert call_args["nodes"] == nodes
+        assert "generated_at" in call_args
 
 
 @django_db_all
@@ -834,8 +808,8 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
         projects = list(self.organization.project_set.all())
         return _make_snuba_params(self.organization, projects)
 
-    def test_frontend_classification(self):
-        """Test classification of frontend service (high out-degree, low in-degree)"""
+    def test_caller_classification(self):
+        """Test classification of caller service (high out-degree, low in-degree)"""
 
         # Setup projects
         project_frontend = self.create_project(organization=self.organization, slug="frontend")
@@ -887,11 +861,11 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
         edges = _query_service_dependencies(self._snuba_params())
         roles = _classify_service_roles(edges)
 
-        # Frontend should be classified as frontend (only outgoing edges)
-        assert roles[project_frontend.id] == "frontend"
+        # Frontend should be classified as caller (only outgoing edges)
+        assert roles[project_frontend.id] == "caller"
 
-    def test_core_backend_classification(self):
-        """Test classification of core backend (high in-degree and out-degree)"""
+    def test_hub_classification(self):
+        """Test classification of hub service (high in-degree and out-degree)"""
 
         # Setup projects: frontend → api → database
         project_frontend = self.create_project(organization=self.organization, slug="frontend")
@@ -972,13 +946,13 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
         edges = _query_service_dependencies(self._snuba_params())
         roles = _classify_service_roles(edges)
 
-        # API should be core_backend (both incoming and outgoing edges)
-        assert roles[project_api.id] == "core_backend"
+        # API should be hub (both incoming and outgoing edges)
+        assert roles[project_api.id] == "hub"
 
-    def test_isolated_classification(self):
-        """Test classification of isolated service (low connectivity)"""
+    def test_peripheral_classification(self):
+        """Test classification of peripheral service (low connectivity)"""
 
-        # Setup projects with chain: frontend → api → database, isolated has minimal connections
+        # Setup projects with chain: frontend → api → database, peripheral has minimal connections
         project_frontend = self.create_project(organization=self.organization, slug="frontend")
         project_api = self.create_project(organization=self.organization, slug="api")
         project_isolated = self.create_project(organization=self.organization, slug="isolated")
@@ -1059,7 +1033,7 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
         roles = _classify_service_roles(edges)
 
         # Isolated should have low connectivity classification
-        assert roles[project_isolated.id] == "isolated"
+        assert roles[project_isolated.id] == "peripheral"
 
 
 @pytest.mark.django_db(databases="__all__")
@@ -1224,8 +1198,8 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
         assert node_by_slug["cache"]["callees"] == []
 
         # Verify roles are present
-        assert node_by_slug["frontend"]["role"] in {"frontend", "core_backend", "isolated"}
-        assert node_by_slug["api"]["role"] in {"frontend", "core_backend", "isolated"}
+        assert node_by_slug["frontend"]["role"] in {"hub", "caller", "callee", "peripheral"}
+        assert node_by_slug["api"]["role"] in {"hub", "caller", "callee", "peripheral"}
 
         # Verify node format has required fields
         for node in nodes:

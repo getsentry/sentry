@@ -212,7 +212,7 @@ def _classify_service_roles(edges: list[dict]) -> dict[int, str]:
         edges: List of dependency edges
 
     Returns:
-        Dictionary mapping project_id to role: "core_backend", "frontend", or "isolated"
+        Dictionary mapping project_id to role: "hub", "caller", "callee", or "peripheral"
     """
     if not edges:
         return {}
@@ -243,23 +243,23 @@ def _classify_service_roles(edges: list[dict]) -> dict[int, str]:
         in_degree = in_degrees.get(node, 0)
         out_degree = out_degrees.get(node, 0)
 
-        # High connectivity in both directions = core backend
         if in_degree >= avg_in and out_degree >= avg_out:
-            roles[node] = "core_backend"
-        # High out-degree, low in-degree = frontend/client
+            roles[node] = "hub"
         elif out_degree >= avg_out and in_degree < avg_in:
-            roles[node] = "frontend"
-        # Low connectivity = isolated service
+            roles[node] = "caller"
+        elif in_degree >= avg_in and out_degree < avg_out:
+            roles[node] = "callee"
         else:
-            roles[node] = "isolated"
+            roles[node] = "peripheral"
 
     logger.info(
         "Classified service roles",
         extra={
             "total_services": len(roles),
-            "core_backend": sum(1 for r in roles.values() if r == "core_backend"),
-            "frontend": sum(1 for r in roles.values() if r == "frontend"),
-            "isolated": sum(1 for r in roles.values() if r == "isolated"),
+            "hub": sum(1 for r in roles.values() if r == "hub"),
+            "caller": sum(1 for r in roles.values() if r == "caller"),
+            "callee": sum(1 for r in roles.values() if r == "callee"),
+            "peripheral": sum(1 for r in roles.values() if r == "peripheral"),
         },
     )
 
@@ -297,7 +297,7 @@ def _build_nodes(edges: list[dict], roles: dict[int, str]) -> list[dict]:
         {
             "project_id": project_id,
             "project_slug": project_slugs.get(project_id),
-            "role": roles.get(project_id, "isolated"),
+            "role": roles.get(project_id, "peripheral"),
             "callers": sorted(callers_map.get(project_id, set())),
             "callees": sorted(callees_map.get(project_id, set())),
         }
