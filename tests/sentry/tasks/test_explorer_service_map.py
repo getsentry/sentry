@@ -41,10 +41,22 @@ class TestSendToSeer(TestCase):
     def test_sends_correct_payload(self):
         org = self.create_organization()
 
-        edges = [
-            {"source_project_id": 1, "target_project_id": 2, "count": 10},
+        nodes = [
+            {
+                "project_id": 1,
+                "project_slug": "frontend",
+                "role": "frontend",
+                "callers": [],
+                "callees": ["api"],
+            },
+            {
+                "project_id": 2,
+                "project_slug": "api",
+                "role": "core_backend",
+                "callers": ["frontend"],
+                "callees": [],
+            },
         ]
-        roles = {1: "frontend", 2: "core_backend"}
 
         responses.add(
             responses.POST,
@@ -53,19 +65,16 @@ class TestSendToSeer(TestCase):
             status=200,
         )
 
-        _send_to_seer(org.id, edges, roles)
+        _send_to_seer(org.id, nodes)
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request
 
-        # Verify payload
         import orjson
 
         body = orjson.loads(request.body)
         assert body["organization_id"] == org.id
-        assert body["edges"] == edges
-        # Roles should have string keys (orjson requirement)
-        assert body["roles"] == {"1": "frontend", "2": "core_backend"}
+        assert body["nodes"] == nodes
         assert "generated_at" in body
 
     @responses.activate
@@ -80,7 +89,7 @@ class TestSendToSeer(TestCase):
         )
 
         with pytest.raises(Exception):
-            _send_to_seer(org.id, [], {})
+            _send_to_seer(org.id, [])
 
 
 @django_db_all
@@ -1226,31 +1235,34 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
                 build_service_map(self.organization.id)
 
         mock_send.assert_called_once()
-        _, edges, roles = mock_send.call_args[0]
+        _, nodes = mock_send.call_args[0]
 
-        # Verify edges
-        assert len(edges) == 3  # frontend→api, api→database, api→cache
+        node_by_slug = {n["project_slug"]: n for n in nodes}
 
-        edge_pairs = {(e["source_project_slug"], e["target_project_slug"]) for e in edges}
-        assert edge_pairs == {("frontend", "api"), ("api", "database"), ("api", "cache")}
+        # Verify all 4 services are present
+        assert set(node_by_slug.keys()) == {"frontend", "api", "database", "cache"}
 
-        # Verify edge counts are aggregated correctly
-        for edge in edges:
-            if edge["source_project_slug"] == "frontend" and edge["target_project_slug"] == "api":
-                assert edge["count"] == 3
-            elif edge["source_project_slug"] == "api" and edge["target_project_slug"] == "database":
-                assert edge["count"] == 2
-            elif edge["source_project_slug"] == "api" and edge["target_project_slug"] == "cache":
-                assert edge["count"] == 1
+        # Verify caller/callee relationships
+        assert node_by_slug["frontend"]["callees"] == ["api"]
+        assert node_by_slug["frontend"]["callers"] == []
 
-        # Verify roles
-        assert project_frontend.id in roles
-        assert project_api.id in roles
+        assert "frontend" in node_by_slug["api"]["callers"]
+        assert set(node_by_slug["api"]["callees"]) == {"cache", "database"}
 
-        # Verify edge format has required fields
-        for edge in edges:
-            assert "source_project_id" in edge
-            assert "source_project_slug" in edge
-            assert "target_project_id" in edge
-            assert "target_project_slug" in edge
-            assert "count" in edge
+        assert node_by_slug["database"]["callers"] == ["api"]
+        assert node_by_slug["database"]["callees"] == []
+
+        assert node_by_slug["cache"]["callers"] == ["api"]
+        assert node_by_slug["cache"]["callees"] == []
+
+        # Verify roles are present
+        assert node_by_slug["frontend"]["role"] in {"frontend", "core_backend", "isolated"}
+        assert node_by_slug["api"]["role"] in {"frontend", "core_backend", "isolated"}
+
+        # Verify node format has required fields
+        for node in nodes:
+            assert "project_id" in node
+            assert "project_slug" in node
+            assert "role" in node
+            assert "callers" in node
+            assert "callees" in node

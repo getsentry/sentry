@@ -121,7 +121,13 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                 result = Spans.run_table_query(
                     params=uncovered_params,
                     query_string="is_transaction:true",
-                    selected_columns=["id", "parent_span", "project.id", "project.slug"],
+                    selected_columns=[
+                        "id",
+                        "parent_span",
+                        "project.id",
+                        "project.slug",
+                        "timestamp",
+                    ],
                     orderby=["-timestamp"],
                     offset=offset,
                     limit=page_limit,
@@ -153,8 +159,8 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
             parent_result = Spans.run_table_query(
                 params=snuba_params,
                 query_string=span_id_filters,
-                selected_columns=["id", "project.id", "project.slug"],
-                orderby=None,
+                selected_columns=["id", "project.id", "project.slug", "timestamp"],
+                orderby=["-timestamp"],
                 offset=0,
                 limit=len(batch),
                 referrer=Referrer.SEER_EXPLORER_SERVICE_MAP.value,
@@ -264,22 +270,56 @@ def _classify_service_roles(edges: list[dict]) -> dict[int, str]:
     return roles
 
 
-def _send_to_seer(org_id: int, edges: list[dict], roles: dict[int, str]) -> None:
+def _build_nodes(edges: list[dict], roles: dict[int, str]) -> list[dict]:
+    """
+    Build a node list from edges and roles for the Seer payload.
+
+    Each node describes a service with its role, caller slugs, callee slugs,
+    project slug, and project ID.
+    """
+    project_slugs: dict[int, str | None] = {}
+    callers_map: dict[int, set[str]] = defaultdict(set)
+    callees_map: dict[int, set[str]] = defaultdict(set)
+
+    for edge in edges:
+        src_id = edge["source_project_id"]
+        src_slug = edge.get("source_project_slug")
+        tgt_id = edge["target_project_id"]
+        tgt_slug = edge.get("target_project_slug")
+
+        project_slugs[src_id] = src_slug
+        project_slugs[tgt_id] = tgt_slug
+
+        if tgt_slug:
+            callees_map[src_id].add(tgt_slug)
+        if src_slug:
+            callers_map[tgt_id].add(src_slug)
+
+    all_project_ids = set(project_slugs.keys()) | set(roles.keys())
+
+    return [
+        {
+            "project_id": project_id,
+            "project_slug": project_slugs.get(project_id),
+            "role": roles.get(project_id, "isolated"),
+            "callers": sorted(callers_map.get(project_id, set())),
+            "callees": sorted(callees_map.get(project_id, set())),
+        }
+        for project_id in all_project_ids
+    ]
+
+
+def _send_to_seer(org_id: int, nodes: list[dict]) -> None:
     """
     Send service map data to Seer.
 
     Args:
         org_id: Organization ID
-        edges: List of dependency edges
-        roles: Dictionary mapping project_id to role
+        nodes: List of service nodes with role, callers, callees, project_slug, project_id
     """
-    # Convert role keys to strings for orjson compatibility
-    roles_str = {str(k): v for k, v in roles.items()}
-
     payload = {
         "organization_id": org_id,
-        "edges": edges,
-        "roles": roles_str,
+        "nodes": nodes,
         "generated_at": django_timezone.now().isoformat(),
     }
 
@@ -289,8 +329,7 @@ def _send_to_seer(org_id: int, edges: list[dict], roles: dict[int, str]) -> None
         "Sending service map to Seer",
         extra={
             "org_id": org_id,
-            "edge_count": len(edges),
-            "service_count": len(roles),
+            "node_count": len(nodes),
             "payload_size_bytes": len(body),
         },
     )
@@ -370,15 +409,16 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
             return
 
         roles = _classify_service_roles(edges)
+        nodes = _build_nodes(edges, roles)
 
-        _send_to_seer(organization_id, edges, roles)
+        _send_to_seer(organization_id, nodes)
 
         logger.info(
             "Successfully completed service map build",
             extra={
                 "org_id": organization_id,
                 "edge_count": len(edges),
-                "service_count": len(roles),
+                "node_count": len(nodes),
             },
         )
 
