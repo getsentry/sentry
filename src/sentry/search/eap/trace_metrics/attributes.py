@@ -122,11 +122,6 @@ TRACE_METRICS_REPLACEMENT_ATTRIBUTES: set[str] = {
     if definition.replacement
 }
 
-TRACE_METRICS_REPLACEMENT_MAP: dict[str, str] = {
-    definition.public_alias: definition.replacement
-    for definition in TRACE_METRICS_ATTRIBUTE_DEFINITIONS.values()
-    if definition.replacement
-}
 TRACE_METRICS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, set[str]] = {}
 
 for definition in TRACE_METRICS_ATTRIBUTE_DEFINITIONS.values():

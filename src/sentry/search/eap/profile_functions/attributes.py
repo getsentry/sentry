@@ -179,11 +179,6 @@ PROFILE_FUNCTIONS_REPLACEMENT_ATTRIBUTES: set[str] = {
     if definition.replacement
 }
 
-PROFILE_FUNCTIONS_REPLACEMENT_MAP: dict[str, str] = {
-    definition.public_alias: definition.replacement
-    for definition in PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS.values()
-    if definition.replacement
-}
 PROFILE_FUNCTIONS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, set[str]] = {}
 
 for definition in PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS.values():
