@@ -7,7 +7,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
 from sentry.testutils.cases import APITestCase, BaseMetricsTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -2131,14 +2130,3 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
                     "totals": {"sum(session)": 1},
                 }
             ]
-
-
-@patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
-class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
-    def do_request(self, query, user=None, org=None):
-        self.login_as(user=user or self.user)
-        url = reverse(
-            "sentry-api-0-organization-sessions",
-            kwargs={"organization_id_or_slug": (org or self.organization).slug},
-        )
-        return self.client.get(url, query, format="json")

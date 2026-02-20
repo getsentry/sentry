@@ -568,7 +568,6 @@ def massage_sessions_result(
     }
 
 
-
 def massage_outcomes_result(
     query: QueryDefinition,
     result_totals: ResultSet,
