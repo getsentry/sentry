@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from time import sleep
 from typing import Any
+from unittest import mock
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
@@ -23,9 +24,11 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
     FeedbackGroup,
+    NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
+from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.eventattachment import EventAttachment
@@ -502,13 +505,24 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_perf_issue(self) -> None:
         event = self.store_event(
             data={
-                "fingerprint": ["perf-issue"],
                 "timestamp": before_now(seconds=1).isoformat(),
             },
             project_id=self.project.id,
         )
-        perf_group = event.group
-        perf_group.update(type=PerformanceNPlusOneGroupType.type_id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            fingerprint=["perf-issue-occurrence"],
+            type=PerformanceNPlusOneGroupType.type_id,
+            project_id=self.project.id,
+        )
+        with mock.patch.object(
+            PerformanceNPlusOneGroupType,
+            "noise_config",
+            new=NoiseConfig(0, timedelta(minutes=1)),
+        ):
+            saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        perf_group = group_info.group
         self.login_as(user=self.user)
         response = self.get_success_response(query="issue.category:performance")
         assert len(response.data) == 1
