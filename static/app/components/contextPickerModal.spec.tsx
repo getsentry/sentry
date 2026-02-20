@@ -252,7 +252,7 @@ describe('ContextPickerModal', () => {
     }
 
     await selectEvent.select(
-      screen.getByText(/Select a configuration/i),
+      screen.getByRole('textbox'),
       integration.domainName
     );
     expect(onFinish).toHaveBeenCalledWith(
