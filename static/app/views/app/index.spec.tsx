@@ -71,8 +71,9 @@ describe('App', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/internal/options/?query=is:required',
+      url: '/internal/options/',
       body: InstallWizardFixture(),
+      match: [MockApiClient.matchQuery({query: 'is:required'})],
     });
   });
 

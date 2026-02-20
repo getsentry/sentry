@@ -25,7 +25,6 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.workflow_engine.models.action import Action
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -339,9 +338,9 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             )
         self.published_app.refresh_from_db()
         assert set(self.published_app.scope_list) == {"event:write", "event:read"}
-        assert (
-            self.published_app.webhook_url == "https://newurl.com"
-        ), f"Unexpected webhook URL: {self.published_app.webhook_url}"
+        assert self.published_app.webhook_url == "https://newurl.com", (
+            f"Unexpected webhook URL: {self.published_app.webhook_url}"
+        )
         # Check service hooks for each organization
         with assume_test_silo_mode(SiloMode.REGION):
             service_hooks_org1 = ServiceHook.objects.filter(
@@ -947,7 +946,6 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.internal_integration.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )

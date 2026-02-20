@@ -287,19 +287,18 @@ function BlockComponent({
 
   const trackThumbsFeedback = useCallback(
     (type: 'positive' | 'negative') => {
-      if (!feedbackSubmitted) {
+      // Guard against missing runId (shouldn't happen with showActions check, but be defensive)
+      // Do this instead of hiding buttons to prevent flickering while data's loading for this edge case.
+      if (!feedbackSubmitted && runId !== undefined) {
         trackAnalytics('seer.explorer.feedback_submitted', {
           organization,
           type,
           run_id: runId,
           block_index: blockIndex,
           block_message: block.message.content.slice(0, 100),
-          langfuse_url: runId ? getLangfuseUrl(runId) : undefined,
-          explorer_url: runId ? getExplorerUrl(runId) : undefined,
-          conversations_url:
-            runId && organization.slug
-              ? getConversationsUrl(organization.slug, runId)
-              : undefined,
+          langfuse_url: getLangfuseUrl(runId),
+          explorer_url: getExplorerUrl(runId),
+          conversations_url: getConversationsUrl(organization.slug, runId),
         });
         setFeedbackSubmitted(true); // disable button for rest of the session
       }
@@ -324,13 +323,13 @@ function BlockComponent({
         disabled={feedbackSubmitted}
         priority="transparent"
         size="xs"
-        title={
-          feedbackSubmitted
+        tooltipProps={{
+          title: feedbackSubmitted
             ? t('Feedback submitted')
             : type === 'positive'
               ? t('I like this response')
-              : t("I don't like this response")
-        }
+              : t("I don't like this response"),
+        }}
         onClick={e => {
           e.stopPropagation();
           trackThumbsFeedback(type);
@@ -364,10 +363,11 @@ function BlockComponent({
 
   const showActions =
     isFocused &&
+    !isPolling &&
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
-    !readOnly; // move this check to inside button bar once there are more actions
+    !readOnly;
   const showFeedbackButtons = block.message.role === 'assistant';
 
   return (
@@ -485,7 +485,7 @@ function BlockComponent({
             </BlockContentWrapper>
           </Flex>
         )}
-        {showActions && !isPolling && (
+        {showActions && (
           <ActionButtonBar gap="xs">
             {showFeedbackButtons && thumbsFeedbackButton('positive')}
             {showFeedbackButtons && thumbsFeedbackButton('negative')}
@@ -493,7 +493,7 @@ function BlockComponent({
               size="xs"
               priority="transparent"
               onClick={handleDeleteClick}
-              title="Restart conversation from here"
+              tooltipProps={{title: 'Restart conversation from here'}}
             >
               <FlippedReturnIcon />
             </Button>

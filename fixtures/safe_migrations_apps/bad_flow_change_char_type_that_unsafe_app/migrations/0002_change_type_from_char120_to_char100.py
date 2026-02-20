@@ -6,7 +6,6 @@ from sentry.new_migrations.migrations import CheckedMigration
 
 
 class Migration(CheckedMigration):
-
     dependencies = [
         ("bad_flow_change_char_type_that_unsafe_app", "0001_initial"),
     ]

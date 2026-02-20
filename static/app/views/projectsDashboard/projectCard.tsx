@@ -10,7 +10,7 @@ import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import IdBadge from 'sentry/components/idBadge';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import BookmarkStar from 'sentry/components/projects/bookmarkStar';
+import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
   Score,
@@ -130,7 +130,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
               priority="transparent"
               size="zero"
               icon={<IconSettings variant="muted" />}
-              title={t('Settings')}
+              tooltipProps={{title: t('Settings')}}
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
             />

@@ -2,8 +2,11 @@ from unittest.mock import MagicMock, patch
 
 import requests
 
+from sentry.models.apitoken import ApiToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class IssueViewTitleGenerateEndpointTest(APITestCase):
@@ -13,6 +16,18 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/issue-view-title/generate/"
+
+    def _create_token(self, scope: str) -> ApiToken:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return ApiToken.objects.create(user=self.user, scope_list=[scope])
+
+    def _post_with_token(self, token: ApiToken, query: str = "is:unresolved"):
+        return self.client.post(
+            self.url,
+            data={"query": query},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
 
     @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.requests.post")
@@ -139,3 +154,34 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert len(long_query[:500]) == 500
         assert b"x" * 500 in request_body
         assert b"x" * 600 not in request_body
+
+    @with_feature("organizations:issue-view-ai-title")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.requests.post")
+    def test_org_read_permission(self, mock_post: MagicMock) -> None:
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"content": "My Assigned Errors"}
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        for scope in ["org:read", "org:write", "org:admin"]:
+            token = self._create_token(scope)
+            response = self._post_with_token(
+                token,
+                query="is:unresolved assigned:me level:error",
+            )
+
+            assert response.status_code == 200
+            assert response.data == {"title": "My Assigned Errors"}
+
+    @with_feature("organizations:issue-view-ai-title")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.requests.post")
+    def test_requires_org_scope(self, mock_post: MagicMock) -> None:
+        token = self._create_token("project:read")
+        response = self._post_with_token(
+            token,
+            query="is:unresolved assigned:me level:error",
+        )
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+        mock_post.assert_not_called()

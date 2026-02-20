@@ -5,6 +5,7 @@ import queryString from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -33,9 +34,16 @@ type ToolFormatter = (
 
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
-  runId?: number
+  runId: number | null
 ): ApiQueryKey => [
-  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+  runId
+    ? getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
+        path: {organizationIdOrSlug: orgSlug, runId},
+      })
+    : getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+
   {},
 ];
 
@@ -915,7 +923,7 @@ export function getExplorerUrl(runId: number | string): string {
 }
 
 export function getLangfuseUrl(runId: number | string): string {
-  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${runId}`;
+  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
 }
 
 /**

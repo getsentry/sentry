@@ -742,12 +742,13 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_dashboard_widget_ondemand_multiple_fields(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {
-            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
-        }, [
-            "sometag",
-            "someothertag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]},
+            [
+                "sometag",
+                "someothertag",
+            ],
+        )
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
@@ -859,12 +860,13 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_warnings_show_up_with_error(self, mock_query: mock.MagicMock) -> None:
-        mock_query.return_value = {
-            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
-        }, [
-            "sometag",
-            "someothertag",
-        ]
+        mock_query.return_value = (
+            {"data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]},
+            [
+                "sometag",
+                "someothertag",
+            ],
+        )
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {

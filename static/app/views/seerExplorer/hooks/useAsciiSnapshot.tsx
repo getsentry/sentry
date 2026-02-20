@@ -906,10 +906,7 @@ function useAsciiSnapshot() {
     renderTextNodes(context, chartContainers);
 
     const projectSlugs: string[] = [];
-    const projectSelector = document.querySelector(
-      '[data-test-id="page-filter-project-selector"]'
-    );
-    if (projectSelector && selection.projects.length > 0) {
+    if (selection.projects.length > 0) {
       const projectIdToSlug = new Map(projects.map(p => [parseInt(p.id, 10), p.slug]));
       for (const projectId of selection.projects) {
         const slug = projectIdToSlug.get(projectId);

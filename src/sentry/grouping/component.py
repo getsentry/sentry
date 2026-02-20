@@ -172,9 +172,9 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
             # Ensure components which wrap primitives only ever have one child
             if len(values) > 0 and any(isinstance(value, (int, str)) for value in values):
                 try:
-                    assert (
-                        len(values) == 1
-                    ), f"Components which wrap primitives can wrap at most one value. Got {values}."
+                    assert len(values) == 1, (
+                        f"Components which wrap primitives can wrap at most one value. Got {values}."
+                    )
                 except AssertionError as e:
                     if in_test_environment():
                         raise
@@ -530,7 +530,6 @@ ContributingComponent = (
 
 # Wrapper component used to link component trees to variants
 class RootGroupingComponent(BaseGroupingComponent[ContributingComponent]):
-
     def __init__(
         self,
         variant_name: str,

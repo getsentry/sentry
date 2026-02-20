@@ -328,7 +328,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args,
+                    alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.50
                     ),
                     is_percentile=True,
@@ -347,7 +348,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args,
+                    alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.75
                     ),
                     is_percentile=True,
@@ -366,7 +368,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args,
+                    alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.95
                     ),
                     is_percentile=True,
@@ -385,7 +388,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args,
+                    alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.99
                     ),
                     is_percentile=True,
@@ -404,7 +408,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args,
+                    alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=1
                     ),
                     is_percentile=True,
@@ -886,7 +891,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
-
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -910,7 +914,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
-
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -934,7 +937,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
-
         statuses = [self.builder.resolve_tag_value(status) for status in constants.CACHE_HIT_STATUS]
 
         return self._resolve_count_if(

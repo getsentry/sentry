@@ -330,7 +330,7 @@ export default function MetricChart({
                 <LinkButton
                   size="sm"
                   disabled={disableEapButton}
-                  title={disabledTooltip}
+                  tooltipProps={{title: disabledTooltip}}
                   {...props}
                 >
                   {buttonText}

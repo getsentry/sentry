@@ -446,9 +446,9 @@ class CursorIntegrationTest(IntegrationTestCase):
             integration_dict_2["external_id"],
             integration_dict_3["external_id"],
         }
-        assert (
-            len(external_ids) == 3
-        ), "Each build_integration call should create a unique external_id"
+        assert len(external_ids) == 3, (
+            "Each build_integration call should create a unique external_id"
+        )
 
         for integration_dict in [integration_dict_1, integration_dict_2, integration_dict_3]:
             assert "external_id" in integration_dict

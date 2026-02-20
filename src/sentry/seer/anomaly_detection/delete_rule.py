@@ -115,7 +115,7 @@ def delete_rule_in_seer(source_id: int, organization: Organization) -> bool:
         )
         return False
     elif status is not True:
-        extra_data["message"] = results.get("message")
+        extra_data["seer_message"] = results.get("message")
         logger.error(
             "Request to delete alert rule from Seer was unsuccessful",
             extra=extra_data,

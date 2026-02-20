@@ -22,7 +22,7 @@ describe('AddBillingInformation', () => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });

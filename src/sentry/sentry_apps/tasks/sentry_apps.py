@@ -312,7 +312,6 @@ def _process_resource_change(
     instance_id: int,
     **kwargs: Any,
 ) -> None:
-
     # The class is serialized as a string when enqueueing the class.
     model: type[Event] | type[Model] = TYPES[sender]
     instance: Event | Model | None = None
