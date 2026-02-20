@@ -205,75 +205,24 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     return edges
 
 
-def _classify_service_roles(edges: list[dict]) -> dict[int, str]:
+def _build_nodes(edges: list[dict]) -> list[dict]:
     """
-    Classify services based on their connectivity patterns.
+    Build a node list from edges for the Seer payload in a single pass.
 
-    Args:
-        edges: List of dependency edges
+    Collects degree counts, slug mappings, and caller/callee relationships
+    simultaneously, then classifies each service's role based on its
+    in/out degree relative to the graph average:
 
-    Returns:
-        Dictionary mapping project_id to role: "hub", "caller", "callee", or "peripheral"
+      hub        — high in-degree and high out-degree
+      caller     — high out-degree, low in-degree
+      callee     — high in-degree, low out-degree
+      peripheral — low in-degree and low out-degree
     """
     if not edges:
-        return {}
+        return []
 
-    # Count incoming and outgoing edges for each project
     in_degrees: dict[int, int] = defaultdict(int)
     out_degrees: dict[int, int] = defaultdict(int)
-    all_nodes: set[int] = set()
-
-    for edge in edges:
-        source = edge["source_project_id"]
-        target = edge["target_project_id"]
-        out_degrees[source] += 1
-        in_degrees[target] += 1
-        all_nodes.add(source)
-        all_nodes.add(target)
-
-    if not all_nodes:
-        return {}
-
-    # Compute average degrees for thresholds
-    avg_in = sum(in_degrees.values()) / len(all_nodes)
-    avg_out = sum(out_degrees.values()) / len(all_nodes)
-
-    # Classify each node
-    roles = {}
-    for node in all_nodes:
-        in_degree = in_degrees.get(node, 0)
-        out_degree = out_degrees.get(node, 0)
-
-        if in_degree >= avg_in and out_degree >= avg_out:
-            roles[node] = "hub"
-        elif out_degree >= avg_out and in_degree < avg_in:
-            roles[node] = "caller"
-        elif in_degree >= avg_in and out_degree < avg_out:
-            roles[node] = "callee"
-        else:
-            roles[node] = "peripheral"
-
-    logger.info(
-        "Classified service roles",
-        extra={
-            "total_services": len(roles),
-            "hub": sum(1 for r in roles.values() if r == "hub"),
-            "caller": sum(1 for r in roles.values() if r == "caller"),
-            "callee": sum(1 for r in roles.values() if r == "callee"),
-            "peripheral": sum(1 for r in roles.values() if r == "peripheral"),
-        },
-    )
-
-    return roles
-
-
-def _build_nodes(edges: list[dict], roles: dict[int, str]) -> list[dict]:
-    """
-    Build a node list from edges and roles for the Seer payload.
-
-    Each node describes a service with its role, caller slugs, callee slugs,
-    project slug, and project ID.
-    """
     project_slugs: dict[int, str | None] = {}
     callers_map: dict[int, set[str]] = defaultdict(set)
     callees_map: dict[int, set[str]] = defaultdict(set)
@@ -284,6 +233,8 @@ def _build_nodes(edges: list[dict], roles: dict[int, str]) -> list[dict]:
         tgt_id = edge["target_project_id"]
         tgt_slug = edge.get("target_project_slug")
 
+        out_degrees[src_id] += 1
+        in_degrees[tgt_id] += 1
         project_slugs[src_id] = src_slug
         project_slugs[tgt_id] = tgt_slug
 
@@ -292,18 +243,44 @@ def _build_nodes(edges: list[dict], roles: dict[int, str]) -> list[dict]:
         if src_slug:
             callers_map[tgt_id].add(src_slug)
 
-    all_project_ids = set(project_slugs.keys()) | set(roles.keys())
+    all_project_ids = set(project_slugs.keys())
+    n = len(all_project_ids)
+    avg_in = sum(in_degrees.values()) / n
+    avg_out = sum(out_degrees.values()) / n
 
-    return [
-        {
-            "project_id": project_id,
-            "project_slug": project_slugs.get(project_id),
-            "role": roles.get(project_id, "peripheral"),
-            "callers": sorted(callers_map.get(project_id, set())),
-            "callees": sorted(callees_map.get(project_id, set())),
-        }
-        for project_id in all_project_ids
-    ]
+    nodes = []
+    role_counts: dict[str, int] = defaultdict(int)
+
+    for project_id in all_project_ids:
+        in_deg = in_degrees.get(project_id, 0)
+        out_deg = out_degrees.get(project_id, 0)
+
+        if in_deg >= avg_in and out_deg >= avg_out:
+            role = "hub"
+        elif out_deg >= avg_out and in_deg < avg_in:
+            role = "caller"
+        elif in_deg >= avg_in and out_deg < avg_out:
+            role = "callee"
+        else:
+            role = "peripheral"
+
+        role_counts[role] += 1
+        nodes.append(
+            {
+                "project_id": project_id,
+                "project_slug": project_slugs.get(project_id),
+                "role": role,
+                "callers": sorted(callers_map.get(project_id, set())),
+                "callees": sorted(callees_map.get(project_id, set())),
+            }
+        )
+
+    logger.info(
+        "Built service map nodes",
+        extra={"total_services": n, **role_counts},
+    )
+
+    return nodes
 
 
 def _send_to_seer(org_id: int, nodes: list[dict]) -> None:
@@ -385,8 +362,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
             logger.info("No service dependencies found", extra={"org_id": organization_id})
             return
 
-        roles = _classify_service_roles(edges)
-        nodes = _build_nodes(edges, roles)
+        nodes = _build_nodes(edges)
 
         _send_to_seer(organization_id, nodes)
 

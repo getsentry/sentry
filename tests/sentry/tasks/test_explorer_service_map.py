@@ -13,7 +13,7 @@ import pytest
 
 from sentry.search.events.types import SnubaParams
 from sentry.tasks.explorer_service_map import (
-    _classify_service_roles,
+    _build_nodes,
     _query_service_dependencies,
     _send_to_seer,
     build_service_map,
@@ -859,7 +859,8 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
         self.store_spans(spans)
 
         edges = _query_service_dependencies(self._snuba_params())
-        roles = _classify_service_roles(edges)
+        nodes = _build_nodes(edges)
+        roles = {n["project_id"]: n["role"] for n in nodes}
 
         # Frontend should be classified as caller (only outgoing edges)
         assert roles[project_frontend.id] == "caller"
@@ -944,7 +945,8 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
         self.store_spans(spans)
 
         edges = _query_service_dependencies(self._snuba_params())
-        roles = _classify_service_roles(edges)
+        nodes = _build_nodes(edges)
+        roles = {n["project_id"]: n["role"] for n in nodes}
 
         # API should be hub (both incoming and outgoing edges)
         assert roles[project_api.id] == "hub"
@@ -1014,7 +1016,8 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
         self.store_spans(spans)
 
         detected_edges = _query_service_dependencies(self._snuba_params())
-        roles = _classify_service_roles(detected_edges)
+        nodes = _build_nodes(detected_edges)
+        roles = {n["project_id"]: n["role"] for n in nodes}
 
         assert roles[project_p.id] == "peripheral"
 
