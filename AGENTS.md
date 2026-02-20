@@ -77,6 +77,10 @@ devservices up
 devservices serve
 ```
 
+#### Git worktrees
+
+Each worktree has its own `.venv`. When you create a new worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in the new worktree to create the virtualenv (if devenv is installed). Otherwise run `devenv sync` once in the new worktree, then `direnv allow`. To validate worktree setup: `make direnv-validate-worktree`.
+
 #### Linting
 
 ```bash

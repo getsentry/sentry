@@ -32,6 +32,14 @@ install-py-dev :
 devenv-sync:
 	devenv sync
 
+.PHONY: direnv-help
+direnv-help:
+	@echo "Run 'direnv allow' in the repo root. Validate worktree env: make direnv-validate-worktree"
+
+.PHONY: direnv-validate-worktree
+direnv-validate-worktree:
+	./scripts/validate-worktree-env.sh
+
 build-js-po:
 	mkdir -p build
 	pnpm run build-js-po

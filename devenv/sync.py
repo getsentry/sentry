@@ -219,6 +219,7 @@ def main(context: dict[str, str]) -> int:
         return 1
 
     fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
+    fs.ensure_symlink("../../config/hooks/post-checkout", f"{reporoot}/.git/hooks/post-checkout")
 
     sentry_conf = os.environ.get("SENTRY_CONF", f"{constants.home}/.sentry")
 

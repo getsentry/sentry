@@ -1,6 +1,7 @@
 #!/bin/bash
-# Validates that .envrc works in a Git worktree with shared VIRTUAL_ENV (e.g. Cursor Parallel Agents).
-# Run from the primary Sentry clone (where .venv already exists). Requires direnv on PATH.
+# Validates that .envrc works in a Git worktree with a per-worktree virtualenv.
+# Creates a temporary worktree, runs devenv sync to create .venv, then runs direnv
+# and checks sentry --version. Requires direnv and devenv on PATH.
 set -eu
 
 REPO_ROOT="$(
@@ -17,31 +18,29 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if [ ! -d "$REPO_ROOT/.venv" ]; then
-    echo "ERROR: Primary clone has no .venv. Run 'devenv sync' in $REPO_ROOT first."
+if ! command -v direnv >/dev/null 2>&1; then
+    echo "ERROR: direnv is not on PATH. Install it and retry."
     exit 1
 fi
 
-if ! command -v direnv >/dev/null 2>&1; then
-    echo "ERROR: direnv is not on PATH. Install it and retry."
+if ! command -v devenv >/dev/null 2>&1; then
+    echo "ERROR: devenv is not on PATH. Install it and retry."
     exit 1
 fi
 
 echo "Creating temporary worktree at $WORKTREE ..."
 git -C "$REPO_ROOT" worktree add "$WORKTREE" HEAD
 
-echo "Configuring shared venv (VIRTUAL_ENV) in worktree .env ..."
-# Skip frontend checks so we don't require node_modules in the worktree
-printf "VIRTUAL_ENV=%s\nSENTRY_DEVENV_SKIP_FRONTEND=1\n" "$REPO_ROOT/.venv" > "$WORKTREE/.env"
+echo "Running devenv sync in worktree (SENTRY_DEVENV_SKIP_FRONTEND=1 for speed)..."
+(cd "$WORKTREE" && SENTRY_DEVENV_SKIP_FRONTEND=1 devenv sync)
 
 echo "Running direnv allow in worktree ..."
 (cd "$WORKTREE" && direnv allow)
 
-echo "Checking sentry in worktree with shared venv ..."
-# Use primary's venv sentry from worktree cwd (direnv exec can hit shell bugs; this validates shared venv + worktree)
-if (cd "$WORKTREE" && "$REPO_ROOT/.venv/bin/sentry" --version) >/dev/null 2>&1; then
-    echo "SUCCESS: Worktree env validation passed (sentry --version in worktree with shared venv)."
+echo "Checking sentry in worktree with per-worktree venv ..."
+if (cd "$WORKTREE" && "$WORKTREE/.venv/bin/sentry" --version) >/dev/null 2>&1; then
+    echo "SUCCESS: Worktree env validation passed (sentry --version in worktree with per-worktree .venv)."
 else
-    echo "FAIL: sentry --version failed in worktree with shared venv."
+    echo "FAIL: sentry --version failed in worktree with per-worktree .venv."
     exit 1
 fi
