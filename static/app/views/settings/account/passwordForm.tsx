@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -61,57 +61,59 @@ export function PasswordForm() {
   }
 
   return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <form.FieldGroup title={t('Password')}>
-          <Alert variant="info" system>
-            {t('Changing your password will invalidate all logged in sessions.')}
-          </Alert>
-          <form.AppField name="password">
-            {field => (
-              <field.Layout.Row label={t('Current Password')} required>
-                <field.Password
-                  autoComplete="current-password"
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={t('Your current password')}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="passwordNew">
-            {field => (
-              <field.Layout.Row label={t('New Password')} required>
-                <field.Password
-                  autoComplete="new-password"
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={t('Your new password')}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="passwordVerify">
-            {field => (
-              <field.Layout.Row
-                label={t('Verify New Password')}
-                hintText={t('Verify your new password')}
-                required
-              >
-                <field.Password
-                  autoComplete="new-password"
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={t('Verify your new password')}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <Flex justify="end">
-            <form.SubmitButton>{t('Change password')}</form.SubmitButton>
-          </Flex>
-        </form.FieldGroup>
-      </form.FormWrapper>
-    </form.AppForm>
+    <FormSearch route="/settings/account/security/">
+      <form.AppForm>
+        <form.FormWrapper>
+          <form.FieldGroup title={t('Password')}>
+            <Alert variant="info" system>
+              {t('Changing your password will invalidate all logged in sessions.')}
+            </Alert>
+            <form.AppField name="password">
+              {field => (
+                <field.Layout.Row label={t('Current Password')} required>
+                  <field.Password
+                    autoComplete="current-password"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('Your current password')}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+            <form.AppField name="passwordNew">
+              {field => (
+                <field.Layout.Row label={t('New Password')} required>
+                  <field.Password
+                    autoComplete="new-password"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('Your new password')}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+            <form.AppField name="passwordVerify">
+              {field => (
+                <field.Layout.Row
+                  label={t('Verify New Password')}
+                  hintText={t('Verify your new password')}
+                  required
+                >
+                  <field.Password
+                    autoComplete="new-password"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('Verify your new password')}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+            <Flex justify="end">
+              <form.SubmitButton>{t('Change password')}</form.SubmitButton>
+            </Flex>
+          </form.FieldGroup>
+        </form.FormWrapper>
+      </form.AppForm>
+    </FormSearch>
   );
 }
