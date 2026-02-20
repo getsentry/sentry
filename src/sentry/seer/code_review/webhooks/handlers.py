@@ -61,8 +61,11 @@ def handle_webhook_event(
         integration: The GitHub integration
         **kwargs: Additional keyword arguments
     """
+    if integration is None:
+        return
+
     # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
-    if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
+    if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         return
 
     # Set Sentry scope tags so all logs, errors, and spans in this scope carry them automatically.
