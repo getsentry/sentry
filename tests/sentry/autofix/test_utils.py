@@ -19,7 +19,6 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
@@ -253,18 +252,6 @@ class TestGetAutofixState(TestCase):
 
 
 class TestAutomationRateLimiting(TestCase):
-    @with_feature("organizations:unlimited-auto-triggered-autofix-runs")
-    @patch("sentry.seer.autofix.utils.track_outcome")
-    def test_scanner_rate_limited_with_unlimited_flag(self, mock_track_outcome: MagicMock) -> None:
-        """Test scanner rate limiting bypassed with unlimited feature flag"""
-        project = self.create_project()
-        organization = project.organization
-
-        is_rate_limited = is_seer_scanner_rate_limited(project, organization)
-
-        assert is_rate_limited is False
-        mock_track_outcome.assert_not_called()
-
     @patch("sentry.seer.autofix.utils.ratelimits.backend.is_limited_with_value")
     @patch("sentry.seer.autofix.utils.track_outcome")
     def test_scanner_rate_limited_logic(
@@ -281,20 +268,6 @@ class TestAutomationRateLimiting(TestCase):
 
         assert is_rate_limited is True
         mock_track_outcome.assert_called_once()
-
-    @with_feature("organizations:unlimited-auto-triggered-autofix-runs")
-    @patch("sentry.seer.autofix.utils.track_outcome")
-    def test_autofix_rate_limited_with_unlimited_flag(self, mock_track_outcome: MagicMock) -> None:
-        """Test autofix rate limiting bypassed with unlimited feature flag"""
-        project = self.create_project()
-        organization = project.organization
-
-        is_rate_limited = is_seer_autotriggered_autofix_rate_limited_and_increment(
-            project, organization
-        )
-
-        assert is_rate_limited is False
-        mock_track_outcome.assert_not_called()
 
     @patch("sentry.seer.autofix.utils.ratelimits.backend.is_limited_with_value")
     @patch("sentry.seer.autofix.utils.track_outcome")
@@ -346,7 +319,7 @@ class TestAutomationRateLimiting(TestCase):
 
         # Check a few times to be safe
         for _ in range(5):
-            is_seer_autotriggered_autofix_rate_limited(project, organization)
+            is_seer_autotriggered_autofix_rate_limited(project)
         current = ratelimits.backend.current_value(
             key=config["key"], project=project, window=config["window"]
         )
