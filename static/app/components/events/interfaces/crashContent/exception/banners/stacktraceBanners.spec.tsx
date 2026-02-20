@@ -13,6 +13,14 @@ import * as analytics from 'sentry/utils/analytics';
 
 import {StacktraceBanners} from './stacktraceBanners';
 
+jest.mock('sentry/utils/analytics', () => {
+  const actual = jest.requireActual('sentry/utils/analytics');
+  return {
+    ...actual,
+    trackAnalytics: jest.fn(actual.trackAnalytics),
+  };
+});
+
 describe('StacktraceBanners', () => {
   const org = OrganizationFixture({
     features: ['codecov-integration'],
@@ -29,7 +37,7 @@ describe('StacktraceBanners', () => {
   });
   const stacktrace = eventEntryStacktrace.data as Required<StacktraceType>;
 
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = jest.mocked(analytics.trackAnalytics);
   let promptActivity: jest.Mock;
   let promptsUpdateMock: jest.Mock;
 

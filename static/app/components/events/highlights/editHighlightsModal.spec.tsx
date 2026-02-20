@@ -19,6 +19,14 @@ import * as analytics from 'sentry/utils/analytics';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
+jest.mock('sentry/utils/analytics', () => {
+  const actual = jest.requireActual('sentry/utils/analytics');
+  return {
+    ...actual,
+    trackAnalytics: jest.fn(actual.trackAnalytics),
+  };
+});
+
 describe('EditHighlightsModal', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
@@ -52,7 +60,7 @@ describe('EditHighlightsModal', () => {
     tags: ['presetTag'],
   };
   const closeModal = jest.fn();
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = jest.mocked(analytics.trackAnalytics);
 
   function renderModal(editHighlightModalProps?: Partial<EditHighlightsModalProps>) {
     act(() => {

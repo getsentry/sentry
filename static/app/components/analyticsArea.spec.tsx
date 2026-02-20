@@ -6,6 +6,14 @@ import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {Organization} from 'sentry/types/organization';
 import * as analytics from 'sentry/utils/analytics';
 
+jest.mock('sentry/utils/analytics', () => {
+  const actual = jest.requireActual('sentry/utils/analytics');
+  return {
+    ...actual,
+    trackAnalytics: jest.fn(actual.trackAnalytics),
+  };
+});
+
 function TestButton({org}: {org: Organization}) {
   const area = useAnalyticsArea();
 
@@ -24,7 +32,7 @@ function TestButton({org}: {org: Organization}) {
 
 describe('AnalyticsAreaProvider', () => {
   const organization = OrganizationFixture();
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = jest.mocked(analytics.trackAnalytics);
 
   it('Appends names when nested', async () => {
     render(
