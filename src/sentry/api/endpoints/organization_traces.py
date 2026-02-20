@@ -247,7 +247,7 @@ class TracesExecutor:
         # We only do this on the first page, since if there are enough results to paginate the sampling is likely not an
         # issue
         if len(self.snuba_params.projects) < len(all_projects) and self.offset == 0:
-            selected_project_request = self.get_traces_rpc(all_projects)
+            selected_project_request = self.get_traces_rpc(self.snuba_params.projects)
             with ThreadPoolExecutor(
                 thread_name_prefix=__name__, max_workers=2
             ) as query_thread_pool:
