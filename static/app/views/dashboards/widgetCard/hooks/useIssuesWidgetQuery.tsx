@@ -1,7 +1,6 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
 import type {ApiResult} from 'sentry/api';
-import GroupStore from 'sentry/stores/groupStore';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -324,19 +323,6 @@ export function useIssuesTableQuery(
           },
       retryDelay: getRetryDelay,
     })),
-  });
-
-  // Populate GroupStore in effect (outside render phase)
-  // Track by data reference to avoid redundant calls
-  const prevGroupDataRef = useRef<IssuesTableResponse[]>([]);
-  useEffect(() => {
-    queryResults.forEach((q, i) => {
-      const data = q?.data?.[0];
-      if (data && data !== prevGroupDataRef.current[i]) {
-        GroupStore.add(data);
-        prevGroupDataRef.current[i] = data;
-      }
-    });
   });
 
   const transformedData = (() => {

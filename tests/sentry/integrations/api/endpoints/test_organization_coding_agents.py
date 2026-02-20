@@ -1029,8 +1029,8 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
 
         with self.feature("organizations:seer-coding-agent-integrations"):
             response = self.get_success_response(self.organization.slug, method="post", **data)
-            # Should succeed but with all failures
-            assert response.data["success"] is True
+            # All repos failed, so success is False (but HTTP 200 is still returned)
+            assert response.data["success"] is False
             assert response.data["launched_count"] == 0
             assert response.data["failed_count"] == 2
             # Should have failure details
@@ -1136,7 +1136,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
 
         with self.feature("organizations:seer-coding-agent-integrations"):
             response = self.get_success_response(self.organization.slug, method="post", **data)
-            assert response.data["success"] is True
+            assert response.data["success"] is False
             assert response.data["failed_count"] >= 1
             failure = response.data["failures"][0]
             assert failure["failure_type"] == "generic"
@@ -1184,10 +1184,63 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
             patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"),
         ):
             response = self.get_success_response(self.organization.slug, method="post", **data)
-            assert response.data["success"] is True
+            assert response.data["success"] is False
             assert response.data["failed_count"] >= 1
             failure = response.data["failures"][0]
             assert failure["failure_type"] == "github_app_permissions"
+
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
+    @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.coding_agent.GithubCopilotAgentClient")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_copilot_not_licensed_403_returns_generic_failure_type(
+        self,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_get_preferences,
+        mock_get_prompt,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint returns failure_type=generic for Copilot 403s with a licensing error.
+
+        When GitHub Copilot returns a 403 with "not licensed to use Copilot", the user's
+        account lacks an active Copilot subscription. This is distinct from a GitHub App
+        permissions issue, so we should NOT show the permissions modal.
+        """
+        mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Test prompt"
+        mock_get_preferences.return_value = PreferenceResponse(
+            preference=None, code_mapping_repos=[]
+        )
+        mock_identity_service.get_access_token_for_user.return_value = "test-copilot-token"
+
+        mock_client_instance = MagicMock()
+        mock_copilot_client_class.return_value = mock_client_instance
+        mock_client_instance.launch.side_effect = ApiError(
+            "unauthorized: not licensed to use Copilot", code=403
+        )
+
+        mock_get_autofix_state.return_value = self._create_mock_autofix_state()
+
+        data = {"provider": "github_copilot", "run_id": 123}
+
+        with (
+            self.feature("organizations:seer-coding-agent-integrations"),
+            self.feature("organizations:integrations-github-copilot-agent"),
+            patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"),
+        ):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            assert response.data["success"] is False
+            assert response.data["failed_count"] >= 1
+            failure = response.data["failures"][0]
+            assert failure["failure_type"] == "generic"
+            assert (
+                "not licensed" in failure["error_message"]
+                or "Copilot license" in failure["error_message"]
+            )
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
@@ -1227,7 +1280,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
 
         with self.feature("organizations:seer-coding-agent-integrations"):
             response = self.get_success_response(self.organization.slug, method="post", **data)
-            assert response.data["success"] is True
+            assert response.data["success"] is False
             assert response.data["failed_count"] >= 1
             assert "failures" in response.data
             failure = response.data["failures"][0]

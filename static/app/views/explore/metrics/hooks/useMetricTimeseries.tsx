@@ -11,6 +11,7 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsMultiAggregateUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricVisualize,
   useMetricVisualizes,
@@ -28,9 +29,8 @@ interface UseMetricTimeseriesOptions {
 }
 
 export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesOptions) {
-  const hasMultiVisualize = useOrganization().features.includes(
-    'tracemetrics-overlay-charts-ui'
-  );
+  const organization = useOrganization();
+  const hasMultiVisualize = canUseMetricsMultiAggregateUI(organization);
 
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
@@ -72,9 +72,8 @@ function useMetricTimeseriesImpl({
   const search = useQueryParamsSearch();
   const sortBys = useQueryParamsAggregateSortBys();
 
-  const hasMultiVisualize = useOrganization().features.includes(
-    'tracemetrics-overlay-charts-ui'
-  );
+  const organization = useOrganization();
+  const hasMultiVisualize = canUseMetricsMultiAggregateUI(organization);
 
   const yAxis = useMemo(() => {
     if (hasMultiVisualize) {

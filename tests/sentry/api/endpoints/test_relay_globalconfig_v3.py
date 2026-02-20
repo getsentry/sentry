@@ -41,7 +41,6 @@ def call_endpoint(client, relay, private_key):
         "profiling.profile_metrics.unsampled_profiles.sample_rate": 1.0,
         "relay.span-usage-metric": True,
         "relay.cardinality-limiter.mode": "passive",
-        "replay.relay-snuba-publishing-disabled.sample-rate": 1.0,
         "relay.sessions-eap.rollout-rate": 1.0,
         "relay.kafka.span-v2.sample-rate": 1.0,
         "relay.metric-bucket-distribution-encodings": {
