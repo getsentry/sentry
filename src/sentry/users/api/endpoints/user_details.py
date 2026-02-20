@@ -24,6 +24,7 @@ from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -493,6 +494,8 @@ class UserDetailsEndpoint(UserEndpoint):
             )
         else:
             User.objects.filter(id=user.id).update(is_active=False)
+            for auth_identity in AuthIdentity.objects.filter(user_id=user.id):
+                auth_identity.delete()
             delete_logger.info("user.deactivate", extra=logging_data)
             record_user_deactivation(
                 user=user,

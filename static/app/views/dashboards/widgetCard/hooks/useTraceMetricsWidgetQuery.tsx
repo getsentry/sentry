@@ -2,6 +2,7 @@ import {useCallback, useMemo, useRef} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
@@ -112,7 +113,9 @@ export function useTraceMetricsSeriesQuery(
 
       // Build the API query key for events-timeseries endpoint
       return [
-        `/organizations/${organization.slug}/events-timeseries/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-timeseries/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -289,7 +292,9 @@ export function useTraceMetricsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,

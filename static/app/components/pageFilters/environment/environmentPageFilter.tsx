@@ -1,8 +1,11 @@
 import {useCallback, useMemo, useRef} from 'react';
+import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -13,10 +16,12 @@ import {
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
+  HybridFilterComponents,
+  useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -33,23 +38,31 @@ export interface EnvironmentPageFilterProps extends Partial<
     | 'value'
     | 'defaultValue'
     | 'onReplace'
+    | 'onReset'
     | 'onToggle'
     | 'menuTitle'
     | 'menuBody'
-    | 'menuFooter'
-    | 'menuFooterMessage'
     | 'shouldCloseOnInteractOutside'
     | 'triggerProps'
+    | 'stagedSelect'
   >
 > {
   /**
-   * Message to show in the menu footer
+   * Called when the selection changes
    */
-  footerMessage?: React.ReactNode;
+  onChange?: (selected: string[]) => void;
+  /**
+   * Called when the reset button is clicked
+   */
+  onReset?: () => void;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  /**
+   * Optional prefix for the storage key
+   */
+  storageNamespace?: string;
   triggerProps?: Partial<EnvironmentPageFilterTriggerProps>;
 }
 
@@ -63,7 +76,6 @@ export function EnvironmentPageFilter({
   menuWidth,
   trigger,
   resetParamsOnChange,
-  footerMessage,
   triggerProps = {},
   storageNamespace,
   ...selectProps
@@ -175,10 +187,9 @@ export function EnvironmentPageFilter({
         value: env,
         label: env,
         leadingItems: ({isSelected}: {isSelected: boolean}) => (
-          <Checkbox
-            size="sm"
+          <HybridFilterComponents.Checkbox
             checked={isSelected}
-            onChange={() => hybridFilterRef.current?.toggleOption?.(env)}
+            onChange={() => hybridFilterRef.current?.toggleOption(env)}
             aria-label={t('Select %s', env)}
             tabIndex={-1}
           />
@@ -204,26 +215,64 @@ export function EnvironmentPageFilter({
     return `${Math.max(16, Math.min(24, longestSlugLength * 0.6 + 6))}em`;
   }, [options]);
 
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    defaultValue: [],
+    options,
+    onChange: handleChange,
+    onToggle,
+    onReplace,
+    onReset,
+    multiple: true,
+  });
+
   return (
     <HybridFilter
       {...selectProps}
       ref={hybridFilterRef}
+      stagedSelect={stagedSelect}
       searchable
-      multiple
       options={options}
-      value={value}
-      defaultValue={[]}
-      onChange={handleChange}
-      onReset={onReset}
-      onReplace={onReplace}
-      onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
       emptyMessage={emptyMessage ?? t('No environments found')}
-      menuTitle={t('Filter Environments')}
+      menuTitle={
+        <Flex gap="xs" align="center">
+          <Text>{t('Filter Environments')}</Text>
+          <InfoTip
+            size="xs"
+            title={tct(
+              '[rangeModifier] + click to select a range of environments or [multiModifier] + click to select multiple environments at once.',
+              {
+                rangeModifier: t('Shift'),
+                multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
+              }
+            )}
+          />
+        </Flex>
+      }
       menuWidth={menuWidth ?? defaultMenuWidth}
-      menuFooterMessage={footerMessage}
+      menuHeaderTrailingItems={
+        stagedSelect.shouldShowReset ? (
+          <HybridFilterComponents.ResetButton
+            onClick={() => stagedSelect.handleReset()}
+          />
+        ) : null
+      }
+      menuFooter={
+        stagedSelect.hasStagedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <HybridFilterComponents.CancelButton
+              disabled={!stagedSelect.hasStagedChanges}
+              onClick={() => stagedSelect.removeStagedChanges()}
+            />
+            <HybridFilterComponents.ApplyButton
+              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            />
+          </Flex>
+        ) : null
+      }
       trigger={
         trigger ??
         (tp => (

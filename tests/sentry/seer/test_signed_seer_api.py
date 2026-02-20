@@ -4,7 +4,6 @@ import pytest
 from django.test import override_settings
 
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.testutils.helpers import override_options
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
@@ -42,7 +41,10 @@ def test_simple() -> None:
         "POST",
         PATH,
         body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+        },
     )
 
 
@@ -53,7 +55,10 @@ def test_uses_given_timeout() -> None:
         "POST",
         PATH,
         body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+        },
         timeout=5,
     )
 
@@ -65,37 +70,24 @@ def test_uses_given_retries() -> None:
         "POST",
         PATH,
         body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+        },
         retries=5,
     )
 
 
 @pytest.mark.django_db
-def test_uses_shared_secret() -> None:
-    with override_options({"seer.api.use-shared-secret": 1.0}):
-        mock_url_open = run_test_case()
-        mock_url_open.assert_called_once_with(
-            "POST",
-            PATH,
-            body=REQUEST_BODY,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
-            },
-        )
-
-
-@pytest.mark.django_db
 def test_uses_shared_secret_missing_secret() -> None:
-    with override_options({"seer.api.use-shared-secret": 1.0}):
-        mock_url_open = run_test_case(shared_secret="")
+    mock_url_open = run_test_case(shared_secret="")
 
-        mock_url_open.assert_called_once_with(
-            "POST",
-            PATH,
-            body=REQUEST_BODY,
-            headers={"content-type": "application/json;charset=utf-8"},
-        )
+    mock_url_open.assert_called_once_with(
+        "POST",
+        PATH,
+        body=REQUEST_BODY,
+        headers={"content-type": "application/json;charset=utf-8"},
+    )
 
 
 @pytest.mark.django_db

@@ -21,7 +21,7 @@ function renderMockRequests({
     body: [ProjectKeysFixture()[0]],
   });
   MockApiClient.addMockResponse({
-    url: `/subscriptions/${organization.slug}/`,
+    url: `/customers/${organization.slug}/`,
     method: 'GET',
     body: {},
   });

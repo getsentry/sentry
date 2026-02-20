@@ -4,6 +4,7 @@ import type {ApiResult} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -97,7 +98,9 @@ export function useIssuesSeriesQuery(
       }
 
       return [
-        `/organizations/${organization.slug}/issues-timeseries/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/issues-timeseries/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -263,7 +266,9 @@ export function useIssuesTableQuery(
       }
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/issues/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/issues/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           data: queryParams,

@@ -1,7 +1,7 @@
 import clamp from 'lodash/clamp';
 
+import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -27,9 +27,7 @@ export function TimeSpentCell({percentage, total, op, containerProps}: Props) {
 
   return (
     <NumberContainer {...containerProps}>
-      <Tooltip isHoverable title={tooltip} showUnderline>
-        {defined(total) ? formattedTotal : '--'}
-      </Tooltip>
+      <InfoText title={tooltip}>{defined(total) ? formattedTotal : '--'}</InfoText>
     </NumberContainer>
   );
 }

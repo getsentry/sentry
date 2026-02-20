@@ -1,8 +1,8 @@
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.cases import TestCase
 
 
-class ProjectOptionManagerTest(TransactionTestCase):
+class ProjectOptionManagerTest(TestCase):
     def test_set_value(self) -> None:
         ProjectOption.objects.set_value(self.project, "foo", "bar")
         assert ProjectOption.objects.get(project=self.project, key="foo").value == "bar"

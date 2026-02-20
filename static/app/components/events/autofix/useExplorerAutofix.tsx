@@ -1,6 +1,8 @@
 import {useCallback, useState} from 'react';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {
   needsGitHubAuth,
   type CodingAgentIntegration,
@@ -447,23 +449,50 @@ export function useExplorerAutofix(
       }
 
       try {
-        const response: {failures: Array<{error_message: string}>; successes: unknown[]} =
-          await api.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
-              path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-            }),
-            {
-              method: 'POST',
-              query: {mode: 'explorer'},
-              data,
-            }
-          );
+        const response: {
+          failures: Array<{
+            error_message: string;
+            repo_name: string;
+            failure_type?: string;
+            github_installation_id?: string;
+          }>;
+          successes: unknown[];
+        } = await api.requestPromise(
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+            path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+          }),
+          {
+            method: 'POST',
+            query: {mode: 'explorer'},
+            data,
+          }
+        );
 
         // Check for failures in the response
         if (response.failures && response.failures.length > 0) {
-          const errorMessage =
-            response.failures[0]?.error_message ?? 'Failed to launch coding agent';
-          addErrorMessage(errorMessage);
+          const permissionFailures = response.failures.filter(
+            f => f.failure_type === 'github_app_permissions'
+          );
+          const otherFailures = response.failures.filter(
+            f => f.failure_type !== 'github_app_permissions'
+          );
+
+          if (permissionFailures.length > 0) {
+            const installationId = permissionFailures[0]?.github_installation_id;
+            const installationUrl = installationId
+              ? `https://github.com/settings/installations/${installationId}`
+              : undefined;
+            openModal(deps => (
+              <AutofixGithubAppPermissionsModal
+                {...deps}
+                installationUrl={installationUrl}
+              />
+            ));
+          }
+
+          otherFailures.forEach(failure => {
+            addErrorMessage(failure.error_message ?? 'Failed to launch coding agent');
+          });
         }
 
         // Invalidate to fetch fresh data

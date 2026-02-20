@@ -88,6 +88,9 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endp
 
 logger = logging.getLogger(__name__)
 
+# Valid sort keys for combined rules endpoint
+VALID_COMBINED_RULE_SORT_KEYS = {"date_added", "name", "incident_status", "date_triggered"}
+
 
 def create_metric_alert(
     request: Request, organization: Organization, project: Project | None = None
@@ -395,6 +398,12 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
         is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.getlist("sort", ["date_added"])
+        invalid_keys = [key for key in sort_key if key not in VALID_COMBINED_RULE_SORT_KEYS]
+        if invalid_keys:
+            return Response(
+                {"detail": f"Invalid sort key(s): {', '.join(invalid_keys)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         rule_sort_key = [
             "label" if x == "name" else x for x in sort_key
         ]  # Rule's don't share the same field name for their title/label/name...so we account for that here.

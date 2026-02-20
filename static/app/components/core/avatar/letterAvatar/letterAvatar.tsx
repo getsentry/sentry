@@ -13,7 +13,7 @@ import {baseAvatarStyles, type BaseAvatarStyleProps} from '../avatarComponentSty
  * histrically hijacked the ref and attached it to the container element, and we would need
  * to eliminate the wrapper before we can enable ref support.
  */
-export interface LetterAvatarProps
+interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>, BaseAvatarStyleProps {
   /**
    * Stable identifier used for color selection. Should not change over time.

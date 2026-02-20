@@ -2,7 +2,8 @@ import contextlib
 from unittest import mock
 
 import pytest
-from django.db import router, transaction
+from django.db import connections, router, transaction
+from django.db.transaction import TransactionManagementError
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.options.project_option import ProjectOption
@@ -533,3 +534,59 @@ def test_invalidate_hierarchy(
     assert len(calls) == 1
     cache = redis_cache.get(default_projectkey)
     assert cache["disabled"] is False
+
+
+@django_db_all(transaction=True)
+@override_options({"relay.invalidation-direct-outside-atomic": False})
+def test_schedule_invalidate_project_config_without_autocommit_option_off(default_project):
+    """
+    Without the option, the old behavior is preserved: on_commit() is called
+    unconditionally, which raises TransactionManagementError when autocommit
+    is off and there is no active atomic block.
+    """
+    conn = connections["default"]
+    conn.ensure_connection()
+    try:
+        conn.set_autocommit(False)
+        with pytest.raises(TransactionManagementError):
+            schedule_invalidate_project_config(
+                project_id=default_project.id,
+                trigger="test",
+            )
+    finally:
+        conn.rollback()
+        conn.set_autocommit(True)
+
+
+@django_db_all(transaction=True)
+@override_options({"relay.invalidation-direct-outside-atomic": True})
+def test_schedule_invalidate_project_config_without_autocommit_option_on(default_project):
+    """
+    Regression test: with the option enabled, schedule_invalidate_project_config
+    must not raise TransactionManagementError when called without autocommit and
+    outside an atomic block, as happens in the taskworker.
+
+    See: https://sentry.sentry.io/issues/7223923952/
+    """
+    conn = connections["default"]
+    conn.ensure_connection()
+    try:
+        conn.set_autocommit(False)
+        with mock.patch("sentry.tasks.relay._schedule_invalidate_project_config") as mock_schedule:
+            schedule_invalidate_project_config(
+                project_id=default_project.id,
+                trigger="test",
+            )
+            # The callback should have been called directly (not via on_commit)
+            assert mock_schedule.call_count == 1
+            mock_schedule.assert_called_once_with(
+                trigger="test",
+                trigger_details=None,
+                organization_id=None,
+                project_id=default_project.id,
+                public_key=None,
+                countdown=5,
+            )
+    finally:
+        conn.rollback()
+        conn.set_autocommit(True)
