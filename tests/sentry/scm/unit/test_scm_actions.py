@@ -75,7 +75,7 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     ("get_pull_request_files", {"pull_request_id": "1"}),
     ("get_pull_request_commits", {"pull_request_id": "1"}),
     ("get_pull_request_diff", {"pull_request_id": "1"}),
-    ("list_pull_requests", {}),
+    ("get_pull_requests", {}),
     ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
     ("update_pull_request", {"pull_request_id": "1"}),
     ("request_review", {"pull_request_id": "1", "reviewers": ["user1"]}),
@@ -470,7 +470,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (SourceCodeManager.get_pull_request_files, {"pull_request_id": "1"}, _check_pr_files),
     (SourceCodeManager.get_pull_request_commits, {"pull_request_id": "1"}, _check_pr_commits),
     (SourceCodeManager.get_pull_request_diff, {"pull_request_id": "1"}, _check_pr_diff),
-    (SourceCodeManager.list_pull_requests, {}, _check_list_pull_requests),
+    (SourceCodeManager.get_pull_requests, {}, _check_list_pull_requests),
     (
         SourceCodeManager.create_pull_request,
         {"title": "T", "body": "B", "head": "h", "base": "b"},

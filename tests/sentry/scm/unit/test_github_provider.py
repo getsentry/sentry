@@ -87,7 +87,7 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_pull_request_files", {"pull_request_id": "42"}),
     ("get_pull_request_commits", {"pull_request_id": "42"}),
     ("get_pull_request_diff", {"pull_request_id": "42"}),
-    ("list_pull_requests", {}),
+    ("get_pull_requests", {}),
     ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
     ("update_pull_request", {"pull_request_id": "42"}),
     ("request_review", {"pull_request_id": "42", "reviewers": ["user1"]}),
@@ -302,12 +302,12 @@ CLIENT_DELEGATION_TESTS: list[
         ("get_pull_request_diff", ("test-org/test-repo", "42"), {}),
     ),
     (
-        "list_pull_requests",
+        "get_pull_requests",
         {},
         ("list_pull_requests", ("test-org/test-repo", "open", None), {}),
     ),
     (
-        "list_pull_requests",
+        "get_pull_requests",
         {"state": "closed", "head": "org:branch"},
         ("list_pull_requests", ("test-org/test-repo", "closed", "org:branch"), {}),
     ),
@@ -824,7 +824,7 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         _check_pr_diff,
     ),
     (
-        "list_pull_requests",
+        "get_pull_requests",
         {},
         {"pull_requests_data": [make_github_pull_request()]},
         _check_list_pull_requests,
@@ -1031,7 +1031,7 @@ class TestListPullRequestsEdgeCases:
         provider = GitHubProvider(client)
         repository = make_repository()
 
-        result = provider.list_pull_requests(repository)
+        result = provider.get_pull_requests(repository)
 
         assert result == []
 

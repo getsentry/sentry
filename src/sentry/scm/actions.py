@@ -40,7 +40,6 @@ from sentry.scm.types import (
 
 
 class SourceCodeManager:
-
     def __init__(
         self,
         organization_id: int,
@@ -267,10 +266,10 @@ class SourceCodeManager:
     def get_pull_request_diff(self, pull_request_id: str) -> PullRequestDiffActionResult:
         return self._exec(lambda r, p: p.get_pull_request_diff(r, pull_request_id))
 
-    def list_pull_requests(
+    def get_pull_requests(
         self, state: str = "open", head: str | None = None
     ) -> list[PullRequestActionResult]:
-        return self._exec(lambda r, p: p.list_pull_requests(r, state, head))
+        return self._exec(lambda r, p: p.get_pull_requests(r, state, head))
 
     def create_pull_request(
         self, title: str, body: str, head: str, base: str, *, draft: bool = False

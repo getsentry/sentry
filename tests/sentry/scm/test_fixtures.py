@@ -458,7 +458,6 @@ def make_github_graphql_pr_comments_response(
 
 
 class BaseTestProvider(Provider):
-
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
         return False
 
@@ -807,7 +806,7 @@ class BaseTestProvider(Provider):
             provider="test",
         )
 
-    def list_pull_requests(
+    def get_pull_requests(
         self, repository: Repository, state: str = "open", head: str | None = None
     ) -> list[PullRequestActionResult]:
         raw = make_github_pull_request()

@@ -461,7 +461,7 @@ class Provider(Protocol):
         self, repository: Repository, pull_request_id: str
     ) -> PullRequestDiffActionResult: ...
 
-    def list_pull_requests(
+    def get_pull_requests(
         self, repository: Repository, state: str = "open", head: str | None = None
     ) -> list[PullRequestActionResult]: ...
 
