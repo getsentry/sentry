@@ -69,7 +69,7 @@ export default function ErrorList() {
 
   const handleScrollToTableRow = useCallback(
     (row: number) => {
-      virtualizer.scrollToIndex(Math.max(0, row - 1), {align: 'center'});
+      virtualizer.scrollToIndex(row, {align: 'center', behavior: 'smooth'});
     },
     [virtualizer]
   );
