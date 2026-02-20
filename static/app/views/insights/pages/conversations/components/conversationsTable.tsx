@@ -34,14 +34,24 @@ import {
   type ConversationUser,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversations';
 
+interface ConversationsTableDataProps {
+  data: Conversation[];
+  error: any;
+  isLoading: boolean;
+  pageLinks: string | undefined;
+  setCursor: (cursor: string) => void;
+}
+
 interface ConversationsTableProps {
   openConversationViewDrawer: ReturnType<
     typeof useConversationViewDrawer
   >['openConversationViewDrawer'];
+  dataProps?: ConversationsTableDataProps;
 }
 
 export function ConversationsTable({
   openConversationViewDrawer,
+  dataProps,
 }: ConversationsTableProps) {
   const organization = useOrganization();
   const showTable = hasGenAiConversationsFeature(organization);
@@ -50,7 +60,10 @@ export function ConversationsTable({
     return null;
   }
   return (
-    <ConversationsTableInner openConversationViewDrawer={openConversationViewDrawer} />
+    <ConversationsTableInner
+      openConversationViewDrawer={openConversationViewDrawer}
+      dataProps={dataProps}
+    />
   );
 }
 
@@ -68,12 +81,16 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
 
 const rightAlignColumns = new Set(['steps', 'tokensAndCost', 'timestamp']);
 
-function ConversationsTableInner({openConversationViewDrawer}: ConversationsTableProps) {
+function ConversationsTableInner({
+  openConversationViewDrawer,
+  dataProps,
+}: ConversationsTableProps) {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
 
-  const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+  const conversationsResult = useConversations({enabled: !dataProps});
+  const {data, isLoading, error, pageLinks, setCursor} = dataProps ?? conversationsResult;
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (

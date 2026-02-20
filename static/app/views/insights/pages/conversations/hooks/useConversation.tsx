@@ -22,7 +22,7 @@ export interface UseConversationsOptions {
 /**
  * Raw span data returned from the AI conversation details endpoint
  */
-interface ConversationApiSpan {
+export interface ConversationApiSpan {
   'gen_ai.conversation.id': string;
   parent_span: string;
   'precise.finish_ts': number;
@@ -57,7 +57,7 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
   return span['span.op']?.startsWith('gen_ai.') ?? false;
 }
 
-interface UseConversationResult {
+export interface UseConversationResult {
   error: boolean;
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
@@ -68,7 +68,7 @@ interface UseConversationResult {
  * Creates a node-like object from a flat API span response so existing UI
  * components (AISpanList, MessagesPanel) work without full trace fetches.
  */
-function createNodeFromApiSpan(
+export function createNodeFromApiSpan(
   apiSpan: ConversationApiSpan,
   nodeMap: Map<string, AITraceSpanNode>
 ): AITraceSpanNode {
@@ -165,8 +165,10 @@ function createNodeFromApiSpan(
 }
 
 export function useConversation(
-  conversation: UseConversationsOptions
+  conversation: UseConversationsOptions,
+  options?: {enabled?: boolean}
 ): UseConversationResult {
+  const enabled = options?.enabled ?? true;
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -203,7 +205,7 @@ export function useConversation(
     {
       staleTime: Infinity,
       retry: false,
-      enabled: !!conversation.conversationId,
+      enabled: !!conversation.conversationId && enabled,
     }
   );
 

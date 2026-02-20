@@ -38,7 +38,7 @@ interface ConversationApiResponse extends Omit<Conversation, 'firstInput'> {
   firstInput?: Array<{text: string; type: string}> | string | null;
 }
 
-export function useConversations() {
+export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
   const organization = useOrganization();
   const {cursor, setCursor} = useTableCursor();
   const pageFilters = usePageFilters();
@@ -66,6 +66,7 @@ export function useConversations() {
     ],
     {
       staleTime: 0,
+      enabled,
     }
   );
 

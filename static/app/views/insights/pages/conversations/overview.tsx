@@ -1,7 +1,8 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -14,10 +15,12 @@ import {
   type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -34,13 +37,20 @@ import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableC
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
-import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useConversationDetail} from 'sentry/views/insights/pages/conversations/hooks/useConversationDetail';
+import {useConversationList} from 'sentry/views/insights/pages/conversations/hooks/useConversationList';
+import type {ConversationListMode} from 'sentry/views/insights/pages/conversations/hooks/useConversationList';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/insights/pages/conversations/settings';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
 const DEFAULT_QUERY = 'has:user.email';
+
+enum ViewMode {
+  CONVERSATIONS = 'conversations',
+  TRACES = 'traces',
+}
 
 interface ConversationsOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
@@ -70,19 +80,38 @@ function ConversationsOverviewPage({
 
 function ConversationsContent({datePageFilterProps}: ConversationsOverviewPageProps) {
   const organization = useOrganization();
+  const user = useUser();
   useDefaultToAllProjects();
+
+  const [viewMode, setViewMode] = useQueryState(
+    'view',
+    parseAsString.withDefault(ViewMode.CONVERSATIONS).withOptions({history: 'push'})
+  );
+
+  const isTracesMode = user.isStaff && viewMode === ViewMode.TRACES;
+  const listMode: ConversationListMode = isTracesMode ? 'traces' : 'conversations';
 
   const [urlState] = useConversationDrawerQueryState();
   // Start fetching data and open drawer without
   // waiting for table to finish loading
-  useConversation({conversationId: urlState.conversationId ?? ''});
-  const {openConversationViewDrawer} = useConversationViewDrawer();
+  useConversationDetail({conversationId: urlState.conversationId ?? ''}, listMode);
+  const {openConversationViewDrawer} = useConversationViewDrawer({mode: listMode});
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
     parseAsString.withOptions({history: 'replace'})
   );
   const {unsetCursor} = useTableCursor();
+
+  const handleViewChange = useCallback(
+    (newView: string) => {
+      setViewMode(newView);
+      unsetCursor();
+    },
+    [setViewMode, unsetCursor]
+  );
+
+  const conversationListResult = useConversationList(listMode);
 
   useEffect(() => {
     trackAnalytics('conversations.page-view', {
@@ -170,9 +199,29 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
               </Stack>
             </ModuleLayout.Full>
 
+            {user.isStaff && (
+              <ModuleLayout.Full>
+                <Flex justify="end">
+                  <SegmentedControl
+                    value={viewMode}
+                    onChange={handleViewChange}
+                    size="xs"
+                  >
+                    <SegmentedControl.Item key={ViewMode.CONVERSATIONS}>
+                      {t('Conversations')}
+                    </SegmentedControl.Item>
+                    <SegmentedControl.Item key={ViewMode.TRACES}>
+                      {t('Traces')}
+                    </SegmentedControl.Item>
+                  </SegmentedControl>
+                </Flex>
+              </ModuleLayout.Full>
+            )}
+
             <ModuleLayout.Full>
               <ConversationsTable
                 openConversationViewDrawer={openConversationViewDrawer}
+                dataProps={isTracesMode ? conversationListResult : undefined}
               />
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

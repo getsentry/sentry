@@ -17,10 +17,9 @@ import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/g
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {ConversationSummary} from 'sentry/views/insights/pages/conversations/components/conversationSummary';
 import {MessagesPanel} from 'sentry/views/insights/pages/conversations/components/messagesPanel';
-import {
-  useConversation,
-  type UseConversationsOptions,
-} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import type {UseConversationsOptions} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useConversationDetail} from 'sentry/views/insights/pages/conversations/hooks/useConversationDetail';
+import type {ConversationListMode} from 'sentry/views/insights/pages/conversations/hooks/useConversationList';
 import {useFocusedToolSpan} from 'sentry/views/insights/pages/conversations/hooks/useFocusedToolSpan';
 import {useUrlConversationDrawer} from 'sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
@@ -34,16 +33,22 @@ const DRAWER_WIDTH = LEFT_PANEL_WIDTH + DETAILS_PANEL_WIDTH;
 type ConversationTab = 'messages' | 'trace';
 
 interface UseConversationViewDrawerProps {
+  mode?: ConversationListMode;
   onClose?: () => void;
 }
 
 const ConversationDrawerContent = memo(function ConversationDrawerContent({
   conversation,
+  mode = 'conversations',
 }: {
   conversation: UseConversationsOptions;
+  mode?: ConversationListMode;
 }) {
   const organization = useOrganization();
-  const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
+  const {nodes, nodeTraceMap, isLoading, error} = useConversationDetail(
+    conversation,
+    mode
+  );
   const [conversationDrawerQueryState, setConversationDrawerQueryState] =
     useConversationDrawerQueryState();
   const selectedNodeKey = conversationDrawerQueryState.spanId;
@@ -135,6 +140,7 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
 
 export function useConversationViewDrawer({
   onClose,
+  mode = 'conversations',
 }: UseConversationViewDrawerProps = {}) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, drawerUrlState} = useUrlConversationDrawer();
@@ -154,23 +160,26 @@ export function useConversationViewDrawer({
         source,
       });
 
-      return openDrawer(() => <ConversationDrawerContent conversation={conversation} />, {
-        ariaLabel: t('Conversation'),
-        onClose,
-        shouldCloseOnInteractOutside: () => true,
-        drawerWidth: `${DRAWER_WIDTH}px`,
-        drawerCss: css`
-          min-width: ${DRAWER_WIDTH}px;
-        `,
-        resizable: true,
-        conversationId: conversation.conversationId,
-        startTimestamp: conversation.startTimestamp,
-        endTimestamp: conversation.endTimestamp,
-        focusedTool,
-        drawerKey: 'conversation-view-drawer',
-      });
+      return openDrawer(
+        () => <ConversationDrawerContent conversation={conversation} mode={mode} />,
+        {
+          ariaLabel: t('Conversation'),
+          onClose,
+          shouldCloseOnInteractOutside: () => true,
+          drawerWidth: `${DRAWER_WIDTH}px`,
+          drawerCss: css`
+            min-width: ${DRAWER_WIDTH}px;
+          `,
+          resizable: true,
+          conversationId: conversation.conversationId,
+          startTimestamp: conversation.startTimestamp,
+          endTimestamp: conversation.endTimestamp,
+          focusedTool,
+          drawerKey: 'conversation-view-drawer',
+        }
+      );
     },
-    [openDrawer, onClose, organization]
+    [openDrawer, onClose, organization, mode]
   );
 
   useEffect(() => {
