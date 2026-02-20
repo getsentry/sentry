@@ -257,7 +257,7 @@ def _transform_git_commit_object(raw: dict[str, Any]) -> ActionResult[GitCommitO
 def _transform_review_comment(raw: dict[str, Any]) -> ActionResult[ReviewComment]:
     return ActionResult(
         data=ReviewComment(
-            id=raw["id"],
+            id=str(raw["id"]),
             html_url=raw.get("html_url", ""),
             path=raw.get("path", ""),
             body=raw.get("body", ""),
@@ -270,7 +270,7 @@ def _transform_review_comment(raw: dict[str, Any]) -> ActionResult[ReviewComment
 def _transform_review(raw: dict[str, Any]) -> ActionResult[Review]:
     return ActionResult(
         data=Review(
-            id=raw["id"],
+            id=str(raw["id"]),
             html_url=raw.get("html_url", ""),
         ),
         type="github",
@@ -283,7 +283,7 @@ def _transform_check_run(raw: dict[str, Any]) -> ActionResult[CheckRun]:
     raw_conclusion = raw.get("conclusion")
     return ActionResult(
         data=CheckRun(
-            id=raw["id"],
+            id=str(raw["id"]),
             name=raw.get("name", ""),
             status=GITHUB_STATUS_MAP.get(raw_status, "pending"),
             conclusion=GITHUB_CONCLUSION_MAP.get(raw_conclusion) if raw_conclusion else None,
@@ -366,7 +366,7 @@ def _transform_pull_request_commit(raw: dict[str, Any]) -> PullRequestCommit:
 def _transform_pull_request(raw: dict[str, Any]) -> ActionResult[PullRequest]:
     return ActionResult(
         data=PullRequest(
-            id=raw["id"],
+            id=str(raw["id"]),
             number=raw["number"],
             title=raw["title"],
             body=raw.get("body"),

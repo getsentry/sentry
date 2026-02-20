@@ -494,7 +494,7 @@ def _check_graphql_pr_comments(result: Any) -> None:
 
 def _check_pull_request(result: Any) -> None:
     pr = result["data"]
-    assert pr["id"] == 42
+    assert pr["id"] == "42"
     assert pr["number"] == 1
     assert pr["title"] == "Test PR"
     assert pr["body"] == "PR description"

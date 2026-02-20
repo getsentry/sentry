@@ -180,7 +180,7 @@ def _check_issue_comments(result: Any) -> None:
 
 def _check_pull_request(result: Any) -> None:
     pr = result["data"]
-    assert pr["id"] == 42
+    assert pr["id"] == "42"
     assert pr["number"] == 1
     assert pr["title"] == "Test PR"
     assert pr["head"]["sha"] == "abc123"
@@ -348,7 +348,7 @@ def _check_none(result: Any) -> None:
 
 def _check_review_comment(result: Any) -> None:
     rc = result["data"]
-    assert rc["id"] == 100
+    assert rc["id"] == "100"
     assert rc["path"] == "f.py"
     assert rc["body"] == "comment"
     assert result["type"] == "test"
@@ -356,7 +356,7 @@ def _check_review_comment(result: Any) -> None:
 
 def _check_review(result: Any) -> None:
     r = result["data"]
-    assert r["id"] == 200
+    assert r["id"] == "200"
     assert result["type"] == "test"
 
 
@@ -368,14 +368,14 @@ def _check_create_check_run(result: Any) -> None:
 
 def _check_get_check_run(result: Any) -> None:
     cr = result["data"]
-    assert cr["id"] == 300
+    assert cr["id"] == "300"
     assert cr["status"] == "completed"
     assert result["type"] == "test"
 
 
 def _check_update_check_run(result: Any) -> None:
     cr = result["data"]
-    assert cr["id"] == 300
+    assert cr["id"] == "300"
     assert result["type"] == "test"
 
 

@@ -900,7 +900,7 @@ class BaseTestProvider(Provider):
         raw = make_github_review_comment(body=body, path=path)
         return ActionResult(
             data=ReviewComment(
-                id=raw["id"],
+                id=str(raw["id"]),
                 html_url=raw["html_url"],
                 path=raw["path"],
                 body=raw["body"],
@@ -920,7 +920,7 @@ class BaseTestProvider(Provider):
     ) -> ActionResult[Review]:
         raw = make_github_review()
         return ActionResult(
-            data=Review(id=raw["id"], html_url=raw["html_url"]),
+            data=Review(id=str(raw["id"]), html_url=raw["html_url"]),
             type="test",
             raw=raw,
         )
@@ -942,7 +942,7 @@ class BaseTestProvider(Provider):
         raw = make_github_check_run(name=name)
         return ActionResult(
             data=CheckRun(
-                id=raw["id"],
+                id=str(raw["id"]),
                 name=raw["name"],
                 status=raw["status"],
                 conclusion=raw["conclusion"],
@@ -956,7 +956,7 @@ class BaseTestProvider(Provider):
         raw = make_github_check_run()
         return ActionResult(
             data=CheckRun(
-                id=raw["id"],
+                id=str(raw["id"]),
                 name=raw["name"],
                 status=raw["status"],
                 conclusion=raw["conclusion"],
@@ -980,7 +980,7 @@ class BaseTestProvider(Provider):
         )
         return ActionResult(
             data=CheckRun(
-                id=raw["id"],
+                id=str(raw["id"]),
                 name=raw["name"],
                 status=raw["status"],
                 conclusion=raw["conclusion"],

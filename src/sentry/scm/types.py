@@ -5,6 +5,14 @@ type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"
 
 type ExternalId = str
 
+type ResourceId = str
+"""An opaque provider-assigned identifier for a resource (pull request, review, check run, etc.).
+
+Represented as a string to accommodate providers that use non-integer IDs (e.g. GitLab uses
+integers but Bitbucket uses UUIDs). Callers should treat this as opaque and not assume numeric
+ordering or format.
+"""
+
 type Reaction = Literal["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"]
 """Normalized reaction identifiers shared across all SCM providers."""
 
@@ -120,7 +128,7 @@ class PullRequestBranch(TypedDict):
 class PullRequest(TypedDict):
     """Provider-agnostic representation of a pull request."""
 
-    id: int
+    id: ResourceId
     number: int
     title: str
     body: str | None
@@ -256,7 +264,7 @@ class ReviewCommentInput(TypedDict, total=False):
 class ReviewComment(TypedDict):
     """Provider-agnostic representation of a review comment."""
 
-    id: int
+    id: ResourceId
     html_url: str
     path: str
     body: str
@@ -265,7 +273,7 @@ class ReviewComment(TypedDict):
 class Review(TypedDict):
     """Provider-agnostic representation of a pull request review."""
 
-    id: int
+    id: ResourceId
     html_url: str
 
 
@@ -280,7 +288,7 @@ class CheckRunOutput(TypedDict, total=False):
 class CheckRun(TypedDict):
     """Provider-agnostic representation of a check run."""
 
-    id: int
+    id: ResourceId
     name: str
     status: BuildStatus
     conclusion: BuildConclusion | None
