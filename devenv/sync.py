@@ -213,6 +213,7 @@ def main(context: dict[str, str]) -> int:
         (
             ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
             ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
+            ("agent skills", ("npx", "@sentry/dotagents", "install", "--frozen"), {}),
         ),
         verbose,
     ):
