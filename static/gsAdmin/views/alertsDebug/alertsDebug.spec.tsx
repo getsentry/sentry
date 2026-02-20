@@ -13,22 +13,28 @@ describe('AlertsDebug', () => {
     });
   });
 
-  it('renders workflow ID input initially', () => {
+  it('renders workflow input form initially', () => {
     render(<AlertsDebug />);
 
-    expect(screen.getByText('Enter Workflow ID')).toBeInTheDocument();
+    expect(screen.getByText('Enter Workflow Details')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Organization ID or Slug')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Workflow ID')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Load Workflow'})).toBeInTheDocument();
   });
 
-  it('fetches and displays workflow when ID is submitted', async () => {
+  it('fetches and displays workflow when submitted', async () => {
+    // Use a different org slug to verify URL is built dynamically
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/workflows/123/',
+      url: '/organizations/acme-corp/workflows/123/',
       body: MOCK_WORKFLOW,
     });
 
     render(<AlertsDebug />);
 
+    await userEvent.type(
+      screen.getByPlaceholderText('Organization ID or Slug'),
+      'acme-corp'
+    );
     await userEvent.type(screen.getByPlaceholderText('Workflow ID'), '123');
     await userEvent.click(screen.getByRole('button', {name: 'Load Workflow'}));
 
@@ -38,12 +44,16 @@ describe('AlertsDebug', () => {
 
   it('shows event input section after workflow loads', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/workflows/123/',
+      url: '/organizations/sentry/workflows/123/',
       body: MOCK_WORKFLOW,
     });
 
     render(<AlertsDebug />);
 
+    await userEvent.type(
+      screen.getByPlaceholderText('Organization ID or Slug'),
+      'sentry'
+    );
     await userEvent.type(screen.getByPlaceholderText('Workflow ID'), '123');
     await userEvent.click(screen.getByRole('button', {name: 'Load Workflow'}));
 
@@ -53,7 +63,7 @@ describe('AlertsDebug', () => {
 
   it('adds and displays event cards when events are added', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/workflows/123/',
+      url: '/organizations/sentry/workflows/123/',
       body: MOCK_WORKFLOW,
     });
     MockApiClient.addMockResponse({
@@ -64,6 +74,10 @@ describe('AlertsDebug', () => {
     render(<AlertsDebug />);
 
     // Load workflow
+    await userEvent.type(
+      screen.getByPlaceholderText('Organization ID or Slug'),
+      'sentry'
+    );
     await userEvent.type(screen.getByPlaceholderText('Workflow ID'), '123');
     await userEvent.click(screen.getByRole('button', {name: 'Load Workflow'}));
 
@@ -81,7 +95,7 @@ describe('AlertsDebug', () => {
 
   it('shows evaluate button when events are added', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/workflows/123/',
+      url: '/organizations/sentry/workflows/123/',
       body: MOCK_WORKFLOW,
     });
     MockApiClient.addMockResponse({
@@ -91,6 +105,10 @@ describe('AlertsDebug', () => {
 
     render(<AlertsDebug />);
 
+    await userEvent.type(
+      screen.getByPlaceholderText('Organization ID or Slug'),
+      'sentry'
+    );
     await userEvent.type(screen.getByPlaceholderText('Workflow ID'), '123');
     await userEvent.click(screen.getByRole('button', {name: 'Load Workflow'}));
 
@@ -106,7 +124,7 @@ describe('AlertsDebug', () => {
 
   it('shows results inline after clicking evaluate', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/workflows/123/',
+      url: '/organizations/sentry/workflows/123/',
       body: MOCK_WORKFLOW,
     });
     MockApiClient.addMockResponse({
@@ -116,6 +134,10 @@ describe('AlertsDebug', () => {
 
     render(<AlertsDebug />);
 
+    await userEvent.type(
+      screen.getByPlaceholderText('Organization ID or Slug'),
+      'sentry'
+    );
     await userEvent.type(screen.getByPlaceholderText('Workflow ID'), '123');
     await userEvent.click(screen.getByRole('button', {name: 'Load Workflow'}));
 
@@ -138,7 +160,7 @@ describe('AlertsDebug', () => {
 
   it('clears results when clicking clear button', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/workflows/123/',
+      url: '/organizations/sentry/workflows/123/',
       body: MOCK_WORKFLOW,
     });
     MockApiClient.addMockResponse({
@@ -148,6 +170,10 @@ describe('AlertsDebug', () => {
 
     render(<AlertsDebug />);
 
+    await userEvent.type(
+      screen.getByPlaceholderText('Organization ID or Slug'),
+      'sentry'
+    );
     await userEvent.type(screen.getByPlaceholderText('Workflow ID'), '123');
     await userEvent.click(screen.getByRole('button', {name: 'Load Workflow'}));
 
@@ -170,12 +196,16 @@ describe('AlertsDebug', () => {
 
   it('allows changing workflow after loading', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/workflows/123/',
+      url: '/organizations/sentry/workflows/123/',
       body: MOCK_WORKFLOW,
     });
 
     render(<AlertsDebug />);
 
+    await userEvent.type(
+      screen.getByPlaceholderText('Organization ID or Slug'),
+      'sentry'
+    );
     await userEvent.type(screen.getByPlaceholderText('Workflow ID'), '123');
     await userEvent.click(screen.getByRole('button', {name: 'Load Workflow'}));
 
@@ -184,19 +214,24 @@ describe('AlertsDebug', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Change Workflow'}));
 
     // Should be back to workflow input
-    expect(screen.getByText('Enter Workflow ID')).toBeInTheDocument();
+    expect(screen.getByText('Enter Workflow Details')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Organization ID or Slug')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Workflow ID')).toBeInTheDocument();
   });
 
   it('falls back to mock workflow when API errors', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/workflows/123/',
+      url: '/organizations/sentry/workflows/123/',
       statusCode: 500,
       body: {detail: 'Server error'},
     });
 
     render(<AlertsDebug />);
 
+    await userEvent.type(
+      screen.getByPlaceholderText('Organization ID or Slug'),
+      'sentry'
+    );
     await userEvent.type(screen.getByPlaceholderText('Workflow ID'), '123');
     await userEvent.click(screen.getByRole('button', {name: 'Load Workflow'}));
 

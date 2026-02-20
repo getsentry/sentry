@@ -16,11 +16,7 @@ export function AlertConditionGroup({group}: AlertConditionGroupProps) {
     <Container radius="md" padding="xl" background="primary" border="primary">
       <Stack gap="lg">
         <Stack gap="sm">
-          <Heading as="h4">Configuration</Heading>
-          <Flex align="center" gap="xs">
-            <Text bold>ID:</Text>
-            <Text monospace>{group.id}</Text>
-          </Flex>
+          <Heading as="h4">Condition Group: {group.id}</Heading>
           <Flex align="center" gap="xs">
             <Text bold>Logic Type:</Text>
             <Text monospace>{group.logicType}</Text>
@@ -30,8 +26,7 @@ export function AlertConditionGroup({group}: AlertConditionGroupProps) {
         {group.conditions && group.conditions.length > 0 && (
           <Stack gap="sm">
             <Heading as="h5">Conditions</Heading>
-
-            <Stack gap="sm">
+            <Stack gap="lg">
               {group.conditions.map(condition => (
                 <AlertCondition
                   background="secondary"
@@ -46,6 +41,7 @@ export function AlertConditionGroup({group}: AlertConditionGroupProps) {
         {group.actions && group.actions.length > 0 && (
           <Stack gap="sm">
             <Text bold>Actions</Text>
+
             <Stack gap="xs">
               {group.actions.map(action => (
                 <Fragment key={action.id}>

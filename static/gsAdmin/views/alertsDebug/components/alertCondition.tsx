@@ -15,7 +15,6 @@ export function AlertCondition({condition, background = 'primary'}: AlertConditi
   return (
     <Container padding="md" background={background} radius="md" border="primary">
       <Stack gap="xs">
-        <AlertDataAttribute dataKey="id" value={condition.id} />
         <AlertDataAttribute dataKey="comparison" value={condition.comparison} />
         <AlertDataAttribute dataKey="conditionResult" value={condition.conditionResult} />
 
