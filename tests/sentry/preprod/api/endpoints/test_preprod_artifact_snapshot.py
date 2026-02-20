@@ -1,4 +1,3 @@
-from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -301,7 +300,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
     def _create_mock_session(self, manifest_json):
         mock_result = MagicMock()
-        mock_result.payload = BytesIO(manifest_json)
+        mock_result.payload.read.return_value = manifest_json
         mock_session = MagicMock()
         mock_session.get.return_value = mock_result
         return mock_session
