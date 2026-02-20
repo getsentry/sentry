@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {type z} from 'zod';
 
@@ -31,9 +31,7 @@ function OrganizationMembershipSettingsForm({
   const hasOrgAdmin = access.has('org:admin');
   const hasTeamRoles = features.has('team-roles');
 
-  const [hasGranularReplay, setHasGranularReplay] = useState(
-    organization.hasGranularReplayPermissions ?? false
-  );
+  const hasGranularReplay = organization.hasGranularReplayPermissions ?? false;
 
   const roleOptions = (organization.orgRoleList ?? []).map(r => ({
     value: r.id,
@@ -44,16 +42,6 @@ function OrganizationMembershipSettingsForm({
     mutationFn: (data: Partial<MembershipSchemaType>) =>
       fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
     onSuccess: updated => onSave(organization, updated),
-    onError: () => addErrorMessage(t('Unable to save change')),
-  });
-
-  const replayPermsMutationOpts = mutationOptions({
-    mutationFn: (data: Partial<MembershipSchemaType>) =>
-      fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
-    onSuccess: updated => {
-      onSave(organization, updated);
-      setHasGranularReplay(updated.hasGranularReplayPermissions ?? false);
-    },
     onError: () => addErrorMessage(t('Unable to save change')),
   });
 
@@ -297,7 +285,7 @@ function OrganizationMembershipSettingsForm({
             name="hasGranularReplayPermissions"
             schema={membershipSchema}
             initialValue={organization.hasGranularReplayPermissions ?? false}
-            mutationOptions={replayPermsMutationOpts}
+            mutationOptions={mutationOpts}
             confirm={value =>
               value
                 ? undefined
