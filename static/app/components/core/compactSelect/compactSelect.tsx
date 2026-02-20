@@ -1,4 +1,4 @@
-import {useCallback, useId, useMemo, useState} from 'react';
+import {useCallback, useId, useMemo, useRef, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
 import * as Sentry from '@sentry/react';
 import maxBy from 'lodash/maxBy';
@@ -138,12 +138,18 @@ export function CompactSelect<Value extends SelectKey>({
   );
 
   const controlDisabled = disabled ?? options?.length === 0;
-
   const allItemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
+
+  const lastLoggedDuplicateKeySignatureRef = useRef<string | undefined>(undefined);
   const duplicateOptionKeys = useMemo(
     () => getDuplicateOptionKeys(allItemsWithKey),
     [allItemsWithKey]
   );
+  const duplicateOptionKeySignature = useMemo(
+    () => duplicateOptionKeys.join(','),
+    [duplicateOptionKeys]
+  );
+
   const longestOptionItemsWithKey = useMemo(() => {
     if (needsMeasuring) {
       const longestOption = maxBy(options, option => {
@@ -181,14 +187,37 @@ export function CompactSelect<Value extends SelectKey>({
         controlProps.onOpenChange?.(newOpenState);
         if (newOpenState) {
           scheduleMicroTask(() => {
+            const componentTitle =
+              typeof controlProps.menuTitle === 'string'
+                ? controlProps.menuTitle
+                : 'unknown';
+
             trackVirtualizationMetrics(
               allItemsWithKey,
               virtualizeThreshold,
               duplicateOptionKeys.length,
-              typeof controlProps.menuTitle === 'string'
-                ? controlProps.menuTitle
-                : undefined
+              componentTitle
             );
+
+            if (duplicateOptionKeys.length === 0) {
+              lastLoggedDuplicateKeySignatureRef.current = undefined;
+              return;
+            }
+            if (
+              lastLoggedDuplicateKeySignatureRef.current === duplicateOptionKeySignature
+            ) {
+              return;
+            }
+            lastLoggedDuplicateKeySignatureRef.current = duplicateOptionKeySignature;
+            Sentry.logger.error('CompactSelect has duplicate option keys', {
+              component_title: componentTitle,
+              duplicate_option_key_count: duplicateOptionKeys.length,
+              has_sections: allItemsWithKey.some(item => 'options' in item),
+              option_count: allItemsWithKey.reduce((sum, item) => {
+                return 'options' in item ? sum + item.options.length : sum + 1;
+              }, 0),
+              virtualize_threshold: virtualizeThreshold ?? 150,
+            });
           });
         }
       }}
