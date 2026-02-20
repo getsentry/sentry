@@ -140,9 +140,7 @@ function OrganizationMembershipSettingsBase({
   const hasOrgWrite = access.has('org:write');
   const hasOrgAdmin = access.has('org:admin');
 
-  const [hasGranularReplay, setHasGranularReplay] = useState(
-    organization.hasGranularReplayPermissions ?? false
-  );
+  const hasGranularReplay = organization.hasGranularReplayPermissions ?? false;
 
   const roleOptions = (organization.orgRoleList ?? []).map(r => ({
     value: r.id,
@@ -153,16 +151,6 @@ function OrganizationMembershipSettingsBase({
     mutationFn: (data: Partial<MembershipSchemaType>) =>
       fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
     onSuccess: updated => onSave(organization, updated),
-    onError: () => addErrorMessage(t('Unable to save change')),
-  });
-
-  const replayPermsMutationOpts = mutationOptions({
-    mutationFn: (data: Partial<MembershipSchemaType>) =>
-      fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
-    onSuccess: updated => {
-      onSave(organization, updated);
-      setHasGranularReplay(updated.hasGranularReplayPermissions ?? false);
-    },
     onError: () => addErrorMessage(t('Unable to save change')),
   });
 
@@ -389,7 +377,7 @@ function OrganizationMembershipSettingsBase({
               name="hasGranularReplayPermissions"
               schema={membershipSchema}
               initialValue={organization.hasGranularReplayPermissions ?? false}
-              mutationOptions={replayPermsMutationOpts}
+              mutationOptions={mutationOpts}
               confirm={value =>
                 value
                   ? undefined
