@@ -26,13 +26,13 @@ export default async function apiFetch<TQueryFnData = unknown>(
     headers: options?.headers,
   });
 
-  const xhits = response!.getResponseHeader('X-Hits');
-  const xmaxhits = response!.getResponseHeader('X-Max-Hits');
+  const xhits = response!.getResponseHeader('X-Hits') ?? null;
+  const xmaxhits = response!.getResponseHeader('X-Max-Hits') ?? null;
   return {
     headers: {
       Link: response!.getResponseHeader('Link') ?? undefined,
-      'X-Hits': xhits === null ? undefined : parseInt(xhits, 10),
-      'X-Max-Hits': xmaxhits === null ? undefined : parseInt(xmaxhits, 10),
+      'X-Hits': xhits === null ? undefined : Number(xhits),
+      'X-Max-Hits': xmaxhits === null ? undefined : Number(xmaxhits),
     },
     json: json as TQueryFnData,
   };
