@@ -18,7 +18,7 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSection,
 } from './types';
-import {getDuplicateOptionKeys, getItemsWithKeys, shouldCloseOnSelect} from './utils';
+import {getDuplicateOptionKeysInfo, getItemsWithKeys, shouldCloseOnSelect} from './utils';
 
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
@@ -168,7 +168,8 @@ export function CompactSelect<Value extends SelectKey>({
 
   const lastLoggedDuplicateKeySignatureRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    const duplicateOptionKeys = getDuplicateOptionKeys(allItemsWithKey);
+    const {duplicateOptionKeys, hasSections, optionCount} =
+      getDuplicateOptionKeysInfo(allItemsWithKey);
     if (duplicateOptionKeys.length === 0) {
       lastLoggedDuplicateKeySignatureRef.current = undefined;
       return;
@@ -184,10 +185,8 @@ export function CompactSelect<Value extends SelectKey>({
       component_title: componentTitle,
       duplicate_option_key_count: duplicateOptionKeys.length,
       duplicate_option_key_signature: duplicateOptionKeySignature,
-      has_sections: allItemsWithKey.some(item => 'options' in item),
-      option_count: allItemsWithKey.reduce((sum, item) => {
-        return 'options' in item ? sum + item.options.length : sum + 1;
-      }, 0),
+      has_sections: hasSections,
+      option_count: optionCount,
       virtualize_threshold: virtualizeThreshold ?? 150,
     });
   }, [allItemsWithKey, componentTitle, virtualizeThreshold]);
