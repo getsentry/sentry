@@ -80,14 +80,17 @@ class TestLabelQuery(APITestCase):
         self._create_feedback(
             "UI issue 1",
             ["User Interface", "Performance"],
+            dt=before_now(hours=3),
         )
         self._create_feedback(
             "UI issue 2",
             ["Checkout", "User Interface"],
+            dt=before_now(hours=2),
         )
         self._create_feedback(
             "UI issue 3",
             ["Performance", "User Interface", "Colors"],
+            dt=before_now(hours=1),
         )
 
         result = query_top_ai_labels_by_feedback_count(
