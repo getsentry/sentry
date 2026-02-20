@@ -6,13 +6,11 @@ from datetime import datetime
 from snuba_sdk import (
     Column,
     Condition,
-    Direction,
     Entity,
     Function,
     Granularity,
     Limit,
     Op,
-    OrderBy,
     Query,
     Request,
 )
@@ -21,7 +19,6 @@ from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.index_data import get_transactions_for_project
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.outcomes import Outcome
@@ -55,13 +52,7 @@ def get_top_span_ops_for_org_projects(
     start: datetime,
     end: datetime,
 ) -> dict[int, list[tuple[str, str]]]:
-    """
-    Query EAP for top (span.category, sentry.normalized_description) pairs per project,
-    ordered by sum(span.self_time) descending.
-
-    Returns:
-        {project_id: [(category, normalized_description), ...]}
-    """
+    """Query EAP for top (span.category, sentry.normalized_description) pairs per project."""
     if not projects:
         return {}
 
@@ -85,7 +76,6 @@ def get_top_span_ops_for_org_projects(
                 "sum(span.self_time)",
             ],
             orderby=["-sum(span.self_time)"],
-            offset=0,
             limit=TOP_SPAN_OPS_LIMIT * len(projects),
             referrer=Referrer.SEER_EXPLORER_INDEX,
             config=config,
@@ -116,17 +106,51 @@ def get_top_transactions_for_org_projects(
     start: datetime,
     end: datetime,
 ) -> dict[int, list[str]]:
-    """
-    Fetch top transactions for each project, returning {project_id: [transaction_name, ...]}.
-    """
-    start_time_delta = {"seconds": int((end - start).total_seconds())}
-    result = {}
-    for project in projects:
-        transactions = get_transactions_for_project(
-            project.id, limit=TOP_TRANSACTIONS_LIMIT, start_time_delta=start_time_delta
+    """Query EAP for top transactions per project, returning {project_id: [transaction_name, ...]}."""
+    if not projects:
+        return {}
+
+    organization = projects[0].organization
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
+    )
+    config = SearchResolverConfig(auto_fields=True)
+
+    try:
+        result = Spans.run_table_query(
+            params=snuba_params,
+            query_string="is_transaction:true",
+            selected_columns=[
+                "project.id",
+                "transaction",
+                "sum(span.duration)",
+            ],
+            orderby=["-sum(span.duration)"],
+            limit=TOP_TRANSACTIONS_LIMIT * len(projects),
+            referrer=Referrer.SEER_EXPLORER_INDEX,
+            config=config,
+            sampling_mode="NORMAL",
         )
-        result[project.id] = [t.name for t in transactions]
-    return result
+    except Exception:
+        logger.exception(
+            "Failed to fetch top transactions for org projects",
+            extra={"org_id": organization.id},
+        )
+        return {}
+
+    transactions_by_project: dict[int, list[str]] = {}
+    for row in result.get("data", []):
+        project_id = row.get("project.id")
+        name = row.get("transaction") or ""
+        if project_id is not None and name:
+            transactions_by_project.setdefault(project_id, [])
+            if len(transactions_by_project[project_id]) < TOP_TRANSACTIONS_LIMIT:
+                transactions_by_project[project_id].append(name)
+
+    return transactions_by_project
 
 
 def get_event_counts_for_org_projects(
@@ -135,15 +159,7 @@ def get_event_counts_for_org_projects(
     start: datetime,
     end: datetime,
 ) -> dict[int, tuple[int, int]]:
-    """
-    Query the outcomes dataset for accepted error and transaction counts
-    for a batch of projects in one org over the given time window.
-
-    Only returns entries for high-volume projects (total events >= HIGH_VOLUME_THRESHOLD).
-
-    Returns:
-        {project_id: (error_count, transaction_count)}
-    """
+    """Query outcomes for accepted error/transaction counts; returns only high-volume projects."""
     query = Query(
         match=Entity("outcomes"),
         select=[
@@ -165,7 +181,6 @@ def get_event_counts_for_org_projects(
         ],
         groupby=[Column("project_id"), Column("category")],
         granularity=Granularity(3600 * 24),
-        orderby=[OrderBy(Column("project_id"), Direction.ASC)],
         limit=Limit(10000),
     )
     request = Request(

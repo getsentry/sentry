@@ -101,26 +101,43 @@ class TestGetTopTransactionsForOrgProjects(TestCase):
         self.end = datetime.now(UTC)
         self.start = self.end - timedelta(days=7)
 
-    def test_returns_transaction_names_by_project(self):
-        mock_transaction = mock.Mock()
-        mock_transaction.name = "GET /api/0/projects/"
+    def test_returns_empty_for_no_projects(self):
+        result = get_top_transactions_for_org_projects([], self.start, self.end)
+        assert result == {}
 
+    def test_returns_transaction_names_by_project(self):
+        span_data = [
+            {
+                "project.id": self.project.id,
+                "transaction": "GET /api/0/projects/",
+                "sum(span.duration)": 1000,
+            },
+        ]
         with mock.patch(
-            "sentry.seer.explorer.context_engine_utils.get_transactions_for_project",
-            return_value=[mock_transaction],
+            "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
+            return_value={"data": span_data},
         ):
             result = get_top_transactions_for_org_projects([self.project], self.start, self.end)
 
         assert result == {self.project.id: ["GET /api/0/projects/"]}
 
-    def test_returns_empty_list_when_no_transactions(self):
+    def test_returns_empty_on_query_exception(self):
         with mock.patch(
-            "sentry.seer.explorer.context_engine_utils.get_transactions_for_project",
-            return_value=[],
+            "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
+            side_effect=Exception("eap error"),
         ):
             result = get_top_transactions_for_org_projects([self.project], self.start, self.end)
 
-        assert result == {self.project.id: []}
+        assert result == {}
+
+    def test_returns_empty_dict_when_no_transactions(self):
+        with mock.patch(
+            "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
+            return_value={"data": []},
+        ):
+            result = get_top_transactions_for_org_projects([self.project], self.start, self.end)
+
+        assert result == {}
 
 
 @django_db_all
