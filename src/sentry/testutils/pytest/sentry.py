@@ -8,7 +8,11 @@ import os
 _xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
 if _xdist_worker and os.environ.get("XDIST_PER_WORKER_SNUBA"):
     _worker_num = int(_xdist_worker.replace("gw", ""))
-    os.environ["SNUBA"] = f"http://127.0.0.1:{1230 + _worker_num}"
+    _snuba_sock_dir = os.environ.get("SNUBA_SOCK_DIR")
+    if _snuba_sock_dir:
+        os.environ["SNUBA"] = f"{_snuba_sock_dir}/snuba-gw{_worker_num}.sock"
+    else:
+        os.environ["SNUBA"] = f"http://127.0.0.1:{1230 + _worker_num}"
 
 import collections
 import random
@@ -596,7 +600,11 @@ def _xdist_per_worker_snuba():
         return
 
     worker_num = int(worker_id.replace("gw", ""))
-    worker_snuba_url = f"http://127.0.0.1:{1230 + worker_num}"
+    _snuba_sock_dir = os.environ.get("SNUBA_SOCK_DIR")
+    if _snuba_sock_dir:
+        worker_snuba_url = f"{_snuba_sock_dir}/snuba-gw{worker_num}.sock"
+    else:
+        worker_snuba_url = f"http://127.0.0.1:{1230 + worker_num}"
 
     settings.SENTRY_SNUBA = worker_snuba_url
 

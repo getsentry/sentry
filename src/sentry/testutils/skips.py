@@ -17,6 +17,18 @@ def _service_available(host: str, port: int) -> bool:
         return True
 
 
+def _unix_socket_available(path: str) -> bool:
+    try:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(1.0)
+        sock.connect(path)
+        sock.close()
+    except OSError:
+        return False
+    else:
+        return True
+
+
 def _wait_for_service(host: str, port: int, timeout: int) -> bool:
     """Poll for a service to become available, up to `timeout` seconds."""
     deadline = time.monotonic() + timeout
@@ -27,15 +39,40 @@ def _wait_for_service(host: str, port: int, timeout: int) -> bool:
     return _service_available(host, port)
 
 
+def _wait_for_unix_socket(path: str, timeout: int) -> bool:
+    """Poll for a Unix socket to become available, up to `timeout` seconds."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if _unix_socket_available(path):
+            return True
+        time.sleep(1)
+    return _unix_socket_available(path)
+
+
 def _requires_service_message(name: str) -> str:
     return f"requires '{name}' server running\n\t💡 Hint: run `devservices up`"
 
 
 @pytest.fixture(scope="session")
 def _requires_snuba() -> None:
-    # Per-worker Snuba uses ports 1230+N; read from SNUBA env var if set.
-    port = 1218
     snuba_url = os.environ.get("SNUBA", "")
+    wait_timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "0"))
+
+    # Unix socket mode: SNUBA is an absolute path (e.g. /tmp/snuba-sock/snuba-gw0.sock)
+    if snuba_url.startswith("/"):
+        if wait_timeout > 0:
+            if _wait_for_unix_socket(snuba_url, wait_timeout):
+                return
+            pytest.fail(
+                f"snuba not available at {snuba_url} after waiting {wait_timeout}s\n"
+                + _requires_service_message("snuba")
+            )
+        if not _unix_socket_available(snuba_url):
+            pytest.fail(_requires_service_message("snuba"))
+        return
+
+    # TCP mode: parse port from SNUBA URL (default 1218).
+    port = 1218
     if snuba_url:
         try:
             from urllib.parse import urlparse
@@ -48,7 +85,6 @@ def _requires_snuba() -> None:
 
     # H1 overlapped startup: services may still be starting while pytest
     # collects tests. Wait instead of failing immediately.
-    wait_timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "0"))
     if wait_timeout > 0:
         if _wait_for_service("127.0.0.1", port, wait_timeout):
             return
