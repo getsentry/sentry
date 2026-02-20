@@ -517,40 +517,77 @@ export default function ContextPickerModalContainer({
     );
   }
   if (selectedOrgSlug) {
-    const needProject = sharedProps.needProject;
-    const needTeam = sharedProps.needTeam;
+    if (sharedProps.needProject) {
+      if (sharedProps.needTeam) {
+        return (
+          <Projects
+            orgId={selectedOrgSlug}
+            allProjects={!projectSlugs?.length}
+            slugs={projectSlugs}
+          >
+            {({projects, initiallyLoaded}) => (
+              <TeamsForOrg orgSlug={selectedOrgSlug}>
+                {({teams, isLoading}) => (
+                  <ContextPickerModal
+                    {...sharedProps}
+                    projects={projects as Project[]}
+                    projectsLoading={!initiallyLoaded}
+                    teams={teams}
+                    teamsLoading={isLoading}
+                    organizations={organizations}
+                    organization={selectedOrgSlug}
+                    onSelectOrganization={setSelectedOrgSlug}
+                    integrationConfigs={[]}
+                  />
+                )}
+              </TeamsForOrg>
+            )}
+          </Projects>
+        );
+      }
 
-    const renderWithProjects = (teams: Team[], teamsLoading: boolean) => (
-      <Projects
-        orgId={selectedOrgSlug}
-        allProjects={!projectSlugs?.length}
-        slugs={projectSlugs}
-      >
-        {({projects, initiallyLoaded}) => (
-          <ContextPickerModal
-            {...sharedProps}
-            projects={needProject ? (projects as Project[]) : []}
-            projectsLoading={needProject ? !initiallyLoaded : false}
-            teams={teams}
-            teamsLoading={teamsLoading}
-            organizations={organizations}
-            organization={selectedOrgSlug}
-            onSelectOrganization={setSelectedOrgSlug}
-            integrationConfigs={[]}
-          />
-        )}
-      </Projects>
-    );
-
-    if (needTeam) {
       return (
-        <TeamsForOrg orgSlug={selectedOrgSlug}>
-          {({teams, isLoading}) => renderWithProjects(teams, isLoading)}
-        </TeamsForOrg>
+        <Projects
+          orgId={selectedOrgSlug}
+          allProjects={!projectSlugs?.length}
+          slugs={projectSlugs}
+        >
+          {({projects, initiallyLoaded}) => (
+            <ContextPickerModal
+              {...sharedProps}
+              projects={projects as Project[]}
+              projectsLoading={!initiallyLoaded}
+              teams={[]}
+              teamsLoading={false}
+              organizations={organizations}
+              organization={selectedOrgSlug}
+              onSelectOrganization={setSelectedOrgSlug}
+              integrationConfigs={[]}
+            />
+          )}
+        </Projects>
       );
     }
 
-    return renderWithProjects([], false);
+    if (sharedProps.needTeam) {
+      return (
+        <TeamsForOrg orgSlug={selectedOrgSlug}>
+          {({teams, isLoading}) => (
+            <ContextPickerModal
+              {...sharedProps}
+              projects={[]}
+              projectsLoading={false}
+              teams={teams}
+              teamsLoading={isLoading}
+              organizations={organizations}
+              organization={selectedOrgSlug}
+              onSelectOrganization={setSelectedOrgSlug}
+              integrationConfigs={[]}
+            />
+          )}
+        </TeamsForOrg>
+      );
+    }
   }
 
   return (

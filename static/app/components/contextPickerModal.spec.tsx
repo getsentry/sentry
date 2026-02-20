@@ -110,7 +110,9 @@ describe('ContextPickerModal', () => {
     await waitFor(() => {
       expect(fetchProjectsForOrg).toHaveBeenCalled();
     });
-    expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
+    await waitFor(() => {
+      expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
+    });
   });
 
   it('selects an org and calls `onFinish` with URL with organization slug', async () => {
