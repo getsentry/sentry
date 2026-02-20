@@ -495,6 +495,63 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
     });
 
+    it('sorts options by score when searchMatcher returns SearchMatchResult', async () => {
+      // Assign scores so the natural order (One, Two, Three) is reversed: Three > Two > One
+      const scores: Record<string, number> = {opt_one: 1, opt_two: 2, opt_three: 3};
+
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          searchMatcher={option => ({score: scores[String(option.value)] ?? 0})}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('opt');
+
+      const options = screen.getAllByRole('option');
+      expect(options[0]).toHaveTextContent('Option Three'); // score 3
+      expect(options[1]).toHaveTextContent('Option Two'); // score 2
+      expect(options[2]).toHaveTextContent('Option One'); // score 1
+    });
+
+    it('options without a score maintain original order relative to each other', async () => {
+      // Only opt_two gets a score; opt_one and opt_three have no score and should keep
+      // their original relative order (One before Three)
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          searchMatcher={option => (option.value === 'opt_two' ? {score: 10} : true)}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('opt');
+
+      const options = screen.getAllByRole('option');
+      expect(options[0]).toHaveTextContent('Option Two'); // score 10
+      expect(options[1]).toHaveTextContent('Option One'); // no score, original order
+      expect(options[2]).toHaveTextContent('Option Three'); // no score, original order
+    });
+
     it('passes option and search string to searchMatcher', async () => {
       const searchMatcher = jest.fn().mockReturnValue(true);
 

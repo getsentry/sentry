@@ -11,6 +11,7 @@ import {defined} from 'sentry/utils';
 import type {SelectProps} from './compactSelect';
 import {SectionToggleButton} from './styles';
 import type {
+  SearchMatchResult,
   SelectKey,
   SelectOption,
   SelectOptionOrSection,
@@ -106,20 +107,35 @@ export function getDisabledOptions<Value extends SelectKey>(
 
 /**
  * Recursively finds the option(s) that don't match the designated search string or are
- * outside the list box's count limit.
+ * outside the list box's count limit. Also collects match scores from a custom
+ * `searchMatcher` that returns a `SearchMatchResult`.
+ *
+ * Returns both the set of hidden option keys and a map of key → score for matched
+ * options that provided a score. The scores map is empty when the default matcher is
+ * used or when the custom matcher only returns booleans.
  */
 export function getHiddenOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   search: string,
   limit = Infinity,
-  searchMatcher?: (option: SelectOptionWithKey<Value>, search: string) => boolean
-): Set<SelectKey> {
+  searchMatcher?: (
+    option: SelectOptionWithKey<Value>,
+    search: string
+  ) => boolean | SearchMatchResult
+): {hidden: Set<SelectKey>; scores: Map<SelectKey, number>} {
+  const scores = new Map<SelectKey, number>();
+
   //
   // First, filter options using `search` value
   //
   const filterOption = (opt: SelectOptionWithKey<Value>) => {
     if (searchMatcher) {
-      return searchMatcher(opt, search);
+      const result = searchMatcher(opt, search);
+      if (typeof result === 'object') {
+        scores.set(opt.key, result.score);
+        return true;
+      }
+      return result;
     }
     // Build search string: use textValue if provided, otherwise use label only if it's a string
     const searchableText =
@@ -186,8 +202,42 @@ export function getHiddenOptions<Value extends SelectKey>(
     }
   }
 
-  // Return the values of options that were removed.
-  return hiddenOptionsSet;
+  // Return the hidden option keys and any scores collected during filtering.
+  return {hidden: hiddenOptionsSet, scores};
+}
+
+/**
+ * Sorts items by their match scores (descending). Options with higher scores appear
+ * first. Options without a score entry maintain their original relative order.
+ *
+ * For sectioned lists, options are sorted within each section. For flat lists, all
+ * options are sorted globally.
+ */
+export function getSortedItems<Value extends SelectKey>(
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
+  scores: Map<SelectKey, number>
+): Array<SelectOptionOrSectionWithKey<Value>> {
+  const hasSections = items.some(item => 'options' in item);
+
+  if (hasSections) {
+    return items.map(item => {
+      if ('options' in item) {
+        return {
+          ...item,
+          options: [...item.options].sort(
+            (a, b) => (scores.get(b.key) ?? 0) - (scores.get(a.key) ?? 0)
+          ),
+        };
+      }
+      return item;
+    });
+  }
+
+  return [...items].sort(
+    (a, b) =>
+      (scores.get((b as SelectOptionWithKey<Value>).key) ?? 0) -
+      (scores.get((a as SelectOptionWithKey<Value>).key) ?? 0)
+  );
 }
 
 /**
