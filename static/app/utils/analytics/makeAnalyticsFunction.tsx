@@ -1,6 +1,6 @@
+import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import {rawTrackAnalyticsEvent} from 'sentry/utils/analytics';
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
@@ -8,6 +8,8 @@ type OptionalOrg = {
   organization: Organization | string | null;
 };
 type Options = Parameters<Hooks['analytics:raw-track-event']>[1];
+const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (data, options) =>
+  HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
 
 /**
  * Generates functions used to track an event for analytics.
@@ -16,7 +18,7 @@ type Options = Parameters<Hooks['analytics:raw-track-event']>[1];
  * Can specifcy default options with the defaultOptions argument as well.
  * Can make orgnization required with the second generic.
  */
-export default function makeAnalyticsFunction<
+export function makeAnalyticsFunction<
   EventParameters extends Record<string, Record<string, any>>,
   OrgRequirement extends OptionalOrg = OptionalOrg,
 >(
@@ -55,3 +57,5 @@ export default function makeAnalyticsFunction<
     }
   };
 }
+
+export default makeAnalyticsFunction;

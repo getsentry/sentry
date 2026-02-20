@@ -66,7 +66,7 @@ import type {IssueEventParameters} from './analytics/issueAnalyticsEvents';
 import {issueEventMap} from './analytics/issueAnalyticsEvents';
 import type {LaravelInsightsEventParameters} from './analytics/laravelInsightsAnalyticsEvents';
 import {laravelInsightsEventMap} from './analytics/laravelInsightsAnalyticsEvents';
-import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
+import {makeAnalyticsFunction} from './analytics/makeAnalyticsFunction';
 import type {McpMonitoringEventParameters} from './analytics/mcpMonitoringAnalyticsEvents';
 import {mcpMonitoringEventMap} from './analytics/mcpMonitoringAnalyticsEvents';
 import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';

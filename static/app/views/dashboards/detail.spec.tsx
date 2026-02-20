@@ -589,8 +589,31 @@ describe('Dashboards > Detail', () => {
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: '1'},
       });
-      // @ts-expect-error this is assigning to readonly property...
-      types.MAX_WIDGETS = 1;
+      const maxWidgets = Array.from({length: types.MAX_WIDGETS}, (_, index) =>
+        WidgetFixture({
+          id: String(index + 1),
+          title: `Widget ${index + 1}`,
+          queries: [
+            {
+              name: '',
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              columns: [],
+              aggregates: ['count()'],
+              orderby: '-count()',
+            },
+          ],
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture(maxWidgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {},
+          createdBy: UserFixture({id: '1'}),
+        }),
+      });
 
       render(
         <OrganizationContext value={initialData.organization}>
