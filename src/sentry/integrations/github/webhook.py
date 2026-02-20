@@ -88,7 +88,7 @@ class WebhookProcessor(Protocol):
         event: Mapping[str, Any],
         organization: Organization,
         repo: Repository,
-        integration: RpcIntegration,
+        integration: RpcIntegration | None = None,
         **kwargs: Any,
     ) -> None: ...
 
@@ -113,7 +113,6 @@ def _handle_pr_webhook_for_autofix_processor(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration,
     **kwargs: Any,
 ) -> None:
     """

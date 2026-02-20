@@ -92,9 +92,9 @@ def handle_pull_request_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration | None,
-    org_code_review_settings: CodeReviewSettings | None = None,
     tags: Mapping[str, Any],
+    integration: RpcIntegration | None = None,
+    org_code_review_settings: CodeReviewSettings | None = None,
     **kwargs: Any,
 ) -> None:
     """
