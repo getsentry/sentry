@@ -1,11 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Truncate from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
@@ -20,6 +20,7 @@ export default function HomePage() {
   const regions = ConfigStore.get('regions');
   const [oldSplash, setOldSplash] = useState(false);
   const [regionUrl, setRegionUrl] = useState(regions[0]!.url);
+  const selectedRegion = regions.find((region: any) => region.url === regionUrl);
 
   const buildOrgPath = (org: any) => `/_admin/customers/${org.slug}/`;
   const orgSelect = (org: any) => {
@@ -127,7 +128,11 @@ export default function HomePage() {
         <SearchLabel>Organizations</SearchLabel>
         <DebounceSearch
           host={regionUrl}
-          path="/customers/"
+          path={
+            selectedRegion
+              ? `/_admin/cells/${selectedRegion.name}/customers/`
+              : '/customers/'
+          }
           onSelectResult={orgSelect}
           onSearch={orgSubmit}
           suggestionContent={renderOrgSuggestion}

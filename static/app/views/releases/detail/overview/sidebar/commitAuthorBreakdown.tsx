@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+
 import Collapsible from 'sentry/components/collapsible';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -98,7 +99,7 @@ function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
         >
           {sortedAuthorsByNumberOfCommits.map(({commitCount, author}, index) => (
             <AuthorLine key={author?.email ?? index}>
-              <UserAvatar user={author} size={20} hasTooltip />
+              {author ? <UserAvatar user={author} size={20} hasTooltip /> : null}
               <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
               <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
               <Percent>{getDisplayPercent(commitCount)}</Percent>

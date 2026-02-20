@@ -1,9 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink} from 'sentry/components/core/link';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {CodeBlock} from '@sentry/scraps/code';
+import {ExternalLink} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import getTransformedData from 'sentry/components/events/interfaces/request/getTransformedData';

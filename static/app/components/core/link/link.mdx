@@ -2,7 +2,7 @@
 title: Link
 description: Link components provide navigation within the application and to external URLs with consistent styling and accessibility.
 category: navigation
-source: 'sentry/components/core/link'
+source: '@sentry/scraps/link'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/link/link.tsx
   a11y:
@@ -11,14 +11,15 @@ resources:
     WCAG 3.2.4: https://www.w3.org/TR/WCAG22/#consistent-identification
 ---
 
-import {Container} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Container} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import * as Storybook from 'sentry/stories';
 
-import types from '!!type-loader!sentry/components/core/link/link';
+import documentation from '!!type-loader!@sentry/scraps/link';
 
-export {types};
+export {documentation};
 
 The Link component provides context-aware navigation within the Sentry application, while ExternalLink handles external URLs. Both components maintain consistent styling and accessibility standards.
 

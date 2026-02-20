@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
@@ -25,6 +25,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
     AutofixSelectRootCausePayload,
@@ -36,7 +37,6 @@ from sentry.seer.autofix.utils import (
     get_autofix_repos_from_project_code_mappings,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -417,6 +417,7 @@ def _call_autofix(
     trace_tree: dict[str, Any] | None,
     logs: dict[str, list[dict]] | None,
     tags_overview: dict[str, Any] | None,
+    referrer: AutofixReferrer,
     instruction: str | None = None,
     timeout_secs: int = TIMEOUT_SECONDS,
     pr_to_comment_on_url: str | None = None,
@@ -456,8 +457,9 @@ def _call_autofix(
             "options": {
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
+                "referrer": referrer,
                 "disable_coding_step": not group.organization.get_option(
-                    "sentry:enable_seer_coding", default=True
+                    "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
                 ),
                 "stopping_point": stopping_point,
             },
@@ -591,6 +593,7 @@ def trigger_autofix(
     group: Group,
     event_id: str | None = None,
     user: User | AnonymousUser | RpcUser,
+    referrer: AutofixReferrer,
     instruction: str | None = None,
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,
@@ -601,12 +604,6 @@ def trigger_autofix(
 
     if group.organization.get_option("sentry:hide_ai_features"):
         return _respond_with_error("AI features are disabled for this organization.", 403)
-
-    if not get_seer_org_acknowledgement(group.organization):
-        return _respond_with_error(
-            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer.",
-            403,
-        )
 
     # check billing quota for autofix
     has_budget: bool = quotas.backend.check_seer_quota(
@@ -681,6 +678,7 @@ def trigger_autofix(
             trace_tree=trace_tree,
             logs=logs,
             tags_overview=tags_overview,
+            referrer=referrer,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url=pr_to_comment_on_url,
@@ -717,6 +715,7 @@ def trigger_autofix(
 
 def update_autofix(
     *,
+    organization_id: int,
     run_id: int,
     payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload,
 ) -> Response:
@@ -725,7 +724,7 @@ def update_autofix(
     """
 
     path = "/v1/automation/autofix/update"
-    data = AutofixUpdateRequest(run_id=run_id, payload=payload)
+    data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
     body = orjson.dumps(data)
     response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}{path}",

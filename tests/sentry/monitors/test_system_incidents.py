@@ -407,11 +407,21 @@ def test_tick_decision_anomaly_recovery() -> None:
     test_metrics = [
         # fmt: off
         # Operating as normal
-        1.0, 4.0, 3.0, 2.0, 2.0, -3.0,
+        1.0,
+        4.0,
+        3.0,
+        2.0,
+        2.0,
+        -3.0,
         # Anomaly detected
-        -6.0, -7.0,
+        -6.0,
+        -7.0,
         # Anomaly recovers to normal
-        -4.0, -3.0, -3.0, -4.0, -1.0
+        -4.0,
+        -3.0,
+        -3.0,
+        -4.0,
+        -1.0,
         # fmt: on
     ]
 
@@ -470,11 +480,23 @@ def test_tick_decisions_simple_incident() -> None:
     test_metrics = [
         # fmt: off
         # Operating as normal
-        1.0, 4.0, 3.0, 2.0, 2.0, -3.0,
+        1.0,
+        4.0,
+        3.0,
+        2.0,
+        2.0,
+        -3.0,
         # Incident starts immediately
-        -35.0, -80.0, -100.0, -50.0,
+        -35.0,
+        -80.0,
+        -100.0,
+        -50.0,
         # Incident quickly recovers
-        -3.0, -2.0, -4.0, -1.0, -4.0
+        -3.0,
+        -2.0,
+        -4.0,
+        -1.0,
+        -4.0,
         # fmt: on
     ]
 
@@ -547,25 +569,44 @@ def test_tick_decisions_variable_incident() -> None:
     test_metrics = [
         # fmt: off
         # Operating as normal
-        1.0, 4.0, 3.0, 2.0, 2.0, -3.0,
+        1.0,
+        4.0,
+        3.0,
+        2.0,
+        2.0,
+        -3.0,
         # Anomaly detected
-        -6.0, -7.0,
+        -6.0,
+        -7.0,
         # Metrics below anomaly threshold, but not recovered
-        -4.0, -3.0,
+        -4.0,
+        -3.0,
         # Metrics above anomaly threshold again, but not at incident threshold
         -10.0,
         # Incident threshold reached
-        -30.0, -40.0, -38.0, -42.0, -25.0, -20.0, -10.0,
+        -30.0,
+        -40.0,
+        -38.0,
+        -42.0,
+        -25.0,
+        -20.0,
+        -10.0,
         # Incident recovering
-        -4.0, -3.0,
+        -4.0,
+        -3.0,
         # Metrics above anomaly threshold, recovery failed
         -6.0,
         # Metrics back below anomaly threshold, begin recovering again
-        -2.0, -1.0,
+        -2.0,
+        -1.0,
         # Metrics above incident threshold, recovery failed
         -30.0,
         # Metrics below anomaly threshold, incident will recover
-        -3.0, -2.0, -4.0, -4.0, -3.0,
+        -3.0,
+        -2.0,
+        -4.0,
+        -4.0,
+        -3.0,
         # fmt: on
     ]
 

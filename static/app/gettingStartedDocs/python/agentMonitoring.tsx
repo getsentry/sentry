@@ -1,31 +1,23 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 
 import {getPythonInstallCodeBlock} from './utils';
 
+const MIN_REQUIRED_VERSION = '2.43.0';
+
 export const agentMonitoring: OnboardingConfig = {
-  install: params => {
-    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
-    let packageName = 'sentry-sdk';
-
-    if (selected === 'langchain') {
-      packageName = 'sentry-sdk[langchain]';
-    } else if (selected === 'langgraph') {
-      packageName = 'sentry-sdk[langgraph]';
-    } else if (selected === 'litellm') {
-      packageName = 'sentry-sdk[litellm]';
-    } else if (selected === 'google_genai') {
-      packageName = 'sentry-sdk[google_genai]';
-    } else if (selected === 'pydantic_ai') {
-      packageName = 'sentry-sdk[pydantic_ai]';
-    }
-
+  introduction: params => (
+    <SdkUpdateAlert projectId={params.project.id} minVersion={MIN_REQUIRED_VERSION} />
+  ),
+  install: () => {
     return [
       {
         type: StepType.INSTALL,
@@ -34,7 +26,7 @@ export const agentMonitoring: OnboardingConfig = {
             type: 'text',
             text: t('Install our Python SDK:'),
           },
-          getPythonInstallCodeBlock({packageName}),
+          getPythonInstallCodeBlock({minimumVersion: MIN_REQUIRED_VERSION}),
         ],
       },
     ];

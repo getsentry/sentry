@@ -4,13 +4,13 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('messageSpanSamplesPanel', () => {
   const organization = OrganizationFixture();
@@ -114,7 +114,7 @@ describe('messageSpanSamplesPanel', () => {
     });
 
     samplesRequestMock = MockApiClient.addMockResponse({
-      url: `/api/0/organizations/${organization.slug}/spans-samples/`,
+      url: `/organizations/${organization.slug}/spans-samples/`,
       method: 'GET',
       body: {
         data: [
@@ -207,7 +207,7 @@ describe('messageSpanSamplesPanel', () => {
       })
     );
     expect(samplesRequestMock).toHaveBeenCalledWith(
-      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      `/organizations/${organization.slug}/spans-samples/`,
       expect.objectContaining({
         query: expect.objectContaining({
           additionalFields: [
@@ -319,7 +319,7 @@ describe('messageSpanSamplesPanel', () => {
       })
     );
     expect(samplesRequestMock).toHaveBeenCalledWith(
-      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      `/organizations/${organization.slug}/spans-samples/`,
       expect.objectContaining({
         query: expect.objectContaining({
           additionalFields: [

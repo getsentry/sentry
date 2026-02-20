@@ -81,9 +81,8 @@ def map_repository_model_to_repository(repository: RepositoryModel) -> Repositor
 def fetch_service_provider(
     organization_id: int,
     integration_id: int,
-    map_to_provider: Callable[
-        [Integration | RpcIntegration, int], Provider
-    ] = lambda i, oid: map_integration_to_provider(oid, i),
+    map_to_provider: Callable[[Integration | RpcIntegration, int], Provider] = lambda i,
+    oid: map_integration_to_provider(oid, i),
 ) -> Provider:
     integration = integration_service.get_integration(
         integration_id=integration_id,

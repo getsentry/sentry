@@ -1,12 +1,13 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -130,6 +131,7 @@ export default function IntegrationOrganizationLink() {
 
   const isInstallationQueryEnabled = !!installationId && integrationSlug === 'github';
   const installationQuery = useApiQuery<GitHubIntegrationInstallation>(
+    // @ts-expect-error TODO(ryan953): Invalid useApiQuery path
     [`/../../extensions/github/installation/${installationId}/`],
     {staleTime: Infinity, enabled: isInstallationQueryEnabled}
   );

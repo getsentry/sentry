@@ -2,9 +2,9 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -21,8 +21,8 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 export default function ProjectUserFeedback() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
-  const hasAiEnabled = areAiFeaturesAllowed && setupAcknowledgement.orgHasAcknowledged;
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+  const hasAiEnabled = areAiFeaturesAllowed;
 
   const handleClick = () => {
     Sentry.showReportDialog({

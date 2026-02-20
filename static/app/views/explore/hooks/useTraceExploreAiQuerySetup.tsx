@@ -1,10 +1,10 @@
 import {useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 interface UseTraceExploreAiQuerySetupArgs {

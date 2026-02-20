@@ -1,8 +1,9 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {IconWrapper} from 'sentry/components/sidebarSection';

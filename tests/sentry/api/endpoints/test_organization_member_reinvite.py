@@ -198,3 +198,13 @@ class OrganizationMemberReinviteTest(APITestCase):
             self.organization.slug, self.approved_invite.id, status_code=403
         )
         assert response.data.get("detail") == "You do not have permission to perform this action."
+
+    @patch("sentry.models.OrganizationMemberInvite.send_invite_email")
+    def test_cannot_reinvite_from_other_org(self, mock_send_invite_email):
+        """An org owner cannot reinvite a member invite that belongs to another org."""
+        other_org = self.create_organization(slug="other-org", owner=self.user)
+        other_org_invite = self.create_member_invite(
+            organization=other_org, email="cross-org@test.com"
+        )
+        self.get_error_response(self.organization.slug, other_org_invite.id, status_code=404)
+        assert not mock_send_invite_email.called

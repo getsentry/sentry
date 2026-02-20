@@ -953,6 +953,10 @@ class ExhaustiveFixtures(Fixtures):
     def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> Any:
         return import_export_then_validate(out_name, reset_pks=reset_pks)
 
+    def json_of_org_and_project(self) -> Any:
+        with open(get_fixture_path("backup", "org-and-project.json")) as backup_file:
+            return json.load(backup_file)
+
     @cached_property
     def _json_of_exhaustive_user_with_maximum_privileges(self) -> Any:
         with open(get_fixture_path("backup", "user-with-maximum-privileges.json")) as backup_file:

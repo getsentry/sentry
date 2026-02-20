@@ -1212,7 +1212,6 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
 
 class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
-
     def setUp(self) -> None:
         super().setUp()
         self.ts = SnubaTagStorage()

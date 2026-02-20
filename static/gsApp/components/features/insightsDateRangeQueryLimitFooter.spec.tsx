@@ -23,7 +23,7 @@ describe('InsightsUpsellPage', () => {
       body: BillingConfigFixture(PlanTier.AM3),
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/org-slug/`,
+      url: `/customers/org-slug/`,
       body: {},
     });
 

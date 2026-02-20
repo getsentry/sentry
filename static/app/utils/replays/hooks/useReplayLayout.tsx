@@ -1,16 +1,17 @@
 import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   NAV_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+  PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
-import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
 
 export enum LayoutKey {
   /**
@@ -71,7 +72,30 @@ function isLayout(val: string): val is LayoutKey {
   return val in LayoutKey;
 }
 
-function useReplayLayout() {
+function getDefaultLayout(
+  collapsed: boolean,
+  theme: Theme,
+  secondarySidebarWidth: number
+): LayoutKey {
+  const {innerWidth, innerHeight} = window;
+
+  const sidebarWidth = collapsed
+    ? PRIMARY_SIDEBAR_WIDTH
+    : PRIMARY_SIDEBAR_WIDTH + secondarySidebarWidth;
+
+  const mediumScreenWidth = parseInt(theme.breakpoints.md, 10);
+
+  const windowsWidth =
+    innerWidth <= mediumScreenWidth ? innerWidth : innerWidth - sidebarWidth;
+
+  if (windowsWidth < innerHeight) {
+    return LayoutKey.TOPBAR;
+  }
+
+  return LayoutKey.SIDEBAR_LEFT;
+}
+
+export default function useReplayLayout() {
   const theme = useTheme();
   const {isCollapsed} = useNavContext();
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
@@ -82,30 +106,27 @@ function useReplayLayout() {
 
   const organization = useOrganization();
 
-  const {getParamValue, setParamValue} = useUrlParams('l_page', defaultLayout);
-
-  const paramValue = getParamValue();
+  const [layoutValue, setLayoutValue] = useQueryState(
+    'l_page',
+    parseAsStringLiteral(Object.values(LayoutKey))
+      .withDefault(defaultLayout)
+      .withOptions({history: 'push', throttleMs: 0})
+  );
 
   return {
-    getLayout: useCallback(
-      (): LayoutKey =>
-        isLayout(paramValue || '') ? (paramValue as LayoutKey) : defaultLayout,
-      [defaultLayout, paramValue]
-    ),
+    getLayout: useCallback((): LayoutKey => layoutValue, [layoutValue]),
     setLayout: useCallback(
       (value: string) => {
         const chosenLayout = isLayout(value) ? value : defaultLayout;
 
-        setParamValue(chosenLayout);
+        setLayoutValue(chosenLayout);
         trackAnalytics('replay.details-layout-changed', {
           organization,
           default_layout: defaultLayout,
           chosen_layout: chosenLayout,
         });
       },
-      [organization, defaultLayout, setParamValue]
+      [organization, defaultLayout, setLayoutValue]
     ),
   };
 }
-
-export default useReplayLayout;

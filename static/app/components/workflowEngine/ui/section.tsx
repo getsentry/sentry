@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
-
-import {Flex} from 'sentry/components/core/layout';
 
 type SectionProps = {
   title: React.ReactNode;

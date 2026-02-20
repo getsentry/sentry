@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+
 import type {BaseRole} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 

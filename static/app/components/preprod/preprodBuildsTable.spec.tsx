@@ -20,7 +20,7 @@ const baseBuild = {
   app_info: {
     app_id: 'com.example.app',
     name: 'Example App',
-    platform: 'ios' as Platform,
+    platform: 'apple' as Platform,
     build_number: '1',
     version: '1.0.0',
     date_added: '2024-01-01T00:00:00Z',

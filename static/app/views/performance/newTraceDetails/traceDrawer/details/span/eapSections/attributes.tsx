@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import {Link} from 'sentry/components/core/link';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -20,6 +21,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
 import {looksLikeAJSONObject} from 'sentry/utils/string/looksLikeAJSONObject';
+import {AssertionFailureTree} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/assertionFailureTree';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -31,6 +33,7 @@ import {
   findSpanAttributeValue,
   getTraceAttributesTreeActions,
   sortAttributes,
+  tryParseJson,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
@@ -41,24 +44,6 @@ type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
 const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
 const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text', 'gen_ai.embeddings.input'];
-
-function tryParseJson(value: unknown) {
-  if (typeof value !== 'string') {
-    return value;
-  }
-  try {
-    const parsedValue = JSON.parse(value);
-    // Some arrays are double stringified, so we need to unwrap them
-    // This needs to be fixed on the SDK side
-    // TODO: Remove this once the SDK is fixed
-    if (!Array.isArray(parsedValue)) {
-      return parsedValue;
-    }
-    return parsedValue.map((item: any): any => tryParseJson(item));
-  } catch (error) {
-    return value;
-  }
-}
 
 const jsonRenderer = (props: CustomRenderersProps) => {
   const value = tryParseJson(props.item.value);
@@ -167,6 +152,13 @@ export function Attributes({
     },
     [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
       return formatDollars(+Number(props.item.value).toFixed(10));
+    },
+    assertion_failure_data: (props: CustomRenderersProps) => {
+      if (props.item.value === null) {
+        return <Text variant="muted">null</Text>;
+      }
+
+      return <AssertionFailureTree assertion={props.item.value.toString()} />;
     },
   };
 

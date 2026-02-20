@@ -439,7 +439,6 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     @property
     def use_case_id(self) -> UseCaseID:
-
         if self.spans_metrics_builder or self.is_spans_metrics_query:
             return UseCaseID.SPANS
         elif self.is_performance:

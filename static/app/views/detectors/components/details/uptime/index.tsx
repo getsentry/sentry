@@ -1,10 +1,11 @@
 import {useCallback, useState} from 'react';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import Placeholder from 'sentry/components/placeholder';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
@@ -66,12 +67,12 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             message={t('This monitor is disabled and not recording uptime checks.')}
           />
           <DetailsTimeline uptimeDetector={detector} onStatsLoaded={checkHasUnknown} />
-          <DetectorDetailsOngoingIssues detector={detector} />
+          <DetectorDetailsOngoingIssues detector={detector} dateTimeSelection={null} />
           <Section title={t('Recent Check-Ins')}>
             <div>
               <UptimeChecksTable
                 detectorId={detector.id}
-                projectSlug={project.slug}
+                project={project}
                 traceSampling={detector.dataSources[0].queryObj.traceSampling}
               />
             </div>

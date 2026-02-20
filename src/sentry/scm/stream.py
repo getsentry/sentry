@@ -1,3 +1,10 @@
+# Import your listeners below this line. You'll need to ensure your listener is
+# uniquely named. You can alias it here as "my_check_run_listener" or name it
+# uniquely by default.
+#
+# Example:
+#
+#    from sentry.my_module import check_run_listener, pull_request_listener
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import (
     CheckRunEvent,
@@ -7,18 +14,9 @@ from sentry.scm.types import (
     SubscriptionEvent,
 )
 
-# Import your listeners below this line. You'll need to ensure your listener is
-# uniquely named. You can alias it here as "my_check_run_listener" or name it
-# uniquely by default.
-#
-# Example:
-#
-#    from sentry.my_module import check_run_listener, pull_request_listener
-
-
 # DEFAULT LISTENERS
 #
-# Temporary listeners which exist to demonstate the system's functionality.
+# TODO: Remove after production testing.
 
 
 @scm_event_stream.listen_for(event_type="check_run")

@@ -287,8 +287,8 @@ export function AutofixSummary({
                           aria-label={t('Copy to clipboard')}
                           size="xs"
                           text={card.copyText}
-                          borderless
-                          title={card.copyTitle}
+                          priority="transparent"
+                          tooltipProps={{title: card.copyTitle}}
                           onClick={e => {
                             e.stopPropagation();
                           }}
@@ -369,6 +369,7 @@ const InsightGrid = styled('div')`
     top: ${space(4)};
     bottom: ${space(2)};
     width: 1px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     z-index: 0;
   }

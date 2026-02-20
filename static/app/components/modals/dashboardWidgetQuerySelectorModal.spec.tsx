@@ -120,7 +120,7 @@ describe('Modals -> AddDashboardWidgetModal', () => {
     renderModal({initialData, widget: mockWidget});
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+      '/organizations/org-slug/explore/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&project=&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 });

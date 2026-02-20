@@ -2,8 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/core/button';
-import {Select} from 'sentry/components/core/select';
+import {Button} from '@sentry/scraps/button';
+import {Select} from '@sentry/scraps/select';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -17,6 +18,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -76,7 +78,9 @@ function NotificationSettingsByEntity({
     refetch,
   } = useApiQuery<Project[]>(
     [
-      `/organizations/${orgSlug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: orgSlug!},
+      }),
       {
         host: organization?.links?.regionUrl,
         query: {

@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
@@ -171,6 +172,7 @@ const TagBarPlaceholder = styled('div')`
   height: ${space(1)};
   width: 100%;
   border-radius: 3px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
   background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;

@@ -76,7 +76,6 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         assert updated_rule.end_date >= end2
 
     def test_assign_rule_id(self) -> None:
-
         rule_ids = set()
         rules = []
         for idx in range(3):

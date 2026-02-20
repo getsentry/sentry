@@ -9,6 +9,7 @@ from django.utils.timezone import now
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.insights.models import InsightsStarredSegment
+from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba_rpc import _make_rpc_requests, table_rpc
@@ -997,9 +998,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             assert result["span.description"] == source["description"], "description"
             ts = datetime.fromisoformat(result["timestamp"])
             assert ts.tzinfo == timezone.utc
-            assert ts.timestamp() == pytest.approx(
-                source["end_timestamp_precise"], abs=5
-            ), "timestamp"
+            assert ts.timestamp() == pytest.approx(source["end_timestamp_precise"], abs=5), (
+                "timestamp"
+            )
             assert result["transaction.span_id"] == source["segment_id"], "transaction.span_id"
             assert result["project"] == result["project.name"] == self.project.slug, "project"
         assert meta["dataset"] == "spans"
@@ -2162,6 +2163,30 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 504, response.content
         assert "Query timeout" in response.data["detail"]
 
+    @mock.patch(
+        "sentry.utils.snuba_rpc._snuba_pool.urlopen",
+    )
+    @mock.patch(
+        "sentry.utils.snuba_rpc.ErrorProto",
+    )
+    def test_rate_limit(self, mock_proto: mock.MagicMock, mock_rpc: mock.MagicMock) -> None:
+        mock_error = mock.Mock()
+        mock_error.status = 429
+        mock_rpc.return_value = mock_error
+
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 429, response.content
+        assert RATE_LIMIT_ERROR_MESSAGE == response.data["detail"]
+
     def test_extrapolation(self) -> None:
         """Extrapolation only changes the number when there's a sample rate"""
         spans = []
@@ -2449,6 +2474,35 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["dataset"] == "spans"
         assert meta["units"] == {"description": None, "tpm()": "1/minute"}
         assert meta["fields"] == {"description": "string", "tpm()": "rate"}
+
+    def test_equation_tpm_meta(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "equation|tpm()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["units"]["equation|tpm()"] == "1/minute"
+        assert meta["fields"]["equation|tpm()"] == "rate"
 
     def test_p75_if(self) -> None:
         self.store_spans(
@@ -3520,7 +3574,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["dataset"] == "spans"
 
     def test_performance_score_zero(self) -> None:
-
         response = self.do_request(
             {
                 "field": [
@@ -7119,3 +7172,25 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         mock_table_rpc.assert_called_once()
         assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]
+
+    def test_equation_with_literal_0(self):
+        self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])
+        response = self.do_request(
+            {
+                "field": [
+                    "count(span.duration)",
+                    "equation|count(span.duration) + 0",
+                    "equation|0 * count(span.duration)",
+                ],
+                "dataset": "spans",
+                "project": [self.project.id],
+            }
+        )
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {
+                "count(span.duration)": 1,
+                "equation|count(span.duration) + 0": 1,
+                "equation|0 * count(span.duration)": 0,
+            }
+        ]

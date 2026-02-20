@@ -1,20 +1,23 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {NumberInput} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {SectionLabel} from './statusCheckSharedComponents';
-import type {StatusCheckRule} from './types';
+import type {ArtifactType, StatusCheckRule} from './types';
 import {
+  ARTIFACT_TYPE_OPTIONS,
   bytesToMB,
+  DEFAULT_ARTIFACT_TYPE,
   getDisplayUnit,
   getMeasurementLabel,
   getMetricLabel,
@@ -37,15 +40,27 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
   const initialDisplayValue = displayUnit === '%' ? rule.value : bytesToMB(rule.value);
   const [displayValue, setDisplayValue] = useState(initialDisplayValue);
   const [filterQuery, setFilterQuery] = useState(rule.filterQuery ?? '');
+  const [artifactType, setArtifactType] = useState<ArtifactType>(
+    rule.artifactType ?? DEFAULT_ARTIFACT_TYPE
+  );
+
+  const currentValueInBytes =
+    displayUnit === '%' ? displayValue : mbToBytes(displayValue);
+  const isDirty =
+    metric !== rule.metric ||
+    measurement !== rule.measurement ||
+    currentValueInBytes !== rule.value ||
+    filterQuery !== (rule.filterQuery ?? '') ||
+    artifactType !== (rule.artifactType ?? DEFAULT_ARTIFACT_TYPE);
 
   const handleSave = () => {
-    const valueInBytes = displayUnit === '%' ? displayValue : mbToBytes(displayValue);
     onSave({
       ...rule,
       filterQuery,
       measurement,
       metric,
-      value: valueInBytes,
+      value: currentValueInBytes,
+      artifactType,
     });
   };
 
@@ -105,6 +120,15 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
       </Flex>
 
       <Stack gap="sm">
+        <SectionLabel>{t('Artifact Type')}</SectionLabel>
+        <CompactSelect
+          value={artifactType}
+          options={ARTIFACT_TYPE_OPTIONS}
+          onChange={opt => setArtifactType(opt.value)}
+        />
+      </Stack>
+
+      <Stack gap="sm">
         <SectionLabel>{t('For')}</SectionLabel>
         <PreprodSearchBar
           initialQuery={filterQuery}
@@ -125,7 +149,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
       </Stack>
 
       <Flex gap="md" marginTop="sm">
-        <Button priority="primary" onClick={handleSave}>
+        <Button priority="primary" onClick={handleSave} disabled={!isDirty}>
           {t('Save Rule')}
         </Button>
         <Button onClick={handleDelete}>{t('Delete Rule')}</Button>

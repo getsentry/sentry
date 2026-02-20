@@ -11,7 +11,7 @@ optimization and a convenient, typed deserialization library.
 
 import time
 from collections.abc import Callable
-from typing import cast
+from typing import assert_never, cast
 
 import msgspec
 import sentry_sdk
@@ -131,6 +131,28 @@ def _map_subscription_event(parsed: SubscriptionEventParser) -> SubscriptionEven
     }
 
 
+def _map_subscription_event_parser(event: SubscriptionEvent) -> SubscriptionEventParser:
+    return SubscriptionEventParser(
+        event=event["event"],
+        event_type_hint=event["event_type_hint"],
+        extra=event["extra"],
+        received_at=event["received_at"],
+        sentry_meta=(
+            [
+                SubscriptionEventSentryMetaParser(
+                    id=item["id"],
+                    integration_id=item["integration_id"],
+                    organization_id=item["organization_id"],
+                )
+                for item in event["sentry_meta"]
+            ]
+            if event["sentry_meta"]
+            else None
+        ),
+        type=event["type"],
+    )
+
+
 def deserialize_check_run_event(event_data: str) -> CheckRunEvent:
     parsed = check_run_event_decoder.decode(event_data)
     return CheckRunEvent(
@@ -193,29 +215,10 @@ def serialize_check_run_event(event: CheckRunEvent) -> str:
         external_id=event.check_run["external_id"],
         html_url=event.check_run["html_url"],
     )
-    subscription_event = SubscriptionEventParser(
-        event=event.subscription_event["event"],
-        event_type_hint=event.subscription_event["event_type_hint"],
-        extra=event.subscription_event["extra"],
-        received_at=event.subscription_event["received_at"],
-        sentry_meta=(
-            [
-                SubscriptionEventSentryMetaParser(
-                    id=item["id"],
-                    integration_id=item["integration_id"],
-                    organization_id=item["organization_id"],
-                )
-                for item in event.subscription_event["sentry_meta"]
-            ]
-            if event.subscription_event["sentry_meta"]
-            else None
-        ),
-        type=event.subscription_event["type"],
-    )
     structured_event = CheckRunEventParser(
         action=event.action,
         check_run=check_run_data,
-        subscription_event=subscription_event,
+        subscription_event=_map_subscription_event_parser(event.subscription_event),
     )
     return encoder.encode(structured_event).decode("utf-8")
 
@@ -232,30 +235,11 @@ def serialize_comment_event(event: CommentEvent) -> str:
             else None
         ),
     )
-    subscription_event = SubscriptionEventParser(
-        event=event.subscription_event["event"],
-        event_type_hint=event.subscription_event["event_type_hint"],
-        extra=event.subscription_event["extra"],
-        received_at=event.subscription_event["received_at"],
-        sentry_meta=(
-            [
-                SubscriptionEventSentryMetaParser(
-                    id=item["id"],
-                    integration_id=item["integration_id"],
-                    organization_id=item["organization_id"],
-                )
-                for item in event.subscription_event["sentry_meta"]
-            ]
-            if event.subscription_event["sentry_meta"]
-            else None
-        ),
-        type=event.subscription_event["type"],
-    )
     structured_event = CommentEventParser(
         action=event.action,
         comment_type=event.comment_type,
         comment=comment_data,
-        subscription_event=subscription_event,
+        subscription_event=_map_subscription_event_parser(event.subscription_event),
     )
     return encoder.encode(structured_event).decode("utf-8")
 
@@ -283,29 +267,10 @@ def serialize_pull_request_event(event: PullRequestEvent) -> str:
             else None
         ),
     )
-    subscription_event = SubscriptionEventParser(
-        event=event.subscription_event["event"],
-        event_type_hint=event.subscription_event["event_type_hint"],
-        extra=event.subscription_event["extra"],
-        received_at=event.subscription_event["received_at"],
-        sentry_meta=(
-            [
-                SubscriptionEventSentryMetaParser(
-                    id=item["id"],
-                    integration_id=item["integration_id"],
-                    organization_id=item["organization_id"],
-                )
-                for item in event.subscription_event["sentry_meta"]
-            ]
-            if event.subscription_event["sentry_meta"]
-            else None
-        ),
-        type=event.subscription_event["type"],
-    )
     structured_event = PullRequestEventParser(
         action=event.action,
         pull_request=pull_request_data,
-        subscription_event=subscription_event,
+        subscription_event=_map_subscription_event_parser(event.subscription_event),
     )
     return encoder.encode(structured_event).decode("utf-8")
 
@@ -318,8 +283,10 @@ def deserialize_event(event: str, event_type: EventTypeHint) -> EventType:
         return deserialize_check_run_event(event)
     elif event_type == "comment":
         return deserialize_comment_event(event)
-    else:
+    elif event_type == "pull_request":
         return deserialize_pull_request_event(event)
+    else:
+        assert_never(event_type)
 
 
 def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
@@ -334,8 +301,14 @@ def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
     """
     if event["type"] == "github":
         return deserialize_github_event(event)
+    elif event["type"] == "github_enterprise":
+        return deserialize_github_event(event)
+    elif event["type"] == "bitbucket":
+        raise SCMProviderNotSupported("Bitbucket has not been implemented.")
+    elif event["type"] == "gitlab":
+        raise SCMProviderNotSupported("GitLab has not been implemented.")
     else:
-        raise SCMProviderNotSupported("Provider not implemented.")
+        assert_never(event["type"])
 
 
 def serialize_event(event: EventType) -> str:
@@ -348,8 +321,10 @@ def serialize_event(event: EventType) -> str:
         return serialize_check_run_event(event)
     elif isinstance(event, CommentEvent):
         return serialize_comment_event(event)
-    else:
+    elif isinstance(event, PullRequestEvent):
         return serialize_pull_request_event(event)
+    else:
+        assert_never(event)
 
 
 # $$$$$$$\            $$\       $$\ $$\           $$\
@@ -394,9 +369,11 @@ def produce_to_listeners(
     elif isinstance(parsed_event, CommentEvent):
         event_type_hint = "comment"
         listeners = list(stream.comment_listeners.keys())
-    else:
+    elif isinstance(parsed_event, PullRequestEvent):
         event_type_hint = "pull_request"
         listeners = list(stream.pull_request_listeners.keys())
+    else:
+        assert_never(parsed_event)
 
     for listener in listeners:
         produce_to_listener(message, cast(EventTypeHint, event_type_hint), listener, silo)
@@ -410,8 +387,10 @@ def produce_to_listener(
 ) -> None:
     if silo == "control":
         run_webhook_handler_control_task.delay(listener_name, message, event_type_hint)
-    else:
+    elif silo == "region":
         run_webhook_handler_region_task.delay(listener_name, message, event_type_hint)
+    else:
+        assert_never(silo)
 
 
 @instrumented_task(
@@ -509,13 +488,15 @@ def run_listener(
         exec_listener(listener, stream.check_run_listeners, event, record_count)
     elif isinstance(event, CommentEvent):
         exec_listener(listener, stream.comment_listeners, event, record_count)
-    else:
+    elif isinstance(event, PullRequestEvent):
         exec_listener(listener, stream.pull_request_listeners, event, record_count)
+    else:
+        assert_never(event)
 
     end = get_current_time()
-    received = event.subscription_event["received_at"]
+    received_at = event.subscription_event["received_at"]
 
-    # Sucess and timing metrics are tracked below. These metrics enable us to validate the
+    # Success and timing metrics are tracked below. These metrics enable us to validate the
     # performance of the platform. Failure metrics are recorded elsewhere but follow the same
     # pattern. Failed listeners should never influence timing metrics. Failures can execute
     # abnormally quickly because they are not performing the full computation.
@@ -525,7 +506,7 @@ def run_listener(
     #
     #   * real_time indicates the total time taken from webhook received to webhook processed.
     #   * task_time indicates the total time taken to process the task from start to finish.
-    #   * start_time identifies the time from webhook received to task started. It measures total
+    #   * queue_time identifies the time from webhook received to task started. It measures total
     #     system latency.
     record_count(f"{METRIC_PREFIX}.success", 1, {"fn": listener})
     record_distribution(
@@ -534,9 +515,9 @@ def run_listener(
         {"provider": event.subscription_event["type"], "event_type_hint": event_type_hint},
         "byte",
     )
-    record_timer(f"{METRIC_PREFIX}.start_time", start - received, {"fn": listener})
+    record_timer(f"{METRIC_PREFIX}.queue_time", start - received_at, {"fn": listener})
     record_timer(f"{METRIC_PREFIX}.task_time", end - start, {"fn": listener})
-    record_timer(f"{METRIC_PREFIX}.real_time", received - start, {"fn": listener})
+    record_timer(f"{METRIC_PREFIX}.real_time", end - received_at, {"fn": listener})
 
 
 def exec_listener[T](
@@ -554,5 +535,4 @@ def exec_listener[T](
         return listeners[listener](arg)
     except Exception:
         record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "internal", "fn": listener})
-        raise
         raise

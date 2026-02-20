@@ -49,7 +49,6 @@ def _get_token_name(auth: AuthenticatedToken | None) -> str | None:
 
 
 def _get_rate_limit_stats_dict(request: Request) -> dict[str, str | int | None]:
-
     rate_limit_metadata: RateLimitMeta | None = getattr(request, "rate_limit_metadata", None)
     snuba_rate_limit_metadata: SnubaRateLimitMeta | None = getattr(
         request, "snuba_rate_limit_metadata", None

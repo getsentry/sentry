@@ -1,5 +1,6 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -59,7 +60,7 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
       icon={<IconDownload />}
       href={`${state.region?.url}/api/0/_admin/cells/${state.region?.name}/payments/${row.id}/pdf/`}
       size="md"
-      title="Download Invoice"
+      tooltipProps={{title: 'Download Invoice'}}
     />
   </td>,
 ];
@@ -116,7 +117,7 @@ export default function Invoices() {
       </Panel>
       <ResultGrid
         inPanel
-        isRegional
+        isCellScoped
         path="/_admin/invoices/"
         endpoint="/invoices/"
         method="GET"

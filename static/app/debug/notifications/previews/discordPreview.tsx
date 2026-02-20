@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {CodeBlock} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {Image} from '@sentry/scraps/image';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {Image} from 'sentry/components/core/image';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
 import {NotificationBodyRenderer} from 'sentry/debug/notifications/components/notificationBodyRenderer';
 import {

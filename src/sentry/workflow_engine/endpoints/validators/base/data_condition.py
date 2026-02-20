@@ -19,14 +19,13 @@ ConditionResult = TypeVar("ConditionResult")
 
 
 class AbstractDataConditionValidator(
-    CamelSnakeSerializer,
+    CamelSnakeSerializer[Any],
     Generic[ComparisonType, ConditionResult],
 ):
     id = serializers.IntegerField(required=False)
     type = serializers.ChoiceField(choices=[(t.value, t.value) for t in Condition])
     comparison = serializers.JSONField(required=True)
     condition_result = serializers.JSONField(required=True)
-    condition_group_id = serializers.IntegerField(required=False)
 
     @abstractmethod
     def validate_comparison(self, value: Any) -> ComparisonType:
@@ -40,7 +39,6 @@ class AbstractDataConditionValidator(
 class BaseDataConditionValidator(
     AbstractDataConditionValidator[Any, Any],
 ):
-
     @property
     def condition_type(self) -> Condition:
         if isinstance(self.initial_data, list) and self.initial_data:
@@ -48,7 +46,7 @@ class BaseDataConditionValidator(
 
         return self.initial_data.get("type")
 
-    def _get_handler(self) -> type[DataConditionHandler] | None:
+    def _get_handler(self) -> type[DataConditionHandler[Any]] | None:
         if self._is_operator_condition():
             return None
 

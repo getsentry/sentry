@@ -10,6 +10,7 @@ export const StoryTable = styled('table')`
   border: 0;
   border-collapse: collapse;
   border-radius: ${p => p.theme.radius.md};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
   margin-bottom: ${p => p.theme.space['3xl']};
 

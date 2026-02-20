@@ -200,7 +200,7 @@ class ShouldCallSeerTest(TestCase):
             assert (
                 should_call_seer_for_grouping(event, event.get_grouping_variants(), grouphash)
                 is expected_result
-            ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
+            ), f"Case with fingerprint {event.data['fingerprint']} failed."
 
     def test_obeys_excessive_frame_check(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -278,8 +278,9 @@ class ShouldCallSeerTest(TestCase):
         self.project.update_option("sentry:similarity_backfill_completed", 1)
         event = save_new_event(self.event_data, self.project)
         assert mock_get_similarity_data.call_count == 1
-        assert "raise FailedToFetchError('Charlie didn't bring the ball back')" in (
-            mock_get_similarity_data.call_args.args[0]["stacktrace"]
+        assert (
+            "raise FailedToFetchError('Charlie didn't bring the ball back')"
+            in (mock_get_similarity_data.call_args.args[0]["stacktrace"])
         )
 
         assert event.data.get("stacktrace_string") is None

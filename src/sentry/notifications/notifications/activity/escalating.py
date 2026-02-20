@@ -17,7 +17,6 @@ class EscalatingActivityNotification(GroupActivityNotification):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
-
         return self.title
 
     def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:

@@ -1,4 +1,5 @@
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';

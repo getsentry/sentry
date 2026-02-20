@@ -2,6 +2,8 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -11,9 +13,6 @@ import {
   getBootstrapOrganizationQueryOptions,
   getBootstrapProjectsQueryOptions,
 } from 'sentry/bootstrap/bootstrapRequests';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
@@ -24,6 +23,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -113,7 +113,7 @@ function SudoModal({
     data: authenticators = [],
     isFetching: authenticatorsFetching,
     isFetchedAfterMount: authenticatorsLoaded,
-  } = useApiQuery<Authenticator[]>(['/authenticators/'], {
+  } = useApiQuery<Authenticator[]>([getApiUrl('/authenticators/')], {
     // Fetch authenticators after preload requests to avoid overwriting session cookie
     enabled: !bootstrapIsPending,
     staleTime: 0,
@@ -301,7 +301,7 @@ function SudoModal({
                       {t('COPS/CSM')}
                     </Button>
                   ) : (
-                    <Button borderless size="sm" onClick={handleChangeReason}>
+                    <Button priority="transparent" size="sm" onClick={handleChangeReason}>
                       {t('Change reason')}
                     </Button>
                   )}

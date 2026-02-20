@@ -69,9 +69,9 @@ class ApiGatewayTest(ApiGatewayTestCase):
             if "api" not in name:
                 continue
             route = resolver.reverse_dict.get(name)
-            assert (
-                route
-            ), f"REGION_PINNED_URL_NAMES contains {name}, but no route is registered with that name"
+            assert route, (
+                f"REGION_PINNED_URL_NAMES contains {name}, but no route is registered with that name"
+            )
 
     @responses.activate
     def test_proxy_check_org_slug_url(self) -> None:

@@ -157,7 +157,8 @@ export function PrimaryNavigationWhatsNew() {
 const WhatsNewButton = styled(SidebarButton)`
   display: none;
 
-  @media (min-height: 800px) {
+  /* TODO(ryan953): Make this shorter once showPreventNav() is removed from PrimaryNavigationItems */
+  @media (min-height: 724px) {
     display: flex;
   }
 `;

@@ -11,7 +11,6 @@ from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
 class TestProduceToListenerIntegration(TestCase):
-
     def test_produce_to_listener_control_silo(self):
         """Test that produce_to_listener calls control silo task delay correctly."""
         with patch(
@@ -31,7 +30,6 @@ class TestProduceToListenerIntegration(TestCase):
 
 @control_silo_test
 class TestWebhookHandlerControlTaskIntegration(TestCase):
-
     def test_run_webhook_handler_control_task_success(self):
         """Test the task can be delayed without error."""
         with TaskRunner():
@@ -40,7 +38,6 @@ class TestWebhookHandlerControlTaskIntegration(TestCase):
 
 @region_silo_test
 class TestWebhookHandlerRegionTaskIntegration(TestCase):
-
     def test_run_webhook_handler_region_task_success(self):
         """Test the task can be delayed without error."""
         with TaskRunner():

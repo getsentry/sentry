@@ -93,8 +93,20 @@ async function runEsbuild(commitHash: string): Promise<void> {
       '.woff2': 'file',
       '.ttf': 'file',
       '.eot': 'file',
-      '.pegjs': 'text',
     },
+    // Stub out .pegjs grammar files with a no-op parse function since
+    // chartcuterie doesn't need search syntax parsing.
+    plugins: [
+      {
+        name: 'peggy-stub',
+        setup(build) {
+          build.onLoad({filter: /\.pegjs$/}, () => ({
+            contents: 'export function parse() {}',
+            loader: 'js',
+          }));
+        },
+      },
+    ],
     external: ['*.css'],
   });
 }

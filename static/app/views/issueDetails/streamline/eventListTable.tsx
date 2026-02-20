@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import {
   GridBodyCell,
@@ -96,10 +97,10 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                 />
               </HeaderItem>
               <HeaderItem>
-                <ButtonBar gap="2xs">
+                <Grid flow="column" align="center" gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     to={{
@@ -113,7 +114,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                   />
                   <PaginationButton
                     aria-label={t('Next Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     to={{
@@ -125,7 +126,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                     }}
                     disabled={nextDisabled}
                   />
-                </ButtonBar>
+                </Grid>
               </HeaderItem>
             </Fragment>
           ) : null}
@@ -223,6 +224,7 @@ const StreamlineGridEditable = styled('div')`
       a {
         color: ${p => p.theme.tokens.content.primary};
         text-decoration: underline;
+        /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
         text-decoration-color: ${p => p.theme.tokens.border.primary};
       }
     }

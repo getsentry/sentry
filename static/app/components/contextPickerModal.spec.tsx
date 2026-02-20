@@ -18,6 +18,8 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 describe('ContextPickerModal', () => {
   let project!: Project;
@@ -46,7 +48,9 @@ describe('ContextPickerModal', () => {
     jest.clearAllMocks();
   });
 
-  const getComponent = (props = {}) => (
+  const getComponent = (
+    props: Partial<React.ComponentProps<typeof ContextPickerModal>> = {}
+  ) => (
     <ContextPickerModal
       Header={() => <div />}
       Body={ModalBody}
@@ -145,8 +149,11 @@ describe('ContextPickerModal', () => {
     // Should see 1 selected, and 1 as an option
     expect(screen.getAllByText('org-slug')).toHaveLength(2);
 
-    expect(screen.getByRole('textbox')).toHaveFocus();
+    // Wait for projects to load before checking focus
     expect(await screen.findByText('My Projects')).toBeInTheDocument();
+    // Project selector should have focus (there are two textboxes: org and project)
+    const textboxes = screen.getAllByRole('textbox');
+    expect(textboxes[1]).toHaveFocus();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
     expect(screen.getByText(project2.slug)).toBeInTheDocument();
     expect(screen.getByText('All Projects')).toBeInTheDocument();
@@ -176,7 +183,6 @@ describe('ContextPickerModal', () => {
         needOrg: true,
         needProject: true,
         nextPath: '/test/:orgId/path/:projectId/',
-        organizations,
       })
     );
 
@@ -206,11 +212,17 @@ describe('ContextPickerModal', () => {
     ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
     const provider = {slug: 'github'};
-    const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
+    const configQueryKey = [
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: org.slug},
+      }),
+      {query: {provider_key: provider.slug, includeConfig: 0}},
+    ] satisfies ApiQueryKey;
     const integration = GitHubIntegrationFixture();
     const fetchGithubConfigs = MockApiClient.addMockResponse({
-      url: configUrl,
+      url: configQueryKey[0],
       body: [integration],
+      match: [MockApiClient.matchQuery(configQueryKey[1].query)],
     });
 
     MockApiClient.addMockResponse({
@@ -223,7 +235,7 @@ describe('ContextPickerModal', () => {
         needOrg: false,
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configUrl,
+        configQueryKey,
       })
     );
 
@@ -250,11 +262,17 @@ describe('ContextPickerModal', () => {
     ConfigStore.set('user', UserFixture({isSuperuser: false}));
 
     const provider = {slug: 'github'};
-    const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
+    const configQueryKey = [
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: org.slug},
+      }),
+      {query: {provider_key: provider.slug, includeConfig: 0}},
+    ] satisfies ApiQueryKey;
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
-      url: configUrl,
+      url: configQueryKey[0],
       body: [GitHubIntegrationFixture()],
+      match: [MockApiClient.matchQuery(configQueryKey[1].query)],
     });
 
     MockApiClient.addMockResponse({
@@ -267,7 +285,7 @@ describe('ContextPickerModal', () => {
         needOrg: false,
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configUrl,
+        configQueryKey,
       })
     );
 
@@ -282,11 +300,17 @@ describe('ContextPickerModal', () => {
     ConfigStore.set('user', UserFixture({isSuperuser: false}));
 
     const provider = {slug: 'github'};
-    const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
+    const configQueryKey = [
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: org.slug},
+      }),
+      {query: {provider_key: provider.slug, includeConfig: 0}},
+    ] satisfies ApiQueryKey;
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
-      url: configUrl,
+      url: configQueryKey[0],
       body: [],
+      match: [MockApiClient.matchQuery(configQueryKey[1].query)],
     });
 
     MockApiClient.addMockResponse({
@@ -299,7 +323,7 @@ describe('ContextPickerModal', () => {
         needOrg: false,
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configUrl,
+        configQueryKey,
       })
     );
 

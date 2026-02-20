@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex, Grid, Stack} from 'sentry/components/core/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';

@@ -1,10 +1,10 @@
 import moment from 'moment-timezone';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconNot} from 'sentry/icons';
 import type {UserIdentityConfig} from 'sentry/types/auth';
@@ -39,12 +39,15 @@ function identityLabel(identity: UserIdentityConfig) {
   }
 
   let text: string;
-  if (identity.category === UserIdentityCategory.GLOBAL_IDENTITY) {
+  if (
+    identity.category === UserIdentityCategory.GLOBAL_IDENTITY ||
+    identity.category === UserIdentityCategory.GITHUB_COPILOT_IDENTITY
+  ) {
     text = identity.isLogin ? 'Global Login' : 'App Integration';
   } else if (identity.category === UserIdentityCategory.SOCIAL_IDENTITY) {
     text = 'Legacy Integration';
   } else {
-    throw new Error('Invalid category');
+    text = identity.category;
   }
   return <span style={{fontVariant: 'small-caps'}}>{text}</span>;
 }
@@ -111,7 +114,7 @@ function UserOverview({
                     icon={<IconNot />}
                     priority="danger"
                     size="xs"
-                    title="Disconnect Identity"
+                    tooltipProps={{title: 'Disconnect Identity'}}
                     onClick={() => onIdentityDisconnect(identity)}
                     aria-label="Disconnect Identity"
                     disabled={
@@ -151,7 +154,7 @@ function UserOverview({
                     icon={<IconNot />}
                     priority="danger"
                     size="xs"
-                    title="Remove Authenticator"
+                    tooltipProps={{title: 'Remove Authenticator'}}
                     onClick={() => onAuthenticatorRemove(auth)}
                     aria-label="Remove Authenticator"
                   />

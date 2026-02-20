@@ -5,20 +5,21 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -30,7 +31,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate, type ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {canUseMetricsStatsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
@@ -288,10 +288,10 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return !hasProfilingStats;
       }
       if (opt.value === DataCategory.SIZE_ANALYSIS) {
-        return organization.features.includes('size-analysis-billing');
+        return organization.features.includes('expose-category-size-analysis');
       }
       if (opt.value === DataCategory.INSTALLABLE_BUILD) {
-        return organization.features.includes('installable-build-billing');
+        return organization.features.includes('expose-category-installable-build');
       }
       return true;
     }).map(opt => {

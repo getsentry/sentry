@@ -1,8 +1,9 @@
 import {Children, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
+
 import useExpandedState from 'sentry/components/structuredEventData/useExpandedState';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -64,7 +65,7 @@ export function CollapsibleValue({
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
-          borderless
+          priority="transparent"
           data-base-with-toggle={baseLevelPadding}
         />
       ) : null}

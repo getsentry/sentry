@@ -1,14 +1,13 @@
 import {useEffect, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {TextArea} from 'sentry/components/core/textarea';
 import type {BranchOverride, RepoSettings} from 'sentry/components/events/autofix/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
@@ -172,7 +171,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       <InputGroup.TrailingItems>
                         <ClearButton
                           size="xs"
-                          borderless
+                          priority="transparent"
                           icon={<IconClose size="xs" />}
                           onClick={() => {
                             setBranchInputValue('');
@@ -182,7 +181,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                             setIsDirty(true);
                           }}
                           aria-label={t('Clear branch and use default')}
-                          title={t('Clear branch and use default')}
+                          tooltipProps={{title: t('Clear branch and use default')}}
                         />
                       </InputGroup.TrailingItems>
                     )}
@@ -191,7 +190,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                     size="xs"
                     icon={<IconAdd />}
                     onClick={addBranchOverride}
-                    borderless
+                    priority="transparent"
                   >
                     {t('Add an override for a tag')}
                   </AddOverrideButton>
@@ -258,11 +257,11 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       </Flex>
                       <Button
                         size="sm"
-                        borderless
+                        priority="transparent"
                         icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}
-                        title={t('Remove override')}
+                        tooltipProps={{title: t('Remove override')}}
                       />
                     </BranchOverrideItem>
                   ))}
@@ -293,14 +292,14 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                 </Button>
               </Confirm>
               {isDirty && (
-                <ButtonBar gap="xs">
+                <Grid flow="column" align="center" gap="xs">
                   <Button size="md" onClick={cancelChanges}>
                     {t('Cancel')}
                   </Button>
                   <Button size="md" priority="primary" onClick={saveChanges}>
                     {t('Save')}
                   </Button>
-                </ButtonBar>
+                </Grid>
               )}
             </Flex>
           </Stack>

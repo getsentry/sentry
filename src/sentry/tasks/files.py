@@ -89,7 +89,6 @@ def delete_unreferenced_blobs_control(blob_ids):
 
 
 def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
-
     for blob_id in blob_ids:
         # If a blob is referenced, we do not want to delete it
         if blob_index_model.objects.filter(blob_id=blob_id).exists():

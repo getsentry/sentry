@@ -1,7 +1,8 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';

@@ -14,6 +14,7 @@ from responses import matchers
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -698,7 +699,7 @@ class GithubProxyClientTest(TestCase):
         # First request should refresh the token and add headers
         self.gh_client.authorize_request(prepared_request=access_token_request)
         assert mock_jwt.called
-        assert access_token_request.headers["Accept"] == "application/vnd.github+json"
+        assert access_token_request.headers["Accept"] == GITHUB_API_ACCEPT_HEADER
         assert self.access_token in access_token_request.headers["Authorization"]
 
         mock_jwt.reset_mock()
@@ -707,13 +708,13 @@ class GithubProxyClientTest(TestCase):
         # Following requests should just add headers
         self.gh_client.authorize_request(prepared_request=access_token_request)
         assert not mock_jwt.called
-        assert access_token_request.headers["Accept"] == "application/vnd.github+json"
+        assert access_token_request.headers["Accept"] == GITHUB_API_ACCEPT_HEADER
         assert self.access_token in access_token_request.headers["Authorization"]
 
         # JWT-authorized requests should be identified by request path
         self.gh_client.authorize_request(prepared_request=jwt_request)
         assert mock_jwt.called
-        assert jwt_request.headers["Accept"] == "application/vnd.github+json"
+        assert jwt_request.headers["Accept"] == GITHUB_API_ACCEPT_HEADER
         assert jwt_request.headers["Authorization"] == f"Bearer {self.jwt}"
 
     @responses.activate
@@ -839,6 +840,34 @@ class GitHubCommitContextClientTest(TestCase):
         assert result["status"] == "completed"
         assert result["conclusion"] == "success"
         assert result["details_url"] == "https://example.com/build/123"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_check_run(self, get_jwt) -> None:
+        repo_name = "getsentry/sentry"
+        check_run_id = 123456
+
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{repo_name}/check-runs/{check_run_id}",
+            json={
+                "id": check_run_id,
+                "name": "Seer Code Review",
+                "head_sha": "abc123",
+                "status": "in_progress",
+                "conclusion": None,
+                "started_at": "2026-02-17T12:00:00Z",
+                "details_url": "https://example.com/check/123456",
+            },
+            status=200,
+        )
+
+        result = self.github_client.get_check_run(repo_name, check_run_id)
+
+        assert result["id"] == check_run_id
+        assert result["name"] == "Seer Code Review"
+        assert result["status"] == "in_progress"
+        assert result["conclusion"] is None
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

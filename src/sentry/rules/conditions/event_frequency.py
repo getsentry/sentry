@@ -184,7 +184,13 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             return False
         comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
         _, duration = self.intervals[interval]
-        current_value = self.get_rate(duration=duration, comparison_interval=comparison_interval, event=event, environment_id=self.rule.environment_id, comparison_type=comparison_type)  # type: ignore[union-attr]
+        current_value = self.get_rate(
+            duration=duration,
+            comparison_interval=comparison_interval,
+            event=event,
+            environment_id=self.rule.environment_id,  # type: ignore[union-attr]
+            comparison_type=comparison_type,
+        )
 
         logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value

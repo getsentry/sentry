@@ -124,20 +124,24 @@ class GroupTypeRegistry:
     ) -> list[type[GroupType]]:
         with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
             released = [gt for gt in self.all() if gt.released]
-            feature_to_grouptype = {
-                gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
-            }
+            feature_to_grouptype: dict[str, type[GroupType]] = {}
+            for gt in self.all():
+                if not gt.released:
+                    for fname in gt.build_visible_feature_name():
+                        feature_to_grouptype[fname] = gt
             batch_features = features.batch_has(
                 list(feature_to_grouptype.keys()), actor=actor, organization=organization
             )
-            enabled = []
+            enabled: list[type[GroupType]] = []
             if batch_features:
                 feature_results = batch_features.get(f"organization:{organization.id}", {})
-                enabled = [
-                    feature_to_grouptype[feature]
-                    for feature, active in feature_results.items()
-                    if active
-                ]
+                seen: set[int] = set()
+                for feature, active in feature_results.items():
+                    if active:
+                        gt = feature_to_grouptype[feature]
+                        if gt.type_id not in seen:
+                            seen.add(gt.type_id)
+                            enabled.append(gt)
             span.set_tag("organization_id", organization.id)
             span.set_tag("has_batch_features", batch_features is not None)
             span.set_tag("released", released)
@@ -267,9 +271,8 @@ class GroupType:
         registry.add(cls)
 
         if not cls.released:
-            features.add(
-                cls.build_visible_feature_name(), OrganizationFeature, True, api_expose=True
-            )
+            for fname in cls.build_visible_feature_name():
+                features.add(fname, OrganizationFeature, True, api_expose=True)
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
 
@@ -308,8 +311,8 @@ class GroupType:
         return f"organizations:issue-{cls.build_feature_name_slug()}"
 
     @classmethod
-    def build_visible_feature_name(cls) -> str:
-        return f"{cls.build_base_feature_name()}-visible"
+    def build_visible_feature_name(cls) -> list[str]:
+        return [f"{cls.build_base_feature_name()}-visible"]
 
     @classmethod
     def build_ingest_feature_name(cls) -> str:

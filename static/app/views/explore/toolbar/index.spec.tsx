@@ -269,7 +269,7 @@ describe('ExploreToolbar', () => {
 
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
@@ -288,7 +288,7 @@ describe('ExploreToolbar', () => {
 
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
@@ -472,7 +472,7 @@ describe('ExploreToolbar', () => {
       'id',
       'span.description',
       'span.duration',
-      'span.op',
+      'span.name',
       'timestamp',
       'transaction',
     ];
@@ -484,10 +484,10 @@ describe('ExploreToolbar', () => {
     });
 
     // try changing the field
-    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
-    expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
+    await userEvent.click(within(section).getByRole('option', {name: 'span.name'}));
+    expect(within(section).getByRole('button', {name: 'span.name'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
-    expect(sortBys).toEqual([{field: 'span.op', kind: 'desc'}]);
+    expect(sortBys).toEqual([{field: 'span.name', kind: 'desc'}]);
 
     // check the kind options
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
@@ -498,9 +498,9 @@ describe('ExploreToolbar', () => {
 
     // try changing the kind
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
-    expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'span.name'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Asc'})).toBeInTheDocument();
-    expect(sortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
+    expect(sortBys).toEqual([{field: 'span.name', kind: 'asc'}]);
   });
 
   it('allows changing sort by in aggregates mode', async () => {
@@ -685,7 +685,7 @@ describe('ExploreToolbar', () => {
 
     await userEvent.click(within(section).getByText(/Save as/));
     await userEvent.hover(
-      within(section).getByRole('menuitemradio', {name: 'An Alert for'})
+      within(section).getByRole('menuitemradio', {name: 'Alert for'})
     );
     await userEvent.click(
       await within(section).findByRole('menuitemradio', {name: 'count(spans)'})
@@ -696,7 +696,6 @@ describe('ExploreToolbar', () => {
     expect(router.location.query).toEqual({
       aggregate: 'count(span.duration)',
       dataset: 'events_analytics_platform',
-      eventTypes: 'transaction',
       interval: '1h',
       project: 'proj-slug',
       query: '',
@@ -730,7 +729,7 @@ describe('ExploreToolbar', () => {
     const section = screen.getByTestId('section-save-as');
 
     await userEvent.click(within(section).getByText(/Save as/));
-    await userEvent.click(within(section).getByText('A Dashboard widget'));
+    await userEvent.click(within(section).getByText('Dashboard widget'));
     await waitFor(() => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -822,5 +821,31 @@ describe('ExploreToolbar', () => {
     await waitFor(() => {
       expect(screen.getByText('Save')).toBeInTheDocument();
     });
+  });
+
+  it('disables save as and compare when cross events are present', async () => {
+    render(<ExploreToolbar />, {
+      organization,
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
+          },
+        },
+      },
+    });
+
+    const section = await screen.findByTestId('section-save-as');
+
+    // Save As button should be disabled
+    expect(within(section).getByRole('button', {name: 'Save as'})).toBeDisabled();
+
+    // Compare Queries button should be disabled (LinkButton renders with role="button")
+    expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

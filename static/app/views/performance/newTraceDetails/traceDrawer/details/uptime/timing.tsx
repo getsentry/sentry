@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
-import {Text} from 'sentry/components/core/text';
+import {Text} from '@sentry/scraps/text';
+
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';

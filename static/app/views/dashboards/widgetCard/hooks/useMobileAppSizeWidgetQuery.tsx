@@ -1,60 +1,27 @@
 import {useCallback, useMemo, useRef} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  cleanWidgetForRequest,
+  applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type MobileAppSizeSeriesResponse = EventsStats | MultiSeriesEventsStats;
-
-/**
- * Helper to apply dashboard filters and clean widget for API request
- */
-function applyDashboardFilters(
-  widget: Widget,
-  dashboardFilters?: DashboardFilters,
-  skipParens?: boolean
-): Widget {
-  let processedWidget = widget;
-
-  // Apply dashboard filters if provided
-  if (dashboardFilters) {
-    const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
-
-    filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-
-    processedWidget = filtered;
-  }
-
-  return cleanWidgetForRequest(processedWidget);
-}
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -78,7 +45,8 @@ export function useMobileAppSizeSeriesQuery(
   const prevRawDataRef = useRef<MobileAppSizeSeriesResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -119,7 +87,9 @@ export function useMobileAppSizeSeriesQuery(
       }
 
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -160,7 +130,7 @@ export function useMobileAppSizeSeriesQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       // Retry on 429 status codes up to 10 times, unless queue handles it
       retry: hasQueueFeature
@@ -172,6 +142,7 @@ export function useMobileAppSizeSeriesQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
@@ -193,6 +164,7 @@ export function useMobileAppSizeSeriesQuery(
 
     const timeseriesResults: Series[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
+    const timeseriesResultsUnits: Record<string, DataUnit> = {};
     const rawData: MobileAppSizeSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
@@ -221,6 +193,15 @@ export function useMobileAppSizeSeriesQuery(
       if (resultTypes) {
         Object.assign(timeseriesResultsTypes, resultTypes);
       }
+
+      const resultUnits = MobileAppSizeConfig.getSeriesResultUnit?.(
+        responseData,
+        filteredWidget.queries[requestIndex]!
+      );
+
+      if (resultUnits) {
+        Object.assign(timeseriesResultsUnits, resultUnits);
+      }
     });
 
     let finalRawData = rawData;
@@ -240,6 +221,7 @@ export function useMobileAppSizeSeriesQuery(
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
+      timeseriesResultsUnits,
       rawData: finalRawData,
     };
   })();

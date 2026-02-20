@@ -1,4 +1,5 @@
-import type {TextProps} from 'sentry/components/core/text';
+import type {TextProps} from '@sentry/scraps/text';
+
 import type {Actor, ObjectStatus} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 

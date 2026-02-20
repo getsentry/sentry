@@ -1,7 +1,11 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {
@@ -9,16 +13,11 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
@@ -30,6 +29,10 @@ import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {
+  useIssueSelectionActions,
+  useIssueSelectionSummary,
+} from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
@@ -70,6 +73,7 @@ function ActionsBarPriority({
   handleDelete,
   handleMerge,
   handleUpdate,
+  toggleSelectAllVisible,
   selectedProjectSlug,
   onSelectStatsPeriod,
   isSavedSearchesOpen,
@@ -93,6 +97,7 @@ function ActionsBarPriority({
   selectedProjectSlug: string | undefined;
   selection: PageFilters;
   statsPeriod: string;
+  toggleSelectAllVisible: () => void;
 }) {
   const shouldDisplayActions = anySelected && !narrowViewport;
 
@@ -100,7 +105,7 @@ function ActionsBarPriority({
     <ActionsBarContainer>
       {!narrowViewport && (
         <Checkbox
-          onChange={() => SelectedGroupStore.toggleSelectAll()}
+          onChange={toggleSelectAllVisible}
           checked={pageSelected || (anySelected ? 'indeterminate' : false)}
           aria-label={pageSelected ? t('Deselect all') : t('Select all')}
           disabled={displayReprocessingActions}
@@ -163,15 +168,18 @@ function IssueListActions({
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {
-    pageSelected,
-    multiSelected,
-    anySelected,
-    allInQuerySelected,
-    selectedIdsSet,
-    selectedProjectSlug,
-    setAllInQuerySelected,
-  } = useSelectedGroupsState();
+  const {setAllInQuerySelected, deselectAll, toggleSelectAllVisible} =
+    useIssueSelectionActions();
+  const {pageSelected, multiSelected, anySelected, allInQuerySelected, selectedIdsSet} =
+    useIssueSelectionSummary();
+  const selectedProjectSlug = useMemo(() => {
+    const projects = [...selectedIdsSet]
+      .map(id => GroupStore.get(id))
+      .filter((group): group is Group => !!group?.project)
+      .map(group => group.project.slug);
+    const uniqProjects = uniq(projects);
+    return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
+  }, [selectedIdsSet]);
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -191,7 +199,7 @@ function IssueListActions({
 
     callback(selectedIds);
 
-    SelectedGroupStore.deselectAll();
+    deselectAll();
   }
 
   // TODO: Remove issue.category:error filter when merging/deleting performance issues is supported
@@ -361,6 +369,7 @@ function IssueListActions({
         handleDelete={handleDelete}
         handleMerge={handleMerge}
         handleUpdate={handleUpdate}
+        toggleSelectAllVisible={toggleSelectAllVisible}
         multiSelected={multiSelected}
         narrowViewport={disableActions}
         selectedProjectSlug={selectedProjectSlug}
@@ -411,42 +420,6 @@ function IssueListActions({
       )}
     </StickyActions>
   );
-}
-
-function useSelectedGroupsState() {
-  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
-  const selectedGroupState = useLegacyStore(SelectedGroupStore);
-  const selectedIds = SelectedGroupStore.getSelectedIds();
-
-  const projects = [...selectedIds]
-    .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!group?.project)
-    .map(group => group.project.slug);
-
-  const uniqProjects = uniq(projects);
-  // we only want selectedProjectSlug set if there is 1 project
-  // more or fewer should result in a null so that the action toolbar
-  // can behave correctly.
-  const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
-
-  const pageSelected = SelectedGroupStore.allSelected();
-  const multiSelected = SelectedGroupStore.multiSelected();
-  const anySelected = SelectedGroupStore.anySelected();
-  const selectedIdsSet = SelectedGroupStore.getSelectedIds();
-
-  useEffect(() => {
-    setAllInQuerySelected(false);
-  }, [selectedGroupState]);
-
-  return {
-    pageSelected,
-    multiSelected,
-    anySelected,
-    allInQuerySelected,
-    selectedIdsSet,
-    selectedProjectSlug,
-    setAllInQuerySelected,
-  };
 }
 
 function shouldConfirm(

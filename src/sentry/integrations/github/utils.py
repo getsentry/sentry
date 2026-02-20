@@ -131,21 +131,20 @@ def _has_code_review_or_autofix_enabled(organization_id: int, repository_id: int
     )
 
 
-def should_create_or_increment_contributor_seat(
+def should_increment_contributor_seat(
     organization: Organization, repo: Repository, contributor: OrganizationContributors
 ) -> bool:
     """
-    Guard for OrganizationContributor creation/incrementing and seat assignment.
-
-    Determines if we should create or increment an OrganizationContributor record
+    Determines if we should increment an OrganizationContributor record
     and potentially assign a new seat.
 
     Require repo integration, code review OR autofix enabled for the repo,
-    and seat-based Seer enabled for the organization.
+    seat-based Seer enabled for the organization, and contributor is not a bot.
     """
     if (
         repo.integration_id is None
         or not _has_code_review_or_autofix_enabled(organization.id, repo.id)
+        or contributor.is_bot
         or not features.has("organizations:seat-based-seer-enabled", organization)
     ):
         return False
@@ -155,3 +154,8 @@ def should_create_or_increment_contributor_seat(
         data_category=DataCategory.SEER_USER,
         seat_object=contributor,
     )
+
+
+def is_github_rate_limit_sensitive(organization_slug: str) -> bool:
+    """Check if an organization is in the list of GitHub rate-limit sensitive organizations."""
+    return organization_slug in options.get("github-app.rate-limit-sensitive-orgs")

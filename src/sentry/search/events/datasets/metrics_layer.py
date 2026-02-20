@@ -121,7 +121,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                    snql_metric_layer=lambda args,
+                    alias: function_aliases.resolve_metrics_layer_percentile(
                         args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.5
                     ),
                     is_percentile=True,
@@ -138,7 +139,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                    snql_metric_layer=lambda args,
+                    alias: function_aliases.resolve_metrics_layer_percentile(
                         args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.75
                     ),
                     is_percentile=True,
@@ -155,7 +157,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                    snql_metric_layer=lambda args,
+                    alias: function_aliases.resolve_metrics_layer_percentile(
                         args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.90
                     ),
                     is_percentile=True,
@@ -172,7 +175,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                    snql_metric_layer=lambda args,
+                    alias: function_aliases.resolve_metrics_layer_percentile(
                         args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.95
                     ),
                     is_percentile=True,
@@ -189,7 +193,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                    snql_metric_layer=lambda args,
+                    alias: function_aliases.resolve_metrics_layer_percentile(
                         args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.99
                     ),
                     is_percentile=True,
@@ -207,7 +212,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         ),
                     ],
                     # Not marked as a percentile as this is equivalent to just `max`
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                    snql_metric_layer=lambda args,
+                    alias: function_aliases.resolve_metrics_layer_percentile(
                         args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=1
                     ),
                     result_type_fn=self.reflective_result_type(),
@@ -298,7 +304,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         fields.NumberRange("percentile", 0, 1),
                     ],
                     is_percentile=True,
-                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                    snql_metric_layer=lambda args,
+                    alias: function_aliases.resolve_metrics_layer_percentile(
                         args=args,
                         alias=alias,
                         resolve_mri=self.resolve_mri,

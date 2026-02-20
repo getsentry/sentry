@@ -5,7 +5,8 @@ import type {Location} from 'history';
 import moment from 'moment-timezone';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ContextIcon,
@@ -350,7 +351,7 @@ export function getContextIcon({
     case 'user': {
       const user = userContextToActor(value);
       const iconSize = SvgIcon.ICON_SIZES[contextIconProps?.size ?? 'xl'];
-      return <UserAvatar user={user} size={parseInt(iconSize, 10)} gravatar={false} />;
+      return <UserAvatar user={user} size={parseInt(iconSize, 10)} />;
     }
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);

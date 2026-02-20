@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import {Button} from 'sentry/components/core/button';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Button} from '@sentry/scraps/button';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
@@ -354,7 +355,7 @@ const PlatformCard = styled(
       {selected && visibleSelection && (
         <ClearButton
           icon={<IconClose />}
-          borderless
+          priority="transparent"
           size="xs"
           onClick={onClear}
           aria-label={t('Clear')}

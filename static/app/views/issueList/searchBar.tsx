@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -19,7 +20,6 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {
   SearchBarData,
@@ -34,7 +34,6 @@ interface Props extends Partial<SearchQueryBuilderProps> {
 }
 
 function IssueListSearchBar({
-  organization,
   searchSource = 'issues',
   initialQuery = '',
   ...props

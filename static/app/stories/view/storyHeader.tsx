@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Heading} from 'sentry/components/core/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
+
 import {IconGithub, IconLink} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

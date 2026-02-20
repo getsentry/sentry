@@ -84,6 +84,6 @@ class WebhookPayloadTest(TestCase):
 
             new_delta = hook.schedule_for.replace(microsecond=0) - start
             assert new_delta <= timedelta(hours=1, minutes=27)
-            assert round(expected_deltas[hook.attempts]) == round(
-                new_delta.total_seconds() / 60
-            ), f"{expected_deltas} attempt: {hook.attempts}"
+            assert round(expected_deltas[hook.attempts]) == round(new_delta.total_seconds() / 60), (
+                f"{expected_deltas} attempt: {hook.attempts}"
+            )

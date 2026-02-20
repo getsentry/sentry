@@ -75,7 +75,6 @@ def get_invite_state(
     user_id: int | None,
     request: HttpRequest,
 ) -> RpcUserInviteContext | None:
-
     if organization_id_or_slug is None:
         return handle_empty_organization_id_or_slug(member_id, user_id, request)
 

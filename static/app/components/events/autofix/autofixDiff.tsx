@@ -3,12 +3,12 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {diffWords, type Change} from 'diff';
 
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
   DiffLineType,
@@ -479,7 +479,7 @@ function DiffHunkContent({
                   size="xs"
                   icon={<IconEdit size="xs" />}
                   aria-label={t('Edit changes')}
-                  title={t('Edit')}
+                  tooltipProps={{title: t('Edit')}}
                   onClick={() => handleEditClick(index)}
                   isHovered={hoveredGroup === index}
                 />
@@ -487,7 +487,7 @@ function DiffHunkContent({
                   size="xs"
                   icon={<IconClose size="xs" />}
                   aria-label={t('Reject changes')}
-                  title={t('Reject')}
+                  tooltipProps={{title: t('Reject')}}
                   onClick={() => rejectChanges(index)}
                   isHovered={hoveredGroup === index}
                 />
@@ -548,7 +548,7 @@ function DiffHunkContent({
                   onClick={handleClearChanges}
                   aria-label={t('Clear changes')}
                   icon={<IconDelete size="xs" />}
-                  title={t('Clear all new lines')}
+                  tooltipProps={{title: t('Clear all new lines')}}
                 />
               </TextAreaWrapper>
             </OverlayContent>
@@ -601,7 +601,7 @@ function FileDiff({
             aria-label={t('Toggle file diff')}
             aria-expanded={isExpanded}
             size="zero"
-            borderless
+            priority="transparent"
           />
         </FileHeader>
       )}

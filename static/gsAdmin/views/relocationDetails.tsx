@@ -1,6 +1,9 @@
 import {useState} from 'react';
 import moment from 'moment-timezone';
 
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {Link} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -9,8 +12,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Link} from 'sentry/components/core/link';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -552,7 +553,7 @@ function RelocationDetails() {
         panelTitle="Relocated Customers"
         path={`/_admin/relocations/${relocationData.uuid}/`}
         api={regionApi}
-        endpoint="/customers/"
+        endpoint={`/_admin/cells/${regionName}/customers/`}
         method="GET"
         columns={[
           <th key="customer">Customer</th>,
