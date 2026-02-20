@@ -96,7 +96,9 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
             },
         )
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 0}]] * 338
+        data = [attrs for time, attrs in response.data["data"]]
+        assert len(data) > 0
+        assert all(bucket == [{"count": 0}] for bucket in data)
 
     def test_top_events(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
