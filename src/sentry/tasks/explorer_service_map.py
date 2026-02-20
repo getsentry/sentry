@@ -18,6 +18,7 @@ import orjson
 from django.utils import timezone as django_timezone
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -340,7 +341,9 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
 
     try:
         organization = Organization.objects.get(id=organization_id)
-        projects = list(Project.objects.filter(organization_id=organization_id))
+        projects = list(
+            Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
+        )
 
         if not projects:
             logger.info("No projects found for organization", extra={"org_id": organization_id})
