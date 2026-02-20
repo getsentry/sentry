@@ -74,4 +74,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
   },
+  'account-subscriptions.subscribed': {
+    name: 'subscribed',
+    formId: 'account-subscriptions',
+    route: '/settings/account/subscriptions/',
+  },
 };

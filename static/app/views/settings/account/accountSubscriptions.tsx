@@ -3,7 +3,7 @@ import {mutationOptions} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -90,89 +90,96 @@ function AccountSubscriptions() {
       </TextBlock>
 
       {subscriptions.length ? (
-        subGroups.map(([email, subs]) => (
-          <FieldGroup
-            key={email}
-            title={
-              subGroups.length > 1 ? (
-                <Flex gap="sm" align="center">
-                  <IconSliders />
-                  <Text>{t('Subscriptions for %s', email)}</Text>
-                </Flex>
-              ) : (
-                t('Subscription')
-              )
-            }
-          >
-            {subs
-              .sort((a, b) => a.listId - b.listId)
-              .map((subscription, i) => {
-                const subMutationOptions = mutationOptions({
-                  mutationFn: (data: z.infer<typeof subscriptionSchema>) =>
-                    fetchMutation({
-                      url: ENDPOINT,
-                      method: 'PUT',
-                      data: {...subscription, ...data},
-                    }),
-                  onSuccess: (_, variables) => {
-                    addSuccessMessage(
-                      `${variables.subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
-                    );
-                    setApiQueryData<Subscription[]>(queryClient, [ENDPOINT], cachedSubs =>
-                      cachedSubs?.map(sub =>
-                        sub.listId === subscription.listId ? {...sub, ...variables} : sub
-                      )
-                    );
-                  },
-                  onError: () => {
-                    addErrorMessage(
-                      `Unable to ${subscription.subscribed ? 'un' : ''}subscribe to ${subscription.listName}`
-                    );
-                  },
-                });
-
-                return (
-                  <AutoSaveField
-                    key={`${email}-${subscription.listId}-${i}`}
-                    name="subscribed"
-                    schema={subscriptionSchema}
-                    initialValue={subscription.subscribed}
-                    mutationOptions={subMutationOptions}
-                  >
-                    {field => {
-                      const isSubscribed = field.state.value;
-                      const statusText = isSubscribed
-                        ? subscription.subscribedDate
-                          ? `${subscription.email} on ${moment(subscription.subscribedDate).format('ll')}`
-                          : undefined
-                        : t('You are currently unsubscribed from this list.');
-
-                      const hintText =
-                        subscription.listDescription || statusText ? (
-                          <Fragment>
-                            {subscription.listDescription}
-                            {subscription.listDescription && statusText ? <br /> : null}
-                            {statusText}
-                          </Fragment>
-                        ) : undefined;
-
-                      return (
-                        <field.Layout.Row
-                          label={subscription.listName}
-                          hintText={hintText}
-                        >
-                          <field.Switch
-                            checked={field.state.value}
-                            onChange={field.handleChange}
-                          />
-                        </field.Layout.Row>
+        <FormSearch route="/settings/account/subscriptions/">
+          {subGroups.map(([email, subs]) => (
+            <FieldGroup
+              key={email}
+              title={
+                subGroups.length > 1 ? (
+                  <Flex gap="sm" align="center">
+                    <IconSliders />
+                    <Text>{t('Subscriptions for %s', email)}</Text>
+                  </Flex>
+                ) : (
+                  t('Subscription')
+                )
+              }
+            >
+              {subs
+                .sort((a, b) => a.listId - b.listId)
+                .map((subscription, i) => {
+                  const subMutationOptions = mutationOptions({
+                    mutationFn: (data: z.infer<typeof subscriptionSchema>) =>
+                      fetchMutation({
+                        url: ENDPOINT,
+                        method: 'PUT',
+                        data: {...subscription, ...data},
+                      }),
+                    onSuccess: (_, variables) => {
+                      addSuccessMessage(
+                        `${variables.subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
                       );
-                    }}
-                  </AutoSaveField>
-                );
-              })}
-          </FieldGroup>
-        ))
+                      setApiQueryData<Subscription[]>(
+                        queryClient,
+                        [ENDPOINT],
+                        cachedSubs =>
+                          cachedSubs?.map(sub =>
+                            sub.listId === subscription.listId
+                              ? {...sub, ...variables}
+                              : sub
+                          )
+                      );
+                    },
+                    onError: () => {
+                      addErrorMessage(
+                        `Unable to ${subscription.subscribed ? 'un' : ''}subscribe to ${subscription.listName}`
+                      );
+                    },
+                  });
+
+                  return (
+                    <AutoSaveField
+                      key={`${email}-${subscription.listId}-${i}`}
+                      name="subscribed"
+                      schema={subscriptionSchema}
+                      initialValue={subscription.subscribed}
+                      mutationOptions={subMutationOptions}
+                    >
+                      {field => {
+                        const isSubscribed = field.state.value;
+                        const statusText = isSubscribed
+                          ? subscription.subscribedDate
+                            ? `${subscription.email} on ${moment(subscription.subscribedDate).format('ll')}`
+                            : undefined
+                          : t('You are currently unsubscribed from this list.');
+
+                        const hintText =
+                          subscription.listDescription || statusText ? (
+                            <Fragment>
+                              {subscription.listDescription}
+                              {subscription.listDescription && statusText ? <br /> : null}
+                              {statusText}
+                            </Fragment>
+                          ) : undefined;
+
+                        return (
+                          <field.Layout.Row
+                            label={subscription.listName}
+                            hintText={hintText}
+                          >
+                            <field.Switch
+                              checked={field.state.value}
+                              onChange={field.handleChange}
+                            />
+                          </field.Layout.Row>
+                        );
+                      }}
+                    </AutoSaveField>
+                  );
+                })}
+            </FieldGroup>
+          ))}
+        </FormSearch>
       ) : (
         <Panel>
           <EmptyMessage>{t("There's no subscription backend present.")}</EmptyMessage>
