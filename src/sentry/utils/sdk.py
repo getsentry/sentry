@@ -431,9 +431,9 @@ def configure_sdk():
             # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
                 if self._should_drop_s4s(method_name, *args):
-                    metrics.incr("internal.captured.events.upstream.s4s_dropped")
+                    metrics.incr("internal.captured.events.upstream.s4s_dropped", sample_rate=0.01)
                 else:
-                    metrics.incr("internal.captured.events.upstream")
+                    metrics.incr("internal.captured.events.upstream", sample_rate=0.01)
                     # TODO(mattrobenolt): Bring this back safely.
                     # from sentry import options
                     # install_id = options.get('sentry:install-id')

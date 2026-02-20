@@ -149,17 +149,20 @@ def launch_coding_agents(
             error_message = "Failed to launch coding agent"
             github_installation_id: str | None = None
             if isinstance(e, ApiError) and e.code == 403 and is_github_copilot:
-                failure_type = "github_app_permissions"
-                error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
-                try:
-                    github_integrations = integration_service.get_integrations(
-                        organization_id=organization.id,
-                        providers=["github"],
-                    )
-                    if github_integrations:
-                        github_installation_id = github_integrations[0].external_id
-                except Exception:
-                    sentry_sdk.capture_exception(level="warning")
+                if e.text and "not licensed" in e.text:
+                    error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
+                else:
+                    failure_type = "github_app_permissions"
+                    error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
+                    try:
+                        github_integrations = integration_service.get_integrations(
+                            organization_id=organization.id,
+                            providers=["github"],
+                        )
+                        if github_integrations:
+                            github_installation_id = github_integrations[0].external_id
+                    except Exception:
+                        sentry_sdk.capture_exception(level="warning")
 
             failure: dict = {
                 "repo_name": repo_name,

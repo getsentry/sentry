@@ -69,9 +69,31 @@ Classes like `Validator`, `ManualTokenRefresher`, `GrantExchanger`, and `Refresh
 
 `validate_*()` methods and field-level validators may enforce org/project scoping on FK references.
 
+## Non-DRF Views
+
+OAuth views (`OAuthAuthorizeView`, `OAuthDeviceView`, `OAuthTokenView`) are plain Django views, **not** DRF endpoints. Layers 1–4 do not apply to the view itself. Check the view's own authentication decorators, `dispatch()`, and handler logic directly.
+
+However, tokens issued by these views are later used at DRF API endpoints where layers 1–7 **do** apply. See "Cross-Flow Enforcement" below.
+
+## Cross-Flow Enforcement
+
+For token and credential issuance, enforcement may exist in a **different request flow** than the one being reviewed:
+
+- **Issuance flow**: The OAuth authorize/token view that creates the credential
+- **Usage flow**: The DRF API endpoints where the credential is subsequently used
+
+If the issued credential cannot be used because a separate enforcement point blocks it, classify based on where the enforcement lives:
+
+- **Centralized enforcement** — the check runs in a permission class inherited by all endpoints within the affected scope. The credential cannot reach any endpoint that lacks the check. Classify as **LOW** (do not report).
+- **Scattered enforcement** — the check exists in some endpoints or serializers but not all. The credential may be usable against unchecked endpoints. Classify as **MEDIUM** (report as needs verification).
+
+**Example (LOW — centralized):** OAuth authorize view issues a token to a `member-limit:restricted` member. The token exists, but `is_member_disabled_from_limit()` in `OrganizationPermission.determine_access()` rejects it at every organization-scoped DRF endpoint. Since the token is only usable against organization endpoints (which all inherit this permission class), the enforcement covers all relevant paths. Do not report.
+
+**Example (MEDIUM — scattered):** A token is issued without checking X, and X is only validated in specific endpoint subclasses (not the base). Some endpoints may not inherit the check. Report as needs verification.
+
 ## Tracing Requirements
 
-Before marking a finding as **HIGH**, confirm the check is absent from **all** layers:
+Before marking a finding as **HIGH**, confirm the check is absent from **all** layers AND from cross-flow enforcement:
 
 ```
 □ Authentication class does not enforce it
@@ -81,6 +103,7 @@ Before marking a finding as **HIGH**, confirm the check is absent from **all** l
 □ Handler method does not enforce it
 □ Business logic classes do not enforce it
 □ Serializer does not enforce it
+□ Cross-flow: the issued credential is not blocked at usage time
 ```
 
-If the check exists in any layer, the finding is either invalid or at most **MEDIUM** (if the enforcement is indirect or fragile).
+If the check exists in any layer or in a cross-flow enforcement point, the finding is either invalid, **LOW** (if enforcement is centralized in a base class), or at most **MEDIUM** (if enforcement is scattered or fragile).

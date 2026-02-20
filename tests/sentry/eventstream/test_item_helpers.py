@@ -4,9 +4,14 @@ from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 
 from sentry.db.models import NodeData
-from sentry.eventstream.item_helpers import encode_attributes, serialize_event_data_as_item
+from sentry.eventstream.item_helpers import (
+    _ENCODE_MAX_DEPTH,
+    encode_attributes,
+    serialize_event_data_as_item,
+)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 from sentry.utils.eap import hex_to_item_id, item_id_to_hex
 
 
@@ -427,3 +432,75 @@ class ItemHelpersTest(TestCase):
             assert recovered_event_id == original_event_id, (
                 f"Encoding scheme failed for event_id {original_event_id}: got {recovered_event_id}"
             )
+
+    def test_encode_attributes_at_max_depth_boundary(self) -> None:
+        nested: Any = 42
+        for _ in range(_ENCODE_MAX_DEPTH):
+            nested = [nested]
+
+        event_data = {"field": nested, "tags": []}
+        event = Event(event_id="a" * 32, data=event_data, project_id=self.project.id)
+        result = encode_attributes(event, event_data)
+
+        current = result["field"]
+        for _ in range(_ENCODE_MAX_DEPTH):
+            assert current.HasField("array_value")
+            assert len(current.array_value.values) == 1
+            current = current.array_value.values[0]
+        assert current.HasField("int_value")
+        assert current.int_value == 42
+
+    def test_encode_attributes_deeply_nested_list_stringifies(self) -> None:
+        nested: Any = "leaf"
+        for _ in range(_ENCODE_MAX_DEPTH + 5):
+            nested = [nested]
+
+        event_data = {"field": nested, "tags": []}
+        event = Event(event_id="a" * 32, data=event_data, project_id=self.project.id)
+        result = encode_attributes(event, event_data)
+
+        # Walk down to the stringification boundary
+        current = result["field"]
+        for _ in range(_ENCODE_MAX_DEPTH + 1):
+            assert current.HasField("array_value")
+            assert len(current.array_value.values) == 1
+            current = current.array_value.values[0]
+        assert current.HasField("string_value")
+        parsed = json.loads(current.string_value)
+        assert isinstance(parsed, list)
+
+    def test_encode_attributes_deeply_nested_dict_stringifies(self) -> None:
+        nested: Any = "leaf"
+        for i in range(_ENCODE_MAX_DEPTH + 3):
+            nested = {f"key_{i}": nested}
+
+        event_data = {"field": nested, "tags": []}
+        event = Event(event_id="a" * 32, data=event_data, project_id=self.project.id)
+        result = encode_attributes(event, event_data)
+
+        current = result["field"]
+        for _ in range(_ENCODE_MAX_DEPTH + 1):
+            assert current.HasField("kvlist_value")
+            assert len(current.kvlist_value.values) == 1
+            current = current.kvlist_value.values[0].value
+        assert current.HasField("string_value")
+        parsed = json.loads(current.string_value)
+        assert isinstance(parsed, dict)
+
+    def test_serialize_event_data_as_item_deeply_nested(self) -> None:
+        nested: Any = "template_var"
+        for _ in range(51):
+            nested = [nested]
+
+        event_data = {
+            "event_id": "a" * 32,
+            "timestamp": 1234567890,
+            "contexts": {"trace": {"trace_id": "b" * 32}},
+            "template_context": nested,
+            "tags": [],
+        }
+        event = self.create_group_event(event_data)
+        project = self.create_project()
+
+        result = serialize_event_data_as_item(event, event_data, project)
+        assert result.item_type == TRACE_ITEM_TYPE_OCCURRENCE
