@@ -50,9 +50,16 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
   useIssueDetailsTour: () => mockTour(),
 }));
+jest.mock('sentry/utils/analytics', () => {
+  const actual = jest.requireActual('sentry/utils/analytics');
+  return {
+    ...actual,
+    trackAnalytics: jest.fn(actual.trackAnalytics),
+  };
+});
 
 describe('GroupActions', () => {
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const analyticsSpy = jest.mocked(analytics.trackAnalytics);
 
   beforeEach(() => {
     ConfigStore.init();
