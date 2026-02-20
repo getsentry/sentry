@@ -13,10 +13,10 @@ from sentry.scm.helpers import (
 )
 from sentry.scm.types import (
     ActionResult,
+    BuildConclusion,
+    BuildStatus,
     CheckRun,
-    CheckRunConclusion,
     CheckRunOutput,
-    CheckRunStatus,
     Comment,
     Commit,
     CommitComparison,
@@ -332,8 +332,8 @@ class SourceCodeManager:
         self,
         name: str,
         head_sha: str,
-        status: CheckRunStatus | None = None,
-        conclusion: CheckRunConclusion | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
@@ -358,8 +358,8 @@ class SourceCodeManager:
     def update_check_run(
         self,
         check_run_id: str,
-        status: CheckRunStatus | None = None,
-        conclusion: CheckRunConclusion | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         output: CheckRunOutput | None = None,
     ) -> ActionResult[CheckRun]:
         return self._exec(

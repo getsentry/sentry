@@ -5,10 +5,10 @@ from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import (
     ActionResult,
     Author,
+    BuildConclusion,
+    BuildStatus,
     CheckRun,
-    CheckRunConclusion,
     CheckRunOutput,
-    CheckRunStatus,
     Comment,
     Commit,
     CommitAuthor,
@@ -36,6 +36,51 @@ from sentry.scm.types import (
     TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
+
+# GitHub's Checks API status values map to generic BuildStatus.
+# "requested", "waiting", and "pending" are GitHub Actions-internal states that
+# cannot be set via the API; we treat them as "pending" when reading.
+GITHUB_STATUS_MAP: dict[str, BuildStatus] = {
+    "queued": "pending",
+    "requested": "pending",
+    "waiting": "pending",
+    "pending": "pending",
+    "in_progress": "running",
+    "completed": "completed",
+}
+
+# GitHub's conclusion values map 1-to-1 except "stale" (GitHub-internal, set
+# automatically after 14 days) which we surface as "unknown".
+GITHUB_CONCLUSION_MAP: dict[str, BuildConclusion] = {
+    "success": "success",
+    "failure": "failure",
+    "neutral": "neutral",
+    "cancelled": "cancelled",
+    "skipped": "skipped",
+    "timed_out": "timed_out",
+    "action_required": "action_required",
+    "stale": "unknown",
+}
+
+# Reverse maps for writing to GitHub's Checks API.
+# "pending" maps to "queued" (the only writable in-queue state).
+# "unknown" has no GitHub equivalent and is omitted; callers should not write it.
+GITHUB_STATUS_WRITE_MAP: dict[BuildStatus, str] = {
+    "pending": "queued",
+    "running": "in_progress",
+    "completed": "completed",
+}
+
+GITHUB_CONCLUSION_WRITE_MAP: dict[BuildConclusion, str] = {
+    "success": "success",
+    "failure": "failure",
+    "neutral": "neutral",
+    "cancelled": "cancelled",
+    "skipped": "skipped",
+    "timed_out": "timed_out",
+    "action_required": "action_required",
+    "unknown": "neutral",
+}
 
 REACTION_MAP = {
     "+1": GitHubReaction.PLUS_ONE,
@@ -234,12 +279,14 @@ def _transform_review(raw: dict[str, Any]) -> ActionResult[Review]:
 
 
 def _transform_check_run(raw: dict[str, Any]) -> ActionResult[CheckRun]:
+    raw_status = raw.get("status", "")
+    raw_conclusion = raw.get("conclusion")
     return ActionResult(
         data=CheckRun(
             id=raw["id"],
             name=raw.get("name", ""),
-            status=raw.get("status", ""),
-            conclusion=raw.get("conclusion"),
+            status=GITHUB_STATUS_MAP.get(raw_status, "pending"),
+            conclusion=GITHUB_CONCLUSION_MAP.get(raw_conclusion) if raw_conclusion else None,
             html_url=raw.get("html_url", ""),
         ),
         type="github",
@@ -738,8 +785,8 @@ class GitHubProvider:
         self,
         name: str,
         head_sha: str,
-        status: CheckRunStatus | None = None,
-        conclusion: CheckRunConclusion | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
@@ -750,9 +797,9 @@ class GitHubProvider:
             "head_sha": head_sha,
         }
         if status is not None:
-            data["status"] = status
+            data["status"] = GITHUB_STATUS_WRITE_MAP[status]
         if conclusion is not None:
-            data["conclusion"] = conclusion
+            data["conclusion"] = GITHUB_CONCLUSION_WRITE_MAP[conclusion]
         if external_id is not None:
             data["external_id"] = external_id
         if started_at is not None:
@@ -777,15 +824,15 @@ class GitHubProvider:
     def update_check_run(
         self,
         check_run_id: str,
-        status: CheckRunStatus | None = None,
-        conclusion: CheckRunConclusion | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         output: CheckRunOutput | None = None,
     ) -> ActionResult[CheckRun]:
         data: dict[str, Any] = {}
         if status is not None:
-            data["status"] = status
+            data["status"] = GITHUB_STATUS_WRITE_MAP[status]
         if conclusion is not None:
-            data["conclusion"] = conclusion
+            data["conclusion"] = GITHUB_CONCLUSION_WRITE_MAP[conclusion]
         if output is not None:
             data["output"] = output
         try:

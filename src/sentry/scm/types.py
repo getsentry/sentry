@@ -1,20 +1,90 @@
 from typing import Any, Literal, Protocol, Required, TypedDict
 
 type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
+"""The SCM provider that owns an integration or repository."""
+
 type ExternalId = str
+
 type Reaction = Literal["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"]
+"""Normalized reaction identifiers shared across all SCM providers."""
+
 type Referrer = Literal["emerge", "shared"]
+"""
+Identifies the caller so providers can apply per-referrer rate-limit policies and emit metrics
+scoped by referrer.
+"""
+
 type RepositoryId = int | tuple[ProviderName, ExternalId]
+"""A repository can be identified by its internal DB id or by a (provider, external_id) pair."""
+
 type FileStatus = Literal[
     "added", "removed", "modified", "renamed", "copied", "changed", "unchanged"
 ]
-type CheckRunStatus = Literal["queued", "in_progress", "completed"]
-type CheckRunConclusion = Literal[
-    "success", "failure", "neutral", "cancelled", "skipped", "timed_out", "action_required"
+"""The change type applied to a file in a commit or pull request.
+
+- added: file was created
+- removed: file was deleted
+- modified: file contents changed
+- renamed: file was moved; see previous_filename for the old path
+- copied: file was duplicated from another path
+- changed: file metadata changed without content change (e.g. mode)
+- unchanged: file appears in the diff context but was not modified
+"""
+
+type BuildStatus = Literal["pending", "running", "completed"]
+"""The lifecycle stage of a CI build.
+
+- pending: created or queued but not yet running
+- running: actively executing
+- completed: finished; see BuildConclusion for the outcome
+"""
+
+type BuildConclusion = Literal[
+    "success",
+    "failure",
+    "cancelled",
+    "skipped",
+    "timed_out",
+    "neutral",
+    "action_required",
+    "unknown",
 ]
+"""The terminal outcome of a completed build.
+
+- success: all checks passed
+- failure: one or more checks failed
+- cancelled: stopped before completion
+- skipped: deliberately bypassed
+- timed_out: exceeded the time limit
+- neutral: completed without a pass/fail determination
+- action_required: requires manual intervention before proceeding
+- unknown: outcome could not be determined
+"""
+
 type TreeEntryMode = Literal["100644", "100755", "040000", "160000", "120000"]
+"""UNIX file mode for a git tree entry, as stored in a git tree object.
+
+- 100644: regular file (non-executable)
+- 100755: executable file
+- 040000: directory (subtree)
+- 160000: git submodule (gitlink)
+- 120000: symbolic link
+"""
+
 type TreeEntryType = Literal["blob", "tree", "commit"]
+"""The object type stored at a git tree entry.
+
+- blob: a file
+- tree: a directory (subtree)
+- commit: a submodule reference
+"""
+
 type ReviewSide = Literal["LEFT", "RIGHT"]
+"""Which side of a diff a review comment is anchored to.
+
+- LEFT: the base (original) side of the diff
+- RIGHT: the head (modified) side of the diff
+"""
 
 
 class Author(TypedDict):
@@ -212,8 +282,8 @@ class CheckRun(TypedDict):
 
     id: int
     name: str
-    status: CheckRunStatus
-    conclusion: CheckRunConclusion | None
+    status: BuildStatus
+    conclusion: BuildConclusion | None
     html_url: str
 
 
@@ -364,8 +434,8 @@ class Provider(Protocol):
         self,
         name: str,
         head_sha: str,
-        status: CheckRunStatus | None = None,
-        conclusion: CheckRunConclusion | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
@@ -377,8 +447,8 @@ class Provider(Protocol):
     def update_check_run(
         self,
         check_run_id: str,
-        status: CheckRunStatus | None = None,
-        conclusion: CheckRunConclusion | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         output: CheckRunOutput | None = None,
     ) -> ActionResult[CheckRun]: ...
 
