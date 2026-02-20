@@ -7,7 +7,7 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.scm.actions import SourceCodeManager
 from sentry.scm.errors import SCMCodedError, SCMProviderException
-from sentry.scm.types import ReactionResult, Repository
+from sentry.scm.types import ActionResult, ReactionResult, Repository
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 
@@ -198,38 +198,38 @@ def _check_pull_request_comments(result: Any) -> None:
 
 def _check_comment_reactions(result: Any) -> None:
     assert len(result) == 2
-    assert result[0]["id"] == "1"
-    assert result[0]["content"] == "+1"
-    assert result[1]["id"] == "2"
-    assert result[1]["content"] == "eyes"
+    assert result[0]["data"]["id"] == "1"
+    assert result[0]["data"]["content"] == "+1"
+    assert result[1]["data"]["id"] == "2"
+    assert result[1]["data"]["content"] == "eyes"
 
 
 def _check_pr_comment_reactions(result: Any) -> None:
     assert len(result) == 2
-    assert result[0]["id"] == "3"
-    assert result[0]["content"] == "rocket"
-    assert result[1]["id"] == "4"
-    assert result[1]["content"] == "hooray"
+    assert result[0]["data"]["id"] == "3"
+    assert result[0]["data"]["content"] == "rocket"
+    assert result[1]["data"]["id"] == "4"
+    assert result[1]["data"]["content"] == "hooray"
 
 
 def _check_issue_reactions(result: Any) -> None:
     assert len(result) == 2
-    assert result[0]["id"] == "1"
-    assert result[0]["content"] == "+1"
-    assert result[0]["author"]["username"] == "testuser"
-    assert result[1]["id"] == "2"
-    assert result[1]["content"] == "heart"
-    assert result[1]["author"]["username"] == "otheruser"
+    assert result[0]["data"]["id"] == "1"
+    assert result[0]["data"]["content"] == "+1"
+    assert result[0]["data"]["author"]["username"] == "testuser"
+    assert result[1]["data"]["id"] == "2"
+    assert result[1]["data"]["content"] == "heart"
+    assert result[1]["data"]["author"]["username"] == "otheruser"
 
 
 def _check_pr_reactions(result: Any) -> None:
     assert len(result) == 2
-    assert result[0]["id"] == "5"
-    assert result[0]["content"] == "laugh"
-    assert result[0]["author"]["username"] == "testuser"
-    assert result[1]["id"] == "6"
-    assert result[1]["content"] == "confused"
-    assert result[1]["author"]["username"] == "otheruser"
+    assert result[0]["data"]["id"] == "5"
+    assert result[0]["data"]["content"] == "laugh"
+    assert result[0]["data"]["author"]["username"] == "testuser"
+    assert result[1]["data"]["id"] == "6"
+    assert result[1]["data"]["content"] == "confused"
+    assert result[1]["data"]["author"]["username"] == "otheruser"
 
 
 def _check_get_branch(result: Any) -> None:
@@ -566,7 +566,7 @@ def test_provider_exception_is_not_wrapped():
     """SCMProviderException should pass through exec_provider_fn, not be wrapped as SCMUnhandledException."""
 
     class FailingProvider(BaseTestProvider):
-        def get_issue_reactions(self, issue_id: str) -> list[ReactionResult]:
+        def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]:
             raise SCMProviderException("GitHub API error")
 
     scm = SourceCodeManager(

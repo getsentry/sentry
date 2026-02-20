@@ -70,11 +70,15 @@ def _transform_comment(raw: dict[str, Any]) -> ActionResult[Comment]:
     )
 
 
-def _transform_reaction(raw: dict[str, Any]) -> ReactionResult:
-    return ReactionResult(
-        id=str(raw["id"]),
-        content=raw["content"],
-        author=_transform_author(raw.get("user")),
+def _transform_reaction(raw: dict[str, Any]) -> ActionResult[ReactionResult]:
+    return ActionResult(
+        data=ReactionResult(
+            id=str(raw["id"]),
+            content=raw["content"],
+            author=_transform_author(raw.get("user")),
+        ),
+        type="github",
+        raw=raw,
     )
 
 
@@ -394,7 +398,7 @@ class GitHubProvider:
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
 
-    def get_issue_comment_reactions(self, comment_id: str) -> list[ReactionResult]:
+    def get_issue_comment_reactions(self, comment_id: str) -> list[ActionResult[ReactionResult]]:
         try:
             raw_reactions = self.client.get_comment_reactions(self.repository["name"], comment_id)
         except ApiError as e:
@@ -416,7 +420,9 @@ class GitHubProvider:
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
 
-    def get_pull_request_comment_reactions(self, comment_id: str) -> list[ReactionResult]:
+    def get_pull_request_comment_reactions(
+        self, comment_id: str
+    ) -> list[ActionResult[ReactionResult]]:
         return self.get_issue_comment_reactions(comment_id)
 
     def create_pull_request_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
@@ -425,7 +431,7 @@ class GitHubProvider:
     def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
         return self.delete_issue_comment_reaction(comment_id, reaction_id)
 
-    def get_issue_reactions(self, issue_id: str) -> list[ReactionResult]:
+    def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]:
         try:
             raw_reactions = self.client.get_issue_reactions(self.repository["name"], issue_id)
         except ApiError as e:
@@ -445,7 +451,9 @@ class GitHubProvider:
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
 
-    def get_pull_request_reactions(self, pull_request_id: str) -> list[ReactionResult]:
+    def get_pull_request_reactions(
+        self, pull_request_id: str
+    ) -> list[ActionResult[ReactionResult]]:
         return self.get_issue_reactions(pull_request_id)
 
     def create_pull_request_reaction(self, pull_request_id: str, reaction: Reaction) -> None:

@@ -511,12 +511,12 @@ def _check_pull_request(result: Any) -> None:
 
 def _check_comment_reactions(result: Any) -> None:
     assert len(result) == 2
-    assert result[0]["id"] == "1"
-    assert result[0]["content"] == "+1"
-    assert result[0]["author"] is not None
-    assert result[0]["author"]["id"] == "123"
-    assert result[1]["id"] == "2"
-    assert result[1]["content"] == "eyes"
+    assert result[0]["data"]["id"] == "1"
+    assert result[0]["data"]["content"] == "+1"
+    assert result[0]["data"]["author"] is not None
+    assert result[0]["data"]["author"]["id"] == "123"
+    assert result[1]["data"]["id"] == "2"
+    assert result[1]["data"]["content"] == "eyes"
 
 
 def _check_get_branch(result: Any) -> None:
@@ -533,13 +533,13 @@ def _check_create_branch(result: Any) -> None:
 
 def _check_issue_reactions(result: Any) -> None:
     assert len(result) == 2
-    assert result[0]["id"] == "1"
-    assert result[0]["content"] == "heart"
-    assert result[0]["author"] is not None
-    assert result[0]["author"]["id"] == "123"
-    assert result[0]["author"]["username"] == "testuser"
-    assert result[1]["id"] == "2"
-    assert result[1]["content"] == "+1"
+    assert result[0]["data"]["id"] == "1"
+    assert result[0]["data"]["content"] == "heart"
+    assert result[0]["data"]["author"] is not None
+    assert result[0]["data"]["author"]["id"] == "123"
+    assert result[0]["data"]["author"]["username"] == "testuser"
+    assert result[1]["data"]["id"] == "2"
+    assert result[1]["data"]["content"] == "+1"
 
 
 def _check_create_git_blob(result: Any) -> None:
@@ -951,9 +951,9 @@ class TestGetIssueReactionsEdgeCases:
         reactions = provider.get_issue_reactions("42")
 
         assert len(reactions) == 1
-        assert reactions[0]["id"] == "1"
-        assert reactions[0]["content"] == "eyes"
-        assert reactions[0]["author"] is None
+        assert reactions[0]["data"]["id"] == "1"
+        assert reactions[0]["data"]["content"] == "eyes"
+        assert reactions[0]["data"]["author"] is None
 
     def test_raises_key_error_on_malformed_response(self):
         repository = make_repository()

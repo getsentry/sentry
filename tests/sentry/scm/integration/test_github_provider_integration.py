@@ -247,12 +247,12 @@ class TestGitHubProviderIntegration(TestCase):
         reactions = self.provider.get_issue_comment_reactions("42")
 
         assert len(reactions) == 2
-        assert reactions[0]["id"] == "1"
-        assert reactions[0]["content"] == "+1"
-        assert reactions[0]["author"] is not None
-        assert reactions[0]["author"]["username"] == "octocat"
-        assert reactions[1]["id"] == "2"
-        assert reactions[1]["content"] == "eyes"
+        assert reactions[0]["data"]["id"] == "1"
+        assert reactions[0]["data"]["content"] == "+1"
+        assert reactions[0]["data"]["author"] is not None
+        assert reactions[0]["data"]["author"]["username"] == "octocat"
+        assert reactions[1]["data"]["id"] == "2"
+        assert reactions[1]["data"]["content"] == "eyes"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -323,16 +323,16 @@ class TestGitHubProviderIntegration(TestCase):
         reactions = self.provider.get_issue_reactions("42")
 
         assert len(reactions) == 2
-        assert reactions[0]["id"] == "1"
-        assert reactions[0]["content"] == "heart"
-        assert reactions[0]["author"] is not None
-        assert reactions[0]["author"]["id"] == "1"
-        assert reactions[0]["author"]["username"] == "octocat"
-        assert reactions[1]["id"] == "2"
-        assert reactions[1]["content"] == "+1"
-        assert reactions[1]["author"] is not None
-        assert reactions[1]["author"]["id"] == "2"
-        assert reactions[1]["author"]["username"] == "hubot"
+        assert reactions[0]["data"]["id"] == "1"
+        assert reactions[0]["data"]["content"] == "heart"
+        assert reactions[0]["data"]["author"] is not None
+        assert reactions[0]["data"]["author"]["id"] == "1"
+        assert reactions[0]["data"]["author"]["username"] == "octocat"
+        assert reactions[1]["data"]["id"] == "2"
+        assert reactions[1]["data"]["content"] == "+1"
+        assert reactions[1]["data"]["author"] is not None
+        assert reactions[1]["data"]["author"]["id"] == "2"
+        assert reactions[1]["data"]["author"]["username"] == "hubot"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

@@ -145,7 +145,7 @@ class SourceCodeManager:
         """Delete a comment on a pull request."""
         return self._exec(lambda p: p.delete_pull_request_comment(comment_id))
 
-    def get_issue_comment_reactions(self, comment_id: str) -> list[ReactionResult]:
+    def get_issue_comment_reactions(self, comment_id: str) -> list[ActionResult[ReactionResult]]:
         """Get reactions on an issue comment."""
         return self._exec(lambda p: p.get_issue_comment_reactions(comment_id))
 
@@ -157,7 +157,9 @@ class SourceCodeManager:
         """Delete a reaction on an issue comment."""
         return self._exec(lambda p: p.delete_issue_comment_reaction(comment_id, reaction_id))
 
-    def get_pull_request_comment_reactions(self, comment_id: str) -> list[ReactionResult]:
+    def get_pull_request_comment_reactions(
+        self, comment_id: str
+    ) -> list[ActionResult[ReactionResult]]:
         """Get reactions on a pull request comment."""
         return self._exec(lambda p: p.get_pull_request_comment_reactions(comment_id))
 
@@ -169,7 +171,7 @@ class SourceCodeManager:
         """Delete a reaction on a pull request comment."""
         return self._exec(lambda p: p.delete_pull_request_comment_reaction(comment_id, reaction_id))
 
-    def get_issue_reactions(self, issue_id: str) -> list[ReactionResult]:
+    def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]:
         """Get reactions on an issue."""
         return self._exec(lambda p: p.get_issue_reactions(issue_id))
 
@@ -181,7 +183,9 @@ class SourceCodeManager:
         """Delete a reaction on an issue."""
         return self._exec(lambda p: p.delete_issue_reaction(issue_id, reaction_id))
 
-    def get_pull_request_reactions(self, pull_request_id: str) -> list[ReactionResult]:
+    def get_pull_request_reactions(
+        self, pull_request_id: str
+    ) -> list[ActionResult[ReactionResult]]:
         """Get reactions on a pull request."""
         return self._exec(lambda p: p.get_pull_request_reactions(pull_request_id))
 

@@ -514,10 +514,22 @@ class BaseTestProvider(Provider):
 
     # Issue comment reactions
 
-    def get_issue_comment_reactions(self, comment_id: str) -> list[ReactionResult]:
+    def get_issue_comment_reactions(self, comment_id: str) -> list[ActionResult[ReactionResult]]:
         return [
-            ReactionResult(id="1", content="+1", author={"id": "1", "username": "testuser"}),
-            ReactionResult(id="2", content="eyes", author={"id": "2", "username": "otheruser"}),
+            ActionResult(
+                data=ReactionResult(
+                    id="1", content="+1", author={"id": "1", "username": "testuser"}
+                ),
+                type="github",
+                raw={},
+            ),
+            ActionResult(
+                data=ReactionResult(
+                    id="2", content="eyes", author={"id": "2", "username": "otheruser"}
+                ),
+                type="github",
+                raw={},
+            ),
         ]
 
     def create_issue_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
@@ -528,10 +540,24 @@ class BaseTestProvider(Provider):
 
     # Pull request comment reactions
 
-    def get_pull_request_comment_reactions(self, comment_id: str) -> list[ReactionResult]:
+    def get_pull_request_comment_reactions(
+        self, comment_id: str
+    ) -> list[ActionResult[ReactionResult]]:
         return [
-            ReactionResult(id="3", content="rocket", author={"id": "1", "username": "testuser"}),
-            ReactionResult(id="4", content="hooray", author={"id": "2", "username": "otheruser"}),
+            ActionResult(
+                data=ReactionResult(
+                    id="3", content="rocket", author={"id": "1", "username": "testuser"}
+                ),
+                type="github",
+                raw={},
+            ),
+            ActionResult(
+                data=ReactionResult(
+                    id="4", content="hooray", author={"id": "2", "username": "otheruser"}
+                ),
+                type="github",
+                raw={},
+            ),
         ]
 
     def create_pull_request_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
@@ -542,10 +568,22 @@ class BaseTestProvider(Provider):
 
     # Issue reactions
 
-    def get_issue_reactions(self, issue_id: str) -> list[ReactionResult]:
+    def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]:
         return [
-            ReactionResult(id="1", content="+1", author={"id": "1", "username": "testuser"}),
-            ReactionResult(id="2", content="heart", author={"id": "2", "username": "otheruser"}),
+            ActionResult(
+                data=ReactionResult(
+                    id="1", content="+1", author={"id": "1", "username": "testuser"}
+                ),
+                type="github",
+                raw={},
+            ),
+            ActionResult(
+                data=ReactionResult(
+                    id="2", content="heart", author={"id": "2", "username": "otheruser"}
+                ),
+                type="github",
+                raw={},
+            ),
         ]
 
     def create_issue_reaction(self, issue_id: str, reaction: Reaction) -> None:
@@ -556,10 +594,24 @@ class BaseTestProvider(Provider):
 
     # Pull request reactions
 
-    def get_pull_request_reactions(self, pull_request_id: str) -> list[ReactionResult]:
+    def get_pull_request_reactions(
+        self, pull_request_id: str
+    ) -> list[ActionResult[ReactionResult]]:
         return [
-            ReactionResult(id="5", content="laugh", author={"id": "1", "username": "testuser"}),
-            ReactionResult(id="6", content="confused", author={"id": "2", "username": "otheruser"}),
+            ActionResult(
+                data=ReactionResult(
+                    id="5", content="laugh", author={"id": "1", "username": "testuser"}
+                ),
+                type="github",
+                raw={},
+            ),
+            ActionResult(
+                data=ReactionResult(
+                    id="6", content="confused", author={"id": "2", "username": "otheruser"}
+                ),
+                type="github",
+                raw={},
+            ),
         ]
 
     def create_pull_request_reaction(self, pull_request_id: str, reaction: Reaction) -> None:
