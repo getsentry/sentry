@@ -46,6 +46,25 @@ class AutofixStep(StrEnum):
     IMPACT_ASSESSMENT = "impact_assessment"
     TRIAGE = "triage"
 
+    @staticmethod
+    def from_autofix_stopping_point(
+        autofix_stopping_point: AutofixStoppingPoint,
+    ) -> AutofixStep:
+        match autofix_stopping_point:
+            case AutofixStoppingPoint.ROOT_CAUSE:
+                return AutofixStep.ROOT_CAUSE
+            case AutofixStoppingPoint.SOLUTION:
+                return AutofixStep.SOLUTION
+            case AutofixStoppingPoint.CODE_CHANGES:
+                return AutofixStep.CODE_CHANGES
+            case AutofixStoppingPoint.OPEN_PR:
+                # This depends on the last step being
+                # code changes and we should look for
+                # the PR elsewhere in the explorer results
+                return AutofixStep.CODE_CHANGES
+            case _:
+                raise ValueError(f"Unsupported AutofixStoppingPoint: {autofix_stopping_point}")
+
 
 class StepConfig:
     """Configuration for an autofix step."""
