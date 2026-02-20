@@ -12,7 +12,7 @@ from sentry.rules.filters.latest_release import (
 from sentry.search.utils import get_latest_release
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
-from sentry.workflow_engine.caches import CacheAccess, CacheMapping
+from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -49,7 +49,8 @@ def get_latest_adopted_release_for_env(
         environment,
         event,
         only_adopted=True,
-        cache_access=_latest_adopted_release_cache.accessor(cache_key),
+        mapping=_latest_adopted_release_cache,
+        cache_key=cache_key,
     )
 
 
@@ -68,17 +69,19 @@ def get_latest_release_for_env(
         environment,
         event,
         only_adopted=False,
-        cache_access=_latest_release_cache.accessor(cache_key),
+        mapping=_latest_release_cache,
+        cache_key=cache_key,
     )
 
 
-def _get_latest_release_for_env_impl(
+def _get_latest_release_for_env_impl[K](
     environment: Environment | None,
     event: GroupEvent,
     only_adopted: bool,
-    cache_access: CacheAccess[Release | Literal[False]],
+    mapping: CacheMapping[K, Release | Literal[False]],
+    cache_key: K,
 ) -> Release | None:
-    latest_release = cache_access.get()
+    latest_release = mapping.get(cache_key)
     if latest_release is not None:
         if latest_release is False:
             return None
@@ -107,12 +110,12 @@ def _get_latest_release_for_env_impl(
         record_get_latest_release_result("success")
     except Release.DoesNotExist:
         record_get_latest_release_result("does_not_exist")
-        cache_access.set(False, 600)
+        mapping.set(cache_key, False, 600)
         return None
     latest_release = Release.objects.get(
         version=latest_release_version, organization_id=organization_id
     )
-    cache_access.set(latest_release or False, 600)
+    mapping.set(cache_key, latest_release or False, 600)
     return latest_release
 
 

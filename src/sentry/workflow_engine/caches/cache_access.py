@@ -1,40 +1,9 @@
-from abc import abstractmethod
 from collections.abc import Callable, Collection, Mapping
 
 from sentry.utils.cache import cache
 
 # Global registry of cache namespaces to detect collisions
 _registered_namespaces: set[str] = set()
-
-
-class CacheAccess[T]:
-    """
-    Base class for type-safe naive cache access.
-    """
-
-    @abstractmethod
-    def key(self) -> str:
-        raise NotImplementedError
-
-    def get(self) -> T | None:
-        return cache.get(self.key())
-
-    def set(self, value: T, timeout: float | None = None) -> None:
-        cache.set(self.key(), value, timeout)
-
-    def delete(self) -> bool:
-        return cache.delete(self.key())
-
-
-class _MappingAccessor[K, V](CacheAccess[V]):
-    """CacheAccess wrapper for a CacheMapping entry."""
-
-    def __init__(self, mapping: "CacheMapping[K, V]", input: K):
-        self._mapping = mapping
-        self._input = input
-
-    def key(self) -> str:
-        return self._mapping.key(self._input)
 
 
 class CacheMapping[K, V]:
@@ -126,5 +95,6 @@ class CacheMapping[K, V]:
         if inputs:
             cache.delete_many([self.key(inp) for inp in inputs])
 
-    def accessor(self, input: K) -> CacheAccess[V]:
-        return _MappingAccessor(self, input)
+
+def test_only_clear_registered_namespaces() -> None:
+    _registered_namespaces.clear()
