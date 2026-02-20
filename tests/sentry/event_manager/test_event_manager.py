@@ -2380,7 +2380,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             with (
                 mock.patch("sentry.event_manager.track_outcome", mock_track_outcome),
                 self.feature("organizations:event-attachments"),
-                self.feature("organizations:grouptombstones-hit-counter"),
                 self.tasks(),
                 pytest.raises(HashDiscarded),
             ):

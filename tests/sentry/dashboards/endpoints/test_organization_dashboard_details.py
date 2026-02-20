@@ -137,6 +137,12 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200
         assert response.data["id"] == "default-overview"
 
+    def test_get_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            response = self.do_request("get", self.url("default-overview"))
+            assert response.status_code == 200
+            assert response.data["widgets"][7]["widgetType"] == "spans"
+
     def test_prebuilt_dashboard_with_discover_split_feature_flag(self) -> None:
         response = self.do_request("get", self.url("default-overview"))
         assert response.status_code == 200, response.data
@@ -2186,6 +2192,31 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert len(queries) == 1
         assert DashboardTombstone.objects.filter(slug=slug).exists()
 
+    def test_update_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "New title",
+                    "displayType": "line",
+                    "widgetType": "transaction-like",
+                    "queries": [
+                        {
+                            "name": "transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        },
+                    ],
+                },
+            ],
+        }
+        slug = "default-overview"
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            response = self.do_request("put", self.url(slug), data=data)
+            assert response.status_code == 400, response.data
+
     def test_update_unknown_prebuilt(self) -> None:
         data = {
             "title": "First dashboard",
@@ -2408,37 +2439,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
-
-    def test_add_discover_widget_returns_validation_error(self) -> None:
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {"id": str(self.widget_1.id)},
-                {
-                    "title": "Issues",
-                    "displayType": "table",
-                    "widgetType": "discover",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": ["count()", "total.count"],
-                            "columns": ["total.count"],
-                            "aggregates": ["count()"],
-                            "conditions": "",
-                        }
-                    ],
-                },
-            ],
-        }
-        with self.feature({"organizations:deprecate-discover-widget-type": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-
-        assert response.status_code == 400, response.data
-        assert (
-            "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
-            in response.content.decode()
-        )
 
     def test_update_dashboard_with_filters(self) -> None:
         project1 = self.create_project(name="foo", organization=self.organization)
