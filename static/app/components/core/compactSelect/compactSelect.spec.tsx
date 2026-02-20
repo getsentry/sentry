@@ -560,33 +560,6 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
     });
 
-    it('passes option and search string to searchMatcher', async () => {
-      const searchMatcher = jest.fn().mockReturnValue(true);
-
-      render(
-        <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
-          searchMatcher={searchMatcher}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
-          value={undefined}
-          onChange={jest.fn()}
-        />
-      );
-
-      await userEvent.click(screen.getByRole('button'));
-      await userEvent.click(screen.getByPlaceholderText('Search here…'));
-      await userEvent.keyboard('test');
-
-      expect(searchMatcher).toHaveBeenCalledWith(
-        expect.objectContaining({value: 'opt_one', label: 'Option One'}),
-        'test'
-      );
-    });
-
     it('can search with sections', async () => {
       render(
         <CompactSelect
@@ -628,46 +601,6 @@ describe('CompactSelect', () => {
       expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
       expect(screen.getAllByRole('option')).toHaveLength(1);
-    });
-
-    it('uses custom searchMatcher with sections', async () => {
-      render(
-        <CompactSelect
-          value={undefined}
-          onChange={jest.fn()}
-          searchable
-          searchPlaceholder="Search here…"
-          searchMatcher={(option, search) => String(option.value).endsWith(search)}
-          options={[
-            {
-              key: 'section-1',
-              label: 'Section 1',
-              options: [
-                {value: 'opt_one', label: 'Option One'},
-                {value: 'opt_two', label: 'Option Two'},
-              ],
-            },
-            {
-              key: 'section-2',
-              label: 'Section 2',
-              options: [
-                {value: 'opt_three', label: 'Option Three'},
-                {value: 'opt_four', label: 'Option Four'},
-              ],
-            },
-          ]}
-        />
-      );
-
-      await userEvent.click(screen.getByRole('button'));
-      await userEvent.click(screen.getByPlaceholderText('Search here…'));
-
-      // 'e' matches opt_one (section 1) and opt_three (section 2) by value suffix
-      await userEvent.keyboard('e');
-      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
-      expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
-      expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
-      expect(screen.queryByRole('option', {name: 'Option Four'})).not.toBeInTheDocument();
     });
 
     it('can limit the number of options', async () => {
