@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -12,6 +13,7 @@ import {
 import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import type {Organization} from 'sentry/types/organization';
 import * as RegionUtils from 'sentry/utils/regions';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
@@ -340,26 +342,36 @@ describe('OrganizationSettingsForm', () => {
     });
 
     it('shows/hides PR Review field when toggling AI features', async () => {
-      render(
-        <OrganizationSettingsForm
-          initialData={OrganizationFixture({hideAiFeatures: false})}
-          onSave={onSave}
-        />,
-        {
-          organization: {
-            ...organization,
-            features: ['gen-ai-features', 'code-review-beta'],
-          },
-        }
-      );
+      // The form derives aiEnabled from initialData, so we need a stateful wrapper
+      // that propagates saved org updates back as initialData — mirroring index.tsx behavior.
+      function TestWrapper() {
+        const [initialData, setInitialData] = useState<Organization>(
+          OrganizationFixture({hideAiFeatures: false})
+        );
+        return (
+          <OrganizationSettingsForm
+            initialData={initialData}
+            onSave={(_, updated) => setInitialData(updated)}
+          />
+        );
+      }
 
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/`,
-        method: 'PUT',
+      render(<TestWrapper />, {
+        organization: {
+          ...organization,
+          features: ['gen-ai-features', 'code-review-beta'],
+        },
       });
 
       // Initially AI features are disabled, so PR Review field should be hidden
       expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
+
+      // Mock: saving with AI enabled returns an org with hideAiFeatures: true (form-value: AI shown)
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture({hideAiFeatures: true}),
+      });
 
       const aiToggle = screen.getByRole('checkbox', {
         name: 'Show Generative AI Features',
@@ -367,12 +379,21 @@ describe('OrganizationSettingsForm', () => {
       await userEvent.click(aiToggle);
 
       // PR Review field should now be visible
-      expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
+      expect(await screen.findByText('Enable AI Code Review')).toBeInTheDocument();
+
+      // Mock: saving with AI disabled returns an org with hideAiFeatures: false (form-value: AI hidden)
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture({hideAiFeatures: false}),
+      });
 
       await userEvent.click(aiToggle);
 
       // PR Review field should be hidden again
-      expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
+      });
     });
 
     describe('region and access behavior', () => {
