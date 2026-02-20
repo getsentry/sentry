@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
@@ -37,25 +37,26 @@ describe('InnerIntentForm', () => {
   });
 
   it('shows warning when Stripe hooks return null', async () => {
+    jest.useFakeTimers();
+
     const stripeImport = await import('@stripe/react-stripe-js');
     jest.spyOn(stripeImport, 'useStripe').mockReturnValue(null as any);
     jest.spyOn(stripeImport, 'useElements').mockReturnValue(null as any);
 
     render(<InnerIntentForm {...defaultProps} />);
 
-    await waitFor(
-      () => {
-        expect(
-          screen.getByText(
-            /To add or update your payment method, you may need to disable any ad or tracker blocking extensions/
-          )
-        ).toBeInTheDocument();
-      },
-      {timeout: 11000} // the timeout in the code is 10 seconds so we need to wait longer
-    );
+    act(() => {
+      jest.advanceTimersByTime(10001);
+    });
 
-    jest.restoreAllMocks();
-  }, 15000);
+    expect(
+      screen.getByText(
+        /To add or update your payment method, you may need to disable any ad or tracker blocking extensions/
+      )
+    ).toBeInTheDocument();
+
+    jest.useRealTimers();
+  });
 
   it('shows error message when provided', () => {
     render(<InnerIntentForm {...defaultProps} errorMessage="Payment failed" />);

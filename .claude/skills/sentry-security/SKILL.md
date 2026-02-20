@@ -67,6 +67,9 @@ The most common vulnerability. An endpoint accepts an ID from the request but do
 - Query includes `organization_id=organization.id` where `organization` comes from `convert_args()`
 - Uses `self.get_projects()` which scopes by org internally
 - Object is fetched via URL kwargs resolved by `convert_args()`
+- Unscoped query is a guard that only raises an error (never returns data), AND
+  a downstream query in the same flow IS org-scoped and raises the same error —
+  no differential behavior means no information leak
 
 ### Check 2: Missing Authorization Checks — 10 patches last year
 
@@ -137,9 +140,18 @@ For each potential finding, trace the **complete** request flow end-to-end. Do n
 7. Serializer             → do validate_*() methods enforce it?
 ```
 
-**A check at ANY layer is enforcement.** Before marking HIGH, confirm the check is absent from all 7 layers using the checklist in `enforcement-layers.md`.
+**A check at ANY layer is enforcement.** Before marking HIGH, confirm the check is absent from all layers using the checklist in `enforcement-layers.md`.
 
 If you cannot confirm the check is absent from every layer, mark the finding as **MEDIUM** (needs verification), not HIGH.
+
+**Cross-flow enforcement for token issuance:** For token/credential issuance flows, also check whether the issued credential is blocked at **usage time** (e.g., `determine_access()` rejects it at all endpoints in the relevant scope). Classify based on the enforcement scope:
+
+- **Centralized enforcement** (check runs in a permission class inherited by all endpoints in the affected scope) → the credential is effectively inert → **LOW** (do not report)
+- **Scattered enforcement** (only some endpoints or serializers check, others may not) → **MEDIUM** (report as needs verification)
+
+See `enforcement-layers.md` "Cross-Flow Enforcement."
+
+**Non-DRF views:** OAuth views are plain Django views — the 7-layer DRF model does not apply to the view itself. Check the view's own decorators and handler logic. But tokens issued by these views are later used at DRF endpoints where the full enforcement chain applies.
 
 ## Step 4: Report Findings
 
