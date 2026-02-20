@@ -42,7 +42,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
-from sentry.api.serializers.models.project import get_has_logs, get_has_trace_metrics
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
@@ -287,28 +286,6 @@ def get_organization_project_ids(*, org_id: int) -> dict:
     )
 
     return {"projects": projects}
-
-
-def get_organization_projects_with_instrumentation(*, org_id: int) -> dict:
-    """Get all active projects for an organization with instrumentation feature flags."""
-    organization = Organization.objects.get(id=org_id)
-
-    projects = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
-
-    return {
-        "projects": [
-            {
-                "id": project.id,
-                "slug": project.slug,
-                "hasSessions": bool(project.flags.has_sessions),
-                "hasReplays": bool(project.flags.has_replays),
-                "hasProfiles": bool(project.flags.has_profiles),
-                "hasTraceMetrics": get_has_trace_metrics(project),
-                "hasLogs": get_has_logs(project),
-            }
-            for project in projects
-        ]
-    }
 
 
 class SentryOrganizaionIdsAndSlugs(TypedDict):
@@ -785,7 +762,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
-    "get_organization_projects_with_instrumentation": get_organization_projects_with_instrumentation,
     "check_repository_integrations_status": check_repository_integrations_status,
     "validate_repo": validate_repo,
     #
