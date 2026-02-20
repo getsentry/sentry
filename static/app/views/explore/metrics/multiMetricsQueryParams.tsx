@@ -19,6 +19,7 @@ import {
   type MetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsMultiAggregateUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -48,9 +49,8 @@ export function MultiMetricsQueryParamsProvider({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const hasMultiVisualize = useOrganization().features.includes(
-    'tracemetrics-overlay-charts-ui'
-  );
+  const organization = useOrganization();
+  const hasMultiVisualize = canUseMetricsMultiAggregateUI(organization);
 
   const value: MultiMetricsQueryParamsContextValue = useMemo(() => {
     const metricQueries = getMultiMetricsQueryParamsFromLocation(

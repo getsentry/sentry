@@ -74,4 +74,23 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
   },
+  'password-form.password': {
+    name: 'password',
+    formId: 'password-form',
+    route: '/settings/account/security/',
+    label: t('Current Password'),
+  },
+  'password-form.passwordNew': {
+    name: 'passwordNew',
+    formId: 'password-form',
+    route: '/settings/account/security/',
+    label: t('New Password'),
+  },
+  'password-form.passwordVerify': {
+    name: 'passwordVerify',
+    formId: 'password-form',
+    route: '/settings/account/security/',
+    label: t('Verify New Password'),
+    hintText: t('Verify your new password'),
+  },
 };
