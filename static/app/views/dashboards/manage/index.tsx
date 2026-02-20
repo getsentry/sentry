@@ -614,22 +614,20 @@ function ManageDashboards() {
                           </Button>
                         )}
                       </DashboardCreateLimitWrapper>
-                      <Feature features="dashboards-import">
-                        <Button
-                          onClick={() => {
-                            openImportDashboardFromFileModal({
-                              organization,
-                              api,
-                              location,
-                            });
-                          }}
-                          size="sm"
-                          priority="primary"
-                          icon={<IconAdd />}
-                        >
-                          {t('Import Dashboard from JSON')}
-                        </Button>
-                      </Feature>
+                      <Button
+                        onClick={() => {
+                          openImportDashboardFromFileModal({
+                            organization,
+                            api,
+                            location,
+                          });
+                        }}
+                        size="sm"
+                        priority="primary"
+                        icon={<IconAdd />}
+                      >
+                        {t('Import Dashboard from JSON')}
+                      </Button>
                     </Grid>
                   </Layout.HeaderActions>
                 </Layout.Header>

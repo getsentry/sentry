@@ -257,21 +257,19 @@ function Controls({
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            <Feature features="dashboards-import">
-              <Tooltip title={t('Export Dashboard')}>
-                <Button
-                  data-test-id="dashboard-export"
-                  aria-label={t('export-dashboard')}
-                  onClick={e => {
-                    e.preventDefault();
-                    exportDashboard();
-                  }}
-                  icon={<IconDownload />}
-                  priority="default"
-                  size="sm"
-                />
-              </Tooltip>
-            </Feature>
+            <Tooltip title={t('Export Dashboard')}>
+              <Button
+                data-test-id="dashboard-export"
+                aria-label={t('export-dashboard')}
+                onClick={e => {
+                  e.preventDefault();
+                  exportDashboard();
+                }}
+                icon={<IconDownload />}
+                priority="default"
+                size="sm"
+              />
+            </Tooltip>
             {dashboard.id !== 'default-overview' && !isPrebuiltDashboard && (
               <EditAccessSelector
                 dashboard={dashboard}
