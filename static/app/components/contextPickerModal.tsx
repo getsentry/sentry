@@ -21,10 +21,10 @@ import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import Teams from 'sentry/utils/teams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
@@ -517,40 +517,15 @@ export default function ContextPickerModalContainer({
     );
   }
   if (selectedOrgSlug) {
-    const needProject = sharedProps.needProject;
-    const needTeam = sharedProps.needTeam;
-
-    const renderWithProjects = (teams: Team[], teamsLoading: boolean) => (
-      <Projects
-        orgId={selectedOrgSlug}
-        allProjects={!projectSlugs?.length}
-        slugs={projectSlugs}
-      >
-        {({projects, initiallyLoaded}) => (
-          <ContextPickerModal
-            {...sharedProps}
-            projects={needProject ? (projects as Project[]) : []}
-            projectsLoading={needProject ? !initiallyLoaded : false}
-            teams={teams}
-            teamsLoading={teamsLoading}
-            organizations={organizations}
-            organization={selectedOrgSlug}
-            onSelectOrganization={setSelectedOrgSlug}
-            integrationConfigs={[]}
-          />
-        )}
-      </Projects>
+    return (
+      <ContextPickerModalWithOrgSelection
+        {...sharedProps}
+        organizations={organizations}
+        projectSlugs={projectSlugs}
+        selectedOrgSlug={selectedOrgSlug}
+        setSelectedOrgSlug={setSelectedOrgSlug}
+      />
     );
-
-    if (needTeam) {
-      return (
-        <Teams>
-          {({teams, initiallyLoaded}) => renderWithProjects(teams, !initiallyLoaded)}
-        </Teams>
-      );
-    }
-
-    return renderWithProjects([], false);
   }
 
   return (
@@ -563,6 +538,52 @@ export default function ContextPickerModalContainer({
       onSelectOrganization={setSelectedOrgSlug}
       integrationConfigs={[]}
     />
+  );
+}
+
+function ContextPickerModalWithOrgSelection(
+  props: SharedProps & {
+    organizations: Organization[];
+    projectSlugs?: string[];
+    selectedOrgSlug: string;
+    setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
+  }
+) {
+  const {
+    organizations,
+    projectSlugs,
+    selectedOrgSlug,
+    setSelectedOrgSlug,
+    ...sharedProps
+  } = props;
+  const needProject = sharedProps.needProject;
+  const needTeam = sharedProps.needTeam;
+  const teamsQueryKey = [
+    getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+      path: {organizationIdOrSlug: selectedOrgSlug},
+    }),
+  ] satisfies ApiQueryKey;
+  const {data: teams = [], isPending: teamsLoading} = useApiQuery<Team[]>(teamsQueryKey, {
+    enabled: !!needTeam,
+    staleTime: 0,
+  });
+
+  return (
+    <Projects orgId={selectedOrgSlug} allProjects={!projectSlugs?.length} slugs={projectSlugs}>
+      {({projects, initiallyLoaded}) => (
+        <ContextPickerModal
+          {...sharedProps}
+          projects={needProject ? (projects as Project[]) : []}
+          projectsLoading={needProject ? !initiallyLoaded : false}
+          teams={needTeam ? teams : []}
+          teamsLoading={needTeam ? teamsLoading : false}
+          organizations={organizations}
+          organization={selectedOrgSlug}
+          onSelectOrganization={setSelectedOrgSlug}
+          integrationConfigs={[]}
+        />
+      )}
+    </Projects>
   );
 }
 

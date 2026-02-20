@@ -17,7 +17,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -33,7 +32,6 @@ describe('ContextPickerModal', () => {
 
   beforeEach(() => {
     ProjectsStore.reset();
-    TeamStore.reset();
     MockApiClient.clearMockResponses();
 
     project = ProjectFixture();
@@ -367,88 +365,10 @@ describe('ContextPickerModal', () => {
     const team2 = TeamFixture({id: '2', slug: 'team-two'});
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    TeamStore.loadInitialData([team1, team2]);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/projects/`,
-      body: [],
+    const fetchTeamsForOrg = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1, team2],
     });
-
-    render(
-      getComponent({
-        needOrg: false,
-        needProject: false,
-        needTeam: true,
-        nextPath: '/settings/:orgId/teams/:teamId/settings/',
-      })
-    );
-
-    expect(await screen.findByText('Select a Team to continue')).toBeInTheDocument();
-    expect(screen.getByText(`#${team1.slug}`)).toBeInTheDocument();
-    expect(screen.getByText(`#${team2.slug}`)).toBeInTheDocument();
-  });
-
-  it('renders org and team header when both are required', async () => {
-    const team1 = TeamFixture({id: '1', slug: 'team-one'});
-    const team2 = TeamFixture({id: '2', slug: 'team-two'});
-    OrganizationsStore.load([org]);
-    OrganizationStore.onUpdate(org);
-    TeamStore.loadInitialData([team1, team2]);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/projects/`,
-      body: [],
-    });
-
-    render(
-      getComponent({
-        needOrg: true,
-        needProject: false,
-        needTeam: true,
-        nextPath: '/settings/:orgId/teams/:teamId/settings/',
-      })
-    );
-
-    expect(
-      await screen.findByRole('heading', {
-        name: 'Select an organization and a team to continue',
-      })
-    ).toBeInTheDocument();
-  });
-
-  it('selects a team and navigates to the correct path', async () => {
-    const team1 = TeamFixture({id: '1', slug: 'team-one'});
-    const team2 = TeamFixture({id: '2', slug: 'team-two'});
-    OrganizationsStore.load([org]);
-    OrganizationStore.onUpdate(org);
-    TeamStore.loadInitialData([team1, team2]);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/projects/`,
-      body: [],
-    });
-
-    render(
-      getComponent({
-        needOrg: false,
-        needProject: false,
-        needTeam: true,
-        nextPath: '/settings/:orgId/teams/:teamId/settings/',
-      })
-    );
-
-    await selectEvent.select(await screen.findByText(/Select a Team/), `#${team2.slug}`);
-
-    expect(onFinish).toHaveBeenCalledWith(
-      `/settings/${org.slug}/teams/${team2.slug}/settings/`
-    );
-  });
-
-  it('auto-navigates when only one team exists', async () => {
-    const team1 = TeamFixture({id: '1', slug: 'the-only-team'});
-    OrganizationsStore.load([org]);
-    OrganizationStore.onUpdate(org);
-    TeamStore.loadInitialData([team1]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
@@ -465,9 +385,158 @@ describe('ContextPickerModal', () => {
     );
 
     await waitFor(() => {
+      expect(fetchTeamsForOrg).toHaveBeenCalled();
+    });
+    expect(await screen.findByText('Select a Team to continue')).toBeInTheDocument();
+    expect(screen.getByText(`#${team1.slug}`)).toBeInTheDocument();
+    expect(screen.getByText(`#${team2.slug}`)).toBeInTheDocument();
+  });
+
+  it('renders org and team header when both are required', async () => {
+    const team1 = TeamFixture({id: '1', slug: 'team-one'});
+    const team2 = TeamFixture({id: '2', slug: 'team-two'});
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+    const fetchTeamsForOrg = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1, team2],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: false,
+        needTeam: true,
+        nextPath: '/settings/:orgId/teams/:teamId/settings/',
+      })
+    );
+
+    await waitFor(() => {
+      expect(fetchTeamsForOrg).toHaveBeenCalled();
+    });
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Select an organization and a team to continue',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('selects a team and navigates to the correct path', async () => {
+    const team1 = TeamFixture({id: '1', slug: 'team-one'});
+    const team2 = TeamFixture({id: '2', slug: 'team-two'});
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+    const fetchTeamsForOrg = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1, team2],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+
+    render(
+      getComponent({
+        needOrg: false,
+        needProject: false,
+        needTeam: true,
+        nextPath: '/settings/:orgId/teams/:teamId/settings/',
+      })
+    );
+
+    await waitFor(() => {
+      expect(fetchTeamsForOrg).toHaveBeenCalled();
+    });
+    await selectEvent.select(await screen.findByText(/Select a Team/), `#${team2.slug}`);
+
+    expect(onFinish).toHaveBeenCalledWith(
+      `/settings/${org.slug}/teams/${team2.slug}/settings/`
+    );
+  });
+
+  it('auto-navigates when only one team exists', async () => {
+    const team1 = TeamFixture({id: '1', slug: 'the-only-team'});
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+    const fetchTeamsForOrg = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+
+    render(
+      getComponent({
+        needOrg: false,
+        needProject: false,
+        needTeam: true,
+        nextPath: '/settings/:orgId/teams/:teamId/settings/',
+      })
+    );
+
+    await waitFor(() => {
+      expect(fetchTeamsForOrg).toHaveBeenCalled();
       expect(onFinish).toHaveBeenCalledWith(
         `/settings/${org.slug}/teams/the-only-team/settings/`
       );
     });
+  });
+
+  it('refetches teams when selecting a different organization', async () => {
+    const org1Team = TeamFixture({id: '1', slug: 'org1-team'});
+    const org2Team = TeamFixture({id: '2', slug: 'org2-team'});
+    OrganizationsStore.load([org, org2]);
+    OrganizationStore.onUpdate(org);
+
+    const fetchOrg1Projects = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+    const fetchOrg1Teams = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [org1Team],
+    });
+    const fetchOrg2Projects = MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/projects/`,
+      body: [],
+    });
+    const fetchOrg2Teams = MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/teams/`,
+      body: [org2Team],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: false,
+        needTeam: true,
+        nextPath: '/settings/:orgId/teams/:teamId/settings/',
+      })
+    );
+
+    await waitFor(() => {
+      expect(fetchOrg1Projects).toHaveBeenCalled();
+      expect(fetchOrg1Teams).toHaveBeenCalled();
+    });
+    expect(await screen.findByText(`#${org1Team.slug}`)).toBeInTheDocument();
+
+    const [orgSelect] = screen.getAllByRole('textbox');
+    await selectEvent.select(orgSelect, org2.slug);
+
+    await waitFor(() => {
+      expect(fetchOrg2Projects).toHaveBeenCalled();
+      expect(fetchOrg2Teams).toHaveBeenCalled();
+    });
+    expect(await screen.findByText(`#${org2Team.slug}`)).toBeInTheDocument();
+    expect(screen.queryByText(`#${org1Team.slug}`)).not.toBeInTheDocument();
   });
 });
