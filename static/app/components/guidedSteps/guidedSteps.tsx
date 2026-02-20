@@ -43,6 +43,7 @@ interface StepProps {
   isCompleted?: boolean;
   onClick?: () => void;
   optional?: boolean;
+  trailingItems?: React.ReactNode;
 }
 
 type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
@@ -160,16 +161,23 @@ function Step(props: StepProps) {
 
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
-      <StepButton area="heading" disabled={!props.onClick} onClick={props.onClick}>
-        <Flex align="center" gap="lg">
-          <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
-          <StepHeading isActive={isActive}>
-            {props.title}
-            {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
-          </StepHeading>
-          {props.onClick ? <InteractionStateLayer /> : null}
-        </Flex>
-      </StepButton>
+      <Flex align="center" justify="between" style={{gridArea: 'heading'}}>
+        <StepButton disabled={!props.onClick} onClick={props.onClick}>
+          <Flex align="center" gap="lg">
+            <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
+            <StepHeading isActive={isActive}>
+              {props.title}
+              {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
+            </StepHeading>
+            {props.onClick ? <InteractionStateLayer /> : null}
+          </Flex>
+        </StepButton>
+        {props.trailingItems && (
+          <Flex align="center" onClick={e => e.stopPropagation()}>
+            {props.trailingItems}
+          </Flex>
+        )}
+      </Flex>
 
       <StepDetails>
         {props.optional ? <StepOptionalLabel>Optional</StepOptionalLabel> : null}
@@ -262,12 +270,13 @@ const StepWrapper = styled('div')`
   }
 `;
 
-const StepButton = styled('button')<{area: string}>`
-  grid-area: ${p => p.area};
-
+const StepButton = styled('button')`
+  flex: 1;
+  min-width: 0;
   position: relative;
   background: none;
   border: none;
+  text-align: left;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   margin: -${p => p.theme.space.sm} -${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};

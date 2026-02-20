@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -122,16 +121,19 @@ function StepRenderer({
   step,
   stepIndex,
   isLastStep,
+  trailingItems,
 }: {
   isLastStep: boolean;
   project: Project;
   step: OnboardingStep;
   stepIndex: number;
+  trailingItems?: React.ReactNode;
 }) {
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
+      trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
         <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
@@ -338,15 +340,6 @@ export function Onboarding() {
         <PlatformOptionDropdown platformOptions={integrationOptions} />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <CopySetupInstructionsGate>
-        <Flex justify="end">
-          <OnboardingCopyMarkdownButton
-            borderless
-            steps={steps}
-            source="mcp_onboarding"
-          />
-        </Flex>
-      </CopySetupInstructionsGate>
       <GuidedSteps>
         {steps.map((step, index) => (
           <StepRenderer
@@ -355,6 +348,17 @@ export function Onboarding() {
             step={step}
             stepIndex={index}
             isLastStep={index === steps.length - 1}
+            trailingItems={
+              index === 0 ? (
+                <CopySetupInstructionsGate>
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="mcp_onboarding"
+                  />
+                </CopySetupInstructionsGate>
+              ) : undefined
+            }
           />
         ))}
       </GuidedSteps>
