@@ -2407,6 +2407,12 @@ register(
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Break glass controls
 register(
