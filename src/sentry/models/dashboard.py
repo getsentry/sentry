@@ -412,7 +412,11 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
     error_events_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
     transaction_type = (
         DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.SPANS)
-        if features.has("organizations:discover-saved-queries-deprecation", organization, user)
+        if features.has(
+            "organizations:discover-saved-queries-deprecation",
+            organization=organization,
+            actor=user,
+        )
         else DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
     )
 
