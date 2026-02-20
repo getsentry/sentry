@@ -93,11 +93,4 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Verify New Password'),
     hintText: t('Verify your new password'),
   },
-  'account-subscriptions.subscribed': {
-    name: 'subscribed',
-    formId: 'account-subscriptions',
-    route: '/settings/account/subscriptions/',
-    label: subscription.listName,
-    hintText,
-  },
 };
