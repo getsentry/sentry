@@ -26,7 +26,7 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   },
 };
 
-const QUERY_API_CLIENT = new Client();
+export const QUERY_API_CLIENT = new Client();
 
 export type QueryKeyEndpointOptions<
   Headers = Record<string, string>,

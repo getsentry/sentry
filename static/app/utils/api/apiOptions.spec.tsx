@@ -3,8 +3,8 @@ import {expectTypeOf} from 'expect-type';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ApiResult} from 'sentry/api';
-import {apiOptions, selectWithHeaders} from 'sentry/utils/api/apiOptions';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,
   QueryClient,
@@ -12,7 +12,7 @@ import {
 } from 'sentry/utils/queryClient';
 
 type Promisable<T> = T | Promise<T>;
-type QueryFunctionResult<T> = Promisable<ApiResult<T>>;
+type QueryFunctionResult<T> = Promisable<ApiResponse<T>>;
 
 const wrapper = ({children}: {children?: React.ReactNode}) => (
   <QueryClientProvider client={new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG)}>
@@ -110,9 +110,10 @@ describe('apiOptions', () => {
     });
 
     const {result} = renderHook(
-      () =>
-        useQuery({...options, select: selectWithHeaders(['Link', 'X-Hits'] as const)}),
-      {wrapper}
+      () => useQuery({...options, select: selectJsonWithHeaders}),
+      {
+        wrapper,
+      }
     );
 
     await waitFor(() => result.current.isSuccess);
@@ -125,7 +126,8 @@ describe('apiOptions', () => {
     // headers should be narrowly typed
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<{
       Link: string | undefined;
-      'X-Hits': string | undefined;
+      'X-Hits': number | undefined;
+      'X-Max-Hits': number | undefined;
     }>();
   });
 
