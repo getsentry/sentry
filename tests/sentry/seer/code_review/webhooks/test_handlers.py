@@ -71,8 +71,6 @@ class TestHandleWebhookEvent(TestCase):
         )
         mock_preflight.assert_not_called()
 
-
-class TestHandleWebhookEventWebhookSeen(TestCase):
     @pytest.fixture(autouse=True)
     def mock_preflight_allowed(self) -> Generator[None]:
         with patch(

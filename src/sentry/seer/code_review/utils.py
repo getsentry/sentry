@@ -387,7 +387,6 @@ def get_tags(
     organization_id: int,
     organization_slug: str,
     integration_id: int,
-    trigger: str | None = None,
     target_commit_sha: str | None = None,
 ) -> dict[str, str]:
     """
@@ -423,17 +422,12 @@ def get_tags(
             - sentry_organization_slug: Sentry organization slug (if available)
             - trigger: Trigger type (if available)
     """
-    result: dict[str, str | None] = {
+    result: dict[str, str] = {
         "github_event": github_event,
-        "pr_id": None,
-        "scm_owner": None,
         "scm_provider": "github",
-        "scm_repo_full_name": None,
-        "scm_repo_name": None,
         "sentry_integration_id": str(integration_id),
         "sentry_organization_id": str(organization_id),
         "sentry_organization_slug": organization_slug,
-        "trigger": trigger,
     }
 
     repository = event.get("repository", {})
@@ -448,6 +442,15 @@ def get_tags(
     github_event_action = event.get("action")
     if github_event_action:
         result["github_event_action"] = github_event_action
+        if github_event == "issue_comment":
+            result["trigger"] = SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
+        elif github_event == "pull_request":
+            if github_event_action in ("opened", "ready_for_review"):
+                result["trigger"] = SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value
+            elif github_event_action == "synchronize":
+                result["trigger"] = SeerCodeReviewTrigger.ON_NEW_COMMIT.value
+            elif github_event_action == "closed":
+                result["trigger"] = SeerCodeReviewRequestType.PR_CLOSED.value
 
     if pull_request := event.get("pull_request"):
         if html_url := pull_request.get("html_url"):
@@ -473,33 +476,17 @@ def get_tags(
         if actor_id := sender.get("id"):
             result["github_actor_id"] = str(actor_id)
 
-    # Derive trigger from event type + action when not explicitly provided.
-    if result["trigger"] is None and github_event and github_event_action:
-        if github_event == "issue_comment":
-            result["trigger"] = "on_command_phrase"
-        elif github_event == "pull_request":
-            if github_event_action in ("opened", "ready_for_review"):
-                result["trigger"] = "on_ready_for_review"
-            elif github_event_action == "synchronize":
-                result["trigger"] = "on_new_commit"
-            elif github_event_action == "closed":
-                result["trigger"] = "pr-closed"
-
-    # Extract pr_id from the event.
-    pr_id = event.get("pull_request", {}).get("number") or event.get("issue", {}).get("number")
-    if pr_id:
-        result["pr_id"] = str(pr_id)
-
-    # Override scm_event_url with the most specific URL based on trigger type.
     owner = result.get("scm_owner")
     repo = result.get("scm_repo_name")
-    comment_id = event.get("comment", {}).get("id")
-    if result["trigger"] == "on_new_commit" and owner and repo and target_commit_sha:
-        result["scm_event_url"] = f"https://github.com/{owner}/{repo}/commit/{target_commit_sha}"
-    elif result["trigger"] == "on_command_phrase" and owner and repo and pr_id and comment_id:
-        result["scm_event_url"] = (
-            f"https://github.com/{owner}/{repo}/pull/{pr_id}#issuecomment-{comment_id}"
-        )
+    if owner and repo:
+        base_url = f"https://github.com/{owner}/{repo}"
+        if result["trigger"] == SeerCodeReviewTrigger.ON_NEW_COMMIT.value and target_commit_sha:
+            result["scm_event_url"] = f"{base_url}/commit/{target_commit_sha}"
+        elif result["trigger"] == SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value:
+            pr_number = (event.get("pull_request", {}) or event.get("issue", {})).get("number")
+            comment_id = event.get("comment", {}).get("id")
+            if pr_number and comment_id:
+                result["scm_event_url"] = f"{base_url}/pull/{pr_number}#issuecomment-{comment_id}"
 
     return {k: v for k, v in result.items() if v is not None}
 
