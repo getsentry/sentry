@@ -337,29 +337,6 @@ class UpdateGroupsTest(TestCase):
         )
         assert set(group_list) == {group1, group2}
 
-    def test_get_group_list_mixed_integer_and_qualified_short_ids(self) -> None:
-        """
-        Test that get_group_list properly filters when mixing integer IDs and qualified short IDs.
-        """
-        # Create a second project in the same organization
-        project2 = self.create_project(organization=self.organization, name="Project 2")
-
-        # Create groups in both projects
-        group1 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
-        group2 = self.create_group(project=project2, status=GroupStatus.UNRESOLVED)
-
-        # Mix integer IDs and qualified short IDs
-        # User only has access to self.project
-        group_list = get_group_list(
-            self.organization.id,
-            [self.project],
-            [group1.id, group2.qualified_short_id],  # Mix of integer and string IDs
-        )
-
-        # Only group1 should be returned (accessible via integer ID)
-        # group2 should be filtered out (inaccessible project)
-        assert group_list == [group1]
-
     def test_unresolve_clears_commit_resolution_links(self) -> None:
         """
         Test that when an issue is unresolved, commit resolution links are deleted

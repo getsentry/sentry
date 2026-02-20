@@ -348,31 +348,24 @@ def get_group_list(
     Returns: List of Group objects filtered to only valid groups in the org/projects
     """
     groups: list[Group] = []
-    project_ids = {p.id for p in projects}
-
-    # Separate integer IDs from qualified short IDs
+    # Convert all group IDs to integers and filter out any non-integer values
     group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
-    group_ids_str = [gid for gid in group_ids if isinstance(gid, str) and not str(gid).isdigit()]
-
-    # Fetch groups by integer IDs (already properly filtered by project)
     if group_ids_int:
-        groups.extend(
+        return list(
             Group.objects.filter(
                 project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
             )
         )
-
-    # Fetch groups by qualified short IDs and filter by accessible projects
-    if group_ids_str:
-        for group_id in group_ids_str:
-            try:
-                group = Group.objects.by_qualified_short_id(organization_id, group_id)
-                # Only include groups from projects the user has access to
+    else:
+        project_ids = {p.id for p in projects}
+        for group_id in group_ids:
+            if isinstance(group_id, str):
+                try:
+                    group = Group.objects.by_qualified_short_id(organization_id, group_id)
+                except Group.DoesNotExist:
+                    continue
                 if group.project_id in project_ids:
                     groups.append(group)
-            except Group.DoesNotExist:
-                # Silently skip groups that don't exist or can't be accessed
-                pass
 
     return groups
 
