@@ -73,7 +73,12 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   shouldFilterResults?: boolean;
 }) {
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
-    return getHiddenOptions(items, shouldFilterResults ? filterValue : '', maxOptions);
+    const {hidden} = getHiddenOptions(
+      items,
+      shouldFilterResults ? filterValue : '',
+      maxOptions
+    );
+    return hidden;
   }, [items, shouldFilterResults, filterValue, maxOptions]);
 
   const disabledKeys = useMemo(
