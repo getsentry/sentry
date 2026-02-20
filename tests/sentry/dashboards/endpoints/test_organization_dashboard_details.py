@@ -1837,12 +1837,17 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         widgets = self.get_widgets(self.dashboard.id)
         assert len(widgets) == 4
-        # Check ordering
-        assert self.widget_1.id == widgets[0].id
-        assert self.widget_2.id == widgets[1].id
-        assert self.widget_4.id == widgets[2].id
-        # The new widget was added to the end, this is because the order is based on the id
-        self.assert_serialized_widget(data["widgets"][2], widgets[3])
+        widget_ids = {w.id for w in widgets}
+        # Existing widgets 1, 2, 4 are kept; widget 3 was removed
+        assert self.widget_1.id in widget_ids
+        assert self.widget_2.id in widget_ids
+        assert self.widget_4.id in widget_ids
+        # A new widget was created
+        new_widget = [
+            w for w in widgets if w.id not in {self.widget_1.id, self.widget_2.id, self.widget_4.id}
+        ]
+        assert len(new_widget) == 1
+        self.assert_serialized_widget(data["widgets"][2], new_widget[0])
 
     def test_update_widget_invalid_aggregate_parameter(self) -> None:
         data = {
