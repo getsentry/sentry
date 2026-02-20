@@ -431,7 +431,7 @@ class GitHubBaseClient(
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
         with SCMIntegrationInteractionEvent(
-            interaction_type=SCMIntegrationInteractionType.GET_TREE,
+            interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
             provider_key=self.integration_name,
             integration_id=self.integration.id,
         ).capture():

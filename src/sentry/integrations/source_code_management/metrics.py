@@ -57,7 +57,7 @@ class SCMIntegrationInteractionType(StrEnum):
 
     # Repo Trees
     GET_REPOSITORIES = "get_repositories"
-    GET_TREE = "get_tree"
+    GET_REPO_TREE = "get_repo_tree"
 
 
 @dataclass
