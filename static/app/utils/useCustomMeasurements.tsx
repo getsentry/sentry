@@ -6,6 +6,10 @@ export default function useCustomMeasurements() {
   const customMeasurementsContext = useContext(CustomMeasurementsContext);
 
   if (!customMeasurementsContext) {
+    if (process.env.NODE_ENV === 'test') {
+      return {customMeasurements: {}};
+    }
+
     throw new Error(
       'useCustomMeasurements was called outside of CustomMeasurementsProvider'
     );

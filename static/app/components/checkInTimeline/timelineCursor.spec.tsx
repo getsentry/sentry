@@ -50,7 +50,7 @@ describe('TimelineCursor', () => {
     expect(screen.queryByRole('presentation')).not.toBeInTheDocument();
 
     // Move cursor into the container, cursor is visible
-    fireEvent.mouseMove(body, {clientX: 20, clientY: 20});
+    fireEvent.mouseMove(container, {clientX: 20, clientY: 20});
 
     const cursor = await screen.findByRole('presentation');
     expect(cursor).toBeInTheDocument();

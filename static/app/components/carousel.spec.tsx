@@ -2,6 +2,8 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Carousel from 'sentry/components/carousel';
 
+const originalIntersectionObserver = window.IntersectionObserver;
+
 describe('Carousel', () => {
   let intersectionOnbserverCb: (
     entries: Array<Partial<IntersectionObserverEntry>>
@@ -21,6 +23,10 @@ describe('Carousel', () => {
     unobserve() {}
     disconnect() {}
   };
+
+  afterAll(() => {
+    window.IntersectionObserver = originalIntersectionObserver;
+  });
 
   it('hides arrows if content does not overflow in x', () => {
     render(

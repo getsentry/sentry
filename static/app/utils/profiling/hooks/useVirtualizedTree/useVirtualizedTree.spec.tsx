@@ -2,6 +2,9 @@ import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 
+const originalResizeObserver = window.ResizeObserver;
+const originalRequestAnimationFrame = window.requestAnimationFrame;
+
 const n = (d: any) => {
   return {...d, children: []};
 };
@@ -48,6 +51,11 @@ const makeScrollContainerMock = ({height}: {height: number}) => {
 };
 
 describe('useVirtualizedTree', () => {
+  afterAll(() => {
+    window.ResizeObserver = originalResizeObserver;
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  });
+
   it('returns a tree', () => {
     const results = renderHook(useVirtualizedTree, {
       initialProps: {

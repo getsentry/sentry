@@ -75,8 +75,10 @@ describe('EventPackageData', () => {
     render(<EventPackageData event={event} />, {
       organization,
     });
-    expect(screen.getByText(/redacted/)).toBeInTheDocument();
-    await userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.click(screen.getByText('Packages'));
+    const redacted = await screen.findByText(/redacted/);
+    expect(redacted).toBeInTheDocument();
+    await userEvent.hover(redacted);
     expect(
       await screen.findByText(
         textWithMarkupMatcher(

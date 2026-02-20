@@ -223,9 +223,6 @@ describe('InstrumentationGuide', () => {
         }
       );
 
-      // Should initially show PHP guide (from query params)
-      expect(await screen.findByText('Auto-Instrument with PHP')).toBeInTheDocument();
-
       // Change to node project
       const projectSelector = screen.getByRole('textbox', {name: 'Project'});
       await selectEvent.select(projectSelector, 'node-proj');

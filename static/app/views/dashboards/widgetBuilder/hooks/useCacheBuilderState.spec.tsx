@@ -4,10 +4,7 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {
-  useWidgetBuilderContext,
-  WidgetBuilderProvider,
-} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
   BuilderStateAction,
   type WidgetBuilderState,
@@ -23,17 +20,10 @@ jest.mock('sentry/utils/useLocation');
 
 jest.mock('sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext', () => ({
   useWidgetBuilderContext: jest.fn(),
-  WidgetBuilderProvider: jest.requireActual(
-    'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext'
-  ).WidgetBuilderProvider,
 }));
 
 const mockUseWidgetBuilderContext = jest.mocked(useWidgetBuilderContext);
 const mockUseLocation = jest.mocked(useLocation);
-
-function Wrapper({children}: {children: React.ReactNode}) {
-  return <WidgetBuilderProvider>{children}</WidgetBuilderProvider>;
-}
 
 describe('useCacheBuilderState', () => {
   let mockLocalStorage: Record<string, string>;
@@ -76,9 +66,7 @@ describe('useCacheBuilderState', () => {
       dispatch: jest.fn(),
     });
 
-    const {result} = renderHook(() => useCacheBuilderState(), {
-      wrapper: Wrapper,
-    });
+    const {result} = renderHook(() => useCacheBuilderState());
 
     result.current.cacheBuilderState(WidgetType.ERRORS);
 
@@ -133,9 +121,7 @@ describe('useCacheBuilderState', () => {
       JSON.stringify(convertBuilderStateToWidget(cachedWidget))
     );
 
-    const {result} = renderHook(() => useCacheBuilderState(), {
-      wrapper: Wrapper,
-    });
+    const {result} = renderHook(() => useCacheBuilderState());
 
     // Call the restore helper on the cached dataset
     result.current.restoreOrSetBuilderState(WidgetType.ERRORS);
@@ -189,9 +175,7 @@ describe('useCacheBuilderState', () => {
       JSON.stringify(convertBuilderStateToWidget(cachedWidget))
     );
 
-    const {result} = renderHook(() => useCacheBuilderState(), {
-      wrapper: Wrapper,
-    });
+    const {result} = renderHook(() => useCacheBuilderState());
 
     // Call the restore helper on the cached dataset
     result.current.restoreOrSetBuilderState(WidgetType.TRANSACTIONS);

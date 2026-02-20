@@ -35,7 +35,6 @@ const mockRefObject = {
 describe('InviteMissingMembersModal', () => {
   const team = TeamFixture();
   const org = OrganizationFixture({access: ['member:write']});
-  TeamStore.loadInitialData([team]);
   const missingMembers = MissingMembersFixture();
 
   const styledWrapper = styled((c: PropsWithChildren) => c.children);
@@ -53,6 +52,7 @@ describe('InviteMissingMembersModal', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    TeamStore.loadInitialData([team]);
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/me/`,
       method: 'GET',

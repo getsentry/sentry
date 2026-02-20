@@ -8,11 +8,18 @@ import {VideoReplayer} from './videoReplayer';
 // replays.
 //
 // advancing by 2000ms ~== 20000s in Timer, but this may depend on hardware, TBD
-jest.useFakeTimers();
 jest.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
 jest
   .spyOn(window.HTMLMediaElement.prototype, 'play')
   .mockImplementation(() => Promise.resolve());
+
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 describe('VideoReplayer - no starting gap', () => {
   beforeEach(() => {

@@ -425,6 +425,7 @@ describe('logsTableRow', () => {
   it('copies log as JSON when Copy as JSON button is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
+      configurable: true,
       value: {
         writeText: mockWriteText,
       },

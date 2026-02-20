@@ -2,12 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {DurationUnit} from 'sentry/utils/discover/fields';
@@ -272,7 +267,9 @@ describe('HTTPSamplesPanel', () => {
         })
       );
 
-      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+      });
     });
 
     it('shows basic transaction info', async () => {
@@ -282,7 +279,9 @@ describe('HTTPSamplesPanel', () => {
       expect(screen.getByRole('heading', {name: 'GET /api/0/users'})).toBeInTheDocument();
 
       // Metrics ribbon
-      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+      });
 
       expect(
         screen.getByRole('heading', {name: 'Requests Per Minute'})
@@ -374,7 +373,9 @@ describe('HTTPSamplesPanel', () => {
     it('fetches panel data', async () => {
       render(<HTTPSamplesPanel />);
 
-      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+      });
 
       expect(chartRequestMock).toHaveBeenNthCalledWith(
         1,
@@ -436,7 +437,9 @@ describe('HTTPSamplesPanel', () => {
       expect(screen.getByRole('heading', {name: 'GET /api/0/users'})).toBeInTheDocument();
 
       // Metrics ribbon
-      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+      });
 
       expect(
         screen.getByRole('heading', {name: 'Requests Per Minute'})
@@ -474,7 +477,9 @@ describe('HTTPSamplesPanel', () => {
     it('re-fetches samples', async () => {
       render(<HTTPSamplesPanel />);
 
-      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+      });
 
       expect(samplesRequestMock).toHaveBeenCalledTimes(1);
 

@@ -22,6 +22,8 @@ const items = [
  * assert against those instead of the wrapper's state since component state will be different if we have
  * "controlled" props where <AutoComplete> does not handle state
  */
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+
 describe('AutoComplete', () => {
   let input: HTMLInputElement;
   let autoCompleteState: any[] = [];
@@ -34,6 +36,7 @@ describe('AutoComplete', () => {
   afterEach(() => {
     jest.resetAllMocks();
     autoCompleteState = [];
+    Element.prototype.scrollIntoView = originalScrollIntoView;
   });
 
   function List({

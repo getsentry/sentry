@@ -118,6 +118,10 @@ describe('SuspectCommits', () => {
           committers: [committers[0]],
         },
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [project],
+      });
 
       render(
         <SuspectCommits
@@ -232,6 +236,10 @@ describe('SuspectCommits', () => {
         body: {
           committers: [committers[0]],
         },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [project],
       });
     });
 

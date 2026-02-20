@@ -42,6 +42,13 @@ describe('DebugMeta', () => {
     MockApiClient.clearMockResponses();
   });
 
+  async function expandImagesLoadedSection() {
+    await userEvent.click(
+      screen.getByRole('button', {name: 'View Images Loaded Section'})
+    );
+    await screen.findByRole('button', {name: 'Collapse Images Loaded Section'});
+  }
+
   it('opens details modal', async () => {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
@@ -118,6 +125,7 @@ describe('DebugMeta', () => {
     renderGlobalModal();
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await expandImagesLoadedSection();
     await userEvent.click(screen.getByRole('button', {name: 'View'}));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(
@@ -145,6 +153,7 @@ describe('DebugMeta', () => {
     const codeFile = image?.code_file as string;
 
     expect(screen.getByRole('region', {name: 'Images Loaded'})).toBeInTheDocument();
+    await expandImagesLoadedSection();
     const imageNode = screen.getByText(imageName);
     expect(imageNode).toBeInTheDocument();
 
@@ -186,6 +195,7 @@ describe('DebugMeta', () => {
     );
 
     expect(screen.getByText('Images Loaded')).toBeInTheDocument();
+    await expandImagesLoadedSection();
     expect(screen.getByText(firstImage?.debug_file as string)).toBeInTheDocument();
     expect(screen.getByText(secondImage?.debug_file)).toBeInTheDocument();
 

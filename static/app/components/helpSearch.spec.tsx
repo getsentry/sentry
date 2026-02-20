@@ -1,6 +1,6 @@
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import HelpSearch from 'sentry/components/helpSearch';
 
@@ -87,14 +87,16 @@ describe('HelpSearch', () => {
 
     const mockSentryGlobalSearch = new SentryGlobalSearch();
 
-    expect(mockSentryGlobalSearch.query).toHaveBeenLastCalledWith(
-      'dummy',
-      {
-        platforms: undefined,
-        searchAllIndexes: true,
-      },
-      {analyticsTags: ['source:dashboard']}
-    );
+    await waitFor(() => {
+      expect(mockSentryGlobalSearch.query).toHaveBeenCalledWith(
+        'dummy',
+        {
+          platforms: undefined,
+          searchAllIndexes: true,
+        },
+        {analyticsTags: ['source:dashboard']}
+      );
+    });
 
     await screen.findByText('From Documentation');
 

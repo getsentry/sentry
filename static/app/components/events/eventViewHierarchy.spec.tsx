@@ -8,6 +8,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {EventViewHierarchy} from './eventViewHierarchy';
 
 // Mocks for useVirtualizedTree hook
+const originalResizeObserver = window.ResizeObserver;
+const originalElementScrollTo = window.Element.prototype.scrollTo;
+
 class ResizeObserver {
   observe() {}
   unobserve() {}
@@ -53,6 +56,11 @@ const organization = OrganizationFixture({
 const event = EventFixture();
 
 describe('Event View Hierarchy', () => {
+  afterAll(() => {
+    window.ResizeObserver = originalResizeObserver;
+    window.Element.prototype.scrollTo = originalElementScrollTo;
+  });
+
   let mockAttachment!: ReturnType<typeof EventAttachmentFixture>;
   let mockProject!: ReturnType<typeof ProjectFixture>;
   beforeEach(() => {

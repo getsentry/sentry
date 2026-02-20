@@ -35,7 +35,14 @@ function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
   });
 }
 
-jest.useFakeTimers();
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 describe('replayDetailsUserBadge', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();

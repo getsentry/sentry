@@ -4,8 +4,19 @@ import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 const MOCK_API_ENDPOINT = '/api/test/';
+let queryKeyScope = 0;
+
 function queryKeyFactory() {
-  return jest.fn().mockImplementation(query => [MOCK_API_ENDPOINT, {query}]);
+  const scope = queryKeyScope++;
+  return jest.fn().mockImplementation(query => [
+    MOCK_API_ENDPOINT,
+    {
+      query: {
+        ...query,
+        __scope: `test-scope-${scope}`,
+      },
+    },
+  ]);
 }
 
 describe('useFetchSequentialPages', () => {

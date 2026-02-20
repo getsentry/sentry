@@ -28,8 +28,7 @@ describe('AlertRulesList', () => {
   const defaultOrg = OrganizationFixture({
     access: ['alerts:write'],
   });
-
-  TeamStore.loadInitialData([TeamFixture()], false, null);
+  const team = TeamFixture();
   let rulesMock!: jest.Mock;
   let projectMock!: jest.Mock;
   const pageLinks =
@@ -37,6 +36,7 @@ describe('AlertRulesList', () => {
     '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
   beforeEach(() => {
+    TeamStore.loadInitialData([team], false, null);
     rulesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
@@ -77,7 +77,7 @@ describe('AlertRulesList', () => {
         ProjectFixture({
           slug: 'earth',
           platform: 'javascript',
-          teams: [TeamFixture()],
+          teams: [team],
         }),
       ],
     });
@@ -135,7 +135,7 @@ describe('AlertRulesList', () => {
 
     await userEvent.click(btn, {skipHover: true});
 
-    expect(screen.getByText('#team-slug')).toBeInTheDocument();
+    expect(await screen.findByText('#team-slug')).toBeInTheDocument();
   });
 
   it('assigns rule to team from unassigned', async () => {
@@ -153,7 +153,7 @@ describe('AlertRulesList', () => {
     expect(btn).toBeInTheDocument();
 
     await userEvent.click(btn, {skipHover: true});
-    await userEvent.click(screen.getByText('#team-slug'));
+    await userEvent.click(await screen.findByText('#team-slug'));
 
     expect(assignMock).toHaveBeenCalledWith(
       '/projects/org-slug/earth/rules/123/',

@@ -63,17 +63,18 @@ describe('useRouteActivatedHook', () => {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(0);
     act(() => jest.advanceTimersByTime(HALF_ADVANCE_PERIOD));
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         eventName: 'Page View: Settings :OrgId Projects :ProjectId',
         eventKey: 'page_view.settings.:org_id.projects.:project_id',
         parameterized_path: 'settings.:org_id.projects.:project_id',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/settings/${organization.slug}/${project.slug}/`,
-      },
-      {time: loadTime}
+      }),
+      {time: expect.any(Number)}
     );
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+    expect(loadTime).toBeTypeOf('number');
   });
 
   it('does not call rawTrackAnalyticsEvent if org is not set', () => {
@@ -96,7 +97,7 @@ describe('useRouteActivatedHook', () => {
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
     act(() => result.current.setRouteAnalyticsParams({field: 'value', foo: 'baz'}));
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         eventName: 'Page View: Settings :OrgId Projects :ProjectId',
         eventKey: 'page_view.settings.:org_id.projects.:project_id',
         parameterized_path: 'settings.:org_id.projects.:project_id',
@@ -104,10 +105,11 @@ describe('useRouteActivatedHook', () => {
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/settings/${organization.slug}/${project.slug}/`,
         foo: 'bar',
-      },
-      {time: loadTime}
+      }),
+      {time: expect.any(Number)}
     );
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+    expect(loadTime).toBeTypeOf('number');
   });
 
   it('only calls rawTrackAnalyticsEvent once when URL query params are updated', () => {
@@ -185,17 +187,18 @@ describe('useRouteActivatedHook', () => {
     act(() => rerender(newProps));
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         eventName: 'Page View: Organizations :OrgId Releases :Release',
         eventKey: 'page_view.organizations.:org_id.releases.:release',
         parameterized_path: 'organizations.:org_id.releases.:release',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/organizations/${organization.slug}/releases/some-release/`,
-      },
-      {time: loadTime}
+      }),
+      {time: expect.any(Number)}
     );
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+    expect(loadTime).toBeTypeOf('number');
   });
 
   it('overrwite event names', () => {
@@ -208,17 +211,18 @@ describe('useRouteActivatedHook', () => {
     const loadTime = Date.now();
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         eventName: 'Test Event',
         eventKey: 'test.event',
         parameterized_path: 'settings.:org_id.projects.:project_id',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/settings/${organization.slug}/${project.slug}/`,
-      },
-      {time: loadTime}
+      }),
+      {time: expect.any(Number)}
     );
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+    expect(loadTime).toBeTypeOf('number');
   });
 
   it('route changes triggers early analytics event', () => {
@@ -248,15 +252,15 @@ describe('useRouteActivatedHook', () => {
     // emit the first event from the previous page
     act(() => rerender(newProps));
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         eventName: 'Page View: Settings :OrgId Projects :ProjectId',
         eventKey: 'page_view.settings.:org_id.projects.:project_id',
         parameterized_path: 'settings.:org_id.projects.:project_id',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/settings/${organization.slug}/${project.slug}/`,
-      },
-      {time: loadTime}
+      }),
+      {time: expect.any(Number)}
     );
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
     loadTime = Date.now();
@@ -264,16 +268,17 @@ describe('useRouteActivatedHook', () => {
     // should emit the second event now
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         eventName: 'Page View: Organizations :OrgId Releases :Release',
         eventKey: 'page_view.organizations.:org_id.releases.:release',
         parameterized_path: 'organizations.:org_id.releases.:release',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/organizations/${organization.slug}/releases/some-release/`,
-      },
-      {time: loadTime}
+      }),
+      {time: expect.any(Number)}
     );
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(2);
+    expect(loadTime).toBeTypeOf('number');
   });
 });

@@ -8,6 +8,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -22,10 +23,6 @@ describe('StreamlinedActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
   user.options.prefersIssueDetailsStreamlinedUI = true;
-  ConfigStore.set('user', user);
-
-  ProjectsStore.loadInitialData([project]);
-  GroupStore.init();
 
   const group = GroupFixture({
     id: '1337',
@@ -41,12 +38,14 @@ describe('StreamlinedActivitySection', () => {
     project,
   });
 
-  GroupStore.add([group]);
-
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
     localStorage.clear();
+    ConfigStore.set('user', user);
+    ProjectsStore.loadInitialData([project]);
+    GroupStore.init();
+    GroupStore.add([group]);
   });
 
   it('renders the input with a comment button', async () => {
@@ -127,7 +126,9 @@ describe('StreamlinedActivitySection', () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
 
-    expect(deleteMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(deleteMock).toHaveBeenCalledTimes(1);
+    });
 
     expect(screen.queryByText('Test Note')).not.toBeInTheDocument();
   });

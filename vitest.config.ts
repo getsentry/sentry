@@ -112,6 +112,7 @@ export default defineConfig({
   },
   test: {
     maxWorkers: IS_GITHUB_ACTION_ENV ? '75%' : undefined,
+    isolate: false,
     // Limit Vitest's crawl to the frontend app tree.
     dir: 'static',
     globals: true,
@@ -124,6 +125,8 @@ export default defineConfig({
     clearMocks: true,
     setupFiles: [
       'tests/js/vitest-cjs-shim.ts',
+      'tests/js/vitest-reset-modules.ts',
+      'tests/js/vitest-setup-timezone.ts',
       'static/app/utils/silence-react-unsafe-warnings.ts',
       'vitest-canvas-mock',
       'tests/js/vitest-setup.ts',

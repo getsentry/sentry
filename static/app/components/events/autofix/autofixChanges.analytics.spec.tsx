@@ -17,18 +17,24 @@ import {
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 
-jest.mock('@sentry/scraps/button', () => ({
-  Button: jest.fn(props => {
-    // Forward the click handler while allowing us to inspect props
-    return <button onClick={props.onClick}>{props.children}</button>;
-  }),
-  LinkButton: jest.fn(props => {
-    return <a href={props.href}>{props.children}</a>;
-  }),
-  ButtonBar: jest.fn(props => {
-    return <div {...props}>{props.children}</div>;
-  }),
-}));
+jest.mock('@sentry/scraps/button', async () => {
+  const actual = await vi.importActual<typeof import('@sentry/scraps/button')>(
+    '@sentry/scraps/button'
+  );
+  return {
+    ...actual,
+    Button: jest.fn(props => {
+      // Forward the click handler while allowing us to inspect props
+      return <button onClick={props.onClick}>{props.children}</button>;
+    }),
+    LinkButton: jest.fn(props => {
+      return <a href={props.href}>{props.children}</a>;
+    }),
+    ButtonBar: jest.fn(props => {
+      return <div {...props}>{props.children}</div>;
+    }),
+  };
+});
 
 jest.mock('sentry/components/events/autofix/useAutofix');
 

@@ -7,8 +7,15 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {trackAnalytics} from 'sentry/utils/analytics';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
-jest.useFakeTimers();
 jest.mock('sentry/utils/analytics');
+
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 describe('CreateSampleEventButton', () => {
   const org = OrganizationFixture();

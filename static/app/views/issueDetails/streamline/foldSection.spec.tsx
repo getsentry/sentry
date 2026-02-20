@@ -19,6 +19,8 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+
 describe('FoldSection', () => {
   const mockUseIssueDetails = {
     sectionData: {},
@@ -33,6 +35,10 @@ describe('FoldSection', () => {
     jest.resetAllMocks();
     localStorageWrapper.clear();
     jest.mocked(useIssueDetails).mockReturnValue(mockUseIssueDetails);
+  });
+
+  afterEach(() => {
+    Element.prototype.scrollIntoView = originalScrollIntoView;
   });
 
   describe('Basic rendering', () => {

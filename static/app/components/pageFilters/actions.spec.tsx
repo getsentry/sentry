@@ -19,8 +19,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import localStorage from 'sentry/utils/localStorage';
 
-jest.mock('sentry/utils/localStorage');
-
 const {organization, projects} = initializeOrg({
   projects: [
     {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
@@ -30,9 +28,12 @@ const {organization, projects} = initializeOrg({
 
 describe('PageFilters ActionCreators', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    jest.spyOn(localStorage, 'getItem');
+    jest.spyOn(localStorage, 'setItem');
     jest.spyOn(PageFiltersStore, 'updateProjects');
     jest.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
-    jest.clearAllMocks();
     OrganizationStore.onUpdate(organization, {replace: true});
     ConfigStore.set('user', UserFixture());
   });
@@ -69,9 +70,6 @@ describe('PageFilters ActionCreators', () => {
         nonMemberProjects: [],
       });
 
-      expect(localStorage.getItem).toHaveBeenCalledWith(
-        `global-selection:${organization.slug}`
-      );
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           environments: [],
@@ -100,7 +98,12 @@ describe('PageFilters ActionCreators', () => {
         router,
       });
 
-      expect(localStorage.getItem).not.toHaveBeenCalled();
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environments: [],
+        }),
+        true
+      );
     });
 
     it('does not update local storage (persist) when `shouldPersist` is false', async () => {
@@ -144,7 +147,10 @@ describe('PageFilters ActionCreators', () => {
       });
 
       // New value wasn't committed to local storage
-      expect(localStorage.setItem).not.toHaveBeenCalled();
+      expect(JSON.parse(window.localStorage.getItem(key) || '{}')).toEqual({
+        environments: [],
+        projects: [1],
+      });
     });
 
     it('does not change dates with no query params or defaultSelection', () => {
@@ -459,9 +465,6 @@ describe('PageFilters ActionCreators', () => {
         nonMemberProjects: [],
         storageNamespace,
       });
-      expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
-      expect(localStorage.getItem).toHaveBeenCalledWith(globalKey);
-
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           environments: [],
@@ -524,9 +527,6 @@ describe('PageFilters ActionCreators', () => {
         nonMemberProjects: [],
         storageNamespace,
       });
-      expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
-      expect(localStorage.getItem).toHaveBeenCalledWith(globalKey);
-
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           environments: [],
@@ -571,7 +571,6 @@ describe('PageFilters ActionCreators', () => {
         storageNamespace: 'insights',
       });
 
-      expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           environments: [],

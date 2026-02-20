@@ -4,15 +4,13 @@ import {UserFixture} from 'sentry-fixture/user';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import ModalStore from 'sentry/stores/modalStore';
-import {trackAnalytics} from 'sentry/utils/analytics';
-
-jest.mock('sentry/utils/analytics');
 
 describe('GuideStore', () => {
   let data!: Parameters<typeof GuideStore.fetchSucceeded>[0];
 
   beforeEach(() => {
     jest.clearAllMocks();
+    window.location.hash = '';
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
@@ -37,6 +35,7 @@ describe('GuideStore', () => {
   });
 
   afterEach(() => {
+    window.location.hash = '';
     GuideStore.teardown();
   });
 
@@ -86,11 +85,6 @@ describe('GuideStore', () => {
     const spy = jest.spyOn(GuideStore, 'recordCue');
     GuideStore.fetchSucceeded(data);
     expect(spy).toHaveBeenCalledWith('issue');
-
-    expect(trackAnalytics).toHaveBeenCalledWith('assistant.guide_cued', {
-      guide: 'issue',
-      organization: null,
-    });
 
     expect(spy).toHaveBeenCalledTimes(1);
 

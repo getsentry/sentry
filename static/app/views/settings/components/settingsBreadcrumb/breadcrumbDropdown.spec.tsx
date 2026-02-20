@@ -67,7 +67,9 @@ describe('Settings Breadcrumb Dropdown', () => {
     expect(screen.getByText('foo')).toBeInTheDocument();
 
     // Menu disappears after timeout
-    await act(() => jest.runAllTimersAsync());
+    await act(() => {
+      jest.advanceTimersByTime(300);
+    });
     expect(screen.queryByText('foo')).not.toBeInTheDocument();
   });
 

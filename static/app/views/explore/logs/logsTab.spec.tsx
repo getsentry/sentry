@@ -65,10 +65,9 @@ describe('LogsTabContent', () => {
     route: '/organizations/:orgId/explore/logs/',
   };
 
-  setupPageFilters();
-
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    setupPageFilters();
 
     // Default API mocks
     eventTableMock = MockApiClient.addMockResponse({
@@ -179,43 +178,47 @@ describe('LogsTabContent', () => {
       {initialRouterConfig, organization}
     );
 
-    expect(eventTableMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: [],
-          statsPeriod: '14d',
-          dataset: 'ourlogs',
-          field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
-          sort: 'sentry.message.parameters.0',
-          query: 'severity:error',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(eventTableMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+            statsPeriod: '14d',
+            dataset: 'ourlogs',
+            field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
+            sort: 'sentry.message.parameters.0',
+            query: 'severity:error',
+          }),
+        })
+      );
+    });
 
-    expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-timeseries/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          caseInsensitive: undefined,
-          dataset: 'ourlogs',
-          disableAggregateExtrapolation: '0',
-          environment: [],
-          excludeOther: 0,
-          groupBy: [],
-          interval: '1h',
-          partial: 1,
-          project: [2],
-          query: 'severity:error',
-          referrer: 'api.explore.ourlogs-timeseries',
-          sampling: 'NORMAL',
-          sort: '-count_message',
-          statsPeriod: '14d',
-          topEvents: undefined,
-          yAxis: ['count(message)'],
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-timeseries/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            caseInsensitive: undefined,
+            dataset: 'ourlogs',
+            disableAggregateExtrapolation: '0',
+            environment: [],
+            excludeOther: 0,
+            groupBy: [],
+            interval: '1h',
+            partial: 1,
+            project: [2],
+            query: 'severity:error',
+            referrer: 'api.explore.ourlogs-timeseries',
+            sampling: 'NORMAL',
+            sort: '-count_message',
+            statsPeriod: '14d',
+            topEvents: undefined,
+            yAxis: ['count(message)'],
+          }),
+        })
+      );
+    });
 
     const table = screen.getByTestId('logs-table');
     await screen.findByText('some log message1');
@@ -275,51 +278,57 @@ describe('LogsTabContent', () => {
       {initialRouterConfig, organization}
     );
 
-    expect(eventTableMock).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(eventTableMock).toHaveBeenCalled();
+    });
 
     const caseInsensitiveBtn = await screen.findByRole('button', {
       name: 'Ignore case',
     });
     await userEvent.click(caseInsensitiveBtn);
 
-    expect(eventTableMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: [],
-          statsPeriod: '14d',
-          dataset: 'ourlogs',
-          field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
-          sort: 'sentry.message.parameters.0',
-          query: 'severity:error',
-          caseInsensitive: '1',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(eventTableMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+            statsPeriod: '14d',
+            dataset: 'ourlogs',
+            field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
+            sort: 'sentry.message.parameters.0',
+            query: 'severity:error',
+            caseInsensitive: '1',
+          }),
+        })
+      );
+    });
 
-    expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-timeseries/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          caseInsensitive: 1,
-          dataset: 'ourlogs',
-          disableAggregateExtrapolation: '0',
-          environment: [],
-          excludeOther: 0,
-          groupBy: [],
-          interval: '1h',
-          partial: 1,
-          project: [2],
-          query: 'severity:error',
-          referrer: 'api.explore.ourlogs-timeseries',
-          sampling: 'NORMAL',
-          sort: '-count_message',
-          statsPeriod: '14d',
-          topEvents: undefined,
-          yAxis: ['count(message)'],
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-timeseries/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            caseInsensitive: 1,
+            dataset: 'ourlogs',
+            disableAggregateExtrapolation: '0',
+            environment: [],
+            excludeOther: 0,
+            groupBy: [],
+            interval: '1h',
+            partial: 1,
+            project: [2],
+            query: 'severity:error',
+            referrer: 'api.explore.ourlogs-timeseries',
+            sampling: 'NORMAL',
+            sort: '-count_message',
+            statsPeriod: '14d',
+            topEvents: undefined,
+            yAxis: ['count(message)'],
+          }),
+        })
+      );
+    });
   });
 
   it('should add a timestamp_precise filter when autorefresh is enabled', async () => {

@@ -1,8 +1,10 @@
 import {
   act,
+  fireEvent,
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -84,9 +86,9 @@ describe('GlobalModal', () => {
     );
 
     expect(screen.getByText('Hi')).toBeInTheDocument();
-    await userEvent.keyboard('{Escape}');
+    fireEvent.keyDown(document, {key: 'Escape'});
 
-    expect(closeSpy).toHaveBeenCalled();
+    await waitFor(() => expect(closeSpy).toHaveBeenCalled());
   });
 
   it('calls onClose handler when closeModal prop is called', async () => {
@@ -127,9 +129,9 @@ describe('GlobalModal', () => {
     expect(closeSpy).not.toHaveBeenCalled();
 
     // Pressing escape _does_ close
-    await userEvent.keyboard('{Escape}');
+    fireEvent.keyDown(document, {key: 'Escape'});
+    await waitFor(() => expect(closeSpy).toHaveBeenCalled());
     await waitForModalToHide();
-    expect(closeSpy).toHaveBeenCalled();
   });
 
   it("ignores escape key with closeEvents: 'backdrop-click'", async () => {

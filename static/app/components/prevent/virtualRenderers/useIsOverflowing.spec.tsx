@@ -3,6 +3,7 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {useIsOverflowing} from './useIsOverflowing';
 
 const mocks = {scrollWidth: 0, clientWidth: 0};
+const originalResizeObserver = window.ResizeObserver;
 
 class ResizeObserverMock {
   callback = (_x: any) => null;
@@ -33,6 +34,10 @@ class ResizeObserverMock {
 global.window.ResizeObserver = ResizeObserverMock;
 
 describe('useIsOverflowing', () => {
+  afterAll(() => {
+    window.ResizeObserver = originalResizeObserver;
+  });
+
   describe('ref is null', () => {
     it('returns false if the ref is null', () => {
       const {result} = renderHook(() => useIsOverflowing({current: null}));

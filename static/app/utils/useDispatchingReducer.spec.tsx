@@ -3,6 +3,9 @@ import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import {makeCombinedReducers} from 'sentry/utils/makeCombinedReducer';
 import {useDispatchingReducer} from 'sentry/utils/useDispatchingReducer';
 
+const originalRequestAnimationFrame = window.requestAnimationFrame;
+const originalCancelAnimationFrame = window.cancelAnimationFrame;
+
 describe('useDispatchingReducer', () => {
   beforeEach(() => {
     window.requestAnimationFrame = jest.fn().mockImplementation(cb => {
@@ -15,6 +18,8 @@ describe('useDispatchingReducer', () => {
   });
   afterEach(() => {
     jest.useRealTimers();
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+    window.cancelAnimationFrame = originalCancelAnimationFrame;
   });
   it('initializes state with initializer', () => {
     const reducer = jest.fn().mockImplementation(s => s);

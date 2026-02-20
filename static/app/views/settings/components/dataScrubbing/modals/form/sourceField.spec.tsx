@@ -7,7 +7,13 @@ import {
   valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+
 describe('Source', () => {
+  afterEach(() => {
+    Element.prototype.scrollIntoView = originalScrollIntoView;
+  });
+
   it('default render', () => {
     render(
       <SourceField

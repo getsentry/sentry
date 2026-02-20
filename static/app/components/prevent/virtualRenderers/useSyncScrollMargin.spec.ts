@@ -2,6 +2,8 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useSyncScrollMargin} from './useSyncScrollMargin';
 
+const originalResizeObserver = window.ResizeObserver;
+
 class ResizeObserverMock {
   callback = (_x: any) => null;
 
@@ -22,6 +24,10 @@ class ResizeObserverMock {
 global.window.ResizeObserver = ResizeObserverMock;
 
 describe('useSyncScrollMargin', () => {
+  afterAll(() => {
+    window.ResizeObserver = originalResizeObserver;
+  });
+
   describe('overlayRef is null', () => {
     it('returns undefined', () => {
       const {result} = renderHook(() => useSyncScrollMargin({current: null}));

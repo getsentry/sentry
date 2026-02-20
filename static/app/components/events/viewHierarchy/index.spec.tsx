@@ -19,6 +19,10 @@ import type {ViewHierarchyData} from './index';
 import {ViewHierarchy} from './index';
 
 // Mocks for useVirtualizedTree hook
+const originalResizeObserver = window.ResizeObserver;
+const originalElementScrollTo = window.Element.prototype.scrollTo;
+const originalElementScrollIntoView = window.Element.prototype.scrollIntoView;
+
 class ResizeObserver {
   observe() {}
   unobserve() {}
@@ -73,6 +77,12 @@ function getMockData(project?: Project) {
 }
 
 describe('View Hierarchy', () => {
+  afterAll(() => {
+    window.ResizeObserver = originalResizeObserver;
+    window.Element.prototype.scrollTo = originalElementScrollTo;
+    window.Element.prototype.scrollIntoView = originalElementScrollIntoView;
+  });
+
   it('can continue make selections for inspecting data', async () => {
     const mockData = getMockData();
     render(

@@ -16,6 +16,7 @@ const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
 
 describe('TwoFactorRequired', () => {
   beforeEach(() => {
+    Cookies.remove(INVITE_COOKIE);
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -30,6 +31,10 @@ describe('TwoFactorRequired', () => {
       url: ACCOUNT_EMAILS_ENDPOINT,
       body: AccountEmailsFixture(),
     });
+  });
+
+  afterEach(() => {
+    Cookies.remove(INVITE_COOKIE);
   });
 
   it('renders empty', async () => {

@@ -89,6 +89,10 @@ describe('CronDetectorDetails - check-ins', () => {
       url: `/organizations/org-slug/workflows/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/monitors-stats/`,
+      body: [],
+    });
   });
 
   it('should show onboarding when the monitor has never checked in', async () => {

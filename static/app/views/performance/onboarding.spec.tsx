@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
@@ -259,6 +259,8 @@ describe('Testing new onboarding ui', () => {
       })
     );
 
-    expect(testableWindowLocation.assign).toHaveBeenCalledWith(traceHref);
+    await waitFor(() => {
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(traceHref);
+    });
   });
 });

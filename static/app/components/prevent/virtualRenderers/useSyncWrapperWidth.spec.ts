@@ -2,6 +2,8 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useSyncWrapperWidth} from './useSyncWrapperWidth';
 
+const originalResizeObserver = window.ResizeObserver;
+
 class ResizeObserverMock {
   callback = (_x: any) => null;
 
@@ -22,6 +24,10 @@ class ResizeObserverMock {
 global.window.ResizeObserver = ResizeObserverMock;
 
 describe('useSyncWrapperWidth', () => {
+  afterAll(() => {
+    window.ResizeObserver = originalResizeObserver;
+  });
+
   describe('wrapperRefState is null', () => {
     it('returns the wrapper width as 100%', () => {
       const {result} = renderHook(() => useSyncWrapperWidth());

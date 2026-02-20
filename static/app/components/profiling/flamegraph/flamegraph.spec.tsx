@@ -8,6 +8,9 @@ import {FlamegraphRendererDOM as mockFlameGraphRenderer} from 'sentry/utils/prof
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
 import ProfilesAndTransactionProvider from 'sentry/views/profiling/transactionProfileProvider';
 
+const originalResizeObserver = window.ResizeObserver;
+const originalElementScrollTo = Element.prototype.scrollTo;
+
 window.ResizeObserver =
   window.ResizeObserver ||
   jest.fn().mockImplementation(() => ({
@@ -87,6 +90,11 @@ const flamechart = {
 };
 
 describe('Flamegraph', () => {
+  afterAll(() => {
+    window.ResizeObserver = originalResizeObserver;
+    Element.prototype.scrollTo = originalElementScrollTo;
+  });
+
   beforeEach(() => {
     const project = ProjectFixture({slug: 'foo-project'});
     act(() => ProjectsStore.loadInitialData([project]));

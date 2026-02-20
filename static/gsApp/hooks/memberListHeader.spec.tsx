@@ -29,9 +29,11 @@ describe('MemberListHeader', () => {
     isTrial: false,
     plan: 'am1_f',
   });
-  SubscriptionStore.set(organization.slug, sub);
 
   beforeEach(() => {
+    SubscriptionStore.init();
+    SubscriptionStore.set(organization.slug, sub);
+
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       query: {tier: 'am2'},

@@ -384,7 +384,9 @@ describe('Add Modal with ourlogs-enabled', () => {
     await userEvent.click(screen.getByLabelText('Errors, Transactions, Attachments'));
 
     expect(screen.getByText('Source')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Hide event ID field'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Use event ID for auto-completion'})
+    ).toBeInTheDocument();
     expect(screen.queryByText('Attribute')).not.toBeInTheDocument();
   });
 

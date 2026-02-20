@@ -24,10 +24,14 @@ describe('instance level OAuth list', () => {
     },
   ];
 
-  const mockGetListCall = MockApiClient.addMockResponse({
-    url: '/_admin/instance-level-oauth/',
-    method: 'GET',
-    body: mockClientRows,
+  let mockGetListCall!: jest.Mock;
+
+  beforeEach(() => {
+    mockGetListCall = MockApiClient.addMockResponse({
+      url: '/_admin/instance-level-oauth/',
+      method: 'GET',
+      body: mockClientRows,
+    });
   });
 
   it('renders a list of instance level OAuth clients', async () => {
@@ -35,7 +39,7 @@ describe('instance level OAuth list', () => {
     expect(screen.getByText('Instance Level OAuth Clients')).toBeInTheDocument();
     expect(screen.getByText('Name')).toBeInTheDocument();
     expect(screen.getByText('Client ID')).toBeInTheDocument();
-    expect(screen.getByText('CodeCov')).toBeInTheDocument();
+    expect(await screen.findByText('CodeCov')).toBeInTheDocument();
     for (const row of mockClientRows) {
       expect(await screen.findByText(row.clientID)).toBeInTheDocument();
     }

@@ -41,6 +41,12 @@ describe('UptimeAlertDetails', () => {
         '3': UptimeSummaryFixture(),
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/uptime-stats/',
+      body: {
+        '3': [],
+      },
+    });
   });
 
   it('renders', async () => {

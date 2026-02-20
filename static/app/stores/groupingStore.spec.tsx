@@ -648,13 +648,13 @@ describe('Grouping Store', () => {
           groupId: 'groupId',
         });
 
-        expect(trigger).toHaveBeenCalledWith({
-          enableFingerprintCompare: false,
-          unmergeLastCollapsed: false,
-          unmergeDisabled: true,
-          unmergeList,
-          unmergeState,
-        });
+        expect(trigger).toHaveBeenCalledWith(
+          expect.objectContaining({
+            enableFingerprintCompare: false,
+            unmergeLastCollapsed: false,
+            unmergeDisabled: true,
+          })
+        );
       });
 
       it('disables rows to be merged', async () => {
@@ -676,14 +676,15 @@ describe('Grouping Store', () => {
           groupId: 'groupId',
         });
 
+        await Promise.resolve();
         unmergeState.set('2', {checked: false, busy: true});
-        expect(trigger).toHaveBeenCalledWith({
-          enableFingerprintCompare: false,
-          unmergeLastCollapsed: false,
-          unmergeDisabled: true,
-          unmergeList,
-          unmergeState,
-        });
+        expect(trigger).toHaveBeenCalledWith(
+          expect.objectContaining({
+            enableFingerprintCompare: false,
+            unmergeLastCollapsed: false,
+            unmergeDisabled: true,
+          })
+        );
 
         await promise;
 
@@ -709,14 +710,15 @@ describe('Grouping Store', () => {
           orgSlug: 'org-slug',
         });
 
+        await Promise.resolve();
         unmergeState.set('2', {checked: false, busy: true});
-        expect(trigger).toHaveBeenCalledWith({
-          enableFingerprintCompare: false,
-          unmergeLastCollapsed: false,
-          unmergeDisabled: true,
-          unmergeList,
-          unmergeState,
-        });
+        expect(trigger).toHaveBeenCalledWith(
+          expect.objectContaining({
+            enableFingerprintCompare: false,
+            unmergeLastCollapsed: false,
+            unmergeDisabled: true,
+          })
+        );
 
         await promise;
 

@@ -11,12 +11,24 @@ import {TeamSelector} from 'sentry/components/teamSelector';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-jest.mock('sentry/actionCreators/projects', () => ({
-  addTeamToProject: jest.fn(),
-}));
-jest.mock('sentry/actionCreators/modal', () => ({
-  openCreateTeamModal: jest.fn(),
-}));
+jest.mock('sentry/actionCreators/projects', async () => {
+  const actual = await vi.importActual<typeof import('sentry/actionCreators/projects')>(
+    'sentry/actionCreators/projects'
+  );
+  return {
+    ...actual,
+    addTeamToProject: jest.fn(),
+  };
+});
+jest.mock('sentry/actionCreators/modal', async () => {
+  const actual = await vi.importActual<typeof import('sentry/actionCreators/modal')>(
+    'sentry/actionCreators/modal'
+  );
+  return {
+    ...actual,
+    openCreateTeamModal: jest.fn(),
+  };
+});
 
 const teamData = [
   {
@@ -58,6 +70,7 @@ function createWrapper(props: Partial<React.ComponentProps<typeof TeamSelector>>
 
 describe('Team Selector', () => {
   beforeEach(() => {
+    act(() => OrganizationStore.onUpdate(organization, {replace: true}));
     TeamStore.loadInitialData(teams);
   });
 

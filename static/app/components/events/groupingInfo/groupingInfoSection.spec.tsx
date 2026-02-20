@@ -64,6 +64,9 @@ describe('EventGroupingInfo', () => {
     render(
       <EventGroupingInfoSection {...defaultProps} event={perfEvent} group={perfGroup} />
     );
+    await userEvent.click(
+      screen.getByRole('button', {name: 'View Event Grouping Information Section'})
+    );
 
     expect(await screen.findByText('performance problem')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
@@ -89,6 +92,9 @@ describe('EventGroupingInfo', () => {
       },
     });
     render(<EventGroupingInfoSection {...defaultProps} />);
+    await userEvent.click(
+      screen.getByRole('button', {name: 'View Event Grouping Information Section'})
+    );
 
     expect(await screen.findByText('variant description')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
@@ -118,6 +124,9 @@ describe('EventGroupingInfo', () => {
 
     render(
       <EventGroupingInfoSection {...defaultProps} event={perfEvent} group={perfGroup} />
+    );
+    await userEvent.click(
+      screen.getByRole('button', {name: 'View Event Grouping Information Section'})
     );
 
     expect(await screen.findByText('performance problem')).toBeInTheDocument();

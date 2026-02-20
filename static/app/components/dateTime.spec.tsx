@@ -75,13 +75,13 @@ describe('DateTime', () => {
   });
 
   describe('24 Hours', () => {
-    beforeAll(() => {
+    beforeEach(() => {
       const user = UserFixture();
       user.options.clock24Hours = true;
       ConfigStore.set('user', user);
     });
 
-    afterAll(() => {
+    afterEach(() => {
       const user = UserFixture();
       user.options.clock24Hours = false;
       ConfigStore.set('user', user);

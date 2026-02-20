@@ -20,7 +20,13 @@ jest.mock('sentry/utils/replays/hooks/useReplayProjectSlug', () => ({
   useReplayProjectSlug: () => 'test-project',
 }));
 
-jest.useFakeTimers();
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 describe('useLiveBadge', () => {
   it('should return isLive=true when replay finished within 5 minutes', () => {

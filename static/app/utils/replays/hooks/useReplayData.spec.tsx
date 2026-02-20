@@ -57,6 +57,7 @@ function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
 
 describe('useReplayData', () => {
   beforeEach(() => {
+    ProjectsStore.loadInitialData([project]);
     MockApiClient.clearMockResponses();
     mockInvalidateQueries.mockClear();
   });

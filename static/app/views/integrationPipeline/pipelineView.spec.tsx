@@ -20,7 +20,7 @@ jest.mock('sentry/views/integrationPipeline/awsLambdaProjectSelect', () => ({
 describe('PipelineView', () => {
   beforeEach(() => {
     const configState = ConfigStore.getState();
-    const organization = OrganizationFixture();
+    const organization = OrganizationFixture({slug: 'org1'});
 
     ConfigStore.init();
     ConfigStore.loadInitialData(configState);
@@ -45,17 +45,17 @@ describe('PipelineView', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/',
+      url: '/organizations/org1/',
       body: organization,
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
+      url: '/organizations/org1/teams/',
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
+      url: '/organizations/org1/projects/',
       body: [],
     });
   });

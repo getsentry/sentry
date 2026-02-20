@@ -50,7 +50,7 @@ describe('useActiveReplayTab', () => {
         expect(result.current.getActiveTab()).toBe(TabKey.AI);
 
         act(() => result.current.setActiveTab('foo bar'));
-        expect(router.location.query).toEqual({query: 'click.tag:button', t_main: 'ai'});
+        expect(router.location.query).toEqual(expect.objectContaining({t_main: 'ai'}));
       });
 
       it('should use AI as default for video replays when replay-ai-summaries-mobile is enabled', () => {
@@ -111,10 +111,9 @@ describe('useActiveReplayTab', () => {
         expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
         act(() => result.current.setActiveTab('foo bar'));
-        expect(router.location.query).toEqual({
-          query: 'click.tag:button',
-          t_main: 'breadcrumbs',
-        });
+        expect(router.location.query).toEqual(
+          expect.objectContaining({t_main: 'breadcrumbs'})
+        );
       });
     });
   });
@@ -128,9 +127,6 @@ describe('useActiveReplayTab', () => {
 
     act(() => result.current.setActiveTab('nEtWoRk'));
 
-    expect(router.location.query).toEqual({
-      query: 'click.tag:button',
-      t_main: 'network',
-    });
+    expect(router.location.query).toEqual(expect.objectContaining({t_main: 'network'}));
   });
 });

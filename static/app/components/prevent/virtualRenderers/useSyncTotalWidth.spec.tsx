@@ -4,6 +4,12 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useSyncTotalWidth} from './useSyncTotalWidth';
 
+const originalRequestAnimationFrame = window.requestAnimationFrame;
+const originalCancelAnimationFrame = window.cancelAnimationFrame;
+const originalScrollTo = window.scrollTo;
+const originalScrollY = window.scrollY;
+const originalResizeObserver = window.ResizeObserver;
+
 window.requestAnimationFrame = cb => {
   cb(1);
   return 1;
@@ -56,6 +62,14 @@ function TestComponent() {
 }
 
 describe('useSyncTotalWidth', () => {
+  afterAll(() => {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+    window.cancelAnimationFrame = originalCancelAnimationFrame;
+    window.scrollTo = originalScrollTo;
+    window.scrollY = originalScrollY;
+    window.ResizeObserver = originalResizeObserver;
+  });
+
   it('should update the width of the width div to the width of the text area', async () => {
     render(<TestComponent />);
 

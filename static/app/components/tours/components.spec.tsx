@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   TourAction,
@@ -19,10 +19,15 @@ jest.mock('sentry/components/tours/tourContext', () => ({
 }));
 
 const mockUseTourReducer = jest.mocked(useTourReducer);
+const originalScrollIntoView = Element.prototype.scrollIntoView;
 
 describe('Tour Components', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    Element.prototype.scrollIntoView = originalScrollIntoView;
   });
 
   describe('TourContextProvider', () => {
@@ -345,9 +350,11 @@ describe('Tour Components', () => {
       expect(screen.getByRole('button', {name: 'Test Action'})).toBeInTheDocument();
       expect(screen.getByText('50/100')).toBeInTheDocument();
       expect(screen.getByText('Child Element')).toBeInTheDocument();
-      expect(mockScrollIntoView).toHaveBeenCalledWith({
-        block: 'center',
-        behavior: 'smooth',
+      await waitFor(() => {
+        expect(mockScrollIntoView).toHaveBeenCalledWith({
+          block: 'center',
+          behavior: 'smooth',
+        });
       });
       await userEvent.click(screen.getByRole('button', {name: 'Close'}));
       expect(mockHandleDismiss).toHaveBeenCalled();

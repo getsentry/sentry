@@ -369,6 +369,15 @@ describe('useCopyIssueDetails', () => {
   describe('useCopyIssueDetails', () => {
     const mockCopy = jest.fn();
 
+    const triggerCopyHotkey = (useHotkeysMock: jest.SpyInstance) => {
+      const hotkeyBindings = useHotkeysMock.mock.calls.at(-1)?.[0] ?? [];
+      const copyBinding = hotkeyBindings.find(
+        binding => binding.match === 'command+alt+c'
+      );
+      expect(copyBinding).toBeDefined();
+      copyBinding?.callback();
+    };
+
     beforeEach(() => {
       jest.clearAllMocks();
 
@@ -421,6 +430,7 @@ describe('useCopyIssueDetails', () => {
 
     it('provides partial data when event is undefined', () => {
       let capturedText = '';
+      const useHotkeysMock = jest.spyOn(useHotkeysModule, 'useHotkeys');
 
       mockCopy.mockImplementation((text: string) => {
         capturedText = text;
@@ -428,15 +438,7 @@ describe('useCopyIssueDetails', () => {
       });
 
       renderHook(() => useCopyIssueDetails(group, undefined));
-
-      // Trigger the keyboard event (command+alt+c)
-      const keyboardEvent = new KeyboardEvent('keydown', {
-        keyCode: 67, // 'C'.charCodeAt(0)
-        metaKey: true,
-        altKey: true,
-        bubbles: true,
-      } as KeyboardEventInit);
-      document.dispatchEvent(keyboardEvent);
+      triggerCopyHotkey(useHotkeysMock);
 
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);
@@ -449,6 +451,7 @@ describe('useCopyIssueDetails', () => {
 
     it('generates markdown with the correct data when event is provided', () => {
       let capturedText = '';
+      const useHotkeysMock = jest.spyOn(useHotkeysModule, 'useHotkeys');
 
       mockCopy.mockImplementation((text: string) => {
         capturedText = text;
@@ -456,15 +459,7 @@ describe('useCopyIssueDetails', () => {
       });
 
       renderHook(() => useCopyIssueDetails(group, event));
-
-      // Trigger the keyboard event (command+alt+c)
-      const keyboardEvent = new KeyboardEvent('keydown', {
-        keyCode: 67, // 'C'.charCodeAt(0)
-        metaKey: true,
-        altKey: true,
-        bubbles: true,
-      } as KeyboardEventInit);
-      document.dispatchEvent(keyboardEvent);
+      triggerCopyHotkey(useHotkeysMock);
 
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);

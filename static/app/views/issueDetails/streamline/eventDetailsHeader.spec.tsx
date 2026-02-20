@@ -11,6 +11,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
+import * as issueTypeConfigModule from 'sentry/utils/issueTypeConfig';
+import * as useDimensionsModule from 'sentry/utils/useDimensions';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
 
@@ -44,6 +46,10 @@ describe('EventDetailsHeader', () => {
   const router = RouterFixture();
 
   beforeEach(() => {
+    jest
+      .spyOn(useDimensionsModule, 'useDimensions')
+      .mockReturnValue({width: 100, height: 100} as any);
+
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
@@ -78,6 +84,14 @@ describe('EventDetailsHeader', () => {
       url: `/organizations/${organization.slug}/events/`,
       body: {data: [{'count_unique(user)': 21}]},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/uptime-stats/`,
+      body: {},
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('renders filters alongside the graph', async () => {
@@ -158,17 +172,35 @@ describe('EventDetailsHeader', () => {
   });
 
   it('renders occurrence summary if enabled', async () => {
+    const uptimeGroup = GroupFixture({
+      issueCategory: IssueCategory.UPTIME,
+      issueType: IssueType.UPTIME_DOMAIN_FAILURE,
+    });
+    const uptimeConfig = issueTypeConfigModule.getConfigForIssueType(
+      uptimeGroup,
+      project
+    );
+
+    jest.spyOn(issueTypeConfigModule, 'getConfigForIssueType').mockReturnValue({
+      ...uptimeConfig,
+      header: {
+        ...uptimeConfig.header,
+        graph: {
+          ...uptimeConfig.header.graph,
+          enabled: false,
+        },
+      },
+    });
+
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      url: `/organizations/${organization.slug}/issues/${uptimeGroup.id}/events/recommended/`,
       body: {data: event},
     });
+
     render(
       <EventDetailsHeader
         {...defaultProps}
-        group={GroupFixture({
-          issueCategory: IssueCategory.UPTIME,
-          issueType: IssueType.UPTIME_DOMAIN_FAILURE,
-        })}
+        group={uptimeGroup}
         event={EventFixture({
           occurrence: {
             evidenceData: {},

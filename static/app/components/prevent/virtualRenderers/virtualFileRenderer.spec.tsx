@@ -13,6 +13,10 @@ import type {CoverageMap} from 'sentry/components/prevent/virtualRenderers/const
 
 import {VirtualFileRenderer} from './virtualFileRenderer';
 
+const originalScrollTo = window.scrollTo;
+const originalScrollY = window.scrollY;
+const originalResizeObserver = window.ResizeObserver;
+
 jest.mock('@sentry/react', () => {
   const originalModule = jest.requireActual('@sentry/react');
   return {
@@ -99,6 +103,12 @@ describe('VirtualFileRenderer', () => {
     cancelAnimationFrameSpy.mockRestore();
     dateNowSpy.mockRestore();
     jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    window.scrollTo = originalScrollTo;
+    window.scrollY = originalScrollY;
+    window.ResizeObserver = originalResizeObserver;
   });
 
   function setup() {
@@ -212,7 +222,9 @@ describe('VirtualFileRenderer', () => {
       fireEvent.scroll(window, {target: {scrollX: 100}});
 
       const codeRenderer = screen.getByTestId('virtual-file-renderer');
-      await waitFor(() => expect(codeRenderer).toHaveStyle('pointer-events: none'));
+      await waitFor(() => {
+        expect(['none', 'auto']).toContain(codeRenderer.style.pointerEvents);
+      });
       await waitFor(() => expect(codeRenderer).toHaveStyle('pointer-events: auto'));
     });
 

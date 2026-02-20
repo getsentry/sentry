@@ -32,7 +32,13 @@ function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
   });
 }
 
-jest.useFakeTimers();
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 describe('usePollReplayRecord', () => {
   beforeEach(() => {

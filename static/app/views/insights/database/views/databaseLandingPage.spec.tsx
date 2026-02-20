@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -41,6 +41,10 @@ describe('DatabaseLandingPage', () => {
   beforeEach(() => {
     // This silences pointless unique key errors that React throws because of the tokenized query descriptions
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    ProjectsStore.loadInitialData([
+      ProjectFixture({hasInsightsDb: true, firstTransactionEvent: true}),
+    ]);
 
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState({
@@ -216,7 +220,9 @@ describe('DatabaseLandingPage', () => {
       })
     );
 
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+    });
   });
 
   it('renders a list of queries', async () => {
@@ -225,7 +231,9 @@ describe('DatabaseLandingPage', () => {
       initialRouterConfig: baseRouterConfig,
     });
 
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+    });
 
     expect(screen.getByRole('cell', {name: 'SELECT * FROM users'})).toBeInTheDocument();
     expect(
@@ -249,7 +257,9 @@ describe('DatabaseLandingPage', () => {
       },
     });
 
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+    });
 
     expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
       1,
@@ -347,7 +357,9 @@ describe('DatabaseLandingPage', () => {
       },
     });
 
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+    });
 
     const domainSelector = await screen.findByTestId('domain-selector');
     expect(domainSelector).toHaveTextContent('Table');
@@ -368,7 +380,9 @@ describe('DatabaseLandingPage', () => {
       },
     });
 
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+    });
 
     const domainSelector = await screen.findByTestId('domain-selector');
     expect(domainSelector).toHaveTextContent('Collection');

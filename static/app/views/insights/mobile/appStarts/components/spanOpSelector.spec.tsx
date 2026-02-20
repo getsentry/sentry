@@ -13,45 +13,48 @@ describe('SpanOpSelector', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [parseInt(project.id, 10)],
         },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
-      },
-    })
-  );
+      })
+    );
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events/`,
-    body: {
-      meta: {
-        fields: {
-          'span.op': 'string',
-          'count()': 'integer',
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        meta: {
+          fields: {
+            'span.op': 'string',
+            'count()': 'integer',
+          },
         },
+        data: [
+          {
+            'span.op': 'app.start.cold',
+            'count()': 1,
+          },
+          {
+            'span.op': 'app.start.warm',
+            'count()': 2,
+          },
+          {
+            'span.op': 'contentprovider.load',
+            'count()': 3,
+          },
+        ],
       },
-      data: [
-        {
-          'span.op': 'app.start.cold',
-          'count()': 1,
-        },
-        {
-          'span.op': 'app.start.warm',
-          'count()': 2,
-        },
-        {
-          'span.op': 'contentprovider.load',
-          'count()': 3,
-        },
-      ],
-    },
+    });
   });
 
   it('lists all span operations that are stored', async () => {

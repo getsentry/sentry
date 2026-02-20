@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategoryExact} from 'sentry/types/core';
@@ -75,10 +75,12 @@ describe('SpikeProtectionHistoryTable', () => {
     expect(onEnableFunction).not.toHaveBeenCalled();
     const enableButton = screen.getByTestId('enable-sp-button');
     await userEvent.click(enableButton);
-    expect(mockPost).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({data: {projects: [project.slug]}})
-    );
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: {projects: [project.slug]}})
+      );
+    });
     expect(onEnableFunction).toHaveBeenCalled();
   });
 

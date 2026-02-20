@@ -34,7 +34,7 @@ describe('PreventSecondaryNav', () => {
     });
   });
 
-  it('renders the correct tests link', () => {
+  it('renders the correct tests link', async () => {
     render(
       <NavContextProvider>
         <Nav />
@@ -43,6 +43,7 @@ describe('PreventSecondaryNav', () => {
       {
         organization: OrganizationFixture({features: ['prevent-test-analytics']}),
         initialRouterConfig: {
+          route: '/organizations/:orgId/prevent/tests/',
           location: {
             pathname: '/organizations/org-slug/prevent/tests/',
           },
@@ -50,12 +51,12 @@ describe('PreventSecondaryNav', () => {
       }
     );
 
-    const testsLink = screen.getByRole('link', {name: 'Tests'});
+    const testsLink = await screen.findByRole('link', {name: 'Tests'});
     expect(testsLink).toBeInTheDocument();
     expect(testsLink).toHaveAttribute('href', '/organizations/org-slug/prevent/tests/');
   });
 
-  it('renders the correct tokens link', () => {
+  it('renders the correct tokens link', async () => {
     render(
       <NavContextProvider>
         <Nav />
@@ -64,6 +65,7 @@ describe('PreventSecondaryNav', () => {
       {
         organization: OrganizationFixture({features: ['prevent-test-analytics']}),
         initialRouterConfig: {
+          route: '/organizations/:orgId/prevent/tokens/',
           location: {
             pathname: '/organizations/org-slug/prevent/tokens/',
           },
@@ -71,7 +73,7 @@ describe('PreventSecondaryNav', () => {
       }
     );
 
-    const tokensLink = screen.getByRole('link', {name: 'Tokens'});
+    const tokensLink = await screen.findByRole('link', {name: 'Tokens'});
     expect(tokensLink).toBeInTheDocument();
     expect(tokensLink).toHaveAttribute('href', '/organizations/org-slug/prevent/tokens/');
   });

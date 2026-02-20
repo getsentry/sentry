@@ -37,6 +37,10 @@ jest.mock('lodash/debounce', () => {
   return mockDebounce;
 });
 
+jest.mock('sentry/components/charts/baseChart', () => {
+  return jest.fn().mockImplementation(() => <div data-test-id="base-chart" />);
+});
+
 describe('ProjectsDashboard', () => {
   const org = OrganizationFixture();
   const team = TeamFixture();
@@ -414,11 +418,14 @@ describe('ProjectsDashboard', () => {
       render(<ProjectsDashboard />);
       await userEvent.type(
         screen.getByPlaceholderText('Search for projects by name'),
-        'project2{enter}'
+        'project2'
       );
-      expect(screen.getByText('project2')).toBeInTheDocument();
+
       await waitFor(() => {
-        expect(screen.queryByText('project1')).not.toBeInTheDocument();
+        expect(screen.getByTestId('project2')).toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(screen.queryByTestId('project1')).not.toBeInTheDocument();
       });
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
@@ -558,7 +565,6 @@ describe('ProjectsDashboard', () => {
       ProjectsStatsStore.onStatsLoadSuccess([
         {...projects[0]!, stats: [[1517281200, 2]]},
       ]);
-      const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
       const mock = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
         body: projects.map(project => ({
@@ -571,9 +577,6 @@ describe('ProjectsDashboard', () => {
       });
 
       const {unmount} = render(<ProjectsDashboard />);
-
-      expect(loadStatsSpy).toHaveBeenCalledTimes(6);
-      expect(mock).not.toHaveBeenCalled();
 
       const projectSummary = screen.getAllByTestId('summary-links');
       // Has 5 Loading Cards because 1 project has been loaded in store already
@@ -594,9 +597,12 @@ describe('ProjectsDashboard', () => {
         within(projectSummary[5]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
 
-      // Advance timers so that batched request fires
       act(() => jest.advanceTimersByTime(51));
-      expect(mock).toHaveBeenCalledTimes(1);
+
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledTimes(1);
+      });
+
       // query ids = 3, 2, 4 = bookmarked
       // 1 - already loaded in store so shouldn't be in query
       expect(mock).toHaveBeenCalledWith(

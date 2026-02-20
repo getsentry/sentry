@@ -14,35 +14,38 @@ describe('MetricsRibbon', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [parseInt(project.id, 10)],
         },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
-      },
-    })
-  );
+      })
+    );
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/releases/`,
-    body: [
-      {
-        id: 970136705,
-        version: 'com.example.vu.android@2.10.5',
-        dateCreated: '2023-12-19T21:37:53.895495Z',
-      },
-      {
-        id: 969902997,
-        version: 'com.example.vu.android@2.10.3+42',
-        dateCreated: '2023-12-19T18:04:06.953025Z',
-      },
-    ],
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [
+        {
+          id: 970136705,
+          version: 'com.example.vu.android@2.10.5',
+          dateCreated: '2023-12-19T21:37:53.895495Z',
+        },
+        {
+          id: 969902997,
+          version: 'com.example.vu.android@2.10.3+42',
+          dateCreated: '2023-12-19T18:04:06.953025Z',
+        },
+      ],
+    });
   });
 
   it('makes a request to discover with the correct dataset and fields', async () => {

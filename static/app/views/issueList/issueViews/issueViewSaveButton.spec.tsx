@@ -52,9 +52,9 @@ const initialRouterConfigView = {
 };
 
 describe('IssueViewSaveButton', () => {
-  PageFiltersStore.onInitializeUrlState(defaultPageFilters);
-
   beforeEach(() => {
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/100/',
       body: mockGroupSearchView,
@@ -133,6 +133,7 @@ describe('IssueViewSaveButton', () => {
       }
     );
 
+    await screen.findByRole('button', {name: 'Save'});
     await userEvent.click(screen.getByRole('button', {name: 'More save options'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Save as new view'}));
 
@@ -191,6 +192,8 @@ describe('IssueViewSaveButton', () => {
       },
       organization,
     });
+
+    await screen.findByRole('button', {name: 'Save'});
 
     // Should show unsaved changes
     await screen.findByTestId('save-button-unsaved');
@@ -298,6 +301,7 @@ describe('IssueViewSaveButton', () => {
       organization,
     });
 
+    await screen.findByRole('button', {name: 'Save'});
     await screen.findByTestId('save-button-unsaved');
 
     await userEvent.click(screen.getByRole('button', {name: 'More save options'}));

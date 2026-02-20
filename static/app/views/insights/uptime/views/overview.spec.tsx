@@ -39,6 +39,12 @@ describe('Uptime Overview', () => {
         '123': UptimeSummaryFixture(),
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/uptime-stats/',
+      body: {
+        '123': [],
+      },
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

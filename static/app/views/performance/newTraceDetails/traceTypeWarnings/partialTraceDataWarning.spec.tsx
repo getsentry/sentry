@@ -12,12 +12,16 @@ import {PartialTraceDataWarning} from './partialTraceDataWarning';
 
 describe('PartialTraceDataWarning', () => {
   describe('when the trace is older than 30 days', () => {
-    beforeAll(() => {
-      jest.useFakeTimers().setSystemTime(new Date(2025, 0, 31));
+    let mockDateNow: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockDateNow = jest
+        .spyOn(Date, 'now')
+        .mockReturnValue(new Date(2025, 0, 31).getTime());
     });
 
-    afterAll(() => {
-      jest.useRealTimers();
+    afterEach(() => {
+      mockDateNow.mockRestore();
     });
 
     it('should render warning', () => {
@@ -65,12 +69,16 @@ describe('PartialTraceDataWarning', () => {
   });
 
   describe('when the trace is younger than 30 days', () => {
-    beforeAll(() => {
-      jest.useFakeTimers().setSystemTime(new Date(2025, 0, 1));
+    let mockDateNow: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockDateNow = jest
+        .spyOn(Date, 'now')
+        .mockReturnValue(new Date(2025, 0, 1).getTime());
     });
 
-    afterAll(() => {
-      jest.useRealTimers();
+    afterEach(() => {
+      mockDateNow.mockRestore();
     });
 
     it('should not render the warning', () => {

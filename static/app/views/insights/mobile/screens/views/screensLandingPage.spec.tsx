@@ -34,12 +34,13 @@ describe('Screens Landing Page', () => {
     route: `/organizations/:orgId/insights/mobile-vitals/`,
   };
 
-  ProjectsStore.loadInitialData([project]);
-
-  jest.mocked(useCrossPlatformProject).mockReturnValue({
-    project,
-    selectedPlatform: 'Android',
-    isProjectCrossPlatform: true,
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([project]);
+    jest.mocked(useCrossPlatformProject).mockReturnValue({
+      project,
+      selectedPlatform: 'Android',
+      isProjectCrossPlatform: true,
+    });
   });
 
   describe('Top Section', () => {

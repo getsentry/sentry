@@ -12,14 +12,16 @@ import {
 } from 'node:util';
 
 import {type ReactElement} from 'react';
-import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {cleanup, configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+
+// eslint-disable-line no-restricted-imports
 
 /**
  * Setup fetch mock via jest-fetch-mock (same as Jest setup).
  * This is needed for tests that import from 'jest-fetch-mock' and use
  * its APIs like fetchMock.mockResponse().
  */
-import {enableFetchMocks} from 'jest-fetch-mock';
+import fetchMock, {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
 import {resetMockDate} from 'sentry-test/utils';
@@ -27,9 +29,24 @@ import {resetMockDate} from 'sentry-test/utils';
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import {closeModal} from 'sentry/actionCreators/modal';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
+import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
+import DebugMetaStore from 'sentry/stores/debugMetaStore';
+import GroupStore from 'sentry/stores/groupStore';
+import GuideStore from 'sentry/stores/guideStore';
+import HookStore from 'sentry/stores/hookStore';
+import IndicatorStore from 'sentry/stores/indicatorStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
+import MemberListStore from 'sentry/stores/memberListStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TagStore from 'sentry/stores/tagStore';
+import TeamStore from 'sentry/stores/teamStore';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
@@ -51,12 +68,16 @@ SVGElement.prototype.getTotalLength ??= () => 1;
  * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
  */
 configureRtl({testIdAttribute: 'data-test-id'});
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 /**
  * Mock (current) date to always be National Pasta Day
  * 2017-10-17T02:41:20.000Z
  */
 resetMockDate();
+
+// Some modules read config at import time (before test hooks run).
+ConfigStore.loadInitialData(ConfigFixture());
 
 /**
  * Global testing configuration
@@ -75,9 +96,6 @@ vi.mock('sentry/utils/recreateRoute');
 vi.mock('sentry/api', async () => {
   return await import('sentry/__mocks__/api.vitest');
 });
-vi.spyOn(performanceForSentry, 'VisuallyCompleteWithData').mockImplementation(
-  props => props.children as ReactElement
-);
 vi.mock('scroll-to-element', () => ({default: vi.fn()}));
 
 vi.mock('@stripe/stripe-js', () => ({
@@ -212,8 +230,170 @@ DANGEROUS_SET_TEST_HISTORY({
   getCurrentLocation: vi.fn(() => ({pathname: '', query: {}})),
 });
 
+const DEBUG_FOCUS_PATCHING = process.env.VITEST_DEBUG_FOCUS === '1';
+const NATIVE_DATE = globalThis.Date;
+const NATIVE_ABORT_CONTROLLER = globalThis.AbortController;
+const NATIVE_ABORT_SIGNAL = globalThis.AbortSignal;
+const UTC_RESOLVED_OPTIONS = {
+  locale: 'en-US',
+  calendar: 'gregory',
+  numberingSystem: 'latn',
+  timeZone: 'UTC',
+  timeZoneName: 'short',
+} as const;
+
+function ensureNativeDateGlobal() {
+  if (typeof globalThis.Date === 'function') {
+    return;
+  }
+
+  Object.defineProperty(globalThis, 'Date', {
+    configurable: true,
+    writable: true,
+    value: NATIVE_DATE,
+  });
+}
+
+function ensureNativeAbortGlobals() {
+  if (NATIVE_ABORT_CONTROLLER && globalThis.AbortController !== NATIVE_ABORT_CONTROLLER) {
+    Object.defineProperty(globalThis, 'AbortController', {
+      configurable: true,
+      writable: true,
+      value: NATIVE_ABORT_CONTROLLER,
+    });
+  }
+
+  if (NATIVE_ABORT_SIGNAL && globalThis.AbortSignal !== NATIVE_ABORT_SIGNAL) {
+    Object.defineProperty(globalThis, 'AbortSignal', {
+      configurable: true,
+      writable: true,
+      value: NATIVE_ABORT_SIGNAL,
+    });
+  }
+}
+
+function applyGlobalBaselineMocks() {
+  // Tests may call vi.restoreAllMocks(); re-apply setup-level spies each test.
+  if (!vi.isMockFunction(performanceForSentry.VisuallyCompleteWithData)) {
+    vi.spyOn(performanceForSentry, 'VisuallyCompleteWithData').mockImplementation(
+      props => props.children as ReactElement
+    );
+  }
+
+  if (!vi.isMockFunction(Intl.DateTimeFormat.prototype.resolvedOptions)) {
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(
+      () => UTC_RESOLVED_OPTIONS
+    );
+  }
+}
+
+function resetNavigationState() {
+  // Location/query/hash can leak across files when isolate:false reuses workers.
+  try {
+    const jsdomGlobal = (globalThis as any).jsdom;
+    if (jsdomGlobal?.reconfigure) {
+      jsdomGlobal.reconfigure({url: 'http://localhost/'});
+      return;
+    }
+    window.history.replaceState({}, '', '/');
+  } catch {
+    // noop
+  }
+}
+
+function normalizeNavigatorClipboard() {
+  const clipboard = window.navigator.clipboard;
+  if (!clipboard) {
+    return;
+  }
+
+  // Some suites replace the descriptor with getter-only behavior, which then
+  // breaks later tests that assign navigator.clipboard directly.
+  try {
+    Object.defineProperty(window.navigator, 'clipboard', {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: clipboard,
+    });
+  } catch {
+    // noop
+  }
+}
+
+function resetDocumentInteractionState() {
+  closeModal();
+  document.body.style.removeProperty('pointer-events');
+  document.body.style.removeProperty('overflow');
+  document.body.style.removeProperty('overscroll-behavior');
+  document.documentElement.style.removeProperty('pointer-events');
+}
+
+function normalizeHTMLElementFocus() {
+  const focusDescriptor = Object.getOwnPropertyDescriptor(
+    window.HTMLElement.prototype,
+    'focus'
+  );
+
+  if (!focusDescriptor) {
+    return;
+  }
+
+  if ('value' in focusDescriptor && focusDescriptor.writable) {
+    return;
+  }
+
+  const focusImpl = window.HTMLElement.prototype.focus;
+
+  try {
+    Object.defineProperty(window.HTMLElement.prototype, 'focus', {
+      configurable: true,
+      enumerable: focusDescriptor.enumerable ?? false,
+      writable: true,
+      value: focusImpl,
+    });
+  } catch {
+    if (DEBUG_FOCUS_PATCHING) {
+      const {currentTestName, testPath} = expect.getState();
+      process.stderr.write(
+        `[vitest focus patch] failed to normalize focus descriptor` +
+          ` (testPath=${testPath ?? 'unknown'}, test=${currentTestName ?? 'unknown'})\n`
+      );
+    }
+    return;
+  }
+
+  if (DEBUG_FOCUS_PATCHING) {
+    const {currentTestName, testPath} = expect.getState();
+    process.stderr.write(
+      `[vitest focus patch] normalized non-writable HTMLElement.prototype.focus` +
+        ` (testPath=${testPath ?? 'unknown'}, test=${currentTestName ?? 'unknown'})\n`
+    );
+  }
+}
+
+// Some suites leave HTMLElement.prototype.focus as accessor-only in isolate:false
+// mode. @react-aria/interactions patches this method at module init and crashes
+// if it isn't writable.
+normalizeHTMLElementFocus();
+normalizeNavigatorClipboard();
+ensureNativeDateGlobal();
+ensureNativeAbortGlobals();
+applyGlobalBaselineMocks();
+
 // Close any open modals before each test
 beforeEach(closeModal);
+
+// With isolate:false, @testing-library/react only loads once (for the first file
+// that imports it). RTL's auto-cleanup (afterEach(cleanup)) is therefore only
+// registered for that first file's suite scope. Registering it here in the
+// global setup ensures cleanup runs after every test in every file.
+afterEach(() => {
+  resetDocumentInteractionState();
+  cleanup();
+});
+afterEach(normalizeHTMLElementFocus);
+afterEach(normalizeNavigatorClipboard);
 
 vi.mock('react-virtualized', async () => {
   const ActualReactVirtualized =
@@ -295,16 +475,57 @@ vi.mock('@sentry/react', async () => {
   };
 });
 
-ConfigStore.loadInitialData(ConfigFixture());
+beforeEach(() => {
+  // Reset all Reflux stores to their initial state before each test.
+  // Required because isolate:false shares the module registry across files
+  // in a worker, so module-level singletons persist between files.
 
-// Default browser timezone to UTC
-vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(() => ({
-  locale: 'en-US',
-  calendar: 'gregory',
-  numberingSystem: 'latn',
-  timeZone: 'UTC',
-  timeZoneName: 'short',
-}));
+  ensureNativeDateGlobal();
+  ensureNativeAbortGlobals();
+  applyGlobalBaselineMocks();
+  normalizeHTMLElementFocus();
+  resetNavigationState();
+  resetMockDate();
+  normalizeNavigatorClipboard();
+  resetDocumentInteractionState();
+  fetchMock.resetMocks();
+
+  window.MockApiClient.clearMockResponses();
+  window.MockApiClient.asyncDelay = undefined;
+  window.MockApiClient.errors = {};
+
+  window.localStorage.clear();
+  window.sessionStorage.clear();
+
+  AlertStore.init();
+  ConfigStore.loadInitialData(ConfigFixture());
+  DebugMetaStore.reset();
+  GroupStore.reset();
+  GuideStore.init();
+  HookStore.init();
+  IndicatorStore.init();
+  IssueListCacheStore.reset();
+  MemberListStore.reset();
+  OrganizationStore.reset();
+  OrganizationsStore.init();
+  PageFiltersStore.reset();
+  ProjectsStore.reset();
+  ProjectsStatsStore.reset();
+  TagStore.reset();
+  TeamStore.reset();
+});
+
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+  resetDocumentInteractionState();
+  ensureNativeDateGlobal();
+  ensureNativeAbortGlobals();
+});
+
+afterAll(() => {
+  closeModal();
+});
 
 /**
  * Test Globals

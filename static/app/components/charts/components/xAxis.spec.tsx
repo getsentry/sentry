@@ -1,16 +1,10 @@
+import moment from 'moment-timezone';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {XAxisProps} from 'sentry/components/charts/components/xAxis';
 import XAxis from 'sentry/components/charts/components/xAxis';
 
 const theme = ThemeFixture();
-
-vi.mock('moment-timezone', async () => {
-  const actual =
-    await vi.importActual<typeof import('moment-timezone')>('moment-timezone');
-  actual.tz.setDefault('America/Los_Angeles');
-  return actual;
-});
 
 describe('Chart XAxis', () => {
   let axisLabelFormatter: (value: string | number, index: number) => string;
@@ -20,6 +14,14 @@ describe('Chart XAxis', () => {
     theme,
   };
   const timestamp = 1531094400000;
+
+  beforeEach(() => {
+    moment.tz.setDefault('America/Los_Angeles');
+  });
+
+  afterEach(() => {
+    moment.tz.setDefault();
+  });
 
   describe('axisLabel', () => {
     describe('With Period > 24h', () => {

@@ -42,13 +42,28 @@ describe('NewCronDetectorForm', () => {
   });
 
   const renderForm = (routerConfig?: any) => {
+    const defaultRouterConfig = {
+      route: '/test/',
+      location: {
+        pathname: '/test/',
+        query: {},
+      },
+    };
+
     return render(
       <DetectorFormProvider detectorType="monitor_check_in_failure" project={project}>
         <NewCronDetectorForm />
       </DetectorFormProvider>,
       {
         organization,
-        initialRouterConfig: routerConfig,
+        initialRouterConfig: {
+          ...defaultRouterConfig,
+          ...routerConfig,
+          location: {
+            ...defaultRouterConfig.location,
+            ...routerConfig?.location,
+          },
+        },
       }
     );
   };

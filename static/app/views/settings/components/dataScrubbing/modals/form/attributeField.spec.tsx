@@ -122,11 +122,12 @@ describe('AttributeField', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByPlaceholderText('Select or type attribute'));
+    const input = await screen.findByPlaceholderText('Select or type attribute');
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Select or type attribute')).toHaveValue(value);
+      expect(input).toHaveValue(value);
     });
+    await userEvent.click(input);
 
     // Wait for suggestions to load
     await screen.findByText('user.email');
@@ -153,11 +154,12 @@ describe('AttributeField', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByPlaceholderText('Select or type attribute'));
+    const input = await screen.findByPlaceholderText('Select or type attribute');
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Select or type attribute')).toHaveValue(value);
+      expect(input).toHaveValue(value);
     });
+    await userEvent.click(input);
 
     // Wait for suggestions to load
     await screen.findByText('message');
@@ -183,12 +185,11 @@ describe('AttributeField', () => {
       {organization}
     );
 
-    const input = screen.getByPlaceholderText('Select or type attribute');
-    await userEvent.click(input);
-
+    const input = await screen.findByPlaceholderText('Select or type attribute');
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Select or type attribute')).toHaveValue(value);
+      expect(input).toHaveValue(value);
     });
+    await userEvent.click(input);
 
     // Wait for suggestions to load
     await screen.findByText('message');
@@ -212,12 +213,11 @@ describe('AttributeField', () => {
       {organization}
     );
 
-    const input = screen.getByPlaceholderText('Select or type attribute');
-    await userEvent.click(input);
-
+    const input = await screen.findByPlaceholderText('Select or type attribute');
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Select or type attribute')).toHaveValue(value);
+      expect(input).toHaveValue(value);
     });
+    await userEvent.click(input);
 
     // Wait for suggestions to load
     await screen.findByText('message');
@@ -239,12 +239,11 @@ describe('AttributeField', () => {
       {organization}
     );
 
-    const input = screen.getByPlaceholderText('Select or type attribute');
-    await userEvent.click(input);
-
+    const input = await screen.findByPlaceholderText('Select or type attribute');
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Select or type attribute')).toHaveValue(value);
+      expect(input).toHaveValue(value);
     });
+    await userEvent.click(input);
 
     // Wait for suggestions to load
     await screen.findByText('message');

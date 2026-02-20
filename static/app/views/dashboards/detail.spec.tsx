@@ -85,11 +85,16 @@ class MockIntersectionObserver {
 }
 
 describe('Dashboards > Detail', () => {
+  const originalIntersectionObserver = window.IntersectionObserver;
   const organization = OrganizationFixture({
     features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
   const projects = [ProjectFixture()];
   window.IntersectionObserver = MockIntersectionObserver as any;
+
+  afterAll(() => {
+    window.IntersectionObserver = originalIntersectionObserver;
+  });
 
   describe('prebuilt dashboards', () => {
     let initialData!: ReturnType<typeof initializeOrg>;
@@ -276,6 +281,7 @@ describe('Dashboards > Detail', () => {
   });
 
   describe('custom dashboards', () => {
+    const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
     let initialData!: ReturnType<typeof initializeOrg>;
     let widgets!: Array<ReturnType<typeof WidgetFixture>>;
     let mockVisit!: jest.Mock;
@@ -449,6 +455,10 @@ describe('Dashboards > Detail', () => {
     afterEach(() => {
       MockApiClient.clearMockResponses();
       jest.clearAllMocks();
+    });
+
+    afterAll(() => {
+      window.HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     });
 
     it('can remove widgets', async () => {
@@ -980,9 +990,9 @@ describe('Dashboards > Detail', () => {
         deprecatedRouterMocks: true,
       });
 
-      await userEvent.click(await screen.findByText('24H'));
-      await userEvent.click(screen.getByText('Last 7 days'));
-      await screen.findByText('7D');
+      await userEvent.click(await screen.findByRole('button', {name: /^(24H|14D|7D)$/}));
+      await userEvent.click(await screen.findByText('Last 7 days'));
+      await screen.findByRole('button', {name: '7D'});
 
       expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
@@ -1152,7 +1162,7 @@ describe('Dashboards > Detail', () => {
         deprecatedRouterMocks: true,
       });
 
-      await screen.findByText('7D');
+      await screen.findByRole('button', {name: /^(7D|14D|24H)$/});
       await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
       await userEvent.click(screen.getAllByText('Clear')[0]!);
       screen.getByText('All Releases');
@@ -1257,7 +1267,7 @@ describe('Dashboards > Detail', () => {
         deprecatedRouterMocks: true,
       });
 
-      await screen.findByText('7D');
+      await screen.findByRole('button', {name: /^(7D|14D|24H)$/});
       await userEvent.click(await screen.findByText('All Releases'));
       await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       await userEvent.keyboard('{Escape}');
@@ -1265,15 +1275,17 @@ describe('Dashboards > Detail', () => {
       await userEvent.click(screen.getByTestId('filter-bar-cancel'));
 
       screen.getByText('All Releases');
-      expect(router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            project: undefined,
-            statsPeriod: undefined,
-            environment: undefined,
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(router.replace).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              project: undefined,
+              statsPeriod: undefined,
+              environment: undefined,
+            }),
+          })
+        );
+      });
     });
 
     it('disables the edit-dashboard button when there are unsaved filters', async () => {
@@ -2003,9 +2015,9 @@ describe('Dashboards > Detail', () => {
         />
       );
 
-      await userEvent.click(await screen.findByText('24H'));
-      await userEvent.click(screen.getByText('Last 7 days'));
-      await screen.findByText('7D');
+      await userEvent.click(await screen.findByRole('button', {name: /^(24H|14D|7D)$/}));
+      await userEvent.click(await screen.findByText('Last 7 days'));
+      await screen.findByRole('button', {name: '7D'});
 
       expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
       expect(screen.queryByText('Save')).not.toBeInTheDocument();

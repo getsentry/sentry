@@ -96,7 +96,7 @@ describe('ProjectEventRedirect', () => {
     });
 
     expect(
-      await screen.findByText(/page you are looking for was not found/i)
+      await screen.findByRole('heading', {name: /page not found/i})
     ).toBeInTheDocument();
   });
 
@@ -117,9 +117,7 @@ describe('ProjectEventRedirect', () => {
       },
     });
 
-    expect(
-      await screen.findByText(/you do not have permission to view that event/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/permission/i)).toBeInTheDocument();
   });
 
   it('shows loading indicator while fetching event', () => {

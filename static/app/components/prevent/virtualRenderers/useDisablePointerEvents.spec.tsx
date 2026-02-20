@@ -6,12 +6,6 @@ import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {useDisablePointerEvents} from 'sentry/components/prevent/virtualRenderers/useDisablePointerEvents';
 
-window.requestAnimationFrame = cb => {
-  cb(1);
-  return 1;
-};
-window.cancelAnimationFrame = () => {};
-
 function TestComponent() {
   const elementRef = useRef<HTMLDivElement>(null);
   useDisablePointerEvents(elementRef);
@@ -29,6 +23,12 @@ describe('useDisablePointerEvents', () => {
       requestAnimationFrameSpy = jest.spyOn(window, 'requestAnimationFrame');
       cancelAnimationFrameSpy = jest.spyOn(window, 'cancelAnimationFrame');
       dateNowSpy = jest.spyOn(Date, 'now');
+
+      requestAnimationFrameSpy.mockImplementation(cb => {
+        cb(1);
+        return 1;
+      });
+      cancelAnimationFrameSpy.mockImplementation(() => {});
     });
 
     afterEach(() => {

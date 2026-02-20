@@ -2,12 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {
-  render,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -59,6 +54,17 @@ describe('CacheLandingPage', () => {
   });
 
   beforeEach(() => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        name: 'Backend',
+        slug: 'backend',
+        firstTransactionEvent: true,
+        hasInsightsCaches: true,
+        platform: 'javascript',
+      }),
+    ]);
+
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState({
       projects: [],
@@ -76,7 +82,9 @@ describe('CacheLandingPage', () => {
       initialRouterConfig,
     });
 
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+    });
 
     expect(requestMocks.throughputChart).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events-timeseries/`,
@@ -187,7 +195,9 @@ describe('CacheLandingPage', () => {
       initialRouterConfig,
     });
 
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+    });
 
     expect(requestMocks.transactionDurations).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
@@ -214,7 +224,9 @@ describe('CacheLandingPage', () => {
       organization,
       initialRouterConfig,
     });
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('loading-indicator')).toHaveLength(0);
+    });
     expect(screen.getByRole('columnheader', {name: 'Transaction'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'my-transaction'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'my-transaction'})).toHaveAttribute(

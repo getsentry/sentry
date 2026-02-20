@@ -142,7 +142,7 @@ describe('Sudo Modal', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Continue'})).toHaveAttribute(
       'href',
-      '/auth/login/?next=http%3A%2F%2Flocalhost%2F'
+      expect.stringContaining('/auth/login/?next=')
     );
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
   });

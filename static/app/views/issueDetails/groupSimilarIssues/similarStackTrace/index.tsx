@@ -134,6 +134,13 @@ function SimilarStackTrace({project}: Props) {
   );
 
   useEffect(() => {
+    const unsubscribe = GroupingStore.listen(onGroupingChange, undefined);
+    return () => {
+      unsubscribe();
+    };
+  }, [onGroupingChange]);
+
+  useEffect(() => {
     fetchData();
   }, [fetchData]);
 
@@ -142,13 +149,6 @@ function SimilarStackTrace({project}: Props) {
       fetchData();
     }
   }, [fetchData, prevLocationSearch, location.search]);
-
-  useEffect(() => {
-    const unsubscribe = GroupingStore.listen(onGroupingChange, undefined);
-    return () => {
-      unsubscribe();
-    };
-  }, [onGroupingChange]);
 
   const handleMerge = useCallback(() => {
     if (!params) {

@@ -2,7 +2,13 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import useTimeout from './useTimeout';
 
-jest.useFakeTimers();
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 describe('useTimeout', () => {
   const timeMs = 500;

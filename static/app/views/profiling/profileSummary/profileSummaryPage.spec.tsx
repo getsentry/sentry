@@ -7,6 +7,8 @@ import {mockMatchMedia} from 'sentry-test/utils';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProfileSummaryPage from 'sentry/views/profiling/profileSummary';
 
+const originalResizeObserver = window.ResizeObserver;
+
 window.ResizeObserver =
   window.ResizeObserver ||
   jest.fn().mockImplementation(() => ({
@@ -16,6 +18,10 @@ window.ResizeObserver =
   }));
 
 describe('ProfileSummaryPage', () => {
+  afterAll(() => {
+    window.ResizeObserver = originalResizeObserver;
+  });
+
   beforeEach(() => {
     mockMatchMedia(true);
   });
