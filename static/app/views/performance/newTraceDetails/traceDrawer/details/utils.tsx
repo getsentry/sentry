@@ -282,7 +282,7 @@ export function parseJsonWithFix(value: string): {
 
 export function getTraceIssueSeverityClassName(
   issue: TraceTree.TraceIssue
-): Level | 'occurence' {
+): Level | 'occurrence' {
   const level = issue.level;
 
   if (issue.event_type === 'error') {
@@ -290,6 +290,6 @@ export function getTraceIssueSeverityClassName(
   }
 
   // Only consider error and fatal levels for non-error issues,
-  // otherwise return 'occurence'
-  return ['error', 'fatal'].includes(level) ? level : 'occurence';
+  // otherwise return 'occurrence'
+  return ['error', 'fatal'].includes(level) ? level : 'occurrence';
 }

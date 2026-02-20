@@ -144,10 +144,10 @@ const IconWrapper = styled('div')`
       background-color: var(--error);
     }
   }
-  &.occurence {
-    border: 1px solid var(--occurence);
+  &.occurrence {
+    border: 1px solid var(--occurrence);
     ${IconBackground} {
-      background-color: var(--occurence);
+      background-color: var(--occurrence);
     }
   }
   &.default {
@@ -165,7 +165,7 @@ const IconWrapper = styled('div')`
 
   &.info,
   &.warning,
-  &.occurence,
+  &.occurrence,
   &.default,
   &.unknown {
     svg {
