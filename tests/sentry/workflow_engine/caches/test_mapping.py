@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.caches.cache_access import (
+from sentry.workflow_engine.caches.mapping import (
     CacheMapping,
     test_only_clear_registered_namespaces,
 )
