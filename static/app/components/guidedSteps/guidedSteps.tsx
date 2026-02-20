@@ -159,25 +159,35 @@ function Step(props: StepProps) {
     }
   }, [advanceToNextIncompleteStep, isActive, isCompleted, previousIsCompleted]);
 
+  const headingContent = (
+    <StepButton
+      hasTrailingItems={!!props.trailingItems}
+      disabled={!props.onClick}
+      onClick={props.onClick}
+    >
+      <Flex align="center" gap="lg">
+        <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
+        <StepHeading isActive={isActive}>
+          {props.title}
+          {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
+        </StepHeading>
+        {props.onClick ? <InteractionStateLayer /> : null}
+      </Flex>
+    </StepButton>
+  );
+
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
-      <Flex align="center" justify="between" style={{gridArea: 'heading'}}>
-        <StepButton disabled={!props.onClick} onClick={props.onClick}>
-          <Flex align="center" gap="lg">
-            <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
-            <StepHeading isActive={isActive}>
-              {props.title}
-              {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
-            </StepHeading>
-            {props.onClick ? <InteractionStateLayer /> : null}
-          </Flex>
-        </StepButton>
-        {props.trailingItems && (
+      {props.trailingItems ? (
+        <Flex align="center" justify="between" style={{gridArea: 'heading'}}>
+          {headingContent}
           <Flex align="center" onClick={e => e.stopPropagation()}>
             {props.trailingItems}
           </Flex>
-        )}
-      </Flex>
+        </Flex>
+      ) : (
+        headingContent
+      )}
 
       <StepDetails>
         {props.optional ? <StepOptionalLabel>Optional</StepOptionalLabel> : null}
@@ -270,13 +280,15 @@ const StepWrapper = styled('div')`
   }
 `;
 
-const StepButton = styled('button')`
-  flex: 1;
-  min-width: 0;
+const StepButton = styled('button')<{hasTrailingItems: boolean}>`
+  ${p =>
+    p.hasTrailingItems
+      ? `flex: 1; min-width: 0; text-align: left;`
+      : `grid-area: heading;`}
+
   position: relative;
   background: none;
   border: none;
-  text-align: left;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   margin: -${p => p.theme.space.sm} -${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};

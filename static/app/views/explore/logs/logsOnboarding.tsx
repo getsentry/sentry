@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -320,11 +319,6 @@ function Onboarding({organization, project}: OnboardingProps) {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <CopySetupInstructionsGate>
-        <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton steps={steps} source="logs_onboarding" />
-        </Container>
-      </CopySetupInstructionsGate>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
@@ -340,7 +334,22 @@ function Onboarding({organization, project}: OnboardingProps) {
         {steps.map((step, index) => {
           const title = step.title ?? STEP_TITLES[step.type];
           return (
-            <GuidedSteps.Step key={title} stepKey={title} title={title}>
+            <GuidedSteps.Step
+              key={title}
+              stepKey={title}
+              title={title}
+              trailingItems={
+                index === 0 ? (
+                  <CopySetupInstructionsGate>
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={steps}
+                      source="logs_onboarding"
+                    />
+                  </CopySetupInstructionsGate>
+                ) : undefined
+              }
+            >
               <StepIndexProvider index={index}>
                 <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
               </StepIndexProvider>
