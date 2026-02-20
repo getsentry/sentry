@@ -8,8 +8,11 @@ import sortBy from 'lodash/sortBy';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import type {SelectOption} from '@sentry/scraps/compactSelect';
-import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import type {
+  SelectOption,
+  SelectOption,
+  SelectOptionOrSection,
+} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
