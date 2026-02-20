@@ -502,14 +502,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_perf_issue(self) -> None:
         perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
         self.login_as(user=self.user)
-        with self.feature(
-            {
-                "organizations:issue-search-allow-postgres-only-search": True,
-            }
-        ):
-            response = self.get_success_response(query="issue.category:performance")
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(perf_group.id)
+        response = self.get_success_response(query="issue.category:performance")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(perf_group.id)
 
     def test_has_seer_last_run(self) -> None:
         """Test filtering issues by whether they have seer_autofix_last_triggered set."""
@@ -519,20 +514,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_without_seer = self.create_group()
 
         self.login_as(user=self.user)
-        with self.feature(
-            {
-                "organizations:issue-search-allow-postgres-only-search": True,
-            }
-        ):
-            # Query for issues that have seer_autofix_last_triggered set
-            response = self.get_success_response(query="has:issue.seer_last_run")
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(group_with_seer.id)
+        # Query for issues that have seer_autofix_last_triggered set
+        response = self.get_success_response(query="has:issue.seer_last_run")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group_with_seer.id)
 
-            # Query for issues that do NOT have seer_autofix_last_triggered set
-            response = self.get_success_response(query="!has:issue.seer_last_run")
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(group_without_seer.id)
+        # Query for issues that do NOT have seer_autofix_last_triggered set
+        response = self.get_success_response(query="!has:issue.seer_last_run")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group_without_seer.id)
 
     def test_lookup_by_event_id(self) -> None:
         project = self.project
