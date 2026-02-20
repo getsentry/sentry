@@ -514,13 +514,6 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Whether or not Relay replay-event publishing to Snuba is disabled.
-register(
-    "replay.relay-snuba-publishing-disabled.sample-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Disables replay-video for a specific organization.
 register(
     "replay.replay-video.slug-denylist",
