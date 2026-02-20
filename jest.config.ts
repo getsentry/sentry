@@ -12,6 +12,7 @@ const swcConfig: SwcOptions = {
   },
   sourceMaps: 'inline',
   jsc: {
+    target: 'esnext',
     parser: {
       syntax: 'typescript',
       tsx: true,
