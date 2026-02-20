@@ -251,10 +251,7 @@ describe('ContextPickerModal', () => {
       throw new Error('Integration domainName is null');
     }
 
-    await selectEvent.select(
-      screen.getByRole('textbox'),
-      integration.domainName
-    );
+    await selectEvent.select(screen.getByRole('textbox'), integration.domainName);
     expect(onFinish).toHaveBeenCalledWith(
       `/settings/${org.slug}/integrations/github/${integration.id}/`
     );
