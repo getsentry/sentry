@@ -4,6 +4,7 @@ import pytest
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
 
@@ -135,3 +136,48 @@ class TestLaunchCodingAgents(TestCase):
         # Verify launch was called with a sanitized branch name
         launch_request = mock_installation.launch.call_args[0][0]
         assert launch_request.branch_name.startswith("my-fix-")
+
+    @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.explorer.coding_agent_handoff.GithubCopilotAgentClient")
+    @patch("sentry.seer.explorer.coding_agent_handoff.github_copilot_identity_service")
+    @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
+    def test_copilot_not_licensed_403_returns_generic_failure_type(
+        self,
+        mock_features,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_store,
+    ):
+        """Test that Copilot 403 'not licensed' errors return generic failure_type.
+
+        When GitHub Copilot returns a 403 with "not licensed to use Copilot", the user's
+        account lacks an active Copilot subscription. This is distinct from a GitHub App
+        permissions issue, so we should NOT show the permissions modal.
+        """
+        mock_features.return_value = True
+        mock_identity_service.get_access_token_for_user.return_value = "test-token"
+
+        mock_client_instance = MagicMock()
+        mock_copilot_client_class.return_value = mock_client_instance
+        mock_client_instance.launch.side_effect = ApiError(
+            "unauthorized: not licensed to use Copilot", code=403
+        )
+
+        result = launch_coding_agents(
+            organization=self.organization,
+            integration_id=None,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=["owner/repo"],
+            provider="github_copilot",
+            user_id=1,
+        )
+
+        assert len(result["successes"]) == 0
+        assert len(result["failures"]) == 1
+        failure = result["failures"][0]
+        assert failure["failure_type"] == "generic"
+        assert (
+            "not licensed" in failure["error_message"]
+            or "Copilot license" in failure["error_message"]
+        )

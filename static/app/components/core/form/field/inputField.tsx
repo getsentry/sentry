@@ -5,16 +5,16 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseField';
 
-export function InputField({
-  onChange,
-  disabled,
-  ...props
-}: BaseFieldProps &
-  Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled'> & {
-    onChange: (value: string) => void;
-    value: string;
-    disabled?: boolean | string;
-  }) {
+export interface InputFieldProps
+  extends BaseFieldProps, Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled'> {
+  onChange: (value: string) => void;
+  value: string;
+  disabled?: boolean | string;
+  trailingItems?: React.ReactNode;
+}
+
+export function InputField(props: InputFieldProps) {
+  const {onChange, disabled, trailingItems, ...rest} = props;
   const autoSaveContext = useAutoSaveContext();
   const indicator = useFieldStateIndicator();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
@@ -27,12 +27,15 @@ export function InputField({
           <InputGroup>
             <InputGroup.Input
               {...fieldProps}
-              {...props}
+              {...rest}
               aria-disabled={isDisabled}
               readOnly={isDisabled}
               onChange={e => onChange(e.target.value)}
             />
-            <InputGroup.TrailingItems>{indicator}</InputGroup.TrailingItems>
+            <InputGroup.TrailingItems>
+              {trailingItems}
+              {indicator}
+            </InputGroup.TrailingItems>
           </InputGroup>
         );
 

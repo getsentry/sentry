@@ -13,6 +13,7 @@ import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
+import {PasswordField} from './field/passwordField';
 import {RangeField} from './field/rangeField';
 import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
@@ -37,6 +38,7 @@ export const defaultFormOptions = formOptions({
 const fieldComponents = {
   Input: InputField,
   Number: NumberField,
+  Password: PasswordField,
   Range: RangeField,
   Select: SelectField,
   SelectAsync: SelectAsyncField,
