@@ -190,6 +190,7 @@ def get_event_counts_for_org_projects(
         tenant_ids={"organization_id": org_id},
     )
 
+    error_categories = set(DataCategory.error_categories())
     all_counts: dict[int, tuple[int, int]] = {}
     try:
         data = raw_snql_query(request, referrer=Referrer.SEER_EXPLORER_INDEX.value)["data"]
@@ -200,7 +201,7 @@ def get_event_counts_for_org_projects(
             error_count, transaction_count = all_counts.get(project_id, (0, 0))
             if category == DataCategory.TRANSACTION:
                 all_counts[project_id] = (error_count, transaction_count + total)
-            elif category in DataCategory.error_categories():
+            elif category in error_categories:
                 all_counts[project_id] = (error_count + total, transaction_count)
     except Exception:
         logger.exception(
