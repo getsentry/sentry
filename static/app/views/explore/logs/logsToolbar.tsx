@@ -469,7 +469,7 @@ function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
       <AttributeDetails
         column={tag.key}
         kind={tag.kind}
-        label={tag.key}
+        label={tag.name}
         traceItemType={traceItemType}
       />
     ),
