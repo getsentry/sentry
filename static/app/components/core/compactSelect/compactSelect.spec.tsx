@@ -539,6 +539,33 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
     });
 
+    it('does not call searchMatcher when search is empty, showing all options', async () => {
+      // A matcher that returns score 0 for any empty query would hide all options if
+      // called during the initial render (before the user types anything).
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          searchMatcher={(option, search) => ({
+            // Return 0 for empty search — real-world matchers may do this
+            score: search === '' ? 0 : String(option.value).includes(search) ? 1 : 0,
+          })}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      // All options should be visible even though the matcher returns 0 for ''
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+    });
+
     it('uses string.includes for default search matching', async () => {
       render(
         <CompactSelect
