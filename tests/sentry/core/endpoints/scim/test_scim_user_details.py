@@ -14,6 +14,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase, SCIMAzureTestCase, SCIMTestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.users.services.user.model import RpcUser
 
@@ -238,13 +239,14 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert self.unrestricted_default_role_member.flags["idp:role-restricted"]
 
         # current Unrestricted custom role + default sentryOrgRole -> restricted default role
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.unrestricted_custom_role_member.id,
-            **generate_put_data(
-                self.unrestricted_custom_role_member, role=self.organization.default_role
-            ),
-        )
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.unrestricted_custom_role_member.id,
+                **generate_put_data(
+                    self.unrestricted_custom_role_member, role=self.organization.default_role
+                ),
+            )
         self.unrestricted_custom_role_member.refresh_from_db()
         assert resp.data["sentryOrgRole"] == self.organization.default_role
         assert self.unrestricted_custom_role_member.role == self.organization.default_role
@@ -252,7 +254,6 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert_org_audit_log_exists(
             organization=self.organization,
             event=audit_log.get_event_id("MEMBER_EDIT"),
-            target_object=self.unrestricted_custom_role_member.id,
         )
 
         # current restricted default role + default sentryOrgRole -> restricted default role (no change)

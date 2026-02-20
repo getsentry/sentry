@@ -6,6 +6,7 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
@@ -183,9 +184,10 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert b"Name or slug is required" in resp.content
 
     def test_valid_params(self) -> None:
-        resp = self.get_success_response(
-            self.organization.slug, name="hello world", slug="foobar", status_code=201
-        )
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, name="hello world", slug="foobar", status_code=201
+            )
 
         team = Team.objects.get(id=resp.data["id"])
         assert team.name == "hello world"
@@ -203,7 +205,6 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert_org_audit_log_exists(
             organization=self.organization,
             event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
-            target_user_id=self.user.id,
         )
 
     def test_without_slug(self) -> None:

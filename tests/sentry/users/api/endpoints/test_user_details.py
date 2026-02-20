@@ -878,13 +878,13 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
             assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
             assert DeletedOrganization.objects.count() == 1
 
-            member_remove_entries = AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("MEMBER_REMOVE"),
-                target_user_id=self.user.id,
-            )
-            removed_org_ids = {e.organization_id for e in member_remove_entries}
-            assert org_with_other_owner.id in removed_org_ids
-            assert org_as_other_owner.id in removed_org_ids
+        member_remove_entries = AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("MEMBER_REMOVE"),
+            target_user_id=self.user.id,
+        )
+        removed_org_ids = {e.organization_id for e in member_remove_entries}
+        assert org_with_other_owner.id in removed_org_ids
+        assert org_as_other_owner.id in removed_org_ids
 
         user = User.objects.get(id=self.user.id)
         assert not user.is_active

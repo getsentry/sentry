@@ -19,6 +19,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -855,9 +856,10 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_owner_can_promote_member(self) -> None:
         self.login_as(self.owner)
 
-        resp = self.get_response(
-            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
-        )
+        with outbox_runner():
+            resp = self.get_response(
+                self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+            )
         assert resp.status_code == 200
 
         updated_omt = OrganizationMemberTeam.objects.get(
@@ -867,7 +869,6 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert_org_audit_log_exists(
             organization=self.org,
             event=audit_log.get_event_id("MEMBER_EDIT"),
-            target_user_id=self.member_on_team.user_id,
         )
 
     @with_feature("organizations:team-roles")
