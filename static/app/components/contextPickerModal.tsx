@@ -21,10 +21,10 @@ import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import Teams from 'sentry/utils/teams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
@@ -544,9 +544,9 @@ export default function ContextPickerModalContainer({
 
     if (needTeam) {
       return (
-        <Teams>
-          {({teams, initiallyLoaded}) => renderWithProjects(teams, !initiallyLoaded)}
-        </Teams>
+        <TeamsForOrg orgSlug={selectedOrgSlug}>
+          {({teams, isLoading}) => renderWithProjects(teams, isLoading)}
+        </TeamsForOrg>
       );
     }
 
@@ -564,6 +564,25 @@ export default function ContextPickerModalContainer({
       integrationConfigs={[]}
     />
   );
+}
+
+function TeamsForOrg({
+  orgSlug,
+  children,
+}: {
+  children: (props: {isLoading: boolean; teams: Team[]}) => React.ReactNode;
+  orgSlug: string;
+}) {
+  const {data, isPending} = useApiQuery<Team[]>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+    ],
+    {staleTime: Infinity}
+  );
+
+  return <Fragment>{children({teams: data ?? [], isLoading: isPending})}</Fragment>;
 }
 
 function ConfigUrlContainer(

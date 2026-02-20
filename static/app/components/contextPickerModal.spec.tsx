@@ -17,7 +17,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -33,7 +32,6 @@ describe('ContextPickerModal', () => {
 
   beforeEach(() => {
     ProjectsStore.reset();
-    TeamStore.reset();
     MockApiClient.clearMockResponses();
 
     project = ProjectFixture();
@@ -367,11 +365,14 @@ describe('ContextPickerModal', () => {
     const team2 = TeamFixture({id: '2', slug: 'team-two'});
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    TeamStore.loadInitialData([team1, team2]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1, team2],
     });
 
     render(
@@ -393,11 +394,14 @@ describe('ContextPickerModal', () => {
     const team2 = TeamFixture({id: '2', slug: 'team-two'});
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    TeamStore.loadInitialData([team1, team2]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1, team2],
     });
 
     render(
@@ -421,11 +425,14 @@ describe('ContextPickerModal', () => {
     const team2 = TeamFixture({id: '2', slug: 'team-two'});
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    TeamStore.loadInitialData([team1, team2]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1, team2],
     });
 
     render(
@@ -448,11 +455,14 @@ describe('ContextPickerModal', () => {
     const team1 = TeamFixture({id: '1', slug: 'the-only-team'});
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    TeamStore.loadInitialData([team1]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1],
     });
 
     render(
