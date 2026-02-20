@@ -384,7 +384,9 @@ Object.defineProperty(global.self, 'crypto', {
 });
 
 if (typeof globalThis.structuredClone !== 'function') {
-  const nodeUtil = require('node:util') as typeof import('node:util');
+  const nodeUtil = require('node:util') as {
+    structuredClone?: typeof globalThis.structuredClone;
+  };
   globalThis.structuredClone =
     nodeUtil.structuredClone ?? ((value: unknown) => JSON.parse(JSON.stringify(value)));
 }
