@@ -170,14 +170,11 @@ function ToolbarVisualizeItem({
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  const spansConfig = useMemo(
-    () => ({
-      traceItemType: TraceItemDataset.SPANS,
-      enabled: true,
-      search: debouncedSearch,
-    }),
-    [debouncedSearch]
-  );
+  const spansConfig = {
+    traceItemType: TraceItemDataset.SPANS,
+    enabled: true,
+    search: debouncedSearch,
+  };
 
   const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags(
     spansConfig,

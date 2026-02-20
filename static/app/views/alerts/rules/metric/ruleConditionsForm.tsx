@@ -1,4 +1,4 @@
-import {Fragment, PureComponent, useMemo} from 'react';
+import {Fragment, PureComponent} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -854,10 +854,7 @@ function EAPSearchQueryBuilderWithContext({
   project,
   traceItemType,
 }: EAPSearchQueryBuilderWithContextProps) {
-  const traceItemAttributeConfig = useMemo(
-    () => ({traceItemType, enabled: true, projects: [project]}),
-    [traceItemType, project]
-  );
+  const traceItemAttributeConfig = {traceItemType, enabled: true, projects: [project]};
 
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributes(traceItemAttributeConfig, 'number');

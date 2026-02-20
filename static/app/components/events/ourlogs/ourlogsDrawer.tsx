@@ -61,10 +61,7 @@ export function OurlogsDrawer({
   const setLogsQuery = useSetQueryParamsQuery();
   const logsSearch = useQueryParamsSearch();
 
-  const logsAttributeConfig = useMemo(
-    () => ({traceItemType: TraceItemDataset.LOGS, enabled: true}),
-    []
-  );
+  const logsAttributeConfig = {traceItemType: TraceItemDataset.LOGS, enabled: true};
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceItemAttributes(logsAttributeConfig, 'string');

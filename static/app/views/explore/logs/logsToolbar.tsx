@@ -105,14 +105,11 @@ function ToolbarVisualize() {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  const logsAttributeConfig = useMemo(
-    () => ({
-      traceItemType: TraceItemDataset.LOGS,
-      enabled: true,
-      search: debouncedSearch,
-    }),
-    [debouncedSearch]
-  );
+  const logsAttributeConfig = {
+    traceItemType: TraceItemDataset.LOGS,
+    enabled: true,
+    search: debouncedSearch,
+  };
 
   const {attributes: stringTags, isLoading: stringTagsLoading} = useTraceItemAttributes(
     logsAttributeConfig,
@@ -349,14 +346,11 @@ function ToolbarGroupBy() {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  const logsAttributeConfig = useMemo(
-    () => ({
-      traceItemType: TraceItemDataset.LOGS,
-      enabled: true,
-      search: debouncedSearch,
-    }),
-    [debouncedSearch]
-  );
+  const logsAttributeConfig = {
+    traceItemType: TraceItemDataset.LOGS,
+    enabled: true,
+    search: debouncedSearch,
+  };
 
   const {attributes: numberTags, isLoading: numberTagsLoading} = useTraceItemAttributes(
     logsAttributeConfig,

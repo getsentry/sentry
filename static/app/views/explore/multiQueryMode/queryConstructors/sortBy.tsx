@@ -31,10 +31,7 @@ export function SortBySection({query, index}: Props) {
   const groupBys = query.groupBys;
   const yAxes = query.yAxes;
 
-  const spansConfig = useMemo(
-    () => ({traceItemType: TraceItemDataset.SPANS, enabled: true}),
-    []
-  );
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
   const fieldOptions = useSortByFields({
     config: spansConfig,
     fields,

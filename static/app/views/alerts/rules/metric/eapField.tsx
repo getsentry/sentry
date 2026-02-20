@@ -82,10 +82,11 @@ export default function EAPField({aggregate, onChange, eventTypes, project}: Pro
     arguments: undefined,
   };
 
-  const traceItemAttributeConfig = useMemo(
-    () => ({traceItemType, enabled: true, projects: project ? [project] : undefined}),
-    [traceItemType, project]
-  );
+  const traceItemAttributeConfig = {
+    traceItemType,
+    enabled: true,
+    projects: project ? [project] : undefined,
+  };
 
   const {attributes: storedNumberTags} = useTraceItemAttributes(
     traceItemAttributeConfig,

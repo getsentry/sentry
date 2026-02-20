@@ -129,11 +129,7 @@ const SpansTabCrossEventSearchBar = memo(
     const traceItemType =
       type === 'logs' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
 
-    const crossEventConfig = useMemo(
-      () => ({traceItemType, enabled: true}),
-      [traceItemType]
-    );
-
+    const crossEventConfig = {traceItemType, enabled: true};
     const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
       useTraceItemTags(crossEventConfig, 'number');
     const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
@@ -380,11 +376,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const hasCrossEvents =
     hasCrossEventQueryingFlag && defined(crossEvents) && crossEvents.length > 0;
 
-  const spansConfig = useMemo(
-    () => ({traceItemType: TraceItemDataset.SPANS, enabled: true}),
-    []
-  );
-
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
   const {tags: numberAttributes, isLoading: numberAttributesLoading} = useTraceItemTags(
     spansConfig,
     'number'

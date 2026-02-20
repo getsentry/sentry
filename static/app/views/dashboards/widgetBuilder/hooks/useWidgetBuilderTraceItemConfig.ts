@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {WidgetType} from 'sentry/views/dashboards/types';
@@ -14,39 +12,37 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   const organization = useOrganization();
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
 
-  return useMemo(() => {
-    if (state.dataset === WidgetType.SPANS) {
-      return {
-        traceItemType: TraceItemDataset.SPANS,
-        enabled: organization.features.includes('visibility-explore-view'),
-      };
-    }
-
-    if (state.dataset === WidgetType.LOGS) {
-      return {
-        traceItemType: TraceItemDataset.LOGS,
-        enabled: isLogsEnabled(organization),
-      };
-    }
-
-    if (state.dataset === WidgetType.TRACEMETRICS && state.traceMetric) {
-      return {
-        traceItemType: TraceItemDataset.TRACEMETRICS,
-        enabled: hasTraceMetricsDashboards,
-        query: createTraceMetricFilter(state.traceMetric),
-      };
-    }
-
-    if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
-      return {
-        traceItemType: TraceItemDataset.PREPROD,
-        enabled: organization.features.includes('preprod-app-size-dashboard'),
-      };
-    }
-
+  if (state.dataset === WidgetType.SPANS) {
     return {
       traceItemType: TraceItemDataset.SPANS,
-      enabled: false,
+      enabled: organization.features.includes('visibility-explore-view'),
     };
-  }, [state.dataset, state.traceMetric, organization, hasTraceMetricsDashboards]);
+  }
+
+  if (state.dataset === WidgetType.LOGS) {
+    return {
+      traceItemType: TraceItemDataset.LOGS,
+      enabled: isLogsEnabled(organization),
+    };
+  }
+
+  if (state.dataset === WidgetType.TRACEMETRICS && state.traceMetric) {
+    return {
+      traceItemType: TraceItemDataset.TRACEMETRICS,
+      enabled: hasTraceMetricsDashboards,
+      query: createTraceMetricFilter(state.traceMetric),
+    };
+  }
+
+  if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
+    return {
+      traceItemType: TraceItemDataset.PREPROD,
+      enabled: organization.features.includes('preprod-app-size-dashboard'),
+    };
+  }
+
+  return {
+    traceItemType: TraceItemDataset.SPANS,
+    enabled: false,
+  };
 }

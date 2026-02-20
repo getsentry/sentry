@@ -48,10 +48,7 @@ export function ToolbarSortBy() {
   // traces table is only sorted by timestamp so disable the sort by
   const disabled = mode === Mode.SAMPLES && tab === Tab.TRACE;
 
-  const spansConfig = useMemo(
-    () => ({traceItemType: TraceItemDataset.SPANS, enabled: true}),
-    []
-  );
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
 
   const fieldOptions = useSortByFields({
     config: spansConfig,
