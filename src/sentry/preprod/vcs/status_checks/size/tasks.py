@@ -89,6 +89,7 @@ RULE_ARTIFACT_TYPE_TO_METRICS_ARTIFACT_TYPE = {
     RuleArtifactType.MAIN_ARTIFACT: PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
     RuleArtifactType.WATCH_ARTIFACT: PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
     RuleArtifactType.ANDROID_DYNAMIC_FEATURE_ARTIFACT: PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+    RuleArtifactType.APP_CLIP_ARTIFACT: PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
 }
 
 

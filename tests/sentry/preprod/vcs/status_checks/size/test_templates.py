@@ -51,7 +51,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 )
 
                 assert title == "Size Analysis"
-                assert subtitle == "1 app processing"
+                assert subtitle == "1 component processing"
                 assert "Processing..." in summary
                 assert "com.example.app" in summary
                 assert "1.0.0 (1)" in summary
@@ -98,7 +98,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed"
+        assert subtitle == "1 component analyzed"
         assert "1.0 MB" in summary
         assert "2.1 MB" in summary
         assert "N/A" in summary
@@ -153,7 +153,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 apps processing"
+        assert subtitle == "2 components processing"
         assert "Processing..." in summary
         assert "com.example.app0" in summary
         assert "com.example.app1" in summary
@@ -197,7 +197,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed, 1 app processing"
+        assert subtitle == "1 component analyzed, 1 component processing"
         # Should have two rows - main app shows sizes, watch shows processing
         assert "`com.example.app`" in summary
         assert "(Android, Watch)" in summary or "(iOS, Watch)" in summary
@@ -231,7 +231,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app processing"
+        assert subtitle == "1 component processing"
 
         # Verify processing state is shown in table
         assert "com.example.processing" in summary
@@ -265,7 +265,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app errored"
+        assert subtitle == "1 component errored"
         assert "Build timeout" in summary
         assert "com.example.app" in summary
         assert "1.0.0 (1)" in summary
@@ -343,7 +343,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed, 1 app processing, 1 app errored"
+        assert subtitle == "1 component analyzed, 1 component processing, 1 component errored"
         assert "Processing..." in summary  # Non-failed artifacts show as processing
         assert "Upload timeout" in summary  # Failed artifact error
         assert "com.example.processed" in summary
@@ -386,7 +386,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 apps analyzed"
+        assert subtitle == "2 components analyzed"
         assert "1.0 MB" in summary  # First artifact download size
         assert "2.1 MB" in summary  # Second artifact download size
         assert "com.example.app0" in summary
@@ -429,7 +429,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 apps analyzed"
+        assert subtitle == "2 components analyzed"
         # Should have two rows - main app and watch app
         assert "`com.example.app`" in summary  # Both main and watch show app_id
         assert ", Watch)" in summary  # Watch app label (with platform prefix)
@@ -487,7 +487,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 apps analyzed"
+        assert subtitle == "2 components analyzed"
         # Should have two rows - main app and dynamic feature
         assert "`com.example.android`" in summary  # Main app and dynamic feature both show app_id
         assert ", Dynamic Feature)" in summary  # Dynamic feature label (with platform prefix)
@@ -495,6 +495,50 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "1.0 MB" in summary  # Dynamic feature download
         assert "8.4 MB" in summary  # Main app install
         assert "2.1 MB" in summary  # Dynamic feature install (note: rounds to 2.1 not 2.0)
+
+    def test_app_clip_metrics(self):
+        """Test formatting with App Clip metrics."""
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            build_version="1.0.0",
+            build_number=1,
+        )
+
+        main_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=4 * 1024 * 1024,
+            max_download_size=4 * 1024 * 1024,
+            min_install_size=8 * 1024 * 1024,
+            max_install_size=8 * 1024 * 1024,
+        )
+
+        app_clip_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+            identifier="com.example.ios.clip",
+        )
+
+        size_metrics_map = {artifact.id: [main_metrics, app_clip_metrics]}
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project, {}, {}
+        )
+
+        assert title == "Size Analysis"
+        assert subtitle == "2 components analyzed"
+        assert "`com.example.ios`" in summary
+        assert ", App Clip)" in summary
+        assert "4.2 MB" in summary
+        assert "1.0 MB" in summary
 
     def test_size_changes_with_base_artifacts(self):
         """Test size change calculations when base artifacts exist for comparison."""
@@ -565,7 +609,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed"
+        assert subtitle == "1 component analyzed"
 
         # Verify that size changes are calculated and displayed
         # (4.2MB - 4.0MB = 209.7KB, 8.6MB - 8.3MB = 314.6KB)
@@ -602,7 +646,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed"
+        assert subtitle == "1 component analyzed"
         assert "1.0 MB" in summary
         assert "2.1 MB" in summary
         # Should show N/A for changes when no base exists
