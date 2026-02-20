@@ -148,7 +148,7 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
         return {
             "repository_count": len(repositories),
             "repository_ids": [repo.id for repo in repositories],
-            "repository_names": ", ".join(repo.name for repo in repositories),
+            "repository_names": ", ".join(sorted((repo.name or "") for repo in repositories)),
             "code_review_change": code_review_change,
             "enabled_code_review": updated_enabled_code_review,
             "code_review_triggers": updated_code_review_triggers,
