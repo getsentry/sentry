@@ -1164,3 +1164,72 @@ The two failures (`test_project_key_stats.py` Redis ConnectionError at teardown,
 - _Granian Unix socket config_: Would require overriding the container entrypoint to pass a `--host unix:/path` flag to granian. Involves Snuba-side changes and the fundamental savings would still be negligible.
 
 **Branch:** `mchen/snuba-sock` (run [`22205812197`](https://github.com/getsentry/sentry/actions/runs/22205812197), all T2 shards failing — abandoned, not merged).
+
+## Note: `synchronous_commit=off` — why it didn't help
+
+Tested twice (runs `22203204826`, `22203981251`). Both inconclusive: first run confounded by cold venv cache, second by a slow-runner outlier. The underlying reason it can't help: with `--reuse-db`, tests don't run migrations and issue relatively few commits. Time is dominated by query execution and TCP round-trip latency, not WAL sync. The postgres Unix socket already eliminates the round-trip overhead more directly. Dead end.
+
+---
+
+## Proposal: Automatic `databases` narrowing
+
+### Problem
+
+Every Django `TestCase` subclass defaults to `databases = "__all__"`, which causes Django to flush all test databases (default/region/control) between every test, even tests that only touch one. Profiling showed postgres at avg 57% / peak 192% CPU — a significant fraction is unnecessary multi-database flushing. If 60% of T1 test classes only need `default`, eliminating two extra flushes per test at ~5ms each: `0.6 × 6000 tests / 4 workers × 5ms ≈ 45s` potential T1 reduction — same order as the pg-socket win.
+
+### Why not static analysis
+
+AST import scanning misses database access through fixtures, factories, and helpers. It produces false negatives (test accesses DB X, annotation says it doesn't → silent data corruption between tests). Not reliable without manual review of every test class.
+
+### Approach: runtime instrumentation → GCS → collection-time narrowing
+
+The same pipeline that already powers the service classifier.
+
+**Step 1 — Instrument cursor creation (behind `--classify-databases` flag)**
+
+Monkey-patch `BaseDatabaseWrapper.cursor()`, the same pattern as the existing `socket.send` patch for Snuba detection. Record which database alias each test class actually touches during a full run:
+
+```python
+# service_classifier.py (or sibling plugin), enabled by --classify-databases
+
+_db_usage: dict[str, set[str]] = defaultdict(set)
+
+_orig_cursor = BaseDatabaseWrapper.cursor
+
+def _patched_cursor(self):
+    item = _current_item.get()  # contextvars, set per-test in pytest_runtest_setup
+    if item and item.cls:
+        _db_usage[item.cls.__qualname__].add(self.alias)
+    return _orig_cursor(self)
+
+BaseDatabaseWrapper.cursor = _patched_cursor
+```
+
+Run once (or periodically via `classify-services`) with `databases = "__all__"` to build the ground-truth map `{class_qualname: [alias, ...]}`.
+
+**Step 2 — Emit as a new artifact from `classify-services`**
+
+Add `test-database-usage.json` alongside `test-service-classification.json`. Upload to GCS via the existing `collect-test-data` pipeline.
+
+**Step 3 — Apply at collection time**
+
+A hook in `pytest_collection_modifyitems` downloads `test-database-usage.json` from GCS (same pattern as the service classifier) and patches `databases` on each collected class:
+
+```python
+def pytest_collection_modifyitems(items):
+    db_map = load_db_usage_from_gcs()  # cached per session
+    seen: set[type] = set()
+    for item in items:
+        cls = item.cls
+        if cls and cls not in seen and cls.__qualname__ in db_map:
+            cls.databases = tuple(db_map[cls.__qualname__])
+            seen.add(cls)
+        # unknown classes keep __all__ — safe default
+```
+
+### Lifecycle and safety
+
+- **New test classes** run with `__all__` until they appear in the map (one-run lag, safe by default).
+- **Stale map**: if a test class adds a new database dependency and the map is stale, Django raises an integrity error on the first test that touches the un-flushed database — caught immediately in CI. Re-run `classify-services` to refresh.
+- **Refresh cadence**: weekly scheduled run of `classify-services --classify-databases`, or triggered manually after large model changes.
+- **Zero per-test boilerplate**: no touching individual test files; the narrowing is entirely driven by the GCS data.
