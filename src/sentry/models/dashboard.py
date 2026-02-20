@@ -410,13 +410,14 @@ class DashboardLastVisited(DefaultFieldsModel):
 
 def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
     error_events_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+    is_transactions_deprecation_enabled = features.has(
+        "organizations:discover-saved-queries-deprecation",
+        organization=organization,
+        actor=user,
+    )
     transaction_type = (
         DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.SPANS)
-        if features.has(
-            "organizations:discover-saved-queries-deprecation",
-            organization=organization,
-            actor=user,
-        )
+        if is_transactions_deprecation_enabled
         else DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
     )
 
@@ -570,7 +571,9 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                             "fields": ["count()", "transaction"],
                             "aggregates": ["count()"],
                             "columns": ["transaction"],
-                            "conditions": "",
+                            "conditions": "is_transaction:true"
+                            if is_transactions_deprecation_enabled
+                            else "",
                             "orderby": "-count()",
                         },
                     ],
@@ -586,7 +589,9 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                             "fields": ["user_misery(300)"],
                             "aggregates": ["user_misery(300)"],
                             "columns": [],
-                            "conditions": "",
+                            "conditions": "is_transaction:true"
+                            if is_transactions_deprecation_enabled
+                            else "",
                             "orderby": "",
                         },
                     ],
@@ -602,7 +607,9 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                             "fields": ["transaction", "count()"],
                             "aggregates": ["count()"],
                             "columns": ["transaction"],
-                            "conditions": "",
+                            "conditions": "is_transaction:true"
+                            if is_transactions_deprecation_enabled
+                            else "",
                             "orderby": "-count()",
                         },
                     ],
@@ -634,7 +641,9 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                             "fields": ["transaction", "user_misery(300)"],
                             "aggregates": ["user_misery(300)"],
                             "columns": ["transaction"],
-                            "conditions": "",
+                            "conditions": "is_transaction:true"
+                            if is_transactions_deprecation_enabled
+                            else "",
                             "orderby": "-user_misery(300)",
                         },
                     ],
