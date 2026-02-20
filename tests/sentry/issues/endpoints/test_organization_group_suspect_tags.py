@@ -23,6 +23,7 @@ class OrganizationGroupSuspectTagsTestCase(APITestCase, SnubaTestCase):
             first_seen=today - datetime.timedelta(hours=1),
             last_seen=today + datetime.timedelta(hours=1),
         )
+        other_group = self.create_group()
 
         self._mock_event(
             today,
@@ -35,7 +36,7 @@ class OrganizationGroupSuspectTagsTestCase(APITestCase, SnubaTestCase):
             today,
             hash="a" * 32,
             tags={"key": False, "other": False},
-            group_id=2,
+            group_id=other_group.id,
             project_id=self.project.id,
         )
 
