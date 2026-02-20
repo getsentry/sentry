@@ -80,5 +80,23 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/account/emails/',
     label: t('Additional Email'),
     hintText: t('Designate an alternative email for this account'),
+  'password-form.password': {
+    name: 'password',
+    formId: 'password-form',
+    route: '/settings/account/security/',
+    label: t('Current Password'),
+  },
+  'password-form.passwordNew': {
+    name: 'passwordNew',
+    formId: 'password-form',
+    route: '/settings/account/security/',
+    label: t('New Password'),
+  },
+  'password-form.passwordVerify': {
+    name: 'passwordVerify',
+    formId: 'password-form',
+    route: '/settings/account/security/',
+    label: t('Verify New Password'),
+    hintText: t('Verify your new password'),
   },
 };
