@@ -17,6 +17,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.utils import generate_region_url
 from sentry.models.project import Project
 from sentry.objectstore.types import ObjectstoreUploadOptions
+from sentry.utils.http import absolute_uri
 
 
 @region_silo_endpoint
@@ -42,8 +43,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
                 "path": "",
             },
         )
-        region_base = generate_region_url()
-        url = region_base.rstrip("/") + "/" + path.lstrip("/")
+        url = absolute_uri(path, generate_region_url())
 
         options = ObjectstoreUploadOptions(
             url=url,
