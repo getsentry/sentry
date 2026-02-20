@@ -60,6 +60,9 @@ export default function SeerProjectTableRow({
   // All other values are treated as `code_changes`. Which means both checkboxes will be unchecked.
   const isCreatePrEnabled = autofixSettings.automatedRunStoppingPoint !== 'code_changes';
   const isBackgroundAgentEnabled = Boolean(autofixSettings.automationHandoff);
+  const showUnifiedPrToggle = organization.features.includes(
+    'seer-agent-pr-consolidation'
+  );
 
   return (
     <SimpleTable.Row key={project.id}>
@@ -104,7 +107,9 @@ export default function SeerProjectTableRow({
         )}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
-        {isBackgroundAgentEnabled ? (
+        {isFetchingSettings ? (
+          <Placeholder height="20px" width="36px" />
+        ) : !showUnifiedPrToggle && isBackgroundAgentEnabled ? (
           <Flex align="center" gap="sm">
             {'n/a'}
             <QuestionTooltip
@@ -114,8 +119,6 @@ export default function SeerProjectTableRow({
               size="xs"
             />
           </Flex>
-        ) : isFetchingSettings ? (
-          <Placeholder height="20px" width="36px" />
         ) : (
           <Switch
             disabled={
