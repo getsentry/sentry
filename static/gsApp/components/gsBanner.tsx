@@ -7,8 +7,8 @@ import moment from 'moment-timezone';
 
 import {Alert, type AlertProps} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -1021,7 +1021,7 @@ class GSBanner extends Component<Props, State> {
           <Alert.Container>
             <InvertedAlert
               trailingItems={
-                <ButtonBar>
+                <Grid flow="column" align="center" gap="md">
                   <LinkButton
                     to={checkoutUrl}
                     onClick={this.handleUpgradeLinkClick}
@@ -1034,13 +1034,15 @@ class GSBanner extends Component<Props, State> {
                     onClick={this.handleSnoozeMemberDeactivatedAlert}
                     size="xs"
                     priority="default"
-                    title={t(
-                      'You can also resolve this warning by removing the deactivated members from your organization'
-                    )}
+                    tooltipProps={{
+                      title: t(
+                        'You can also resolve this warning by removing the deactivated members from your organization'
+                      ),
+                    }}
                   >
                     {t('Snooze')}
                   </Button>
-                </ButtonBar>
+                </Grid>
               }
             >
               {tct(

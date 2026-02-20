@@ -546,10 +546,7 @@ class EventManager:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
         except HashDiscarded as e:
-            if features.has("organizations:grouptombstones-hit-counter", project.organization):
-                increment_group_tombstone_hit_counter(
-                    getattr(e, "tombstone_id", None), job["event"]
-                )
+            increment_group_tombstone_hit_counter(getattr(e, "tombstone_id", None), job["event"])
             discard_event(job, attachments)
             raise
 
@@ -924,7 +921,6 @@ def _get_or_create_group_environment(
     event_datetime: datetime,
 ) -> None:
     for group_info in groups:
-
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
@@ -1113,7 +1109,6 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
 
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
-
         if job["event"].project_id == settings.SENTRY_PROJECT:
             metrics.incr(
                 "internal.captured.eventstream_insert",
@@ -1130,8 +1125,15 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
         ):
             group_id = job["groups"][0].group.id if job["groups"] else None
             for error in processing_errors:
-                error_type = error.get("type", "unknown")
                 try:
+                    error_type = error.get("type", "unknown")
+                    error_name = error.get("name")
+                    error_value = error.get("value")
+                    # Convert non-string values to JSON and truncate
+                    if error_value is not None:
+                        if not isinstance(error_value, str):
+                            error_value = orjson.dumps(error_value).decode()
+                        error_value = error_value[:256]
                     analytics.record(
                         EventProcessingErrorRecorded(
                             organization_id=event.project.organization_id,
@@ -1140,6 +1142,8 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                             group_id=group_id,
                             error_type=error_type,
                             platform=job["data"].get("platform"),
+                            name=error_name,
+                            value=error_value,
                         )
                     )
                 except Exception:
@@ -1546,7 +1550,6 @@ def _create_group(
     first_release: Release | None = None,
     **group_creation_kwargs: Any,
 ) -> Group:
-
     short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
@@ -1729,8 +1732,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         )
         .exclude(
             # add to the regression window to account for races here
-            active_at__gte=date
-            - timedelta(seconds=5)
+            active_at__gte=date - timedelta(seconds=5)
         )
         .update(
             active_at=date,
@@ -1874,8 +1876,8 @@ def _get_updated_group_title(existing_container, incoming_container):
 
     return (
         incoming_title
+        # Real titles beat both placeholder and non-existent titles
         if (
-            # Real titles beat both placeholder and non-existent titles
             _is_real_title(incoming_title)
             or
             # Conversely, placeholder titles lose to both real titles and lack of a title (the
@@ -2165,6 +2167,8 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         "message": title,
         "has_stacktrace": int(has_stacktrace(event.data)),
         "handled": is_handled(event.data),
+        "org_id": event.project.organization_id,
+        "project_id": event.project_id,
     }
 
     if options.get("processing.severity-backlog-test.timeout"):

@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 import seerConfigCheck from 'getsentry-images/spot/seer-config-check.svg';
@@ -13,6 +13,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import showNewSeer from 'sentry/utils/seer/showNewSeer';
@@ -59,13 +60,13 @@ export default function SeerAutomationTrial() {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
     // they need to goto the old settings page, or get downgraded off old seer.
     if (!showNewSeer(organization)) {
-      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
       return;
     }
 
     // If you've already got Seer, then go to settings and you should see the new ones.
     if (organization.features.includes('seat-based-seer-enabled')) {
-      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
       return;
     }
 
@@ -73,7 +74,7 @@ export default function SeerAutomationTrial() {
   }, [navigate, organization.features, organization.slug, organization]);
 
   return (
-    <Fragment>
+    <AnalyticsArea name="trial">
       <Flex justify="center">
         <img
           src={seerConfigMain}
@@ -166,6 +167,6 @@ export default function SeerAutomationTrial() {
           </Flex>
         </Stack>
       </Container>
-    </Fragment>
+    </AnalyticsArea>
   );
 }

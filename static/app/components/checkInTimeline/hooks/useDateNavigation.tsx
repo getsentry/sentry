@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import moment from 'moment-timezone';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useRouter from 'sentry/utils/useRouter';
 

@@ -56,7 +56,6 @@ class TestActionSerializer(TestCase):
         }
 
     def test_serialize_with_integration(self) -> None:
-
         action = self.create_action(
             type=Action.Type.OPSGENIE,
             data={"priority": "P1"},

@@ -2,9 +2,9 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -136,10 +136,11 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
                   size="sm"
                   onClick={() => handleBulkEdit(operation)}
                   disabled={isUpdating || selectedMonitors.length === 0}
-                  title={
-                    selectedMonitors.length === 0 &&
-                    tct('Please select monitors to [actionText]', {actionText})
-                  }
+                  tooltipProps={{
+                    title:
+                      selectedMonitors.length === 0 &&
+                      tct('Please select monitors to [actionText]', {actionText}),
+                  }}
                   aria-label={actionText}
                   {...analyticsProps}
                 >
@@ -154,7 +155,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               )
             )}
           </ActionButtons>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <SearchBar
               size="sm"
               placeholder={t('Search Monitors')}
@@ -169,7 +170,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               onChangeSort={({value: sort}) => setSortSelection({...sortSelection, sort})}
               {...sortSelection}
             />
-          </ButtonBar>
+          </Grid>
         </Flex>
         <StyledPanelTable
           headers={headers}
@@ -224,7 +225,9 @@ export const modalCss = css`
   max-width: 900px;
 `;
 
-const ActionButtons = styled(ButtonBar)`
+const ActionButtons = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-right: auto;
 `;
 

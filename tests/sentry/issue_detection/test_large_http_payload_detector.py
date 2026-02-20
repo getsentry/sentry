@@ -31,7 +31,6 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         return list(detector.stored_problems.values())
 
     def test_detects_large_http_payload_issue(self) -> None:
-
         spans = [
             create_span(
                 "http.client",
@@ -257,7 +256,6 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         assert self.find_problems(event) == []
 
     def test_handles_string_payload_size_threshold(self) -> None:
-
         spans = [
             create_span(
                 "http.client",

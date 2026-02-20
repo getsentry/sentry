@@ -66,7 +66,6 @@ class SentrySDKMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
-
         full_key = self._get_key(key)
         if not self._should_send(full_key):
             return

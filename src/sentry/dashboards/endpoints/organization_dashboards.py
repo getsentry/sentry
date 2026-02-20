@@ -75,6 +75,8 @@ class PrebuiltDashboardId(IntEnum):
     MOBILE_VITALS_SCREEN_RENDERING = 11
     BACKEND_OVERVIEW = 12
     MOBILE_SESSION_HEALTH = 13
+    FRONTEND_OVERVIEW = 14
+    NEXTJS_FRONTEND_OVERVIEW = 15
 
 
 class PrebuiltDashboard(TypedDict):
@@ -126,15 +128,15 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS,
-        "title": "App Starts",
+        "title": "Mobile Vitals App Starts",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
-        "title": "Screen Loads",
+        "title": "Mobile Vitals Screen Loads",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
-        "title": "Screen Rendering",
+        "title": "Mobile Vitals Screen Rendering",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
@@ -143,6 +145,14 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_SESSION_HEALTH,
         "title": "Mobile Session Health",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_OVERVIEW,
+        "title": "Frontend Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.NEXTJS_FRONTEND_OVERVIEW,
+        "title": "Next.js Overview",
     },
 ]
 
@@ -549,7 +559,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard_create_lock.acquire(),
                 transaction.atomic(router.db_for_write(Dashboard)),
             ):
-
                 dashboard_count = Dashboard.objects.filter(
                     organization=organization, prebuilt_id=None
                 ).count()

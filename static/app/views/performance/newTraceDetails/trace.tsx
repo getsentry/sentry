@@ -700,6 +700,7 @@ function VerticalTimestampIndicators({
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.neutral.muted};
   position: absolute;
   left: 0;
@@ -805,6 +806,7 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       width: 1px;
       height: 100%;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.primary};
       left: 50%;
     }
@@ -830,6 +832,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorContainerMiddleLine {
     position: absolute;
     top: 18px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
@@ -933,7 +936,7 @@ const TraceStylingWrapper = styled('div')`
       background: repeating-linear-gradient(
           to bottom,
           transparent 0 4px,
-          ${p => p.theme.tokens.content.primary} 4px 8px
+          ${p => p.theme.tokens.dataviz.semantic.neutral} 4px 8px
         )
         80%/2px 100% no-repeat;
 
@@ -941,7 +944,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.colors.red400} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.neutral} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -950,7 +953,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.tokens.content.secondary} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.neutral} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -959,7 +962,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.colors.yellow400} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.meh} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -968,7 +971,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.colors.green400} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.good} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -993,7 +996,7 @@ const TraceStylingWrapper = styled('div')`
 
     &.Errored {
       .TraceIndicatorLabelContainer {
-        border: 1px solid ${p => p.theme.tokens.content.danger};
+        border: 1px solid ${p => p.theme.tokens.border.danger.vibrant};
         color: ${p => p.theme.tokens.content.danger};
       }
 
@@ -1001,7 +1004,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.tokens.content.danger} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.bad} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1272,10 +1275,10 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Highlight {
-      box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.accent.vibrant} !important;
+      box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default} !important;
 
       .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.border.accent.vibrant} !important;
+        box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.focus.default} !important;
       }
     }
 
@@ -1582,6 +1585,7 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.neutral.muted};
       border-radius: 50%;
       height: 6px;

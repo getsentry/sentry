@@ -9,8 +9,8 @@ import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
@@ -41,6 +41,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -269,7 +270,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
             <FieldLabel disabled={disabled}>
               {t('Filter out legacy browsers')}:
             </FieldLabel>
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <Button
                 priority="link"
                 onClick={this.handleToggleSubfilters.bind(this, true)}
@@ -284,7 +285,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
               >
                 {t('None')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </Flex>
           <FieldHelp>
             {t(
@@ -424,10 +425,17 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
-    staleTime: 0,
-    gcTime: 0,
-  });
+  } = useApiQuery<Filter[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+      }),
+    ],
+    {
+      staleTime: 0,
+      gcTime: 0,
+    }
+  );
 
   const filterList = filterListData ?? [];
 

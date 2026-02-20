@@ -15,7 +15,6 @@ import {DO_NOT_USE_getButtonStyles} from '@sentry/scraps/button';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {space} from 'sentry/styles/space';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
 type Priority = 'default' | 'primary';
@@ -81,8 +80,10 @@ interface SegmentedControlItemProps<Value extends string> {
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
-interface SegmentedControlProps<Value extends string>
-  extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange' | 'isDisabled'> {
+interface SegmentedControlProps<Value extends string> extends Omit<
+  RadioGroupProps,
+  'value' | 'defaultValue' | 'onChange' | 'isDisabled'
+> {
   children: CollectionChildren<Value>;
   onChange: (value: Value) => void;
   value: Value;
@@ -120,6 +121,7 @@ export function SegmentedControl<Value extends string>({
   return (
     <GroupWrap
       {...radioGroupProps}
+      {...props}
       size={size}
       priority={priority}
       ref={ref}
@@ -152,8 +154,7 @@ SegmentedControl.Item = Item as <Value extends string>(
 ) => React.JSX.Element;
 
 interface SegmentProps<Value extends string>
-  extends SegmentedControlItemProps<Value>,
-    AriaRadioProps {
+  extends SegmentedControlItemProps<Value>, AriaRadioProps {
   lastKey: string;
   layoutGroupId: string;
   priority: Priority;
@@ -325,7 +326,7 @@ const LabelWrap = styled('span')<{
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+  gap: ${p => (p.size === 'xs' ? p.theme.space.xs : p.theme.space.sm)};
   z-index: 1;
   color: ${p => getTextColor(p)};
 `;

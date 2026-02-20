@@ -1,12 +1,13 @@
 import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResult,
@@ -61,7 +62,12 @@ function metricOptionsQueryKey({
     });
   }
 
-  return [`/organizations/${orgSlug}/events/`, {query}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+      path: {organizationIdOrSlug: orgSlug!},
+    }),
+    {query},
+  ];
 }
 
 /**

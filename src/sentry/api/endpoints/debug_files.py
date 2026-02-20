@@ -225,9 +225,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
             response["Content-Length"] = debug_file.file.size
-            response["Content-Disposition"] = 'attachment; filename="{}{}"'.format(
-                posixpath.basename(debug_file.debug_id),
-                debug_file.file_extension,
+            response["Content-Disposition"] = (
+                f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
             )
             return response
         except OSError:
@@ -292,7 +291,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
             queryset = debug_id_qs.select_related("file").union(
                 ProjectDebugFile.objects.filter(Q(code_id__exact=code_id) & q)
                 # Only return any code id matches if there are *no* debug id matches.
-                .filter(~Exists(debug_id_qs)).select_related("file")
+                .filter(~Exists(debug_id_qs))
+                .select_related("file")
             )
         elif debug_id:
             q &= Q(debug_id__exact=debug_id)
@@ -346,10 +346,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :qparam string id: The id of the DIF to delete.
         :auth: required
         """
-        if request.GET.get("id") and _has_delete_permission(request.access, project):
+        debug_file_id = request.GET.get("id")
+        if debug_file_id and _has_delete_permission(request.access, project):
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
+                    ProjectDebugFile.objects.filter(id=debug_file_id, project_id=project.id)
                     .select_related("file")
                     .first()
                 )

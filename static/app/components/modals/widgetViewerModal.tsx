@@ -10,8 +10,8 @@ import trimStart from 'lodash/trimStart';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select, SelectOption} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -816,7 +816,7 @@ function WidgetViewerModal(props: Props) {
                 <Footer>
                   <ResultsContainer>
                     {renderTotalResults(totalResults, widget.widgetType)}
-                    <ButtonBar>
+                    <Grid flow="column" align="center" gap="md">
                       {onEdit && widget.id && (
                         <Button
                           onClick={() => {
@@ -829,10 +829,11 @@ function WidgetViewerModal(props: Props) {
                             });
                           }}
                           disabled={!hasEditAccess}
-                          title={
-                            !hasEditAccess &&
-                            t('You do not have permission to edit this widget')
-                          }
+                          tooltipProps={{
+                            title:
+                              !hasEditAccess &&
+                              t('You do not have permission to edit this widget'),
+                          }}
                         >
                           {t('Edit Widget')}
                         </Button>
@@ -852,7 +853,7 @@ function WidgetViewerModal(props: Props) {
                           }
                         />
                       )}
-                    </ButtonBar>
+                    </Grid>
                   </ResultsContainer>
                 </Footer>
               </MEPSettingProvider>

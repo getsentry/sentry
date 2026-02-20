@@ -26,7 +26,7 @@ function OriginalReplayPlayPauseButton(
 
   return isFinished ? (
     <Button
-      title={t('Restart Replay')}
+      tooltipProps={{title: t('Restart Replay')}}
       icon={<IconRefresh />}
       onClick={restart}
       aria-label={t('Restart Replay')}
@@ -35,7 +35,7 @@ function OriginalReplayPlayPauseButton(
     />
   ) : (
     <Button
-      title={isPlaying ? t('Pause') : t('Play')}
+      tooltipProps={{title: isPlaying ? t('Pause') : t('Play')}}
       icon={isPlaying ? <IconPause /> : <IconPlay />}
       onClick={() => togglePlayPause(!isPlaying)}
       aria-label={isPlaying ? t('Pause') : t('Play')}

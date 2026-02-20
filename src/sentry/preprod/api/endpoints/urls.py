@@ -19,6 +19,7 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_do
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
 from .organization_preprod_list_builds import OrganizationPreprodListBuildsEndpoint
 from .organization_preprod_quota import OrganizationPreprodQuotaEndpoint
+from .organization_preprod_retention import OrganizationPreprodRetentionEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
 from .preprod_artifact_rerun_analysis import (
@@ -41,6 +42,7 @@ from .project_preprod_size import (
     ProjectPreprodSizeEndpoint,
     ProjectPreprodSizeWithIdentifierEndpoint,
 )
+from .project_preprod_upload_options import ProjectPreprodUploadOptionsEndpoint
 from .public.project_preprod_size_analysis import ProjectPreprodPublicSizeAnalysisEndpoint
 from .pull_request.organization_pullrequest_comments import OrganizationPrCommentsEndpoint
 from .pull_request.organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
@@ -64,6 +66,11 @@ preprod_project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/snapshots/$",
         ProjectPreprodSnapshotEndpoint.as_view(),
         name="sentry-api-0-project-preprod-snapshots-create",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/snapshots/upload-options/$",
+        ProjectPreprodUploadOptionsEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshots-upload-options",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/$",
@@ -139,6 +146,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/preprod/quota/$",
         OrganizationPreprodQuotaEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-quota",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprod/retention/$",
+        OrganizationPreprodRetentionEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-retention",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/list-builds/$",

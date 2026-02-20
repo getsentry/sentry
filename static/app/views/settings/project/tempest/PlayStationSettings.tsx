@@ -2,8 +2,8 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import List from 'sentry/components/list';
@@ -114,7 +114,7 @@ export default function PlayStationSettings({organization, project}: Props) {
         <LoadingIndicator />
       ) : (
         <Flex direction="column" gap="md" align="end">
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {hasCredentials && (
               <Button
                 size="sm"
@@ -134,7 +134,7 @@ export default function PlayStationSettings({organization, project}: Props) {
               </Button>
             )}
             <AddCredentialsButton project={project} origin="project-settings" />
-          </ButtonBar>
+          </Grid>
           {showEmptyState ? (
             <FullWidthPanel>
               <EmptyState

@@ -9,8 +9,7 @@ interface InternalDefinition {
   lastId: number;
 }
 interface IndicatorStoreDefinition
-  extends StrictStoreDefinition<Indicator[]>,
-    InternalDefinition {
+  extends StrictStoreDefinition<Indicator[]>, InternalDefinition {
   /**
    * When this method is called directly via older parts of the application,
    * we want to maintain the old behavior in that it is replaced (and not queued up)

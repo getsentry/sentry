@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import Confirm from 'sentry/components/confirm';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -42,7 +43,7 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
       <PanelHeader hasButtons>
         {t('Unused Codes')}
 
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <CopyToClipboardButton
             text={formattedCodes}
             aria-label={t('Copy recovery codes to clipboard')}
@@ -71,7 +72,7 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
               {t('Regenerate Codes')}
             </Button>
           </Confirm>
-        </ButtonBar>
+        </Grid>
       </PanelHeader>
       <PanelBody>
         <PanelAlert variant="warning">

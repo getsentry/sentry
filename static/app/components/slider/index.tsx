@@ -14,7 +14,8 @@ import {space} from 'sentry/styles/space';
 import {SliderThumb} from './thumb';
 
 export interface SliderProps
-  extends Omit<AriaSliderProps, 'minValue' | 'maxValue' | 'isDisabled'>,
+  extends
+    Omit<AriaSliderProps, 'minValue' | 'maxValue' | 'isDisabled'>,
     Pick<AriaSliderThumbOptions, 'autoFocus' | 'onFocus' | 'onBlur' | 'onFocusChange'> {
   /**
    * (This prop is now deprecated - slider ranges need to have consistent, evenly
@@ -333,6 +334,7 @@ const SliderTrack = styled('div', {
   width: calc(100% - 2px);
   height: 3px;
   border-radius: 3px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   margin-left: 1px; /* to better align track with label */
 
@@ -380,6 +382,7 @@ const SliderTick = styled('div')<{
   width: 2px;
   height: 6px;
   border-radius: 2px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   ${p =>

@@ -22,7 +22,7 @@ import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   AggregateCompactSelect,
   getAggregateValueKey,
@@ -97,6 +97,25 @@ function validateParameter(
   return false;
 }
 
+export function sortSelectedFirst(
+  selectedValue: string,
+  options: Array<SelectValue<string>>
+) {
+  // move selected option to front and remove from the rest of the options
+  const result: Array<SelectValue<string>> = [];
+  let selectedOption: SelectValue<string> | undefined;
+
+  for (const option of options) {
+    if (option.value === selectedValue) {
+      selectedOption = option;
+    } else {
+      result.push(option);
+    }
+  }
+
+  return selectedOption ? [selectedOption, ...result] : result;
+}
+
 export function SelectRow({
   field,
   index,
@@ -119,11 +138,20 @@ export function SelectRow({
   const datasetConfig = getDatasetConfig(state.dataset);
   const columnSelectRef = useRef<HTMLDivElement>(null);
 
-  const isChartWidget = isChartDisplayType(state.displayType);
+  const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
+  // Derived from state rather than passed as prop - categorical bars use a dedicated action
+  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
 
-  const updateAction = isChartWidget
+  // Determines which action to use for updating visualization fields:
+  // - Line, Area, Bar (Time Series): SET_Y_AXIS for Y-axis aggregates
+  // - Bar (Categorical): SET_CATEGORICAL_AGGREGATE (reducer handles merging
+  // with X-axis, which is set in `XAxisSelector`)
+  // - Other widgets (Table, Big Number): SET_FIELDS for all columns at once
+  const updateAction = isTimeSeriesWidget
     ? BuilderStateAction.SET_Y_AXIS
-    : BuilderStateAction.SET_FIELDS;
+    : isCategoricalBarWidget
+      ? BuilderStateAction.SET_CATEGORICAL_AGGREGATE
+      : BuilderStateAction.SET_FIELDS;
 
   const openColumnSelect = useCallback(() => {
     requestAnimationFrame(() => {
@@ -161,18 +189,28 @@ export function SelectRow({
     return [false, defaultColumnOptions];
   }, [defaultColumnOptions, state.dataset, field]);
 
+  const parsedFunction = useMemo(
+    () => parseFunction(stringFields?.[index] ?? ''),
+    [stringFields, index]
+  );
+
+  const aggregateValue = parsedFunction?.name
+    ? getAggregateValueKey(parsedFunction.name)
+    : NONE;
+
+  const columnValue =
+    field.kind === FieldValueKind.FUNCTION
+      ? (parsedFunction?.arguments[0] ?? '')
+      : field.field;
+
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
       <AggregateCompactSelect
         searchable
         hasColumnParameter={hasColumnParameter}
         disabled={disabled || aggregateOptions.length <= 1}
-        options={aggregateOptions}
-        value={
-          parseFunction(stringFields?.[index] ?? '')?.name
-            ? getAggregateValueKey(parseFunction(stringFields?.[index] ?? '')?.name)
-            : NONE
-        }
+        options={sortSelectedFirst(aggregateValue, aggregateOptions)}
+        value={aggregateValue}
         position="bottom-start"
         menuFooter={
           state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
@@ -429,12 +467,8 @@ export function SelectRow({
         <SelectWrapper ref={columnSelectRef}>
           <ColumnCompactSelect
             searchable
-            options={columnOptions}
-            value={
-              field.kind === FieldValueKind.FUNCTION
-                ? (parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? '')
-                : field.field
-            }
+            options={sortSelectedFirst(columnValue, columnOptions)}
+            value={columnValue}
             onChange={newField => {
               const newFields = cloneDeep(fields);
               const currentField = newFields[index]!;

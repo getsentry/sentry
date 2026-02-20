@@ -1,5 +1,6 @@
 from datetime import datetime
 from functools import partial
+from typing import Any
 
 from django.db import router, transaction
 from django.db.models import (
@@ -100,7 +101,9 @@ class OrganizationWorkflowPermission(OrganizationPermission):
 class OrganizationWorkflowEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationWorkflowPermission,)
 
-    def convert_args(self, request: Request, workflow_id, *args, **kwargs):
+    def convert_args(
+        self, request: Request, workflow_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Organization | Workflow]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         validated_workflow_id = to_valid_int_id("workflow_id", workflow_id, raise_404=True)
         try:
@@ -215,7 +218,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
@@ -298,7 +301,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.CREATE_WORKFLOW,
     )
-    def post(self, request, organization):
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
@@ -355,7 +358,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         ),
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def put(self, request, organization):
+    def put(self, request: Request, organization: Organization) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
@@ -416,7 +419,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization: Organization) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 

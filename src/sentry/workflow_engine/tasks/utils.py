@@ -69,7 +69,6 @@ def build_workflow_event_data_from_event(
     workflow_id: int | None = None,
     occurrence_id: str | None = None,
     group_state: GroupState | None = None,
-    has_reappeared: bool = False,
     has_escalated: bool = False,
 ) -> WorkflowEventData:
     """
@@ -99,7 +98,6 @@ def build_workflow_event_data_from_event(
         event=group_event,
         group=group,
         group_state=group_state,
-        has_reappeared=has_reappeared,
         has_escalated=has_escalated,
         workflow_env=workflow_env,
     )
@@ -109,7 +107,6 @@ def build_workflow_event_data_from_activity(
     activity_id: int,
     group_id: int,
 ) -> WorkflowEventData:
-
     activity = Activity.objects.get(id=activity_id)
     group = Group.objects.get(id=group_id)
 

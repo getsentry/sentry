@@ -1,4 +1,4 @@
-import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 
 export const MAX_TEAM_KEY_TRANSACTIONS = 100;
 

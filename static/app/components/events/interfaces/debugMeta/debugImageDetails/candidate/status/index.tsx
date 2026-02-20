@@ -18,11 +18,17 @@ function Status({status, ...props}: Props) {
         </Tag>
       );
     }
-    case CandidateDownloadStatus.ERROR:
-    case CandidateDownloadStatus.MALFORMED: {
+    case CandidateDownloadStatus.ERROR: {
       return (
         <Tag variant="danger" {...props}>
           {t('Failed')}
+        </Tag>
+      );
+    }
+    case CandidateDownloadStatus.MALFORMED: {
+      return (
+        <Tag variant="danger" {...props}>
+          {t('Malformed')}
         </Tag>
       );
     }

@@ -32,7 +32,6 @@ Tests for event types that do not return None for the log message
 
 @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
 def test_get_summary_logs_from_segments(mock_fetch_feedback_details: Mock) -> None:
-
     def _mock_fetch_feedback(feedback_id: str | None, _project_id: int) -> EventDict | None:
         if feedback_id == "12345678123456781234567812345678":
             return EventDict(
@@ -47,54 +46,57 @@ def test_get_summary_logs_from_segments(mock_fetch_feedback_details: Mock) -> No
     mock_fetch_feedback_details.side_effect = _mock_fetch_feedback
 
     def _faker() -> Generator[tuple[int, memoryview]]:
-        yield 0, memoryview(
-            json.dumps(
-                [
-                    {
-                        "type": 5,
-                        "timestamp": 1756400489863,
-                        "data": {
-                            "tag": "breadcrumb",
-                            "payload": {
-                                "timestamp": 1756400489.863,
-                                "type": "default",
-                                "category": "console",
-                                "data": {"logger": "replay"},
-                                "level": "log",
-                                "message": "hello",
+        yield (
+            0,
+            memoryview(
+                json.dumps(
+                    [
+                        {
+                            "type": 5,
+                            "timestamp": 1756400489863,
+                            "data": {
+                                "tag": "breadcrumb",
+                                "payload": {
+                                    "timestamp": 1756400489.863,
+                                    "type": "default",
+                                    "category": "console",
+                                    "data": {"logger": "replay"},
+                                    "level": "log",
+                                    "message": "hello",
+                                },
                             },
                         },
-                    },
-                    {
-                        "type": 5,
-                        "timestamp": 1756400490866,
-                        "data": {
-                            "tag": "breadcrumb",
-                            "payload": {
-                                "timestamp": 1756400490.866,
-                                "type": "default",
-                                "category": "console",
-                                "data": {"logger": "replay"},
-                                "level": "log",
-                                "message": "world",
+                        {
+                            "type": 5,
+                            "timestamp": 1756400490866,
+                            "data": {
+                                "tag": "breadcrumb",
+                                "payload": {
+                                    "timestamp": 1756400490.866,
+                                    "type": "default",
+                                    "category": "console",
+                                    "data": {"logger": "replay"},
+                                    "level": "log",
+                                    "message": "world",
+                                },
                             },
                         },
-                    },
-                    {
-                        "type": 5,
-                        "timestamp": 1756400490870,
-                        "data": {
-                            "tag": "breadcrumb",
-                            "payload": {
-                                "timestamp": 1756400490.870,
-                                "type": "default",
-                                "category": "sentry.feedback",
-                                "data": {"feedbackId": "12345678123456781234567812345678"},
+                        {
+                            "type": 5,
+                            "timestamp": 1756400490870,
+                            "data": {
+                                "tag": "breadcrumb",
+                                "payload": {
+                                    "timestamp": 1756400490.870,
+                                    "type": "default",
+                                    "category": "sentry.feedback",
+                                    "data": {"feedbackId": "12345678123456781234567812345678"},
+                                },
                             },
                         },
-                    },
-                ]
-            ).encode()
+                    ]
+                ).encode()
+            ),
         )
 
     error_events = [
@@ -401,7 +403,6 @@ def test_as_log_message_resource_fetch(status_code: int, method: str) -> None:
 
 @pytest.mark.parametrize("too_long", [True, False])
 def test_as_log_message_resource_fetch_invalid_url(too_long: bool) -> None:
-
     # Real example of a filtered URL that fails urlparse.
     url = (
         "https://test-string-[Filtered].storage.googleapis.com/guide-content/abcd.json?sha256="
@@ -504,7 +505,6 @@ def test_as_log_message_resource_xhr(status_code: int, method: str) -> None:
 
 @pytest.mark.parametrize("too_long", [True, False])
 def test_as_log_message_resource_xhr_invalid_url(too_long: bool) -> None:
-
     # Real example of a filtered URL that fails urlparse.
     url = (
         "https://pendo-static-[Filtered].storage.googleapis.com/guide-content/abcd.json?sha256="

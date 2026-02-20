@@ -1,13 +1,10 @@
 import {useState, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
-interface BaseProps
-  extends Omit<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    'type' | 'value' | 'onChange' | 'defaultValue'
-  > {
+interface BaseProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'value' | 'onChange' | 'defaultValue'
+> {
   defaultValue?: number;
   /** Optional callback to format the label */
   formatLabel?: (value: number | '') => React.ReactNode;
@@ -25,7 +22,7 @@ interface UncontrolledProps extends BaseProps {
   value?: never;
 }
 
-type SliderProps = ControlledProps | UncontrolledProps;
+export type SliderProps = ControlledProps | UncontrolledProps;
 
 export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) {
   const step = toNumber(props.step ?? -1);
@@ -188,9 +185,8 @@ const StyledSlider = styled('input')`
   &::-webkit-slider-runnable-track {
     width: 100%;
     height: 4px;
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
-    border: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border-radius: ${p => p.theme.radius['2xs']};
   }
 
@@ -198,10 +194,10 @@ const StyledSlider = styled('input')`
     appearance: none;
     width: 16px;
     height: 16px;
-    background: ${p => p.theme.colors.white};
-    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-bottom: 2px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+      ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-radius: ${p => p.theme.radius.sm};
     transform: translateY(-7px);
     z-index: 10;
@@ -211,9 +207,8 @@ const StyledSlider = styled('input')`
   &::-moz-range-track {
     width: 100%;
     height: 4px;
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
-    border: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border-radius: ${p => p.theme.radius['2xs']};
   }
 
@@ -221,10 +216,10 @@ const StyledSlider = styled('input')`
     appearance: none;
     width: 16px;
     height: 16px;
-    background: ${p => p.theme.colors.white};
-    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-bottom: 2px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+      ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-radius: ${p => p.theme.radius.sm};
     transform: translateY(-7px);
     z-index: 1;
@@ -263,8 +258,8 @@ const SliderOutput = styled('output')`
 const SliderLabel = styled('span')`
   font-size: inherit;
   display: block;
-  min-width: calc(3ch + ${space(0.5)});
-  padding-inline: ${space(0.5)};
+  min-width: calc(3ch + ${p => p.theme.space.xs});
+  padding-inline: ${p => p.theme.space.xs};
   width: min-content;
   text-align: center;
   background: ${p => p.theme.tokens.background.accent.vibrant};

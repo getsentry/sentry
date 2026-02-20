@@ -335,6 +335,10 @@ export default class GridEditable<
     // to prevent underflows.
 
     grid.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
+
+    // Setting the rendered grid height as a CSS variable so `GridResizer` can
+    // reliably span the full visible height even when rows grow (e.g. wrapped text).
+    grid.style.setProperty('--grid-editable-resizer-height', `${grid.offsetHeight}px`);
   }
 
   renderGridHead() {

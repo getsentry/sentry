@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, DefaultDict
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Subquery
@@ -86,7 +86,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             WorkflowEngineActionSerializer(),
             alert_rule_trigger_id=alert_rule_trigger_id,
         )
-        result: DefaultDict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
+        result: defaultdict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
         for data_condition in detector_triggers:
             result[detector_triggers[data_condition]]["actions"] = []
 

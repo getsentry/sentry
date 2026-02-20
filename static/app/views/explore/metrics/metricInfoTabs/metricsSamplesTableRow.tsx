@@ -8,6 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -17,7 +18,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import {FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {TimestampRenderer} from 'sentry/views/explore/logs/fieldRenderers';
@@ -39,7 +39,7 @@ import {
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
 import {stripMetricParamsFromLocation} from 'sentry/views/explore/metrics/metricQuery';
-import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,

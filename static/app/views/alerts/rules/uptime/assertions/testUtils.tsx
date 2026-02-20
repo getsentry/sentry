@@ -56,7 +56,9 @@ export function makeJsonPathOp(
   return {
     id: uniqueId(),
     op: 'json_path',
-    value: '$.value',
+    value: '$.status',
+    operator: {cmp: 'equals'},
+    operand: {jsonpath_op: 'literal', value: 'ok'},
     ...overrides,
   };
 }

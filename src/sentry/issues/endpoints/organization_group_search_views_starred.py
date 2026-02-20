@@ -30,6 +30,7 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         Retrieve a list of starred views for the current organization member.
         """
 
+        assert request.user.id is not None
         starred_views = GroupSearchViewStarred.objects.filter(
             organization=organization, user_id=request.user.id
         ).select_related("group_search_view")

@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -141,7 +141,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
           <LinkButton external href="https://sentry.io/support/" size="xs">
             {t('Contact Support')}
           </LinkButton>
-          <ButtonBar gap="xs">
+          <Grid flow="column" align="center" gap="xs">
             <Button
               onClick={event => {
                 event.stopPropagation();
@@ -161,7 +161,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
             >
               {t('Just Skip')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Flex>
       </Flex>
     </Alert>
@@ -297,7 +297,7 @@ function Task({task, hidePanel}: TaskProps) {
               }}
               size="zero"
               priority="transparent"
-              title={t('Skip Task')}
+              tooltipProps={{title: t('Skip Task')}}
             />
           ) : undefined
         }

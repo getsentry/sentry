@@ -57,7 +57,7 @@ class WorkflowSerializerResponse(TypedDict):
 @register(Workflow)
 class WorkflowSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[Workflow], user, **kwargs
+        self, item_list: Sequence[Workflow], user: Any, **kwargs: Any
     ) -> MutableMapping[Workflow, dict[str, Any]]:
         attrs: MutableMapping[Workflow, dict[str, Any]] = defaultdict(dict)
         trigger_conditions = list(
@@ -103,7 +103,7 @@ class WorkflowSerializer(Serializer):
         return attrs
 
     def serialize(
-        self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs
+        self, obj: Workflow, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> WorkflowSerializerResponse:
         return {
             "id": str(obj.id),

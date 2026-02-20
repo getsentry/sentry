@@ -8,10 +8,7 @@ from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.seer.code_review.utils import (
-    ClientError,
-    delete_existing_reactions_and_add_eyes_reaction,
-)
+from sentry.seer.code_review.utils import ClientError, delete_existing_reactions_and_add_reaction
 from sentry.seer.code_review.webhooks.issue_comment import (
     GitHubIssueCommentAction,
     is_pr_review_command,
@@ -57,9 +54,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         retry_state = RetryState(attempts=0, max_attempts=3)
         http_error = MaxRetryError(None, "test")  # type: ignore[arg-type]
-        assert task.retry.should_retry(
-            retry_state, http_error
-        ), "Task should retry on HTTPError exceptions"
+        assert task.retry.should_retry(retry_state, http_error), (
+            "Task should retry on HTTPError exceptions"
+        )
 
     def _mock_response(self, status: int, data: bytes) -> BaseHTTPResponse:
         """Helper to create mock urllib3 response."""
@@ -97,9 +94,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "HTTPError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -123,9 +120,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "HTTPError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -149,9 +146,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "HTTPError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
@@ -173,9 +170,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         outcome_call = outcome_calls[0]
         assert "seer.code_review.task.error" in str(outcome_call)
 
@@ -202,9 +199,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "MaxRetryError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -230,9 +227,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "TimeoutError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -258,9 +255,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "SSLError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -286,9 +283,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "NewConnectionError" in str(outcome_calls[0])
 
     @patch("sentry.seer.code_review.webhooks.task.current_task")
@@ -314,9 +311,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         assert "TimeoutError" in str(outcome_calls[0])
 
         # Verify latency is NOT recorded on early retries (retries remaining)
@@ -342,9 +339,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_metrics.incr.assert_called()
         incr_calls = [call for call in mock_metrics.incr.call_args_list]
         outcome_calls = [call for call in incr_calls if "error" in str(call)]
-        assert (
-            len(outcome_calls) == 1
-        ), f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        assert len(outcome_calls) == 1, (
+            f"Expected exactly 1 outcome metric, got {len(outcome_calls)}"
+        )
         outcome_call = outcome_calls[0]
         assert "ValueError" in str(outcome_call)
 
@@ -416,9 +413,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         # With MAX_RETRIES=5, there are 4 delays: (5-1) * 60s = 240s
         # Allow tolerance for test execution time (5 attempts add overhead)
         expected_latency_ms = (MAX_RETRIES - 1) * DELAY_BETWEEN_RETRIES * 1000  # 240,000ms
-        assert (
-            expected_latency_ms - 1000 <= call_args[1] <= expected_latency_ms + 5000
-        ), f"Expected latency ~{expected_latency_ms}ms, got {call_args[1]}ms"
+        assert expected_latency_ms - 1000 <= call_args[1] <= expected_latency_ms + 5000, (
+            f"Expected latency ~{expected_latency_ms}ms, got {call_args[1]}ms"
+        )
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_check_run_and_pr_events_processed_separately(self, mock_request: MagicMock) -> None:
@@ -461,6 +458,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     "trigger_comment_id": None,
                     "trigger_comment_type": None,
                     "trigger_user": None,
+                    # Note: trigger_at and sentry_received_trigger_at intentionally
+                    # omitted to test backward compatibility with old payloads
                 },
             },
         }
@@ -510,6 +509,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     "trigger_comment_id": None,
                     "trigger_comment_type": None,
                     "trigger_user": None,
+                    # Note: trigger_at and sentry_received_trigger_at intentionally
+                    # omitted to test backward compatibility with old payloads
                 },
             },
         }
@@ -565,6 +566,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 "config": {
                     "features": {"bug_prediction": True},
                     "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
                 },
             },
         }
@@ -606,6 +609,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 "config": {
                     "features": {"bug_prediction": True},
                     "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
                 },
             },
         }
@@ -652,6 +657,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 "config": {
                     "features": {"bug_prediction": True},
                     "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
                 },
             },
         }
@@ -698,6 +705,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 "config": {
                     "features": {"bug_prediction": True},
                     "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
                 },
             },
         }
@@ -710,6 +719,47 @@ class ProcessGitHubWebhookEventTest(TestCase):
         )
 
         assert mock_request.call_count == 1
+
+
+class TestProcessGitHubWebhookEventSetsTags:
+    @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_tags_are_applied_to_scope(self, mock_request: MagicMock, mock_sdk: MagicMock) -> None:
+        """Tags passed to the task are forwarded to sentry_sdk.set_tags."""
+        mock_request.return_value = MagicMock(status=200, data=b"{}")
+
+        tags = {
+            "github_event": "pull_request",
+            "scm_provider": "github",
+            "scm_owner": "getsentry",
+            "scm_repo_name": "sentry",
+            "pr_id": 42,
+        }
+
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.CHECK_RUN,
+            event_payload={"original_run_id": "123"},
+            enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+            tags=tags,
+        )
+
+        mock_sdk.set_tags.assert_called_once_with(tags)
+
+    @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_no_tags_param_skips_set_tags(
+        self, mock_request: MagicMock, mock_sdk: MagicMock
+    ) -> None:
+        """When tags is not provided (e.g. legacy callers), set_tags is not called."""
+        mock_request.return_value = MagicMock(status=200, data=b"{}")
+
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.CHECK_RUN,
+            event_payload={"original_run_id": "123"},
+            enqueued_at_str=datetime.now(timezone.utc).isoformat(),
+        )
+
+        mock_sdk.set_tags.assert_not_called()
 
 
 class TestIsPrReviewCommand:
@@ -748,7 +798,7 @@ class AddEyesReactionTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.logger")
     def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=None,
@@ -756,19 +806,15 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
-            extra={},
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
         )
 
         self.mock_client.create_issue_reaction.assert_not_called()
-        mock_logger.warning.assert_called_once_with("github.webhook.missing-integration", extra={})
+        mock_logger.warning.assert_called_once_with("github.webhook.missing-integration")
 
-    def test_adds_eyes_to_pr(self) -> None:
-        self.mock_client.get_issue_reactions.return_value = [
-            {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
-            {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
-        ]
-
-        delete_existing_reactions_and_add_eyes_reaction(
+    def test_adds_reaction_to_pr(self) -> None:
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -776,21 +822,18 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
-            extra={},
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
         )
 
+        self.mock_client.get_issue_reactions.assert_not_called()
         self.mock_client.delete_issue_reaction.assert_not_called()
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
 
-    def test_adds_eyes_to_comment(self) -> None:
-        self.mock_client.get_issue_reactions.return_value = [
-            {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
-            {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
-        ]
-
-        delete_existing_reactions_and_add_eyes_reaction(
+    def test_adds_reaction_to_comment(self) -> None:
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=self.mock_integration,
@@ -798,15 +841,17 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number=None,
             comment_id="123456",
-            extra={},
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
         )
 
+        self.mock_client.get_issue_reactions.assert_not_called()
         self.mock_client.delete_issue_reaction.assert_not_called()
         self.mock_client.create_comment_reaction.assert_called_once_with(
             self.repo.name, "123456", GitHubReaction.EYES
         )
 
-    def test_deletes_tada_and_eyes_before_adding_eyes_to_pr(self) -> None:
+    def test_deletes_existing_reactions_before_adding_reaction_to_pr(self) -> None:
         self.mock_client.get_issue_reactions.return_value = [
             {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
             {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
@@ -814,7 +859,7 @@ class AddEyesReactionTest(TestCase):
             {"id": 4, "user": {"login": "sentry[bot]"}, "content": "eyes"},
         ]
 
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -822,7 +867,8 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
-            extra={},
+            reactions_to_delete=[GitHubReaction.HOORAY, GitHubReaction.EYES],
+            reaction_to_add=GitHubReaction.EYES,
         )
 
         assert self.mock_client.delete_issue_reaction.call_count == 2
@@ -832,7 +878,7 @@ class AddEyesReactionTest(TestCase):
             self.repo.name, "42", GitHubReaction.EYES
         )
 
-    def test_deletes_tada_and_eyes_before_adding_eyes_to_comment(self) -> None:
+    def test_deletes_existing_reactions_before_adding_reaction_to_comment(self) -> None:
         self.mock_client.get_issue_reactions.return_value = [
             {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
             {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
@@ -840,7 +886,7 @@ class AddEyesReactionTest(TestCase):
             {"id": 4, "user": {"login": "sentry[bot]"}, "content": "eyes"},
         ]
 
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=self.mock_integration,
@@ -848,7 +894,8 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id="123456",
-            extra={},
+            reactions_to_delete=[GitHubReaction.HOORAY, GitHubReaction.EYES],
+            reaction_to_add=GitHubReaction.EYES,
         )
 
         assert self.mock_client.delete_issue_reaction.call_count == 2
@@ -859,12 +906,12 @@ class AddEyesReactionTest(TestCase):
         )
 
     @patch("sentry.seer.code_review.utils.logger")
-    def test_logs_warning_and_adds_eyes_when_get_reactions_fails(
+    def test_logs_warning_and_adds_reaction_when_get_reactions_fails(
         self, mock_logger: MagicMock
     ) -> None:
         self.mock_client.get_issue_reactions.side_effect = Exception("API Error")
 
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -872,28 +919,25 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
-            extra={},
+            reactions_to_delete=[GitHubReaction.HOORAY],
+            reaction_to_add=GitHubReaction.EYES,
         )
 
-        mock_logger.warning.assert_called_once_with(
-            "github.webhook.reaction-failed", extra={}, exc_info=True
-        )
+        mock_logger.warning.assert_called_once_with("github.webhook.reaction-failed", exc_info=True)
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
 
     @patch("sentry.seer.code_review.utils.logger")
-    def test_logs_warning_and_adds_eyes_when_delete_reaction_fails(
+    def test_logs_warning_and_adds_reaction_when_delete_reaction_fails(
         self, mock_logger: MagicMock
     ) -> None:
         self.mock_client.get_issue_reactions.return_value = [
-            {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
-            {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
-            {"id": 3, "user": {"login": "sentry[bot]"}, "content": "hooray"},
+            {"id": 3, "user": {"login": "sentry[bot]"}, "content": "hooray"}
         ]
         self.mock_client.delete_issue_reaction.side_effect = Exception("API Error")
 
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -901,22 +945,20 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
-            extra={},
+            reactions_to_delete=[GitHubReaction.HOORAY],
+            reaction_to_add=GitHubReaction.EYES,
         )
 
-        mock_logger.warning.assert_called_once_with(
-            "github.webhook.reaction-failed", extra={}, exc_info=True
-        )
+        mock_logger.warning.assert_called_once_with("github.webhook.reaction-failed", exc_info=True)
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
 
     @patch("sentry.seer.code_review.utils.logger")
     def test_logs_warning_when_create_reaction_fails(self, mock_logger: MagicMock) -> None:
-        self.mock_client.get_issue_reactions.return_value = []
         self.mock_client.create_issue_reaction.side_effect = Exception("API Error")
 
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -924,9 +966,8 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
-            extra={},
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
         )
 
-        mock_logger.warning.assert_called_once_with(
-            "github.webhook.reaction-failed", extra={}, exc_info=True
-        )
+        mock_logger.warning.assert_called_once_with("github.webhook.reaction-failed", exc_info=True)

@@ -26,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
   setApiQueryData,
@@ -64,10 +65,17 @@ const getMembersQueryKey = ({
 }: {
   orgSlug: string;
   query: Record<string, string>;
-}): ApiQueryKey => [`/organizations/${orgSlug}/members/`, {query}];
+}): ApiQueryKey => [
+  getApiUrl(`/organizations/$organizationIdOrSlug/members/`, {
+    path: {organizationIdOrSlug: orgSlug},
+  }),
+  {query},
+];
 
 const getInviteRequestsQueryKey = ({organization}: any): ApiQueryKey => [
-  `/organizations/${organization.slug}/invite-requests/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/invite-requests/`, {
+    path: {organizationIdOrSlug: organization.slug},
+  }),
 ];
 
 function OrganizationMembersList() {
@@ -80,11 +88,19 @@ function OrganizationMembersList() {
     Member[]
   >(getInviteRequestsQueryKey({organization}), {staleTime: 0});
   const {data: authProvider} = useApiQuery<OrganizationAuthProvider>(
-    [`/organizations/${organization.slug}/auth-provider/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/auth-provider/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {staleTime: 0}
   );
   const {data: currentMember} = useApiQuery<Member>(
-    [`/organizations/${organization.slug}/members/me/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/members/$memberId/`, {
+        path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
+      }),
+    ],
     {staleTime: 30000}
   );
   const {
@@ -280,7 +296,11 @@ function OrganizationMembersList() {
   const currentUser = ConfigStore.get('user');
 
   // Find out if current user is the only owner
-  const isOnlyOwner = !activeOwnerMembers.some(({email}) => email !== currentUser.email);
+  // Filter to members with valid users (user_id set and user exists)
+  // Members with user: null during eventual consistency window are excluded
+  const isOnlyOwner = !activeOwnerMembers
+    .filter(member => member.user !== null)
+    .some(member => member.email !== currentUser.email);
 
   // Only admins/owners can remove members
   const requireLink = !!authProvider && authProvider.require_link;

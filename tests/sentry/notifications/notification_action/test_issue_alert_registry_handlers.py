@@ -42,7 +42,6 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
     ActionFieldMappingKeys,
     EmailActionHelper,
-    SentryAppIdentifier,
     TicketingActionDataBlobHelper,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -237,7 +236,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(
-            mock.ANY, self.event_data.event, "12345678-1234-5678-1234-567812345678"  # Rule instance
+            mock.ANY,
+            self.event_data.event,
+            "12345678-1234-5678-1234-567812345678",  # Rule instance
         )
 
         # Verify callback execution
@@ -665,7 +666,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             data={"settings": data_blob},
             config={
                 "target_identifier": target_id,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
@@ -686,55 +686,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             },
             config={
                 "target_identifier": target_id,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
-                "target_type": ActionTarget.SENTRY_APP.value,
-            },
-        )
-        blob = self.handler.build_rule_action_blob(action, self.org2.id)
-
-        assert blob == {
-            "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
-            "settings": cleaned_data_blob,
-            "sentryAppInstallationUuid": self.sentry_app_installation2.uuid,
-        }
-
-        action_2_uuid = blob["sentryAppInstallationUuid"]
-
-        # Both orgs should have different sentry app installations
-        assert action_1_uuid != action_2_uuid
-
-    def test_build_rule_action_blob_sentry_app_sentry_app_installation_uuid(self) -> None:
-        data_blob = self.build_sentry_app_form_config_data_blob()
-        cleaned_data_blob = self.build_sentry_app_form_config_data_blob(include_null_label=False)
-
-        # sentry app with settings
-        action = self.create_action(
-            type=Action.Type.SENTRY_APP,
-            data={"settings": data_blob},
-            config={
-                "target_identifier": self.sentry_app_installation.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-                "target_type": ActionTarget.SENTRY_APP.value,
-            },
-        )
-        blob = self.handler.build_rule_action_blob(action, self.organization.id)
-
-        assert blob == {
-            "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
-            "settings": cleaned_data_blob,
-            "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
-        }
-
-        action_1_uuid = blob["sentryAppInstallationUuid"]
-
-        action = self.create_action(
-            type=Action.Type.SENTRY_APP,
-            data={
-                "settings": data_blob,
-            },
-            config={
-                "target_identifier": self.sentry_app_installation2.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
@@ -759,7 +710,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": target_id,
                 "target_type": ActionTarget.SENTRY_APP.value,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
         )
 
@@ -778,7 +728,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": target_id,
                 "target_type": ActionTarget.SENTRY_APP.value,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)

@@ -1,11 +1,13 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {useTheme} from '@emotion/react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
@@ -43,6 +45,8 @@ function ExplorerPanel() {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const isSeerDrawerOpen = !!location.query?.seerDrawer;
 
   const [inputValue, setInputValue] = useState('');
@@ -98,12 +102,10 @@ function ExplorerPanel() {
     createPR,
   } = useSeerExplorer();
 
-  const copySessionEnabled = Boolean(
-    sessionData?.status === 'completed' && !!runId && !!organization?.slug
-  );
-
+  const copySessionEnabled = Boolean(runId && organization?.slug);
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
-    blocks: sessionData?.blocks || [],
+    blocks: sessionData?.blocks,
+    status: sessionData?.status,
     organization,
     projects,
     enabled: copySessionEnabled,
@@ -145,9 +147,9 @@ function ExplorerPanel() {
     const isUser = (value: unknown): value is User =>
       Boolean(
         value &&
-          typeof value === 'object' &&
-          'id' in value &&
-          typeof value.id === 'string'
+        typeof value === 'object' &&
+        'id' in value &&
+        typeof value.id === 'string'
       );
     const userId = isUser(rawUser) ? rawUser.id : undefined;
     return (
@@ -274,6 +276,11 @@ function ExplorerPanel() {
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (readOnly) {
       return;
+    }
+
+    // While input is focused, prevent backtick from triggering superuser ViewAsHookMiddleware
+    if (e.key === '`') {
+      e.nativeEvent.stopImmediatePropagation();
     }
 
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -479,10 +486,7 @@ function ExplorerPanel() {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
       if (e.key === 'Escape') {
-        if (isPolling && !readOnly && !interruptRequested && !isFileApprovalPending) {
-          e.preventDefault();
-          interruptRun();
-        } else if (readOnly || !isFileApprovalPending) {
+        if (readOnly || !isFileApprovalPending) {
           // Don't minimize if file approval is pending (Escape is used to reject)
           e.preventDefault();
           setIsMinimized(true);
@@ -520,11 +524,8 @@ function ExplorerPanel() {
   }, [
     isVisible,
     isMenuOpen,
-    isPolling,
     readOnly,
     focusedBlockIndex,
-    interruptRun,
-    interruptRequested,
     isMinimized,
     isFileApprovalPending,
     isQuestionPending,
@@ -592,12 +593,14 @@ function ExplorerPanel() {
       blocks={blocks}
       isPolling={isPolling}
       isSeerDrawerOpen={isSeerDrawerOpen}
+      isMobile={isMobile}
       onUnminimize={handleUnminimize}
     >
       <TopBar
         isEmptyState={isEmptyState}
         isPolling={isPolling}
         isSeerDrawerOpen={isSeerDrawerOpen}
+        isMobile={isMobile}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
         onFeedbackClick={handleFeedback}
         onNewChatClick={() => {

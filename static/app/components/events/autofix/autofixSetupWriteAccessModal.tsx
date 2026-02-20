@@ -1,7 +1,8 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -124,7 +125,7 @@ export function AutofixSetupWriteAccessModal({
       </Body>
       {!canCreatePullRequests && (
         <Footer>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button onClick={closeModal}>{t('Later')}</Button>
             <LinkButton
               href="https://github.com/apps/seer-by-sentry/installations/new"
@@ -133,7 +134,7 @@ export function AutofixSetupWriteAccessModal({
             >
               {t('Install the Seer GitHub App')}
             </LinkButton>
-          </ButtonBar>
+          </Grid>
         </Footer>
       )}
     </div>

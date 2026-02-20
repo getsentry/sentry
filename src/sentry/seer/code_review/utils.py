@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from enum import Enum, StrEnum
 from typing import Any
 
@@ -10,7 +11,9 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry import features
 from sentry.integrations.github.client import GitHubReaction
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
@@ -99,6 +102,7 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     Returns:
         The response data from the Seer API
     """
+    logger.info("seer.code_review.sending_request_to_seer")
     response = make_signed_seer_api_request(
         connection_pool=connection_from_url(settings.SEER_PREVENT_AI_URL),
         path=path,
@@ -121,13 +125,21 @@ def _get_trigger_metadata_for_pull_request(event_payload: Mapping[str, Any]) -> 
     # triggers an event (e.g., collaborator pushes commits, admin closes PR
     # or makes ready for review)
     sender = event_payload.get("sender", {})
-    pr_author = event_payload.get("pull_request", {}).get("user", {})
+    pull_request = event_payload.get("pull_request", {})
+    pr_author = pull_request.get("user", {})
+    # Return ISO string for Celery serialization; Pydantic will parse to datetime
+    trigger_at = (
+        pull_request.get("updated_at")
+        or pull_request.get("created_at")
+        or datetime.now(timezone.utc).isoformat()
+    )
 
     return {
         "trigger_user": sender.get("login") or pr_author.get("login"),
         "trigger_user_id": sender.get("id") or pr_author.get("id"),
         "trigger_comment_id": None,
         "trigger_comment_type": None,
+        "trigger_at": trigger_at,
     }
 
 
@@ -135,12 +147,21 @@ def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) ->
     """Extract trigger metadata for issue_comment events."""
     comment = event_payload.get("comment", {})
     comment_user = comment.get("user", {})
+    # Use updated_at to support both "created" and potential future "edited" triggers.
+    # For newly created comments, updated_at equals created_at.
+    # Return ISO string for Celery serialization; Pydantic will parse to datetime
+    trigger_at = (
+        comment.get("updated_at")
+        or comment.get("created_at")
+        or datetime.now(timezone.utc).isoformat()
+    )
 
     return {
         "trigger_user": comment_user.get("login"),
         "trigger_user_id": comment_user.get("id"),
         "trigger_comment_id": comment.get("id"),
         "trigger_comment_type": "issue_comment",
+        "trigger_at": trigger_at,
     }
 
 
@@ -217,18 +238,27 @@ def _common_codegen_request_payload(
     target_commit_sha: str,
     organization: Organization,
 ) -> dict[str, Any]:
+    data: dict[str, Any] = {
+        "repo": _build_repo_definition(repo, target_commit_sha),
+        "bug_prediction_specific_information": {
+            "organization_id": organization.id,
+            "organization_slug": organization.slug,
+        },
+        "config": {
+            "features": {"bug_prediction": True},
+            "github_rate_limit_sensitive": is_github_rate_limit_sensitive(organization.slug),
+        },
+    }
+
+    # Add experiment_enabled flag ONLY for pr-review requests
+    if request_type == SeerCodeReviewRequestType.PR_REVIEW:
+        data["experiment_enabled"] = is_org_enabled_for_code_review_experiments(organization)
+
     return {
         # In Seer,src/seer/routes/automation_request.py:overwatch_request_endpoint
         "request_type": request_type.value,
         "external_owner_id": repo.external_id,
-        "data": {
-            "repo": _build_repo_definition(repo, target_commit_sha),
-            "bug_prediction_specific_information": {
-                "organization_id": organization.id,
-                "organization_slug": organization.slug,
-            },
-            "config": {"features": {"bug_prediction": True}},
-        },
+        "data": data,
     }
 
 
@@ -255,6 +285,8 @@ def transform_issue_comment_to_codegen_request(
     config["trigger_user_id"] = trigger_metadata["trigger_user_id"]
     config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
     config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
+    config["trigger_at"] = trigger_metadata["trigger_at"]
+    config["sentry_received_trigger_at"] = datetime.now(timezone.utc).isoformat()
     return payload
 
 
@@ -295,6 +327,8 @@ def transform_pull_request_to_codegen_request(
     config["trigger_user_id"] = trigger_metadata["trigger_user_id"]
     config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
     config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
+    config["trigger_at"] = trigger_metadata["trigger_at"]
+    config["sentry_received_trigger_at"] = datetime.now(timezone.utc).isoformat()
     return payload
 
 
@@ -347,67 +381,93 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
     return None
 
 
-def extract_github_info(
-    event: Mapping[str, Any], github_event: str | None = None
-) -> dict[str, str | None]:
+def get_tags(
+    event: Mapping[str, Any],
+    github_event: str,
+    organization_id: int,
+    organization_slug: str,
+    integration_id: int,
+    target_commit_sha: str | None = None,
+) -> dict[str, str]:
     """
     Extract GitHub-related information from a webhook event payload.
+
+    Key names use the scm_* prefix to match Seer's extract_context() so tags are
+    consistent and searchable across both projects. Repository fields (scm_owner,
+    scm_repo_name, scm_repo_full_name) are taken from the event payload only.
 
     Args:
         event: The GitHub webhook event payload
         github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
+        organization_id: Sentry organization ID
+        organization_slug: Sentry organization slug
+        integration_id: Sentry integration ID
+        target_commit_sha: When provided, used to build a precise commit URL for on_new_commit. Trigger is derived from github_event + github_event_action when applicable.
 
     Returns:
-        Dictionary containing:
-            - github_owner: The repository owner/organization name
-            - github_repo_name: The repository name
-            - github_repo_full_name: The repository full name (owner/repo)
-            - github_event_url: URL to the specific event (check_run, pull_request, or comment)
-            - github_event: The GitHub event type
-            - github_event_action: The event action (e.g., "opened", "closed", "created")
-            - github_actor_login: The GitHub username who triggered the action
+        Dictionary containing (only keys with non-None values are included):
             - github_actor_id: The GitHub user ID (as string)
+            - github_actor_login: The GitHub username who triggered the action
+            - github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
+            - github_event_action: The event action (e.g., "opened", "closed", "created")
+            - scm_event_url: URL to the specific event (check_run, pull_request, comment, or commit)
+            - scm_owner: The repository owner/organization name
+            - scm_provider: Always "github"
+            - scm_repo_full_name: The repository full name (owner/repo)
+            - scm_repo_name: The repository name
+            - sentry_integration_id: The Sentry integration ID
+            - sentry_organization_id: Sentry organization ID (if available)
+            - sentry_organization_slug: Sentry organization slug (if available)
+            - trigger: Trigger type (if available)
     """
     result: dict[str, str | None] = {
-        "github_owner": None,
-        "github_repo_name": None,
-        "github_repo_full_name": None,
-        "github_event_url": None,
         "github_event": github_event,
-        "github_event_action": None,
-        "github_actor_login": None,
-        "github_actor_id": None,
+        "scm_provider": "github",
+        "sentry_integration_id": str(integration_id),
+        "sentry_organization_id": str(organization_id),
+        "sentry_organization_slug": organization_slug,
+        "trigger": None,
     }
 
     repository = event.get("repository", {})
     if repository:
         if owner := repository.get("owner", {}).get("login"):
-            result["github_owner"] = owner
+            result["scm_owner"] = owner
         if repo_name := repository.get("name"):
-            result["github_repo_name"] = repo_name
+            result["scm_repo_name"] = repo_name
         if owner_repo_name := repository.get("full_name"):
-            result["github_repo_full_name"] = owner_repo_name
+            result["scm_repo_full_name"] = owner_repo_name
 
-    if action := event.get("action"):
-        result["github_event_action"] = action
+    github_event_action = event.get("action")
+    if github_event_action:
+        result["github_event_action"] = github_event_action
+        if github_event == "issue_comment":
+            result["trigger"] = SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
+        elif github_event == "pull_request":
+            if github_event_action in ("opened", "ready_for_review"):
+                result["trigger"] = SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value
+            elif github_event_action == "synchronize":
+                result["trigger"] = SeerCodeReviewTrigger.ON_NEW_COMMIT.value
+            elif github_event_action == "closed":
+                result["trigger"] = SeerCodeReviewTrigger.UNKNOWN.value
 
     if pull_request := event.get("pull_request"):
         if html_url := pull_request.get("html_url"):
-            result["github_event_url"] = html_url
+            result["scm_event_url"] = html_url
 
     if check_run := event.get("check_run"):
         if html_url := check_run.get("html_url"):
-            result["github_event_url"] = html_url
+            result["scm_event_url"] = html_url
 
     if comment := event.get("comment"):
         if html_url := comment.get("html_url"):
-            result["github_event_url"] = html_url
+            result["scm_event_url"] = html_url
 
     if issue := event.get("issue"):
         if pull_request_data := issue.get("pull_request"):
             if html_url := pull_request_data.get("html_url"):
-                if result["github_event_url"] is None:
-                    result["github_event_url"] = html_url
+                if result.get("scm_event_url") is None:
+                    result["scm_event_url"] = html_url
 
     if sender := event.get("sender"):
         if actor_login := sender.get("login"):
@@ -415,10 +475,10 @@ def extract_github_info(
         if actor_id := sender.get("id"):
             result["github_actor_id"] = str(actor_id)
 
-    return result
+    return {k: v for k, v in result.items() if v is not None}
 
 
-def delete_existing_reactions_and_add_eyes_reaction(
+def delete_existing_reactions_and_add_reaction(
     github_event: GithubWebhookType,
     github_event_action: str,
     integration: RpcIntegration | None,
@@ -426,10 +486,11 @@ def delete_existing_reactions_and_add_eyes_reaction(
     repo: Repository,
     pr_number: str | None,
     comment_id: str | None,
-    extra: Mapping[str, str | None],
+    reactions_to_delete: list[GitHubReaction],
+    reaction_to_add: GitHubReaction | None,
 ) -> None:
     """
-    Delete existing :tada: or :eyes: reaction on the PR description and add :eyes: reaction on the originating issue comment or PR description.
+    Delete existing reactions on the PR description and add reaction on the originating issue comment or PR description.
     """
     if integration is None:
         record_webhook_handler_error(
@@ -437,24 +498,21 @@ def delete_existing_reactions_and_add_eyes_reaction(
             github_event_action,
             CodeReviewErrorType.MISSING_INTEGRATION,
         )
-        logger.warning(Log.MISSING_INTEGRATION.value, extra=extra)
+        logger.warning(Log.MISSING_INTEGRATION.value)
         return
 
     try:
         client = integration.get_installation(organization_id=organization_id).get_client()
 
-        if pr_number:
-            # Delete existing :tada: or :eyes: reaction on the PR description
+        if pr_number and reactions_to_delete:
+            # Delete existing reactions on the PR description
             try:
                 existing_reactions = client.get_issue_reactions(repo.name, pr_number)
                 for reaction in existing_reactions:
                     if (
                         reaction.get("user", {}).get("login") == "sentry[bot]"
                         and reaction.get("id")
-                        and (
-                            reaction.get("content") == GitHubReaction.HOORAY.value
-                            or reaction.get("content") == GitHubReaction.EYES.value
-                        )
+                        and reaction.get("content") in reactions_to_delete
                     ):
                         client.delete_issue_reaction(repo.name, pr_number, str(reaction.get("id")))
             except Exception:
@@ -464,17 +522,31 @@ def delete_existing_reactions_and_add_eyes_reaction(
                     github_event_action,
                     CodeReviewErrorType.REACTION_FAILED,
                 )
-                logger.warning(Log.REACTION_FAILED.value, extra=extra, exc_info=True)
+                logger.warning(Log.REACTION_FAILED.value, exc_info=True)
 
-        # Add :eyes: on the originating issue comment or pr description
-        if github_event == GithubWebhookType.PULL_REQUEST:
-            client.create_issue_reaction(repo.name, pr_number, GitHubReaction.EYES)
-        elif github_event == GithubWebhookType.ISSUE_COMMENT:
-            client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
+        if reaction_to_add:
+            # Add reaction on the originating issue comment or pr description
+            if github_event == GithubWebhookType.PULL_REQUEST:
+                client.create_issue_reaction(repo.name, pr_number, reaction_to_add)
+            elif github_event == GithubWebhookType.ISSUE_COMMENT:
+                client.create_comment_reaction(repo.name, comment_id, reaction_to_add)
     except Exception:
         record_webhook_handler_error(
             github_event,
             github_event_action,
             CodeReviewErrorType.REACTION_FAILED,
         )
-        logger.warning(Log.REACTION_FAILED.value, extra=extra, exc_info=True)
+        logger.warning(Log.REACTION_FAILED.value, exc_info=True)
+
+
+def is_org_enabled_for_code_review_experiments(organization: Organization) -> bool:
+    """
+    Checks if an org is eligible to code review experiments via Flagpole.
+
+    If True the exact experiment is decided by Seer.
+    If False no experiment will be applied to the PR, and it'll use the default behavior.
+    """
+    return features.has(
+        "organizations:code-review-experiments-enabled",
+        organization,
+    )

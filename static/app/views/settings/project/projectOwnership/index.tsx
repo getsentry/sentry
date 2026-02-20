@@ -1,7 +1,8 @@
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
@@ -15,6 +16,7 @@ import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -40,7 +42,9 @@ export default function ProjectOwnership() {
   const {project} = useProjectSettingsOutlet();
 
   const ownershipQueryKey: ApiQueryKey = [
-    `/projects/${organization.slug}/${project.slug}/ownership/`,
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/`, {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+    }),
   ];
   const {
     data: ownership,
@@ -49,7 +53,9 @@ export default function ProjectOwnership() {
   } = useApiQuery<IssueOwnership>(ownershipQueryKey, {staleTime: Infinity});
 
   const codeownersQueryKey: ApiQueryKey = [
-    `/projects/${organization.slug}/${project.slug}/codeowners/`,
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/`, {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+    }),
     {query: {expand: ['codeMapping', 'ownershipSyntax']}},
   ];
   const {
@@ -120,7 +126,7 @@ export default function ProjectOwnership() {
       <SettingsPageHeader
         title={t('Ownership Rules')}
         action={
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {hasCodeowners && (
               <Access access={['org:integrations']} project={project}>
                 {({hasAccess}) => (
@@ -153,7 +159,7 @@ export default function ProjectOwnership() {
             >
               {t('Edit Rules')}
             </Button>
-          </ButtonBar>
+          </Grid>
         }
       />
       <TextBlock>

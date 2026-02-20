@@ -125,6 +125,7 @@ export function ExplorerSeerSectionCtaButton({
         analyticsEventKey="issue_details.seer_opened"
         analyticsEventName="Issue Details: Seer Opened"
         analyticsParams={{
+          group_id: group.id,
           has_streamlined_ui: hasStreamlinedUI,
           autofix_exists: Boolean(runState),
           autofix_status: runState?.status ?? null,

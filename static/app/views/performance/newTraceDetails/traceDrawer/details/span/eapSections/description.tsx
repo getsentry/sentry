@@ -10,8 +10,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
-import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -49,7 +49,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
@@ -78,7 +77,6 @@ export function SpanDescription({
   });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   const category = findSpanAttributeValue(attributes, 'span.category');
   const dbSystem = findSpanAttributeValue(attributes, 'db.system');
@@ -103,8 +101,7 @@ export function SpanDescription({
     return formatter.toString(dbQueryText ?? span.description ?? '');
   }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
-  const exploreUsingName =
-    shouldUseOTelFriendlyUI && !span.description && span.name !== span.op;
+  const exploreUsingName = !span.description && span.name !== span.op;
   const exploreAttributeName = exploreUsingName
     ? SpanFields.NAME
     : SpanFields.SPAN_DESCRIPTION;
@@ -236,10 +233,7 @@ export function SpanDescription({
         node={node}
         attributes={attributes}
       />
-    ) : shouldUseOTelFriendlyUI &&
-      !span.description &&
-      span.name &&
-      span.name !== span.op ? (
+    ) : !span.description && span.name && span.name !== span.op ? (
       <DescriptionWrapper>
         <Flex align="center" minHeight="24px">
           {span.name}
@@ -370,7 +364,7 @@ function ResourceImage(props: {
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}
-          title={t('Copy file name')}
+          tooltipProps={{title: t('Copy file name')}}
         />
       </Flex>
       {showImage && !hasError ? (

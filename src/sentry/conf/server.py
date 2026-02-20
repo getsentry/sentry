@@ -23,7 +23,7 @@ from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.encrypted_field import EncryptedFieldSettings
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
-from sentry.conf.types.region_config import RegionConfig
+from sentry.conf.types.region_config import CellConfig, LocalityConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
@@ -753,8 +753,11 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
-# List of the available regions
-SENTRY_REGION_CONFIG: list[RegionConfig] = []
+# List of the available cells (e.g. "us1", "us2", "de1")
+SENTRY_REGION_CONFIG: list[CellConfig] = []
+
+# Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
+SENTRY_LOCALITIES: list[LocalityConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -835,7 +838,9 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.autopilot.tasks",
+    "sentry.autopilot.tasks.missing_sdk_integration",
+    "sentry.autopilot.tasks.sdk_update",
+    "sentry.autopilot.tasks.trace_instrumentation",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
@@ -891,13 +896,12 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.relocation.tasks.transfer",
     "sentry.replays.data_export",
     "sentry.replays.tasks",
-    "sentry.rules.processing.delayed_processing",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.seer.autofix.issue_summary",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
-    "sentry.seer.entrypoints.integrations.slack",
+    "sentry.seer.entrypoints.slack.messaging",
     "sentry.snuba.tasks",
     "sentry.tasks.activity",
     "sentry.tasks.assemble",
@@ -977,10 +981,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
         "schedule": timedelta(seconds=10),
-    },
-    "flush-buffers-batch": {
-        "task": "buffer:sentry.tasks.process_buffer.process_pending_batch",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
@@ -1093,7 +1093,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "autopilot-run-missing-sdk-integration-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": task_crontab("*/20", "*", "*", "*", "*"),
+        "schedule": task_crontab("0", "*/4", "*", "*", "*"),
+    },
+    "autopilot-run-trace-instrumentation-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_trace_instrumentation_detector",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -1281,6 +1285,7 @@ LOGGING: LoggingConfig = {
         },
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "sentry.profiles": {"level": "INFO"},
+        "sentry.autopilot.tasks.missing_sdk_integration": {"level": "INFO"},
         "multiprocessing": {
             "handlers": ["console"],
             # https://github.com/celery/celery/commit/597a6b1f3359065ff6dbabce7237f86b866313df
@@ -1431,8 +1436,14 @@ SENTRY_PROJECT_KEY: int | None = None
 # Used as a default when in SINGLE_ORGANIZATION mode.
 SENTRY_ORGANIZATION: int | None = None
 
-# Default organization ID for granting superuser privileges (typically organization 1 in SaaS mode)
-SENTRY_DEFAULT_ORGANIZATION_ID = 1
+# Organization ID for granting superuser/staff privileges.
+SUPERUSER_ORG_ID: int | None = None
+
+# SCIM team slugs for managing privileged access.
+# When set, adding/removing members from these teams will grant/revoke the corresponding privileges.
+SENTRY_SCIM_STAFF_TEAM_SLUG: str | None = None
+SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG: str | None = None
+SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG: str | None = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
@@ -2178,7 +2189,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.1.0"
+SELF_HOSTED_STABLE_VERSION = "26.2.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2508,6 +2519,19 @@ SENTRY_BUILTIN_SOURCES = {
         "layout": {"type": "debuginfod"},
         "url": "https://debuginfod.ubuntu.com/buildid/",
         "filters": {"filetypes": ["elf_code", "elf_debug"]},
+        "is_public": True,
+    },
+    # === Gaming / Proton ===
+    # Valve's Proton compatibility layer for running Windows games on Linux.
+    # This symbol server provides debug symbols for Wine/Proton components.
+    # See: https://github.com/ValveSoftware/Proton/blob/proton_10.0/docs/DEBUGGING-WINDOWS.md
+    "proton": {
+        "type": "http",
+        "id": "sentry:proton",
+        "name": "SteamOS / Proton",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["pe", "pdb"]},
+        "url": "https://proton-archive.steamos.cloud/",
         "is_public": True,
     },
 }

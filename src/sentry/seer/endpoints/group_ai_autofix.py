@@ -40,6 +40,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_coding_agent_handoff,
 )
 from sentry.seer.autofix.coding_agent import poll_github_copilot_agents
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
 from sentry.seer.models import SeerPermissionError
@@ -86,6 +87,11 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         default="root_cause",
         help_text="Which autofix step to run.",
     )
+    stopping_point = serializers.ChoiceField(
+        required=False,
+        choices=["root_cause", "solution", "code_changes", "open_pr"],
+        help_text="Where the issue fix process should stop. If not provided, will run to root cause.",
+    )
     run_id = serializers.IntegerField(
         required=False,
         help_text="Existing run ID to continue. If not provided, starts a new run.",
@@ -101,9 +107,16 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     intelligence_level = serializers.ChoiceField(
         required=False,
         choices=["low", "medium", "high"],
-        default="high",
+        default="low",
         help_text="The intelligence level to use.",
     )
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        stopping_point = data.get("stopping_point", None)
+        # Stopping points take precedence and forces full automation from `root_cause`
+        if stopping_point:
+            data["step"] = "root_cause"
+        return data
 
 
 @region_silo_endpoint
@@ -182,6 +195,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         data = serializer.validated_data
         step = data.get("step", "root_cause")
+        stopping_point = data.get("stopping_point")
 
         # Handle third-party coding agent handoff separately
         if step == "coding_agent_handoff":
@@ -215,6 +229,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep(step),
+                stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=data.get("run_id"),
                 intelligence_level=data["intelligence_level"],
             )
@@ -238,6 +253,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             # This event_id is the event that the user is looking at when they click the "Fix" button
             event_id=data.get("event_id"),
             user=request.user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction=data.get("instruction"),
             pr_to_comment_on_url=data.get("pr_to_comment_on_url"),
             stopping_point=stopping_point,
@@ -285,6 +301,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         if state is None:
             return Response({"autofix": None})
+
+        if state.coding_agents and request.user.id:
+            poll_github_copilot_agents(coding_agents=state.coding_agents, user_id=request.user.id)
 
         # Return the Explorer state directly - frontend will handle the format
         return Response(

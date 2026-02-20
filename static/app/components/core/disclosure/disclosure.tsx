@@ -15,7 +15,8 @@ import {Text} from '@sentry/scraps/text';
 import {IconChevron} from 'sentry/icons';
 
 interface DisclosureProps
-  extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>,
+  extends
+    Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>,
     React.HTMLAttributes<HTMLDivElement> {
   children: NonNullable<React.ReactNode>;
   as?: 'section' | 'div';

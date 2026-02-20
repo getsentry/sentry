@@ -19,3 +19,16 @@ export const canUseMetricsSavedQueriesUI = (organization: Organization) => {
     organization.features.includes('tracemetrics-saved-queries')
   );
 };
+
+export const canUseMetricsAlertsUI = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) && organization.features.includes('tracemetrics-alerts')
+  );
+};
+
+export const canUseMetricsMultiAggregateUI = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-overlay-charts-ui')
+  );
+};

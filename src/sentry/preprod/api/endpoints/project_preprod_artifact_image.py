@@ -29,7 +29,6 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         project: Project,
         image_id: str,
     ) -> HttpResponse:
-
         organization_id = project.organization_id
         project_id = project.id
 

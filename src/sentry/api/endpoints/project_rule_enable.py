@@ -13,6 +13,10 @@ from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 
 @region_silo_endpoint
@@ -23,7 +27,11 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
 
+    @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-enable")
     def put(self, request: Request, project, rule_id) -> Response:
+        # Mark that we're using legacy Rule models (before query to track failures too)
+        report_used_legacy_models()
+
         try:
             rule = Rule.objects.get(id=rule_id, project=project)
         except Rule.DoesNotExist:

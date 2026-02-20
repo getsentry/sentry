@@ -30,6 +30,7 @@ const TOKEN_RULES = [
     keywords: ['content', 'link'],
     allowedProperties: new Set([
       'color',
+      'text-decoration',
       'text-decoration-color',
       'text-emphasis-color',
       'caret-color',
@@ -72,6 +73,10 @@ const TOKEN_RULES = [
       'border-inline-end',
       'border-inline-end-color',
       'stroke',
+      'text-decoration',
+      'text-decoration-color',
+      'border-image',
+      'border-image-source',
     ]),
   },
   {

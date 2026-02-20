@@ -29,6 +29,7 @@ class TestCreateIssueOccurrence(TestCase):
             "verification_reason": "test reason",
             "trace_id": "abc123",
             "transaction_name": "/api/test",
+            "group_for_fingerprint": "test-group-key",
         }
 
         result = create_issue_occurrence(
@@ -66,6 +67,7 @@ class TestCreateIssueOccurrence(TestCase):
             "verification_reason": "test reason",
             "trace_id": "abc123",
             "transaction_name": "/api/test",
+            "group_for_fingerprint": "test-group-key",
         }
 
         with pytest.raises(Project.DoesNotExist):
@@ -92,6 +94,7 @@ class TestCreateIssueOccurrence(TestCase):
             "verification_reason": "test reason",
             "trace_id": "abc123",
             "transaction_name": "/api/test",
+            "group_for_fingerprint": "test-group-key",
         }
 
         mock_create.side_effect = Exception("Failed to create occurrence")

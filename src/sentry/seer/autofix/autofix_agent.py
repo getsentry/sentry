@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Literal
 from django.utils import timezone
 from pydantic import BaseModel
 
+from sentry import features
 from sentry.seer.autofix.artifact_schemas import (
     ImpactAssessmentArtifact,
     RootCauseArtifact,
@@ -22,8 +23,10 @@ from sentry.seer.autofix.prompts import (
     triage_prompt,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
+from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 
@@ -42,6 +45,25 @@ class AutofixStep(StrEnum):
     CODE_CHANGES = "code_changes"
     IMPACT_ASSESSMENT = "impact_assessment"
     TRIAGE = "triage"
+
+    @staticmethod
+    def from_autofix_stopping_point(
+        autofix_stopping_point: AutofixStoppingPoint,
+    ) -> AutofixStep:
+        match autofix_stopping_point:
+            case AutofixStoppingPoint.ROOT_CAUSE:
+                return AutofixStep.ROOT_CAUSE
+            case AutofixStoppingPoint.SOLUTION:
+                return AutofixStep.SOLUTION
+            case AutofixStoppingPoint.CODE_CHANGES:
+                return AutofixStep.CODE_CHANGES
+            case AutofixStoppingPoint.OPEN_PR:
+                # This depends on the last step being
+                # code changes and we should look for
+                # the PR elsewhere in the explorer results
+                return AutofixStep.CODE_CHANGES
+            case _:
+                raise ValueError(f"Unsupported AutofixStoppingPoint: {autofix_stopping_point}")
 
 
 class StepConfig:
@@ -135,7 +157,7 @@ def trigger_autofix_explorer(
     step: AutofixStep,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
-    intelligence_level: Literal["low", "medium", "high"] = "high",
+    intelligence_level: Literal["low", "medium", "high"] = "low",
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -156,6 +178,7 @@ def trigger_autofix_explorer(
     config = STEP_CONFIGS[step]
     client = SeerExplorerClient(
         organization=group.organization,
+        project=group.project,
         user=None,  # No user personalization for autofix
         category_key="autofix",
         category_value=str(group.id),
@@ -191,25 +214,51 @@ def trigger_autofix_explorer(
 
     group.update(seer_autofix_last_triggered=timezone.now())
 
-    # Send "started" webhook after we have the run_id
+    payload = {
+        "run_id": run_id,
+        "group_id": group.id,
+    }
+
     webhook_action_type = get_step_webhook_action_type(step, is_completed=False)
+    event_name = webhook_action_type.value
+
+    event_type = f"seer.{event_name}"
     try:
-        broadcast_webhooks_for_organization.delay(
-            resource_name="seer",
-            event_name=webhook_action_type.value,
-            organization_id=group.organization.id,
-            payload={"run_id": run_id},
-        )
-    except Exception:
+        sentry_app_event_type = SentryAppEventType(event_type)
+        if SeerOperator.has_access(organization=group.organization):
+            process_autofix_updates.apply_async(
+                kwargs={
+                    "event_type": sentry_app_event_type,
+                    "event_payload": payload,
+                    "organization_id": group.organization.id,
+                }
+            )
+    except ValueError:
         logger.exception(
-            "autofix.trigger_webhook_failed",
-            extra={
-                "organization_id": group.organization.id,
-                "webhook_event": webhook_action_type.value,
-                "step": step.value,
-                "run_id": run_id,
-            },
+            "autofix.trigger.webhook_invalid_event_type",
+            extra={"event_type": event_type},
         )
+
+    if features.has("organizations:seer-webhooks", group.organization):
+        # Send "started" webhook after we have the run_id
+        try:
+            broadcast_webhooks_for_organization.delay(
+                resource_name="seer",
+                event_name=event_name,
+                organization_id=group.organization.id,
+                payload=payload,
+            )
+        except Exception:
+            logger.exception(
+                "autofix.trigger.webhook_failed",
+                extra={
+                    "organization_id": group.organization.id,
+                    "webhook_event": event_name,
+                    "step": step.value,
+                    "run_id": run_id,
+                    "group_id": group.id,
+                },
+            )
 
     return run_id
 
