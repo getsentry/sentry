@@ -17,33 +17,29 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
         self.login_as(user=self.user)
 
     def do_request(self, query=None, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:performance-trace-explorer"]
+
         if query is None:
             query = {}
         query["dataset"] = "spans"
         if "type" not in query:
             query["type"] = "string"
 
-        if features is not None:
-            with self.feature(features):
-                return self.client.get(
-                    reverse(
-                        self.view,
-                        kwargs={"organization_id_or_slug": self.organization.slug},
-                    ),
-                    query,
-                    format="json",
-                    **kwargs,
-                )
+        with self.feature(features):
+            return self.client.get(
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
+                query,
+                format="json",
+                **kwargs,
+            )
 
-        return self.client.get(
-            reverse(
-                self.view,
-                kwargs={"organization_id_or_slug": self.organization.slug},
-            ),
-            query,
-            format="json",
-            **kwargs,
-        )
+    def test_no_feature(self) -> None:
+        response = self.do_request(features=[])
+        assert response.status_code == 404, response.data
 
     def test_no_project(self) -> None:
         response = self.do_request()
@@ -66,24 +62,29 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
                 tags={tag: tag},
             )
 
-        response = self.do_request(
-            query={"dataset": "spans", "type": "string", "process": 1},
-        )
-        assert response.status_code == 200, response.data
-        assert sorted(
-            response.data,
-            key=itemgetter("key"),
-        ) == sorted(
-            [
-                {"key": "bar", "name": "bar"},
-                {"key": "baz", "name": "baz"},
-                {"key": "foo", "name": "foo"},
-                {"key": "span.description", "name": "span.description"},
-                {"key": "transaction", "name": "transaction"},
-                {"key": "project", "name": "project"},
-            ],
-            key=itemgetter("key"),
-        )
+        for features in [
+            None,  # use the default features
+            ["organizations:performance-trace-explorer"],
+        ]:
+            response = self.do_request(
+                features=features,
+                query={"dataset": "spans", "type": "string", "process": 1},
+            )
+            assert response.status_code == 200, response.data
+            assert sorted(
+                response.data,
+                key=itemgetter("key"),
+            ) == sorted(
+                [
+                    {"key": "bar", "name": "bar"},
+                    {"key": "baz", "name": "baz"},
+                    {"key": "foo", "name": "foo"},
+                    {"key": "span.description", "name": "span.description"},
+                    {"key": "transaction", "name": "transaction"},
+                    {"key": "project", "name": "project"},
+                ],
+                key=itemgetter("key"),
+            )
 
     def test_tags_list_nums(self) -> None:
         for tag in [
@@ -110,30 +111,35 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
                 measurements={tag: 0},
             )
 
-        response = self.do_request(
-            query={"dataset": "spans", "type": "number", "process": 1},
-        )
-        assert response.status_code == 200, response.data
-        assert response.data == [
-            {"key": "tags[bar,number]", "name": "bar"},
-            {"key": "tags[baz,number]", "name": "baz"},
-            {"key": "measurements.fcp", "name": "measurements.fcp"},
-            {"key": "tags[foo,number]", "name": "foo"},
-            {
-                "key": "http.decoded_response_content_length",
-                "name": "http.decoded_response_content_length",
-            },
-            {
-                "key": "http.response_content_length",
-                "name": "http.response_content_length",
-            },
-            {
-                "key": "http.response_transfer_size",
-                "name": "http.response_transfer_size",
-            },
-            {"key": "measurements.lcp", "name": "measurements.lcp"},
-            {"key": "span.duration", "name": "span.duration"},
-        ]
+        for features in [
+            None,  # use the default features
+            ["organizations:performance-trace-explorer"],
+        ]:
+            response = self.do_request(
+                features=features,
+                query={"dataset": "spans", "type": "number", "process": 1},
+            )
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {"key": "tags[bar,number]", "name": "bar"},
+                {"key": "tags[baz,number]", "name": "baz"},
+                {"key": "measurements.fcp", "name": "measurements.fcp"},
+                {"key": "tags[foo,number]", "name": "foo"},
+                {
+                    "key": "http.decoded_response_content_length",
+                    "name": "http.decoded_response_content_length",
+                },
+                {
+                    "key": "http.response_content_length",
+                    "name": "http.response_content_length",
+                },
+                {
+                    "key": "http.response_transfer_size",
+                    "name": "http.response_transfer_size",
+                },
+                {"key": "measurements.lcp", "name": "measurements.lcp"},
+                {"key": "span.duration", "name": "span.duration"},
+            ]
 
     def test_boolean_attributes(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
@@ -166,38 +172,31 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         self.login_as(user=self.user)
 
     def do_request(self, key: str, query=None, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:performance-trace-explorer"]
+
         if query is None:
             query = {}
         query["dataset"] = "spans"
         query["type"] = "string"
 
-        if features is not None:
-            with self.feature(features):
-                return self.client.get(
-                    reverse(
-                        self.view,
-                        kwargs={
-                            "organization_id_or_slug": self.organization.slug,
-                            "key": key,
-                        },
-                    ),
-                    query,
-                    format="json",
-                    **kwargs,
-                )
+        with self.feature(features):
+            return self.client.get(
+                reverse(
+                    self.view,
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "key": key,
+                    },
+                ),
+                query,
+                format="json",
+                **kwargs,
+            )
 
-        return self.client.get(
-            reverse(
-                self.view,
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "key": key,
-                },
-            ),
-            query,
-            format="json",
-            **kwargs,
-        )
+    def test_no_feature(self) -> None:
+        response = self.do_request("tag", features=[])
+        assert response.status_code == 404, response.data
 
     def test_no_project(self) -> None:
         response = self.do_request("tag")
@@ -549,8 +548,12 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         self.create_project(id=base_id + 299, name="bar")
         self.create_project(id=base_id + 399, name="baz")
 
+        features = [
+            "organizations:performance-trace-explorer",
+        ]
+
         for key in ["project", "project.name"]:
-            response = self.do_request(key)
+            response = self.do_request(key, features=features)
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
@@ -579,7 +582,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 },
             ]
 
-            response = self.do_request(key, query={"query": "ba"})
+            response = self.do_request(key, query={"query": "ba"}, features=features)
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
@@ -602,7 +605,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
 
         key = "project.id"
 
-        response = self.do_request(key)
+        response = self.do_request(key, features=features)
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {
@@ -631,7 +634,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-        response = self.do_request(key, query={"query": "99"})
+        response = self.do_request(key, query={"query": "99"}, features=features)
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {

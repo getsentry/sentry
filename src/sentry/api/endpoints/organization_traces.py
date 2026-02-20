@@ -26,7 +26,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 from urllib3.exceptions import ReadTimeoutError
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -133,6 +133,13 @@ class OrganizationTracesEndpointBase(OrganizationEventsEndpointBase):
 @region_silo_endpoint
 class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
+        if not features.has(
+            "organizations:performance-trace-explorer", organization, actor=request.user
+        ) and not features.has(
+            "organizations:visibility-explore-view", organization, actor=request.user
+        ):
+            return Response(status=404)
+
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

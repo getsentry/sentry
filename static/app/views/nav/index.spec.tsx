@@ -35,6 +35,7 @@ const ALL_AVAILABLE_FEATURES = [
   'session-replay-ui',
   'ourlogs-enabled',
   'performance-view',
+  'performance-trace-explorer',
   'profiling',
   'visibility-explore-view',
 ];

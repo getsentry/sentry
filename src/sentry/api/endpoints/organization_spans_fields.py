@@ -13,7 +13,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -72,6 +72,17 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
+        performance_trace_explorer = features.has(
+            "organizations:performance-trace-explorer", organization, actor=request.user
+        )
+
+        visibility_explore_view = features.has(
+            "organizations:visibility-explore-view", organization, actor=request.user
+        )
+
+        if not performance_trace_explorer and not visibility_explore_view:
+            return Response(status=404)
+
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -142,6 +153,17 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 @region_silo_endpoint
 class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
+        performance_trace_explorer = features.has(
+            "organizations:performance-trace-explorer", organization, actor=request.user
+        )
+
+        visibility_explore_view = features.has(
+            "organizations:visibility-explore-view", organization, actor=request.user
+        )
+
+        if not performance_trace_explorer and not visibility_explore_view:
+            return Response(status=404)
+
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
