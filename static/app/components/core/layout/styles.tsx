@@ -50,14 +50,14 @@ export function rc<T>(
           @media (min-width: ${theme.breakpoints[breakpoint]}),
             (max-width: ${theme.breakpoints[breakpoint]}) {
             ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
-          };
+          }
         `;
     }
 
     return `
         @media (min-width: ${theme.breakpoints[breakpoint]}) {
           ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
-        };
+        }
       `;
   })
     .filter(Boolean)
