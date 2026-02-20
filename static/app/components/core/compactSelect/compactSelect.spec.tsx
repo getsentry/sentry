@@ -453,7 +453,9 @@ describe('CompactSelect', () => {
         <CompactSelect
           searchable
           searchPlaceholder="Search here…"
-          searchMatcher={(option, search) => String(option.value).endsWith(search)}
+          searchMatcher={(option, search) => ({
+            score: String(option.value).endsWith(search) ? 1 : 0,
+          })}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -524,14 +526,14 @@ describe('CompactSelect', () => {
       expect(options[2]).toHaveTextContent('Option One'); // score 1
     });
 
-    it('options without a score maintain original order relative to each other', async () => {
-      // Only opt_two gets a score; opt_one and opt_three have no score and should keep
-      // their original relative order (One before Three)
+    it('options with equal scores maintain their original relative order', async () => {
+      // opt_two gets a higher score; opt_one and opt_three share the same low score
+      // and should keep their original relative order (One before Three)
       render(
         <CompactSelect
           searchable
           searchPlaceholder="Search here…"
-          searchMatcher={option => (option.value === 'opt_two' ? {score: 10} : true)}
+          searchMatcher={option => ({score: option.value === 'opt_two' ? 10 : 1})}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -553,7 +555,7 @@ describe('CompactSelect', () => {
     });
 
     it('passes option and search string to searchMatcher', async () => {
-      const searchMatcher = jest.fn().mockReturnValue(true);
+      const searchMatcher = jest.fn().mockReturnValue({score: 1});
 
       render(
         <CompactSelect
@@ -629,7 +631,9 @@ describe('CompactSelect', () => {
           onChange={jest.fn()}
           searchable
           searchPlaceholder="Search here…"
-          searchMatcher={(option, search) => String(option.value).endsWith(search)}
+          searchMatcher={(option, search) => ({
+            score: String(option.value).endsWith(search) ? 1 : 0,
+          })}
           options={[
             {
               key: 'section-1',
@@ -1016,7 +1020,9 @@ describe('CompactSelect', () => {
           grid
           searchable
           searchPlaceholder="Search here…"
-          searchMatcher={(option, search) => String(option.value).endsWith(search)}
+          searchMatcher={(option, search) => ({
+            score: String(option.value).endsWith(search) ? 1 : 0,
+          })}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},

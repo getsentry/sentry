@@ -76,7 +76,7 @@ interface ControlContextValue {
   searchMatcher?: (
     option: SelectOptionWithKey<SelectKey>,
     search: string
-  ) => boolean | SearchMatchResult;
+  ) => SearchMatchResult;
   size?: FormSize;
 }
 
@@ -188,13 +188,15 @@ export interface ControlProps
   /**
    * Custom function to determine whether an option matches the search query (applicable
    * only when `searchable` is true). Receives the option and the current search string,
-   * and should return true if the option matches. If not provided, defaults to
-   * case-insensitive substring matching on `textValue` or `label`.
+   * and must return a `SearchMatchResult`. A score greater than 0 means the option
+   * matches; options with higher scores are sorted first. If not provided, defaults to
+   * case-insensitive substring matching on `textValue` or `label` with a static score
+   * of 1.
    */
   searchMatcher?: (
     option: SelectOptionWithKey<SelectKey>,
     search: string
-  ) => boolean | SearchMatchResult;
+  ) => SearchMatchResult;
   /**
    * The search input's placeholder text (applicable only when `searchable` is true).
    */

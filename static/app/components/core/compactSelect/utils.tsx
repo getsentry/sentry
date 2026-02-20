@@ -105,14 +105,25 @@ export function getDisabledOptions<Value extends SelectKey>(
   }, []);
 }
 
+function defaultSearchMatcher<Value extends SelectKey>(
+  opt: SelectOptionWithKey<Value>,
+  search: string
+): SearchMatchResult {
+  const searchableText =
+    opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
+  return {score: searchableText.toLowerCase().includes(search.toLowerCase()) ? 1 : 0};
+}
+
 /**
  * Recursively finds the option(s) that don't match the designated search string or are
- * outside the list box's count limit. Also collects match scores from a custom
- * `searchMatcher` that returns a `SearchMatchResult`.
+ * outside the list box's count limit. Also collects match scores for use in sorting.
+ *
+ * An option is considered a match when its score is greater than 0. The default matcher
+ * returns score 1 for a substring match and 0 otherwise. Custom matchers can return any
+ * positive score to influence sort order — higher scores appear first.
  *
  * Returns both the set of hidden option keys and a map of key → score for matched
- * options that provided a score. The scores map is empty when the default matcher is
- * used or when the custom matcher only returns booleans.
+ * options. The scores map only contains entries when a custom searchMatcher is provided.
  */
 export function getHiddenOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
@@ -121,26 +132,25 @@ export function getHiddenOptions<Value extends SelectKey>(
   searchMatcher?: (
     option: SelectOptionWithKey<Value>,
     search: string
-  ) => boolean | SearchMatchResult
+  ) => SearchMatchResult
 ): {hidden: Set<SelectKey>; scores: Map<SelectKey, number>} {
   const scores = new Map<SelectKey, number>();
+  const matcher = searchMatcher ?? defaultSearchMatcher;
 
   //
   // First, filter options using `search` value
   //
   const filterOption = (opt: SelectOptionWithKey<Value>) => {
-    if (searchMatcher) {
-      const result = searchMatcher(opt, search);
-      if (typeof result === 'object') {
+    const result = matcher(opt, search);
+    if (result.score > 0) {
+      if (searchMatcher) {
+        // Only track scores when a custom matcher is provided — default scores are
+        // always 1 and would trigger unnecessary sorting.
         scores.set(opt.key, result.score);
-        return true;
       }
-      return result;
+      return true;
     }
-    // Build search string: use textValue if provided, otherwise use label only if it's a string
-    const searchableText =
-      opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
-    return searchableText.toLowerCase().includes(search.toLowerCase());
+    return false;
   };
 
   const hiddenOptionsSet = new Set<SelectKey>();
@@ -202,7 +212,6 @@ export function getHiddenOptions<Value extends SelectKey>(
     }
   }
 
-  // Return the hidden option keys and any scores collected during filtering.
   return {hidden: hiddenOptionsSet, scores};
 }
 
