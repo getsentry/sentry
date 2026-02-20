@@ -234,5 +234,52 @@ describe('SeerSettingsContainer', () => {
       });
       expect(prToggle).toBeDisabled();
     });
+
+    it('selecting an integration via SelectField sets auto_create_pr to false regardless of automated_run_stopping_point', async () => {
+      const secondIntegration = {id: '456', name: 'Cursor 2', provider: 'cursor'};
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: codingAgentsUrl,
+        body: {integrations: [cursorIntegration, secondIntegration]},
+      });
+      MockApiClient.addMockResponse({
+        url: preferencesGetUrl,
+        body: {preference: {repositories: []}, code_mapping_repos: []},
+      });
+      const postRequest = MockApiClient.addMockResponse({
+        url: preferencesPostUrl,
+        method: 'POST',
+        body: {},
+      });
+
+      render(
+        <SeerSettingsContainer
+          canWrite
+          project={project}
+          preference={{
+            repositories: [],
+            automated_run_stopping_point: 'open_pr',
+          }}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(
+        await screen.findByRole('textbox', {name: /Coding Agent Integration/i})
+      );
+      await userEvent.click(
+        await screen.findByText(`${cursorIntegration.name} (${cursorIntegration.id})`)
+      );
+
+      await waitFor(() => expect(postRequest).toHaveBeenCalled());
+      expect(postRequest).toHaveBeenCalledWith(
+        preferencesPostUrl,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            automation_handoff: expect.objectContaining({auto_create_pr: false}),
+          }),
+        })
+      );
+    });
   });
 });
