@@ -221,3 +221,80 @@ export const MOCK_GROUPED_LOGS: GroupedLogEntry[] = [
     'count(message)': 3,
   }),
 ];
+
+/**
+ * Workflow fire history entry type for testing.
+ */
+export interface WorkflowFireHistoryEntry {
+  count: number;
+  eventId: string;
+  group: {
+    id: string;
+    shortId: string;
+    title: string;
+  };
+  lastTriggered: string;
+  detector?: {
+    id: number;
+    name: string;
+  };
+}
+
+/**
+ * Creates a mock WorkflowFireHistoryEntry for testing.
+ */
+export function WorkflowFireHistoryEntryFixture(
+  params: Partial<WorkflowFireHistoryEntry> = {}
+): WorkflowFireHistoryEntry {
+  return {
+    group: {
+      id: '1',
+      shortId: 'PROJ-1',
+      title: 'TypeError: Cannot read property "foo" of undefined',
+    },
+    count: 5,
+    lastTriggered: '2024-01-15T10:30:00.000Z',
+    eventId: 'abc123def456',
+    ...params,
+  };
+}
+
+/**
+ * Mock fire history entries for testing WorkflowFireHistory component.
+ */
+export const MOCK_FIRE_HISTORY: WorkflowFireHistoryEntry[] = [
+  WorkflowFireHistoryEntryFixture({
+    group: {
+      id: '1',
+      shortId: 'PROJ-1',
+      title: 'TypeError: Cannot read property "foo" of undefined',
+    },
+    count: 5,
+    lastTriggered: '2024-01-15T10:30:00.000Z',
+    eventId: 'abc123def456',
+  }),
+  WorkflowFireHistoryEntryFixture({
+    group: {
+      id: '2',
+      shortId: 'PROJ-2',
+      title: 'ValueError: Invalid input parameter',
+    },
+    count: 3,
+    lastTriggered: '2024-01-14T15:45:00.000Z',
+    eventId: 'def456ghi789',
+    detector: {
+      id: 100,
+      name: 'Error Rate Detector',
+    },
+  }),
+  WorkflowFireHistoryEntryFixture({
+    group: {
+      id: '3',
+      shortId: 'PROJ-3',
+      title: 'NullPointerException in UserService',
+    },
+    count: 1,
+    lastTriggered: '2024-01-13T09:20:00.000Z',
+    eventId: 'ghi789jkl012',
+  }),
+];

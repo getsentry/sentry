@@ -182,7 +182,7 @@ export function WorkflowLogs({workflowId, organizationId}: WorkflowLogsProps) {
   };
 
   return (
-    <Disclosure defaultExpanded>
+    <Disclosure>
       <Disclosure.Title>
         <Heading as="h3">Workflow Logs</Heading>
       </Disclosure.Title>
