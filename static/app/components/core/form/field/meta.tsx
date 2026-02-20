@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
@@ -49,6 +48,7 @@ const scrollToFieldRef = (node: HTMLLabelElement | null) => {
 
 function Label(props: {
   children: React.ReactNode;
+  as?: 'group';
   description?: React.ReactNode;
   required?: boolean;
 }) {
@@ -68,11 +68,12 @@ function Label(props: {
         <Flex gap="xs">
           <Text
             {...containerProps}
-            as="label"
+            as={props.as === 'group' ? 'legend' : 'label'}
             data-field={fieldName}
             htmlFor={fieldId}
             bold={false}
             ref={scrollToFieldRef}
+            style={props.as === 'group' ? legendStyles : undefined}
           >
             {labelContent}
           </Text>
@@ -87,32 +88,11 @@ function Label(props: {
   );
 }
 
-function Legend(props: {children: string; required?: boolean}) {
-  return (
-    <Flex gap="xs">
-      <StyledLegend>{props.children}</StyledLegend>
-      {props.required ? <RequiredIndicator /> : null}
-    </Flex>
-  );
-}
-
-const Fieldset = styled('fieldset')`
-  border: none;
-  padding: 0;
-  margin: 0;
-`;
-
-const StyledLegend = styled('legend')`
+const legendStyles = {
   /* Reset global legend styles */
-  display: inline;
-  width: auto;
-  padding: 0;
-  margin: 0;
-  font-size: inherit;
-  line-height: inherit;
-  color: inherit;
-  border: none;
-`;
+  fontSize: 'inherit',
+  border: 'none',
+};
 
 export function FieldMeta() {
   return null;
@@ -120,5 +100,3 @@ export function FieldMeta() {
 
 FieldMeta.Label = Label;
 FieldMeta.HintText = HintText;
-FieldMeta.Legend = Legend;
-FieldMeta.Fieldset = Fieldset;

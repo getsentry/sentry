@@ -143,7 +143,7 @@ interface TextAttributes<T extends TextPrimitive = 'span'>
   style?: React.CSSProperties;
 }
 
-type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time';
+type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time' | 'legend';
 
 export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;

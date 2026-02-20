@@ -274,7 +274,7 @@ function AutoSaveExample() {
           <field.Layout.Stack
             label="Priority:"
             hintText="Select issue priority"
-            variant="group"
+            as="group"
           >
             <field.Radio.Group
               value={field.state.value ?? ''}
@@ -388,7 +388,7 @@ function BasicForm() {
               <field.Layout.Row
                 label="Priority:"
                 hintText="Select issue priority"
-                variant="group"
+                as="group"
               >
                 <field.Radio.Group
                   value={field.state.value ?? ''}
