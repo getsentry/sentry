@@ -57,5 +57,3 @@ export function makeAnalyticsFunction<
     }
   };
 }
-
-export default makeAnalyticsFunction;

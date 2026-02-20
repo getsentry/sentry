@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
+import {makeAnalyticsFunction} from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 import type {Subscription} from 'getsentry/types';
 
