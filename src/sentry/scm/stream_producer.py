@@ -27,8 +27,9 @@ def produce_event_to_scm_stream(
     Publish source code management service provider subscription events.
 
     Messages published to the topic have had their provenance asserted. They are genuine requests
-    and can be trusted. Untrusted messages must never be published to this topic. There is no
-    guarantee or requirement for down-stream consumers to validate their message's authenticity.
+    and can be trusted. Untrusted messages are only published to the stream under one condition:
+    they are github_enterprise webhooks with their skipped_validation explicitly marked. There is
+    no guarantee or requirement for down-stream consumers to validate their message's authenticity.
     """
     if not rollout_enabled("sentry.scm.stream.rollout"):
         return None
