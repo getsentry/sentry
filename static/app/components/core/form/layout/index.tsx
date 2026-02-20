@@ -4,8 +4,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 interface LayoutProps {
   children: React.ReactNode;
-  label: string;
-  hintText?: string;
+  label: React.ReactNode;
+  hintText?: React.ReactNode;
   required?: boolean;
   variant?: 'compact';
 }

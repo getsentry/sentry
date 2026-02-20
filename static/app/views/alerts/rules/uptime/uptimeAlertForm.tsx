@@ -41,9 +41,11 @@ import type {Assertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {mapAssertionFormErrors} from './assertionFormErrors';
+import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
 import {HTTPSnippet} from './httpSnippet';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
+import {useUptimeAssertionFeatures} from './useUptimeAssertionFeatures';
 
 interface Props {
   handleDelete?: () => void;
@@ -101,9 +103,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
   const queryClient = useQueryClient();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const hasRuntimeAssertions = organization.features.includes(
-    'uptime-runtime-assertions'
-  );
+  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -238,6 +238,27 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             >
               <Button priority="danger">{t('Delete Rule')}</Button>
             </Confirm>
+          )}
+          {hasRuntimeAssertions && hasAiAssertionSuggestions && (
+            <AssertionSuggestionsButton
+              getFormData={() => {
+                const data = formModel.getTransformedData();
+                return {
+                  url: data.url,
+                  method: data.method ?? DEFAULT_METHOD,
+                  headers: data.headers ?? [],
+                  body: methodHasBody(formModel) ? data.body : null,
+                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                };
+              }}
+              getCurrentAssertion={() =>
+                formModel.getValue<Assertion | null>('assertion')
+              }
+              onApplySuggestion={newAssertion => {
+                // Cast to any to satisfy FormModel's FieldValue type
+                formModel.setValue('assertion', newAssertion as any);
+              }}
+            />
           )}
           {hasRuntimeAssertions && (
             <TestUptimeMonitorButton

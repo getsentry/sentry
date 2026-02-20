@@ -1292,6 +1292,55 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         assert subtitle == ""
         assert summary == expected
 
+    def test_triggered_rule_includes_artifact_type_details(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+
+        watch_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="com.example.app.watchapp",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=100 * 1024 * 1024,
+            max_download_size=100 * 1024 * 1024,
+            min_install_size=200 * 1024 * 1024,
+            max_install_size=200 * 1024 * 1024,
+        )
+
+        size_metrics_map = {artifact.id: [watch_metrics]}
+
+        triggered_rule = TriggeredRule(
+            rule=StatusCheckRule(
+                id="rule-1",
+                metric="download_size",
+                measurement="absolute",
+                value=50 * 1024 * 1024,
+            ),
+            artifact_id=artifact.id,
+            app_id="com.example.app",
+            platform="iOS",
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="com.example.app.watchapp",
+        )
+
+        _, _, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.FAILURE,
+            self.project,
+            {},
+            {},
+            triggered_rules=[triggered_rule],
+        )
+
+        assert "— Watch App" in summary
+
     def test_multiple_triggered_rules_url_formatting(self):
         """Test that multiple triggered rules format the URL correctly with expanded params."""
         artifact = self.create_preprod_artifact(
@@ -1365,7 +1414,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
 
         expected = f"""\
-## ❌ 1 Failed Size Check
+## ❌ 3 Failed Size Checks
 
 ### Android Builds
 

@@ -205,6 +205,61 @@ describe('SelectField', () => {
       }
       void TypeTestInvalidSingle;
     });
+
+    it('should allow null in onChange when clearable is true', () => {
+      function TypeTestClearable() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {fruit: null as string | null},
+        });
+
+        return (
+          <form.AppForm>
+            <form.AppField name="fruit">
+              {field => (
+                <field.Select
+                  clearable
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<string | null>();
+                    field.handleChange(val);
+                  }}
+                  options={[{value: 'apple', label: 'Apple'}]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestClearable;
+    });
+
+    it('should not allow null in onChange when clearable is false', () => {
+      function TypeTestNotClearable() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {fruit: ''},
+        });
+
+        return (
+          <form.AppForm>
+            <form.AppField name="fruit">
+              {field => (
+                <field.Select
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<string>();
+                    field.handleChange(val);
+                  }}
+                  options={[{value: 'apple', label: 'Apple'}]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestNotClearable;
+    });
   });
 
   it('renders with a label', () => {

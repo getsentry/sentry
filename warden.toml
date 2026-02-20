@@ -1,0 +1,26 @@
+# Warden Configuration
+# https://github.com/getsentry/warden
+#
+# Warden reviews code using AI-powered skills triggered by GitHub events.
+# Skills live in .agents/skills/ or .claude/skills/
+#
+# Add skills with: warden add <skill-name>
+
+version = 1
+
+# Default settings inherited by all skills
+[defaults]
+# Severity levels: critical, high, medium, low, info, off
+# failOn: minimum severity that fails the check
+failOn = "high"
+# reportOn: minimum severity that creates PR annotations
+reportOn = "medium"
+
+[[skills]]
+name = "sentry-security"
+paths = ["src/sentry/**/*.py"]
+ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
+
+[[skills.triggers]]
+type = "pull_request"
+actions = ["opened", "synchronize", "reopened"]

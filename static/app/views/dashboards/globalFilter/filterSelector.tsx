@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -213,8 +212,7 @@ function FilterSelector({
       // Only add checkboxes for multi-select mode
       if (canSelectMultipleValues) {
         option.leadingItems = ({isSelected}: {isSelected: boolean}) => (
-          <Checkbox
-            size="sm"
+          <HybridFilterComponents.Checkbox
             checked={isSelected}
             onChange={() => hybridFilterRef.current?.toggleOption?.(value)}
             aria-label={t('Select %s', value)}
