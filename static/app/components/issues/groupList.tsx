@@ -344,7 +344,6 @@ function GroupList({
                 return (
                   <StreamGroup
                     key={group.id}
-                    id={group.id}
                     group={group}
                     canSelect={canSelectGroups}
                     withChart={withChart}
