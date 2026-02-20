@@ -216,7 +216,7 @@ jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
 });
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
-  // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
+  // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
   // guaranteed to be in scope
   const ReactActual = require('react');
 
