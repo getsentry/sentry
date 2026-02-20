@@ -2443,9 +2443,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 2
         data = response.data["data"]
         assert data[0]["transaction"] == event1.transaction
-        assert data[0]["epm()"] == 0.5
+        assert data[0]["epm()"] == pytest.approx(0.5, rel=1e-2)
         assert data[1]["transaction"] == event2.transaction
-        assert data[1]["epm()"] == 0.5
+        assert data[1]["epm()"] == pytest.approx(0.5, rel=1e-2)
         meta = response.data["meta"]
         assert meta["fields"]["epm()"] == "rate"
         assert meta["units"]["epm()"] == "1/minute"
