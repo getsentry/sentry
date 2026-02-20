@@ -296,6 +296,13 @@ describe('UptimeAssertionsField', () => {
     // Should NOT have any assertion inputs (no default 2xx assertions)
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
 
+    // Should show a warning about no assertions
+    expect(
+      screen.getByText(
+        'Without any Assertions all uptime checks will be marked as success! We recommend at least a 2xx status code assertion.'
+      )
+    ).toBeInTheDocument();
+
     // getValue should return null for empty assertions
     const transformedData = model.getTransformedData();
     expect(transformedData.assertion).toBeNull();
@@ -366,6 +373,13 @@ describe('UptimeAssertionsField', () => {
     await waitFor(() => {
       expect(screen.queryAllByRole('textbox')).toHaveLength(0);
     });
+
+    // Should now show the no-assertions warning
+    expect(
+      screen.getByText(
+        'Without any Assertions all uptime checks will be marked as success! We recommend at least a 2xx status code assertion.'
+      )
+    ).toBeInTheDocument();
 
     // getValue should return null when all assertions are deleted
     const transformedData = model.getTransformedData();

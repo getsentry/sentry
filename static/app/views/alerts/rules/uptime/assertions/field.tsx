@@ -1,5 +1,9 @@
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
+import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import type {AndOp, Assertion, Op} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -82,14 +86,23 @@ function UptimeAssertionsControl({onChange, onBlur, value}: any) {
   const rootOp: AndOp = value.root;
 
   return (
-    <AssertionOpGroup
-      root
-      value={rootOp}
-      onChange={op => {
-        onChange({root: op}, {});
-        onBlur({root: op}, {});
-      }}
-    />
+    <Flex direction="column" gap="md">
+      {rootOp.children.length === 0 && (
+        <Alert variant="warning">
+          {t(
+            'Without any Assertions all uptime checks will be marked as success! We recommend at least a 2xx status code assertion.'
+          )}
+        </Alert>
+      )}
+      <AssertionOpGroup
+        root
+        value={rootOp}
+        onChange={op => {
+          onChange({root: op}, {});
+          onBlur({root: op}, {});
+        }}
+      />
+    </Flex>
   );
 }
 
