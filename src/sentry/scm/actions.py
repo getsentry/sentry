@@ -199,8 +199,6 @@ class SourceCodeManager:
             lambda r, p: p.delete_pull_request_reaction(r, pull_request_id, reaction_id)
         )
 
-    # Branch operations
-
     def get_branch(self, branch: str) -> GitRefActionResult:
         """Get a branch reference."""
         return self._exec(lambda r, p: p.get_branch(r, branch))
@@ -213,40 +211,36 @@ class SourceCodeManager:
         """Update a branch to point at a new SHA."""
         return self._exec(lambda r, p: p.update_branch(r, branch, sha, force))
 
-    # Git blob operations
-
     def create_git_blob(self, content: str, encoding: str) -> GitBlobActionResult:
         """Create a git blob object."""
         return self._exec(lambda r, p: p.create_git_blob(r, content, encoding))
 
-    # File content operations
-
     def get_file_content(self, path: str, ref: str | None = None) -> FileContentActionResult:
         return self._exec(lambda r, p: p.get_file_content(r, path, ref))
-
-    # Commit operations
 
     def get_commit(self, sha: str) -> CommitActionResult:
         return self._exec(lambda r, p: p.get_commit(r, sha))
 
     def get_commits(
-        self, *, sha: str | None = None, path: str | None = None
+        self,
+        sha: str | None = None,
+        path: str | None = None,
     ) -> list[CommitActionResult]:
         return self._exec(lambda r, p: p.get_commits(r, sha=sha, path=path))
 
     def compare_commits(self, start_sha: str, end_sha: str) -> CommitComparisonActionResult:
         return self._exec(lambda r, p: p.compare_commits(r, start_sha, end_sha))
 
-    # Git data operations
-
-    def get_tree(self, tree_sha: str, *, recursive: bool = True) -> GitTreeActionResult:
+    def get_tree(self, tree_sha: str, recursive: bool = True) -> GitTreeActionResult:
         return self._exec(lambda r, p: p.get_tree(r, tree_sha, recursive=recursive))
 
     def get_git_commit(self, sha: str) -> GitCommitObjectActionResult:
         return self._exec(lambda r, p: p.get_git_commit(r, sha))
 
     def create_git_tree(
-        self, tree: list[InputTreeEntry], *, base_tree: str | None = None
+        self,
+        tree: list[InputTreeEntry],
+        base_tree: str | None = None,
     ) -> GitTreeActionResult:
         return self._exec(lambda r, p: p.create_git_tree(r, tree, base_tree=base_tree))
 
@@ -254,8 +248,6 @@ class SourceCodeManager:
         self, message: str, tree_sha: str, parent_shas: list[str]
     ) -> GitCommitObjectActionResult:
         return self._exec(lambda r, p: p.create_git_commit(r, message, tree_sha, parent_shas))
-
-    # Expanded pull request operations
 
     def get_pull_request_files(self, pull_request_id: str) -> PullRequestFileActionResult:
         return self._exec(lambda r, p: p.get_pull_request_files(r, pull_request_id))
@@ -267,12 +259,19 @@ class SourceCodeManager:
         return self._exec(lambda r, p: p.get_pull_request_diff(r, pull_request_id))
 
     def get_pull_requests(
-        self, state: str = "open", head: str | None = None
+        self,
+        state: str = "open",
+        head: str | None = None,
     ) -> list[PullRequestActionResult]:
         return self._exec(lambda r, p: p.get_pull_requests(r, state, head))
 
     def create_pull_request(
-        self, title: str, body: str, head: str, base: str, *, draft: bool = False
+        self,
+        title: str,
+        body: str,
+        head: str,
+        base: str,
+        draft: bool = False,
     ) -> PullRequestActionResult:
         return self._exec(
             lambda r, p: p.create_pull_request(r, title, body, head, base, draft=draft)
@@ -281,7 +280,6 @@ class SourceCodeManager:
     def update_pull_request(
         self,
         pull_request_id: str,
-        *,
         title: str | None = None,
         body: str | None = None,
         state: str | None = None,
@@ -295,15 +293,12 @@ class SourceCodeManager:
     def request_review(self, pull_request_id: str, reviewers: list[str]) -> None:
         return self._exec(lambda r, p: p.request_review(r, pull_request_id, reviewers))
 
-    # Review operations
-
     def create_review_comment(
         self,
         pull_request_id: str,
         body: str,
         commit_sha: str,
         path: str,
-        *,
         line: int | None = None,
         side: str | None = None,
         start_line: int | None = None,
@@ -329,20 +324,16 @@ class SourceCodeManager:
         commit_sha: str,
         event: str,
         comments: list[ReviewCommentInput],
-        *,
         body: str | None = None,
     ) -> ReviewActionResult:
         return self._exec(
             lambda r, p: p.create_review(r, pull_request_id, commit_sha, event, comments, body=body)
         )
 
-    # Check run operations
-
     def create_check_run(
         self,
         name: str,
         head_sha: str,
-        *,
         status: str | None = None,
         conclusion: str | None = None,
         external_id: str | None = None,
@@ -370,7 +361,6 @@ class SourceCodeManager:
     def update_check_run(
         self,
         check_run_id: str,
-        *,
         status: str | None = None,
         conclusion: str | None = None,
         output: CheckRunOutput | None = None,
@@ -380,8 +370,6 @@ class SourceCodeManager:
                 r, check_run_id, status=status, conclusion=conclusion, output=output
             )
         )
-
-    # GraphQL mutation operations
 
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
         return self._exec(lambda r, p: p.minimize_comment(r, comment_node_id, reason))

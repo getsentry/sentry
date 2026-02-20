@@ -25,19 +25,6 @@ class Comment(TypedDict):
     author: Author | None
 
 
-class CommentActionResult(TypedDict):
-    """Wraps a Comment with provider metadata and the original API response.
-
-    ActionResult types pair a normalized domain object with the provider name
-    and the raw API payload. This lets callers work with a stable interface
-    while still having access to provider-specific fields when needed.
-    """
-
-    comment: Comment
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class ReactionResult(TypedDict):
     """Provider-agnostic representation of a reaction on an issue, comment, or pull request."""
 
@@ -68,7 +55,7 @@ class PullRequest(TypedDict):
     base: PullRequestBranch
 
 
-class PullRequestActionResult(TypedDict):
+class ActionResult[T](TypedDict):
     """Wraps a PullRequest with provider metadata and the original API response.
 
     ActionResult types pair a normalized domain object with the provider name
@@ -76,8 +63,8 @@ class PullRequestActionResult(TypedDict):
     while still having access to provider-specific fields when needed.
     """
 
-    pull_request: PullRequest
-    provider: ProviderName
+    data: T
+    type: ProviderName
     raw: dict[str, Any]
 
 
@@ -97,20 +84,8 @@ class GitRef(TypedDict):
     sha: str
 
 
-class GitRefActionResult(TypedDict):
-    git_ref: GitRef
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class GitBlob(TypedDict):
     sha: str
-
-
-class GitBlobActionResult(TypedDict):
-    git_blob: GitBlob
-    provider: ProviderName
-    raw: dict[str, Any]
 
 
 class FileContent(TypedDict):
@@ -119,12 +94,6 @@ class FileContent(TypedDict):
     content: str  # base64-encoded
     encoding: str
     size: int
-
-
-class FileContentActionResult(TypedDict):
-    file_content: FileContent
-    provider: ProviderName
-    raw: dict[str, Any]
 
 
 class CommitAuthor(TypedDict):
@@ -146,21 +115,9 @@ class Commit(TypedDict):
     files: list[CommitFile]
 
 
-class CommitActionResult(TypedDict):
-    commit: Commit
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class CommitComparison(TypedDict):
     ahead_by: int
     behind_by: int
-
-
-class CommitComparisonActionResult(TypedDict):
-    comparison: CommitComparison
-    provider: ProviderName
-    raw: dict[str, Any]
 
 
 class TreeEntry(TypedDict):
@@ -183,12 +140,6 @@ class GitTree(TypedDict):
     truncated: bool
 
 
-class GitTreeActionResult(TypedDict):
-    git_tree: GitTree
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class GitCommitTree(TypedDict):
     sha: str
 
@@ -197,12 +148,6 @@ class GitCommitObject(TypedDict):
     sha: str
     tree: GitCommitTree
     message: str
-
-
-class GitCommitObjectActionResult(TypedDict):
-    git_commit: GitCommitObject
-    provider: ProviderName
-    raw: dict[str, Any]
 
 
 class PullRequestFile(TypedDict):
@@ -214,27 +159,10 @@ class PullRequestFile(TypedDict):
     previous_filename: str | None
 
 
-class PullRequestFileActionResult(TypedDict):
-    files: list[PullRequestFile]
-    provider: ProviderName
-    raw: list[dict[str, Any]]
-
-
 class PullRequestCommit(TypedDict):
     sha: str
     message: str
     author: CommitAuthor | None
-
-
-class PullRequestCommitActionResult(TypedDict):
-    commits: list[PullRequestCommit]
-    provider: ProviderName
-    raw: list[dict[str, Any]]
-
-
-class PullRequestDiffActionResult(TypedDict):
-    diff: str
-    provider: ProviderName
 
 
 class ReviewCommentInput(TypedDict, total=False):
@@ -255,12 +183,6 @@ class ReviewComment(TypedDict):
     html_url: str
     path: str
     body: str
-
-
-class ReviewCommentActionResult(TypedDict):
-    review_comment: ReviewComment
-    provider: ProviderName
-    raw: dict[str, Any]
 
 
 class Review(TypedDict):
@@ -294,12 +216,6 @@ class CheckRun(TypedDict):
     html_url: str
 
 
-class CheckRunActionResult(TypedDict):
-    check_run: CheckRun
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class Provider(Protocol):
     """
     Providers abstract over an integration. They map generic commands to service-provider specific
@@ -314,130 +230,203 @@ class Provider(Protocol):
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
 
     def get_pull_request(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestActionResult: ...
+        self,
+        repository: Repository,
+        pull_request_id: str,
+    ) -> ActionResult[PullRequest]: ...
 
     def get_issue_comments(
-        self, repository: Repository, issue_id: str
-    ) -> list[CommentActionResult]: ...
+        self,
+        repository: Repository,
+        issue_id: str,
+    ) -> list[ActionResult[Comment]]: ...
 
-    def create_issue_comment(self, repository: Repository, issue_id: str, body: str) -> None: ...
-
-    def delete_issue_comment(self, repository: Repository, comment_id: str) -> None: ...
-
-    def get_pull_request_comments(
-        self, repository: Repository, pull_request_id: str
-    ) -> list[CommentActionResult]: ...
-
-    def create_pull_request_comment(
-        self, repository: Repository, pull_request_id: str, body: str
+    def create_issue_comment(
+        self,
+        repository: Repository,
+        issue_id: str,
+        body: str,
     ) -> None: ...
 
-    def delete_pull_request_comment(self, repository: Repository, comment_id: str) -> None: ...
+    def delete_issue_comment(
+        self,
+        repository: Repository,
+        comment_id: str,
+    ) -> None: ...
+
+    def get_pull_request_comments(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+    ) -> list[ActionResult[Comment]]: ...
+
+    def create_pull_request_comment(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        body: str,
+    ) -> None: ...
+
+    def delete_pull_request_comment(
+        self,
+        repository: Repository,
+        comment_id: str,
+    ) -> None: ...
 
     def get_issue_comment_reactions(
-        self, repository: Repository, comment_id: str
+        self,
+        repository: Repository,
+        comment_id: str,
     ) -> list[ReactionResult]: ...
 
     def create_issue_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction: Reaction
+        self,
+        repository: Repository,
+        comment_id: str,
+        reaction: Reaction,
     ) -> None: ...
 
     def delete_issue_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction_id: str
+        self,
+        repository: Repository,
+        comment_id: str,
+        reaction_id: str,
     ) -> None: ...
 
     def get_pull_request_comment_reactions(
-        self, repository: Repository, comment_id: str
+        self,
+        repository: Repository,
+        comment_id: str,
     ) -> list[ReactionResult]: ...
 
     def create_pull_request_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction: Reaction
+        self,
+        repository: Repository,
+        comment_id: str,
+        reaction: Reaction,
     ) -> None: ...
 
     def delete_pull_request_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction_id: str
+        self,
+        repository: Repository,
+        comment_id: str,
+        reaction_id: str,
     ) -> None: ...
 
     def get_issue_reactions(
-        self, repository: Repository, issue_id: str
+        self,
+        repository: Repository,
+        issue_id: str,
     ) -> list[ReactionResult]: ...
 
     def create_issue_reaction(
-        self, repository: Repository, issue_id: str, reaction: Reaction
+        self,
+        repository: Repository,
+        issue_id: str,
+        reaction: Reaction,
     ) -> None: ...
 
     def delete_issue_reaction(
-        self, repository: Repository, issue_id: str, reaction_id: str
+        self,
+        repository: Repository,
+        issue_id: str,
+        reaction_id: str,
     ) -> None: ...
 
     def get_pull_request_reactions(
-        self, repository: Repository, pull_request_id: str
+        self,
+        repository: Repository,
+        pull_request_id: str,
     ) -> list[ReactionResult]: ...
 
     def create_pull_request_reaction(
-        self, repository: Repository, pull_request_id: str, reaction: Reaction
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        reaction: Reaction,
     ) -> None: ...
 
     def delete_pull_request_reaction(
-        self, repository: Repository, pull_request_id: str, reaction_id: str
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        reaction_id: str,
     ) -> None: ...
 
-    # Branch operations
-
-    def get_branch(self, repository: Repository, branch: str) -> GitRefActionResult: ...
+    def get_branch(
+        self,
+        repository: Repository,
+        branch: str,
+    ) -> ActionResult[GitRef]: ...
 
     def create_branch(
-        self, repository: Repository, branch: str, sha: str
-    ) -> GitRefActionResult: ...
+        self,
+        repository: Repository,
+        branch: str,
+        sha: str,
+    ) -> ActionResult[GitRef]: ...
 
     def update_branch(
-        self, repository: Repository, branch: str, sha: str, force: bool = False
+        self,
+        repository: Repository,
+        branch: str,
+        sha: str,
+        force: bool = False,
     ) -> None: ...
 
-    # Git blob operations
-
     def create_git_blob(
-        self, repository: Repository, content: str, encoding: str
-    ) -> GitBlobActionResult: ...
-
-    # File content operations
+        self,
+        repository: Repository,
+        content: str,
+        encoding: str,
+    ) -> ActionResult[GitBlob]: ...
 
     def get_file_content(
-        self, repository: Repository, path: str, ref: str | None = None
-    ) -> FileContentActionResult: ...
+        self,
+        repository: Repository,
+        path: str,
+        ref: str | None = None,
+    ) -> ActionResult[FileContent]: ...
 
-    # Commit operations
-
-    def get_commit(self, repository: Repository, sha: str) -> CommitActionResult: ...
+    def get_commit(
+        self,
+        repository: Repository,
+        sha: str,
+    ) -> ActionResult[Commit]: ...
 
     def get_commits(
         self,
         repository: Repository,
-        *,
         sha: str | None = None,
         path: str | None = None,
-    ) -> list[CommitActionResult]: ...
+    ) -> list[ActionResult[Commit]]: ...
 
     def compare_commits(
-        self, repository: Repository, start_sha: str, end_sha: str
-    ) -> CommitComparisonActionResult: ...
-
-    # Git data operations
+        self,
+        repository: Repository,
+        start_sha: str,
+        end_sha: str,
+    ) -> ActionResult[CommitComparison]: ...
 
     def get_tree(
-        self, repository: Repository, tree_sha: str, *, recursive: bool = True
-    ) -> GitTreeActionResult: ...
+        self,
+        repository: Repository,
+        tree_sha: str,
+        recursive: bool = True,
+    ) -> ActionResult[GitTree]: ...
 
-    def get_git_commit(self, repository: Repository, sha: str) -> GitCommitObjectActionResult: ...
+    def get_git_commit(
+        self,
+        repository: Repository,
+        sha: str,
+    ) -> ActionResult[GitCommitObject]: ...
 
     def create_git_tree(
         self,
         repository: Repository,
         tree: list[InputTreeEntry],
-        *,
         base_tree: str | None = None,
-    ) -> GitTreeActionResult: ...
+    ) -> ActionResult[GitTree]: ...
 
     def create_git_commit(
         self,
@@ -445,25 +434,32 @@ class Provider(Protocol):
         message: str,
         tree_sha: str,
         parent_shas: list[str],
-    ) -> GitCommitObjectActionResult: ...
-
-    # Expanded pull request operations
+    ) -> ActionResult[GitCommitObject]: ...
 
     def get_pull_request_files(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestFileActionResult: ...
+        self,
+        repository: Repository,
+        pull_request_id: str,
+    ) -> ActionResult[list[PullRequestFile]]: ...
 
     def get_pull_request_commits(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestCommitActionResult: ...
+        self,
+        repository: Repository,
+        pull_request_id: str,
+    ) -> ActionResult[list[PullRequestCommit]]: ...
 
     def get_pull_request_diff(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestDiffActionResult: ...
+        self,
+        repository: Repository,
+        pull_request_id: str,
+    ) -> ActionResult[str]: ...
 
     def get_pull_requests(
-        self, repository: Repository, state: str = "open", head: str | None = None
-    ) -> list[PullRequestActionResult]: ...
+        self,
+        repository: Repository,
+        state: str = "open",
+        head: str | None = None,
+    ) -> list[ActionResult[PullRequest]]: ...
 
     def create_pull_request(
         self,
@@ -472,25 +468,24 @@ class Provider(Protocol):
         body: str,
         head: str,
         base: str,
-        *,
         draft: bool = False,
-    ) -> PullRequestActionResult: ...
+    ) -> ActionResult[PullRequest]: ...
 
     def update_pull_request(
         self,
         repository: Repository,
         pull_request_id: str,
-        *,
         title: str | None = None,
         body: str | None = None,
         state: str | None = None,
-    ) -> PullRequestActionResult: ...
+    ) -> ActionResult[PullRequest]: ...
 
     def request_review(
-        self, repository: Repository, pull_request_id: str, reviewers: list[str]
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        reviewers: list[str],
     ) -> None: ...
-
-    # Review operations
 
     def create_review_comment(
         self,
@@ -499,12 +494,11 @@ class Provider(Protocol):
         body: str,
         commit_sha: str,
         path: str,
-        *,
         line: int | None = None,
         side: str | None = None,
         start_line: int | None = None,
         start_side: str | None = None,
-    ) -> ReviewCommentActionResult: ...
+    ) -> ActionResult[ReviewComment]: ...
 
     def create_review(
         self,
@@ -513,43 +507,36 @@ class Provider(Protocol):
         commit_sha: str,
         event: str,
         comments: list[ReviewCommentInput],
-        *,
         body: str | None = None,
-    ) -> ReviewActionResult: ...
-
-    # Check run operations
+    ) -> ActionResult[Review]: ...
 
     def create_check_run(
         self,
         repository: Repository,
         name: str,
         head_sha: str,
-        *,
         status: str | None = None,
         conclusion: str | None = None,
         external_id: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
         output: CheckRunOutput | None = None,
-    ) -> CheckRunActionResult: ...
+    ) -> ActionResult[CheckRun]: ...
 
     def get_check_run(
         self,
         repository: Repository,
         check_run_id: str,
-    ) -> CheckRunActionResult: ...
+    ) -> ActionResult[CheckRun]: ...
 
     def update_check_run(
         self,
         repository: Repository,
         check_run_id: str,
-        *,
         status: str | None = None,
         conclusion: str | None = None,
         output: CheckRunOutput | None = None,
-    ) -> CheckRunActionResult: ...
-
-    # GraphQL operations
+    ) -> ActionResult[CheckRun]: ...
 
     def minimize_comment(
         self,
