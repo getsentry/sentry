@@ -80,7 +80,7 @@ export const membershipSchema = z.object({
 
 type MembershipSchemaType = z.infer<typeof membershipSchema>;
 
-function ReplayAccessMembersField({
+export function ReplayAccessMembersField({
   organization,
   onSave,
   disabled,

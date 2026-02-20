@@ -11,60 +11,12 @@ import {t} from 'sentry/locale';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useMembers} from 'sentry/utils/useMembers';
-import {membershipSchema} from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
+import {
+  membershipSchema,
+  ReplayAccessMembersField,
+} from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
 type MembershipSchemaType = z.infer<typeof membershipSchema>;
-
-function ReplayAccessMembersField({
-  organization,
-  onSave,
-  disabled,
-}: {
-  disabled: boolean;
-  onSave: (previous: Organization, updated: Organization) => void;
-  organization: Organization;
-}) {
-  const endpoint = `/organizations/${organization.slug}/`;
-  const {members, fetching} = useMembers();
-  const memberOptions = members.map(m => ({value: m.id, label: m.name}));
-
-  const replayMutationOpts = mutationOptions({
-    mutationFn: (data: {replayAccessMembers: string[]}) =>
-      fetchMutation<Organization>({
-        method: 'PUT',
-        url: endpoint,
-        data: {replayAccessMembers: data.replayAccessMembers.map(Number)},
-      }),
-    onSuccess: updated => onSave(organization, updated),
-    onError: () => addErrorMessage(t('Unable to save change')),
-  });
-
-  return (
-    <AutoSaveField
-      name="replayAccessMembers"
-      schema={membershipSchema}
-      initialValue={(organization.replayAccessMembers ?? []).map(String)}
-      mutationOptions={replayMutationOpts}
-    >
-      {field => (
-        <field.Layout.Row
-          label={t('Replay Access Members')}
-          hintText={t('Select the members who will have access to replay data.')}
-        >
-          <field.Select
-            multiple
-            options={memberOptions}
-            value={field.state.value}
-            onChange={field.handleChange}
-            disabled={disabled}
-            isLoading={fetching}
-          />
-        </field.Layout.Row>
-      )}
-    </AutoSaveField>
-  );
-}
 
 function OrganizationMembershipSettingsForm({
   organization,
