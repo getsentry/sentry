@@ -826,7 +826,7 @@ class GitHubProvider(Provider):
         check_run_id: str,
     ) -> CheckRunActionResult:
         try:
-            raw = self.client.get_check_run(repository["name"], check_run_id)
+            raw = self.client.get_check_run(repository["name"], int(check_run_id))
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
         return _transform_check_run(raw)

@@ -628,10 +628,6 @@ class GitHubBaseClient(
         """https://docs.github.com/en/rest/pulls/reviews#create-a-review-for-a-pull-request"""
         return self.post(f"/repos/{repo}/pulls/{pull_number}/reviews", data=data)
 
-    def get_check_run(self, repo: str, check_run_id: str) -> Any:
-        """https://docs.github.com/en/rest/checks/runs#get-a-check-run"""
-        return self.get(f"/repos/{repo}/check-runs/{check_run_id}")
-
     def update_check_run(self, repo: str, check_run_id: str, data: dict[str, Any]) -> Any:
         """https://docs.github.com/en/rest/checks/runs#update-a-check-run"""
         return self.patch(f"/repos/{repo}/check-runs/{check_run_id}", data=data)
