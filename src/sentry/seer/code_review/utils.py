@@ -410,7 +410,6 @@ def get_tags(
             - github_actor_login: The GitHub username who triggered the action
             - github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
             - github_event_action: The event action (e.g., "opened", "closed", "created")
-            - pr_id: The pull request number (when available in the event)
             - scm_event_url: URL to the specific event (check_run, pull_request, comment, or commit)
             - scm_owner: The repository owner/organization name
             - scm_provider: Always "github"
