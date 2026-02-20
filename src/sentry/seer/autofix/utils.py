@@ -558,9 +558,7 @@ def _get_autofix_rate_limit_config(project: Project) -> AutoTriggerRateLimitConf
     return AutoTriggerRateLimitConfig(limit=limit, key="autofix.auto_triggered", window=60 * 60)
 
 
-def is_seer_autotriggered_autofix_rate_limited(
-    project: Project, organization: Organization
-) -> bool:
+def is_seer_autotriggered_autofix_rate_limited(project: Project) -> bool:
     """
     Read-only check of whether the autofix rate limit has been reached.
     Does NOT increment the counter. Safe to call from non-triggering code paths.

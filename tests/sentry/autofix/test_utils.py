@@ -319,7 +319,7 @@ class TestAutomationRateLimiting(TestCase):
 
         # Check a few times to be safe
         for _ in range(5):
-            is_seer_autotriggered_autofix_rate_limited(project, organization)
+            is_seer_autotriggered_autofix_rate_limited(project)
         current = ratelimits.backend.current_value(
             key=config["key"], project=project, window=config["window"]
         )
