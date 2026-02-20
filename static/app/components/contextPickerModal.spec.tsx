@@ -485,6 +485,8 @@ describe('ContextPickerModal', () => {
 
     await waitFor(() => {
       expect(fetchTeamsForOrg).toHaveBeenCalled();
+    });
+    await waitFor(() => {
       expect(onFinish).toHaveBeenCalledWith(
         `/settings/${org.slug}/teams/the-only-team/settings/`
       );
@@ -525,15 +527,19 @@ describe('ContextPickerModal', () => {
 
     await waitFor(() => {
       expect(fetchOrg1Projects).toHaveBeenCalled();
+    });
+    await waitFor(() => {
       expect(fetchOrg1Teams).toHaveBeenCalled();
     });
     expect(await screen.findByText(`#${org1Team.slug}`)).toBeInTheDocument();
 
-    const [orgSelect] = screen.getAllByRole('textbox');
+    const orgSelect = screen.getAllByRole('textbox')[0]!;
     await selectEvent.select(orgSelect, org2.slug);
 
     await waitFor(() => {
       expect(fetchOrg2Projects).toHaveBeenCalled();
+    });
+    await waitFor(() => {
       expect(fetchOrg2Teams).toHaveBeenCalled();
     });
     expect(await screen.findByText(`#${org2Team.slug}`)).toBeInTheDocument();
