@@ -171,7 +171,7 @@ describe('OrganizationGeneralSettings', () => {
     );
   });
 
-  it('disables the entire form if user does not have write access', async () => {
+  it('disables the entire form if user does not have write access', () => {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
     OrganizationStore.onUpdate(readOnlyOrg, {replace: true});
 
@@ -200,7 +200,7 @@ describe('OrganizationGeneralSettings', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not have remove organization button without org:admin permission', async () => {
+  it('does not have remove organization button without org:admin permission', () => {
     const orgWithWriteAccess = OrganizationFixture({access: ['org:write']});
     OrganizationStore.onUpdate(orgWithWriteAccess, {replace: true});
 
