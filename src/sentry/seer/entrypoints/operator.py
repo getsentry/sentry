@@ -81,7 +81,9 @@ class SeerOperator[CachePayloadT]:
         # The explorer autofix pipeline and history is entirely separate, so the runs we trigger
         # at the moment, won't be visible in-app to users with this flag.
         # This check can only be removed once this feature migrates to explorer-based autofix.
-        if features.has("organizations:autofix-on-explorer", organization):
+        if features.has("organizations:autofix-on-explorer", organization) and not features.has(
+            "organizations:seer-slack-workflows-explorer", organization
+        ):
             return False
 
         if entrypoint_key:
@@ -310,12 +312,20 @@ def process_autofix_updates(
             return
 
         try:
-            Group.objects.get(id=group_id, project__organization_id=organization_id)
+            group = Group.objects.get(id=group_id, project__organization_id=organization_id)
         except Group.DoesNotExist:
             lifecycle.record_failure(failure_reason="group_not_found")
             return
 
+        organization = group.project.organization
+
+        if not SeerOperator.has_access(organization=organization):
+            lifecycle.record_halt(halt_reason="no_operator_access")
+            return
+
         for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
+            if not entrypoint_cls.has_access(organization=organization):
+                continue
             cache_result = SeerOperatorAutofixCache.get(
                 entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
             )

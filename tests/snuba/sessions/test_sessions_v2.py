@@ -5,7 +5,7 @@ import pytest
 from django.http import QueryDict
 
 from sentry.exceptions import InvalidParams
-from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
+from sentry.release_health.base import AllowedResolution
 from sentry.snuba.sessions_v2 import (
     QueryDefinition,
     get_constrained_date_range,
@@ -16,13 +16,8 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def _make_query(qs, allow_minute_resolution=True, params=None):
-    query_config = SessionsQueryConfig(
-        (AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour),
-        allow_session_status_query=False,
-        restrict_date_range=True,
-    )
-    return QueryDefinition(QueryDict(qs), params or {}, query_config)
+def _make_query(qs, params=None):
+    return QueryDefinition(QueryDict(qs), params or {})
 
 
 def result_sorted(result):
@@ -95,13 +90,17 @@ def test_interval_restrictions() -> None:
         InvalidParams,
         match="The interval has to be a multiple of the minimum interval of one hour.",
     ):
-        _make_query("statsPeriod=6h&interval=90m&field=sum(session)", False)
+        get_constrained_date_range(
+            QueryDict("statsPeriod=6h&interval=90m"), AllowedResolution.one_hour
+        )
 
     with pytest.raises(
         InvalidParams,
         match="The interval has to be a multiple of the minimum interval of one minute.",
     ):
-        _make_query("statsPeriod=1h&interval=90s&field=sum(session)")
+        get_constrained_date_range(
+            QueryDict("statsPeriod=1h&interval=90s"), AllowedResolution.one_minute
+        )
 
     with pytest.raises(
         InvalidParams, match="Your interval and date range would create too many results."
