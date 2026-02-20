@@ -1127,6 +1127,23 @@ This might be single-run variance, but the directionality is consistent with the
 
 Additionally, the first shard results that did run showed extreme imbalance — test count is a poor proxy for actual duration. T2(3) hit 17m9s while T2(7) hit 13m38s, compared to a baseline spread of ~90–130s. Heavy integration test files (slow per test) concentrated on certain shards while light files concentrated on others.
 
-**Echo bug fix:** Corrected the echo statement from `wc -l < /tmp/tier2-tests.txt` to `wc -l < /tmp/tier2-shards/shard-${{ matrix.instance }}.txt`. Re-run triggered on commit `1783d438350` (run [`22204823884`](https://github.com/getsentry/sentry/actions/runs/22204823884), in progress at time of writing).
+**Echo bug fix:** Corrected the echo statement from `wc -l < /tmp/tier2-tests.txt` to `wc -l < /tmp/tier2-shards/shard-${{ matrix.instance }}.txt`. Re-run: run [`22204823884`](https://github.com/getsentry/sentry/actions/runs/22204823884).
 
-**Conclusion (preliminary):** Test count is a poor proxy for test duration. The LPT approach is architecturally sound but requires actual per-file duration data (available from GCS-stored `pytest.json` artifacts via the `collect-test-data` action) to be useful. A follow-up using historical durations should show genuine improvement. The fixed re-run will confirm whether the echo bug was the sole cause of failure.
+**Fixed re-run results** (run `22204823884`, 2 flaky failures unrelated to LPT):
+
+| Metric         | Baseline roundrobin (run `22204003661`) | LPT test-count (run `22204823884`) | Delta               |
+| -------------- | --------------------------------------- | ---------------------------------- | ------------------- |
+| T1 max         | 10m8s                                   | 9m42s                              | −26s (not affected) |
+| T2 max         | 9m39s                                   | **16m20s**                         | **+6m41s**          |
+| T2 min         | —                                       | 5m30s                              |                     |
+| T2 spread      | ~90s                                    | **650s**                           | **+560s**           |
+| **Wall clock** | **10m8s**                               | **16m20s**                         | **+6m12s (+61%)**   |
+| Runner-min     | ~196m                                   | ~196m                              | ~0                  |
+
+**Analysis:** LPT with test count as weight is actively harmful. Wall clock regressed 61% despite identical runner-minutes (same total work, catastrophically worse distribution). The heaviest shards were tier2(3) at 16m20s and tier2(7) at 14m22s; the lightest were tier2(0) at 5m30s and tier2(14) at 5m44s.
+
+**Root cause:** T2's slowest tests are heavy integration tests (relay, Snuba, symbolicator) that live in files with _few_ tests but _long_ individual durations. LPT weights by test count, so it treats these files as "light" — and concentrates them together on the same shards. Meanwhile, files with many fast unit tests get counted as "heavy" and spread across shards. The result inverts the intended balance. In contrast, roundrobin hash sharding distributes individual test nodeids uniformly — with ~32K T2 tests and 17 shards, statistical averaging gives ~90–130s spread naturally.
+
+The two failures (`test_project_key_stats.py` Redis ConnectionError at teardown, `test_unmerge.py` assertion failure) are pre-existing flaky tests unrelated to sharding.
+
+**Conclusion:** LPT with test count proxy is not viable. Roundrobin hash sharding outperforms it because it operates at the individual-test level where the law of large numbers applies, rather than at the file level where duration variance is extreme. To make LPT work, actual per-test durations would be needed — but even then, the 2D bin-packing problem (N xdist workers per shard) means total-duration LPT also fails (see "LPT Second Run Analysis" section above). The worker-simulated LPT approach (from the same section) would be the correct algorithm, weighted by actual durations. This experiment is not worth pursuing further without duration data from GCS.
