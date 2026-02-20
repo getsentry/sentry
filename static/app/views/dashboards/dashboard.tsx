@@ -18,7 +18,6 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -189,7 +188,6 @@ function Dashboard({
       }
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
-      GroupStore.reset();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
