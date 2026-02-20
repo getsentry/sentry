@@ -1,6 +1,6 @@
 import type {QueryFunctionContext} from '@tanstack/react-query';
 
-import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {parseQueryKey, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
@@ -13,7 +13,7 @@ export type ApiResponse<TResponseData = unknown> = {
 };
 
 export default async function apiFetch<TQueryFnData = unknown>(
-  context: QueryFunctionContext<ApiQueryKey | InfiniteApiQueryKey>
+  context: QueryFunctionContext<ApiQueryKey>
 ): Promise<ApiResponse<TQueryFnData>> {
   const {url, options} = parseQueryKey(context.queryKey);
 

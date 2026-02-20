@@ -1,24 +1,14 @@
+/** @jest-environment jsdom */
 import {skipToken, useQuery} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {
-  DEFAULT_QUERY_CLIENT_CONFIG,
-  QueryClient,
-  QueryClientProvider,
-} from 'sentry/utils/queryClient';
 
 type Promisable<T> = T | Promise<T>;
 type QueryFunctionResult<T> = Promisable<ApiResponse<T>>;
-
-const wrapper = ({children}: {children?: React.ReactNode}) => (
-  <QueryClientProvider client={new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG)}>
-    {children}
-  </QueryClientProvider>
-);
 
 describe('apiOptions', () => {
   it('should encode path parameters correctly', () => {
@@ -88,9 +78,8 @@ describe('apiOptions', () => {
       body: ['Project 1', 'Project 2'],
     });
 
-    const {result} = renderHook(() => useQuery(options), {wrapper});
-
-    await waitFor(() => result.current.isSuccess);
+    const {result} = renderHookWithProviders(() => useQuery(options));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(result.current.data).toEqual(['Project 1', 'Project 2']);
   });
@@ -109,21 +98,17 @@ describe('apiOptions', () => {
       },
     });
 
-    const {result} = renderHook(
-      () => useQuery({...options, select: selectJsonWithHeaders}),
-      {
-        wrapper,
-      }
+    const {result} = renderHookWithProviders(() =>
+      useQuery({...options, select: selectJsonWithHeaders})
     );
 
-    await waitFor(() => result.current.isSuccess);
+    await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(result.current.data).toEqual({
       json: ['Project 1', 'Project 2'],
       headers: {Link: 'my-link', 'X-Hits': 14, 'X-Max-Hits': undefined},
     });
 
-    // headers should be narrowly typed
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<{
       Link: string | undefined;
       'X-Hits': number | undefined;
