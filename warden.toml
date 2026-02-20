@@ -24,3 +24,21 @@ ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
 [[skills.triggers]]
 type = "pull_request"
 actions = ["opened", "synchronize", "reopened"]
+
+[[skills]]
+name = "sentry-backend-bugs"
+paths = ["src/sentry/**/*.py"]
+ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
+
+[[skills.triggers]]
+type = "pull_request"
+actions = ["opened", "synchronize", "reopened"]
+
+[[skills]]
+name = "sentry-javascript-bugs"
+paths = ["static/**/*.ts", "static/**/*.tsx", "static/**/*.js", "static/**/*.jsx"]
+ignorePaths = ["**/*.spec.*", "**/*.test.*", "**/tests/**", "**/__mocks__/**"]
+
+[[skills.triggers]]
+type = "pull_request"
+actions = ["opened", "synchronize", "reopened"]
