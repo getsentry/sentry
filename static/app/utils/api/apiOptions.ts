@@ -47,7 +47,7 @@ function _apiOptions<
     ] as OptionalPathParams<TApiPath>)
   );
 
-  return queryOptions<ApiResponse<TActualData>, Error, TActualData, ApiQueryKey>({
+  return queryOptions({
     queryKey:
       Object.keys(options).length > 0
         ? ([url, options] as ApiQueryKey)

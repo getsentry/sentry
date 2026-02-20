@@ -119,8 +119,8 @@ describe('apiOptions', () => {
     await waitFor(() => result.current.isSuccess);
 
     expect(result.current.data).toEqual({
-      content: ['Project 1', 'Project 2'],
-      headers: {Link: 'my-link', 'X-Hits': 14},
+      json: ['Project 1', 'Project 2'],
+      headers: {Link: 'my-link', 'X-Hits': 14, 'X-Max-Hits': undefined},
     });
 
     // headers should be narrowly typed
