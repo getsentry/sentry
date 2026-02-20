@@ -27,7 +27,6 @@ actions = ["opened", "synchronize", "reopened"]
 
 [[skills]]
 name = "sentry-backend-bugs"
-remote = "getsentry/warden-sentry"
 paths = ["src/sentry/**/*.py"]
 ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
 
@@ -37,7 +36,6 @@ actions = ["opened", "synchronize", "reopened"]
 
 [[skills]]
 name = "sentry-javascript-bugs"
-remote = "getsentry/warden-sentry"
 paths = ["static/**/*.ts", "static/**/*.tsx", "static/**/*.js", "static/**/*.jsx"]
 ignorePaths = ["**/*.spec.*", "**/*.test.*", "**/tests/**", "**/__mocks__/**"]
 
