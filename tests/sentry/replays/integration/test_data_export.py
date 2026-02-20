@@ -31,7 +31,7 @@ def test_export_clickhouse_rows(replay_store) -> None:  # type: ignore[no-untype
     t2 = t0 + datetime.timedelta(minutes=2)
     t3 = t0 + datetime.timedelta(minutes=3)
 
-    replay_store.save_all(
+    replay_store.save_many(
         [
             mock_replay(t1, 1, replay1_id, segment_id=0),
             mock_replay(t1, 1, replay2_id, segment_id=0),
@@ -56,7 +56,7 @@ def test_export_replay_row_set(replay_store) -> None:  # type: ignore[no-untyped
     t1 = t0 + datetime.timedelta(seconds=30)
     t2 = t0 + datetime.timedelta(minutes=1)
 
-    replay_store.save_all(
+    replay_store.save_many(
         [
             mock_replay(t0, 1, replay1_id, segment_id=0),
             mock_replay(t1, 1, replay2_id, segment_id=0),
@@ -106,7 +106,7 @@ def test_get_replay_date_query_ranges(replay_store) -> None:  # type: ignore[no-
     t1 = t0 + datetime.timedelta(days=10)
     t2 = t0 + datetime.timedelta(days=20)
 
-    replay_store.save_all(
+    replay_store.save_many(
         [
             mock_replay(t0, 1, replay1_id, segment_id=0),
             mock_replay(t1, 1, replay2_id, segment_id=0),
