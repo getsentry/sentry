@@ -233,67 +233,66 @@ sentry-cli releases finalize "$VERSION"`;
           )}
         </Text>
 
-        <CompactSelect
-          size="sm"
-          options={apps.map(makeAppOption)}
-          value={selectedApp?.slug}
-          emptyMessage={t('No Integrations')}
-          search
-          disabled={false}
-          menuFooter={({closeOverlay}) => (
-            <Button
-              tooltipProps={{
-                title: canMakeIntegration
-                  ? undefined
-                  : t(
-                      'You must be an organization owner, manager or admin to create an integration.'
-                    ),
-              }}
-              size="xs"
-              priority="transparent"
-              disabled={!canMakeIntegration}
-              onClick={() => {
-                closeOverlay();
-                openCreateReleaseIntegration({
-                  organization,
-                  project,
-                  onCreateSuccess: (app: SentryApp) => {
-                    setApps([app, ...apps]);
-                    setSelectedApp(app);
-                    generateAndSetNewToken(app.slug);
-                    trackQuickstartCreatedIntegration(app);
-                  },
-                  onCancel: trackCreateIntegrationModalClose,
-                });
-              }}
-            >
-              {t('Add New Integration')}
-            </Button>
-          )}
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              prefix={selectedApp ? t('Token From') : undefined}
-            >
-              {selectedApp ? triggerProps.children : t('Select Integration')}
-            </OverlayTrigger.Button>
-          )}
-          onChange={option => {
-            const app = apps.find(i => i.slug === option.value)!;
-            setSelectedApp(app);
-            generateAndSetNewToken(app.slug);
-          }}
-        />
-
-        <CopySetupInstructionsGate>
-          <Flex justify="end">
+        <Flex justify="between" align="center">
+          <CompactSelect
+            size="sm"
+            options={apps.map(makeAppOption)}
+            value={selectedApp?.slug}
+            emptyMessage={t('No Integrations')}
+            search
+            disabled={false}
+            menuFooter={({closeOverlay}) => (
+              <Button
+                tooltipProps={{
+                  title: canMakeIntegration
+                    ? undefined
+                    : t(
+                        'You must be an organization owner, manager or admin to create an integration.'
+                      ),
+                }}
+                size="xs"
+                priority="transparent"
+                disabled={!canMakeIntegration}
+                onClick={() => {
+                  closeOverlay();
+                  openCreateReleaseIntegration({
+                    organization,
+                    project,
+                    onCreateSuccess: (app: SentryApp) => {
+                      setApps([app, ...apps]);
+                      setSelectedApp(app);
+                      generateAndSetNewToken(app.slug);
+                      trackQuickstartCreatedIntegration(app);
+                    },
+                    onCancel: trackCreateIntegrationModalClose,
+                  });
+                }}
+              >
+                {t('Add New Integration')}
+              </Button>
+            )}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                prefix={selectedApp ? t('Token From') : undefined}
+              >
+                {selectedApp ? triggerProps.children : t('Select Integration')}
+              </OverlayTrigger.Button>
+            )}
+            onChange={option => {
+              const app = apps.find(i => i.slug === option.value)!;
+              setSelectedApp(app);
+              generateAndSetNewToken(app.slug);
+            }}
+          />
+          <CopySetupInstructionsGate>
             <CopyMarkdownButton
               borderless
               getMarkdown={getMarkdown}
               source="releases_quickstart"
             />
-          </Flex>
-        </CopySetupInstructionsGate>
+          </CopySetupInstructionsGate>
+        </Flex>
         <div ref={containerRef}>
           <CodeBlock
             dark
