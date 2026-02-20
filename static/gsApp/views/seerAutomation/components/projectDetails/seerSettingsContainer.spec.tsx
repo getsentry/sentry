@@ -178,6 +178,40 @@ describe('SeerSettingsContainer', () => {
       expect(screen.getByText('Coding Agent')).toBeInTheDocument();
     });
 
+    it('enabling Cursor sets auto_create_pr to false regardless of automated_run_stopping_point', async () => {
+      const postRequest = MockApiClient.addMockResponse({
+        url: preferencesPostUrl,
+        method: 'POST',
+        body: {},
+      });
+
+      render(
+        <SeerSettingsContainer
+          canWrite
+          project={project}
+          preference={{
+            repositories: [],
+            automated_run_stopping_point: 'open_pr',
+          }}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(
+        await screen.findByRole('checkbox', {name: /Hand off to Cursor/i})
+      );
+
+      await waitFor(() => expect(postRequest).toHaveBeenCalled());
+      expect(postRequest).toHaveBeenCalledWith(
+        preferencesPostUrl,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            automation_handoff: expect.objectContaining({auto_create_pr: false}),
+          }),
+        })
+      );
+    });
+
     it('PR toggle is disabled when Cursor is configured', async () => {
       render(
         <SeerSettingsContainer
