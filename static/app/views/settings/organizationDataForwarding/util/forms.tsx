@@ -38,15 +38,17 @@ export function getDataForwarderFormGroups({
   provider,
   dataForwarder,
   projects,
+  includeProjectConfig = true,
 }: {
   projects: Project[];
   dataForwarder?: DataForwarder;
+  includeProjectConfig?: boolean;
   provider?: DataForwarderProviderSlug;
 }): JsonFormObject[] {
   return [
     getEnablementForm({dataForwarder}),
     ...getProviderForm({provider}),
-    getProjectConfigurationForm({projects}),
+    ...(includeProjectConfig ? [getProjectConfigurationForm({projects})] : []),
   ];
 }
 

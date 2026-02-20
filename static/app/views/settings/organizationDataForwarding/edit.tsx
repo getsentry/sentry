@@ -24,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
+import {ProjectConfigurationForm} from 'sentry/views/settings/organizationDataForwarding/components/projectConfigurationForm';
 import {ProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/components/projectOverrideForm';
 import {getDataForwarderFormGroups} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {
@@ -83,8 +84,6 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
   >({
     [provider]: {
       is_enabled: dataForwarder.isEnabled,
-      enroll_new_projects: dataForwarder.enrollNewProjects,
-      project_ids: dataForwarder.enrolledProjects.map(project => project.id),
       ...dataForwarder.config,
     },
   });
@@ -186,18 +185,11 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                 submitDisabled={!hasFeature}
                 model={formModel}
                 onSubmit={data => {
-                  const {
-                    enroll_new_projects,
-                    project_ids = [],
-                    is_enabled,
-                    ...config
-                  } = data;
+                  const {is_enabled, ...config} = data;
                   const dataForwardingPayload: Record<string, any> = {
                     provider,
                     config,
                     is_enabled,
-                    enroll_new_projects,
-                    project_ids,
                   };
                   updateDataForwarder({
                     ...dataForwarder,
@@ -225,9 +217,15 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                     provider,
                     projects,
                     dataForwarder,
+                    includeProjectConfig: false,
                   })}
                 />
               </Form>
+              <ProjectConfigurationForm
+                dataForwarder={dataForwarder}
+                projects={projects}
+                disabled={!hasFeature}
+              />
               <Flex align="center" justify="between" gap="2xl">
                 <Flex direction="column" gap="sm">
                   <Flex align="center" gap="lg">
