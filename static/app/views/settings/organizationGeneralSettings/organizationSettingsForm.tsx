@@ -172,7 +172,7 @@ function OrganizationMembershipSettingsBase({
         <AutoSaveField
           name="defaultRole"
           schema={membershipSchema}
-          initialValue={organization.defaultRole}
+          initialValue={organization.defaultRole ?? ''}
           mutationOptions={mutationOpts}
         >
           {field => (
@@ -193,7 +193,7 @@ function OrganizationMembershipSettingsBase({
         <AutoSaveField
           name="openMembership"
           schema={membershipSchema}
-          initialValue={organization.openMembership}
+          initialValue={organization.openMembership ?? false}
           mutationOptions={mutationOpts}
           confirm={value =>
             value
@@ -222,7 +222,7 @@ function OrganizationMembershipSettingsBase({
         <AutoSaveField
           name="allowMemberInvite"
           schema={membershipSchema}
-          initialValue={organization.allowMemberInvite}
+          initialValue={organization.allowMemberInvite ?? false}
           mutationOptions={mutationOpts}
           confirm={value =>
             value
@@ -251,7 +251,7 @@ function OrganizationMembershipSettingsBase({
         <AutoSaveField
           name="allowMemberProjectCreation"
           schema={membershipSchema}
-          initialValue={organization.allowMemberProjectCreation}
+          initialValue={organization.allowMemberProjectCreation ?? false}
           mutationOptions={mutationOpts}
           confirm={value =>
             value
@@ -280,7 +280,7 @@ function OrganizationMembershipSettingsBase({
         <AutoSaveField
           name="eventsMemberAdmin"
           schema={membershipSchema}
-          initialValue={organization.eventsMemberAdmin}
+          initialValue={organization.eventsMemberAdmin ?? false}
           mutationOptions={mutationOpts}
           confirm={value =>
             value
@@ -309,7 +309,7 @@ function OrganizationMembershipSettingsBase({
         <AutoSaveField
           name="alertsMemberWrite"
           schema={membershipSchema}
-          initialValue={organization.alertsMemberWrite}
+          initialValue={organization.alertsMemberWrite ?? false}
           mutationOptions={mutationOpts}
           confirm={value =>
             value
@@ -339,7 +339,7 @@ function OrganizationMembershipSettingsBase({
           <AutoSaveField
             name="attachmentsRole"
             schema={membershipSchema}
-            initialValue={organization.attachmentsRole}
+            initialValue={organization.attachmentsRole ?? ''}
             mutationOptions={mutationOpts}
           >
             {field => (
@@ -363,7 +363,7 @@ function OrganizationMembershipSettingsBase({
         <AutoSaveField
           name="debugFilesRole"
           schema={membershipSchema}
-          initialValue={organization.debugFilesRole}
+          initialValue={organization.debugFilesRole ?? ''}
           mutationOptions={mutationOpts}
         >
           {field => (
@@ -388,7 +388,7 @@ function OrganizationMembershipSettingsBase({
             <AutoSaveField
               name="hasGranularReplayPermissions"
               schema={membershipSchema}
-              initialValue={organization.hasGranularReplayPermissions}
+              initialValue={organization.hasGranularReplayPermissions ?? false}
               mutationOptions={replayPermsMutationOpts}
               confirm={value =>
                 value
