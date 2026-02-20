@@ -151,7 +151,10 @@ export default function AlertsDebug() {
               />
               <Separator orientation="horizontal" />
 
-              <AlertDebugForm workflowId={workflowId} />
+              <AlertDebugForm
+                workflowId={workflowId}
+                organizationId={workflow.organizationId}
+              />
             </Stack>
           )}
         </Stack>

@@ -1,28 +1,47 @@
-import {Tag} from '@sentry/scraps/badge';
-import {Container, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import type {ReactNode} from 'react';
+import styled from '@emotion/styled';
 
+import {KeyValueData} from 'sentry/components/keyValueData';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-
-import {AlertDataAttribute} from 'admin/views/alertsDebug/components/alertDataAttribute';
 
 interface AlertConditionProps {
   condition: DataCondition;
-  background?: 'primary' | 'secondary' | 'tertiary';
 }
 
-export function AlertCondition({condition, background = 'primary'}: AlertConditionProps) {
-  return (
-    <Container padding="md" background={background} radius="md" border="primary">
-      <Stack gap="xs">
-        <AlertDataAttribute dataKey="comparison" value={condition.comparison} />
-        <AlertDataAttribute dataKey="conditionResult" value={condition.conditionResult} />
+export function AlertCondition({condition}: AlertConditionProps) {
+  const contentItems = [
+    {
+      item: {
+        key: 'type',
+        subject: 'type',
+        value: condition.type as ReactNode,
+      },
+    },
+    {
+      item: {
+        key: 'comparison',
+        subject: 'comparison',
+        value: condition.comparison as ReactNode,
+      },
+    },
+    condition.conditionResult !== undefined && {
+      item: {
+        key: 'conditionResult',
+        subject: 'conditionResult',
+        value: condition.conditionResult as ReactNode,
+      },
+    },
+  ].filter(Boolean) as Array<{item: {key: string; subject: string; value: ReactNode}}>;
 
-        <Stack direction="row" gap="xs" align="center">
-          <Text bold>type:</Text>
-          <Tag variant="info">{condition.type}</Tag>
-        </Stack>
-      </Stack>
-    </Container>
+  return (
+    <StyledCard>
+      <KeyValueData.Card contentItems={contentItems} />
+    </StyledCard>
   );
 }
+
+const StyledCard = styled('div')`
+  > div {
+    margin-bottom: 0;
+  }
+`;

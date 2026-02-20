@@ -28,11 +28,7 @@ export function AlertConditionGroup({group}: AlertConditionGroupProps) {
             <Heading as="h5">Conditions</Heading>
             <Stack gap="lg">
               {group.conditions.map(condition => (
-                <AlertCondition
-                  background="secondary"
-                  key={condition.id}
-                  condition={condition}
-                />
+                <AlertCondition key={condition.id} condition={condition} />
               ))}
             </Stack>
           </Stack>

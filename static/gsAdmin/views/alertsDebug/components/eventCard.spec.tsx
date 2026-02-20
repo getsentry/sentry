@@ -1,10 +1,10 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventCard} from 'admin/views/alertsDebug/components/eventCard';
-import {EventFixture} from 'admin/views/alertsDebug/fixtures';
 
 describe('EventCard', () => {
   const mockOnRemove = jest.fn();
+  const mockOrganizationId = 'test-org';
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -12,72 +12,119 @@ describe('EventCard', () => {
   });
 
   it('shows loading state while fetching', () => {
-    // Add mock response so the request doesn't error
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/events/abc123/',
-      body: EventFixture({eventID: 'abc123'}),
+      url: `/organizations/${mockOrganizationId}/events/`,
+      body: {
+        data: [
+          {
+            id: 'abc123',
+            title: 'Test Error',
+            message: 'Something went wrong',
+            platform: 'python',
+            timestamp: '2024-01-15T10:30:00.000Z',
+          },
+        ],
+      },
     });
 
-    render(<EventCard eventId="abc123" onRemove={mockOnRemove} />);
+    render(
+      <EventCard
+        eventId="abc123"
+        organizationId={mockOrganizationId}
+        onRemove={mockOnRemove}
+      />
+    );
 
-    // Initially shows loading state
     expect(screen.getByText(/Loading event abc123/)).toBeInTheDocument();
   });
 
   it('displays event details when loaded successfully', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/events/abc123/',
-      body: EventFixture({
-        eventID: 'abc123',
-        title: 'Test Error',
-        message: 'Something went wrong',
-        dateCreated: '2024-01-15T10:30:00.000Z',
-        platform: 'python',
-      }),
+      url: `/organizations/${mockOrganizationId}/events/`,
+      body: {
+        data: [
+          {
+            id: 'abc123',
+            title: 'Test Error',
+            message: 'Something went wrong',
+            platform: 'python',
+            timestamp: '2024-01-15T10:30:00.000Z',
+          },
+        ],
+      },
     });
 
-    render(<EventCard eventId="abc123" onRemove={mockOnRemove} />);
+    render(
+      <EventCard
+        eventId="abc123"
+        organizationId={mockOrganizationId}
+        onRemove={mockOnRemove}
+      />
+    );
 
     expect(await screen.findByText('Test Error')).toBeInTheDocument();
     expect(screen.getByText('python')).toBeInTheDocument();
-    expect(screen.getByText(/ID: abc123/)).toBeInTheDocument();
   });
 
-  it('falls back to known mock data when API fails for known event', async () => {
+  it('shows error state when API fails', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/events/abc123/',
+      url: `/organizations/${mockOrganizationId}/events/`,
       statusCode: 500,
       body: {detail: 'Server error'},
     });
 
-    render(<EventCard eventId="abc123" onRemove={mockOnRemove} />);
+    render(
+      <EventCard
+        eventId="abc123"
+        organizationId={mockOrganizationId}
+        onRemove={mockOnRemove}
+      />
+    );
 
-    // Should show mock data with "Mock Data" tag
-    expect(await screen.findByText('Mock Data')).toBeInTheDocument();
-    expect(screen.getByText(/TypeError: Cannot read property/)).toBeInTheDocument();
+    expect(await screen.findByText(/Error loading event abc123/)).toBeInTheDocument();
   });
 
-  it('falls back to generated mock data when API fails for unknown event', async () => {
+  it('shows error state when event not found', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/events/unknown-event-id/',
+      url: `/organizations/${mockOrganizationId}/events/`,
       statusCode: 404,
       body: {detail: 'Not found'},
     });
 
-    render(<EventCard eventId="unknown-event-id" onRemove={mockOnRemove} />);
+    render(
+      <EventCard
+        eventId="unknown-event-id"
+        organizationId={mockOrganizationId}
+        onRemove={mockOnRemove}
+      />
+    );
 
-    // Should show a generated mock event with the eventId
-    expect(await screen.findByText('Mock Data')).toBeInTheDocument();
-    expect(screen.getByText(/ID: unknown-event-id/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Error loading event unknown-event-id/)
+    ).toBeInTheDocument();
   });
 
   it('calls onRemove when remove button clicked on success state', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/events/abc123/',
-      body: EventFixture({eventID: 'abc123', title: 'Test Event'}),
+      url: `/organizations/${mockOrganizationId}/events/`,
+      body: {
+        data: [
+          {
+            id: 'abc123',
+            title: 'Test Event',
+            timestamp: '2024-01-15T10:30:00.000Z',
+          },
+        ],
+      },
     });
 
-    render(<EventCard eventId="abc123" onRemove={mockOnRemove} />);
+    render(
+      <EventCard
+        eventId="abc123"
+        organizationId={mockOrganizationId}
+        onRemove={mockOnRemove}
+      />
+    );
 
     await userEvent.click(
       await screen.findByRole('button', {name: /Remove event abc123/})
@@ -85,19 +132,59 @@ describe('EventCard', () => {
     expect(mockOnRemove).toHaveBeenCalledWith('abc123');
   });
 
-  it('calls onRemove when remove button clicked on mock fallback state', async () => {
+  it('calls onRemove when remove button clicked on error state', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/_admin/events/abc123/',
+      url: `/organizations/${mockOrganizationId}/events/`,
       statusCode: 500,
       body: {detail: 'Server error'},
     });
 
-    render(<EventCard eventId="abc123" onRemove={mockOnRemove} />);
+    render(
+      <EventCard
+        eventId="abc123"
+        organizationId={mockOrganizationId}
+        onRemove={mockOnRemove}
+      />
+    );
 
-    // Wait for mock to appear
-    await screen.findByText('Mock Data');
+    // Wait for error to appear
+    await screen.findByText(/Error loading event abc123/);
 
     await userEvent.click(screen.getByRole('button', {name: /Remove event abc123/}));
     expect(mockOnRemove).toHaveBeenCalledWith('abc123');
+  });
+
+  it('expands to show details when clicked', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockOrganizationId}/events/`,
+      body: {
+        data: [
+          {
+            id: 'abc123',
+            title: 'Test Error',
+            message: 'Something went wrong',
+            platform: 'python',
+            timestamp: '2024-01-15T10:30:00.000Z',
+          },
+        ],
+      },
+    });
+
+    render(
+      <EventCard
+        eventId="abc123"
+        organizationId={mockOrganizationId}
+        onRemove={mockOnRemove}
+      />
+    );
+
+    // Wait for event to load
+    await screen.findByText('Test Error');
+
+    // Click to expand - the disclosure title contains the event info
+    await userEvent.click(screen.getByText('Test Error'));
+
+    // After expanding, we should see the event ID
+    expect(await screen.findByText(/ID: abc123/)).toBeInTheDocument();
   });
 });

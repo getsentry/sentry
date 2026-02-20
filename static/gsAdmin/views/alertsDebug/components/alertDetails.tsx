@@ -1,11 +1,16 @@
+import type {ReactNode} from 'react';
+
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {KeyValueData} from 'sentry/components/keyValueData';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 
 import {AlertConditionGroup} from 'admin/views/alertsDebug/components/alertConditionGroup';
-import {AlertDataAttribute} from 'admin/views/alertsDebug/components/alertDataAttribute';
+
+// Fields to exclude from settings display (shown in dedicated sections)
+const EXCLUDED_FIELDS = ['triggers', 'actionFilters'];
 
 interface AlertDetailsProps {
   workflow: Automation;
@@ -19,13 +24,17 @@ export function AlertDetails({workflow}: AlertDetailsProps) {
       </Disclosure.Title>
       <Disclosure.Content>
         <Stack gap="lg">
-          <Container background="primary" padding="lg" radius="md" border="primary">
-            <Stack gap="sm">
-              {Object.entries(workflow).map(([key, value]) => (
-                <AlertDataAttribute dataKey={key} key={key} value={value} />
-              ))}
-            </Stack>
-          </Container>
+          <KeyValueData.Card
+            contentItems={Object.entries(workflow)
+              .filter(
+                ([key, value]) =>
+                  !EXCLUDED_FIELDS.includes(key) && value !== null && value !== undefined
+              )
+              .map(([key, value]) => ({
+                item: {key, subject: key, value: value as ReactNode},
+              }))}
+            sortAlphabetically
+          />
 
           <Flex gap="xl">
             <Stack flex="1" gap="xl">

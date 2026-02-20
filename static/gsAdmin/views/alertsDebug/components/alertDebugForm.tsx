@@ -10,10 +10,11 @@ import {EventCard} from 'admin/views/alertsDebug/components/eventCard';
 import type {WorkflowEventDebugFormData} from 'admin/views/alertsDebug/types';
 
 interface AlertDebugFormProps {
+  organizationId: string;
   workflowId: number;
 }
 
-export function AlertDebugForm({workflowId}: AlertDebugFormProps) {
+export function AlertDebugForm({organizationId, workflowId}: AlertDebugFormProps) {
   const [eventIdInput, setEventIdInput] = useState('');
   const [eventIds, setEventIds] = useState<string[]>([]);
   const [results, setResults] = useState<WorkflowEventDebugFormData | null>(null);
@@ -51,16 +52,23 @@ export function AlertDebugForm({workflowId}: AlertDebugFormProps) {
   };
 
   return (
-    <Stack gap="lg">
+    <Stack gap="lg" marginBottom="2xl">
       <Stack gap="sm">
         <Heading as="h2">Add Events to Evaluate</Heading>
         <Text as="p">
           Add events by their ID to evaluate the workflow's fast conditions. Each event
           will be looked up and displayed below.
         </Text>
+        <Text as="p" variant="muted" size="sm">
+          <Text italic bold>
+            Note:&nbsp;
+          </Text>
+          Slow conditions do not evaluate, as they require state + time to evaluate
+          correctly.
+        </Text>
       </Stack>
 
-      <Stack gap="md">
+      <Stack gap="2xl">
         <Flex gap="sm">
           <Input
             type="text"
@@ -77,23 +85,20 @@ export function AlertDebugForm({workflowId}: AlertDebugFormProps) {
         </Flex>
 
         {eventIds.length > 0 && (
-          <Stack gap="sm">
+          <Stack gap="lg">
             <Text bold>Events to Evaluate:</Text>
             <Stack gap="sm">
               {eventIds.map(eventId => (
-                <EventCard key={eventId} eventId={eventId} onRemove={removeEventId} />
+                <EventCard
+                  key={eventId}
+                  eventId={eventId}
+                  organizationId={organizationId}
+                  onRemove={removeEventId}
+                />
               ))}
             </Stack>
           </Stack>
         )}
-
-        <Text as="p" variant="muted" size="sm">
-          <Text italic bold>
-            Note:&nbsp;
-          </Text>
-          Slow conditions do not evaluate, as they require state + time to evaluate
-          correctly.
-        </Text>
       </Stack>
 
       {/* Evaluate button */}
