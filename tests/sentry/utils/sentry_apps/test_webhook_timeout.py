@@ -24,6 +24,7 @@ class WebhookTimeoutTest(TestCase):
             name="TestApp",
             organization=self.organization,
             webhook_url="https://example.com/webhook",
+            published=True,
         )
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
