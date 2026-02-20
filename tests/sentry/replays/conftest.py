@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from typing import Any
 
 import pytest
@@ -14,6 +15,7 @@ class ReplayStore:
 
 
 @pytest.fixture
-def replay_store() -> ReplayStore:
+def replay_store() -> Generator[ReplayStore]:
     assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
-    return ReplayStore()
+    yield ReplayStore()
+    assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
