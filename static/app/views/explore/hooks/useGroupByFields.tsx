@@ -59,6 +59,8 @@ export function useGroupByFields({
         ),
     ]
       .filter(option => {
+        // Filtering by value here, so it's based off of explicit tags i.e. `key`
+        // or `tags[<key>, <boolean | number | string>]
         if (seen.has(option.value)) return false;
         seen.add(option.value);
         return true;
