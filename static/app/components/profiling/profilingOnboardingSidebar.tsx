@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import useDrawer from 'sentry/components/globalDrawer';
@@ -367,17 +367,26 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     <TabSelectionScope>
       <Wrapper>
         {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
-        <CopySetupInstructionsGate>
-          <Container paddingBottom="md">
-            <OnboardingCopyMarkdownButton
-              steps={steps}
-              source="profiling_sidebar_onboarding"
-            />
-          </Container>
-        </CopySetupInstructionsGate>
         <Steps>
           {steps.map((step, index) => {
-            return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
+            return (
+              <Step
+                key={step.title ?? step.type}
+                stepIndex={index}
+                {...step}
+                trailingItems={
+                  index === 0 ? (
+                    <CopySetupInstructionsGate>
+                      <OnboardingCopyMarkdownButton
+                        borderless
+                        steps={steps}
+                        source="profiling_sidebar_onboarding"
+                      />
+                    </CopySetupInstructionsGate>
+                  ) : undefined
+                }
+              />
+            );
           })}
         </Steps>
       </Wrapper>

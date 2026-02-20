@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -339,9 +339,13 @@ export function Onboarding() {
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <CopySetupInstructionsGate>
-        <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton steps={steps} source="mcp_onboarding" />
-        </Container>
+        <Flex justify="end">
+          <OnboardingCopyMarkdownButton
+            borderless
+            steps={steps}
+            source="mcp_onboarding"
+          />
+        </Flex>
       </CopySetupInstructionsGate>
       <GuidedSteps>
         {steps.map((step, index) => (

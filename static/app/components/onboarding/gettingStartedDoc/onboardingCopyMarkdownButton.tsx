@@ -13,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface CopyMarkdownButtonProps {
   getMarkdown: () => string;
   source: string;
+  borderless?: boolean;
 }
 
 /**
@@ -24,7 +25,11 @@ interface CopyMarkdownButtonProps {
  * surfaces that need tab-selection and auth-token context, use
  * `OnboardingCopyMarkdownButton` instead.
  */
-export function CopyMarkdownButton({getMarkdown, source}: CopyMarkdownButtonProps) {
+export function CopyMarkdownButton({
+  getMarkdown,
+  source,
+  borderless,
+}: CopyMarkdownButtonProps) {
   return (
     <Tooltip
       title={t(
@@ -33,13 +38,14 @@ export function CopyMarkdownButton({getMarkdown, source}: CopyMarkdownButtonProp
       position="right"
     >
       <Button
+        priority={borderless ? 'transparent' : undefined}
         icon={<IconCopy />}
         analyticsEventKey="setup_guide.copy_as_markdown"
         analyticsEventName="Setup Guide: Copy as Markdown"
         analyticsParams={{format: 'markdown', source}}
         onClick={() => copyToClipboard(getMarkdown())}
       >
-        {t('Copy setup instructions')}
+        {t('Copy instructions')}
       </Button>
     </Tooltip>
   );
@@ -48,6 +54,7 @@ export function CopyMarkdownButton({getMarkdown, source}: CopyMarkdownButtonProp
 interface OnboardingCopyMarkdownButtonProps {
   source: string;
   steps: OnboardingStep[];
+  borderless?: boolean;
 }
 
 /**
@@ -57,6 +64,7 @@ interface OnboardingCopyMarkdownButtonProps {
 export function OnboardingCopyMarkdownButton({
   steps,
   source,
+  borderless,
 }: OnboardingCopyMarkdownButtonProps) {
   const authToken = useAuthToken();
   const tabSelectionsMap = useTabSelectionsMap();
@@ -72,7 +80,13 @@ export function OnboardingCopyMarkdownButton({
     }
   };
 
-  return <CopyMarkdownButton getMarkdown={getMarkdown} source={source} />;
+  return (
+    <CopyMarkdownButton
+      getMarkdown={getMarkdown}
+      source={source}
+      borderless={borderless}
+    />
+  );
 }
 
 const FEATURE_FLAG = 'onboarding-copy-setup-instructions';

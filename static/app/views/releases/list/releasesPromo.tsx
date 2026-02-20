@@ -9,7 +9,7 @@ import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -233,12 +233,6 @@ sentry-cli releases finalize "$VERSION"`;
           )}
         </Text>
 
-        <CopySetupInstructionsGate>
-          <Container>
-            <CopyMarkdownButton getMarkdown={getMarkdown} source="releases_quickstart" />
-          </Container>
-        </CopySetupInstructionsGate>
-
         <CompactSelect
           size="sm"
           options={apps.map(makeAppOption)}
@@ -291,6 +285,15 @@ sentry-cli releases finalize "$VERSION"`;
           }}
         />
 
+        <CopySetupInstructionsGate>
+          <Flex justify="end">
+            <CopyMarkdownButton
+              borderless
+              getMarkdown={getMarkdown}
+              source="releases_quickstart"
+            />
+          </Flex>
+        </CopySetupInstructionsGate>
         <div ref={containerRef}>
           <CodeBlock
             dark

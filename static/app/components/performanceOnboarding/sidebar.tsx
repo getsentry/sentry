@@ -5,7 +5,6 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -343,17 +342,26 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       {performanceDocs.introduction && (
         <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
       )}
-      <CopySetupInstructionsGate>
-        <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton
-            steps={steps}
-            source="performance_sidebar_onboarding"
-          />
-        </Container>
-      </CopySetupInstructionsGate>
       <Steps>
         {steps.map((step, index) => {
-          return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
+          return (
+            <Step
+              key={step.title ?? step.type}
+              stepIndex={index}
+              {...step}
+              trailingItems={
+                index === 0 ? (
+                  <CopySetupInstructionsGate>
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={steps}
+                      source="performance_sidebar_onboarding"
+                    />
+                  </CopySetupInstructionsGate>
+                ) : undefined
+              }
+            />
+          );
         })}
       </Steps>
       <EventWaiter

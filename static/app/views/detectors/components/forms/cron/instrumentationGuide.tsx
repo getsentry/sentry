@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -218,12 +218,13 @@ export function InstrumentationGuide() {
           >
             <Flex direction="column" gap="lg">
               <CopySetupInstructionsGate>
-                <Container>
+                <Flex justify="end">
                   <CopyMarkdownButton
+                    borderless
                     getMarkdown={getGuideMarkdown}
                     source="crons_detector_guide"
                   />
-                </Container>
+                </Flex>
               </CopySetupInstructionsGate>
               <div ref={guideContainerRef}>
                 <guide.Guide />
