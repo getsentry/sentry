@@ -13,6 +13,7 @@ export const MOCK_WORKFLOW: Automation = {
   dateCreated: Date.now().toLocaleString(),
   dateUpdated: Date.now().toLocaleString(),
   lastTriggered: Date.now().toLocaleString(),
+  organizationId: 'sentry',
   config: {
     frequency: 10,
   },
@@ -129,3 +130,54 @@ export const MOCK_EVENTS: Record<string, Event> = {
     tags: [{key: 'level', value: 'error'}],
   }),
 };
+
+/**
+ * Log entry type for workflow logs testing.
+ */
+export interface LogEntry {
+  [key: string]: unknown;
+  id: string;
+  message: string;
+  severity: string;
+  timestamp: string;
+  event_id?: string;
+  group_id?: string;
+  trace?: string;
+  workflow_ids?: string;
+}
+
+/**
+ * Creates a mock LogEntry for testing workflow logs.
+ */
+export function LogEntryFixture(params: Partial<LogEntry> = {}): LogEntry {
+  return {
+    id: 'log-1',
+    message: 'workflow_engine.process_workflows.evaluation.start',
+    severity: 'info',
+    timestamp: '2024-01-15T10:30:00.000Z',
+    trace: 'trace-abc123',
+    workflow_ids: '123',
+    group_id: 'group-1',
+    event_id: 'event-1',
+    ...params,
+  };
+}
+
+/**
+ * Mock logs for testing WorkflowLogs component.
+ */
+export const MOCK_LOGS: LogEntry[] = [
+  LogEntryFixture({id: 'log-1', severity: 'info'}),
+  LogEntryFixture({
+    id: 'log-2',
+    message: 'workflow_engine.process_workflows.evaluation.error',
+    severity: 'error',
+    timestamp: '2024-01-15T10:29:00.000Z',
+  }),
+  LogEntryFixture({
+    id: 'log-3',
+    message: 'workflow_engine.process_workflows.evaluation.warning',
+    severity: 'warning',
+    timestamp: '2024-01-15T10:28:00.000Z',
+  }),
+];

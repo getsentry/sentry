@@ -18,6 +18,7 @@ export interface Automation extends Readonly<NewAutomation> {
   readonly dateUpdated: string;
   readonly id: string;
   readonly lastTriggered: string;
+  readonly organizationId: string;
 }
 
 export interface AutomationFireHistory {

@@ -1,11 +1,16 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AlertsDebug from 'admin/views/alertsDebug';
-import {EventFixture, MOCK_WORKFLOW} from 'admin/views/alertsDebug/fixtures';
+import {EventFixture, MOCK_LOGS, MOCK_WORKFLOW} from 'admin/views/alertsDebug/fixtures';
 
 describe('AlertsDebug', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    // Mock the events endpoint for workflow logs (uses MOCK_WORKFLOW.organizationId)
+    MockApiClient.addMockResponse({
+      url: `/organizations/${MOCK_WORKFLOW.organizationId}/events/`,
+      body: {data: MOCK_LOGS, meta: {fields: {}}},
+    });
   });
 
   it('renders workflow ID input initially', () => {

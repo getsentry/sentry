@@ -36,7 +36,7 @@ export function EventCard({eventId, onRemove}: EventCardProps) {
           <Stack gap="xs" flex="1">
             <Flex gap="sm" align="center" wrap="wrap">
               <Text bold>{event?.title || 'Untitled Event'}</Text>
-              {event?.platform && <Tag>{event.platform}</Tag>}
+              {event?.platform && <Tag variant="info">{event.platform}</Tag>}
               {isError && <Tag variant="warning">Mock Data</Tag>}
             </Flex>
             {event?.message && event.message !== event.title && (

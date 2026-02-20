@@ -11,6 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageHeader from 'admin/components/pageHeader';
 import {AlertDebugForm} from 'admin/views/alertsDebug/components/alertDebugForm';
 import {AlertDetails} from 'admin/views/alertsDebug/components/alertDetails';
+import {WorkflowLogs} from 'admin/views/alertsDebug/components/workflowLogs';
 import {MOCK_WORKFLOW} from 'admin/views/alertsDebug/fixtures';
 import {useAdminWorkflow} from 'admin/views/alertsDebug/hooks/useAdminWorkflow';
 
@@ -108,6 +109,12 @@ export default function AlertsDebug() {
               </Flex>
 
               <AlertDetails workflow={workflow} />
+              <Separator orientation="horizontal" />
+
+              <WorkflowLogs
+                workflowId={workflowId}
+                organizationId={workflow.organizationId}
+              />
               <Separator orientation="horizontal" />
 
               <AlertDebugForm workflowId={workflowId} />
