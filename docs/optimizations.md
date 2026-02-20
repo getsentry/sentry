@@ -1146,4 +1146,21 @@ Additionally, the first shard results that did run showed extreme imbalance — 
 
 The two failures (`test_project_key_stats.py` Redis ConnectionError at teardown, `test_unmerge.py` assertion failure) are pre-existing flaky tests unrelated to sharding.
 
-**Conclusion:** LPT with test count proxy is not viable. Roundrobin hash sharding outperforms it because it operates at the individual-test level where the law of large numbers applies, rather than at the file level where duration variance is extreme. To make LPT work, actual per-test durations would be needed — but even then, the 2D bin-packing problem (N xdist workers per shard) means total-duration LPT also fails (see "LPT Second Run Analysis" section above). The worker-simulated LPT approach (from the same section) would be the correct algorithm, weighted by actual durations. This experiment is not worth pursuing further without duration data from GCS.
+**Conclusion:** LPT with test count proxy is not viable. Roundrobin hash sharding outperforms it because it operates at the individual-test level where the law of large numbers applies, rather than at the file level where duration variance is extreme. To make LPT work, actual per-test durations would be needed — but even then, the 2D bin-packing problem (N xdist workers per shard) means total-duration LPT also fails (see "LPT Second Run Analysis" above). The worker-simulated LPT approach would be the correct algorithm, but requires real per-file duration data from GCS-stored pytest.json reports.
+
+**All LPT variants summarized:** File-count LPT: +61% wall clock (catastrophic). Flat duration LPT: mathematically balanced totals but 289s spread due to ignoring intra-shard parallelism. Worker-simulated LPT: correct algorithm but requires GCS duration data. None are worth revisiting until duration data is plumbed in.
+
+## Experiment: Snuba Unix domain socket (abandoned)
+
+**Hypothesis:** Route sentry→Snuba HTTP traffic over Unix domain sockets instead of TCP to reduce per-request overhead, mirroring the postgres socket win.
+
+**Why it was wrong:** The postgres socket optimization was meaningful because the Postgres wire protocol has multiple synchronous round trips per ORM call (BEGIN, query, COMMIT, keepalive), so TCP latency accumulates across thousands of calls per test. Snuba HTTP is a single request/response per interaction — one RTT, stateless. Transport overhead is microseconds per request. Even at 500 Snuba requests per worker per shard, the savings would be ~50–100ms total, not worth the complexity.
+
+**Blocker discovered:** Snuba has migrated from uWSGI to **granian** (a Rust-based ASGI server). The implementation relied on `UWSGI_HTTP_SOCKET` being picked up via `_prepare_environ()`'s `os.environ.setdefault()` in `snuba/utils/uwsgi.py`. Granian ignores that env var entirely and binds to TCP 1218 as normal. Container logs confirm: `[INFO] Starting granian ... [INFO] Listening at: http://0.0.0.0:1218`. The Unix socket health check found no socket file and the background bootstrap reported failure.
+
+**Alternatives considered and rejected:**
+
+- _socat bridge_: `socat UNIX-LISTEN:/tmp/snuba-sock/snuba-gw${i}.sock,fork TCP:127.0.0.1:${WORKER_PORT}` on the host would create the socket file, but sentry → Unix socket → socat → TCP loopback → granian adds an extra process hop. Still pays TCP overhead, adds latency rather than reducing it.
+- _Granian Unix socket config_: Would require overriding the container entrypoint to pass a `--host unix:/path` flag to granian. Involves Snuba-side changes and the fundamental savings would still be negligible.
+
+**Branch:** `mchen/snuba-sock` (run [`22205812197`](https://github.com/getsentry/sentry/actions/runs/22205812197), all T2 shards failing — abandoned, not merged).
