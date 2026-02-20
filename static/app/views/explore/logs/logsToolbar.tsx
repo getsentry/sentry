@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
+import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -281,85 +282,43 @@ function VisualizeDropdown({
     if (aggregateFunction === AggregationKey.COUNT) {
       return [{label: t('logs'), value: OurLogKnownFieldKey.MESSAGE}];
     }
-
+    const seen = new Set<string>();
     return aggregateFunction === AggregationKey.COUNT_UNIQUE
       ? [
           ...sortedNumberKeys.map(key => {
-            const label = prettifyTagKey(key);
-            return {
-              label,
-              value: key,
-              textValue: key,
-              trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
-              showDetailsInOverlay: true,
-              details: (
-                <AttributeDetails
-                  column={key}
-                  kind={FieldKind.MEASUREMENT}
-                  label={label}
-                  traceItemType={TraceItemDataset.LOGS}
-                />
-              ),
-            };
+            return optionFromTag(
+              {key, name: prettifyTagKey(key), kind: FieldKind.MEASUREMENT},
+              TraceItemDataset.LOGS
+            );
           }),
           ...sortedStringKeys.map(key => {
-            const label = prettifyTagKey(key);
-            return {
-              label,
-              value: key,
-              textValue: key,
-              trailingItems: <TypeBadge kind={FieldKind.TAG} />,
-              showDetailsInOverlay: true,
-              details: (
-                <AttributeDetails
-                  column={key}
-                  kind={FieldKind.TAG}
-                  label={label}
-                  traceItemType={TraceItemDataset.LOGS}
-                />
-              ),
-            };
+            return optionFromTag(
+              {key, name: prettifyTagKey(key), kind: FieldKind.TAG},
+              TraceItemDataset.LOGS
+            );
           }),
           ...sortedBooleanKeys.map(key => {
-            const label = prettifyTagKey(key);
-            return {
-              label,
-              value: key,
-              textValue: key,
-              trailingItems: <TypeBadge kind={FieldKind.BOOLEAN} />,
-              showDetailsInOverlay: true,
-              details: (
-                <AttributeDetails
-                  column={key}
-                  kind={FieldKind.BOOLEAN}
-                  label={label}
-                  traceItemType={TraceItemDataset.LOGS}
-                />
-              ),
-            };
+            return optionFromTag(
+              {key, name: prettifyTagKey(key), kind: FieldKind.BOOLEAN},
+              TraceItemDataset.LOGS
+            );
           }),
-        ].toSorted((a, b) => {
-          const aLabel = prettifyTagKey(a.value);
-          const bLabel = prettifyTagKey(b.value);
-          return aLabel.localeCompare(bLabel);
-        })
+        ]
+          .filter(option => {
+            if (seen.has(option.value)) return false;
+            seen.add(option.value);
+            return true;
+          })
+          .toSorted((a, b) => {
+            const aLabel = prettifyTagKey(a.value);
+            const bLabel = prettifyTagKey(b.value);
+            return aLabel.localeCompare(bLabel);
+          })
       : sortedNumberKeys.map(key => {
-          const label = prettifyTagKey(key);
-          return {
-            label,
-            value: key,
-            textValue: key,
-            trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
-            showDetailsInOverlay: true,
-            details: (
-              <AttributeDetails
-                column={key}
-                kind={FieldKind.MEASUREMENT}
-                label={label}
-                traceItemType={TraceItemDataset.LOGS}
-              />
-            ),
-          };
+          return optionFromTag(
+            {key, name: prettifyTagKey(key), kind: FieldKind.MEASUREMENT},
+            TraceItemDataset.LOGS
+          );
         });
   }, [aggregateFunction, sortedBooleanKeys, sortedNumberKeys, sortedStringKeys]);
 
@@ -421,75 +380,44 @@ function ToolbarGroupBy({onSearch, onClose}: LogsToolbarProps) {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
-  const options = useMemo(
-    () =>
-      [
-        {
-          label: '\u2014',
-          value: '',
-          textValue: '\u2014',
-        },
-        ...Object.keys(numberTags ?? {}).map(key => {
-          const label = prettifyTagKey(key);
-          return {
-            label,
-            value: key,
-            textValue: key,
-            trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
-            showDetailsInOverlay: true,
-            details: (
-              <AttributeDetails
-                column={key}
-                kind={FieldKind.MEASUREMENT}
-                label={label}
-                traceItemType={TraceItemDataset.LOGS}
-              />
-            ),
-          };
-        }),
-        ...Object.keys(stringTags ?? {}).map(key => {
-          const label = prettifyTagKey(key);
-          return {
-            label,
-            value: key,
-            textValue: key,
-            trailingItems: <TypeBadge kind={FieldKind.TAG} />,
-            showDetailsInOverlay: true,
-            details: (
-              <AttributeDetails
-                column={key}
-                kind={FieldKind.TAG}
-                label={label}
-                traceItemType={TraceItemDataset.LOGS}
-              />
-            ),
-          };
-        }),
-        ...Object.keys(booleanTags ?? {}).map(key => {
-          const label = prettifyTagKey(key);
-          return {
-            label,
-            value: key,
-            textValue: key,
-            trailingItems: <TypeBadge kind={FieldKind.BOOLEAN} />,
-            showDetailsInOverlay: true,
-            details: (
-              <AttributeDetails
-                column={key}
-                kind={FieldKind.BOOLEAN}
-                label={label}
-                traceItemType={TraceItemDataset.LOGS}
-              />
-            ),
-          };
-        }),
-      ].toSorted((a, b) => {
+  const options = useMemo(() => {
+    const seen = new Set<string>();
+    return [
+      {
+        label: '\u2014',
+        value: '',
+        textValue: '\u2014',
+      },
+      ...Object.keys(numberTags ?? {}).map(key => {
+        return optionFromTag(
+          {key, name: prettifyTagKey(key), kind: FieldKind.MEASUREMENT},
+          TraceItemDataset.LOGS
+        );
+      }),
+      ...Object.keys(stringTags ?? {}).map(key => {
+        return optionFromTag(
+          {key, name: prettifyTagKey(key), kind: FieldKind.TAG},
+          TraceItemDataset.LOGS
+        );
+      }),
+      ...Object.keys(booleanTags ?? {}).map(key => {
+        return optionFromTag(
+          {key, name: prettifyTagKey(key), kind: FieldKind.BOOLEAN},
+          TraceItemDataset.LOGS
+        );
+      }),
+    ]
+      .filter(option => {
+        if (seen.has(option.value)) return false;
+        seen.add(option.value);
+        return true;
+      })
+      .toSorted((a, b) => {
         const aLabel = prettifyTagKey(a.value);
         const bLabel = prettifyTagKey(b.value);
         return aLabel.localeCompare(bLabel);
-      }),
-    [booleanTags, numberTags, stringTags]
-  );
+      });
+  }, [booleanTags, numberTags, stringTags]);
 
   const setGroupBysWithOp = useCallback(
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
@@ -528,6 +456,24 @@ function ToolbarGroupBy({onSearch, onClose}: LogsToolbarProps) {
       )}
     </DragNDropContext>
   );
+}
+
+function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
+  return {
+    label: tag.name,
+    value: tag.key,
+    textValue: tag.key,
+    trailingItems: <TypeBadge kind={tag.kind} />,
+    showDetailsInOverlay: true,
+    details: (
+      <AttributeDetails
+        column={tag.key}
+        kind={tag.kind}
+        label={tag.key}
+        traceItemType={traceItemType}
+      />
+    ),
+  };
 }
 
 function updateVisualizeAggregate({

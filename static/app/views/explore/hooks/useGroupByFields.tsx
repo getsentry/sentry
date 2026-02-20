@@ -33,6 +33,7 @@ export function useGroupByFields({
   hideEmptyOption,
 }: UseGroupByFieldsProps): Array<SelectOption<string>> {
   return useMemo(() => {
+    const seen = new Set<string>();
     const options = [
       ...Object.entries(numberTags)
         .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
@@ -57,13 +58,17 @@ export function useGroupByFields({
             traceItemType
           )
         ),
-    ];
-
-    options.sort((a, b) => {
-      const aLabel = a.label || '';
-      const bLabel = b.label || '';
-      return aLabel.localeCompare(bLabel);
-    });
+    ]
+      .filter(option => {
+        if (seen.has(option.value)) return false;
+        seen.add(option.value);
+        return true;
+      })
+      .toSorted((a, b) => {
+        const aLabel = a.label || '';
+        const bLabel = b.label || '';
+        return aLabel.localeCompare(bLabel);
+      });
 
     return [
       // hard code in an empty option

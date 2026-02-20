@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {
@@ -45,62 +45,51 @@ export function useVisualizeFields({
   const unknownField = parsedFunction?.arguments[0];
 
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
+    const seen = new Set<string>();
     const unknownOptions = [unknownField]
       .filter(defined)
       .filter(option => !tags.hasOwnProperty(option));
 
-    const options = [
+    return [
       ...unknownOptions.map(option => {
         const label = prettifyTagKey(option);
-        return {
-          label,
-          value: option,
-          textValue: option,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={option}
-              label={label}
-              traceItemType={traceItemType}
-            />
-          ),
-        };
+        return optionFromTag({key: option, name: label}, traceItemType);
       }),
       ...Object.values(tags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-          trailingItems: <TypeBadge kind={tag.kind} />,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={tag.key}
-              kind={tag.kind}
-              label={tag.name}
-              traceItemType={traceItemType}
-            />
-          ),
-        };
+        return optionFromTag(tag, traceItemType);
       }),
-    ];
-
-    options.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
-
-      if (a.label > b.label) {
-        return 1;
-      }
-
-      return 0;
-    });
-
-    return options;
+    ]
+      .filter(option => {
+        if (seen.has(option.value)) return false;
+        seen.add(option.value);
+        return true;
+      })
+      .toSorted((a, b) => {
+        const aLabel = a.label || '';
+        const bLabel = b.label || '';
+        return aLabel.localeCompare(bLabel);
+      });
   }, [tags, unknownField, traceItemType]);
 
   return fieldOptions;
+}
+
+function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
+  return {
+    label: tag.name,
+    value: tag.key,
+    textValue: tag.key,
+    trailingItems: <TypeBadge kind={tag.kind} />,
+    showDetailsInOverlay: true,
+    details: (
+      <AttributeDetails
+        column={tag.key}
+        kind={tag.kind}
+        label={tag.key}
+        traceItemType={traceItemType}
+      />
+    ),
+  };
 }
 
 function getSupportedAttributes({
