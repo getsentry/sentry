@@ -169,6 +169,10 @@ class VirtualColumnDefinition:
     default_value: str | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
+    # The raw source column to use for ORDER BY instead of the virtual column.
+    # When set, sorting uses this column (with original values) rather than the
+    # transformed virtual column values, which may not sort in the desired order.
+    sort_column: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
