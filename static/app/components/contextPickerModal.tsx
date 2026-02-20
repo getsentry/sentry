@@ -558,6 +558,7 @@ function ContextPickerModalWithOrgSelection(
   } = props;
   const needProject = sharedProps.needProject;
   const needTeam = sharedProps.needTeam;
+  // Always key team data by selected org so context-picker org changes refetch correctly.
   const teamsQueryKey = [
     getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
       path: {organizationIdOrSlug: selectedOrgSlug},
