@@ -93,7 +93,7 @@ export function Chart({
   height,
   projects,
   project,
-  organization,
+  organization: _organization,
   additionalSeries,
   applyRegressionFormatToInterval = false,
 }: Props) {
@@ -118,9 +118,7 @@ export function Chart({
     browserHistory.push(to);
   };
 
-  const derivedTrendChangeType = organization.features.includes('performance-new-trends')
-    ? transaction?.change
-    : trendChangeType;
+  const derivedTrendChangeType = transaction?.change;
 
   const trendToColor = makeTrendToColorMapping(theme);
   const lineColor =

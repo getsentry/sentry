@@ -59,7 +59,6 @@ class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
         FEATURES = (
             "organizations:discover-basic",
             "organizations:performance-view",
-            "organizations:performance-new-widget-designs",
         )
 
         with self.feature(FEATURES):

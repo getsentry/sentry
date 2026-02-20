@@ -419,31 +419,8 @@ export function viewSamplesTarget({
   });
 }
 
-export function getDefaultExploreRoute(organization: Organization) {
-  if (
-    organization.features.includes('performance-trace-explorer') ||
-    organization.features.includes('visibility-explore-view')
-  ) {
-    return 'traces';
-  }
-
-  if (organization.features.includes('ourlogs-enabled')) {
-    return 'logs';
-  }
-
-  if (organization.features.includes('discover-basic')) {
-    return 'discover/homepage';
-  }
-
-  if (organization.features.includes('performance-profiling')) {
-    return 'profiling';
-  }
-
-  if (organization.features.includes('session-replay-ui')) {
-    return 'replays';
-  }
-
-  return 'releases';
+export function getDefaultExploreRoute(_organization: Organization) {
+  return 'traces';
 }
 
 export function computeVisualizeSampleTotals(

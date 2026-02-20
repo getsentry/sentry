@@ -7,7 +7,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -67,15 +66,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
         }
     )
 
-    def has_feature(self, organization, request):
-        return features.has(
-            "organizations:performance-new-trends", organization, actor=request.user
-        )
-
     def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
