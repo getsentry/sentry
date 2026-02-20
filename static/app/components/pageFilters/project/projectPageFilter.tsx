@@ -86,14 +86,13 @@ export interface ProjectPageFilterProps extends Partial<
  * fzf-based search matcher for the project dropdown. Runs the fzf v1 algorithm
  * against the option's textValue (project slug) so that fuzzy/subsequence matches
  * are ranked by score rather than relying on plain substring inclusion.
- * Search is case-sensitive since project slugs are always lowercase.
  */
 function projectSearchMatcher(option: SelectOptionWithKey<SelectKey>, search: string) {
   const text = option.textValue ?? (typeof option.label === 'string' ? option.label : '');
   if (!text) {
     return {score: 0};
   }
-  return fzf(text, search, /* caseSensitive */ true);
+  return fzf(text, search, false);
 }
 
 /**
