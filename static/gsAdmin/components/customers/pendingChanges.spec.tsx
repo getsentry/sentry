@@ -18,14 +18,6 @@ import {ANNUAL, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import * as usePlanMigrations from 'getsentry/hooks/usePlanMigrations';
 import {CohortId, OnDemandBudgetMode} from 'getsentry/types';
 
-jest.mock('getsentry/hooks/usePlanMigrations', () => {
-  const actual = jest.requireActual('getsentry/hooks/usePlanMigrations');
-  return {
-    ...actual,
-    usePlanMigrations: jest.fn(actual.usePlanMigrations),
-  };
-});
-
 describe('PendingChanges', () => {
   it('renders null pendingChanges)', () => {
     const subscription = SubscriptionFixture({
@@ -292,8 +284,8 @@ describe('PendingChanges', () => {
       effectiveAt: migrationDate,
     });
     jest
-      .mocked(usePlanMigrations.usePlanMigrations)
-      .mockReturnValueOnce({planMigrations: [migration], isLoading: false});
+      .spyOn(usePlanMigrations, 'usePlanMigrations')
+      .mockReturnValue({planMigrations: [migration], isLoading: false});
 
     const {container} = render(<PendingChanges subscription={subscription} />);
 

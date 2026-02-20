@@ -5,15 +5,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import * as indicators from 'sentry/actionCreators/indicator';
 import ApiTokenDetails from 'sentry/views/settings/account/apiTokenDetails';
 
-jest.mock('sentry/actionCreators/indicator', () => {
-  const actual = jest.requireActual('sentry/actionCreators/indicator');
-  return {
-    ...actual,
-    addErrorMessage: jest.fn(),
-    addSuccessMessage: jest.fn(),
-  };
-});
-
 describe('ApiNewToken', () => {
   MockApiClient.clearMockResponses();
 

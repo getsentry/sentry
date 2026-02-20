@@ -18,22 +18,6 @@ import * as analytics from 'sentry/utils/analytics';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
-jest.mock('sentry/utils/analytics', () => {
-  const actual = jest.requireActual('sentry/utils/analytics');
-  return {
-    ...actual,
-    trackAnalytics: jest.fn(actual.trackAnalytics),
-  };
-});
-
-jest.mock('sentry/actionCreators/modal', () => {
-  const actual = jest.requireActual('sentry/actionCreators/modal');
-  return {
-    ...actual,
-    openModal: jest.fn(actual.openModal),
-  };
-});
-
 describe('HighlightsDataSection', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
@@ -51,8 +35,8 @@ describe('HighlightsDataSection', () => {
     browser: ['name', 'version'],
   };
   const highlightContextTitles = ['User: email', 'Browser: name', 'Browser: version'];
-  const analyticsSpy = jest.mocked(analytics.trackAnalytics);
-  const modalSpy = jest.mocked(modal.openModal);
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const modalSpy = jest.spyOn(modal, 'openModal');
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

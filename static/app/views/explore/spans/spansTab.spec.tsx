@@ -25,10 +25,6 @@ import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryPar
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-const actualUseTraceItemTags = jest.requireActual<
-  typeof import('sentry/views/explore/contexts/spanTagsContext')
->('sentry/views/explore/contexts/spanTagsContext').useTraceItemTags;
-
 function Wrapper({children}: {children: ReactNode}) {
   return (
     <SpansQueryParamsProvider>
@@ -40,13 +36,6 @@ function Wrapper({children}: {children: ReactNode}) {
 }
 
 jest.mock('sentry/utils/analytics');
-jest.mock('sentry/views/explore/contexts/spanTagsContext', () => {
-  const actual = jest.requireActual('sentry/views/explore/contexts/spanTagsContext');
-  return {
-    ...actual,
-    useTraceItemTags: jest.fn(actual.useTraceItemTags),
-  };
-});
 
 const mockStringTags: TagCollection = {
   stringTag1: {key: 'stringTag1', kind: FieldKind.TAG, name: 'stringTag1'},
@@ -341,16 +330,18 @@ describe('SpansTabContent', () => {
     let spies: jest.SpyInstance[];
 
     beforeEach(() => {
-      jest.mocked(spanTagsModule.useTraceItemTags).mockImplementation(type => {
-        switch (type) {
-          case 'number':
-            return {tags: mockNumberTags, isLoading: false, secondaryAliases: {}};
-          case 'string':
-            return {tags: mockStringTags, isLoading: false, secondaryAliases: {}};
-          default:
-            return {tags: {}, isLoading: false, secondaryAliases: {}};
-        }
-      });
+      const useSpanTagsSpy = jest
+        .spyOn(spanTagsModule, 'useTraceItemTags')
+        .mockImplementation(type => {
+          switch (type) {
+            case 'number':
+              return {tags: mockNumberTags, isLoading: false, secondaryAliases: {}};
+            case 'string':
+              return {tags: mockStringTags, isLoading: false, secondaryAliases: {}};
+            default:
+              return {tags: {}, isLoading: false, secondaryAliases: {}};
+          }
+        });
 
       // Mock getBoundingClientRect for container
       const getBoundingClientRectSpy = jest
@@ -388,14 +379,10 @@ describe('SpansTabContent', () => {
         .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
         .mockReturnValue(1000);
 
-      spies = [getBoundingClientRectSpy, clientWidthGetSpy];
+      spies = [useSpanTagsSpy, getBoundingClientRectSpy, clientWidthGetSpy];
     });
 
     afterEach(() => {
-      jest
-        .mocked(spanTagsModule.useTraceItemTags)
-        .mockImplementation(actualUseTraceItemTags);
-      jest.mocked(spanTagsModule.useTraceItemTags).mockClear();
       spies.forEach(spy => spy.mockRestore());
     });
 

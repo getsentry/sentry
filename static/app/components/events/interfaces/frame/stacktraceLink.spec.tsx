@@ -17,14 +17,6 @@ import * as analytics from 'sentry/utils/analytics';
 
 import {StacktraceLink} from './stacktraceLink';
 
-jest.mock('sentry/utils/analytics', () => {
-  const actual = jest.requireActual('sentry/utils/analytics');
-  return {
-    ...actual,
-    trackAnalytics: jest.fn(actual.trackAnalytics),
-  };
-});
-
 describe('StacktraceLink', () => {
   const org = OrganizationFixture();
   const platform = 'python';
@@ -40,7 +32,7 @@ describe('StacktraceLink', () => {
   const frame = {filename: '/sentry/app.py', lineNo: 233, inApp: true} as Frame;
   const config = RepositoryProjectPathConfigFixture({project, repo, integration});
 
-  const analyticsSpy = jest.mocked(analytics.trackAnalytics);
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(() => {
     jest.clearAllMocks();

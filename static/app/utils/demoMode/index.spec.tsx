@@ -1,5 +1,4 @@
 import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
 
 import {
   extraQueryParameter,
@@ -64,25 +63,22 @@ describe('Demo Mode Functions', () => {
   describe('isDemoModeActive', () => {
     it('returns true if demoMode is enabled and user is not a superuser', () => {
       jest.spyOn(ConfigStore, 'get').mockReturnValue(true);
-      jest.spyOn(OrganizationStore, 'getState').mockReturnValue({
-        organization: {access: []},
-      } as any);
+      jest
+        .spyOn(require('sentry/utils/isActiveSuperuser'), 'isActiveSuperuser')
+        .mockReturnValue(false);
       expect(isDemoModeActive()).toBe(true);
     });
 
     it('returns false if demoMode is enabled but user is a superuser', () => {
       jest.spyOn(ConfigStore, 'get').mockReturnValue(true);
-      jest.spyOn(OrganizationStore, 'getState').mockReturnValue({
-        organization: {access: ['org:superuser']},
-      } as any);
+      jest
+        .spyOn(require('sentry/utils/isActiveSuperuser'), 'isActiveSuperuser')
+        .mockReturnValue(true);
       expect(isDemoModeActive()).toBe(false);
     });
 
     it('returns false if demoMode is not enabled', () => {
       jest.spyOn(ConfigStore, 'get').mockReturnValue(false);
-      jest.spyOn(OrganizationStore, 'getState').mockReturnValue({
-        organization: {access: []},
-      } as any);
       expect(isDemoModeActive()).toBe(false);
     });
   });

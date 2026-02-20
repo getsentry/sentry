@@ -18,14 +18,6 @@ import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
-jest.mock('sentry/actionCreators/indicator', () => {
-  const actual = jest.requireActual('sentry/actionCreators/indicator');
-  return {
-    ...actual,
-    addSuccessMessage: jest.fn(actual.addSuccessMessage),
-  };
-});
-
 describe('StreamlinedActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
@@ -141,7 +133,7 @@ describe('StreamlinedActivitySection', () => {
   });
 
   it('renders note and allows for edit', async () => {
-    const addSuccessMessageMock = jest.mocked(indicators.addSuccessMessage);
+    jest.spyOn(indicators, 'addSuccessMessage');
 
     const editGroup = GroupFixture({
       id: '1123',
@@ -185,7 +177,7 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     expect(editMock).toHaveBeenCalledTimes(1);
-    expect(addSuccessMessageMock).toHaveBeenCalledWith('Comment updated');
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
   });
 
   it('renders note from a sentry app', async () => {

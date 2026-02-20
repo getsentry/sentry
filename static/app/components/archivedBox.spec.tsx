@@ -7,17 +7,9 @@ import * as analytics from 'sentry/utils/analytics';
 
 import ArchivedBox from './archivedBox';
 
-jest.mock('sentry/utils/analytics', () => {
-  const actual = jest.requireActual('sentry/utils/analytics');
-  return {
-    ...actual,
-    trackAnalytics: jest.fn(actual.trackAnalytics),
-  };
-});
-
 describe('ArchivedBox', () => {
   const organization = OrganizationFixture();
-  const analyticsSpy = jest.mocked(analytics.trackAnalytics);
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   it('handles ignoreUntil', () => {
     render(

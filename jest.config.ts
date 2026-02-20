@@ -25,6 +25,7 @@ const swcConfig: SwcOptions = {
     },
     experimental: {
       plugins: [
+        ['@swc-contrib/mut-cjs-exports', {}],
         [
           '@swc/plugin-emotion',
           {

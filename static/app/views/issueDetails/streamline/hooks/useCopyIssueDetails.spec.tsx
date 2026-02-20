@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -16,45 +15,11 @@ import type {GroupSummaryData} from 'sentry/components/group/groupSummary';
 import * as groupSummaryHooks from 'sentry/components/group/groupSummary';
 import {EntryType} from 'sentry/types/event';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
-import * as useHotkeysModule from 'sentry/utils/useHotkeys';
+import * as useOrganization from 'sentry/utils/useOrganization';
 import {
   issueAndEventToMarkdown,
   useCopyIssueDetails,
 } from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
-jest.mock('sentry/components/group/groupSummary', () => {
-  const actual = jest.requireActual('sentry/components/group/groupSummary');
-  return {
-    ...actual,
-    useGroupSummaryData: jest.fn(actual.useGroupSummaryData),
-  };
-});
-
-jest.mock('sentry/components/events/autofix/useAutofix', () => {
-  const actual = jest.requireActual('sentry/components/events/autofix/useAutofix');
-  return {
-    ...actual,
-    useAutofixData: jest.fn(actual.useAutofixData),
-  };
-});
-
-jest.mock('sentry/actionCreators/indicator', () => {
-  const actual = jest.requireActual('sentry/actionCreators/indicator');
-  return {
-    ...actual,
-    addErrorMessage: jest.fn(actual.addErrorMessage),
-    addSuccessMessage: jest.fn(actual.addSuccessMessage),
-  };
-});
-
-jest.mock('sentry/utils/useHotkeys', () => {
-  const actual = jest.requireActual('sentry/utils/useHotkeys');
-  return {
-    ...actual,
-    useHotkeys: jest.fn(actual.useHotkeys),
-  };
-});
 
 jest.mock('sentry/utils/useCopyToClipboard');
 
@@ -65,11 +30,6 @@ describe('useCopyIssueDetails', () => {
     id: '123456',
     dateCreated: '2023-01-01T00:00:00Z',
   });
-  const wrapper = ({children}: {children: ReactNode}) => (
-    <OrganizationContext.Provider value={organization}>
-      {children}
-    </OrganizationContext.Provider>
-  );
 
   const mockGroupSummaryData: GroupSummaryData = {
     groupId: group.id,
@@ -414,31 +374,32 @@ describe('useCopyIssueDetails', () => {
         copy: mockCopy,
       });
 
-      jest.mocked(groupSummaryHooks.useGroupSummaryData).mockReturnValue({
+      jest.spyOn(groupSummaryHooks, 'useGroupSummaryData').mockReturnValue({
         data: mockGroupSummaryData,
         isPending: false,
       });
 
-      jest.mocked(autofixHooks.useAutofixData).mockReturnValue({
+      jest.spyOn(autofixHooks, 'useAutofixData').mockReturnValue({
         data: mockAutofixData,
         isPending: false,
       });
 
-      jest.mocked(indicators.addSuccessMessage).mockImplementation(() => {});
-      jest.mocked(indicators.addErrorMessage).mockImplementation(() => {});
+      jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
+      jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
+      jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
     });
 
     it('calls useCopyToClipboard hook', () => {
-      renderHook(() => useCopyIssueDetails(group, event), {wrapper});
+      renderHook(() => useCopyIssueDetails(group, event));
 
       // Check that the hook was called
       expect(copyToClipboardModule.default).toHaveBeenCalled();
     });
 
     it('sets up hotkeys with the correct callbacks', () => {
-      const useHotkeysMock = jest.mocked(useHotkeysModule.useHotkeys);
+      const useHotkeysMock = jest.spyOn(require('sentry/utils/useHotkeys'), 'useHotkeys');
 
-      renderHook(() => useCopyIssueDetails(group, event), {wrapper});
+      renderHook(() => useCopyIssueDetails(group, event));
 
       expect(useHotkeysMock).toHaveBeenCalledWith([
         {
@@ -462,7 +423,7 @@ describe('useCopyIssueDetails', () => {
         return Promise.resolve(text);
       });
 
-      renderHook(() => useCopyIssueDetails(group, undefined), {wrapper});
+      renderHook(() => useCopyIssueDetails(group, undefined));
 
       // Trigger the keyboard event (command+alt+c)
       const keyboardEvent = new KeyboardEvent('keydown', {
@@ -490,7 +451,7 @@ describe('useCopyIssueDetails', () => {
         return Promise.resolve(text);
       });
 
-      renderHook(() => useCopyIssueDetails(group, event), {wrapper});
+      renderHook(() => useCopyIssueDetails(group, event));
 
       // Trigger the keyboard event (command+alt+c)
       const keyboardEvent = new KeyboardEvent('keydown', {

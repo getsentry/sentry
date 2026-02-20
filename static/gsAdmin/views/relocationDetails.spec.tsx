@@ -12,14 +12,6 @@ import * as useNavigateModule from 'sentry/utils/useNavigate';
 
 import RelocationDetails from 'admin/views/relocationDetails';
 
-jest.mock('sentry/utils/useNavigate', () => {
-  const actual = jest.requireActual('sentry/utils/useNavigate');
-  return {
-    ...actual,
-    useNavigate: jest.fn(),
-  };
-});
-
 jest.mock('sentry/actionCreators/indicator');
 
 describe('Relocation Details', () => {

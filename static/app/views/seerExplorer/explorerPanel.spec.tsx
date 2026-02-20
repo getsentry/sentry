@@ -14,19 +14,6 @@ import * as useSeerExplorerModule from './hooks/useSeerExplorer';
 import ExplorerPanel from './explorerPanel';
 
 // Mock createPortal to render content directly
-jest.mock('./hooks/useSeerExplorer', () => {
-  const actual = jest.requireActual('./hooks/useSeerExplorer');
-  return {
-    ...actual,
-    useSeerExplorer: jest.fn(actual.useSeerExplorer),
-  };
-});
-
-const actualUseSeerExplorer = jest.requireActual<
-  typeof import('./hooks/useSeerExplorer')
->('./hooks/useSeerExplorer').useSeerExplorer;
-const mockUseSeerExplorer = jest.mocked(useSeerExplorerModule.useSeerExplorer);
-
 jest.mock('react-dom', () => ({
   ...jest.requireActual('react-dom'),
   createPortal: (node: React.ReactNode) => node,
@@ -106,8 +93,6 @@ describe('ExplorerPanel', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
-    jest.clearAllMocks();
-    mockUseSeerExplorer.mockImplementation(actualUseSeerExplorer);
 
     // This matches the real behavior when no run ID is provided to the endpoint.
     MockApiClient.addMockResponse({
@@ -209,24 +194,26 @@ describe('ExplorerPanel', () => {
     });
 
     it('shows error when hook returns isError=true', () => {
-      mockUseSeerExplorer.mockReturnValue({
-        runId: 123,
-        sessionData: null, // should always be null when isError
-        sendMessage: jest.fn(),
-        deleteFromIndex: jest.fn(),
-        startNewSession: jest.fn(),
-        isPolling: false,
-        isError: true, // isError
-        isPending: false,
-        deletedFromIndex: null,
-        interruptRun: jest.fn(),
-        interruptRequested: false,
-        wasJustInterrupted: false,
-        clearWasJustInterrupted: jest.fn(),
-        switchToRun: jest.fn(),
-        respondToUserInput: jest.fn(),
-        createPR: jest.fn(),
-      });
+      const useSeerExplorerSpy = jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          runId: 123,
+          sessionData: null, // should always be null when isError
+          sendMessage: jest.fn(),
+          deleteFromIndex: jest.fn(),
+          startNewSession: jest.fn(),
+          isPolling: false,
+          isError: true, // isError
+          isPending: false,
+          deletedFromIndex: null,
+          interruptRun: jest.fn(),
+          interruptRequested: false,
+          wasJustInterrupted: false,
+          clearWasJustInterrupted: jest.fn(),
+          switchToRun: jest.fn(),
+          respondToUserInput: jest.fn(),
+          createPR: jest.fn(),
+        });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
@@ -236,6 +223,8 @@ describe('ExplorerPanel', () => {
       expect(
         screen.queryByText(/Ask Seer anything about your application./)
       ).not.toBeInTheDocument();
+
+      useSeerExplorerSpy.mockRestore();
     });
   });
 
@@ -268,7 +257,7 @@ describe('ExplorerPanel', () => {
       };
 
       // Mock the hook to return our test data
-      mockUseSeerExplorer.mockReturnValue({
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
         sessionData:
           mockSessionData as useSeerExplorerModule.SeerExplorerResponse['session'],
         sendMessage: jest.fn(),
@@ -297,6 +286,9 @@ describe('ExplorerPanel', () => {
       expect(
         screen.queryByText(/Ask Seer anything about your application./)
       ).not.toBeInTheDocument();
+
+      // Restore the mock
+      jest.restoreAllMocks();
     });
   });
 

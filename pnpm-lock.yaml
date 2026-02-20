@@ -565,6 +565,9 @@ importers:
       '@styled/typescript-styled-plugin':
         specifier: ^1.0.1
         version: 1.0.1
+      '@swc-contrib/mut-cjs-exports':
+        specifier: ^14.6.0
+        version: 14.6.0(@swc/core@1.15.11)(@swc/jest@0.2.39(@swc/core@1.15.11))
       '@swc/core':
         specifier: ^1.15.11
         version: 1.15.11
@@ -2940,6 +2943,12 @@ packages:
 
   '@styled/typescript-styled-plugin@1.0.1':
     resolution: {integrity: sha512-4n9uYJiui4hqGIEMvs/u7sfjbs1/84shYt2Fxcm0JQbvUGfuFhtsqVG5y1hSvw5kTwdpIe4rbXMMOwVHcuAh1g==}
+
+  '@swc-contrib/mut-cjs-exports@14.6.0':
+    resolution: {integrity: sha512-vIzzDOZKI9GIfekiCxDdezf6nVW1YdMm1ausxkFTH8nxcoQ9eGqAnGBJJLwpKS6fjzfXJJiww4tbARLfhdRZww==}
+    peerDependencies:
+      '@swc/core': ^1.10.0
+      '@swc/jest': ^0.2.37
 
   '@swc/core-darwin-arm64@1.15.11':
     resolution: {integrity: sha512-QoIupRWVH8AF1TgxYyeA5nS18dtqMuxNwchjBIwJo3RdwLEFiJq6onOx9JAxHtuPwUkIVuU2Xbp+jCJ7Vzmgtg==}
@@ -11811,6 +11820,11 @@ snapshots:
       vscode-css-languageservice: 6.3.1
       vscode-languageserver-textdocument: 1.0.12
       vscode-languageserver-types: 3.17.5
+
+  '@swc-contrib/mut-cjs-exports@14.6.0(@swc/core@1.15.11)(@swc/jest@0.2.39(@swc/core@1.15.11))':
+    dependencies:
+      '@swc/core': 1.15.11
+      '@swc/jest': 0.2.39(@swc/core@1.15.11)
 
   '@swc/core-darwin-arm64@1.15.11':
     optional: true

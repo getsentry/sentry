@@ -16,14 +16,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {OrganizationContextProvider} from './organizationContext';
 
-jest.mock('sentry/actionCreators/organizations', () => {
-  const actual = jest.requireActual('sentry/actionCreators/organizations');
-  return {
-    ...actual,
-    switchOrganization: jest.fn(),
-  };
-});
-
 jest.mock('sentry/actionCreators/sudoModal');
 
 describe('OrganizationContext', () => {

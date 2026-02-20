@@ -12,15 +12,6 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import DocIntegrationDetails from 'admin/views/docIntegrationDetails';
 import DocIntegrations from 'admin/views/docIntegrations';
 
-jest.mock('sentry/actionCreators/indicator', () => {
-  const actual = jest.requireActual('sentry/actionCreators/indicator');
-  return {
-    ...actual,
-    addErrorMessage: jest.fn(),
-    addSuccessMessage: jest.fn(),
-  };
-});
-
 describe('Doc Integrations', () => {
   it('renders', () => {
     MockApiClient.addMockResponse({

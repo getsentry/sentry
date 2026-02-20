@@ -35,21 +35,6 @@ import ViewEditDashboard from 'sentry/views/dashboards/view';
 import useWidgetBuilderState from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/actionCreators/modal', () => {
-  const actual = jest.requireActual('sentry/actionCreators/modal');
-  return {
-    ...actual,
-    openWidgetViewerModal: jest.fn(),
-  };
-});
-jest.mock('sentry/actionCreators/dashboards', () => {
-  const actual = jest.requireActual('sentry/actionCreators/dashboards');
-  return {
-    ...actual,
-    updateDashboard: jest.fn(actual.updateDashboard),
-  };
-});
-
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 jest.mock('sentry/actionCreators/indicator');
 
@@ -243,7 +228,7 @@ describe('Dashboards > Detail', () => {
     });
 
     it('opens the widget viewer modal in a prebuilt dashboard using the widget id specified in the url', async () => {
-      const openWidgetViewerModal = jest.mocked(modals.openWidgetViewerModal);
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
 
       render(<CreateDashboard />, {
         router: RouterFixture({
@@ -599,25 +584,27 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('hides add widget option', () => {
-      const maxWidgets = Array.from({length: types.MAX_WIDGETS}, (_, index) =>
-        WidgetFixture({id: `${index + 1}`, title: `Widget ${index + 1}`})
-      );
-      jest.spyOn(console, 'error').mockImplementation(() => {});
+    it('hides add widget option', async () => {
+      const router = RouterFixture({
+        location: initialData.router.location,
+        params: {orgId: 'org-slug', dashboardId: '1'},
+      });
+      // @ts-expect-error this is assigning to readonly property...
+      types.MAX_WIDGETS = 1;
 
       render(
-        <DashboardDetail
-          initialState={DashboardState.EDIT}
-          dashboard={DashboardFixture(maxWidgets)}
-          dashboards={[]}
-          onDashboardUpdate={jest.fn()}
-        />,
+        <OrganizationContext value={initialData.organization}>
+          <ViewEditDashboard />
+        </OrganizationContext>,
         {
-          organization: initialData.organization,
+          router,
+          deprecatedRouterMocks: true,
         }
       );
 
-      expect(screen.queryByRole('button', {name: 'Add Widget'})).not.toBeInTheDocument();
+      // Enter edit mode.
+      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      expect(screen.queryByRole('button', {name: 'Add widget'})).not.toBeInTheDocument();
     });
 
     it('renders successfully if more widgets than stored layouts', async () => {
@@ -812,7 +799,7 @@ describe('Dashboards > Detail', () => {
         location: {...initialData.router.location, pathname: '/widget/0/'},
         params: {orgId: 'org-slug', dashboardId: '1', widgetId: '0'},
       });
-      const openWidgetViewerModal = jest.mocked(modals.openWidgetViewerModal);
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       const widget = WidgetFixture({
         queries: [
           {
@@ -859,7 +846,7 @@ describe('Dashboards > Detail', () => {
         },
         params: {orgId: 'org-slug', dashboardId: '1', widgetId: '123'},
       });
-      const openWidgetViewerModal = jest.mocked(modals.openWidgetViewerModal);
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
@@ -988,7 +975,7 @@ describe('Dashboards > Detail', () => {
         params: {orgId: 'org-slug', dashboardId: '1', widgetId: '1'},
       });
 
-      const openWidgetViewerModal = jest.mocked(modals.openWidgetViewerModal);
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(widgets, {
@@ -1021,7 +1008,7 @@ describe('Dashboards > Detail', () => {
         params: {orgId: 'org-slug', dashboardId: '1', widgetId: '1'},
       });
 
-      const openWidgetViewerModal = jest.mocked(modals.openWidgetViewerModal);
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(widgets, {
@@ -2008,9 +1995,7 @@ describe('Dashboards > Detail', () => {
     });
 
     describe('widget builder redesign', () => {
-      let mockUpdateDashboard!: jest.MockedFunction<
-        typeof dashboardActions.updateDashboard
-      >;
+      let mockUpdateDashboard!: jest.SpyInstance;
       beforeEach(() => {
         initialData = initializeOrg({
           organization: OrganizationFixture({
@@ -2018,10 +2003,12 @@ describe('Dashboards > Detail', () => {
           }),
         });
 
-        mockUpdateDashboard = jest.mocked(dashboardActions.updateDashboard);
-        mockUpdateDashboard.mockResolvedValue({
-          ...DashboardFixture([WidgetFixture({id: '1', title: 'Custom Widget'})]),
-        });
+        // Mock just the updateDashboard function
+        mockUpdateDashboard = jest
+          .spyOn(dashboardActions, 'updateDashboard')
+          .mockResolvedValue({
+            ...DashboardFixture([WidgetFixture({id: '1', title: 'Custom Widget'})]),
+          });
 
         jest.mocked(useWidgetBuilderState).mockReturnValue({
           dispatch: jest.fn(),
@@ -2030,7 +2017,7 @@ describe('Dashboards > Detail', () => {
       });
 
       afterEach(() => {
-        mockUpdateDashboard.mockReset();
+        mockUpdateDashboard.mockRestore();
       });
 
       it('opens the widget builder slideout when clicking add widget', async () => {

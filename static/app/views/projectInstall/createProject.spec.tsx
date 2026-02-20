@@ -19,18 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
 
-const actualUseValidateChannel = jest.requireActual<
-  typeof import('sentry/views/projectInstall/useValidateChannel')
->('sentry/views/projectInstall/useValidateChannel').useValidateChannel;
-
-jest.mock('sentry/views/projectInstall/useValidateChannel', () => {
-  const actual = jest.requireActual('sentry/views/projectInstall/useValidateChannel');
-  return {
-    ...actual,
-    useValidateChannel: jest.fn(actual.useValidateChannel),
-  };
-});
-
 jest.mock('sentry/actionCreators/indicator');
 
 function renderFrameworkModalMockRequests({
@@ -97,10 +85,6 @@ describe('CreateProject', () => {
   });
 
   beforeEach(() => {
-    jest
-      .mocked(useValidateChannelModule.useValidateChannel)
-      .mockImplementation(actualUseValidateChannel);
-
     TeamStore.reset();
     TeamStore.loadUserTeams([teamNoAccess]);
 
@@ -642,7 +626,7 @@ describe('CreateProject', () => {
         teamSlug: teamWithAccess.slug,
       });
 
-      jest.mocked(useValidateChannelModule.useValidateChannel).mockReturnValue({
+      jest.spyOn(useValidateChannelModule, 'useValidateChannel').mockReturnValue({
         isFetching: true,
         clear: jest.fn(),
         error: undefined,

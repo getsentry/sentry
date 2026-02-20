@@ -16,14 +16,6 @@ import OrganizationFeatureFlagsChangeTracking, {
   type Secret,
 } from 'sentry/views/settings/featureFlags/changeTracking';
 
-jest.mock('sentry/actionCreators/indicator', () => {
-  const actual = jest.requireActual('sentry/actionCreators/indicator');
-  return {
-    ...actual,
-    addSuccessMessage: jest.fn(),
-  };
-});
-
 describe('OrganizationFeatureFlagsIndex', () => {
   const SECRETS_ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
   const LOGS_ENDPOINT = '/organizations/org-slug/flags/logs/';

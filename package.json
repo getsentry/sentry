@@ -193,6 +193,7 @@
     "@sentry/jest-environment": "6.1.0",
     "@sentry/profiling-node": "10.27.0",
     "@styled/typescript-styled-plugin": "^1.0.1",
+    "@swc-contrib/mut-cjs-exports": "^14.6.0",
     "@swc/core": "^1.15.11",
     "@swc/jest": "^0.2.39",
     "@tanstack/eslint-plugin-query": "5.83.1",

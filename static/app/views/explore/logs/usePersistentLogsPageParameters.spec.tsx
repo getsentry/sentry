@@ -21,8 +21,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 }));
 
 jest.mock('sentry/views/explore/contexts/logs/logsPageParams', () => ({
-  LOGS_CURSOR_KEY: 'logsCursor',
-  LOGS_FIELDS_KEY: 'logsFields',
+  ...jest.requireActual('sentry/views/explore/contexts/logs/logsPageParams'),
   usePersistedLogsPageParams: jest.fn(),
 }));
 

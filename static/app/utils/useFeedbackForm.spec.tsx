@@ -7,20 +7,6 @@ import type {
 import * as useFeedbackSDKIntegration from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {GlobalFeedbackForm, useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
-jest.mock('sentry/components/feedbackButton/useFeedbackSDKIntegration', () => {
-  const actual = jest.requireActual(
-    'sentry/components/feedbackButton/useFeedbackSDKIntegration'
-  );
-  return {
-    ...actual,
-    useFeedbackSDKIntegration: jest.fn(actual.useFeedbackSDKIntegration),
-  };
-});
-
-const mockUseFeedbackSDKIntegration = jest.mocked(
-  useFeedbackSDKIntegration.useFeedbackSDKIntegration
-);
-
 const mockForm = {
   appendToDom: jest.fn(),
   open: jest.fn(),
@@ -41,11 +27,10 @@ const defaultOptions: NonNullable<UseFeedbackOptions> = {
 
 describe('useFeedbackForm', () => {
   beforeEach(() => {
+    jest
+      .spyOn(useFeedbackSDKIntegration, 'useFeedbackSDKIntegration')
+      .mockReturnValue({feedback: mockFeedback, defaultOptions});
     jest.clearAllMocks();
-    mockUseFeedbackSDKIntegration.mockReturnValue({
-      feedback: mockFeedback,
-      defaultOptions,
-    });
   });
 
   it('can open the form using useFeedbackForm', async () => {

@@ -13,16 +13,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import localStorage from 'sentry/utils/localStorage';
 
-jest.mock('sentry/components/pageFilters/actions', () => {
-  const actual = jest.requireActual('sentry/components/pageFilters/actions');
-  return {
-    ...actual,
-    updateDateTime: jest.fn(actual.updateDateTime),
-    updateEnvironments: jest.fn(actual.updateEnvironments),
-    updateProjects: jest.fn(actual.updateProjects),
-  };
-});
-
 describe('PageFiltersContainer', () => {
   const organization = OrganizationFixture();
   const projects = [
@@ -30,6 +20,12 @@ describe('PageFiltersContainer', () => {
     ProjectFixture({id: '2', slug: 'project-2'}),
     ProjectFixture({id: '3', slug: 'project-3', environments: ['prod', 'staging']}),
   ];
+
+  beforeAll(() => {
+    jest.spyOn(globalActions, 'updateDateTime');
+    jest.spyOn(globalActions, 'updateEnvironments');
+    jest.spyOn(globalActions, 'updateProjects');
+  });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

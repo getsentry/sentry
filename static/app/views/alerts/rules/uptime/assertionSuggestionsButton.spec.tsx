@@ -16,10 +16,8 @@ jest.mock('sentry/components/globalDrawer', () => {
     default: jest.fn(),
   };
 });
-jest.mock('sentry/actionCreators/indicator');
 
-const mockedUseDrawer = jest.mocked(useDrawer);
-const mockAddErrorMessage = jest.mocked(indicators.addErrorMessage);
+const mockedUseDrawer = useDrawer as unknown as jest.Mock;
 
 describe('AssertionSuggestionsButton', () => {
   const organization = OrganizationFixture();
@@ -40,6 +38,7 @@ describe('AssertionSuggestionsButton', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    jest.spyOn(indicators, 'addErrorMessage');
 
     mockedUseDrawer.mockReturnValue({
       openDrawer: mockOpenDrawer,
@@ -78,7 +77,7 @@ describe('AssertionSuggestionsButton', () => {
     );
 
     await waitFor(() => {
-      expect(mockAddErrorMessage).toHaveBeenCalledWith('Please enter a URL first');
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Please enter a URL first');
     });
     expect(mockOpenDrawer).not.toHaveBeenCalled();
   });

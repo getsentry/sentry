@@ -9,15 +9,6 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 
 import ConsoleSDKInvitesSettings from './index';
 
-jest.mock('sentry/actionCreators/indicator', () => {
-  const actual = jest.requireActual('sentry/actionCreators/indicator');
-  return {
-    ...actual,
-    addErrorMessage: jest.fn(),
-    addSuccessMessage: jest.fn(),
-  };
-});
-
 describe('ConsoleSDKInvitesSettings', () => {
   const ENDPOINT = '/organizations/org-slug/console-sdk-invites/';
 

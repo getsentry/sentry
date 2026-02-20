@@ -8,31 +8,20 @@ import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issu
 import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
 
-const actualUseValidateChannel = jest.requireActual<
-  typeof import('sentry/views/projectInstall/useValidateChannel')
->('sentry/views/projectInstall/useValidateChannel').useValidateChannel;
-
-jest.mock('sentry/views/projectInstall/useValidateChannel', () => {
-  const actual = jest.requireActual('sentry/views/projectInstall/useValidateChannel');
-  return {
-    ...actual,
-    useValidateChannel: jest.fn(actual.useValidateChannel),
-  };
-});
-
 function setupValidateChannelSpy() {
   const mockClear = jest.fn();
-  jest
-    .mocked(useValidateChannelModule.useValidateChannel)
-    .mockImplementation((...args) => {
-      const result = actualUseValidateChannel(...args);
-      return {
-        ...result,
-        clear: mockClear,
-      };
-    });
+  const originalUseValidateChannel = useValidateChannelModule.useValidateChannel;
+  const spy = jest.spyOn(useValidateChannelModule, 'useValidateChannel');
 
-  return {mockClear};
+  spy.mockImplementation((...args) => {
+    const result = originalUseValidateChannel(...args);
+    return {
+      ...result,
+      clear: mockClear,
+    };
+  });
+
+  return {mockClear, spy};
 }
 
 describe('MessagingIntegrationAlertRule', () => {
@@ -84,10 +73,6 @@ describe('MessagingIntegrationAlertRule', () => {
   };
 
   beforeEach(() => {
-    jest
-      .mocked(useValidateChannelModule.useValidateChannel)
-      .mockImplementation(actualUseValidateChannel);
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channels/`,
       body: {
@@ -295,7 +280,7 @@ describe('MessagingIntegrationAlertRule', () => {
       body: {valid: false, detail: 'Channel not found'},
     });
 
-    const {mockClear} = setupValidateChannelSpy();
+    const {mockClear, spy} = setupValidateChannelSpy();
 
     render(
       <MessagingIntegrationAlertRule
@@ -308,6 +293,8 @@ describe('MessagingIntegrationAlertRule', () => {
     await userEvent.click(screen.getByLabelText('Clear choices'));
     expect(mockSetChannel).toHaveBeenCalledWith(undefined);
     expect(mockClear).toHaveBeenCalled();
+
+    spy.mockRestore();
   });
 
   it('clears validation error when provider is changed', async () => {
@@ -321,7 +308,7 @@ describe('MessagingIntegrationAlertRule', () => {
       body: {results: []},
     });
 
-    const {mockClear} = setupValidateChannelSpy();
+    const {mockClear, spy} = setupValidateChannelSpy();
 
     render(
       <MessagingIntegrationAlertRule
@@ -335,6 +322,8 @@ describe('MessagingIntegrationAlertRule', () => {
     await selectEvent.select(screen.getByText('Slack'), 'Discord');
 
     expect(mockClear).toHaveBeenCalled();
+
+    spy.mockRestore();
   });
 
   it('clears validation error when integration is changed', async () => {
@@ -348,7 +337,7 @@ describe('MessagingIntegrationAlertRule', () => {
       body: {results: []},
     });
 
-    const {mockClear} = setupValidateChannelSpy();
+    const {mockClear, spy} = setupValidateChannelSpy();
 
     render(
       <MessagingIntegrationAlertRule
@@ -365,6 +354,8 @@ describe('MessagingIntegrationAlertRule', () => {
     );
 
     expect(mockClear).toHaveBeenCalled();
+
+    spy.mockRestore();
   });
 
   it('displays and sends channel id for microsoft teams', async () => {

@@ -8,14 +8,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-jest.mock('sentry/actionCreators/organizations', () => {
-  const actual = jest.requireActual('sentry/actionCreators/organizations');
-  return {
-    ...actual,
-    setActiveOrganization: jest.fn(),
-  };
-});
-
 describe('OrganizationActionCreator', () => {
   const org = OrganizationFixture();
 

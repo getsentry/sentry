@@ -18,14 +18,6 @@ import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 
 import Homepage from './homepage';
 
-jest.mock('sentry/components/pageFilters/persistence', () => {
-  const actual = jest.requireActual('sentry/components/pageFilters/persistence');
-  return {
-    ...actual,
-    getPageFilterStorage: jest.fn(actual.getPageFilterStorage),
-  };
-});
-
 describe('Discover > Homepage', () => {
   const features = ['discover-query'];
   let organization: ReturnType<typeof OrganizationFixture>;
@@ -385,7 +377,7 @@ describe('Discover > Homepage', () => {
       repository: null,
     };
     jest
-      .mocked(pageFilterUtils.getPageFilterStorage)
+      .spyOn(pageFilterUtils, 'getPageFilterStorage')
       .mockReturnValueOnce(PageFiltersStorageFixture({state}));
 
     render(<Homepage />, {

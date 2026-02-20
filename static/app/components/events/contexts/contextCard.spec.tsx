@@ -7,24 +7,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import * as iconTools from 'sentry/components/events/contexts/contextIcon';
 
-jest.mock('sentry/components/events/contexts/contextIcon', () => {
-  const actual = jest.requireActual('sentry/components/events/contexts/contextIcon');
-  return {
-    ...actual,
-    getLogoImage: jest.fn(actual.getLogoImage),
-  };
-});
-
-const mockGetLogoImage = jest.mocked(iconTools.getLogoImage);
-
 describe('ContextCard', () => {
   const group = GroupFixture();
   const project = ProjectFixture();
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('renders the card with formatted context data', () => {
     const event = EventFixture();
     const alias = 'Things in my Vicinity';
@@ -72,7 +57,9 @@ describe('ContextCard', () => {
 
   it('renders with icons if able', () => {
     const event = EventFixture();
-    const iconSpy = mockGetLogoImage.mockReturnValue('data:image/firefox');
+    const iconSpy = jest
+      .spyOn(iconTools, 'getLogoImage')
+      .mockReturnValue('data:image/firefox');
 
     const browserContext = {
       type: 'browser',

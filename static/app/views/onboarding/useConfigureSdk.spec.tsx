@@ -12,15 +12,8 @@ import {useConfigureSdk} from './useConfigureSdk';
 
 jest.mock('sentry/actionCreators/modal');
 jest.mock('sentry/components/onboarding/useCreateProject');
-jest.mock('sentry/components/onboarding/onboardingContext', () => {
-  const actual = jest.requireActual('sentry/components/onboarding/onboardingContext');
-  return {
-    ...actual,
-    useOnboardingContext: jest.fn(actual.useOnboardingContext),
-  };
-});
 
-const mockUseOnboardingContext = jest.mocked(OnboardingContext.useOnboardingContext);
+const mockUseOnboardingContext = jest.spyOn(OnboardingContext, 'useOnboardingContext');
 const mockCreateProject = jest.fn();
 const mockOpenModal = openModal as jest.Mock;
 

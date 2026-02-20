@@ -15,15 +15,6 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {OrganizationAuthTokensIndex} from 'sentry/views/settings/organizationAuthTokens';
 
-jest.mock('sentry/actionCreators/indicator', () => {
-  const actual = jest.requireActual('sentry/actionCreators/indicator');
-  return {
-    ...actual,
-    addErrorMessage: jest.fn(),
-    addSuccessMessage: jest.fn(),
-  };
-});
-
 describe('OrganizationAuthTokensIndex', () => {
   const ENDPOINT = '/organizations/org-slug/org-auth-tokens/';
   const PROJECTS_ENDPOINT = '/organizations/org-slug/projects/';

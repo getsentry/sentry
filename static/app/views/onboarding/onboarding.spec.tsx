@@ -21,22 +21,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
 
 jest.mock('sentry/utils/analytics');
-jest.mock('sentry/components/onboarding/useRecentCreatedProject', () => {
-  const actual = jest.requireActual(
-    'sentry/components/onboarding/useRecentCreatedProject'
-  );
-  return {
-    ...actual,
-    useRecentCreatedProject: jest.fn(actual.useRecentCreatedProject),
-  };
-});
-
-const actualUseRecentCreatedProject = jest.requireActual<
-  typeof import('sentry/components/onboarding/useRecentCreatedProject')
->('sentry/components/onboarding/useRecentCreatedProject').useRecentCreatedProject;
-const mockUseRecentCreatedProject = jest.mocked(
-  useRecentCreatedProjectHook.useRecentCreatedProject
-);
 
 describe('Onboarding', () => {
   beforeAll(() => {
@@ -46,7 +30,6 @@ describe('Onboarding', () => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
-    mockUseRecentCreatedProject.mockImplementation(actualUseRecentCreatedProject);
   });
 
   it('renders the welcome page', () => {
@@ -351,12 +334,14 @@ describe('Onboarding', () => {
       body: [ProjectKeysFixture()[0]],
     });
 
-    mockUseRecentCreatedProject.mockImplementation(() => {
-      return {
-        project: nextJsProject,
-        isProjectActive: false,
-      };
-    });
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => {
+        return {
+          project: nextJsProject,
+          isProjectActive: false,
+        };
+      });
 
     render(
       <OnboardingContextProvider
@@ -415,12 +400,14 @@ describe('Onboarding', () => {
       body: [],
     });
 
-    mockUseRecentCreatedProject.mockImplementation(() => {
-      return {
-        project: reactProject,
-        isProjectActive: true,
-      };
-    });
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => {
+        return {
+          project: reactProject,
+          isProjectActive: true,
+        };
+      });
 
     render(
       <OnboardingContextProvider
@@ -514,12 +501,14 @@ describe('Onboarding', () => {
       body: [],
     });
 
-    mockUseRecentCreatedProject.mockImplementation(() => {
-      return {
-        project: reactProject,
-        isProjectActive: true,
-      };
-    });
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => {
+        return {
+          project: reactProject,
+          isProjectActive: true,
+        };
+      });
 
     render(
       <OnboardingContextProvider
@@ -581,13 +570,7 @@ describe('Onboarding', () => {
       body: [nextJsProject],
     });
 
-    mockUseRecentCreatedProject.mockImplementation(() => {
-      return {
-        project: nextJsProject,
-        isProjectActive: true,
-      };
-    });
-
+    // Mock for useRecentCreatedProject hook
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${nextJsProject.slug}/overview/`,
       body: [nextJsProject],

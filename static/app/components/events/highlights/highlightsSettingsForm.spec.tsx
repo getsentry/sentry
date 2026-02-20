@@ -6,14 +6,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
 import * as analytics from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics', () => {
-  const actual = jest.requireActual('sentry/utils/analytics');
-  return {
-    ...actual,
-    trackAnalytics: jest.fn(actual.trackAnalytics),
-  };
-});
-
 describe('HighlightsSettingForm', () => {
   const organization = OrganizationFixture();
   const highlightTags = ['environment', 'handled', 'release', 'url'];
@@ -22,7 +14,7 @@ describe('HighlightsSettingForm', () => {
     browser: ['name', 'version'],
   };
   const project = ProjectFixture({highlightContext, highlightTags});
-  const analyticsSpy = jest.mocked(analytics.trackAnalytics);
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(() => {
     MockApiClient.addMockResponse({

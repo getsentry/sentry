@@ -18,14 +18,6 @@ import TeamStore from 'sentry/stores/teamStore';
 import ProjectsDashboard from 'sentry/views/projectsDashboard';
 
 jest.unmock('lodash/debounce');
-jest.mock('sentry/actionCreators/projects', () => {
-  const actual = jest.requireActual('sentry/actionCreators/projects');
-  return {
-    ...actual,
-    loadStatsForProject: jest.fn(actual.loadStatsForProject),
-  };
-});
-
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
   const mockDebounce =
@@ -566,7 +558,7 @@ describe('ProjectsDashboard', () => {
       ProjectsStatsStore.onStatsLoadSuccess([
         {...projects[0]!, stats: [[1517281200, 2]]},
       ]);
-      const loadStatsSpy = jest.mocked(projectsActions.loadStatsForProject);
+      const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
       const mock = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
         body: projects.map(project => ({
