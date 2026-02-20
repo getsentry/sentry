@@ -11,11 +11,33 @@ interface LogEntry {
   trace?: string;
 }
 
+interface GroupedLogEntry {
+  [key: string]: unknown;
+  'count(message)': number;
+  message: string;
+}
+
 interface LogsResponse {
   data: LogEntry[];
   meta?: {
     fields: Record<string, string>;
   };
+}
+
+interface GroupedLogsResponse {
+  data: GroupedLogEntry[];
+  meta?: {
+    fields: Record<string, string>;
+  };
+}
+
+export interface WorkflowLogsOptions {
+  cursor?: string; // Pagination cursor
+  end?: string; // Absolute end: ISO 8601 timestamp
+  groupByMessage?: boolean;
+  messageFilter?: string; // Filter to specific message type (exact match)
+  start?: string; // Absolute start: ISO 8601 timestamp
+  statsPeriod?: string; // Relative: '24h', '7d', etc. (mutually exclusive with start/end)
 }
 
 const LOG_FIELDS = [
@@ -32,30 +54,60 @@ const LOG_FIELDS = [
   'project_id',
 ];
 
+const GROUPED_LOG_FIELDS = ['message', 'count(message)'];
+
 /**
  * Hook to fetch workflow-related logs from the Logging product.
  * Filters logs by the workflow engine evaluation message prefix and workflow ID.
+ *
+ * @param workflowId - The workflow ID to filter logs for
+ * @param organizationId - The organization slug
+ * @param options - Optional time filtering and grouping options
  */
 export function useWorkflowLogs(
   workflowId: number | undefined,
-  organizationId: string | undefined
-) {
-  // Use WildcardOperators for proper log filtering syntax
-  // - StartsWith for message prefix matching
-  // - Contains for workflow_ids array matching
-  const query = `message:${WildcardOperators.STARTS_WITH}workflow_engine.process_workflows.evaluation workflow_ids:${WildcardOperators.CONTAINS}${workflowId}`;
+  organizationId: string | undefined,
+  options?: WorkflowLogsOptions
+): ReturnType<typeof useApiQuery<LogsResponse | GroupedLogsResponse>> {
+  const {
+    statsPeriod,
+    start,
+    end,
+    groupByMessage = false,
+    cursor,
+    messageFilter,
+  } = options ?? {};
 
-  return useApiQuery<LogsResponse>(
+  // Build query - use exact message match if filtering, otherwise use prefix
+  // - StartsWith for message prefix matching (default)
+  // - Contains for workflow_ids array matching
+  const query = messageFilter
+    ? `message:"${messageFilter}" workflow_ids:${WildcardOperators.CONTAINS}${workflowId}`
+    : `message:${WildcardOperators.STARTS_WITH}workflow_engine.process_workflows.evaluation workflow_ids:${WildcardOperators.CONTAINS}${workflowId}`;
+
+  // When grouping, change fields to include count aggregation
+  const fields = groupByMessage ? GROUPED_LOG_FIELDS : LOG_FIELDS;
+  const sort = groupByMessage ? '-count_message' : '-timestamp';
+
+  // Build time filter params - use statsPeriod OR start/end, not both
+  const timeParams = statsPeriod
+    ? {statsPeriod}
+    : start && end
+      ? {start, end}
+      : {statsPeriod: '24h'}; // Default fallback
+
+  return useApiQuery<LogsResponse | GroupedLogsResponse>(
     [
       `/organizations/${organizationId}/events/`,
       {
         query: {
           dataset: DiscoverDatasets.OURLOGS,
+          field: fields,
+          per_page: 10,
           query,
-          field: LOG_FIELDS,
-          sort: '-timestamp',
-          per_page: 25,
-          statsPeriod: '24h',
+          sort,
+          cursor,
+          ...timeParams,
           referrer: 'admin.alerts-debug.workflow-logs',
         },
       },

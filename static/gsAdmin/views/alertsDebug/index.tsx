@@ -91,7 +91,12 @@ export default function AlertsDebug() {
       {/* Phase 2: Workflow Details + Event Selection */}
       {workflowId && (
         <Stack gap="lg">
-          {isPending && <LoadingIndicator />}
+          {isPending && (
+            <Flex alignSelf="center" direction="column">
+              <Heading as="h2">Loading Workflow {workflowId}</Heading>
+              <LoadingIndicator />
+            </Flex>
+          )}
 
           {isError && (
             <Text variant="danger">
@@ -102,7 +107,7 @@ export default function AlertsDebug() {
           {workflow && (
             <Stack gap="lg">
               <Flex justify="between" align="center">
-                <Heading as="h2">Workflow: {workflow.id}</Heading>
+                <Heading as="h1">Workflow: {workflowId}</Heading>
                 <Button size="sm" onClick={handleChangeWorkflow}>
                   Change Workflow
                 </Button>

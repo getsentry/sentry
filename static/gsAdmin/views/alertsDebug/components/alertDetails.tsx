@@ -15,8 +15,6 @@ interface AlertDetailsProps {
 export function AlertDetails({workflow}: AlertDetailsProps) {
   return (
     <Fragment>
-      <Heading as="h1">{workflow.name}</Heading>
-
       <Stack gap="lg">
         <Heading as="h2">Settings</Heading>
         <Container background="primary" padding="lg" radius="md" border="primary">

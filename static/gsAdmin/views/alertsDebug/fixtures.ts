@@ -181,3 +181,43 @@ export const MOCK_LOGS: LogEntry[] = [
     timestamp: '2024-01-15T10:28:00.000Z',
   }),
 ];
+
+/**
+ * Grouped log entry type for workflow logs aggregation.
+ */
+export interface GroupedLogEntry {
+  [key: string]: unknown;
+  'count(message)': number;
+  message: string;
+}
+
+/**
+ * Creates a mock GroupedLogEntry for testing grouped workflow logs.
+ */
+export function GroupedLogEntryFixture(
+  params: Partial<GroupedLogEntry> = {}
+): GroupedLogEntry {
+  return {
+    message: 'workflow_engine.process_workflows.evaluation.start',
+    'count(message)': 10,
+    ...params,
+  };
+}
+
+/**
+ * Mock grouped logs for testing WorkflowLogs component in grouped view.
+ */
+export const MOCK_GROUPED_LOGS: GroupedLogEntry[] = [
+  GroupedLogEntryFixture({
+    message: 'workflow_engine.process_workflows.evaluation.start',
+    'count(message)': 15,
+  }),
+  GroupedLogEntryFixture({
+    message: 'workflow_engine.process_workflows.evaluation.condition_check',
+    'count(message)': 8,
+  }),
+  GroupedLogEntryFixture({
+    message: 'workflow_engine.process_workflows.evaluation.action_triggered',
+    'count(message)': 3,
+  }),
+];
