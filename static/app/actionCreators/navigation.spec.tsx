@@ -115,6 +115,11 @@ describe('navigation ActionCreator', () => {
     expect(router.push).toHaveBeenCalledWith('/settings/projects/project-slug/alerts/');
   });
 
+  it('should open modal for teamId', () => {
+    navigateTo('/settings/:orgId/teams/:teamId/settings/', router);
+    expect(openModal).toHaveBeenCalled();
+  });
+
   it('preserves query parameters in path object', () => {
     router.location.query.project = '2';
     navigateTo(

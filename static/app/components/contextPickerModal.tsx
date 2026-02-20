@@ -2,7 +2,7 @@ import {Component, Fragment, useState, type Dispatch, type SetStateAction} from 
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {ProjectAvatar, TeamAvatar} from '@sentry/scraps/avatar';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {StylesConfig} from '@sentry/scraps/select';
@@ -19,11 +19,12 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import Teams from 'sentry/utils/teams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
@@ -51,6 +52,11 @@ type SharedProps = ModalRenderProps & {
   onFinish: (path: string | {pathname: string; query?: Query}) => number | void;
 
   allowAllProjectsSelection?: boolean;
+
+  /**
+   * Does modal need to prompt for team
+   */
+  needTeam?: boolean;
 };
 
 type Props = SharedProps & {
@@ -74,9 +80,19 @@ type Props = SharedProps & {
   projects: Project[];
 
   /**
+   * List of available teams
+   */
+  teams: Team[];
+
+  /**
    * Whether projects are still loading
    */
   projectsLoading?: boolean;
+
+  /**
+   * Whether teams are still loading
+   */
+  teamsLoading?: boolean;
 };
 
 function autoFocusReactSelect(reactSelectRef: any) {
@@ -100,7 +116,7 @@ const selectStyles: StylesConfig = {
 
 class ContextPickerModal extends Component<Props> {
   componentDidMount() {
-    const {organization, projects, organizations} = this.props;
+    const {organization, projects, organizations, teams} = this.props;
 
     // Don't make any assumptions if there are multiple organizations
     if (organizations.length !== 1) {
@@ -111,16 +127,23 @@ class ContextPickerModal extends Component<Props> {
     // attempt to see if we need more info from user and redirect otherwise
     if (organization) {
       // This will handle if we can intelligently move the user forward
-      this.navigateIfFinish([{slug: organization}], projects);
+      this.navigateIfFinish([{slug: organization}], projects, teams);
       return;
     }
   }
 
   componentDidUpdate(prevProps: Props) {
-    // Component may be mounted before projects is fetched, check if we can finish when
-    // component is updated with projects
-    if (JSON.stringify(prevProps.projects) !== JSON.stringify(this.props.projects)) {
-      this.navigateIfFinish(this.props.organizations, this.props.projects);
+    // Component may be mounted before projects or teams are fetched, check if we can finish when
+    // component is updated with projects or teams
+    if (
+      JSON.stringify(prevProps.projects) !== JSON.stringify(this.props.projects) ||
+      JSON.stringify(prevProps.teams) !== JSON.stringify(this.props.teams)
+    ) {
+      this.navigateIfFinish(
+        this.props.organizations,
+        this.props.projects,
+        this.props.teams
+      );
     }
   }
 
@@ -136,17 +159,19 @@ class ContextPickerModal extends Component<Props> {
   navigateIfFinish = (
     organizations: Array<{slug: string}>,
     projects: Array<{slug: string}>,
+    teams: Array<{slug: string}> = [],
     latestOrg = this.props.organization
   ) => {
-    const {needProject, onFinish, nextPath, integrationConfigs} = this.props;
+    const {needProject, needTeam, onFinish, nextPath, integrationConfigs} = this.props;
     const {isSuperuser} = ConfigStore.get('user') || {};
 
     // If no project is needed and theres only 1 org OR
     // if we need a project and there's only 1 project
     // then return because we can't navigate anywhere yet
     if (
-      (!needProject && organizations.length !== 1) ||
+      (!needProject && !needTeam && organizations.length !== 1) ||
       (needProject && projects.length !== 1) ||
+      (needTeam && teams.length !== 1) ||
       (integrationConfigs.length && isSuperuser)
     ) {
       return;
@@ -155,8 +180,8 @@ class ContextPickerModal extends Component<Props> {
     window.clearTimeout(this.onFinishTimeout);
     const pathname = typeof nextPath === 'string' ? nextPath : nextPath.pathname;
 
-    // If there is only one org and we don't need a project slug, then call finish callback
-    if (!needProject) {
+    // If there is only one org and we don't need a project or team slug, then call finish callback
+    if (!needProject && !needTeam) {
       const newPathname = replaceRouterParams(pathname, {
         orgId: organizations[0]!.slug,
       });
@@ -177,8 +202,9 @@ class ContextPickerModal extends Component<Props> {
 
     const newPathname = replaceRouterParams(pathname, {
       orgId: org,
-      projectId: projects[0]!.slug,
-      project: this.props.projects.find(p => p.slug === projects[0]!.slug)?.id,
+      projectId: projects[0]?.slug,
+      project: this.props.projects.find(p => p.slug === projects[0]?.slug)?.id,
+      teamId: teams[0]?.slug,
     });
     this.onFinishTimeout =
       onFinish(
@@ -187,10 +213,10 @@ class ContextPickerModal extends Component<Props> {
   };
 
   handleSelectOrganization = ({value}: {value: string}) => {
-    // If we do not need to select a project, we can early return after selecting an org
+    // If we do not need to select a project or team, we can early return after selecting an org
     // No need to fetch org details
-    if (!this.props.needProject) {
-      this.navigateIfFinish([{slug: value}], []);
+    if (!this.props.needProject && !this.props.needTeam) {
+      this.navigateIfFinish([{slug: value}], [], []);
       return;
     }
 
@@ -203,7 +229,17 @@ class ContextPickerModal extends Component<Props> {
       return;
     }
 
-    this.navigateIfFinish([{slug: organization}], [{slug: value}]);
+    this.navigateIfFinish([{slug: organization}], [{slug: value}], []);
+  };
+
+  handleSelectTeam = ({value}: {value: string}) => {
+    const {organization, needProject, projects} = this.props;
+    if (!value || !organization) {
+      return;
+    }
+
+    const projectsArg = needProject ? projects : [];
+    this.navigateIfFinish([{slug: organization}], projectsArg, [{slug: value}]);
   };
 
   handleSelectConfiguration = ({value}: {value: string}) => {
@@ -235,12 +271,15 @@ class ContextPickerModal extends Component<Props> {
   };
 
   get headerText() {
-    const {needOrg, needProject, integrationConfigs} = this.props;
+    const {needOrg, needProject, needTeam, integrationConfigs} = this.props;
     if (needOrg && needProject) {
       return t('Select an organization and a project to continue');
     }
     if (needOrg) {
       return t('Select an organization to continue');
+    }
+    if (needTeam) {
+      return t('Select a team to continue');
     }
     if (needProject) {
       return t('Select a project to continue');
@@ -352,10 +391,46 @@ class ContextPickerModal extends Component<Props> {
     );
   }
 
+  renderTeamSelectOrMessage() {
+    const {teams, teamsLoading} = this.props;
+
+    if (teamsLoading) {
+      return (
+        <Flex justify="center" align="center" minHeight="345px">
+          <LoadingIndicator />
+        </Flex>
+      );
+    }
+
+    if (!teams.length) {
+      return <div>{t('No teams found.')}</div>;
+    }
+
+    const options = teams.map(team => ({
+      value: team.slug,
+      label: `#${team.slug}`,
+      leadingItems: <TeamAvatar team={team} size={20} />,
+    }));
+
+    return (
+      <StyledSelectControl
+        ref={autoFocusReactSelect}
+        placeholder={t('Select a Team to continue')}
+        name="team"
+        options={options}
+        onChange={this.handleSelectTeam}
+        components={{DropdownIndicator: null}}
+        styles={selectStyles}
+        menuIsOpen
+      />
+    );
+  }
+
   render() {
     const {
       needOrg,
       needProject,
+      needTeam,
       organization,
       organizations,
       Header,
@@ -365,6 +440,7 @@ class ContextPickerModal extends Component<Props> {
     const {isSuperuser} = ConfigStore.get('user') || {};
 
     const shouldShowProjectSelector = organization && needProject;
+    const shouldShowTeamSelector = organization && needTeam;
 
     const shouldShowConfigSelector = integrationConfigs.length > 0 && isSuperuser;
 
@@ -372,7 +448,8 @@ class ContextPickerModal extends Component<Props> {
       .filter(({status}) => status.id !== 'pending_deletion')
       .map(({slug}) => ({label: slug, value: slug}));
 
-    const shouldShowPicker = needOrg || needProject || shouldShowConfigSelector;
+    const shouldShowPicker =
+      needOrg || needProject || needTeam || shouldShowConfigSelector;
 
     if (!shouldShowPicker) {
       return null;
@@ -399,6 +476,7 @@ class ContextPickerModal extends Component<Props> {
           )}
 
           {shouldShowProjectSelector && this.renderProjectSelectOrMessage()}
+          {shouldShowTeamSelector && this.renderTeamSelectOrMessage()}
           {shouldShowConfigSelector && this.renderIntegrationConfigs()}
         </Body>
       </Fragment>
@@ -436,7 +514,10 @@ export default function ContextPickerModalContainer({
     );
   }
   if (selectedOrgSlug) {
-    return (
+    const needProject = sharedProps.needProject;
+    const needTeam = sharedProps.needTeam;
+
+    const renderWithProjects = (teams: Team[], teamsLoading: boolean) => (
       <Projects
         orgId={selectedOrgSlug}
         allProjects={!projectSlugs?.length}
@@ -445,8 +526,10 @@ export default function ContextPickerModalContainer({
         {({projects, initiallyLoaded}) => (
           <ContextPickerModal
             {...sharedProps}
-            projects={projects as Project[]}
-            projectsLoading={!initiallyLoaded}
+            projects={needProject ? (projects as Project[]) : []}
+            projectsLoading={needProject ? !initiallyLoaded : false}
+            teams={teams}
+            teamsLoading={teamsLoading}
             organizations={organizations}
             organization={selectedOrgSlug}
             onSelectOrganization={setSelectedOrgSlug}
@@ -455,12 +538,23 @@ export default function ContextPickerModalContainer({
         )}
       </Projects>
     );
+
+    if (needTeam) {
+      return (
+        <Teams>
+          {({teams, initiallyLoaded}) => renderWithProjects(teams, !initiallyLoaded)}
+        </Teams>
+      );
+    }
+
+    return renderWithProjects([], false);
   }
 
   return (
     <ContextPickerModal
       {...sharedProps}
       projects={[]}
+      teams={[]}
       organizations={organizations}
       organization={selectedOrgSlug}
       onSelectOrganization={setSelectedOrgSlug}
@@ -497,6 +591,7 @@ function ConfigUrlContainer(
     <ContextPickerModal
       {...sharedProps}
       projects={[]}
+      teams={[]}
       organizations={organizations}
       organization={selectedOrgSlug}
       onSelectOrganization={setSelectedOrgSlug}
