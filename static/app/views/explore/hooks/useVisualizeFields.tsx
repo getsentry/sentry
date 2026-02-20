@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {
@@ -12,8 +12,7 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
-import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -65,31 +64,13 @@ export function useVisualizeFields({
         return true;
       })
       .toSorted((a, b) => {
-        const aLabel = a.label || '';
-        const bLabel = b.label || '';
+        const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
+        const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
         return aLabel.localeCompare(bLabel);
       });
   }, [tags, unknownField, traceItemType]);
 
   return fieldOptions;
-}
-
-function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
-  return {
-    label: tag.name,
-    value: tag.key,
-    textValue: tag.key,
-    trailingItems: <TypeBadge kind={tag.kind} />,
-    showDetailsInOverlay: true,
-    details: (
-      <AttributeDetails
-        column={tag.key}
-        kind={tag.kind}
-        label={tag.name}
-        traceItemType={traceItemType}
-      />
-    ),
-  };
 }
 
 function getSupportedAttributes({

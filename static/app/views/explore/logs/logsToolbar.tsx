@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
-import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
+import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -23,7 +22,6 @@ import {
   ToolbarVisualizeDropdown,
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   TraceItemAttributeProvider,
@@ -456,24 +454,6 @@ function ToolbarGroupBy({onSearch, onClose}: LogsToolbarProps) {
       )}
     </DragNDropContext>
   );
-}
-
-function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
-  return {
-    label: tag.name,
-    value: tag.key,
-    textValue: tag.key,
-    trailingItems: <TypeBadge kind={tag.kind} />,
-    showDetailsInOverlay: true,
-    details: (
-      <AttributeDetails
-        column={tag.key}
-        kind={tag.kind}
-        label={tag.name}
-        traceItemType={traceItemType}
-      />
-    ),
-  };
 }
 
 function updateVisualizeAggregate({
