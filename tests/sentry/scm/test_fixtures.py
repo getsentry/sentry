@@ -485,8 +485,12 @@ class BaseTestProvider(Provider):
             )
         ]
 
-    def create_issue_comment(self, issue_id: str, body: str) -> None:
-        return None
+    def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
+        return ActionResult(
+            data=Comment(id="101", body=body, author=None),
+            type="test",
+            raw={},
+        )
 
     def delete_issue_comment(self, comment_id: str) -> None:
         return None
@@ -506,8 +510,12 @@ class BaseTestProvider(Provider):
             )
         ]
 
-    def create_pull_request_comment(self, pull_request_id: str, body: str) -> None:
-        return None
+    def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
+        return ActionResult(
+            data=Comment(id="201", body=body, author=None),
+            type="test",
+            raw={},
+        )
 
     def delete_pull_request_comment(self, comment_id: str) -> None:
         return None
@@ -532,8 +540,14 @@ class BaseTestProvider(Provider):
             ),
         ]
 
-    def create_issue_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
-        return None
+    def create_issue_comment_reaction(
+        self, comment_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
+        return ActionResult(
+            data=ReactionResult(id="1", content=reaction, author=None),
+            type="test",
+            raw={},
+        )
 
     def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
         return None
@@ -560,8 +574,14 @@ class BaseTestProvider(Provider):
             ),
         ]
 
-    def create_pull_request_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
-        return None
+    def create_pull_request_comment_reaction(
+        self, comment_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
+        return ActionResult(
+            data=ReactionResult(id="1", content=reaction, author=None),
+            type="test",
+            raw={},
+        )
 
     def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
         return None
@@ -586,8 +606,14 @@ class BaseTestProvider(Provider):
             ),
         ]
 
-    def create_issue_reaction(self, issue_id: str, reaction: Reaction) -> None:
-        return None
+    def create_issue_reaction(
+        self, issue_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
+        return ActionResult(
+            data=ReactionResult(id="1", content=reaction, author=None),
+            type="test",
+            raw={},
+        )
 
     def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None:
         return None
@@ -614,8 +640,14 @@ class BaseTestProvider(Provider):
             ),
         ]
 
-    def create_pull_request_reaction(self, pull_request_id: str, reaction: Reaction) -> None:
-        return None
+    def create_pull_request_reaction(
+        self, pull_request_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
+        return ActionResult(
+            data=ReactionResult(id="1", content=reaction, author=None),
+            type="test",
+            raw={},
+        )
 
     def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None:
         return None

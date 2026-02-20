@@ -405,11 +405,12 @@ class GitHubProvider:
             raise SCMProviderException(str(e)) from e
         return [_transform_comment(c) for c in raw_comments]
 
-    def create_issue_comment(self, issue_id: str, body: str) -> None:
+    def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
         try:
-            self.client.create_comment(self.repository["name"], issue_id, {"body": body})
+            raw = self.client.create_comment(self.repository["name"], issue_id, {"body": body})
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
+        return _transform_comment(raw)
 
     def delete_issue_comment(self, comment_id: str) -> None:
         try:
@@ -436,11 +437,14 @@ class GitHubProvider:
             raise SCMProviderException(str(e)) from e
         return _transform_graphql_pr_comments(raw)
 
-    def create_pull_request_comment(self, pull_request_id: str, body: str) -> None:
+    def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
         try:
-            self.client.create_comment(self.repository["name"], pull_request_id, {"body": body})
+            raw = self.client.create_comment(
+                self.repository["name"], pull_request_id, {"body": body}
+            )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
+        return _transform_comment(raw)
 
     def delete_pull_request_comment(self, comment_id: str) -> None:
         try:
@@ -455,14 +459,17 @@ class GitHubProvider:
             raise SCMProviderException(str(e)) from e
         return [_transform_reaction(r) for r in raw_reactions]
 
-    def create_issue_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
+    def create_issue_comment_reaction(
+        self, comment_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
         github_reaction = REACTION_MAP[reaction]
         try:
-            self.client.create_comment_reaction(
+            raw = self.client.create_comment_reaction(
                 self.repository["name"], comment_id, github_reaction
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
+        return _transform_reaction(raw)
 
     def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
         try:
@@ -475,7 +482,9 @@ class GitHubProvider:
     ) -> list[ActionResult[ReactionResult]]:
         return self.get_issue_comment_reactions(comment_id)
 
-    def create_pull_request_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
+    def create_pull_request_comment_reaction(
+        self, comment_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
         return self.create_issue_comment_reaction(comment_id, reaction)
 
     def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
@@ -488,12 +497,17 @@ class GitHubProvider:
             raise SCMProviderException(str(e)) from e
         return [_transform_reaction(r) for r in raw_reactions]
 
-    def create_issue_reaction(self, issue_id: str, reaction: Reaction) -> None:
+    def create_issue_reaction(
+        self, issue_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
         github_reaction = REACTION_MAP[reaction]
         try:
-            self.client.create_issue_reaction(self.repository["name"], issue_id, github_reaction)
+            raw = self.client.create_issue_reaction(
+                self.repository["name"], issue_id, github_reaction
+            )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
+        return _transform_reaction(raw)
 
     def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None:
         try:
@@ -506,7 +520,9 @@ class GitHubProvider:
     ) -> list[ActionResult[ReactionResult]]:
         return self.get_issue_reactions(pull_request_id)
 
-    def create_pull_request_reaction(self, pull_request_id: str, reaction: Reaction) -> None:
+    def create_pull_request_reaction(
+        self, pull_request_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
         return self.create_issue_reaction(pull_request_id, reaction)
 
     def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None:

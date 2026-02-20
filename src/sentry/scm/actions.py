@@ -124,7 +124,7 @@ class SourceCodeManager:
         """Get comments on an issue."""
         return self._exec(lambda p: p.get_issue_comments(issue_id))
 
-    def create_issue_comment(self, issue_id: str, body: str) -> None:
+    def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
         """Create a comment on an issue."""
         return self._exec(lambda p: p.create_issue_comment(issue_id, body))
 
@@ -140,7 +140,7 @@ class SourceCodeManager:
         """Get comments on a pull request."""
         return self._exec(lambda p: p.get_pull_request_comments(pull_request_id))
 
-    def create_pull_request_comment(self, pull_request_id: str, body: str) -> None:
+    def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
         """Create a comment on a pull request."""
         return self._exec(lambda p: p.create_pull_request_comment(pull_request_id, body))
 
@@ -152,7 +152,9 @@ class SourceCodeManager:
         """Get reactions on an issue comment."""
         return self._exec(lambda p: p.get_issue_comment_reactions(comment_id))
 
-    def create_issue_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
+    def create_issue_comment_reaction(
+        self, comment_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
         """Create a reaction on an issue comment."""
         return self._exec(lambda p: p.create_issue_comment_reaction(comment_id, reaction))
 
@@ -166,7 +168,9 @@ class SourceCodeManager:
         """Get reactions on a pull request comment."""
         return self._exec(lambda p: p.get_pull_request_comment_reactions(comment_id))
 
-    def create_pull_request_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
+    def create_pull_request_comment_reaction(
+        self, comment_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
         """Create a reaction on a pull request comment."""
         return self._exec(lambda p: p.create_pull_request_comment_reaction(comment_id, reaction))
 
@@ -178,7 +182,9 @@ class SourceCodeManager:
         """Get reactions on an issue."""
         return self._exec(lambda p: p.get_issue_reactions(issue_id))
 
-    def create_issue_reaction(self, issue_id: str, reaction: Reaction) -> None:
+    def create_issue_reaction(
+        self, issue_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
         """Create a reaction on an issue."""
         return self._exec(lambda p: p.create_issue_reaction(issue_id, reaction))
 
@@ -192,7 +198,9 @@ class SourceCodeManager:
         """Get reactions on a pull request."""
         return self._exec(lambda p: p.get_pull_request_reactions(pull_request_id))
 
-    def create_pull_request_reaction(self, pull_request_id: str, reaction: Reaction) -> None:
+    def create_pull_request_reaction(
+        self, pull_request_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
         """Create a reaction on a pull request."""
         return self._exec(lambda p: p.create_pull_request_reaction(pull_request_id, reaction))
 

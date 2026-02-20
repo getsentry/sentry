@@ -346,6 +346,25 @@ def _check_none(result: Any) -> None:
     assert result is None
 
 
+def _check_created_comment(result: Any) -> None:
+    comment = result["data"]
+    assert comment["id"] == "101"
+    assert result["type"] == "test"
+
+
+def _check_created_pr_comment(result: Any) -> None:
+    comment = result["data"]
+    assert comment["id"] == "201"
+    assert result["type"] == "test"
+
+
+def _check_created_reaction(result: Any) -> None:
+    reaction = result["data"]
+    assert reaction["id"] == "1"
+    assert reaction["content"] == "eyes"
+    assert result["type"] == "test"
+
+
 def _check_review_comment(result: Any) -> None:
     rc = result["data"]
     assert rc["id"] == "100"
@@ -381,7 +400,11 @@ def _check_update_check_run(result: Any) -> None:
 
 ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]], ...] = (
     (SourceCodeManager.get_issue_comments, {"issue_id": "1"}, _check_issue_comments),
-    (SourceCodeManager.create_issue_comment, {"issue_id": "1", "body": "test"}, _check_none),
+    (
+        SourceCodeManager.create_issue_comment,
+        {"issue_id": "1", "body": "test"},
+        _check_created_comment,
+    ),
     (SourceCodeManager.delete_issue_comment, {"comment_id": "1"}, _check_none),
     (SourceCodeManager.get_pull_request, {"pull_request_id": "1"}, _check_pull_request),
     (
@@ -392,14 +415,14 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (
         SourceCodeManager.create_pull_request_comment,
         {"pull_request_id": "1", "body": "test"},
-        _check_none,
+        _check_created_pr_comment,
     ),
     (SourceCodeManager.delete_pull_request_comment, {"comment_id": "1"}, _check_none),
     (SourceCodeManager.get_issue_comment_reactions, {"comment_id": "1"}, _check_comment_reactions),
     (
         SourceCodeManager.create_issue_comment_reaction,
         {"comment_id": "1", "reaction": "eyes"},
-        _check_none,
+        _check_created_reaction,
     ),
     (
         SourceCodeManager.delete_issue_comment_reaction,
@@ -414,7 +437,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (
         SourceCodeManager.create_pull_request_comment_reaction,
         {"comment_id": "1", "reaction": "eyes"},
-        _check_none,
+        _check_created_reaction,
     ),
     (
         SourceCodeManager.delete_pull_request_comment_reaction,
@@ -422,7 +445,11 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         _check_none,
     ),
     (SourceCodeManager.get_issue_reactions, {"issue_id": "1"}, _check_issue_reactions),
-    (SourceCodeManager.create_issue_reaction, {"issue_id": "1", "reaction": "eyes"}, _check_none),
+    (
+        SourceCodeManager.create_issue_reaction,
+        {"issue_id": "1", "reaction": "eyes"},
+        _check_created_reaction,
+    ),
     (SourceCodeManager.delete_issue_reaction, {"issue_id": "1", "reaction_id": "456"}, _check_none),
     (
         SourceCodeManager.get_pull_request_reactions,
@@ -432,7 +459,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (
         SourceCodeManager.create_pull_request_reaction,
         {"pull_request_id": "1", "reaction": "eyes"},
-        _check_none,
+        _check_created_reaction,
     ),
     (
         SourceCodeManager.delete_pull_request_reaction,
