@@ -10,6 +10,7 @@ import {
   type UseConversationsOptions,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversation';
 import type {ConversationListMode} from 'sentry/views/insights/pages/conversations/hooks/useConversationList';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 const TRACE_DETAIL_REFERRER = 'api.insights.conversations.trace-detail';
 
@@ -38,7 +39,7 @@ const TRACE_SPAN_FIELDS = [
   'user.id',
   'user.ip',
   'user.username',
-] as const;
+] as SpanProperty[];
 
 /**
  * Fetches conversation detail data from either the conversations API or
@@ -59,7 +60,7 @@ export function useConversationDetail(
   const spansResult = useSpans(
     {
       search: `trace:${traceId} has:gen_ai.operation.type`,
-      fields: [...TRACE_SPAN_FIELDS],
+      fields: TRACE_SPAN_FIELDS,
       sorts: [{field: 'precise.start_ts', kind: 'asc'}],
       limit: 100,
       enabled: isTraceMode && !!traceId,

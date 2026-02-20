@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import type {CursorHandler} from 'sentry/components/pagination';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -24,7 +25,7 @@ interface ConversationListResult {
   error: any;
   isLoading: boolean;
   pageLinks: string | undefined;
-  setCursor: (cursor: string) => void;
+  setCursor: CursorHandler;
 }
 
 interface TraceAggregation {
@@ -362,7 +363,7 @@ export function useConversationList(mode: ConversationListMode): ConversationLis
       data: conversationsResult.data,
       isLoading: conversationsResult.isLoading,
       error: conversationsResult.error,
-      pageLinks: conversationsResult.pageLinks,
+      pageLinks: conversationsResult.pageLinks ?? undefined,
       setCursor: conversationsResult.setCursor,
     };
   }

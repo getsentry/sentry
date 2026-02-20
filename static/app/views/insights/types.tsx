@@ -275,6 +275,9 @@ export type SpanStringFields =
   | SpanFields.GEN_AI_RESPONSE_OBJECT
   | SpanFields.GEN_AI_RESPONSE_MODEL
   | SpanFields.GEN_AI_TOOL_NAME
+  | SpanFields.GEN_AI_OPERATION_TYPE
+  | SpanFields.GEN_AI_OPERATION_NAME
+  | SpanFields.GEN_AI_CONVERSATION_ID
   | SpanFields.MCP_CLIENT_NAME
   | SpanFields.MCP_TRANSPORT
   | SpanFields.MCP_TOOL_NAME

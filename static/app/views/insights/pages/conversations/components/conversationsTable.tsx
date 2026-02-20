@@ -10,7 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Count from 'sentry/components/count';
 import useDrawer from 'sentry/components/globalDrawer';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -39,7 +39,7 @@ interface ConversationsTableDataProps {
   error: any;
   isLoading: boolean;
   pageLinks: string | undefined;
-  setCursor: (cursor: string) => void;
+  setCursor: CursorHandler;
 }
 
 interface ConversationsTableProps {
