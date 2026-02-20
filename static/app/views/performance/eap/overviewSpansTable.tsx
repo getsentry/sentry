@@ -23,14 +23,14 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {ModuleName} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
-  SERVICE_ENTRY_SPANS_COLUMN_ORDER,
-  type ServiceEntrySpansColumn,
-  type ServiceEntrySpansRow,
-} from 'sentry/views/performance/otlp/types';
-import {useServiceEntrySpansQuery} from 'sentry/views/performance/otlp/useServiceEntrySpansQuery';
-import {SERVICE_ENTRY_SPANS_CURSOR} from 'sentry/views/performance/otlp/utils';
+  SEGMENT_SPANS_COLUMN_ORDER,
+  type SegmentSpansColumn,
+  type SegmentSpansRow,
+} from 'sentry/views/performance/eap/types';
+import {useSegmentSpansQuery} from 'sentry/views/performance/eap/useSegmentSpansQuery';
+import {SEGMENT_SPANS_CURSOR} from 'sentry/views/performance/eap/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const LIMIT = 50;
 
@@ -65,7 +65,7 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
       fields: ['count()'],
       pageFilters: selection,
     },
-    'api.insights.service-entry-spans-table-count'
+    'api.insights.segment-spans-table-count'
   );
 
   const pageEventsCount = Math.min(numEvents[0]?.['count()'] ?? 0, LIMIT);
@@ -84,7 +84,7 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
     pageLinks,
     meta,
     error,
-  } = useServiceEntrySpansQuery({
+  } = useSegmentSpansQuery({
     query: defaultQuery.formatString(),
     sort: {
       field: 'span.duration',
@@ -107,7 +107,7 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
       pathname,
-      query: {...query, [SERVICE_ENTRY_SPANS_CURSOR]: _cursor},
+      query: {...query, [SEGMENT_SPANS_CURSOR]: _cursor},
     });
   };
 
@@ -117,7 +117,7 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
         isLoading={isLoading}
         error={error}
         data={consolidatedData}
-        columnOrder={SERVICE_ENTRY_SPANS_COLUMN_ORDER}
+        columnOrder={SEGMENT_SPANS_COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
           renderHeadCell: column =>
@@ -139,8 +139,8 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
 }
 
 function renderBodyCell(
-  column: ServiceEntrySpansColumn,
-  row: ServiceEntrySpansRow,
+  column: SegmentSpansColumn,
+  row: SegmentSpansRow,
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
   location: Location,

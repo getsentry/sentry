@@ -1,43 +1,31 @@
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
+import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 interface LayoutProps {
   children: React.ReactNode;
-  label: string;
-  hintText?: string;
+  label: React.ReactNode;
+  hintText?: React.ReactNode;
   required?: boolean;
-  /**
-   * Use `variant="group"` for radio groups or checkbox groups.
-   * Renders as `<fieldset>` + `<legend>` instead of `<div>` + `<label>`.
-   */
-  variant?: 'default' | 'group';
+  variant?: 'compact';
 }
 
-function RowLayout({variant = 'default', ...props}: LayoutProps) {
-  if (variant === 'group') {
-    return (
-      <div>
-        <FieldMeta.Fieldset>
-          <Flex gap="sm" align="center" justify="between">
-            <Stack width="50%" gap="xs">
-              <FieldMeta.Legend required={props.required}>{props.label}</FieldMeta.Legend>
-              {props.hintText ? (
-                <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
-              ) : null}
-            </Stack>
-
-            <Container flexGrow={1}>{props.children}</Container>
-          </Flex>
-        </FieldMeta.Fieldset>
-      </div>
-    );
-  }
+function RowLayout(props: LayoutProps) {
+  const isCompact = props.variant === 'compact';
+  const field = useFieldContext();
 
   return (
-    <Flex gap="sm" align="center" justify="between">
+    <Flex id={field.name} gap="sm" align="center" justify="between">
       <Stack width="50%" gap="xs">
-        <FieldMeta.Label required={props.required}>{props.label}</FieldMeta.Label>
-        {props.hintText ? (
+        <Flex gap="xs" align="center">
+          <FieldMeta.Label
+            required={props.required}
+            description={isCompact ? props.hintText : undefined}
+          >
+            {props.label}
+          </FieldMeta.Label>
+        </Flex>
+        {props.hintText && !isCompact ? (
           <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
         ) : null}
       </Stack>
@@ -47,28 +35,24 @@ function RowLayout({variant = 'default', ...props}: LayoutProps) {
   );
 }
 
-function StackLayout({variant = 'default', ...props}: LayoutProps) {
-  if (variant === 'group') {
-    return (
-      <div>
-        <FieldMeta.Fieldset>
-          <Stack gap="md">
-            <FieldMeta.Legend required={props.required}>{props.label}</FieldMeta.Legend>
-            {props.children}
-            {props.hintText ? (
-              <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
-            ) : null}
-          </Stack>
-        </FieldMeta.Fieldset>
-      </div>
-    );
-  }
+function StackLayout(props: LayoutProps) {
+  const isCompact = props.variant === 'compact';
+  const field = useFieldContext();
 
   return (
-    <Stack gap="md">
-      <FieldMeta.Label required={props.required}>{props.label}</FieldMeta.Label>
+    <Stack id={field.name} gap="md">
+      <Flex gap="xs" align="center">
+        <FieldMeta.Label
+          required={props.required}
+          description={isCompact ? props.hintText : undefined}
+        >
+          {props.label}
+        </FieldMeta.Label>
+      </Flex>
       {props.children}
-      {props.hintText ? <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText> : null}
+      {props.hintText && !isCompact ? (
+        <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
+      ) : null}
     </Stack>
   );
 }

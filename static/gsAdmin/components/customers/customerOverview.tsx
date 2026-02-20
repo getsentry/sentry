@@ -17,6 +17,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
+import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import ChangeARRAction from 'admin/components/changeARRAction';
 import ChangeContractEndDateAction from 'admin/components/changeContractEndDateAction';
 import CustomerContact from 'admin/components/customerContact';
@@ -24,6 +25,7 @@ import CustomerStatus from 'admin/components/customerStatus';
 import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
 import DetailsContainer from 'admin/components/detailsContainer';
+import ExtendProductTrialAction from 'admin/components/extendProductTrialAction';
 import {getLogQuery} from 'admin/utils';
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
@@ -536,6 +538,26 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
     const hasUsedProductTrial =
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
+
+    const handleExtendTrial = () => {
+      if (!activeProductTrial) {
+        return;
+      }
+      openAdminConfirmModal({
+        header: <h4>Extend {formattedTrialName} Trial</h4>,
+        confirmText: 'Extend Trial',
+        renderModalSpecificContent: deps => (
+          <ExtendProductTrialAction
+            activeProductTrial={activeProductTrial}
+            apiName={apiName}
+            trialName={formattedTrialName}
+            {...deps}
+          />
+        ),
+        onConfirm: onAction,
+      });
+    };
+
     return (
       <DetailLabel key={apiName} title={formattedTrialName}>
         <Stack gap="md">
@@ -551,7 +573,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             }
           >
             {hasActiveProductTrial
-              ? `Active${lessThanOneDayLeft ? ` (${moment(activeProductTrial.endDate).add(1, 'day').fromNow(true)} left)` : ''}`
+              ? `Active (until ${moment.utc(activeProductTrial.endDate).format('MMM D, YYYY')} UTC)`
               : hasUsedProductTrial
                 ? 'Used'
                 : 'Available'}
@@ -600,6 +622,18 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               }}
             >
               Stop Trial
+            </Button>
+            <Button
+              size="xs"
+              onClick={handleExtendTrial}
+              disabled={!hasActiveProductTrial}
+              tooltipProps={{
+                title: hasActiveProductTrial
+                  ? `Extend the current ${formattedTrialName} product trial`
+                  : `No active product trial to extend for ${formattedTrialName}`,
+              }}
+            >
+              Extend Trial
             </Button>
           </Flex>
         </Stack>
@@ -828,6 +862,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               <tr>
                 <th>Category</th>
                 <th>Standard</th>
+                <th>Default</th>
                 <th>
                   <Tooltip title="Null means use the Downsample default">
                     Downsampled
@@ -851,7 +886,12 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                         category: bmh.category,
                       })}
                     </td>
-                    <td>{bmh.retention?.standard}</td>
+                    <td>
+                      {bmh.retention?.standard === null
+                        ? 'null'
+                        : bmh.retention?.standard}
+                    </td>
+                    <td>{customer.planDetails.retentions?.[bmh.category]?.standard}</td>
                     <td>
                       {bmh.retention?.downsampled === null
                         ? 'null'

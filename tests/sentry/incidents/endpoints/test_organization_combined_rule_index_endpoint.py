@@ -1356,3 +1356,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 )
                 assert response.status_code == 200, response.content
                 assert {r["id"] for r in response.data} == expected_ids
+
+    def test_invalid_sort_key(self) -> None:
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            response = self.get_error_response(
+                self.organization.slug, sort=["invalid_field"], status_code=400
+            )
+            assert "Invalid sort key" in response.data["detail"]

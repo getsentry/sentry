@@ -15,6 +15,7 @@ import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {RadioField} from './field/radioField';
 import {RangeField} from './field/rangeField';
+import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
 import {SwitchField} from './field/switchField';
 import {TextAreaField} from './field/textAreaField';
@@ -40,6 +41,7 @@ const fieldComponents = {
   Radio: RadioField,
   Range: RangeField,
   Select: SelectField,
+  SelectAsync: SelectAsyncField,
   Switch: SwitchField,
   TextArea: TextAreaField,
   Meta: FieldMeta,

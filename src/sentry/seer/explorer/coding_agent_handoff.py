@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from requests import HTTPError
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
@@ -18,6 +19,7 @@ from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.seer.autofix.coding_agent import (
     _validate_and_get_integration,
@@ -102,6 +104,7 @@ def launch_coding_agents(
                 {
                     "repo_name": repo_name,
                     "error_message": f"Invalid repository name format: {repo_name}",
+                    "failure_type": "generic",
                 }
             )
             continue
@@ -132,7 +135,7 @@ def launch_coding_agents(
                 coding_agent_state = installation.launch(launch_request)
             else:
                 raise ValidationError("No valid client or installation available")
-        except (HTTPError, ApiError):
+        except (HTTPError, ApiError) as e:
             logger.exception(
                 "explorer.coding_agent.launch_error",
                 extra={
@@ -142,12 +145,30 @@ def launch_coding_agents(
                     "provider": provider,
                 },
             )
-            failures.append(
-                {
-                    "repo_name": repo_name,
-                    "error_message": "Failed to launch coding agent",
-                }
-            )
+            failure_type = "generic"
+            error_message = "Failed to launch coding agent"
+            github_installation_id: str | None = None
+            if isinstance(e, ApiError) and e.code == 403 and is_github_copilot:
+                failure_type = "github_app_permissions"
+                error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
+                try:
+                    github_integrations = integration_service.get_integrations(
+                        organization_id=organization.id,
+                        providers=["github"],
+                    )
+                    if github_integrations:
+                        github_installation_id = github_integrations[0].external_id
+                except Exception:
+                    sentry_sdk.capture_exception(level="warning")
+
+            failure: dict = {
+                "repo_name": repo_name,
+                "error_message": error_message,
+                "failure_type": failure_type,
+            }
+            if github_installation_id:
+                failure["github_installation_id"] = github_installation_id
+            failures.append(failure)
             continue
 
         states_to_store.append(coding_agent_state)

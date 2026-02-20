@@ -51,7 +51,7 @@ type ReadableQuery = {
 };
 
 // This is the `query` property on our SavedQuery, which indicates the actualy query portion of the saved query, hence SavedQueryQuery.
-export class SavedQueryQuery {
+class SavedQueryQuery {
   fields: string[];
   mode: Mode;
   orderby: string;
