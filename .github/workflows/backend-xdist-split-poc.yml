@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - mchen/loadscope-from-clean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -154,7 +155,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n 4 \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
