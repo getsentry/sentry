@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -288,12 +289,18 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   /**
    * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 day.
    */
-  const canManuallyRefresh = useMemo(() => {
+  const {canManuallyRefresh, manualRefreshDisabledReason} = useMemo(() => {
     if (pageFilters.selection.datetime.period) {
       const parsedPeriod = parsePeriodToHours(pageFilters.selection.datetime.period);
       if (parsedPeriod <= 1) {
-        return true;
+        return {canManuallyRefresh: true, manualRefreshDisabledReason: null};
       }
+      return {
+        canManuallyRefresh: false,
+        manualRefreshDisabledReason: t(
+          'Manual refresh is only available for time ranges of 1 hour or less.'
+        ),
+      };
     }
 
     if (pageFilters.selection.datetime.start && pageFilters.selection.datetime.end) {
@@ -301,10 +308,23 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
       const end = new Date(pageFilters.selection.datetime.end).getTime();
       const difference = end - start;
       const oneDayInMs = HOUR;
-      return difference <= oneDayInMs;
+      if (difference <= oneDayInMs) {
+        return {canManuallyRefresh: true, manualRefreshDisabledReason: null};
+      }
+      return {
+        canManuallyRefresh: false,
+        manualRefreshDisabledReason: t(
+          'Manual refresh is only available for time ranges of 1 hour or less.'
+        ),
+      };
     }
 
-    return false;
+    return {
+      canManuallyRefresh: false,
+      manualRefreshDisabledReason: t(
+        'Manual refresh requires a relative period or absolute date range of 1 hour or less.'
+      ),
+    };
   }, [pageFilters.selection.datetime]);
 
   const {infiniteLogsQueryResult} = useLogsPageData();
@@ -414,13 +434,19 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
             {tableTab === 'logs' && (
               <TableActionsContainer>
                 <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
-                <Button
-                  size="sm"
-                  icon={<IconRefresh />}
-                  disabled={canManuallyRefresh ? false : true}
-                  onClick={refreshTable}
-                  aria-label={t('Refresh')}
-                />
+                <Tooltip
+                  title={manualRefreshDisabledReason}
+                  disabled={!manualRefreshDisabledReason}
+                  skipWrapper
+                >
+                  <Button
+                    size="sm"
+                    icon={<IconRefresh />}
+                    disabled={!canManuallyRefresh}
+                    onClick={refreshTable}
+                    aria-label={t('Refresh')}
+                  />
+                </Tooltip>
                 <TableActionButton
                   mobile={
                     <Button
