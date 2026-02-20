@@ -17,7 +17,7 @@ import {
 } from './categoricalDataSeries';
 import type {CategoricalPlottable} from './plottable';
 
-export interface BarsConfig extends CategoricalDataSeriesConfig {
+interface BarsConfig extends CategoricalDataSeriesConfig {
   /**
    * Called when a bar is clicked.
    */

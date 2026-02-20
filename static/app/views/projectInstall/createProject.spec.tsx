@@ -44,12 +44,13 @@ function renderFrameworkModalMockRequests({
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+    url: `/organizations/${organization.slug}/integrations/`,
     body: [
       OrganizationIntegrationsFixture({
         name: "Moo Deng's Workspace",
       }),
     ],
+    match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
   });
 
   const projectCreationMockRequest = MockApiClient.addMockResponse({
@@ -88,8 +89,9 @@ describe('CreateProject', () => {
     TeamStore.loadUserTeams([teamNoAccess]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      url: `/organizations/org-slug/integrations/`,
       body: [integration],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
 
     MockApiClient.addMockResponse({
@@ -403,8 +405,9 @@ describe('CreateProject', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+      url: `/organizations/${organization.slug}/integrations/`,
       body: [discordIntegration],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
 
     MockApiClient.addMockResponse({

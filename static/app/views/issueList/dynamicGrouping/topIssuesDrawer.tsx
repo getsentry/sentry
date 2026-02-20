@@ -314,7 +314,11 @@ function useSeerExplorerRun(runId: number | undefined) {
   const organization = useOrganization();
 
   return useApiQuery<SeerExplorerRunResponse>(
-    [`/organizations/${organization.slug}/seer/explorer-chat/${runId}/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
+        path: {organizationIdOrSlug: organization.slug, runId: runId!},
+      }),
+    ],
     {
       staleTime: 60000,
       enabled: runId !== undefined && runId > 0,
@@ -400,7 +404,9 @@ function useClusterTagFacets(groupIds: number[]) {
 
   const queryResult = useApiQuery<DiscoverFacetTag[]>(
     [
-      `/organizations/${organization.slug}/events-facets/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events-facets/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           dataset: DiscoverDatasets.ERRORS,

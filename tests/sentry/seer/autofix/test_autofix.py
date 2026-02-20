@@ -18,6 +18,7 @@ from sentry.seer.autofix.autofix import (
     get_all_tags_overview,
     trigger_autofix,
 )
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
@@ -858,6 +859,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             group=group,
             event_id=event.event_id,
             user=test_user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction="Test instruction",
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
         )
@@ -909,7 +911,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group = self.create_group()
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
 
         assert response.status_code == 400
         assert (
@@ -966,7 +973,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
         assert response.status_code == 202
         mock_record_seer_run.assert_called_once()
 
@@ -999,7 +1011,12 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         group = self.create_group()
         user = self.create_user()
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
 
         assert response.status_code == 403
         assert "AI features are disabled for this organization" in response.data["detail"]
@@ -1051,6 +1068,7 @@ class TestCallAutofix(TestCase):
             trace_tree=trace_tree,
             logs=logs,
             tags_overview=tags_overview,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",

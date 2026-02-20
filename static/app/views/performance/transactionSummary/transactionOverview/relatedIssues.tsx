@@ -19,7 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -39,8 +38,6 @@ function RelatedIssues({
   end,
   statsPeriod,
 }: Props) {
-  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
-
   const getIssuesEndpointQueryParams = () => {
     const queryParams = {
       start,
@@ -82,10 +79,7 @@ function RelatedIssues({
         <PanelBody>
           <EmptyStateWarning>
             <p>
-              {tct('No new issues for this [identifier] for the [timePeriod].', {
-                identifier: shouldUseOTelFriendlyUI
-                  ? 'service entry span'
-                  : 'transaction',
+              {tct('No new issues for this transaction for the [timePeriod].', {
                 timePeriod: displayedPeriod,
               })}
             </p>

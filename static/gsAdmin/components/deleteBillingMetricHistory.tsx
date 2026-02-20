@@ -7,6 +7,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -46,7 +47,7 @@ function DeleteBillingMetricHistoryModal({
   const orgSlug = organization.slug;
 
   const {data: billingConfig = null, isPending: isLoadingBillingConfig} =
-    useApiQuery<BillingConfig>(['/api/0/billing-config/'], {
+    useApiQuery<BillingConfig>([getApiUrl('/billing-config/')], {
       staleTime: Infinity,
     });
 

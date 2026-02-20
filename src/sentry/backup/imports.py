@@ -26,7 +26,6 @@ from sentry.backup.dependencies import (
 )
 from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
-from sentry.backup.services.import_export.impl import fixup_array_fields, fixup_json_fields
 from sentry.backup.services.import_export.model import (
     RpcFilter,
     RpcImportError,
@@ -174,11 +173,7 @@ def _import(
     content: bytes | str = (
         decrypt_encrypted_tarball(src, decryptor) if decryptor is not None else src.read()
     )
-
     content = remove_deleted_models_and_fields(content)
-
-    content = fixup_array_fields(content)
-    content = fixup_json_fields(content)
 
     filters = []
     if filter_by is not None:

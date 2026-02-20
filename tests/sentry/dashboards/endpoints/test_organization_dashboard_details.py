@@ -137,6 +137,12 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200
         assert response.data["id"] == "default-overview"
 
+    def test_get_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            response = self.do_request("get", self.url("default-overview"))
+            assert response.status_code == 200
+            assert response.data["widgets"][7]["widgetType"] == "spans"
+
     def test_prebuilt_dashboard_with_discover_split_feature_flag(self) -> None:
         response = self.do_request("get", self.url("default-overview"))
         assert response.status_code == 200, response.data
@@ -2181,6 +2187,31 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert len(queries) == 1
         assert DashboardTombstone.objects.filter(slug=slug).exists()
 
+    def test_update_prebuilt_dashboard_with_transactions_deprecation_feature_flag(self) -> None:
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "New title",
+                    "displayType": "line",
+                    "widgetType": "transaction-like",
+                    "queries": [
+                        {
+                            "name": "transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        },
+                    ],
+                },
+            ],
+        }
+        slug = "default-overview"
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            response = self.do_request("put", self.url(slug), data=data)
+            assert response.status_code == 400, response.data
+
     def test_update_unknown_prebuilt(self) -> None:
         data = {
             "title": "First dashboard",
@@ -2404,37 +2435,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
-    def test_add_discover_widget_returns_validation_error(self) -> None:
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {"id": str(self.widget_1.id)},
-                {
-                    "title": "Issues",
-                    "displayType": "table",
-                    "widgetType": "discover",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": ["count()", "total.count"],
-                            "columns": ["total.count"],
-                            "aggregates": ["count()"],
-                            "conditions": "",
-                        }
-                    ],
-                },
-            ],
-        }
-        with self.feature({"organizations:deprecate-discover-widget-type": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-
-        assert response.status_code == 400, response.data
-        assert (
-            "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
-            in response.content.decode()
-        )
-
     def test_update_dashboard_with_filters(self) -> None:
         project1 = self.create_project(name="foo", organization=self.organization)
         project2 = self.create_project(name="bar", organization=self.organization)
@@ -2554,7 +2554,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "False"},
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2571,7 +2571,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "false"},
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2591,7 +2591,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
 
         assert permission.is_editable_by_everyone is True
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2771,7 +2771,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2807,7 +2807,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2838,7 +2838,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2865,7 +2865,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         self.create_environment(project=mock_project, name="mock_env")
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2911,7 +2911,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
+        user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3537,6 +3537,115 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Linked dashboard does not appear in the fields of the query" in response.content
+
+    def test_rejects_cross_org_linked_dashboard(self) -> None:
+        other_org = self.create_organization(name="other-org")
+        other_dashboard = Dashboard.objects.create(
+            title="Other Org Dashboard",
+            created_by_id=self.user.id,
+            organization=other_org,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Cross-Org Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": other_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not exist" in response.content
+
+        # Verify no DashboardFieldLink was created
+        assert DashboardFieldLink.objects.count() == 0
+
+    def test_allows_same_org_linked_dashboard_after_fix(self) -> None:
+        same_org_dashboard = Dashboard.objects.create(
+            title="Same Org Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Same-Org Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": same_org_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data.get("widgets")[0].get("queries")[0].get("linkedDashboards") == [
+            {
+                "field": "project",
+                "dashboardId": same_org_dashboard.id,
+            }
+        ]
+
+    def test_rejects_nonexistent_linked_dashboard(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Nonexistent Link",
+            "widgets": [
+                {
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [{"field": "project", "dashboardId": 999999999}],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not exist" in response.content
 
     def test_cannot_delete_prebuilt_insights_dashboard(self) -> None:
         dashboard = Dashboard.objects.create(

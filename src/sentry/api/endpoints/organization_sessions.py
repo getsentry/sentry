@@ -116,14 +116,11 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         except NoProjects:
             raise NoProjects("No projects available")  # give it a description
 
-        query_config = release_health.backend.sessions_query_config(organization)
-
         return QueryDefinition(
             query=request.GET,
             params=params,
             offset=offset,
             limit=limit,
-            query_config=query_config,
         )
 
     @contextmanager

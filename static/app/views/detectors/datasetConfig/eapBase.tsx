@@ -25,7 +25,7 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 
 import type {DetectorDatasetConfig} from './base';
 
-export type EapSeriesResponse = EventsStats;
+type EapSeriesResponse = EventsStats;
 
 interface EapDatasetOptions {
   defaultEventTypes: EventTypes[];

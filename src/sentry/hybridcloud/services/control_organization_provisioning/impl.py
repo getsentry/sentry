@@ -1,6 +1,7 @@
+import logging
 from copy import deepcopy
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone as django_timezone
 
 from sentry import features, roles
@@ -8,6 +9,7 @@ from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models.utils import slugify_instance
 from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.hybridcloud.services.control_organization_provisioning import (
     ControlOrganizationProvisioningRpcService,
     RpcOrganizationSlugReservation,
@@ -26,10 +28,6 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.utils.snowflake import generate_snowflake_id
-
-
-class SlugMismatchException(Exception):
-    pass
 
 
 def create_post_provision_outbox(
@@ -60,8 +58,7 @@ def create_organization_provisioning_outbox(
     )
 
 
-class InvalidOrganizationProvisioningException(Exception):
-    pass
+logger = logging.getLogger(__name__)
 
 
 class DatabaseBackedControlOrganizationProvisioningService(
@@ -216,27 +213,47 @@ class DatabaseBackedControlOrganizationProvisioningService(
         if not require_exact:
             slug_base = self._generate_org_slug(region_name=region_name, slug=slug_base)
 
-        with outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
-        ):
-            OrganizationSlugReservation(
-                slug=slug_base,
-                organization_id=organization_id,
-                user_id=-1,
-                region_name=region_name,
-                reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
-            ).save(unsafe_write=True)
+        try:
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+            ):
+                OrganizationSlugReservation(
+                    slug=slug_base,
+                    organization_id=organization_id,
+                    user_id=-1,
+                    region_name=region_name,
+                    reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
+                ).save(unsafe_write=True)
 
-            org_mapping = OrganizationMapping.objects.filter(
-                organization_id=organization_id
-            ).first()
-            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
-            if org and features.has("organizations:revoke-org-auth-on-slug-rename", org):
-                # Changing a slug invalidates all org tokens, so revoke them all.
-                auth_tokens = OrgAuthToken.objects.filter(
-                    organization_id=organization_id, date_deactivated__isnull=True
+                org_mapping = OrganizationMapping.objects.filter(
+                    organization_id=organization_id
+                ).first()
+                org = (
+                    serialize_organization_mapping(org_mapping) if org_mapping is not None else None
                 )
-                auth_tokens.update(date_deactivated=django_timezone.now())
+                if org and features.has("organizations:revoke-org-auth-on-slug-rename", org):
+                    # Changing a slug invalidates all org tokens, so revoke them all.
+                    auth_tokens = OrgAuthToken.objects.filter(
+                        organization_id=organization_id, date_deactivated__isnull=True
+                    )
+                    auth_tokens.update(date_deactivated=django_timezone.now())
+        except IntegrityError as e:
+            # Check if this is a unique constraint violation on the slug
+            if "sentry_organizationslugreservation_slug_key" in str(e):
+                logging.info(
+                    "update_organization_slug.conflict",
+                    extra={
+                        "organization_id": organization_id,
+                        "slug": slug_base,
+                    },
+                )
+                raise RpcValidationException(
+                    detail=f"Organization slug '{slug_base}' is already in use",
+                    code="slug_conflict",
+                    service_name="control_organization_provisioning",
+                    method_name="update_organization_slug",
+                ) from e
+            raise
 
         primary_slug = self._validate_primary_slug_updated(
             organization_id=organization_id, slug_base=slug_base
@@ -253,8 +270,19 @@ class DatabaseBackedControlOrganizationProvisioningService(
         )
 
         if not primary_slug or primary_slug.slug != slug_base:
-            raise InvalidOrganizationProvisioningException(
-                "Failed to swap slug for organization, likely due to conflict on the region"
+            logging.info(
+                "validate-primary-slug-updated.failure",
+                extra={
+                    "organization_id": organization_id,
+                    "primary_slug": primary_slug.slug if primary_slug else "n/a",
+                    "new": slug_base,
+                },
+            )
+            raise RpcValidationException(
+                detail=f"Organization slug '{slug_base}' is already in use",
+                code="slug_swap",
+                service_name="control_organization_provisioning",
+                method_name="update_organization_slug",
             )
 
         return primary_slug
@@ -282,5 +310,6 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
         for slug_reservation in slug_reservations_to_create:
             self._validate_primary_slug_updated(
-                slug_base=slug_reservation.slug, organization_id=slug_reservation.organization_id
+                slug_base=slug_reservation.slug,
+                organization_id=slug_reservation.organization_id,
             )
