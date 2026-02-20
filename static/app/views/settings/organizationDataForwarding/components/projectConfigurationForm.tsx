@@ -4,10 +4,6 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import IdBadge from 'sentry/components/idBadge';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,9 +60,8 @@ export function ProjectConfigurationForm({dataForwarder, projects, disabled}: Pr
 
   return (
     <form.AppForm>
-      <Panel>
-        <PanelHeader>{t('Project Configuration')}</PanelHeader>
-        <PanelBody>
+      <form.FormWrapper>
+        <form.FieldGroup title={t('Project Configuration')}>
           <form.AppField name="enroll_new_projects">
             {field => (
               <field.Layout.Row
@@ -97,15 +92,13 @@ export function ProjectConfigurationForm({dataForwarder, projects, disabled}: Pr
               </field.Layout.Row>
             )}
           </form.AppField>
-        </PanelBody>
-        <PanelFooter>
-          <Flex justify="end" padding="lg">
+          <Flex justify="end">
             <form.SubmitButton disabled={disabled} priority="primary" size="sm">
               {t('Save Project Configuration')}
             </form.SubmitButton>
           </Flex>
-        </PanelFooter>
-      </Panel>
+        </form.FieldGroup>
+      </form.FormWrapper>
     </form.AppForm>
   );
 }
