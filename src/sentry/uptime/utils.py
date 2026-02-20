@@ -1,9 +1,14 @@
+import hashlib
+
 from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
 from sentry.utils import redis
 from sentry.workflow_engine.models.detector import Detector
+
+RESULT_DATA_TTL_SECONDS = 60 * 60
+BACKFILL_DELAY_SECONDS = 180
 
 
 def build_last_update_key(detector: Detector) -> str:
@@ -35,6 +40,29 @@ def build_backlog_task_scheduled_key(subscription_id: str) -> str:
 def build_backlog_schedule_lock_key(subscription_id: str) -> str:
     """Redis lock key for coordinating backlog task scheduling."""
     return f"uptime:backlog_schedule_lock:{subscription_id}"
+
+
+def build_incoming_key(subscription_id: str) -> str:
+    """Redis sorted set key for incoming results (written by consumer, drained by processor)."""
+    return f"uptime:incoming:{subscription_id}"
+
+
+def build_pending_key(subscription_id: str) -> str:
+    """Redis sorted set key for pending results (gap-blocked, waiting for backfill)."""
+    return f"uptime:pending:{subscription_id}"
+
+
+def should_use_task_processing(subscription_id: str) -> bool:
+    """Deterministic check against rollout rate for task-based processing."""
+    from sentry import options
+
+    rate = options.get("uptime.task-processing-rollout")
+    if rate <= 0.0:
+        return False
+    if rate >= 1.0:
+        return True
+    h = int(hashlib.md5(subscription_id.encode()).hexdigest(), 16)
+    return (h % 10000) / 10000.0 < rate
 
 
 def get_cluster() -> RedisCluster | StrictRedis:

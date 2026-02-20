@@ -48,13 +48,16 @@ from sentry.uptime.subscriptions.tasks import (
 )
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.uptime.utils import (
+    RESULT_DATA_TTL_SECONDS,
     build_backlog_key,
     build_backlog_schedule_lock_key,
     build_backlog_task_scheduled_key,
+    build_incoming_key,
     build_last_interval_change_timestamp_key,
     build_last_update_key,
     generate_scheduled_check_times_ms,
     get_cluster,
+    should_use_task_processing,
 )
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
@@ -476,6 +479,35 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
+
+    def __call__(self, identifier: str, result: CheckResult):
+        if should_use_task_processing(result["subscription_id"]):
+            self.enqueue_result_for_task_processing(result)
+            return
+        super().__call__(identifier, result)
+
+    def enqueue_result_for_task_processing(self, result: CheckResult) -> None:
+        """
+        Store result in the incoming sorted set and spawn a processor task.
+
+        The consumer is kept completely thin for the new path — no subscription
+        lookup, no DB access. The full result (including response body) is stored
+        so the task can create response captures.
+        """
+        from sentry.uptime.consumers.tasks import process_subscription
+
+        subscription_id = result["subscription_id"]
+        incoming_key = build_incoming_key(subscription_id)
+        cluster = get_cluster()
+
+        result_json = json.dumps(result)
+        pipeline = cluster.pipeline()
+        pipeline.zadd(incoming_key, {result_json: int(result["scheduled_check_time_ms"])})
+        pipeline.expire(incoming_key, RESULT_DATA_TTL_SECONDS)
+        pipeline.execute()
+
+        process_subscription.delay(subscription_id)
+        metrics.incr("uptime.result_processor.enqueued_for_task", sample_rate=1.0)
 
     def queue_result_for_retry(
         self,
