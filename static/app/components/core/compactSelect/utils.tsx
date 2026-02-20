@@ -354,3 +354,25 @@ export function shouldCloseOnSelect({
   // lists stay open
   return !multiple;
 }
+
+export function getDuplicateOptionKeys<Value extends SelectKey>(
+  items: Array<SelectOptionOrSectionWithKey<Value>>
+): string[] {
+  const keyCounts = new Map<string, number>();
+
+  const collectOptionKeys = (list: Array<SelectOptionOrSectionWithKey<Value>>) => {
+    list.forEach(item => {
+      if ('options' in item) {
+        collectOptionKeys(item.options);
+        return;
+      }
+
+      const key = String(item.key);
+      keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1);
+    });
+  };
+
+  collectOptionKeys(items);
+
+  return [...keyCounts.entries()].filter(([, count]) => count > 1).map(([key]) => key);
+}

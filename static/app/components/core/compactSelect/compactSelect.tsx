@@ -18,7 +18,7 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSection,
 } from './types';
-import {getItemsWithKeys, shouldCloseOnSelect} from './utils';
+import {getDuplicateOptionKeys, getItemsWithKeys, shouldCloseOnSelect} from './utils';
 
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
@@ -271,28 +271,6 @@ export function CompactSelect<Value extends SelectKey>({
       <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
     </Control>
   );
-}
-
-function getDuplicateOptionKeys<Value extends SelectKey>(
-  items: Array<SelectOptionOrSectionWithKey<Value>>
-): string[] {
-  const keyCounts = new Map<string, number>();
-
-  const collectOptionKeys = (list: Array<SelectOptionOrSectionWithKey<Value>>) => {
-    list.forEach(item => {
-      if ('options' in item) {
-        collectOptionKeys(item.options);
-        return;
-      }
-
-      const key = String(item.key);
-      keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1);
-    });
-  };
-
-  collectOptionKeys(items);
-
-  return [...keyCounts.entries()].filter(([, count]) => count > 1).map(([key]) => key);
 }
 
 function shouldVirtualize<Value extends SelectKey>(
