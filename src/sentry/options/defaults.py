@@ -1165,6 +1165,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "explorer.service_map.max_segments",
+    default=10_000,
+    type=Int,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    ttl=60 * 5,
+)
+register(
     "seer.similarity.global-rate-limit",
     type=Dict,
     default={"limit": 20, "window": 1},  # window is in seconds

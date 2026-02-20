@@ -17,7 +17,6 @@ from sentry.search.events.types import SnubaParams
 from sentry.tasks.explorer_service_map import (
     _classify_service_roles,
     _query_service_dependencies,
-    _query_top_transactions,
     _send_to_seer,
     build_service_map,
     schedule_service_map_builds,
@@ -33,49 +32,6 @@ def _make_snuba_params(organization, projects):
     end = datetime.now(timezone.utc)
     start = end - timedelta(hours=24)
     return SnubaParams(start=start, end=end, projects=projects, organization=organization)
-
-
-@django_db_all
-class TestQueryTopTransactions(TestCase):
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_queries_with_correct_parameters(self, mock_query):
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        snuba_params = _make_snuba_params(org, [project])
-
-        mock_query.return_value = {"data": []}
-
-        _query_top_transactions(snuba_params, limit=50)
-
-        mock_query.assert_called_once()
-        call_kwargs = mock_query.call_args[1]
-
-        assert call_kwargs["query_string"] == "is_transaction:true"
-        assert "transaction" in call_kwargs["selected_columns"]
-        assert "sum(span.duration)" in call_kwargs["selected_columns"]
-        assert call_kwargs["orderby"] == ["-sum(span.duration)"]
-        assert call_kwargs["limit"] == 50
-
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
-    def test_returns_transaction_names(self, mock_query):
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        snuba_params = _make_snuba_params(org, [project])
-
-        mock_query.return_value = {
-            "data": [
-                {"transaction": "/api/users", "sum(span.duration)": 5000},
-                {"transaction": "/api/events", "sum(span.duration)": 3000},
-                {"transaction": "", "sum(span.duration)": 1000},  # Should be filtered
-            ]
-        }
-
-        result = _query_top_transactions(snuba_params)
-
-        assert len(result) == 2
-        assert "/api/users" in result
-        assert "/api/events" in result
-        assert "" not in result
 
 
 @django_db_all
@@ -134,7 +90,7 @@ class TestBuildServiceMap(TestCase):
 
         with override_options({"explorer.service_map.enable": False}):
             with mock.patch(
-                "sentry.tasks.explorer_service_map._query_top_transactions"
+                "sentry.tasks.explorer_service_map._query_service_dependencies"
             ) as mock_query:
                 build_service_map(org.id)
 
@@ -147,7 +103,7 @@ class TestBuildServiceMap(TestCase):
             {"explorer.service_map.enable": True, "explorer.service_map.killswitch": True}
         ):
             with mock.patch(
-                "sentry.tasks.explorer_service_map._query_top_transactions"
+                "sentry.tasks.explorer_service_map._query_service_dependencies"
             ) as mock_query:
                 build_service_map(org.id)
 
@@ -155,13 +111,11 @@ class TestBuildServiceMap(TestCase):
 
     @mock.patch("sentry.tasks.explorer_service_map._send_to_seer")
     @mock.patch("sentry.tasks.explorer_service_map._query_service_dependencies")
-    @mock.patch("sentry.tasks.explorer_service_map._query_top_transactions")
-    def test_complete_workflow(self, mock_transactions, mock_dependencies, mock_send):
+    def test_complete_workflow(self, mock_dependencies, mock_send):
         org = self.create_organization()
         project1 = self.create_project(organization=org)
         project2 = self.create_project(organization=org)
 
-        mock_transactions.return_value = ["/api/users"]
         mock_dependencies.return_value = [
             {"source_project_id": project1.id, "target_project_id": project2.id, "count": 10}
         ]
@@ -169,27 +123,15 @@ class TestBuildServiceMap(TestCase):
         with override_options({"explorer.service_map.enable": True}):
             build_service_map(org.id)
 
-        mock_transactions.assert_called_once()
-        snuba_params = mock_transactions.call_args[0][0]
+        mock_dependencies.assert_called_once()
+        snuba_params = mock_dependencies.call_args[0][0]
         assert isinstance(snuba_params, SnubaParams)
-        mock_dependencies.assert_called_once_with(snuba_params, ["/api/users"])
         mock_send.assert_called_once()
 
-    @mock.patch("sentry.tasks.explorer_service_map._query_top_transactions")
-    def test_handles_no_transactions(self, mock_transactions):
-        org = self.create_organization()
-
-        mock_transactions.return_value = []
-
-        with override_options({"explorer.service_map.enable": True}):
-            build_service_map(org.id)
-
     @mock.patch("sentry.tasks.explorer_service_map._query_service_dependencies")
-    @mock.patch("sentry.tasks.explorer_service_map._query_top_transactions")
-    def test_handles_no_edges(self, mock_transactions, mock_dependencies):
+    def test_handles_no_edges(self, mock_dependencies):
         org = self.create_organization()
 
-        mock_transactions.return_value = ["/api/users"]
         mock_dependencies.return_value = []
 
         with override_options({"explorer.service_map.enable": True}):
@@ -198,14 +140,105 @@ class TestBuildServiceMap(TestCase):
 
         mock_send.assert_not_called()
 
-    @mock.patch("sentry.tasks.explorer_service_map._query_top_transactions")
-    def test_handles_exception(self, mock_transactions):
+    @mock.patch("sentry.tasks.explorer_service_map._query_service_dependencies")
+    def test_handles_exception(self, mock_dependencies):
         org = self.create_organization()
 
-        mock_transactions.side_effect = Exception("Test error")
+        mock_dependencies.side_effect = Exception("Test error")
 
         with override_options({"explorer.service_map.enable": True}):
             build_service_map(org.id)
+
+
+@django_db_all
+class TestQueryServiceDependenciesPhase2(TestCase):
+    """Unit tests for Phase 2 fallback scan for uncovered projects"""
+
+    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
+    def test_phase2_triggered_for_uncovered_projects(self, mock_query):
+        org = self.create_organization()
+        project_covered = self.create_project(organization=org)
+        project_uncovered = self.create_project(organization=org)
+        snuba_params = _make_snuba_params(org, [project_covered, project_uncovered])
+
+        # Phase 1: only covered project appears
+        phase1_data = [
+            {
+                "id": "aaa111aaa111aaa1",
+                "parent_span": "bbb222bbb222bbb2",
+                "project.id": project_covered.id,
+                "project.slug": project_covered.slug,
+            }
+        ]
+        # Phase 2 returns empty
+        phase2_data: list[dict] = []
+        # Phase 3 parent resolution returns empty
+        phase3_data: list[dict] = []
+
+        mock_query.side_effect = [
+            {"data": phase1_data},
+            {"data": phase2_data},
+            {"data": phase3_data},
+        ]
+
+        _query_service_dependencies(snuba_params)
+
+        assert mock_query.call_count == 3
+
+        # Phase 2 call is the second call
+        phase2_call_kwargs = mock_query.call_args_list[1][1]
+        phase2_params = phase2_call_kwargs["params"]
+        assert project_uncovered in phase2_params.projects
+        assert project_covered not in phase2_params.projects
+
+        # Phase 2 must NOT use has:parent_span
+        assert "has:parent_span" not in phase2_call_kwargs["query_string"]
+
+    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
+    def test_phase2_not_triggered_when_all_projects_covered(self, mock_query):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        snuba_params = _make_snuba_params(org, [project])
+
+        # Phase 1: covers the only project
+        phase1_data = [
+            {
+                "id": "aaa111aaa111aaa1",
+                "parent_span": "bbb222bbb222bbb2",
+                "project.id": project.id,
+                "project.slug": project.slug,
+            }
+        ]
+        # Phase 3 parent resolution returns empty
+        phase3_data: list[dict] = []
+
+        mock_query.side_effect = [
+            {"data": phase1_data},
+            {"data": phase3_data},
+        ]
+
+        _query_service_dependencies(snuba_params)
+
+        # Phase 1 + Phase 3 only — no Phase 2
+        assert mock_query.call_count == 2
+
+        # Second call is Phase 3: query is span ID filter, not a transaction scan
+        phase3_call_kwargs = mock_query.call_args_list[1][1]
+        assert "is_transaction" not in phase3_call_kwargs["query_string"]
+
+    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
+    def test_phase1_uses_has_parent_span_filter(self, mock_query):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        snuba_params = _make_snuba_params(org, [project])
+
+        mock_query.return_value = {"data": []}
+
+        _query_service_dependencies(snuba_params)
+
+        phase1_call_kwargs = mock_query.call_args_list[0][1]
+        assert "has:parent_span" in phase1_call_kwargs["query_string"]
+        assert "is_transaction:true" in phase1_call_kwargs["query_string"]
 
 
 @django_db_all
@@ -441,7 +474,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
         self.store_spans([parent, child])
 
         # Query
-        edges = _query_service_dependencies(self._snuba_params(), ["/api/users"])
+        edges = _query_service_dependencies(self._snuba_params())
 
         # Verify
         assert len(edges) == 1
@@ -506,8 +539,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans([frontend_span, api_span, db_span])
 
-        # Query for both downstream transactions
-        edges = _query_service_dependencies(self._snuba_params(), ["/api/users", "/db/query"])
+        edges = _query_service_dependencies(self._snuba_params())
 
         # Verify both edges exist
         assert len(edges) == 2
@@ -553,8 +585,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans([parent, child])
 
-        # Query
-        edges = _query_service_dependencies(self._snuba_params(), ["/child/transaction"])
+        edges = _query_service_dependencies(self._snuba_params())
 
         # Verify no edges (same-project filtered)
         assert len(edges) == 0
@@ -568,8 +599,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         spans = []
 
-        # Create 3 separate traces with frontend→api pattern using different transactions
-        # to avoid deduplication (implementation keeps only one segment per transaction name)
+        # Create 3 separate traces with frontend→api pattern using different parent span IDs
         for i in range(3):
             trace_id = uuid4().hex
             parent_span_id = uuid4().hex[:16]
@@ -606,12 +636,9 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        # Query for all 3 transactions
-        edges = _query_service_dependencies(
-            self._snuba_params(), ["/api/endpoint0", "/api/endpoint1", "/api/endpoint2"]
-        )
+        edges = _query_service_dependencies(self._snuba_params())
 
-        # Verify single edge with count=3 (aggregated across different transactions)
+        # Verify single edge with count=3 (aggregated across different parent spans)
         assert len(edges) == 1
         edge = edges[0]
         assert edge["source_project_slug"] == "frontend"
@@ -640,8 +667,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans([child])
 
-        # Query
-        edges = _query_service_dependencies(self._snuba_params(), ["/orphan/transaction"])
+        edges = _query_service_dependencies(self._snuba_params())
 
         # Verify no edges created for orphans
         assert len(edges) == 0
@@ -724,8 +750,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        # Query for both transactions
-        edges = _query_service_dependencies(self._snuba_params(), ["/api/users", "/api/events"])
+        edges = _query_service_dependencies(self._snuba_params())
 
         # Verify both edges targeting API
         assert len(edges) == 2
@@ -809,16 +834,7 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        # Query for all transactions
-        edges = _query_service_dependencies(
-            self._snuba_params(),
-            [
-                "/service-a/endpoint1",
-                "/service-a/endpoint2",
-                "/service-b/endpoint1",
-                "/service-b/endpoint2",
-            ],
-        )
+        edges = _query_service_dependencies(self._snuba_params())
 
         # Verify both circular edges detected
         assert len(edges) == 2
@@ -891,8 +907,7 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        # Query and classify
-        edges = _query_service_dependencies(self._snuba_params(), ["/api/users", "/db/query"])
+        edges = _query_service_dependencies(self._snuba_params())
         roles = _classify_service_roles(edges)
 
         # Frontend should be classified as frontend (only outgoing edges)
@@ -977,10 +992,7 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        # Query and classify (query both transactions)
-        edges = _query_service_dependencies(
-            self._snuba_params(), ["/api/users", "/api/events", "/db/query"]
-        )
+        edges = _query_service_dependencies(self._snuba_params())
         roles = _classify_service_roles(edges)
 
         # API should be core_backend (both incoming and outgoing edges)
@@ -1066,10 +1078,7 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        # Query and classify
-        edges = _query_service_dependencies(
-            self._snuba_params(), ["/api/users", "/isolated/endpoint"]
-        )
+        edges = _query_service_dependencies(self._snuba_params())
         roles = _classify_service_roles(edges)
 
         # Isolated should have low connectivity classification
@@ -1100,13 +1109,11 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
         start_ts = self.ten_mins_ago
         spans = []
 
-        # Create frontend → api traces (3 traces with unique transactions)
-        api_transactions = []
+        # Create frontend → api traces (3 traces with unique parent span IDs)
         for i in range(3):
             trace_id = uuid4().hex
             frontend_span_id = uuid4().hex[:16]
             api_tx = f"/api/endpoint{i}"  # Unique transaction name
-            api_transactions.append(api_tx)
 
             spans.extend(
                 [
@@ -1137,15 +1144,12 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
                 ]
             )
 
-        # Create api → database traces (2 traces with unique transactions)
-        db_transactions = []
+        # Create api → database traces (2 traces with unique parent span IDs)
         for i in range(2):
             trace_id = uuid4().hex
             api_span_id = uuid4().hex[:16]
             api_db_tx = f"/api/db-endpoint{i}"  # Unique transaction name
-            api_transactions.append(api_db_tx)
             db_tx = f"/db/query{i}"
-            db_transactions.append(db_tx)
 
             spans.extend(
                 [
@@ -1180,7 +1184,6 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
         trace_cache = uuid4().hex
         api_cache_span_id = uuid4().hex[:16]
         api_cache_tx = "/api/cache-endpoint"
-        api_transactions.append(api_cache_tx)
 
         spans.extend(
             [
