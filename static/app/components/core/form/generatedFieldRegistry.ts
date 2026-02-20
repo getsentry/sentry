@@ -91,6 +91,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'password-form',
     route: '/settings/account/security/',
     label: t('Verify New Password'),
-    hintText: t('Verify your new password'),
+    hintText: '',
   },
 };
