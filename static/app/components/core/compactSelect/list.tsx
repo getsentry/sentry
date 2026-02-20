@@ -174,11 +174,12 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, search, searchable, overlayIsOpen} = useContext(ControlContext);
+  const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
+    useContext(ControlContext);
 
   const hiddenOptions = useMemo(
-    () => getHiddenOptions(items, search, sizeLimit),
-    [items, search, sizeLimit]
+    () => getHiddenOptions(items, search, sizeLimit, searchMatcher),
+    [items, search, sizeLimit, searchMatcher]
   );
 
   /**
