@@ -53,7 +53,8 @@ class AuthIdentityUpdateLoggingTest(TestCase):
         )
 
     @patch("sentry.models.authidentity.logger")
-    def test_update_user_id_logs(self, mock_logger):
+    def test_update_user_id_logs_old_and_new(self, mock_logger):
+        old_user_id = self.user.id
         new_user = self.create_user()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.auth_identity.update(user_id=new_user.id)
@@ -63,7 +64,8 @@ class AuthIdentityUpdateLoggingTest(TestCase):
             extra={
                 "auth_identity_id": self.auth_identity.id,
                 "auth_provider_id": self.auth_provider.id,
-                "user_id": new_user.id,
+                "user_id": old_user_id,
+                "new_user_id": new_user.id,
                 "changed_fields": ["user_id"],
             },
         )

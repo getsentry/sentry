@@ -60,17 +60,18 @@ class AuthIdentity(ReplicatedControlModel):
 
     def update(self, *args: Any, **kwds: Any) -> int:
         changed_fields = _MEANINGFUL_UPDATE_FIELDS.intersection(kwds)
+        old_user_id = self.user_id
         result = super().update(*args, **kwds)
         if changed_fields:
-            logger.info(
-                "auth_identity.update",
-                extra={
-                    "auth_identity_id": self.id,
-                    "auth_provider_id": self.auth_provider_id,
-                    "user_id": self.user_id,
-                    "changed_fields": sorted(changed_fields),
-                },
-            )
+            extra: dict[str, Any] = {
+                "auth_identity_id": self.id,
+                "auth_provider_id": self.auth_provider_id,
+                "user_id": old_user_id,
+                "changed_fields": sorted(changed_fields),
+            }
+            if self.user_id != old_user_id:
+                extra["new_user_id"] = self.user_id
+            logger.info("auth_identity.update", extra=extra)
         return result
 
     def delete(self, *args: Any, **kwds: Any) -> tuple[int, dict[str, Any]]:
