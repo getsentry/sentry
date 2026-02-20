@@ -162,7 +162,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             for key, metadata in sorted(manifest.images.items())
         ]
 
-        def on_results(images: list[SnapshotImageResponse]) -> dict:
+        def on_results(images: list[SnapshotImageResponse]) -> dict[str, Any]:
             return SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
                 state=artifact.state,

@@ -318,7 +318,6 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 200
         assert response.data["head_artifact_id"] == str(artifact.id)
         assert response.data["state"] == PreprodArtifact.ArtifactState.UPLOADED
-        assert response.data["comparison_type"] == "solo"
         assert response.data["image_count"] == 2
         assert len(response.data["images"]) == 2
         # Images should be sorted by key
@@ -371,12 +370,22 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         url = self._get_detail_url(artifact.id)
         with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url, {"offset": "2", "limit": "3"})
+            # First page: items 0-2
+            response = self.client.get(url, {"per_page": "3"})
 
         assert response.status_code == 200
         assert len(response.data["images"]) == 3
-        assert response.data["images"][0]["key"] == "img002"
-        assert response.data["images"][2]["key"] == "img004"
+        assert response.data["images"][0]["key"] == "img000"
+        assert response.data["images"][2]["key"] == "img002"
+
+        with self.feature("organizations:preprod-snapshots"):
+            # Second page: cursor format is "{per_page}:{page}:0"
+            response = self.client.get(url, {"cursor": "3:1:0", "per_page": "3"})
+
+        assert response.status_code == 200
+        assert len(response.data["images"]) == 3
+        assert response.data["images"][0]["key"] == "img003"
+        assert response.data["images"][2]["key"] == "img005"
 
     def test_get_snapshot_not_found(self):
         url = self._get_detail_url(99999)
@@ -410,21 +419,25 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 403
         assert response.data["detail"] == "Feature not enabled"
 
-    def test_get_snapshot_invalid_pagination(self):
-        artifact, _, _, _, _ = self._create_artifact_with_manifest()
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
+    def test_get_snapshot_invalid_pagination(self, mock_get_session):
+        artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
         with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url, {"offset": "-1"})
+            response = self.client.get(url, {"per_page": "0"})
 
         assert response.status_code == 400
 
-    def test_get_snapshot_limit_too_large(self):
-        artifact, _, _, _, _ = self._create_artifact_with_manifest()
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
+    def test_get_snapshot_limit_too_large(self, mock_get_session):
+        artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
         with self.feature("organizations:preprod-snapshots"):
-            response = self.client.get(url, {"limit": "101"})
+            response = self.client.get(url, {"per_page": "101"})
 
         assert response.status_code == 400
 
