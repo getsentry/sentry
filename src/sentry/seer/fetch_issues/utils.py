@@ -12,6 +12,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.sentry_data_models import IssueDetails
 from sentry.seer.utils import filter_repo_by_provider
 
@@ -43,7 +44,7 @@ def handle_fetch_issues_exceptions[R](
 @dataclass
 class RepoInfo:
     organization_id: int
-    provider: str
+    provider: SeerSCMProvider
     external_id: str
 
 
@@ -61,7 +62,7 @@ class SeerResponse(TypedDict):
 
 def get_repo_and_projects(
     organization_id: int,
-    provider: str,
+    provider: SeerSCMProvider,
     external_id: str,
     owner: str,
     name: str,
@@ -77,6 +78,8 @@ def get_repo_and_projects(
             "provider": provider,
             "external_id": external_id,
             "run_id": run_id,
+            "owner": owner,
+            "name": name,
         }
     )
     repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()

@@ -134,7 +134,7 @@ describe('PaygCard', () => {
 
   it('can update using inline input', async () => {
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
     });
     const mockApiCall = MockApiClient.addMockResponse({

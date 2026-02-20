@@ -25,6 +25,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
     AutofixSelectRootCausePayload,
@@ -416,6 +417,7 @@ def _call_autofix(
     trace_tree: dict[str, Any] | None,
     logs: dict[str, list[dict]] | None,
     tags_overview: dict[str, Any] | None,
+    referrer: AutofixReferrer,
     instruction: str | None = None,
     timeout_secs: int = TIMEOUT_SECONDS,
     pr_to_comment_on_url: str | None = None,
@@ -455,6 +457,7 @@ def _call_autofix(
             "options": {
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
+                "referrer": referrer,
                 "disable_coding_step": not group.organization.get_option(
                     "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
                 ),
@@ -590,6 +593,7 @@ def trigger_autofix(
     group: Group,
     event_id: str | None = None,
     user: User | AnonymousUser | RpcUser,
+    referrer: AutofixReferrer,
     instruction: str | None = None,
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,
@@ -674,6 +678,7 @@ def trigger_autofix(
             trace_tree=trace_tree,
             logs=logs,
             tags_overview=tags_overview,
+            referrer=referrer,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url=pr_to_comment_on_url,

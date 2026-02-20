@@ -276,71 +276,31 @@ describe('FieldRenderer tests', () => {
     expect(screen.getByText('3d ago')).toBeInTheDocument();
   });
 
-  describe('without otel friendly UI flag', () => {
-    const organizationWithoutFlags = OrganizationFixture({
-      features: [],
-    });
-
-    it('renders description with project badge', () => {
-      render(
-        <Wrapper>
-          <FieldRenderer
-            column={eventView.getColumns()[5]}
-            data={mockedEventData}
-            meta={{}}
-          />
-        </Wrapper>,
-        {organization: organizationWithoutFlags}
-      );
-      expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
-    });
-
-    it('renders name without project badge', () => {
-      render(
-        <Wrapper>
-          <FieldRenderer
-            column={eventView.getColumns()[6]}
-            data={mockedEventData}
-            meta={{}}
-          />
-        </Wrapper>,
-        {organization: organizationWithoutFlags}
-      );
-      expect(screen.queryByTestId('platform-icon-javascript')).not.toBeInTheDocument();
-    });
+  it('renders description without project badge', () => {
+    render(
+      <Wrapper>
+        <FieldRenderer
+          column={eventView.getColumns()[5]}
+          data={mockedEventData}
+          meta={{}}
+        />
+      </Wrapper>,
+      {organization}
+    );
+    expect(screen.queryByTestId('platform-icon-javascript')).not.toBeInTheDocument();
   });
 
-  describe('with otel friendly UI flag', () => {
-    const organizationWithOtelFlag = OrganizationFixture({
-      features: ['performance-otel-friendly-ui'],
-    });
-
-    it('renders description without project badge', () => {
-      render(
-        <Wrapper>
-          <FieldRenderer
-            column={eventView.getColumns()[5]}
-            data={mockedEventData}
-            meta={{}}
-          />
-        </Wrapper>,
-        {organization: organizationWithOtelFlag}
-      );
-      expect(screen.queryByTestId('platform-icon-javascript')).not.toBeInTheDocument();
-    });
-
-    it('renders name with project badge', () => {
-      render(
-        <Wrapper>
-          <FieldRenderer
-            column={eventView.getColumns()[6]}
-            data={mockedEventData}
-            meta={{}}
-          />
-        </Wrapper>,
-        {organization: organizationWithOtelFlag}
-      );
-      expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
-    });
+  it('renders name with project badge', () => {
+    render(
+      <Wrapper>
+        <FieldRenderer
+          column={eventView.getColumns()[6]}
+          data={mockedEventData}
+          meta={{}}
+        />
+      </Wrapper>,
+      {organization}
+    );
+    expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
   });
 });

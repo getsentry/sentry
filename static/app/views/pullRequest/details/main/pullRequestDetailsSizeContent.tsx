@@ -28,6 +28,7 @@ export function PullRequestDetailsSizeContent({
 
   const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
     useApiQuery<AppSizeApiResponse>(
+      // @ts-expect-error TODO(ryan953): Invalid useApiQuery path (should be organization prefix?)
       [`/projects/${organization.slug}/pull-requests/size-analysis/${selectedBuildId}/`],
       {
         staleTime: 0,

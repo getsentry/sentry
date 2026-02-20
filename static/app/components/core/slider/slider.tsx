@@ -1,8 +1,6 @@
 import {useState, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 interface BaseProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   'type' | 'value' | 'onChange' | 'defaultValue'
@@ -24,7 +22,7 @@ interface UncontrolledProps extends BaseProps {
   value?: never;
 }
 
-type SliderProps = ControlledProps | UncontrolledProps;
+export type SliderProps = ControlledProps | UncontrolledProps;
 
 export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) {
   const step = toNumber(props.step ?? -1);
@@ -260,8 +258,8 @@ const SliderOutput = styled('output')`
 const SliderLabel = styled('span')`
   font-size: inherit;
   display: block;
-  min-width: calc(3ch + ${space(0.5)});
-  padding-inline: ${space(0.5)};
+  min-width: calc(3ch + ${p => p.theme.space.xs});
+  padding-inline: ${p => p.theme.space.xs};
   width: min-content;
   text-align: center;
   background: ${p => p.theme.tokens.background.accent.vibrant};
