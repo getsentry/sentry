@@ -27,14 +27,14 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
 
         commit_comparison = self.create_commit_comparison(
             organization=self.org,
-            head_sha="1234567890098765432112345678900987654321",
-            base_sha="9876543210012345678998765432100123456789",
+            head_sha="abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+            base_sha="fedcbafedcbafedcbafedcbafedcbafedcbafedcb",
             provider="github",
             head_repo_name="owner/repo",
             base_repo_name="owner/repo",
             head_ref="feature/xyz",
             base_ref="main",
-            pr_number=123,
+            pr_number=99000123,
         )
 
         self.artifact1 = self.create_preprod_artifact(
@@ -331,7 +331,7 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
 
     def test_list_builds_search_by_commit_sha(self) -> None:
         response = self.client.get(
-            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=123456789009876543211234567890",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=abcdefabcdefabcdef",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -349,7 +349,7 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
 
     def test_list_builds_search_by_pr_number(self) -> None:
         response = self.client.get(
-            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=123",
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query=99000123",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
