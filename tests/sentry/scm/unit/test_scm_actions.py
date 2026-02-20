@@ -306,16 +306,16 @@ def _check_create_git_commit(result: Any) -> None:
 
 
 def _check_pr_files(result: Any) -> None:
-    assert len(result["data"]) == 1
-    assert result["data"][0]["filename"] == "src/main.py"
-    assert result["type"] == "test"
+    assert len(result) == 1
+    assert result[0]["data"]["filename"] == "src/main.py"
+    assert result[0]["type"] == "test"
 
 
 def _check_pr_commits(result: Any) -> None:
-    assert len(result["data"]) == 1
-    assert result["data"][0]["sha"] == "commit123"
-    assert result["data"][0]["message"] == "Fix bug"
-    assert result["type"] == "test"
+    assert len(result) == 1
+    assert result[0]["data"]["sha"] == "commit123"
+    assert result[0]["data"]["message"] == "Fix bug"
+    assert result[0]["type"] == "test"
 
 
 def _check_pr_diff(result: Any) -> None:

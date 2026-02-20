@@ -14,7 +14,9 @@ from sentry.scm.helpers import (
 from sentry.scm.types import (
     ActionResult,
     CheckRun,
+    CheckRunConclusion,
     CheckRunOutput,
+    CheckRunStatus,
     Comment,
     Commit,
     CommitComparison,
@@ -36,6 +38,7 @@ from sentry.scm.types import (
     Review,
     ReviewComment,
     ReviewCommentInput,
+    ReviewSide,
 )
 
 
@@ -247,12 +250,12 @@ class SourceCodeManager:
     ) -> ActionResult[GitCommitObject]:
         return self._exec(lambda p: p.create_git_commit(message, tree_sha, parent_shas))
 
-    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
+    def get_pull_request_files(self, pull_request_id: str) -> list[ActionResult[PullRequestFile]]:
         return self._exec(lambda p: p.get_pull_request_files(pull_request_id))
 
     def get_pull_request_commits(
         self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestCommit]]:
+    ) -> list[ActionResult[PullRequestCommit]]:
         return self._exec(lambda p: p.get_pull_request_commits(pull_request_id))
 
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
@@ -296,9 +299,9 @@ class SourceCodeManager:
         commit_sha: str,
         path: str,
         line: int | None = None,
-        side: str | None = None,
+        side: ReviewSide | None = None,
         start_line: int | None = None,
-        start_side: str | None = None,
+        start_side: ReviewSide | None = None,
     ) -> ActionResult[ReviewComment]:
         return self._exec(
             lambda p: p.create_review_comment(
@@ -329,8 +332,8 @@ class SourceCodeManager:
         self,
         name: str,
         head_sha: str,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: CheckRunStatus | None = None,
+        conclusion: CheckRunConclusion | None = None,
         external_id: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
@@ -355,8 +358,8 @@ class SourceCodeManager:
     def update_check_run(
         self,
         check_run_id: str,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: CheckRunStatus | None = None,
+        conclusion: CheckRunConclusion | None = None,
         output: CheckRunOutput | None = None,
     ) -> ActionResult[CheckRun]:
         return self._exec(

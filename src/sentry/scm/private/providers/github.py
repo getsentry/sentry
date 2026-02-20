@@ -6,7 +6,9 @@ from sentry.scm.types import (
     ActionResult,
     Author,
     CheckRun,
+    CheckRunConclusion,
     CheckRunOutput,
+    CheckRunStatus,
     Comment,
     Commit,
     CommitAuthor,
@@ -30,6 +32,7 @@ from sentry.scm.types import (
     Review,
     ReviewComment,
     ReviewCommentInput,
+    ReviewSide,
     TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -583,31 +586,29 @@ class GitHubProvider:
 
     # Expanded pull request operations
 
-    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
+    def get_pull_request_files(self, pull_request_id: str) -> list[ActionResult[PullRequestFile]]:
         try:
             raw_files = self.client.get_pull_request_files(self.repository["name"], pull_request_id)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return ActionResult(
-            data=[_transform_pull_request_file(f) for f in raw_files],
-            type="github",
-            raw={"files": raw_files},
-        )
+        return [
+            ActionResult(data=_transform_pull_request_file(f), type="github", raw=f)
+            for f in raw_files
+        ]
 
     def get_pull_request_commits(
         self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestCommit]]:
+    ) -> list[ActionResult[PullRequestCommit]]:
         try:
             raw_commits = self.client.get_pull_request_commits(
                 self.repository["name"], pull_request_id
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return ActionResult(
-            data=[_transform_pull_request_commit(c) for c in raw_commits],
-            type="github",
-            raw={"commits": raw_commits},
-        )
+        return [
+            ActionResult(data=_transform_pull_request_commit(c), type="github", raw=c)
+            for c in raw_commits
+        ]
 
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
         try:
@@ -687,9 +688,9 @@ class GitHubProvider:
         commit_sha: str,
         path: str,
         line: int | None = None,
-        side: str | None = None,
+        side: ReviewSide | None = None,
         start_line: int | None = None,
-        start_side: str | None = None,
+        start_side: ReviewSide | None = None,
     ) -> ActionResult[ReviewComment]:
         data: dict[str, Any] = {
             "body": body,
@@ -737,8 +738,8 @@ class GitHubProvider:
         self,
         name: str,
         head_sha: str,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: CheckRunStatus | None = None,
+        conclusion: CheckRunConclusion | None = None,
         external_id: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
@@ -776,8 +777,8 @@ class GitHubProvider:
     def update_check_run(
         self,
         check_run_id: str,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: CheckRunStatus | None = None,
+        conclusion: CheckRunConclusion | None = None,
         output: CheckRunOutput | None = None,
     ) -> ActionResult[CheckRun]:
         data: dict[str, Any] = {}

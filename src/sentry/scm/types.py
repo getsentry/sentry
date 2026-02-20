@@ -1,13 +1,20 @@
 from typing import Any, Literal, Protocol, Required, TypedDict
 
-type ProviderName = str
+type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
 type ExternalId = str
-# Normalized reaction identifiers shared across all SCM providers.
 type Reaction = Literal["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"]
-# Identifies the caller so providers can apply per-referrer rate-limit policies.
 type Referrer = Literal["emerge", "shared"]
-# A repository can be identified by its internal DB id or by a (provider, external_id) pair.
 type RepositoryId = int | tuple[ProviderName, ExternalId]
+type FileStatus = Literal[
+    "added", "removed", "modified", "renamed", "copied", "changed", "unchanged"
+]
+type CheckRunStatus = Literal["queued", "in_progress", "completed"]
+type CheckRunConclusion = Literal[
+    "success", "failure", "neutral", "cancelled", "skipped", "timed_out", "action_required"
+]
+type TreeEntryMode = Literal["100644", "100755", "040000", "160000", "120000"]
+type TreeEntryType = Literal["blob", "tree", "commit"]
+type ReviewSide = Literal["LEFT", "RIGHT"]
 
 
 class Author(TypedDict):
@@ -47,7 +54,7 @@ class PullRequest(TypedDict):
     number: int
     title: str
     body: str | None
-    state: str
+    state: Literal["open", "closed"]
     merged: bool
     url: str
     html_url: str
@@ -56,11 +63,11 @@ class PullRequest(TypedDict):
 
 
 class ActionResult[T](TypedDict):
-    """Wraps a PullRequest with provider metadata and the original API response.
+    """Wraps a provider response with metadata and the original API payload.
 
-    ActionResult types pair a normalized domain object with the provider name
-    and the raw API payload. This lets callers work with a stable interface
-    while still having access to provider-specific fields when needed.
+    Pairs a normalized domain object with the provider name and raw API
+    payload. This lets callers work with a stable interface while still
+    having access to provider-specific fields when needed.
     """
 
     data: T
@@ -104,7 +111,7 @@ class CommitAuthor(TypedDict):
 
 class CommitFile(TypedDict):
     filename: str
-    status: str
+    status: FileStatus
     patch: str | None
 
 
@@ -122,16 +129,16 @@ class CommitComparison(TypedDict):
 
 class TreeEntry(TypedDict):
     path: str
-    mode: str
-    type: str
+    mode: TreeEntryMode
+    type: TreeEntryType
     sha: str
     size: int | None
 
 
 class InputTreeEntry(TypedDict):
     path: str
-    mode: str
-    type: str
+    mode: TreeEntryMode
+    type: TreeEntryType
     sha: str | None  # None for deletions
 
 
@@ -152,7 +159,7 @@ class GitCommitObject(TypedDict):
 
 class PullRequestFile(TypedDict):
     filename: str
-    status: str
+    status: FileStatus
     patch: str | None
     changes: int
     sha: str
@@ -171,9 +178,9 @@ class ReviewCommentInput(TypedDict, total=False):
     path: Required[str]
     body: Required[str]
     line: int
-    side: str  # "LEFT" or "RIGHT"
+    side: ReviewSide
     start_line: int
-    start_side: str  # "LEFT" or "RIGHT"
+    start_side: ReviewSide
 
 
 class ReviewComment(TypedDict):
@@ -192,12 +199,6 @@ class Review(TypedDict):
     html_url: str
 
 
-class ReviewActionResult(TypedDict):
-    review: Review
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class CheckRunOutput(TypedDict, total=False):
     """Output annotation for a check run."""
 
@@ -211,8 +212,8 @@ class CheckRun(TypedDict):
 
     id: int
     name: str
-    status: str  # "queued", "in_progress", "completed"
-    conclusion: str | None  # "success", "failure", "neutral", etc.
+    status: CheckRunStatus
+    conclusion: CheckRunConclusion | None
     html_url: str
 
 
@@ -307,11 +308,11 @@ class Provider(Protocol):
 
     def get_pull_request_files(
         self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestFile]]: ...
+    ) -> list[ActionResult[PullRequestFile]]: ...
 
     def get_pull_request_commits(
         self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestCommit]]: ...
+    ) -> list[ActionResult[PullRequestCommit]]: ...
 
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]: ...
 
@@ -345,9 +346,9 @@ class Provider(Protocol):
         commit_sha: str,
         path: str,
         line: int | None = None,
-        side: str | None = None,
+        side: ReviewSide | None = None,
         start_line: int | None = None,
-        start_side: str | None = None,
+        start_side: ReviewSide | None = None,
     ) -> ActionResult[ReviewComment]: ...
 
     def create_review(
@@ -363,8 +364,8 @@ class Provider(Protocol):
         self,
         name: str,
         head_sha: str,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: CheckRunStatus | None = None,
+        conclusion: CheckRunConclusion | None = None,
         external_id: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
@@ -376,8 +377,8 @@ class Provider(Protocol):
     def update_check_run(
         self,
         check_run_id: str,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: CheckRunStatus | None = None,
+        conclusion: CheckRunConclusion | None = None,
         output: CheckRunOutput | None = None,
     ) -> ActionResult[CheckRun]: ...
 

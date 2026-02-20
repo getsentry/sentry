@@ -614,26 +614,26 @@ def _check_create_git_commit(result: Any) -> None:
 
 
 def _check_pr_files(result: Any) -> None:
-    assert len(result["data"]) == 1
-    f = result["data"][0]
+    assert len(result) == 1
+    f = result[0]["data"]
     assert f["filename"] == "src/main.py"
     assert f["status"] == "modified"
     assert f["patch"] is not None
     assert f["changes"] == 1
     assert f["sha"] == "file123"
     assert f["previous_filename"] is None
-    assert result["type"] == "github"
+    assert result[0]["type"] == "github"
 
 
 def _check_pr_commits(result: Any) -> None:
-    assert len(result["data"]) == 1
-    c = result["data"][0]
+    assert len(result) == 1
+    c = result[0]["data"]
     assert c["sha"] == "commit123"
     assert c["message"] == "Fix bug"
     assert c["author"] is not None
     assert c["author"]["name"] == "Test User"
     assert c["author"]["email"] == "test@example.com"
-    assert result["type"] == "github"
+    assert result[0]["type"] == "github"
 
 
 def _check_pr_diff(result: Any) -> None:
@@ -1092,8 +1092,8 @@ class TestPullRequestCommitEdgeCases:
 
         result = provider.get_pull_request_commits("42")
 
-        assert len(result["data"]) == 1
-        assert result["data"][0]["author"] is None
+        assert len(result) == 1
+        assert result[0]["data"]["author"] is None
 
 
 class TestCreateReviewCommentEdgeCases:

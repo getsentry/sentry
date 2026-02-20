@@ -758,28 +758,28 @@ class BaseTestProvider(Provider):
 
     # Expanded pull request operations
 
-    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
-        return ActionResult(
-            data=[
-                PullRequestFile(
+    def get_pull_request_files(self, pull_request_id: str) -> list[ActionResult[PullRequestFile]]:
+        return [
+            ActionResult(
+                data=PullRequestFile(
                     filename="src/main.py",
                     status="modified",
                     patch="@@ -1 +1 @@",
                     changes=1,
                     sha="file123",
                     previous_filename=None,
-                )
-            ],
-            type="test",
-            raw={},
-        )
+                ),
+                type="test",
+                raw={},
+            )
+        ]
 
     def get_pull_request_commits(
         self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestCommit]]:
-        return ActionResult(
-            data=[
-                PullRequestCommit(
+    ) -> list[ActionResult[PullRequestCommit]]:
+        return [
+            ActionResult(
+                data=PullRequestCommit(
                     sha="commit123",
                     message="Fix bug",
                     author=CommitAuthor(
@@ -787,11 +787,11 @@ class BaseTestProvider(Provider):
                         email="test@example.com",
                         date="2026-02-04T10:00:00Z",
                     ),
-                )
-            ],
-            type="test",
-            raw={},
-        )
+                ),
+                type="test",
+                raw={},
+            )
+        ]
 
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
         return ActionResult(
