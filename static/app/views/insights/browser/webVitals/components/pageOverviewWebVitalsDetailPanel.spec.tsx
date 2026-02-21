@@ -79,7 +79,7 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(screen.getAllByText('Largest Contentful Paint (P75)')).toHaveLength(2);
-    expect(screen.getByText('Transaction')).toBeInTheDocument();
+    expect(screen.getByText('Trace')).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
     expect(screen.getByText('Replay')).toBeInTheDocument();
     expect(screen.getByText('lcp')).toBeInTheDocument();

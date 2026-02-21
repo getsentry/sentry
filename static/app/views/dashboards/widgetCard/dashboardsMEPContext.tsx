@@ -28,4 +28,7 @@ function DashboardsMEPProvider({children}: {children: ReactNode}) {
   );
 }
 
-export {DashboardsMEPContext, DashboardsMEPProvider, useDashboardsMEPContext};
+export {DashboardsMEPProvider, useDashboardsMEPContext};
+
+/** @internal exported for tests */
+export {DashboardsMEPContext};
