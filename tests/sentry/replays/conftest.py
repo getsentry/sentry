@@ -8,12 +8,10 @@ from django.conf import settings
 
 class ReplayStore:
     def save(self, data: dict[str, Any]) -> None:
-        self.save_all([data])
-
-    def save_all(self, data: list[dict[str, Any]]) -> None:
         request_url = settings.SENTRY_SNUBA + "/tests/entities/replays/insert"
-        response = requests.post(request_url, json=data)
+        response = requests.post(request_url, json=[data])
         assert response.status_code == 200
+        return None
 
 
 @pytest.fixture
