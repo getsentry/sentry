@@ -30,14 +30,12 @@ export function useMaxPickableDays({
 
   return useMemo(() => {
     function getMaxPickableDaysFor(dataCategory: DataCategory) {
-      if (organization.features.includes('downsampled-date-page-filter')) {
-        const maxPickableDays = getMaxPickableDaysBySubscription(
-          dataCategory,
-          subscription
-        );
-        if (defined(maxPickableDays)) {
-          return maxPickableDays;
-        }
+      const maxPickableDays = getMaxPickableDaysBySubscription(
+        dataCategory,
+        subscription
+      );
+      if (defined(maxPickableDays)) {
+        return maxPickableDays;
       }
       const maxPickableDays = getLegacyMaxPickableDaysBySubscription(
         dataCategory,

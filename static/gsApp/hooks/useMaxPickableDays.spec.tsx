@@ -10,7 +10,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
-  describe('without downsampled-date-page-filter', () => {
+  describe('without subscription effective retentions', () => {
     it('returns 90/90 for transactions', () => {
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
@@ -138,10 +138,8 @@ describe('useMaxPickableDays', () => {
     });
   });
 
-  describe('with downsampled-date-page-filter', () => {
-    const organization = OrganizationFixture({
-      features: ['downsampled-date-page-filter'],
-    });
+  describe('with subscription effective retentions', () => {
+    const organization = OrganizationFixture();
 
     const subscription = SubscriptionFixture({
       organization,
