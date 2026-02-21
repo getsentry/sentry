@@ -1,6 +1,7 @@
 import csv
 import datetime
 import io
+import random
 import uuid
 from unittest.mock import patch
 
@@ -19,22 +20,12 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 
 
-# This test works and should be deterministic but it flaked in production. I'm not totally sure
-# why. This assert failed: `assert store_rows.called`. Two possibilities I can think of:
-#
-#   1. The mock is somehow flawed.
-#   2. The database query is returning nothing.
-#
-# I'm leaning towards the second option. Is it possible the parallelism of the production test
-# suite is emptying the db as I'm trying to read from it? Seems like we'd encounter a lot more
-# issues than just this test.
-@pytest.mark.skip(reason="Flaked due to 'store_rows' function not being called.")
 @django_db_all
 @pytest.mark.snuba
 @requires_snuba
 def test_replay_data_export(default_organization, default_project, replay_store) -> None:  # type: ignore[no-untyped-def]
     replay_id = str(uuid.uuid4())
-    t0 = datetime.datetime(year=2025, month=1, day=1)
+    t0 = datetime.datetime.now()
     replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
 
     # Setting has_replays flag because the export will skip projects it assumes do not have
@@ -67,7 +58,11 @@ def test_replay_data_export(default_organization, default_project, replay_store)
 def test_replay_data_export_invalid_organization(default_project, replay_store) -> None:  # type: ignore[no-untyped-def]
     replay_id = str(uuid.uuid4())
     t0 = datetime.datetime.now()
-    replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
+    # Use a random project_id for the ClickHouse insert to avoid cross-worker data pollution.
+    # The actual project_id doesn't matter here because this test asserts the invalid org path.
+    replay_store.save(
+        mock_replay(t0, random.randint(1_000_000, 2_000_000_000), replay_id, segment_id=0)
+    )
 
     # Setting has_replays flag because the export will skip projects it assumes do not have
     # replays.
@@ -98,7 +93,11 @@ def test_replay_data_export_no_replay_projects(  # type: ignore[no-untyped-def]
 ) -> None:
     replay_id = str(uuid.uuid4())
     t0 = datetime.datetime.now()
-    replay_store.save(mock_replay(t0, default_project.id, replay_id, segment_id=0))
+    # Use a random project_id for the ClickHouse insert to avoid cross-worker data pollution.
+    # The actual project_id doesn't matter here because this test asserts the no-replay-projects path.
+    replay_store.save(
+        mock_replay(t0, random.randint(1_000_000, 2_000_000_000), replay_id, segment_id=0)
+    )
 
     with (
         TaskRunner(),
@@ -153,20 +152,22 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
     replay2_id = "0dbda2b3-9286-4ecc-a409-aa32b241563d"
     replay3_id = "ff08c103-a9a4-47c0-9c29-73b932c2da34"
 
+    project_id = random.randint(1_000_000, 2_000_000_000)
+
     t0 = datetime.datetime.now()
     t1 = t0 + datetime.timedelta(days=1)
     t2 = t0 + datetime.timedelta(days=2)
     t3 = t0 + datetime.timedelta(days=3)
 
-    replay_store.save(mock_replay(t0, 1, replay1_id, segment_id=0))
-    replay_store.save(mock_replay(t1, 1, replay2_id, segment_id=0))
-    replay_store.save(mock_replay(t2, 1, replay3_id, segment_id=0))
+    replay_store.save(mock_replay(t0, project_id, replay1_id, segment_id=0))
+    replay_store.save(mock_replay(t1, project_id, replay2_id, segment_id=0))
+    replay_store.save(mock_replay(t2, project_id, replay3_id, segment_id=0))
 
     # Assert the number of runs required to export the database given a set of parameters.
     with TaskRunner():
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
-                project_id=1,
+                project_id=project_id,
                 start=t0,
                 end=t3,
                 destination_bucket="test",
@@ -178,7 +179,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
 
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
-                project_id=1,
+                project_id=project_id,
                 start=t0,
                 end=t3,
                 destination_bucket="test",
@@ -190,7 +191,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
 
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
-                project_id=1,
+                project_id=project_id,
                 start=t0,
                 end=t3,
                 destination_bucket="test",
@@ -202,7 +203,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
 
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
-                project_id=1,
+                project_id=project_id,
                 start=t0,
                 end=t3,
                 destination_bucket="test",
@@ -214,7 +215,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
 
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
-                project_id=1,
+                project_id=project_id,
                 start=t0,
                 end=t3,
                 destination_bucket="test",
@@ -229,7 +230,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
         # We would have exported three but we hit the max call depth.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
-                project_id=1,
+                project_id=project_id,
                 start=t0,
                 end=t3,
                 destination_bucket="test",
@@ -243,7 +244,7 @@ def test_export_replay_row_set_async(replay_store) -> None:  # type: ignore[no-u
         # We get more than the max call depth because it was within the bounds of the task.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_row_set_async.delay(
-                project_id=1,
+                project_id=project_id,
                 start=t0,
                 end=t3,
                 destination_bucket="test",
@@ -265,21 +266,23 @@ def test_export_replay_project_async(replay_store) -> None:  # type: ignore[no-u
     replay4_id = str(uuid.uuid4())
     replay5_id = str(uuid.uuid4())
 
+    project_id = random.randint(1_000_000, 2_000_000_000)
+
     t0 = datetime.datetime.now()
     t1 = t0 + datetime.timedelta(days=1)
     t2 = t0 + datetime.timedelta(days=2)
 
-    replay_store.save(mock_replay(t0, 1, replay1_id, segment_id=0))
-    replay_store.save(mock_replay(t0, 1, replay2_id, segment_id=0))
-    replay_store.save(mock_replay(t1, 1, replay3_id, segment_id=0))
-    replay_store.save(mock_replay(t1, 1, replay4_id, segment_id=0))
-    replay_store.save(mock_replay(t2, 1, replay5_id, segment_id=0))
+    replay_store.save(mock_replay(t0, project_id, replay1_id, segment_id=0))
+    replay_store.save(mock_replay(t0, project_id, replay2_id, segment_id=0))
+    replay_store.save(mock_replay(t1, project_id, replay3_id, segment_id=0))
+    replay_store.save(mock_replay(t1, project_id, replay4_id, segment_id=0))
+    replay_store.save(mock_replay(t2, project_id, replay5_id, segment_id=0))
 
     with TaskRunner():
         # Assert we need five runs to export the row set.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_project_async.delay(
-                project_id=1,
+                project_id=project_id,
                 destination_bucket="test",
                 limit=1,
                 num_pages=1,
@@ -289,7 +292,7 @@ def test_export_replay_project_async(replay_store) -> None:  # type: ignore[no-u
         # Assert we can reduce the run count by modifying the limit.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_project_async.delay(
-                project_id=1,
+                project_id=project_id,
                 destination_bucket="test",
                 limit=2,
                 num_pages=1,
@@ -299,7 +302,7 @@ def test_export_replay_project_async(replay_store) -> None:  # type: ignore[no-u
         # Assert we can reduce the run count by modifying the number of pages per run.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_project_async.delay(
-                project_id=1,
+                project_id=project_id,
                 destination_bucket="test",
                 limit=1,
                 num_pages=2,
@@ -309,7 +312,7 @@ def test_export_replay_project_async(replay_store) -> None:  # type: ignore[no-u
         # Assert we need three runs because date bucketing is the limiting factor.
         with patch("sentry.replays.data_export.save_to_storage") as store_rows:
             export_replay_project_async.delay(
-                project_id=1,
+                project_id=project_id,
                 destination_bucket="test",
                 limit=1000,
                 num_pages=1000,
