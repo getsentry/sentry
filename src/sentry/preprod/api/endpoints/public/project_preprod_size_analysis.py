@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -21,17 +20,17 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import (
     PreprodArtifactResourceDoesNotExist,
 )
 from sentry.preprod.api.models.public_api_models import (
+    SizeAnalysisCompletedResponseDict,
     SizeAnalysisResponseDict,
+    build_comparison_data,
     create_app_info_dict,
     create_git_info_dict,
 )
 from sentry.preprod.models import (
     PreprodArtifact,
-    PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
-from sentry.preprod.size_analysis.utils import build_size_metrics_map
+from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -112,10 +111,8 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
 
         app_info = create_app_info_dict(head_artifact)
         git_info = create_git_info_dict(head_artifact)
-        # Convert state integer to enum
         state_enum = PreprodArtifactSizeMetrics.SizeAnalysisState(main_metric.state)
 
-        # Handle non-COMPLETED states
         if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
             return Response(
                 {
@@ -162,7 +159,6 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                 status=200,
             )
 
-        # COMPLETED state - load analysis file
         analysis_file_id = main_metric.analysis_file_id
         if not analysis_file_id:
             logger.warning(
@@ -194,12 +190,10 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
             )
             return Response({"detail": "Failed to parse size analysis results"}, status=500)
 
-        # Build base response for COMPLETED state
-        # Use .dict() to recursively serialize nested Pydantic models (insights, app_components)
         analysis_dict = analysis_results.dict()
-        response_data: dict[str, Any] = {
-            "state": "COMPLETED",
+        response_data: SizeAnalysisCompletedResponseDict = {
             "build_id": str(head_artifact.id),
+            "state": "COMPLETED",
             "app_info": app_info,
             "git_info": git_info,
             "download_size": analysis_dict["download_size"],
@@ -210,16 +204,15 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
             "app_components": analysis_dict["app_components"],
         }
 
-        # Add comparison data if base artifact exists
         base_artifact = self._get_base_artifact(request, project, head_artifact)
         if base_artifact:
-            comparison_data = self._build_comparison_data(
-                project, head_artifact, base_artifact, size_metrics
+            comparisons = build_comparison_data(
+                project.id, head_artifact, base_artifact, size_metrics
             )
-            if comparison_data:
+            if comparisons:
                 response_data["base_build_id"] = str(base_artifact.id)
                 response_data["base_app_info"] = create_app_info_dict(base_artifact)
-                response_data["comparisons"] = comparison_data
+                response_data["comparisons"] = comparisons
 
         return Response(response_data)
 
@@ -248,124 +241,3 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
             "mobile_app_info", "build_configuration"
         )
         return base_artifact_qs.first()
-
-    def _build_comparison_data(
-        self,
-        project: Project,
-        head_artifact: PreprodArtifact,
-        base_artifact: PreprodArtifact,
-        head_size_metrics: list[PreprodArtifactSizeMetrics],
-    ) -> list[dict[str, Any]] | None:
-        """Build comparison results for head vs base artifact."""
-        base_size_metrics = list(
-            PreprodArtifactSizeMetrics.objects.filter(
-                preprod_artifact=base_artifact,
-                preprod_artifact__project=project,
-            ).select_related("preprod_artifact")
-        )
-
-        if not base_size_metrics:
-            return None
-
-        head_metrics_map = build_size_metrics_map(head_size_metrics)
-        base_metrics_map = build_size_metrics_map(base_size_metrics)
-
-        comparisons: list[dict[str, Any]] = []
-        for key, head_metric in head_metrics_map.items():
-            base_metric = base_metrics_map.get(key)
-
-            if not base_metric:
-                comparisons.append(
-                    {
-                        "metrics_artifact_type": head_metric.metrics_artifact_type,
-                        "identifier": head_metric.identifier,
-                        "state": PreprodArtifactSizeComparison.State.FAILED,
-                        "error_code": "NO_BASE_METRIC",
-                        "error_message": "No matching base artifact size metric found.",
-                    }
-                )
-                continue
-
-            try:
-                comparison_obj = PreprodArtifactSizeComparison.objects.get(
-                    head_size_analysis_id=head_metric.id,
-                    base_size_analysis_id=base_metric.id,
-                )
-            except PreprodArtifactSizeComparison.DoesNotExist:
-                continue
-
-            comparison_result = self._build_comparison_result(head_metric, comparison_obj)
-            comparisons.append(comparison_result)
-
-        return comparisons if comparisons else None
-
-    def _build_comparison_result(
-        self,
-        head_metric: PreprodArtifactSizeMetrics,
-        comparison_obj: PreprodArtifactSizeComparison,
-    ) -> dict[str, Any]:
-        """Build a single comparison result."""
-        if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
-            return self._build_success_comparison(head_metric, comparison_obj)
-        elif comparison_obj.state == PreprodArtifactSizeComparison.State.FAILED:
-            return {
-                "metrics_artifact_type": head_metric.metrics_artifact_type,
-                "identifier": head_metric.identifier,
-                "state": PreprodArtifactSizeComparison.State.FAILED,
-                "error_code": (
-                    str(comparison_obj.error_code)
-                    if comparison_obj.error_code is not None
-                    else None
-                ),
-                "error_message": comparison_obj.error_message,
-            }
-        else:
-            return {
-                "metrics_artifact_type": head_metric.metrics_artifact_type,
-                "identifier": head_metric.identifier,
-                "state": PreprodArtifactSizeComparison.State.PROCESSING,
-            }
-
-    def _build_success_comparison(
-        self,
-        head_metric: PreprodArtifactSizeMetrics,
-        comparison_obj: PreprodArtifactSizeComparison,
-    ) -> dict[str, Any]:
-        """Build a comparison result with inlined diff data for SUCCESS state."""
-        comparison_result: dict[str, Any] = {
-            "metrics_artifact_type": head_metric.metrics_artifact_type,
-            "identifier": head_metric.identifier,
-            "state": PreprodArtifactSizeComparison.State.SUCCESS,
-        }
-
-        if comparison_obj.file_id is None:
-            logger.warning(
-                "preprod.public_api.compare.success_no_file",
-                extra={"comparison_id": comparison_obj.id},
-            )
-            return comparison_result
-
-        try:
-            file_obj = File.objects.get(id=comparison_obj.file_id)
-            fp = file_obj.getfile()
-            content = fp.read()
-            comparison_data = json.loads(content)
-            comparison_results = ComparisonResults(**comparison_data)
-
-            comparison_dict = comparison_results.dict()
-            comparison_result["diff_items"] = comparison_dict["diff_items"]
-            comparison_result["insight_diff_items"] = comparison_dict["insight_diff_items"]
-            comparison_result["size_metric_diff"] = comparison_dict["size_metric_diff_item"]
-
-        except File.DoesNotExist:
-            logger.warning(
-                "preprod.public_api.compare.file_not_found",
-                extra={"comparison_id": comparison_obj.id, "file_id": comparison_obj.file_id},
-            )
-        except Exception:
-            logger.exception(
-                "preprod.public_api.compare.parse_error",
-                extra={"comparison_id": comparison_obj.id, "file_id": comparison_obj.file_id},
-            )
-
-        return comparison_result

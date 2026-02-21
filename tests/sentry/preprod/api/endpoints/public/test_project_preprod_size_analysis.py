@@ -337,11 +337,16 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
                 mock_file.getfile.return_value = BytesIO(json.dumps(comparison_data).encode())
             return mock_file
 
-        with patch(
-            "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
-        ) as MockFile:
+        with (
+            patch(
+                "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
+            ) as MockFile,
+            patch("sentry.preprod.api.models.public_api_models.File") as MockModelsFile,
+        ):
             MockFile.objects.get.side_effect = get_file_side_effect
             MockFile.DoesNotExist = Exception
+            MockModelsFile.objects.get.side_effect = get_file_side_effect
+            MockModelsFile.DoesNotExist = Exception
 
             response = self.client.get(self._get_url())
 
@@ -431,11 +436,16 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
                 mock_file.getfile.return_value = BytesIO(json.dumps(comparison_data).encode())
             return mock_file
 
-        with patch(
-            "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
-        ) as MockFile:
+        with (
+            patch(
+                "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
+            ) as MockFile,
+            patch("sentry.preprod.api.models.public_api_models.File") as MockModelsFile,
+        ):
             MockFile.objects.get.side_effect = get_file_side_effect
             MockFile.DoesNotExist = Exception
+            MockModelsFile.objects.get.side_effect = get_file_side_effect
+            MockModelsFile.DoesNotExist = Exception
 
             response = self.client.get(self._get_url() + f"?base_id={base_artifact.id}")
 

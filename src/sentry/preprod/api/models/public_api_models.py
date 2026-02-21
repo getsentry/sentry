@@ -1,8 +1,19 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Literal, NotRequired, TypedDict
 
-from sentry.preprod.models import PreprodArtifact
+from sentry.models.files.file import File
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeComparison,
+    PreprodArtifactSizeMetrics,
+)
+from sentry.preprod.size_analysis.models import ComparisonResults
+from sentry.preprod.size_analysis.utils import build_size_metrics_map
+from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 class AppInfoResponseDict(TypedDict):
@@ -159,3 +170,135 @@ def create_git_info_dict(artifact: PreprodArtifact) -> GitInfoResponseDict | Non
         base_ref=commit_comparison.base_ref,
         pr_number=commit_comparison.pr_number,
     )
+
+
+def build_comparison_data(
+    project_id: int,
+    head_artifact: PreprodArtifact,
+    base_artifact: PreprodArtifact,
+    head_size_metrics: list[PreprodArtifactSizeMetrics],
+) -> list[ComparisonResponseDict] | None:
+    """Build comparison results for head vs base artifact."""
+    base_size_metrics = list(
+        PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=base_artifact,
+            preprod_artifact__project_id=project_id,
+        ).select_related("preprod_artifact")
+    )
+
+    if not base_size_metrics:
+        return None
+
+    head_metrics_map = build_size_metrics_map(head_size_metrics)
+    base_metrics_map = build_size_metrics_map(base_size_metrics)
+
+    # Batch-fetch all comparisons in one query instead of one per metric
+    head_base_pairs = []
+    for key, head_metric in head_metrics_map.items():
+        base_metric = base_metrics_map.get(key)
+        if base_metric:
+            head_base_pairs.append((head_metric.id, base_metric.id))
+
+    comparison_objs_by_key: dict[tuple[int, int], PreprodArtifactSizeComparison] = {}
+    if head_base_pairs:
+        from django.db.models import Q
+
+        q = Q()
+        for head_id, base_id in head_base_pairs:
+            q |= Q(head_size_analysis_id=head_id, base_size_analysis_id=base_id)
+        for obj in PreprodArtifactSizeComparison.objects.filter(q):
+            comparison_objs_by_key[(obj.head_size_analysis_id, obj.base_size_analysis_id)] = obj
+
+    comparisons: list[ComparisonResponseDict] = []
+    for key, head_metric in head_metrics_map.items():
+        base_metric = base_metrics_map.get(key)
+
+        if not base_metric:
+            comparisons.append(
+                {
+                    "metrics_artifact_type": head_metric.metrics_artifact_type,
+                    "identifier": head_metric.identifier,
+                    "state": PreprodArtifactSizeComparison.State.FAILED,
+                    "error_code": "NO_BASE_METRIC",
+                    "error_message": "No matching base artifact size metric found.",
+                }
+            )
+            continue
+
+        comparison_obj = comparison_objs_by_key.get((head_metric.id, base_metric.id))
+        if not comparison_obj:
+            continue
+
+        comparison_result = _build_comparison_result(head_metric, comparison_obj)
+        comparisons.append(comparison_result)
+
+    return comparisons if comparisons else None
+
+
+def _build_comparison_result(
+    head_metric: PreprodArtifactSizeMetrics,
+    comparison_obj: PreprodArtifactSizeComparison,
+) -> ComparisonResponseDict:
+    """Build a single comparison result."""
+    if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
+        return _build_success_comparison(head_metric, comparison_obj)
+    elif comparison_obj.state == PreprodArtifactSizeComparison.State.FAILED:
+        return {
+            "metrics_artifact_type": head_metric.metrics_artifact_type,
+            "identifier": head_metric.identifier,
+            "state": PreprodArtifactSizeComparison.State.FAILED,
+            "error_code": (
+                str(comparison_obj.error_code) if comparison_obj.error_code is not None else None
+            ),
+            "error_message": comparison_obj.error_message,
+        }
+    else:
+        return {
+            "metrics_artifact_type": head_metric.metrics_artifact_type,
+            "identifier": head_metric.identifier,
+            "state": PreprodArtifactSizeComparison.State.PROCESSING,
+        }
+
+
+def _build_success_comparison(
+    head_metric: PreprodArtifactSizeMetrics,
+    comparison_obj: PreprodArtifactSizeComparison,
+) -> ComparisonResponseDict:
+    """Build a comparison result with inlined diff data for SUCCESS state."""
+    comparison_result: ComparisonResponseDict = {
+        "metrics_artifact_type": head_metric.metrics_artifact_type,
+        "identifier": head_metric.identifier,
+        "state": PreprodArtifactSizeComparison.State.SUCCESS,
+    }
+
+    if comparison_obj.file_id is None:
+        logger.warning(
+            "preprod.public_api.compare.success_no_file",
+            extra={"comparison_id": comparison_obj.id},
+        )
+        return comparison_result
+
+    try:
+        file_obj = File.objects.get(id=comparison_obj.file_id)
+        fp = file_obj.getfile()
+        content = fp.read()
+        comparison_data = json.loads(content)
+        comparison_results = ComparisonResults(**comparison_data)
+
+        comparison_dict = comparison_results.dict()
+        comparison_result["diff_items"] = comparison_dict["diff_items"]
+        comparison_result["insight_diff_items"] = comparison_dict["insight_diff_items"]
+        comparison_result["size_metric_diff"] = comparison_dict["size_metric_diff_item"]
+
+    except File.DoesNotExist:
+        logger.warning(
+            "preprod.public_api.compare.file_not_found",
+            extra={"comparison_id": comparison_obj.id, "file_id": comparison_obj.file_id},
+        )
+    except Exception:
+        logger.exception(
+            "preprod.public_api.compare.parse_error",
+            extra={"comparison_id": comparison_obj.id, "file_id": comparison_obj.file_id},
+        )
+
+    return comparison_result
