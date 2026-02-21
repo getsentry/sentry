@@ -93,9 +93,6 @@ export function PageOverviewWebVitalsDetailPanel({
   const subregions = location.query[SpanFields.USER_GEO_SUBREGION] as SubregionCode[];
   const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
   const isInp = webVital === 'inp';
-  const useSpansWebVitals = organization.features.includes(
-    'performance-vitals-standalone-cls-lcp'
-  );
 
   const replayLinkGenerator = generateReplayLink(routes);
 
@@ -362,9 +359,7 @@ export function PageOverviewWebVitalsDetailPanel({
               data={spansTableData}
               isLoading={isSpansLoading}
               columnOrder={
-                isSpansWebVital && useSpansWebVitals
-                  ? SPANS_SAMPLES_COLUMN_ORDER
-                  : PAGELOADS_COLUMN_ORDER
+                isSpansWebVital ? SPANS_SAMPLES_COLUMN_ORDER : PAGELOADS_COLUMN_ORDER
               }
               columnSortBy={[sort]}
               grid={{

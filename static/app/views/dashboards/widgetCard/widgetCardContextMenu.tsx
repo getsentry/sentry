@@ -17,10 +17,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
-import {
-  MEPState,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -39,19 +35,8 @@ import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueri
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
-import {useDashboardsMEPContext} from './dashboardsMEPContext';
-
 export const useIndexedEventsWarning = (): string | null => {
-  const {isMetricsData} = useDashboardsMEPContext();
-  const organization = useOrganization();
-  const metricSettingContext = useMEPSettingContext();
-
-  return !organization.features.includes('performance-mep-bannerless-ui') &&
-    isMetricsData === false &&
-    metricSettingContext &&
-    metricSettingContext.metricSettingState !== MEPState.TRANSACTIONS_ONLY
-    ? t('Indexed')
-    : null;
+  return null;
 };
 
 export const useTransactionsDeprecationWarning = ({

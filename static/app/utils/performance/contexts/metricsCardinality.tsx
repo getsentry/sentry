@@ -174,7 +174,7 @@ export const useMetricsCardinalityContext = _useContext;
 function getMetricsOutcome(
   dataCounts: MergedMetricsData | null,
   hasOtherFallbackCondition: boolean,
-  organization: Organization
+  _organization: Organization
 ) {
   const fallbackOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: true,
@@ -182,9 +182,7 @@ function getMetricsOutcome(
   const successOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: false,
   };
-  const isOnFallbackThresolds = organization.features.includes(
-    'performance-mep-bannerless-ui'
-  );
+  const isOnFallbackThresolds = true;
 
   if (!dataCounts) {
     return fallbackOutcome;
