@@ -29,6 +29,7 @@ import type {Integration} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
+import Projects from 'sentry/utils/projects';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -524,47 +525,58 @@ export default function ContextPickerModalContainer({
   }
   if (selectedOrgSlug) {
     if (sharedProps.needProject) {
-      if (sharedProps.needTeam) {
-        return (
-          <ProjectsForOrg orgSlug={selectedOrgSlug} slugs={projectSlugs}>
-            {({projects, isLoading: projectsLoading}) => (
-              <TeamsForOrg orgSlug={selectedOrgSlug}>
-                {({teams, isLoading: teamsLoading}) => (
-                  <ContextPickerModal
-                    {...sharedProps}
-                    projects={projects}
-                    projectsLoading={projectsLoading}
-                    teams={teams}
-                    teamsLoading={teamsLoading}
-                    organizations={organizations}
-                    organization={selectedOrgSlug}
-                    onSelectOrganization={setSelectedOrgSlug}
-                    integrationConfigs={[]}
-                  />
-                )}
-              </TeamsForOrg>
-            )}
-          </ProjectsForOrg>
+      const projectsElement = (
+        renderChildren: (props: {
+          isLoading: boolean;
+          projects: Project[];
+        }) => React.ReactNode
+      ) =>
+        projectSlugs?.length ? (
+          <Projects orgId={selectedOrgSlug} slugs={projectSlugs}>
+            {({projects, initiallyLoaded}) =>
+              renderChildren({
+                projects: projects as Project[],
+                isLoading: !initiallyLoaded,
+              })
+            }
+          </Projects>
+        ) : (
+          <ProjectsForOrg orgSlug={selectedOrgSlug}>{renderChildren}</ProjectsForOrg>
         );
+
+      if (sharedProps.needTeam) {
+        return projectsElement(({projects, isLoading: projectsLoading}) => (
+          <TeamsForOrg orgSlug={selectedOrgSlug}>
+            {({teams, isLoading: teamsLoading}) => (
+              <ContextPickerModal
+                {...sharedProps}
+                projects={projects}
+                projectsLoading={projectsLoading}
+                teams={teams}
+                teamsLoading={teamsLoading}
+                organizations={organizations}
+                organization={selectedOrgSlug}
+                onSelectOrganization={setSelectedOrgSlug}
+                integrationConfigs={[]}
+              />
+            )}
+          </TeamsForOrg>
+        ));
       }
 
-      return (
-        <ProjectsForOrg orgSlug={selectedOrgSlug} slugs={projectSlugs}>
-          {({projects, isLoading}) => (
-            <ContextPickerModal
-              {...sharedProps}
-              projects={projects}
-              projectsLoading={isLoading}
-              teams={[]}
-              teamsLoading={false}
-              organizations={organizations}
-              organization={selectedOrgSlug}
-              onSelectOrganization={setSelectedOrgSlug}
-              integrationConfigs={[]}
-            />
-          )}
-        </ProjectsForOrg>
-      );
+      return projectsElement(({projects, isLoading}) => (
+        <ContextPickerModal
+          {...sharedProps}
+          projects={projects}
+          projectsLoading={isLoading}
+          teams={[]}
+          teamsLoading={false}
+          organizations={organizations}
+          organization={selectedOrgSlug}
+          onSelectOrganization={setSelectedOrgSlug}
+          integrationConfigs={[]}
+        />
+      ));
     }
 
     if (sharedProps.needTeam) {
