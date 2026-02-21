@@ -1727,40 +1727,7 @@ class TestExpandedSentryAppsWebhooks(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_cron_issue_without_feature_flag(
-        self, mock_record: MagicMock, safe_urlopen: MagicMock
-    ) -> None:
-        """Test that CRON issues don't send webhooks without the feature flag"""
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "monitor check-in failure",
-                "timestamp": before_now(minutes=1).isoformat(),
-            },
-            project_id=self.project.id,
-        )
-        assert event.group is not None
-
-        # Set to CRON category (type_id = 4001, MonitorIncidentType)
-        with assume_test_silo_mode(SiloMode.REGION):
-            event.group.update(type=4001)
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
-                group_id=event.group_id,
-                project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Generic.value,
-            )
-
-        assert not safe_urlopen.called
-
-    @with_feature("organizations:expanded-sentry-apps-webhooks")
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_cron_issue_with_feature_flag(
+    def test_cron_issue_sends_webhook(
         self, mock_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
         event = self.store_event(
