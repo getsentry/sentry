@@ -23,6 +23,7 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import (
 from sentry.preprod.api.models.public_api_models import (
     SizeAnalysisResponseDict,
     create_app_info_dict,
+    create_git_info_dict,
 )
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -110,6 +111,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
         )
 
         app_info = create_app_info_dict(head_artifact)
+        git_info = create_git_info_dict(head_artifact)
         # Convert state integer to enum
         state_enum = PreprodArtifactSizeMetrics.SizeAnalysisState(main_metric.state)
 
@@ -120,6 +122,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                     "state": "PENDING",
                     "build_id": str(head_artifact.id),
                     "app_info": app_info,
+                    "git_info": git_info,
                 }
             )
 
@@ -129,6 +132,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                     "state": "PROCESSING",
                     "build_id": str(head_artifact.id),
                     "app_info": app_info,
+                    "git_info": git_info,
                 }
             )
 
@@ -138,6 +142,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                     "state": "FAILED",
                     "build_id": str(head_artifact.id),
                     "app_info": app_info,
+                    "git_info": git_info,
                     "error_code": main_metric.error_code,
                     "error_message": main_metric.error_message,
                 },
@@ -150,6 +155,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                     "state": "NOT_RAN",
                     "build_id": str(head_artifact.id),
                     "app_info": app_info,
+                    "git_info": git_info,
                     "error_code": main_metric.error_code,
                     "error_message": main_metric.error_message,
                 },
@@ -195,6 +201,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
             "state": "COMPLETED",
             "build_id": str(head_artifact.id),
             "app_info": app_info,
+            "git_info": git_info,
             "download_size": analysis_dict["download_size"],
             "install_size": analysis_dict["install_size"],
             "analysis_duration": analysis_dict["analysis_duration"],

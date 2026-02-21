@@ -77,6 +77,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         data = response.json()
         assert data["build_id"] == str(self.preprod_artifact.id)
         assert data["state"] == "PENDING"
+        assert data["git_info"] is None
         assert "download_size" not in data
         assert "install_size" not in data
 
