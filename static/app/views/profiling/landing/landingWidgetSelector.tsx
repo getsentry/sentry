@@ -76,9 +76,10 @@ export function LandingWidgetSelector({
     return conditions.formatString();
   }, []);
 
-  const options = organization.features.includes('profiling-function-trends')
-    ? [...SUSPECT_FUNCTIONS_WIDGET_OPTIONS, ...FUNCTION_TRENDS_WIDGET_OPTIONS]
-    : SUSPECT_FUNCTIONS_WIDGET_OPTIONS;
+  const options = [
+    ...SUSPECT_FUNCTIONS_WIDGET_OPTIONS,
+    ...FUNCTION_TRENDS_WIDGET_OPTIONS,
+  ];
 
   const header = (
     <StyledCompactSelect
@@ -92,34 +93,32 @@ export function LandingWidgetSelector({
     />
   );
 
-  if (organization.features.includes('profiling-function-trends')) {
-    if (selectedWidget === 'regressed functions') {
-      return (
-        <FunctionTrendsWidget
-          cursorName={cursorName}
-          header={header}
-          trendFunction="p95()"
-          trendType="regression"
-          userQuery={functionQuery}
-          widgetHeight={widgetHeight}
-          onDataState={onDataState}
-        />
-      );
-    }
+  if (selectedWidget === 'regressed functions') {
+    return (
+      <FunctionTrendsWidget
+        cursorName={cursorName}
+        header={header}
+        trendFunction="p95()"
+        trendType="regression"
+        userQuery={functionQuery}
+        widgetHeight={widgetHeight}
+        onDataState={onDataState}
+      />
+    );
+  }
 
-    if (selectedWidget === 'improved functions') {
-      return (
-        <FunctionTrendsWidget
-          cursorName={cursorName}
-          header={header}
-          trendFunction="p95()"
-          trendType="improvement"
-          userQuery={functionQuery}
-          widgetHeight={widgetHeight}
-          onDataState={onDataState}
-        />
-      );
-    }
+  if (selectedWidget === 'improved functions') {
+    return (
+      <FunctionTrendsWidget
+        cursorName={cursorName}
+        header={header}
+        trendFunction="p95()"
+        trendType="improvement"
+        userQuery={functionQuery}
+        widgetHeight={widgetHeight}
+        onDataState={onDataState}
+      />
+    );
   }
 
   switch (selectedWidget) {
