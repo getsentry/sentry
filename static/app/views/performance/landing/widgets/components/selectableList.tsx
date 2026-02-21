@@ -28,7 +28,7 @@ type Props = {
   radioColor?: string;
 };
 
-export default function SelectableList(props: Props) {
+export function SelectableList(props: Props) {
   return (
     <div>
       {props.items.map((item, index) => (

@@ -1129,7 +1129,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('Able to change widget type from menu', async () => {
+  it('Able to change widget type from dropdown', async () => {
     const data = initializeData();
 
     const setRowChartSettings = jest.fn(() => {});
@@ -1149,8 +1149,9 @@ describe('Performance > Widgets > WidgetContainer', () => {
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
     expect(setRowChartSettings).toHaveBeenCalledTimes(0);
 
-    await userEvent.click(await screen.findByLabelText('More'));
-    await userEvent.click(await screen.findByText('User Misery'));
+    // Open the interactive title dropdown and select a different widget type
+    await userEvent.click(await screen.findByRole('button', {name: 'Failure Rate'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'User Misery'}));
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'User Misery'
@@ -1159,7 +1160,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     expect(setRowChartSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('Chart settings passed from the row are disabled in the menu', async () => {
+  it('Chart settings passed from the row are disabled in the dropdown', async () => {
     const data = initializeData();
 
     const setRowChartSettings = jest.fn(() => {});
@@ -1180,8 +1181,8 @@ describe('Performance > Widgets > WidgetContainer', () => {
       'Failure Rate'
     );
 
-    // Open context menu
-    await userEvent.click(await screen.findByLabelText('More'));
+    // Open the interactive title dropdown
+    await userEvent.click(await screen.findByRole('button', {name: 'Failure Rate'}));
 
     // Check that the "User Misery" option is disabled by clicking on it,
     // expecting that the selected option doesn't change
