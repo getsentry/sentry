@@ -10,7 +10,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {parseQueryKey} from 'sentry/utils/queryClient';
@@ -20,9 +19,9 @@ import type {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomati
 
 interface Props {
   disabled: boolean;
+  hits: number;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   onSortClick: (key: Sort) => void;
-  repositories: RepositoryWithSettings[];
   sort: Sort;
 }
 
@@ -50,19 +49,25 @@ export default function SeerRepoTableHeader({
   disabled,
   mutateRepositorySettings,
   onSortClick,
-  repositories,
+  hits,
   sort,
 }: Props) {
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
-    listItemCheckboxState;
+  const {
+    countSelected,
+    isAllSelected,
+    isAnySelected,
+    queryKey,
+    selectAll,
+    selectedIds,
+    knownIds,
+  } = listItemCheckboxState;
   const queryOptions = queryKey ? parseQueryKey(queryKey).options : undefined;
   const queryString = queryOptions?.query?.query;
 
   const handleBulkCodeReview = (enabledCodeReview: boolean) => {
-    const repositoryIds =
-      selectedIds === 'all' ? repositories.map(repo => repo.id) : selectedIds;
+    const repositoryIds = selectedIds === 'all' ? knownIds : selectedIds;
     mutateRepositorySettings(
       {
         enabledCodeReview,
@@ -96,9 +101,9 @@ export default function SeerRepoTableHeader({
       <TableHeader>
         <SimpleTable.HeaderCell>
           <SelectAllCheckbox
-            listItemCheckboxState={listItemCheckboxState}
-            repositories={repositories}
             disabled={disabled}
+            hits={hits}
+            listItemCheckboxState={listItemCheckboxState}
           />
         </SimpleTable.HeaderCell>
         {COLUMNS.map(({title, key, sortKey}) => (
@@ -129,9 +134,9 @@ export default function SeerRepoTableHeader({
         <TableHeader>
           <TableCellFirst>
             <SelectAllCheckbox
-              listItemCheckboxState={listItemCheckboxState}
-              repositories={repositories}
               disabled={disabled}
+              hits={hits}
+              listItemCheckboxState={listItemCheckboxState}
             />
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
@@ -181,8 +186,8 @@ export default function SeerRepoTableHeader({
                     count: countSelected,
                     queryString: <var>{queryString}</var>,
                   })
-                : countSelected > repositories.length
-                  ? t('Selected all %s+ repositories.', repositories.length)
+                : countSelected > hits
+                  ? t('Selected all %s+ repositories.', hits)
                   : tn(
                       'Selected %s repository.',
                       'Selected all %s repositories.',
@@ -198,20 +203,20 @@ export default function SeerRepoTableHeader({
 
 function SelectAllCheckbox({
   listItemCheckboxState: {deselectAll, isAllSelected, selectedIds, selectAll},
-  repositories,
+  hits,
   disabled,
 }: {
   disabled: boolean;
+  hits: number;
   listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
-  repositories: RepositoryWithSettings[];
 }) {
   return (
     <Checkbox
       id="repository-table-select-all"
       checked={isAllSelected}
-      disabled={repositories.length === 0 || disabled}
+      disabled={hits === 0 || disabled}
       onChange={() => {
-        if (isAllSelected === true || selectedIds.length === repositories.length) {
+        if (isAllSelected === true || selectedIds.length === hits) {
           deselectAll();
         } else {
           selectAll();

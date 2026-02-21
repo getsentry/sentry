@@ -16,7 +16,6 @@ import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
 import parseAsSort from 'sentry/utils/url/parseAsSort';
@@ -110,166 +109,99 @@ export default function SeerRepoTable() {
     },
   });
 
-  if (isPending) {
-    return (
-      <RepoTable
-        mutateRepositorySettings={mutateRepositorySettings}
-        onSortClick={setSort}
-        isLoading={isPending || isFetchingNextPage}
-        isLoadingMore={false /* prevent redundant spinners */}
-        repositories={[]}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        sort={sort}
-      >
-        <SimpleTable.Empty>
-          <LoadingIndicator />
-        </SimpleTable.Empty>
-      </RepoTable>
-    );
-  }
-
-  if (isError) {
-    return (
-      <RepoTable
-        mutateRepositorySettings={mutateRepositorySettings}
-        onSortClick={setSort}
-        isLoading={isPending || isFetchingNextPage}
-        isLoadingMore={hasNextPage || isFetchingNextPage}
-        repositories={[]}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        sort={sort}
-      >
-        <SimpleTable.Empty>
-          <LoadingError />
-        </SimpleTable.Empty>
-      </RepoTable>
-    );
-  }
+  const hits = repositories?.length ?? 0;
+  const hasData = hits > 0;
 
   return (
     <ListItemCheckboxProvider
-      hits={repositories.length}
-      knownIds={repositories.map(repository => repository.id)}
+      hits={repositories?.length ?? 0}
+      knownIds={repositories?.map(repository => repository.id) ?? []}
       queryKey={queryOptions.queryKey}
     >
-      <RepoTable
-        mutateRepositorySettings={mutateRepositorySettings}
-        onSortClick={setSort}
-        isLoading={isPending || isFetchingNextPage}
-        isLoadingMore={hasNextPage || isFetchingNextPage}
-        repositories={repositories}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        sort={sort}
-      >
-        {repositories.length === 0 ? (
-          <SimpleTable.Empty>
-            {searchTerm
-              ? tct('No repositories found matching [searchTerm]', {
-                  searchTerm: <code>{searchTerm}</code>,
-                })
-              : t('No repositories found')}
-          </SimpleTable.Empty>
-        ) : (
-          repositories.map(repository => (
-            <SeerRepoTableRow
-              key={repository.id}
-              mutateRepositorySettings={mutateRepositorySettings}
-              mutationData={mutationData}
-              repository={repository}
-            />
-          ))
-        )}
-      </RepoTable>
-    </ListItemCheckboxProvider>
-  );
-}
-
-function RepoTable({
-  children,
-  isLoading,
-  isLoadingMore,
-  mutateRepositorySettings,
-  onSortClick,
-  repositories,
-  searchTerm,
-  setSearchTerm,
-  sort,
-}: {
-  children: React.ReactNode;
-  isLoading: boolean;
-  isLoadingMore: boolean;
-  mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
-  onSortClick: (sort: Sort) => void;
-  repositories: RepositoryWithSettings[];
-  searchTerm: string;
-  setSearchTerm: ReturnType<typeof useQueryState<string>>[1];
-  sort: Sort;
-}) {
-  const organization = useOrganization();
-  const hasData = repositories.length > 0;
-  return (
-    <Stack gap="lg">
-      <Grid
-        minWidth="0"
-        gap="md"
-        columns={hasData ? '1fr max-content' : '1fr max-content max-content'}
-      >
-        <InputGroup>
-          <InputGroup.LeadingItems disablePointerEvents>
-            <IconSearch />
-          </InputGroup.LeadingItems>
-          <InputGroup.Input
-            size="md"
-            disabled={!hasData}
-            placeholder={t('Search')}
-            value={searchTerm ?? ''}
-            onChange={e =>
-              setSearchTerm(e.target.value, {limitUrlUpdates: debounce(125)})
-            }
-          />
-        </InputGroup>
-
-        {hasData ? null : <LoadingIndicator mini />}
-
-        <LinkButton
-          priority="primary"
-          icon={<IconAdd />}
-          to={{
-            pathname: `/settings/${organization.slug}/integrations/`,
-            query: {
-              category: 'source code management',
-            },
-          }}
+      <Stack gap="lg">
+        <Grid
+          minWidth="0"
+          gap="md"
+          columns={hasData ? '1fr max-content' : '1fr max-content max-content'}
         >
-          {t('Add Repository')}
-        </LinkButton>
-      </Grid>
+          <InputGroup>
+            <InputGroup.LeadingItems disablePointerEvents>
+              <IconSearch />
+            </InputGroup.LeadingItems>
+            <InputGroup.Input
+              size="md"
+              disabled={!hasData}
+              placeholder={t('Search')}
+              value={searchTerm ?? ''}
+              onChange={e =>
+                setSearchTerm(e.target.value, {limitUrlUpdates: debounce(125)})
+              }
+            />
+          </InputGroup>
 
-      <SimpleTableWithColumns>
-        <SeerRepoTableHeader
-          mutateRepositorySettings={mutateRepositorySettings}
-          onSortClick={onSortClick}
-          disabled={isLoading}
-          repositories={repositories}
-          sort={sort}
-        />
-        {children}
-        {isLoadingMore ? (
-          <SimpleTable.Row key="loading-row">
-            <SimpleTable.RowCell
-              align="center"
-              justify="center"
-              style={{gridColumn: '1 / -1'}}
-            >
-              <LoadingIndicator mini />
-            </SimpleTable.RowCell>
-          </SimpleTable.Row>
-        ) : null}
-      </SimpleTableWithColumns>
-    </Stack>
+          {hits > 0 ? null : <LoadingIndicator mini />}
+
+          <LinkButton
+            priority="primary"
+            icon={<IconAdd />}
+            to={{
+              pathname: `/settings/${organization.slug}/integrations/`,
+              query: {
+                category: 'source code management',
+              },
+            }}
+          >
+            {t('Add Repository')}
+          </LinkButton>
+        </Grid>
+        <SimpleTableWithColumns>
+          <SeerRepoTableHeader
+            mutateRepositorySettings={mutateRepositorySettings}
+            onSortClick={setSort}
+            disabled={isPending || isFetchingNextPage}
+            hits={hits}
+            sort={sort}
+          />
+          {isPending ? (
+            <SimpleTable.Empty>
+              <LoadingIndicator />
+            </SimpleTable.Empty>
+          ) : isError ? (
+            <SimpleTable.Empty>
+              <LoadingError />
+            </SimpleTable.Empty>
+          ) : repositories.length === 0 ? (
+            <SimpleTable.Empty>
+              {searchTerm
+                ? tct('No repositories found matching [searchTerm]', {
+                    searchTerm: <code>{searchTerm}</code>,
+                  })
+                : t('No repositories found')}
+            </SimpleTable.Empty>
+          ) : (
+            repositories.map(repository => (
+              <SeerRepoTableRow
+                key={repository.id}
+                mutateRepositorySettings={mutateRepositorySettings}
+                mutationData={mutationData}
+                repository={repository}
+              />
+            ))
+          )}
+          {hasNextPage || isFetchingNextPage ? (
+            <SimpleTable.Row key="loading-row">
+              <SimpleTable.RowCell
+                align="center"
+                justify="center"
+                style={{gridColumn: '1 / -1'}}
+              >
+                <LoadingIndicator mini />
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ) : null}
+        </SimpleTableWithColumns>
+      </Stack>
+    </ListItemCheckboxProvider>
   );
 }
 
