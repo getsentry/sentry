@@ -321,12 +321,14 @@ def handle_invalid_group_owners(group):
         group=group,
         type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
     )
-    for owner in invalid_group_owners:
-        owner.delete()
-        logger.info(
-            "handle_invalid_group_owners.delete_group_owner",
-            extra={"group": group.id, "group_owner_id": owner.id, "project": group.project_id},
-        )
+    invalid_owner_ids = list(invalid_group_owners.values_list("id", flat=True))
+    if invalid_owner_ids:
+        GroupOwner.objects.filter(id__in=invalid_owner_ids).delete()
+        for owner_id in invalid_owner_ids:
+            logger.info(
+                "handle_invalid_group_owners.delete_group_owner",
+                extra={"group": group.id, "group_owner_id": owner_id, "project": group.project_id},
+            )
 
 
 @sentry_sdk.trace
