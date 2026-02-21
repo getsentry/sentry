@@ -37,13 +37,6 @@ export function useMaxPickableDays({
       if (defined(maxPickableDays)) {
         return maxPickableDays;
       }
-      const maxPickableDays = getLegacyMaxPickableDaysBySubscription(
-        dataCategory,
-        subscription
-      );
-      if (defined(maxPickableDays)) {
-        return maxPickableDays;
-      }
       return getMaxPickableDays(dataCategory, organization);
     }
 
@@ -120,24 +113,6 @@ function getMaxPickableDaysBySubscription(
       };
     case DataCategory.TRANSACTIONS:
     case DataCategory.REPLAYS:
-      return {
-        maxPickableDays: subscription?.planDetails?.retentionDays ?? MAX_PICKABLE_DAYS,
-        maxUpgradableDays: MAX_PICKABLE_DAYS,
-      };
-    default:
-      return undefined;
-  }
-}
-
-function getLegacyMaxPickableDaysBySubscription(
-  dataCategory: DataCategory,
-  subscription: Subscription | null
-): MaxPickableDaysOptions | undefined {
-  switch (dataCategory) {
-    case DataCategory.PROFILE_CHUNKS:
-    case DataCategory.PROFILE_CHUNKS_UI:
-    case DataCategory.PROFILE_DURATION:
-    case DataCategory.PROFILE_DURATION_UI:
       return {
         maxPickableDays: subscription?.planDetails?.retentionDays ?? MAX_PICKABLE_DAYS,
         maxUpgradableDays: MAX_PICKABLE_DAYS,
