@@ -1,22 +1,10 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
-from pydantic import BaseModel, Field
-
-from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsAppInfo
-from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
-from sentry.preprod.size_analysis.models import (
-    AndroidInsightResults,
-    AppComponent,
-    AppleInsightResults,
-    DiffItem,
-    InsightDiffItem,
-    SizeMetricDiffItem,
-)
+from sentry.preprod.models import PreprodArtifact
 
 
-# TypedDict classes for OpenAPI documentation
 class AppInfoResponseDict(TypedDict):
     app_id: str
     name: str | None
@@ -29,24 +17,18 @@ class AppInfoResponseDict(TypedDict):
 
 
 class SizeAnalysisPendingResponseDict(TypedDict):
-    """Response when size analysis is pending."""
-
     build_id: str
     state: Literal["PENDING"]
     app_info: AppInfoResponseDict
 
 
 class SizeAnalysisProcessingResponseDict(TypedDict):
-    """Response when size analysis is processing."""
-
     build_id: str
     state: Literal["PROCESSING"]
     app_info: AppInfoResponseDict
 
 
 class SizeAnalysisFailedResponseDict(TypedDict):
-    """Response when size analysis failed."""
-
     build_id: str
     state: Literal["FAILED"]
     app_info: AppInfoResponseDict
@@ -55,8 +37,6 @@ class SizeAnalysisFailedResponseDict(TypedDict):
 
 
 class SizeAnalysisNotRanResponseDict(TypedDict):
-    """Response when size analysis was not run."""
-
     build_id: str
     state: Literal["NOT_RAN"]
     app_info: AppInfoResponseDict
@@ -65,8 +45,6 @@ class SizeAnalysisNotRanResponseDict(TypedDict):
 
 
 class SizeAnalysisCompletedResponseDict(TypedDict):
-    """Response when size analysis completed successfully."""
-
     build_id: str
     state: Literal["COMPLETED"]
     app_info: AppInfoResponseDict
@@ -81,7 +59,6 @@ class SizeAnalysisCompletedResponseDict(TypedDict):
     comparisons: NotRequired[list[dict[str, Any]] | None]
 
 
-# Union type for OpenAPI documentation
 SizeAnalysisResponseDict = (
     SizeAnalysisPendingResponseDict
     | SizeAnalysisProcessingResponseDict
@@ -91,92 +68,18 @@ SizeAnalysisResponseDict = (
 )
 
 
-# Pydantic models for runtime validation
-class PublicComparisonResult(BaseModel):
-    """A comparison result with inlined diff data when state is SUCCESS."""
+def create_app_info_dict(artifact: PreprodArtifact) -> AppInfoResponseDict:
+    """Build an AppInfoResponseDict from a PreprodArtifact."""
+    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    commit_comparison = getattr(artifact, "commit_comparison", None)
 
-    metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType
-    identifier: str | None = None
-    state: PreprodArtifactSizeComparison.State
-
-    # Error info (when state == FAILED)
-    error_code: str | None = None
-    error_message: str | None = None
-
-    # Diff results (inlined when state == SUCCESS)
-    diff_items: list[DiffItem] | None = None
-    insight_diff_items: list[InsightDiffItem] | None = None
-    size_metric_diff: SizeMetricDiffItem | None = None
-
-
-class SizeAnalysisPendingResponse(BaseModel):
-    """Response when size analysis is pending."""
-
-    state: Literal["PENDING"] = "PENDING"
-    build_id: str
-    app_info: BuildDetailsAppInfo
-
-
-class SizeAnalysisProcessingResponse(BaseModel):
-    """Response when size analysis is processing."""
-
-    state: Literal["PROCESSING"] = "PROCESSING"
-    build_id: str
-    app_info: BuildDetailsAppInfo
-
-
-class SizeAnalysisFailedResponse(BaseModel):
-    """Response when size analysis failed."""
-
-    state: Literal["FAILED"] = "FAILED"
-    build_id: str
-    app_info: BuildDetailsAppInfo
-    error_code: int | None = None
-    error_message: str | None = None
-
-
-class SizeAnalysisNotRanResponse(BaseModel):
-    """Response when size analysis was not run."""
-
-    state: Literal["NOT_RAN"] = "NOT_RAN"
-    build_id: str
-    app_info: BuildDetailsAppInfo
-    error_code: int | None = None
-    error_message: str | None = None
-
-
-class SizeAnalysisCompletedResponse(BaseModel):
-    """Response when size analysis completed successfully."""
-
-    state: Literal["COMPLETED"] = "COMPLETED"
-    build_id: str
-    app_info: BuildDetailsAppInfo
-    download_size: int
-    install_size: int
-    analysis_duration: float | None = None
-    analysis_version: str | None = None
-
-    # Insights
-    insights: (
-        Annotated[AndroidInsightResults | AppleInsightResults, Field(discriminator="platform")]
-        | None
-    ) = None
-
-    # App components (for modular apps - watch apps, extensions, dynamic features)
-    app_components: list[AppComponent] | None = None
-
-    # Comparison data (present when base artifact exists)
-    base_build_id: str | None = None
-    base_app_info: BuildDetailsAppInfo | None = None
-    comparisons: list[PublicComparisonResult] | None = None
-
-
-# Discriminated union for size analysis response
-PublicSizeAnalysisResponse = Annotated[
-    SizeAnalysisPendingResponse
-    | SizeAnalysisProcessingResponse
-    | SizeAnalysisFailedResponse
-    | SizeAnalysisNotRanResponse
-    | SizeAnalysisCompletedResponse,
-    Field(discriminator="state"),
-]
+    return AppInfoResponseDict(
+        app_id=artifact.app_id,
+        name=mobile_app_info.app_name if mobile_app_info else None,
+        version=mobile_app_info.build_version if mobile_app_info else None,
+        build_number=mobile_app_info.build_number if mobile_app_info else None,
+        artifact_type=artifact.artifact_type,
+        date_added=artifact.date_added.isoformat() if artifact.date_added else None,
+        date_built=artifact.date_built.isoformat() if artifact.date_built else None,
+        commit_sha=commit_comparison.head_sha if commit_comparison else None,
+    )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -19,17 +20,9 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import (
     PreprodArtifactEndpoint,
     PreprodArtifactResourceDoesNotExist,
 )
-from sentry.preprod.api.models.project_preprod_build_details_models import (
-    create_build_details_app_info,
-)
 from sentry.preprod.api.models.public_api_models import (
-    PublicComparisonResult,
-    SizeAnalysisCompletedResponse,
-    SizeAnalysisFailedResponse,
-    SizeAnalysisNotRanResponse,
-    SizeAnalysisPendingResponse,
-    SizeAnalysisProcessingResponse,
     SizeAnalysisResponseDict,
+    create_app_info_dict,
 )
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -116,46 +109,50 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
             size_metrics[0],
         )
 
-        app_info = create_build_details_app_info(head_artifact)
+        app_info = create_app_info_dict(head_artifact)
         # Convert state integer to enum
         state_enum = PreprodArtifactSizeMetrics.SizeAnalysisState(main_metric.state)
 
         # Handle non-COMPLETED states
         if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
             return Response(
-                SizeAnalysisPendingResponse(
-                    build_id=str(head_artifact.id),
-                    app_info=app_info,
-                ).dict()
+                {
+                    "state": "PENDING",
+                    "build_id": str(head_artifact.id),
+                    "app_info": app_info,
+                }
             )
 
         if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
             return Response(
-                SizeAnalysisProcessingResponse(
-                    build_id=str(head_artifact.id),
-                    app_info=app_info,
-                ).dict()
+                {
+                    "state": "PROCESSING",
+                    "build_id": str(head_artifact.id),
+                    "app_info": app_info,
+                }
             )
 
         if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
             return Response(
-                SizeAnalysisFailedResponse(
-                    build_id=str(head_artifact.id),
-                    app_info=app_info,
-                    error_code=main_metric.error_code,
-                    error_message=main_metric.error_message,
-                ).dict(),
+                {
+                    "state": "FAILED",
+                    "build_id": str(head_artifact.id),
+                    "app_info": app_info,
+                    "error_code": main_metric.error_code,
+                    "error_message": main_metric.error_message,
+                },
                 status=200,
             )
 
         if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN:
             return Response(
-                SizeAnalysisNotRanResponse(
-                    build_id=str(head_artifact.id),
-                    app_info=app_info,
-                    error_code=main_metric.error_code,
-                    error_message=main_metric.error_message,
-                ).dict(),
+                {
+                    "state": "NOT_RAN",
+                    "build_id": str(head_artifact.id),
+                    "app_info": app_info,
+                    "error_code": main_metric.error_code,
+                    "error_message": main_metric.error_message,
+                },
                 status=200,
             )
 
@@ -192,16 +189,19 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
             return Response({"detail": "Failed to parse size analysis results"}, status=500)
 
         # Build base response for COMPLETED state
-        response_data = SizeAnalysisCompletedResponse(
-            build_id=str(head_artifact.id),
-            app_info=app_info,
-            download_size=analysis_results.download_size,
-            install_size=analysis_results.install_size,
-            analysis_duration=analysis_results.analysis_duration,
-            analysis_version=analysis_results.analysis_version,
-            insights=analysis_results.insights,
-            app_components=analysis_results.app_components,
-        )
+        # Use .dict() to recursively serialize nested Pydantic models (insights, app_components)
+        analysis_dict = analysis_results.dict()
+        response_data: dict[str, Any] = {
+            "state": "COMPLETED",
+            "build_id": str(head_artifact.id),
+            "app_info": app_info,
+            "download_size": analysis_dict["download_size"],
+            "install_size": analysis_dict["install_size"],
+            "analysis_duration": analysis_dict["analysis_duration"],
+            "analysis_version": analysis_dict["analysis_version"],
+            "insights": analysis_dict["insights"],
+            "app_components": analysis_dict["app_components"],
+        }
 
         # Add comparison data if base artifact exists
         base_artifact = self._get_base_artifact(request, project, head_artifact)
@@ -210,11 +210,11 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                 project, head_artifact, base_artifact, size_metrics
             )
             if comparison_data:
-                response_data.base_build_id = str(base_artifact.id)
-                response_data.base_app_info = create_build_details_app_info(base_artifact)
-                response_data.comparisons = comparison_data
+                response_data["base_build_id"] = str(base_artifact.id)
+                response_data["base_app_info"] = create_app_info_dict(base_artifact)
+                response_data["comparisons"] = comparison_data
 
-        return Response(response_data.dict())
+        return Response(response_data)
 
     def _get_base_artifact(
         self,
@@ -248,7 +248,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
         head_artifact: PreprodArtifact,
         base_artifact: PreprodArtifact,
         head_size_metrics: list[PreprodArtifactSizeMetrics],
-    ) -> list[PublicComparisonResult] | None:
+    ) -> list[dict[str, Any]] | None:
         """Build comparison results for head vs base artifact."""
         base_size_metrics = list(
             PreprodArtifactSizeMetrics.objects.filter(
@@ -263,19 +263,19 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
         head_metrics_map = build_size_metrics_map(head_size_metrics)
         base_metrics_map = build_size_metrics_map(base_size_metrics)
 
-        comparisons: list[PublicComparisonResult] = []
+        comparisons: list[dict[str, Any]] = []
         for key, head_metric in head_metrics_map.items():
             base_metric = base_metrics_map.get(key)
 
             if not base_metric:
                 comparisons.append(
-                    PublicComparisonResult(
-                        metrics_artifact_type=head_metric.metrics_artifact_type,
-                        identifier=head_metric.identifier,
-                        state=PreprodArtifactSizeComparison.State.FAILED,
-                        error_code="NO_BASE_METRIC",
-                        error_message="No matching base artifact size metric found.",
-                    )
+                    {
+                        "metrics_artifact_type": head_metric.metrics_artifact_type,
+                        "identifier": head_metric.identifier,
+                        "state": PreprodArtifactSizeComparison.State.FAILED,
+                        "error_code": "NO_BASE_METRIC",
+                        "error_message": "No matching base artifact size metric found.",
+                    }
                 )
                 continue
 
@@ -296,40 +296,40 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
         self,
         head_metric: PreprodArtifactSizeMetrics,
         comparison_obj: PreprodArtifactSizeComparison,
-    ) -> PublicComparisonResult:
+    ) -> dict[str, Any]:
         """Build a single comparison result."""
         if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
             return self._build_success_comparison(head_metric, comparison_obj)
         elif comparison_obj.state == PreprodArtifactSizeComparison.State.FAILED:
-            return PublicComparisonResult(
-                metrics_artifact_type=head_metric.metrics_artifact_type,
-                identifier=head_metric.identifier,
-                state=PreprodArtifactSizeComparison.State.FAILED,
-                error_code=(
+            return {
+                "metrics_artifact_type": head_metric.metrics_artifact_type,
+                "identifier": head_metric.identifier,
+                "state": PreprodArtifactSizeComparison.State.FAILED,
+                "error_code": (
                     str(comparison_obj.error_code)
                     if comparison_obj.error_code is not None
                     else None
                 ),
-                error_message=comparison_obj.error_message,
-            )
+                "error_message": comparison_obj.error_message,
+            }
         else:
-            return PublicComparisonResult(
-                metrics_artifact_type=head_metric.metrics_artifact_type,
-                identifier=head_metric.identifier,
-                state=PreprodArtifactSizeComparison.State.PROCESSING,
-            )
+            return {
+                "metrics_artifact_type": head_metric.metrics_artifact_type,
+                "identifier": head_metric.identifier,
+                "state": PreprodArtifactSizeComparison.State.PROCESSING,
+            }
 
     def _build_success_comparison(
         self,
         head_metric: PreprodArtifactSizeMetrics,
         comparison_obj: PreprodArtifactSizeComparison,
-    ) -> PublicComparisonResult:
+    ) -> dict[str, Any]:
         """Build a comparison result with inlined diff data for SUCCESS state."""
-        comparison_result = PublicComparisonResult(
-            metrics_artifact_type=head_metric.metrics_artifact_type,
-            identifier=head_metric.identifier,
-            state=PreprodArtifactSizeComparison.State.SUCCESS,
-        )
+        comparison_result: dict[str, Any] = {
+            "metrics_artifact_type": head_metric.metrics_artifact_type,
+            "identifier": head_metric.identifier,
+            "state": PreprodArtifactSizeComparison.State.SUCCESS,
+        }
 
         if comparison_obj.file_id is None:
             logger.warning(
@@ -345,9 +345,10 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
             comparison_data = json.loads(content)
             comparison_results = ComparisonResults(**comparison_data)
 
-            comparison_result.diff_items = comparison_results.diff_items
-            comparison_result.insight_diff_items = comparison_results.insight_diff_items
-            comparison_result.size_metric_diff = comparison_results.size_metric_diff_item
+            comparison_dict = comparison_results.dict()
+            comparison_result["diff_items"] = comparison_dict["diff_items"]
+            comparison_result["insight_diff_items"] = comparison_dict["insight_diff_items"]
+            comparison_result["size_metric_diff"] = comparison_dict["size_metric_diff_item"]
 
         except File.DoesNotExist:
             logger.warning(
