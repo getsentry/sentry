@@ -1,5 +1,6 @@
 import {
   Fragment,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -7,11 +8,10 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
-import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import {ProjectAvatar, TeamAvatar} from '@sentry/scraps/avatar';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {StylesConfig} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
@@ -25,7 +25,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -151,33 +150,38 @@ function ContextPickerContent({
   // --- Auto-navigate logic ---
   const onFinishTimeoutRef = useRef<number | undefined>(undefined);
 
+  const onFinishRef = useRef(onFinish);
+  const nextPathRef = useRef(nextPath);
+  useEffect(() => {
+    onFinishRef.current = onFinish;
+    nextPathRef.current = nextPath;
+  });
+
   useEffect(() => {
     return () => window.clearTimeout(onFinishTimeoutRef.current);
   }, []);
 
-  const navigateFinish = useMemo(
-    () =>
-      (
-        org: string,
-        projectSlug: string | undefined | null,
-        teamSlug: string | undefined | null
-      ) => {
-        const pathname = typeof nextPath === 'string' ? nextPath : nextPath.pathname;
-        const newPathname = replaceRouterParams(pathname, {
-          orgId: org,
-          projectId: projectSlug ?? undefined,
-          project: projects.find(p => p.slug === projectSlug)?.id,
-          teamId: teamSlug ?? undefined,
-        });
-        window.clearTimeout(onFinishTimeoutRef.current);
-        onFinishTimeoutRef.current =
-          onFinish(
-            typeof nextPath === 'string'
-              ? newPathname
-              : {...nextPath, pathname: newPathname}
-          ) ?? undefined;
-      },
-    [nextPath, onFinish, projects]
+  const navigateFinish = useCallback(
+    (
+      org: string,
+      projectSlug: string | undefined | null,
+      teamSlug: string | undefined | null
+    ) => {
+      const np = nextPathRef.current;
+      const pathname = typeof np === 'string' ? np : np.pathname;
+      const newPathname = replaceRouterParams(pathname, {
+        orgId: org,
+        projectId: projectSlug ?? undefined,
+        project: projects.find(p => p.slug === projectSlug)?.id,
+        teamId: teamSlug ?? undefined,
+      });
+      window.clearTimeout(onFinishTimeoutRef.current);
+      onFinishTimeoutRef.current =
+        onFinishRef.current(
+          typeof np === 'string' ? newPathname : {...np, pathname: newPathname}
+        ) ?? undefined;
+    },
+    [projects]
   );
 
   // Auto-navigate when all required context is unambiguous
@@ -220,15 +224,7 @@ function ContextPickerContent({
   function handleSelectOrganization({value}: {value: string}) {
     if (!needProject && !needTeam) {
       // Only org needed — navigate directly
-      const pathname = typeof nextPath === 'string' ? nextPath : nextPath.pathname;
-      const newPathname = replaceRouterParams(pathname, {orgId: value});
-      window.clearTimeout(onFinishTimeoutRef.current);
-      onFinishTimeoutRef.current =
-        onFinish(
-          typeof nextPath === 'string'
-            ? newPathname
-            : {...nextPath, pathname: newPathname}
-        ) ?? undefined;
+      navigateFinish(value, undefined, undefined);
       return;
     }
     setSelectedOrgSlug(value);
@@ -298,38 +294,40 @@ function ContextPickerContent({
         <Heading as="h5">{getHeaderText()}</Heading>
       </Header>
       <Body>
-        {needOrg && (
-          <StyledSelectControl
-            ref={hasDownstreamSelector ? undefined : autoFocusReactSelect}
-            placeholder={t('Select an Organization')}
-            name="organization"
-            options={orgChoices}
-            value={selectedOrgSlug}
-            onChange={handleSelectOrganization}
-            components={{DropdownIndicator: null}}
-            styles={selectStyles}
-            menuIsOpen
-          />
-        )}
+        <Stack gap="md">
+          {needOrg && (
+            <Select
+              ref={hasDownstreamSelector ? undefined : autoFocusReactSelect}
+              placeholder={t('Select an Organization')}
+              name="organization"
+              options={orgChoices}
+              value={selectedOrgSlug}
+              onChange={handleSelectOrganization}
+              components={{DropdownIndicator: null}}
+              styles={selectStyles}
+              menuIsOpen
+            />
+          )}
 
-        {shouldShowProjectSelector && (
-          <ProjectSelector
-            projects={projects}
-            projectsLoading={projectsLoading}
-            allowAllProjectsSelection={allowAllProjectsSelection}
-            onSelectProject={handleSelectProject}
-            autoFocus
-          />
-        )}
+          {shouldShowProjectSelector && (
+            <ProjectSelector
+              projects={projects}
+              projectsLoading={projectsLoading}
+              allowAllProjectsSelection={allowAllProjectsSelection}
+              onSelectProject={handleSelectProject}
+              autoFocus
+            />
+          )}
 
-        {shouldShowTeamSelector && (
-          <TeamSelector
-            teams={teams}
-            teamsLoading={teamsLoading}
-            onSelectTeam={handleSelectTeam}
-            autoFocus={!shouldShowProjectSelector}
-          />
-        )}
+          {shouldShowTeamSelector && (
+            <TeamSelector
+              teams={teams}
+              teamsLoading={teamsLoading}
+              onSelectTeam={handleSelectTeam}
+              autoFocus={!shouldShowProjectSelector}
+            />
+          )}
+        </Stack>
       </Body>
     </Fragment>
   );
@@ -405,7 +403,7 @@ function ProjectSelector({
   ];
 
   return (
-    <StyledSelectControl
+    <Select
       ref={autoFocus ? autoFocusReactSelect : undefined}
       placeholder={t('Select a Project to continue')}
       name="project"
@@ -448,7 +446,7 @@ function TeamSelector({
   }));
 
   return (
-    <StyledSelectControl
+    <Select
       ref={autoFocus ? autoFocusReactSelect : undefined}
       placeholder={t('Select a Team to continue')}
       name="team"
@@ -557,48 +555,50 @@ function ConfigPickerContent({
         <Heading as="h5">{headerText}</Heading>
       </Header>
       <Body>
-        {needOrg && (
-          <StyledSelectControl
-            ref={shouldShowConfigSelector ? undefined : autoFocusReactSelect}
-            placeholder={t('Select an Organization')}
-            name="organization"
-            options={orgChoices}
-            value={selectedOrgSlug}
-            onChange={handleSelectOrganization}
-            components={{DropdownIndicator: null}}
-            styles={selectStyles}
-            menuIsOpen
-          />
-        )}
+        <Stack gap="md">
+          {needOrg && (
+            <Select
+              ref={shouldShowConfigSelector ? undefined : autoFocusReactSelect}
+              placeholder={t('Select an Organization')}
+              name="organization"
+              options={orgChoices}
+              value={selectedOrgSlug}
+              onChange={handleSelectOrganization}
+              components={{DropdownIndicator: null}}
+              styles={selectStyles}
+              menuIsOpen
+            />
+          )}
 
-        {shouldShowConfigSelector && (
-          <StyledSelectControl
-            ref={autoFocusReactSelect}
-            placeholder={t('Select a configuration to continue')}
-            name="configurations"
-            options={[
-              {
-                label: tct('[providerName] Configurations', {
-                  providerName: integrationConfigs[0]!.provider.name,
-                }),
-                options: integrationConfigs.map(config => ({
-                  value: config.id,
-                  label: (
-                    <Grid columns="32px auto" rows="1fr">
-                      <IntegrationIcon size={22} integration={config} />
-                      <span>{config.domainName}</span>
-                    </Grid>
-                  ),
-                  disabled: !isSuperuser,
-                })),
-              },
-            ]}
-            onChange={handleSelectConfiguration}
-            components={{DropdownIndicator: null}}
-            styles={selectStyles}
-            menuIsOpen
-          />
-        )}
+          {shouldShowConfigSelector && (
+            <Select
+              ref={autoFocusReactSelect}
+              placeholder={t('Select a configuration to continue')}
+              name="configurations"
+              options={[
+                {
+                  label: tct('[providerName] Configurations', {
+                    providerName: integrationConfigs[0]!.provider.name,
+                  }),
+                  options: integrationConfigs.map(config => ({
+                    value: config.id,
+                    label: (
+                      <Grid columns="32px auto" rows="1fr">
+                        <IntegrationIcon size={22} integration={config} />
+                        <span>{config.domainName}</span>
+                      </Grid>
+                    ),
+                    disabled: !isSuperuser,
+                  })),
+                },
+              ]}
+              onChange={handleSelectConfiguration}
+              components={{DropdownIndicator: null}}
+              styles={selectStyles}
+              menuIsOpen
+            />
+          )}
+        </Stack>
       </Body>
     </Fragment>
   );
@@ -636,7 +636,3 @@ export default function ContextPickerModalContainer({
     />
   );
 }
-
-const StyledSelectControl = styled(Select)`
-  margin-top: ${space(1)};
-`;
