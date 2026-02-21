@@ -163,7 +163,7 @@ function WidgetContainerInner(props: Props) {
     'withStaticFilters',
   ]);
 
-  const titleTooltip = showNewWidgetDesign ? '' : widgetProps.titleTooltip;
+  const titleTooltip = '';
 
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.TRENDS:

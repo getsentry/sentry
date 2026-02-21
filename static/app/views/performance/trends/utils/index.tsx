@@ -29,8 +29,6 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-export const DEFAULT_MAX_DURATION = '15min';
-
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
     label: 'p99',
