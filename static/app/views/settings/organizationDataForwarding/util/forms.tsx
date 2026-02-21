@@ -8,9 +8,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
-import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import type {AvatarProject, Project} from 'sentry/types/project';
+import type {AvatarProject} from 'sentry/types/project';
 import {
   DataForwarderProviderSlug,
   type DataForwarder,
@@ -60,22 +59,6 @@ export const dataForwarderFormSchema = z.object({
   source: z.string(),
 });
 
-export function getDataForwarderFormGroups({
-  provider,
-  dataForwarder,
-  projects,
-}: {
-  projects: Project[];
-  dataForwarder?: DataForwarder;
-  provider?: DataForwarderProviderSlug;
-}): JsonFormObject[] {
-  return [
-    getEnablementForm({dataForwarder}),
-    ...getProviderForm({provider}),
-    getProjectConfigurationForm({projects}),
-  ];
-}
-
 function getProviderForm({
   provider,
 }: {
@@ -91,59 +74,6 @@ function getProviderForm({
     default:
       return [];
   }
-}
-
-function getEnablementForm({
-  dataForwarder,
-}: {
-  dataForwarder?: DataForwarder;
-}): JsonFormObject {
-  const hasCompleteSetup = dataForwarder;
-  return {
-    title: t('Enablement'),
-    fields: [
-      {
-        name: 'is_enabled',
-        label: t('Enable data forwarding'),
-        type: 'boolean',
-        defaultValue: dataForwarder?.isEnabled ?? true,
-        // Need to set 'undefined' instead of false so that the field can still be disabled by the form
-        disabled: hasCompleteSetup ? undefined : true,
-        help: hasCompleteSetup
-          ? t('Will override all projects to shut-off data forwarding altogether.')
-          : t('Will be enabled after the initial setup is complete.'),
-      },
-    ],
-  };
-}
-
-function getProjectConfigurationForm({projects}: {projects: Project[]}): JsonFormObject {
-  const projectOptions = projects.map(project => ({
-    value: project.id,
-    label: project.slug,
-    leadingItems: <IdBadge project={project} avatarSize={16} disableLink hideName />,
-  }));
-  return {
-    title: t('Project Configuration'),
-    fields: [
-      {
-        name: 'enroll_new_projects',
-        label: 'Auto-enroll new projects',
-        type: 'boolean',
-        help: 'Should new projects automatically forward their data?',
-      },
-      {
-        name: 'project_ids',
-        label: 'Forwarding projects',
-        type: 'select',
-        multiple: true,
-        required: false,
-        defaultValue: [],
-        help: 'Select the projects which should forward their data.',
-        options: projectOptions,
-      },
-    ],
-  };
 }
 
 export function getProjectOverrideForm({
