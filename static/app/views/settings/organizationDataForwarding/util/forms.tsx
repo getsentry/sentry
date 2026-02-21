@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {z} from 'zod';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -33,6 +34,31 @@ export function getCreateTooltip(params: {
   }
   return undefined;
 }
+
+/**
+ * Combined schema for the setup and edit forms. Provider-specific fields are always
+ * strings (initialized to '' when unused). Per-provider required-field validation is
+ * enforced via superRefine in the consuming component.
+ */
+export const dataForwarderFormSchema = z.object({
+  is_enabled: z.boolean(),
+  enroll_new_projects: z.boolean(),
+  project_ids: z.array(z.string()),
+  // SQS
+  queue_url: z.string(),
+  region: z.string(),
+  access_key: z.string(),
+  secret_key: z.string(),
+  message_group_id: z.string(),
+  s3_bucket: z.string(),
+  // Segment
+  write_key: z.string(),
+  // Splunk
+  instance_url: z.string(),
+  token: z.string(),
+  index: z.string(),
+  source: z.string(),
+});
 
 export function getDataForwarderFormGroups({
   provider,
