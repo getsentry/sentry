@@ -1195,7 +1195,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
     @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.coding_agent.GithubCopilotAgentClient")
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
-    def test_copilot_not_licensed_403_returns_generic_failure_type(
+    def test_copilot_not_licensed_403_returns_github_copilot_not_licensed_failure_type(
         self,
         mock_identity_service,
         mock_copilot_client_class,
@@ -1204,7 +1204,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
         mock_get_autofix_state,
         mock_get_providers,
     ):
-        """Test POST endpoint returns failure_type=generic for Copilot 403s with a licensing error.
+        """Test POST endpoint returns failure_type=github_copilot_not_licensed for Copilot 403s with a licensing error.
 
         When GitHub Copilot returns a 403 with "not licensed to use Copilot", the user's
         account lacks an active Copilot subscription. This is distinct from a GitHub App
@@ -1236,11 +1236,8 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
             assert response.data["success"] is False
             assert response.data["failed_count"] >= 1
             failure = response.data["failures"][0]
-            assert failure["failure_type"] == "generic"
-            assert (
-                "not licensed" in failure["error_message"]
-                or "Copilot license" in failure["error_message"]
-            )
+            assert failure["failure_type"] == "github_copilot_not_licensed"
+            assert "Copilot license" in failure["error_message"]
 
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
