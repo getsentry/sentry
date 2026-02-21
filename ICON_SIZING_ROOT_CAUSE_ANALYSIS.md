@@ -7,6 +7,7 @@ There is a **critical type mismatch and sizing inconsistency** in the Sentry ico
 ## Problem Statement
 
 Icons in the Sentry application are experiencing sizing issues due to:
+
 1. **Type mismatches** between TypeScript type definitions and runtime constants
 2. **Inconsistent icon sizes** across different branches
 3. **Partially applied changes** from icon sizing refactors
@@ -16,12 +17,14 @@ Icons in the Sentry application are experiencing sizing issues due to:
 ### 1. The Icon Sizing System
 
 The icon system consists of two key files:
+
 - `static/app/icons/svgIcon.tsx` - Contains the `ICON_SIZES` runtime mapping
 - `static/app/utils/theme/types.tsx` - Contains the `IconSize` TypeScript type definition
 
 ### 2. Branch Divergence
 
 #### Master Branch State
+
 ```typescript
 // static/app/icons/svgIcon.tsx
 const ICON_SIZES: Record<IconSize, string> = {
@@ -43,13 +46,14 @@ export type IconSize = SizeRange<'xs', '2xl'>;
 ```
 
 #### Jonas's `jb/icons/sizes` Branch (commits 4d2a519bbdc & 6ae8ab3cdf1)
+
 ```typescript
 // static/app/icons/svgIcon.tsx
 const ICON_SIZES: Record<IconSize, string> = {
-  '2xs': '8px',    // ✅ ADDED
+  '2xs': '8px', // ✅ ADDED
   xs: '12px',
-  sm: '16px',      // ⚠️ CHANGED from 14px
-  md: '20px',      // ⚠️ CHANGED from 18px
+  sm: '16px', // ⚠️ CHANGED from 14px
+  md: '20px', // ⚠️ CHANGED from 18px
   lg: '24px',
   xl: '32px',
   '2xl': '72px',
@@ -61,17 +65,18 @@ const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'md'];
 
 ```typescript
 // static/app/utils/theme/types.tsx
-export type IconSize = SizeRange<'2xs', '2xl'>;  // ✅ CORRECTLY UPDATED
+export type IconSize = SizeRange<'2xs', '2xl'>; // ✅ CORRECTLY UPDATED
 ```
 
 #### Current Branch State (`cursor/icons-broken-root-cause-b8ea`)
+
 ```typescript
 // static/app/icons/svgIcon.tsx
 const ICON_SIZES: Record<IconSize, string> = {
   // ❌ NO '2xs' SIZE
   xs: '12px',
   sm: '14px',
-  md: '16px',      // Different from both master (18px) and jb branch (20px)
+  md: '16px', // Different from both master (18px) and jb branch (20px)
   lg: '24px',
   xl: '32px',
   '2xl': '72px',
@@ -83,13 +88,15 @@ const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'md'];
 
 ```typescript
 // static/app/utils/theme/types.tsx
-export type IconSize = SizeRange<'xs', '2xl'>;  // ❌ STILL NO '2xs'
+export type IconSize = SizeRange<'xs', '2xl'>; // ❌ STILL NO '2xs'
 ```
 
 ### 3. Critical Issues Identified
 
 #### Issue #1: Type-Runtime Mismatch (Potential Future Issue)
+
 If the `jb/icons/sizes` branch gets merged without proper coordination, there could be a type mismatch where:
+
 - The `ICON_SIZES` object includes `'2xs': '8px'`
 - But the `IconSize` type definition doesn't include `'2xs'`
 - This would cause TypeScript compilation errors
@@ -97,11 +104,12 @@ If the `jb/icons/sizes` branch gets merged without proper coordination, there co
 **Impact:** TypeScript would reject any code trying to use `size="2xs"`, even though the runtime constant supports it.
 
 #### Issue #2: Inconsistent Icon Sizes Across Branches
+
 Three different icon size definitions exist:
 
 | Size | Master | jb/icons/sizes | Current Branch |
-|------|--------|----------------|----------------|
-| 2xs  | N/A    | 8px ✅         | N/A ❌          |
+| ---- | ------ | -------------- | -------------- |
+| 2xs  | N/A    | 8px ✅         | N/A ❌         |
 | xs   | 12px   | 12px           | 12px           |
 | sm   | 14px   | 16px ⚠️        | 14px           |
 | md   | 18px   | 20px ⚠️        | 16px ⚠️        |
@@ -110,18 +118,22 @@ Three different icon size definitions exist:
 | 2xl  | 72px   | 72px           | 72px           |
 
 **Impact:** Icons render at different sizes depending on which branch is deployed, causing:
+
 - Visual inconsistencies
 - Layout breakage
 - Icons appearing "too small" or "too large"
 - Misalignment with design system
 
 #### Issue #3: Default Size Change Without Full Coordination
+
 The current branch changed the default icon size from `'sm'` (14px) to `'md'` (16px on current branch), but:
+
 - This differs from the `jb/icons/sizes` intended `'md'` of 20px
 - Any icons without explicit `size` prop will render at different sizes
 - This affects **hundreds** of icons across the codebase
 
 **Impact:**
+
 - Icons without explicit size props are 2px larger than before (14px → 16px)
 - When jb branch merges, they'll be 4px larger (14px → 20px with md=20px)
 - This cascading change affects the entire UI
@@ -152,6 +164,7 @@ Icons appear "broken" because:
 ## Evidence
 
 ### Commit History
+
 ```bash
 # Jonas's icon sizing work (not on master)
 6ae8ab3cdf1 (origin/jb/icons/sizes) ref(icons) update sizes
@@ -181,6 +194,7 @@ The commit `6d6fbdcf8a4` was **already merged to master** on February 9, 2026. T
 **This is likely what Dave is seeing as "broken icons"** - the default icon size increased from 14px to 16px, causing layout issues throughout the UI.
 
 ### File States
+
 - Master: `md: '18px'`, default `'sm'`, no `'2xs'`
 - jb/icons/sizes: `md: '20px'`, default `'md'`, has `'2xs'`
 - Current branch: `md: '16px'`, default `'md'`, no `'2xs'`
@@ -188,16 +202,19 @@ The commit `6d6fbdcf8a4` was **already merged to master** on February 9, 2026. T
 ## Impact Assessment
 
 ### High Severity
+
 - ❌ Type safety compromised if '2xs' added to ICON_SIZES without updating IconSize type
 - ❌ Visual consistency broken across the application
 - ❌ Icons render at unexpected sizes
 
 ### Medium Severity
+
 - ⚠️ Layout shifts and alignment issues
 - ⚠️ Design system consistency violated
 - ⚠️ Multiple teams working with different icon sizes
 
 ### Low Severity
+
 - ℹ️ Confusion among developers about correct icon sizes
 - ℹ️ Potential for more bugs when branches merge
 
@@ -215,6 +232,7 @@ The commit `6d6fbdcf8a4` was **already merged to master** on February 9, 2026. T
    - Coordinate merge of `jb/icons/sizes` branch with master
 
 3. **Add Type Safety Guards**
+
    ```typescript
    // Ensure ICON_SIZES keys match IconSize type
    const ICON_SIZES: Record<IconSize, string> = {
@@ -228,9 +246,10 @@ The commit `6d6fbdcf8a4` was **already merged to master** on February 9, 2026. T
    } as const;
 
    // Add compile-time check
-   type _IconSizesCheck = typeof ICON_SIZES extends Record<IconSize, string>
-     ? true
-     : 'ICON_SIZES keys do not match IconSize type';
+   type _IconSizesCheck =
+     typeof ICON_SIZES extends Record<IconSize, string>
+       ? true
+       : 'ICON_SIZES keys do not match IconSize type';
    ```
 
 4. **Document Size Changes**

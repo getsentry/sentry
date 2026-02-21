@@ -16,12 +16,13 @@ It seems counterintuitive - making something bigger shouldn't break it, right? B
 // static/app/views/settings/project/projectOwnership/addCodeOwnerModal.tsx
 const NoSourceFileBody = styled(PanelBody)`
   display: grid;
-  grid-template-columns: 30px 1fr;  // ⚠️ Icon column is EXACTLY 30px
+  grid-template-columns: 30px 1fr; // ⚠️ Icon column is EXACTLY 30px
   align-items: center;
 `;
 ```
 
 **Before (14px icon):**
+
 ```
 ┌──────────┬─────────────────────────┐
 │   Icon   │      Content            │
@@ -31,9 +32,11 @@ const NoSourceFileBody = styled(PanelBody)`
 └──────────┴─────────────────────────┘
     30px          flexible
 ```
+
 ✅ Icon fits with 8px padding on each side
 
 **After (16px icon):**
+
 ```
 ┌──────────┬─────────────────────────┐
 │   Icon   │      Content            │
@@ -43,9 +46,11 @@ const NoSourceFileBody = styled(PanelBody)`
 └──────────┴─────────────────────────┘
     30px          flexible
 ```
+
 ⚠️ Only 7px padding - icon appears cramped, off-center
 
 **If 20px icon (future jb/icons/sizes branch):**
+
 ```
 ┌──────────┬─────────────────────────┐
 │   Icon   │      Content            │
@@ -55,6 +60,7 @@ const NoSourceFileBody = styled(PanelBody)`
 └──────────┴─────────────────────────┘
     30px          flexible
 ```
+
 🔴 Only 5px padding - visually broken, touching edges
 
 ---
@@ -67,9 +73,9 @@ const NoSourceFileBody = styled(PanelBody)`
 // static/app/components/core/button/styles.tsx
 export const BUTTON_ICON_SIZES = {
   zero: undefined,
-  xs: 'xs',     // 12px
-  sm: 'sm',     // Was 14px, now could be 16px in future
-  md: 'sm',     // ⚠️ md button uses sm icon!
+  xs: 'xs', // 12px
+  sm: 'sm', // Was 14px, now could be 16px in future
+  md: 'sm', // ⚠️ md button uses sm icon!
 };
 ```
 
@@ -79,7 +85,7 @@ export const BUTTON_ICON_SIZES = {
 const buttonSizes = {
   xs: {
     height: '28px',
-    fontSize: '0.75rem',  // 12px text
+    fontSize: '0.75rem', // 12px text
   },
   sm: {
     height: '32px',
@@ -95,21 +101,25 @@ const buttonSizes = {
 **Visual Breakdown:**
 
 **Before (14px icon, 14px text):**
+
 ```
 ┌────────────────────────────┐
 │ ↑   [icon] Button Text   ↓ │  32px height
 │ 9px  14px  14px         9px│
 └────────────────────────────┘
 ```
+
 ✅ Icon and text vertically centered, 9px padding top/bottom
 
 **After (16px icon, 14px text):**
+
 ```
 ┌────────────────────────────┐
 │ ↑   [icon] Button Text   ↓ │  32px height
 │ 8px  16px  14px         8px│  ⚠️ Misaligned!
 └────────────────────────────┘
 ```
+
 ⚠️ Icon is 2px taller than text - appears to "float" above the baseline
 ⚠️ Only 8px vertical padding - tighter appearance
 ⚠️ Visual weight is unbalanced
@@ -132,18 +142,21 @@ const buttonSizes = {
 Where `gap="xs"` translates to `8px` (from theme spacing).
 
 **Before (14px icons):**
+
 ```
 [Icon(14px)] ←8px→ [Text(14px)] ←8px→ [Badge(20px)]
 Total width: 14 + 8 + ~60 + 8 + 20 = ~110px
 ```
 
 **After (16px icons):**
+
 ```
 [Icon(16px)] ←8px→ [Text(14px)] ←8px→ [Badge(20px)]
 Total width: 16 + 8 + ~60 + 8 + 20 = ~112px
 ```
 
 **Why this breaks:**
+
 - **Responsive wrapping thresholds:** If container is 111px, items fit on Before but wrap on After
 - **Alignment mismatch:** 16px icon vs 14px text creates vertical misalignment
 - **Visual balance:** Icon appears too prominent relative to text
@@ -163,7 +176,7 @@ Total width: 16 + 8 + ~60 + 8 + 20 = ~112px
 
 .icon {
   position: absolute;
-  top: 12px;      /* Centers 16px icon: (40 - 16) / 2 = 12 */
+  top: 12px; /* Centers 16px icon: (40 - 16) / 2 = 12 */
   left: 12px;
   width: 16px;
   height: 16px;
@@ -171,6 +184,7 @@ Total width: 16 + 8 + ~60 + 8 + 20 = ~112px
 ```
 
 **Before (16px icon):**
+
 ```
 ┌────────────────────┐
 │     ↓ 12px         │
@@ -180,6 +194,7 @@ Total width: 16 + 8 + ~60 + 8 + 20 = ~112px
 ```
 
 **After (18px icon with same positioning):**
+
 ```
 ┌────────────────────┐
 │     ↓ 12px         │
@@ -206,25 +221,32 @@ const QuestionIconContainer = styled('span')`
 **This component's height is DIRECTLY TIED to icon size!**
 
 **Before (sm = 14px):**
+
 ```html
 <span style="height: 14px; line-height: 14px">
-  <IconQuestion size="sm" />  <!-- 14px -->
+  <IconQuestion size="sm" />
+  <!-- 14px -->
 </span>
 ```
+
 Container: 14px tall, line-height: 14px
 ✅ Perfect fit
 
 **After (sm = 16px on jb/icons/sizes branch):**
+
 ```html
 <span style="height: 16px; line-height: 16px">
-  <IconQuestion size="sm" />  <!-- 16px -->
+  <IconQuestion size="sm" />
+  <!-- 16px -->
 </span>
 ```
+
 Container: 16px tall, line-height: 16px
 ⚠️ Taller container affects text baseline alignment
 ⚠️ Surrounding text appears lower/misaligned
 
 **In context:**
+
 ```
 Before: "Learn more [?]" ← icon aligned with text
 After:  "Learn more [?]" ← icon pushes text down 2px
@@ -250,6 +272,7 @@ const IconWrapper = styled('div')`
 **This is a HARD-CODED 16px container!**
 
 **If icon defaults to 16px:**
+
 ```
 ┌──────────┐
 │ [Icon]   │  16px icon in 16px container
@@ -258,12 +281,14 @@ const IconWrapper = styled('div')`
 ```
 
 **If icon becomes 20px (future):**
+
 ```
 ┌──────────┐
 │ [Ic█n]   │  20px icon in 16px container
 │  █0x█0   │  🔴 CLIPPED! Overflow hidden
 └──────────┘
 ```
+
 Icon is **clipped** on all sides - appears broken, cut off
 
 ---
@@ -276,7 +301,10 @@ Icon is **clipped** on all sides - appears broken, cut off
 // static/app/views/settings/organizationMembers/organizationMemberRow.tsx
 const MemberRow = styled('div')`
   display: grid;
-  grid-template-columns: minmax(150px, 4fr) minmax(90px, 2fr) minmax(120px, 2fr) minmax(120px, 1fr);
+  grid-template-columns: minmax(150px, 4fr) minmax(90px, 2fr) minmax(120px, 2fr) minmax(
+      120px,
+      1fr
+    );
 `;
 ```
 
@@ -313,11 +341,12 @@ function SelectLoadingIndicator() {
 // AFTER icon changes - HAD TO BE FIXED:
 // commit 439ed2997f7 - "fix spinner size" (Feb 17, 2026)
 function SelectLoadingIndicator() {
-  return <LoadingIndicator mini size={14} />;  // ⚠️ Changed!
+  return <LoadingIndicator mini size={14} />; // ⚠️ Changed!
 }
 ```
 
 **Why this needed fixing:**
+
 - LoadingIndicator was hard-coded to 20px
 - After icon default increased to 16px, 20px looked **visually too large**
 - Had to manually reduce to 14px to match old proportions
@@ -331,6 +360,7 @@ function SelectLoadingIndicator() {
 ### Example: Navigation Menu
 
 **Before:**
+
 ```
 ┌─────────────────────────┐
 │ [Icon] Dashboard        │  14px icon, 14px text, 8px gap
@@ -341,6 +371,7 @@ function SelectLoadingIndicator() {
 ```
 
 **After:**
+
 ```
 ┌─────────────────────────┐
 │ [Icon] Dashboard        │  16px icon, 14px text, 8px gap
@@ -357,10 +388,12 @@ function SelectLoadingIndicator() {
 **"It's just 2 pixels!"**
 
 In percentage terms:
+
 - 14px → 16px = **+14.3% larger**
 - 14px → 20px = **+42.9% larger**
 
 For comparison:
+
 - Your font size increasing 14.3% would be like 14px → 16px
 - Your button height increasing 14.3% would be like 32px → 36.6px
 - Your entire UI scaling up 14.3% would feel noticeably "zoomed in"
@@ -387,16 +420,16 @@ One icon size change causes:
 
 ## Summary: How Larger Icons Break
 
-| Mechanism | How It Breaks | Severity |
-|-----------|---------------|----------|
-| **Fixed grid columns** | Icon doesn't fit in pre-calculated space | 🔴 High |
-| **Button alignment** | Icon/text vertical misalignment | 🟡 Medium |
-| **Flexbox gaps** | Wrapping thresholds change, visual weight off | 🟡 Medium |
-| **Absolute positioning** | Off-center placement | 🟡 Medium |
-| **Line height coupling** | Container height affects text baseline | 🟡 Medium |
-| **Hard-coded containers** | Icon clipped/overflows | 🔴 High |
-| **Responsive breakpoints** | Layout breaks at narrower viewports | 🟡 Medium |
-| **Visual balance** | Hierarchy and proportions disrupted | 🟠 Medium-High |
+| Mechanism                  | How It Breaks                                 | Severity       |
+| -------------------------- | --------------------------------------------- | -------------- |
+| **Fixed grid columns**     | Icon doesn't fit in pre-calculated space      | 🔴 High        |
+| **Button alignment**       | Icon/text vertical misalignment               | 🟡 Medium      |
+| **Flexbox gaps**           | Wrapping thresholds change, visual weight off | 🟡 Medium      |
+| **Absolute positioning**   | Off-center placement                          | 🟡 Medium      |
+| **Line height coupling**   | Container height affects text baseline        | 🟡 Medium      |
+| **Hard-coded containers**  | Icon clipped/overflows                        | 🔴 High        |
+| **Responsive breakpoints** | Layout breaks at narrower viewports           | 🟡 Medium      |
+| **Visual balance**         | Hierarchy and proportions disrupted           | 🟠 Medium-High |
 
 ---
 

@@ -32,11 +32,11 @@ If we add '2xs' to ICON_SIZES without updating the IconSize type:
 
 ```typescript
 // static/app/utils/theme/types.tsx
-export type IconSize = SizeRange<'xs', '2xl'>;  // ❌ Still missing '2xs'
+export type IconSize = SizeRange<'xs', '2xl'>; // ❌ Still missing '2xs'
 
 // static/app/icons/svgIcon.tsx
 const ICON_SIZES: Record<IconSize, string> = {
-  '2xs': '8px',  // ❌ TypeScript Error!
+  '2xs': '8px', // ❌ TypeScript Error!
   xs: '12px',
   sm: '16px',
   md: '20px',
@@ -47,6 +47,7 @@ const ICON_SIZES: Record<IconSize, string> = {
 ```
 
 **Expected TypeScript Error:**
+
 ```
 Type '{ '2xs': string; xs: string; sm: string; md: string; lg: string; xl: string; '2xl': string; }'
 is not assignable to type 'Record<IconSize, string>'.
@@ -59,11 +60,11 @@ Both files updated correctly:
 
 ```typescript
 // static/app/utils/theme/types.tsx
-export type IconSize = SizeRange<'2xs', '2xl'>;  // ✅ Includes '2xs'
+export type IconSize = SizeRange<'2xs', '2xl'>; // ✅ Includes '2xs'
 
 // static/app/icons/svgIcon.tsx
 const ICON_SIZES: Record<IconSize, string> = {
-  '2xs': '8px',  // ✅ Now valid
+  '2xs': '8px', // ✅ Now valid
   xs: '12px',
   sm: '16px',
   md: '20px',
@@ -80,17 +81,20 @@ const ICON_SIZES: Record<IconSize, string> = {
 ### Impact of Size Changes on Icon Rendering
 
 #### Scenario 1: sm icon (was 14px)
+
 - Master: `14px`
 - jb/icons/sizes: `16px` (+2px, +14.3% larger)
 - Visual Impact: **Moderate** - Noticeable but not dramatic
 
 #### Scenario 2: md icon (was 18px on master)
+
 - Master: `18px`
 - Current branch: `16px` (-2px, -11.1% smaller) ⚠️
 - jb/icons/sizes: `20px` (+2px, +11.1% larger)
 - Visual Impact: **High** - Significant difference between all three states
 
 #### Scenario 3: Default icon (no size specified)
+
 - Master: defaults to `sm` = `14px`
 - Current branch: defaults to `md` = `16px` (+2px)
 - jb/icons/sizes: defaults to `md` = `20px` (+6px, +42.9% larger)
@@ -125,15 +129,17 @@ grep -r "<Icon" static/app/ | wc -l        # Thousands of instances
 ### Layout Breakage Patterns
 
 #### Pattern 1: Fixed Container Overflow
+
 ```css
 .icon-container {
   width: 16px;
   height: 16px;
-  overflow: hidden;  /* 20px icon gets clipped */
+  overflow: hidden; /* 20px icon gets clipped */
 }
 ```
 
 #### Pattern 2: Flexbox Alignment
+
 ```css
 .button {
   display: flex;
@@ -144,6 +150,7 @@ grep -r "<Icon" static/app/ | wc -l        # Thousands of instances
 ```
 
 #### Pattern 3: Absolute Positioning
+
 ```css
 .icon {
   position: absolute;

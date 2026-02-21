@@ -9,9 +9,11 @@
 ## Documents in This Analysis
 
 ### 📊 [EXECUTIVE_SUMMARY.md](./EXECUTIVE_SUMMARY.md)
+
 **Start here.** Quick overview for stakeholders with key findings and recommendations.
 
 **Contains:**
+
 - What happened and when
 - Visual impact summary
 - Affected components
@@ -19,9 +21,11 @@
 - Next steps
 
 ### 🔬 [ICON_SIZING_ROOT_CAUSE_ANALYSIS.md](./ICON_SIZING_ROOT_CAUSE_ANALYSIS.md)
+
 **Technical deep dive.** Comprehensive analysis for engineers.
 
 **Contains:**
+
 - Branch divergence analysis
 - Type system verification
 - Runtime vs. compile-time comparison
@@ -30,9 +34,11 @@
 - Long-term solutions
 
 ### 📅 [BREAKING_CHANGE_TIMELINE.md](./BREAKING_CHANGE_TIMELINE.md)
+
 **Historical context.** What changed, when, and why.
 
 **Contains:**
+
 - Detailed timeline of changes
 - Visual impact comparison
 - Before/after code examples
@@ -41,9 +47,11 @@
 - Related issues
 
 ### ✅ [VERIFICATION_TEST.md](./VERIFICATION_TEST.md)
+
 **Testing guide.** Type safety verification and testing approach.
 
 **Contains:**
+
 - TypeScript type safety checks
 - Size value comparison table
 - Visual regression risk assessment
@@ -51,9 +59,11 @@
 - Broken state examples
 
 ### 🔧 [HOW_LARGER_ICONS_BREAK_LAYOUTS.md](./HOW_LARGER_ICONS_BREAK_LAYOUTS.md)
+
 **Mechanism deep-dive.** Explains exactly how larger icons break UI layouts.
 
 **Contains:**
+
 - 8 specific breakage mechanisms with real code examples
 - Visual diagrams showing before/after states
 - Grid layout failures (30px columns)
@@ -73,22 +83,23 @@
 **Title:** "ref(scraps) default icon size to 16px"
 
 **Changes:**
+
 ```typescript
 // Before
 ICON_SIZES = {
   sm: '14px',
   md: '18px',
   // ...
-}
-default_size = 'sm'  // 14px
+};
+default_size = 'sm'; // 14px
 
 // After
 ICON_SIZES = {
   sm: '14px',
-  md: '16px',        // ⚠️ Changed from 18px
+  md: '16px', // ⚠️ Changed from 18px
   // ...
-}
-default_size = 'md'  // ⚠️ Changed from 'sm', now 16px
+};
+default_size = 'md'; // ⚠️ Changed from 'sm', now 16px
 ```
 
 **Impact:** ~3,000-3,500 icons across the UI increased by 14.3% in size.
@@ -97,16 +108,16 @@ default_size = 'md'  // ⚠️ Changed from 'sm', now 16px
 
 ### Icon Sizes Comparison
 
-| Size | Before | Current | Future (jb/icons/sizes) |
-|------|--------|---------|-------------------------|
-| 2xs  | N/A    | N/A     | 8px                     |
-| xs   | 12px   | 12px    | 12px                    |
-| sm   | 14px   | 14px    | 16px ⚠️                 |
-| md   | 18px   | 16px ⚠️ | 20px ⚠️                 |
-| lg   | 24px   | 24px    | 24px                    |
-| xl   | 32px   | 32px    | 32px                    |
-| 2xl  | 72px   | 72px    | 72px                    |
-| **Default** | **14px (sm)** | **16px (md)** ⚠️ | **20px (md)** ⚠️ |
+| Size        | Before        | Current          | Future (jb/icons/sizes) |
+| ----------- | ------------- | ---------------- | ----------------------- |
+| 2xs         | N/A           | N/A              | 8px                     |
+| xs          | 12px          | 12px             | 12px                    |
+| sm          | 14px          | 14px             | 16px ⚠️                 |
+| md          | 18px          | 16px ⚠️          | 20px ⚠️                 |
+| lg          | 24px          | 24px             | 24px                    |
+| xl          | 32px          | 32px             | 32px                    |
+| 2xl         | 72px          | 72px             | 72px                    |
+| **Default** | **14px (sm)** | **16px (md)** ⚠️ | **20px (md)** ⚠️        |
 
 ### Why Icons Look Broken
 
@@ -118,24 +129,27 @@ default_size = 'md'  // ⚠️ Changed from 'sm', now 16px
 ### Evidence of Breakage
 
 **Immediate follow-up fix required:**
+
 ```typescript
 // commit 439ed2997f7 - "fix spinner size" (Feb 17, 2026)
 // Just 8 days after the icon change
-- <LoadingIndicator size={20} />
-+ <LoadingIndicator size={14} />
+-(<LoadingIndicator size={20} />) + <LoadingIndicator size={14} />;
 ```
 
 ## Resolution Paths
 
 ### Option 1: Revert ⏮️
+
 ```bash
 git revert 6d6fbdcf8a4
 ```
+
 **Time:** Hours
 **Risk:** Low
 **Outcome:** Back to 14px default
 
 ### Option 2: Fix Forward ⏩
+
 Keep changes, fix all layouts, add tests.
 
 **Time:** Weeks
@@ -143,6 +157,7 @@ Keep changes, fix all layouts, add tests.
 **Outcome:** New 16px standard
 
 ### Option 3: Hybrid 🔄
+
 Revert default, keep md=16px, explicit migration.
 
 **Time:** Days-Weeks
@@ -150,6 +165,7 @@ Revert default, keep md=16px, explicit migration.
 **Outcome:** Gradual transition
 
 ### Option 4: Complete Migration 🚀
+
 Merge jb/icons/sizes, fix everything, new 20px default.
 
 **Time:** Weeks-Months
@@ -159,6 +175,7 @@ Merge jb/icons/sizes, fix everything, new 20px default.
 ## Action Items
 
 ### Immediate (Today)
+
 - [x] Root cause analysis complete
 - [ ] Share with Jonas (JonasBa)
 - [ ] Share with design team
@@ -166,12 +183,14 @@ Merge jb/icons/sizes, fix everything, new 20px default.
 - [ ] Gather stakeholder input
 
 ### Short-term (This Week)
+
 - [ ] Decide on resolution path
 - [ ] Create tracking issue
 - [ ] List specific broken components
 - [ ] Begin implementation
 
 ### Long-term
+
 - [ ] Establish icon standards
 - [ ] Add visual regression tests
 - [ ] Update design system docs

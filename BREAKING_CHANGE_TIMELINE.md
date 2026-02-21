@@ -7,42 +7,51 @@ Icons appear broken because a breaking change to default icon sizes was merged t
 ## Timeline
 
 ### February 9, 2026 - **THE BREAKING CHANGE**
+
 **Commit:** `6d6fbdcf8a4` - "ref(scraps) default icon size to 16px (#107437)"
 **Author:** Jonas Badalic
 **Status:** ✅ MERGED TO MASTER
 
 **Changes:**
+
 - Default icon size changed from `'sm'` to `'md'`
 - `md` size changed from `18px` to `16px`
 - **Impact:** All icons without explicit `size` prop increased from 14px to 16px
 
 **Rationale (from commit message):**
+
 > "Default icon size to 16px and align it with md text size."
 
 ### February 10, 2026 - Additional Changes on Feature Branch
+
 **Branch:** `origin/jb/icons/sizes`
 **Status:** ❌ NOT MERGED
 
 **Commits:**
+
 - `4d2a519bbdc` - "feat(icons): add 2xs size (8px) to SVGIcon"
 - `6ae8ab3cdf1` - "ref(icons) update sizes"
 
 **Changes:**
+
 - Added `'2xs': '8px'` size
 - Changed `sm` from `14px` to `16px`
 - Changed `md` from `16px` to `20px`
 - Updated `IconSize` type to include `'2xs'`
 
 **Impact if merged:**
+
 - All default icons would become 20px (+42.9% from original 14px)
 - `sm` icons would increase from 14px to 16px
 
 ### February 17, 2026 - Fixing the Fallout
+
 **Commit:** `439ed2997f7` - "fix spinner size"
 **Author:** Dominik Dorfmeister (TkDodo)
 **Status:** ✅ MERGED
 
 **Changes:**
+
 - Changed LoadingIndicator from 20px to 14px in Select component
 
 **Why this matters:**
@@ -51,6 +60,7 @@ This fix indicates that the icon size changes broke existing UI components. The 
 ## Visual Impact
 
 ### Before (Master pre-Feb 9)
+
 ```typescript
 // Default icon (no size prop)
 <IconInfo />  // 14px (sm was default)
@@ -60,6 +70,7 @@ This fix indicates that the icon size changes broke existing UI components. The 
 ```
 
 ### After (Master post-Feb 9) - **CURRENT STATE**
+
 ```typescript
 // Default icon (no size prop)
 <IconInfo />  // 16px (md is now default) ⚠️ +14.3% larger
@@ -69,6 +80,7 @@ This fix indicates that the icon size changes broke existing UI components. The 
 ```
 
 ### Future (if jb/icons/sizes merges)
+
 ```typescript
 // Default icon (no size prop)
 <IconInfo />  // 20px (md=20px) ⚠️ +42.9% larger than original
@@ -85,6 +97,7 @@ This fix indicates that the icon size changes broke existing UI components. The 
 Based on code analysis, these components are heavily affected:
 
 ### High Impact (Direct ICON_SIZES usage)
+
 1. **QuestionTooltip** (`static/app/components/questionTooltip.tsx`)
    - Uses `SvgIcon.ICON_SIZES[p.size]` for height/line-height
    - **Impact:** Container size changes with icon size
@@ -101,7 +114,9 @@ Based on code analysis, these components are heavily affected:
    - **Impact:** Dropdown appearance, loading state
 
 ### Medium Impact (Icons with no size prop)
+
 Thousands of icons throughout the codebase that rely on default size:
+
 - Navigation menus
 - Table row icons
 - Form field icons
@@ -110,6 +125,7 @@ Thousands of icons throughout the codebase that rely on default size:
 - List item bullets
 
 ### Count of Potential Issues
+
 ```bash
 # Approximate counts from codebase
 Icons with no size prop: ~60-70% of all icon usage
@@ -123,38 +139,45 @@ Potentially affected: 3000-3500 icons
 ## Why Icons Appear "Broken"
 
 ### 1. Layout Overflow
+
 **Before:**
+
 ```css
 .container {
   width: 16px;
   height: 16px;
 }
 ```
+
 Icon: 14px ✅ Fits with 1px margin on each side
 
 **After:**
 Icon: 16px ⚠️ Fills entire container, no margin (appears cramped/broken)
 
 ### 2. Vertical Misalignment
+
 **Before:**
+
 ```html
-<Button>
-  <Icon /> {/* 14px, aligned with 14px text */}
-  <Text>Save</Text> {/* 14px text */}
-</Button>
+<button>
+  <Icon /> {/* 14px, aligned with 14px text */} <Text>Save</Text> {/* 14px text */}
+</button>
 ```
 
 **After:**
+
 ```html
-<Button>
-  <Icon /> {/* 16px, misaligned with 14px text */}
-  <Text>Save</Text> {/* 14px text */}
-</Button>
+<button>
+  <Icon /> {/* 16px, misaligned with 14px text */} <Text>Save</Text> {/* 14px text */}
+</button>
 ```
+
 Result: Icon appears to "float" or be offset from text
 
 ### 3. Grid/Flexbox Breaks
+
 **Before:**
+
 ```css
 display: grid;
 grid-template-columns: 14px 1fr; /* Icon + content */
@@ -165,7 +188,9 @@ gap: 8px;
 Icon is 16px but grid column is 14px → icon overflows, breaks layout
 
 ### 4. Pixel-Perfect Designs Broken
+
 Designs created with 14px icons now have 16px icons, breaking:
+
 - Spacing between elements
 - Visual hierarchy
 - Component densityalignment
@@ -174,6 +199,7 @@ Designs created with 14px icons now have 16px icons, breaking:
 ## Real Example: QuestionTooltip
 
 ### Code
+
 ```typescript
 const QuestionIconContainer = styled('span')<Pick<QuestionProps, 'size'>>`
   display: inline-block;
@@ -183,6 +209,7 @@ const QuestionIconContainer = styled('span')<Pick<QuestionProps, 'size'>>`
 ```
 
 ### Impact
+
 - Container height directly tied to `ICON_SIZES`
 - When `md` changed from 18px to 16px, all `<QuestionTooltip size="md" />` got 2px shorter
 - When default changed from `sm` to `md`, all `<QuestionTooltip size="sm" />` might now get wrong size if code assumed default
@@ -209,13 +236,16 @@ To see the broken icons:
 ## Resolution Options
 
 ### Option 1: Revert the Change (Conservative)
+
 ```bash
 git revert 6d6fbdcf8a4
 ```
+
 **Pros:** Immediate fix, returns to known-good state
 **Cons:** Loses intended alignment with text sizes
 
 ### Option 2: Fix Layouts (Progressive)
+
 - Keep the new sizes
 - Update all affected layouts
 - Add padding/margin adjustments
@@ -225,12 +255,14 @@ git revert 6d6fbdcf8a4
 **Cons:** Requires extensive testing and fixes
 
 ### Option 3: Hybrid Approach
+
 1. Revert the default change (`sm` → `md`)
 2. Keep the `md` size at 16px
 3. Explicitly update components that need larger icons
 4. Gradual migration path
 
 ### Option 4: Complete the Migration
+
 1. Merge `jb/icons/sizes` branch
 2. Fix all known layout issues
 3. Update design system
@@ -239,18 +271,21 @@ git revert 6d6fbdcf8a4
 ## Recommendation
 
 **Immediate:**
+
 1. Document this as a known issue
 2. Gather feedback from designers and stakeholders
 3. Create a list of specific broken components
 4. Decide on forward path (revert vs. fix-forward)
 
 **Short-term:**
+
 1. If keeping changes: Add visual regression tests
 2. Update design system documentation
 3. Communicate to all teams
 4. Create migration guide
 
 **Long-term:**
+
 1. Establish icon sizing standards
 2. Prevent breaking changes without proper review
 3. Add automated testing for icon sizes
@@ -258,6 +293,7 @@ git revert 6d6fbdcf8a4
 ## Related Issues
 
 This likely affects:
+
 - Mobile responsiveness (icons may overflow on small screens)
 - Accessibility (icon hit targets, spacing)
 - Internationalization (icon-text alignment with different fonts)
