@@ -14,13 +14,13 @@ from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issu
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import raw_snql_query
 from tests.sentry.feedback import mock_feedback_event
 
 
-class TestLabelQuery(APITestCase):
+class TestLabelQuery(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
