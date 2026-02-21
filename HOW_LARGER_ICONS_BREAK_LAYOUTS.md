@@ -335,8 +335,8 @@ function SelectLoadingIndicator() {
 ┌─────────────────────────┐
 │ [Icon] Dashboard        │  14px icon, 14px text, 8px gap
 │ [Icon] Projects         │  Balanced, aligned
-│ [Icon] Issues           │  
-│ [Icon] Performance      │  
+│ [Icon] Issues           │
+│ [Icon] Performance      │
 └─────────────────────────┘
 ```
 
@@ -354,7 +354,7 @@ function SelectLoadingIndicator() {
 
 ## Why 2px Matters
 
-**"It's just 2 pixels!"** 
+**"It's just 2 pixels!"**
 
 In percentage terms:
 - 14px → 16px = **+14.3% larger**
@@ -416,5 +416,5 @@ This is why the icon size change from February 9, 2026 caused visible breakage, 
 
 ---
 
-**Analysis Date:** February 21, 2026  
+**Analysis Date:** February 21, 2026
 **Branch:** cursor/icons-broken-root-cause-b8ea

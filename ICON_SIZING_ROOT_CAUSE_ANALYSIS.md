@@ -121,7 +121,7 @@ The current branch changed the default icon size from `'sm'` (14px) to `'md'` (1
 - Any icons without explicit `size` prop will render at different sizes
 - This affects **hundreds** of icons across the codebase
 
-**Impact:** 
+**Impact:**
 - Icons without explicit size props are 2px larger than before (14px → 16px)
 - When jb branch merges, they'll be 4px larger (14px → 20px with md=20px)
 - This cascading change affects the entire UI
@@ -226,7 +226,7 @@ The commit `6d6fbdcf8a4` was **already merged to master** on February 9, 2026. T
      xl: '32px',
      '2xl': '72px',
    } as const;
-   
+
    // Add compile-time check
    type _IconSizesCheck = typeof ICON_SIZES extends Record<IconSize, string>
      ? true
@@ -285,7 +285,7 @@ The broken icons are caused by **divergent icon sizing changes across multiple b
 
 ---
 
-**Analysis Date:** 2026-02-21  
-**Analyzed By:** Cursor Agent  
-**Branch:** cursor/icons-broken-root-cause-b8ea  
+**Analysis Date:** 2026-02-21
+**Analyzed By:** Cursor Agent
+**Branch:** cursor/icons-broken-root-cause-b8ea
 **Related Slack Thread:** https://sentry.slack.com/archives/CQDHVRS2W/p1771633917159509

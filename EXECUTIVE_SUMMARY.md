@@ -10,7 +10,7 @@ This change affects thousands of icons across the Sentry UI, causing layout issu
 
 On **February 9, 2026**, Jonas Badalic merged PR #107437 (commit `6d6fbdcf8a4`) which made two critical changes:
 
-1. **Changed default icon size** from `'sm'` → `'md'` 
+1. **Changed default icon size** from `'sm'` → `'md'`
 2. **Changed `'md'` size value** from `18px` → `16px`
 
 **Net effect:** All icons without an explicit `size` prop increased from 14px to 16px (+14.3% larger).
@@ -48,7 +48,7 @@ When icon sizes change, this component's layout breaks.
 ### 1. Container Overflow
 Containers sized for 14px icons now contain 16px icons → cramped appearance
 
-### 2. Alignment Issues  
+### 2. Alignment Issues
 Icons sized to 16px paired with 14px text → vertical misalignment
 
 ### 3. Layout Breaks
@@ -103,25 +103,25 @@ Based on the Slack thread reference, Dave is probably seeing:
 ### Option 1: Revert (Safest)
 Revert commit `6d6fbdcf8a4` to restore 14px default icons.
 
-**Pros:** Immediate fix  
+**Pros:** Immediate fix
 **Cons:** Loses intended text/icon alignment improvements
 
-### Option 2: Fix Forward (Progressive)  
+### Option 2: Fix Forward (Progressive)
 Keep new sizes, update all affected layouts, add comprehensive tests.
 
-**Pros:** Better long-term alignment  
+**Pros:** Better long-term alignment
 **Cons:** Requires extensive work and testing
 
 ### Option 3: Hybrid
 Revert default change but keep `md: 16px`, migrate components explicitly.
 
-**Pros:** Gradual migration path  
+**Pros:** Gradual migration path
 **Cons:** More complex, requires coordination
 
 ### Option 4: Complete Migration
 Merge `jb/icons/sizes`, fix all issues, establish new standard.
 
-**Pros:** Comprehensive solution  
+**Pros:** Comprehensive solution
 **Cons:** Highest risk and effort
 
 ## Recommendations

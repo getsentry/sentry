@@ -66,10 +66,10 @@
 
 ### The Breaking Change
 
-**Commit:** `6d6fbdcf8a4`  
-**Date:** February 9, 2026  
-**Author:** Jonas Badalic  
-**PR:** #107437  
+**Commit:** `6d6fbdcf8a4`
+**Date:** February 9, 2026
+**Author:** Jonas Badalic
+**PR:** #107437
 **Title:** "ref(scraps) default icon size to 16px"
 
 **Changes:**
@@ -82,7 +82,7 @@ ICON_SIZES = {
 }
 default_size = 'sm'  // 14px
 
-// After  
+// After
 ICON_SIZES = {
   sm: '14px',
   md: '16px',        // ⚠️ Changed from 18px
@@ -131,29 +131,29 @@ default_size = 'md'  // ⚠️ Changed from 'sm', now 16px
 ```bash
 git revert 6d6fbdcf8a4
 ```
-**Time:** Hours  
-**Risk:** Low  
+**Time:** Hours
+**Risk:** Low
 **Outcome:** Back to 14px default
 
 ### Option 2: Fix Forward ⏩
 Keep changes, fix all layouts, add tests.
 
-**Time:** Weeks  
-**Risk:** Medium  
+**Time:** Weeks
+**Risk:** Medium
 **Outcome:** New 16px standard
 
 ### Option 3: Hybrid 🔄
 Revert default, keep md=16px, explicit migration.
 
-**Time:** Days-Weeks  
-**Risk:** Medium  
+**Time:** Days-Weeks
+**Risk:** Medium
 **Outcome:** Gradual transition
 
 ### Option 4: Complete Migration 🚀
 Merge jb/icons/sizes, fix everything, new 20px default.
 
-**Time:** Weeks-Months  
-**Risk:** High  
+**Time:** Weeks-Months
+**Risk:** High
 **Outcome:** Comprehensive new system
 
 ## Action Items
@@ -195,8 +195,8 @@ static/app/components/questionTooltip.tsx  # Example affected component
 
 ## Contact
 
-**Analysis Date:** February 21, 2026  
-**Branch:** `cursor/icons-broken-root-cause-b8ea`  
+**Analysis Date:** February 21, 2026
+**Branch:** `cursor/icons-broken-root-cause-b8ea`
 **Author:** Cursor Agent
 
 ## Summary

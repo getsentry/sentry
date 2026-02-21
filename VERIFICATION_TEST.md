@@ -8,7 +8,7 @@ The current codebase has the following state:
 
 ```typescript
 // static/app/utils/theme/types.tsx
-export type IconSize = SizeRange<'xs', '2xl'>;  
+export type IconSize = SizeRange<'xs', '2xl'>;
 // Expands to: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 ```
 
@@ -48,7 +48,7 @@ const ICON_SIZES: Record<IconSize, string> = {
 
 **Expected TypeScript Error:**
 ```
-Type '{ '2xs': string; xs: string; sm: string; md: string; lg: string; xl: string; '2xl': string; }' 
+Type '{ '2xs': string; xs: string; sm: string; md: string; lg: string; xl: string; '2xl': string; }'
 is not assignable to type 'Record<IconSize, string>'.
   Object literal may only specify known properties, and ''2xs'' does not exist in type 'Record<IconSize, string>'.
 ```
