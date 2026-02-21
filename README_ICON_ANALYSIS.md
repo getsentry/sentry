@@ -50,6 +50,18 @@
 - Verification commands
 - Broken state examples
 
+### 🔧 [HOW_LARGER_ICONS_BREAK_LAYOUTS.md](./HOW_LARGER_ICONS_BREAK_LAYOUTS.md)
+**Mechanism deep-dive.** Explains exactly how larger icons break UI layouts.
+
+**Contains:**
+- 8 specific breakage mechanisms with real code examples
+- Visual diagrams showing before/after states
+- Grid layout failures (30px columns)
+- Button alignment issues
+- QuestionTooltip container coupling
+- LoadingIndicator fix (proof of breakage)
+- Why 2px (+14.3%) matters at UI scale
+
 ## Key Finding
 
 ### The Breaking Change
