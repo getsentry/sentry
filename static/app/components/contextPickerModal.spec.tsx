@@ -16,7 +16,6 @@ import {
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -31,7 +30,6 @@ describe('ContextPickerModal', () => {
   const onFinish = jest.fn();
 
   beforeEach(() => {
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
 
     project = ProjectFixture();
@@ -652,5 +650,114 @@ describe('ContextPickerModal', () => {
         `/settings/${org.slug}/teams/the-only-team/settings/`
       );
     });
+  });
+
+  it('focuses team selector (not org) when needOrg and needTeam', async () => {
+    const team1 = TeamFixture({id: '1', slug: 'team-one'});
+    const team2 = TeamFixture({id: '2', slug: 'team-two'});
+
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1, team2],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: false,
+        needTeam: true,
+        nextPath: '/settings/:orgId/teams/:teamId/settings/',
+      })
+    );
+
+    // Wait for teams to load
+    expect(await screen.findByText(`#${team1.slug}`)).toBeInTheDocument();
+
+    // Team selector should have focus, not the org selector
+    const textboxes = screen.getAllByRole('textbox');
+    expect(textboxes[1]).toHaveFocus();
+  });
+
+  it('navigates when selecting project first then team', async () => {
+    const team1 = TeamFixture({id: '1', slug: 'team-one'});
+    const team2 = TeamFixture({id: '2', slug: 'team-two'});
+
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [project, project2],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1, team2],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: true,
+        needTeam: true,
+        nextPath: '/settings/:orgId/path/:projectId/teams/:teamId/',
+      })
+    );
+
+    // Wait for both selectors to load
+    expect(await screen.findByText('My Projects')).toBeInTheDocument();
+    expect(await screen.findByText(`#${team1.slug}`)).toBeInTheDocument();
+
+    // Select project first — should NOT navigate yet (team not selected)
+    await selectEvent.select(screen.getByText(/Select a Project/), project.slug);
+    expect(onFinish).not.toHaveBeenCalled();
+
+    // Select team — should navigate with both project and team
+    await selectEvent.select(screen.getByText(/Select a Team/), `#${team1.slug}`);
+    expect(onFinish).toHaveBeenCalledWith(
+      `/settings/${org.slug}/path/${project.slug}/teams/${team1.slug}/`
+    );
+  });
+
+  it('navigates when selecting team first then project', async () => {
+    const team1 = TeamFixture({id: '1', slug: 'team-one'});
+    const team2 = TeamFixture({id: '2', slug: 'team-two'});
+
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [project, project2],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1, team2],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: true,
+        needTeam: true,
+        nextPath: '/settings/:orgId/path/:projectId/teams/:teamId/',
+      })
+    );
+
+    // Wait for both selectors to load
+    expect(await screen.findByText('My Projects')).toBeInTheDocument();
+    expect(await screen.findByText(`#${team1.slug}`)).toBeInTheDocument();
+
+    // Select team first — should NOT navigate yet (project not selected)
+    await selectEvent.select(screen.getByText(/Select a Team/), `#${team2.slug}`);
+    expect(onFinish).not.toHaveBeenCalled();
+
+    // Select project — should navigate with both project and team
+    await selectEvent.select(screen.getByText(/Select a Project/), project2.slug);
+    expect(onFinish).toHaveBeenCalledWith(
+      `/settings/${org.slug}/path/${project2.slug}/teams/${team2.slug}/`
+    );
   });
 });

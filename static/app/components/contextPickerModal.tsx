@@ -1,7 +1,8 @@
 import {
-  Component,
   Fragment,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type SetStateAction,
@@ -29,7 +30,6 @@ import type {Integration} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import Projects from 'sentry/utils/projects';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -54,7 +54,7 @@ type SharedProps = ModalRenderProps & {
 
   /**
    * Finish callback
-   * @param path type will match nextPath's type {@link Props.nextPath}
+   * @param path type will match nextPath's type {@link SharedProps.nextPath}
    */
   onFinish: (path: string | {pathname: string; query?: Query}) => number | void;
 
@@ -66,40 +66,20 @@ type SharedProps = ModalRenderProps & {
   needTeam?: boolean;
 };
 
-type Props = SharedProps & {
-  integrationConfigs: Integration[];
-
-  /**
-   * Callback for when organization is selected
-   */
-  onSelectOrganization: (orgSlug: string) => void;
-
-  /**
-   * Organization slug
-   */
-  organization: string | undefined;
-
-  /**
-   * List of available organizations
-   */
+type ContentProps = SharedProps & {
   organizations: Organization[];
+  selectedOrgSlug: string | undefined;
+  setSelectedOrgSlug: (slug: string) => void;
+  projectSlugs?: string[];
+};
 
-  projects: Project[];
-
-  /**
-   * List of available teams
-   */
-  teams: Team[];
-
-  /**
-   * Whether projects are still loading
-   */
-  projectsLoading?: boolean;
+type ContainerProps = SharedProps & {
+  configQueryKey?: ApiQueryKey;
 
   /**
-   * Whether teams are still loading
+   * List of slugs we want to be able to choose from
    */
-  teamsLoading?: boolean;
+  projectSlugs?: string[];
 };
 
 function autoFocusReactSelect(reactSelectRef: any) {
@@ -121,78 +101,129 @@ const selectStyles: StylesConfig = {
   }),
 };
 
-class ContextPickerModal extends Component<Props> {
-  componentDidMount() {
-    const {organization, projects, organizations, teams} = this.props;
+function ContextPickerContent({
+  organizations,
+  selectedOrgSlug,
+  setSelectedOrgSlug,
+  projectSlugs,
+  needOrg,
+  needProject,
+  needTeam = false,
+  nextPath,
+  onFinish,
+  allowAllProjectsSelection,
+  Header,
+  Body,
+}: ContentProps) {
+  // --- Data fetching ---
+  // Note: use `isLoading` (not `isPending`) because `isPending` is true when
+  // `enabled` is false (query hasn't started). `isLoading` = isPending && isFetching,
+  // so it's only true when the query is actively running.
+  const {data: rawProjects = [], isLoading: projectsLoading} = useApiQuery<Project[]>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+        path: {organizationIdOrSlug: selectedOrgSlug ?? ''},
+      }),
+    ],
+    {staleTime: Infinity, enabled: !!selectedOrgSlug && needProject}
+  );
 
-    // Don't make any assumptions if there are multiple organizations
-    if (organizations.length !== 1) {
+  const projects = useMemo(() => {
+    if (!projectSlugs?.length) {
+      return rawProjects;
+    }
+    const slugSet = new Set(projectSlugs);
+    return rawProjects.filter(p => slugSet.has(p.slug));
+  }, [rawProjects, projectSlugs]);
+
+  const {data: teams = [], isLoading: teamsLoading} = useApiQuery<Team[]>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+        path: {organizationIdOrSlug: selectedOrgSlug ?? ''},
+      }),
+    ],
+    {staleTime: Infinity, enabled: !!selectedOrgSlug && needTeam}
+  );
+
+  const [selectedProjectSlug, setSelectedProjectSlug] = useState<string | null>(null);
+  const [selectedTeamSlug, setSelectedTeamSlug] = useState<string | null>(null);
+
+  // --- Auto-navigate logic ---
+  const onFinishTimeoutRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    return () => window.clearTimeout(onFinishTimeoutRef.current);
+  }, []);
+
+  const navigateFinish = useMemo(
+    () =>
+      (
+        org: string,
+        projectSlug: string | undefined | null,
+        teamSlug: string | undefined | null
+      ) => {
+        const pathname = typeof nextPath === 'string' ? nextPath : nextPath.pathname;
+        const newPathname = replaceRouterParams(pathname, {
+          orgId: org,
+          projectId: projectSlug ?? undefined,
+          project: projects.find(p => p.slug === projectSlug)?.id,
+          teamId: teamSlug ?? undefined,
+        });
+        window.clearTimeout(onFinishTimeoutRef.current);
+        onFinishTimeoutRef.current =
+          onFinish(
+            typeof nextPath === 'string'
+              ? newPathname
+              : {...nextPath, pathname: newPathname}
+          ) ?? undefined;
+      },
+    [nextPath, onFinish, projects]
+  );
+
+  // Auto-navigate when all required context is unambiguous
+  useEffect(() => {
+    // If we only need an org and there are multiple, bail
+    if (!needProject && !needTeam && organizations.length !== 1) {
+      return;
+    }
+    if (needProject && projects.length !== 1) {
+      return;
+    }
+    if (needTeam && teams.length !== 1) {
       return;
     }
 
-    // If there is an org in context (and there's only 1 org available),
-    // attempt to see if we need more info from user and redirect otherwise
-    if (organization) {
-      // This will handle if we can intelligently move the user forward
-      this.navigateIfFinish([{slug: organization}], projects, teams);
-      return;
-    }
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    // Component may be mounted before projects or teams are fetched, check if we can finish when
-    // component is updated with projects or teams
-    if (
-      JSON.stringify(prevProps.projects) !== JSON.stringify(this.props.projects) ||
-      JSON.stringify(prevProps.teams) !== JSON.stringify(this.props.teams)
-    ) {
-      this.navigateIfFinish(
-        this.props.organizations,
-        this.props.projects,
-        this.props.teams
-      );
-    }
-  }
-
-  componentWillUnmount() {
-    window.clearTimeout(this.onFinishTimeout);
-  }
-
-  onFinishTimeout: number | undefined = undefined;
-
-  // Performs checks to see if we need to prompt user
-  // i.e. When there is only 1 org and no project is needed or
-  // there is only 1 org and only 1 project (which should be rare)
-  navigateIfFinish = (
-    organizations: Array<{slug: string}>,
-    projects: Array<{slug: string}>,
-    teams: Array<{slug: string}> = [],
-    latestOrg = this.props.organization
-  ) => {
-    const {needProject, needTeam, onFinish, nextPath, integrationConfigs} = this.props;
-    const {isSuperuser} = ConfigStore.get('user') || {};
-
-    // If no project is needed and theres only 1 org OR
-    // if we need a project and there's only 1 project
-    // then return because we can't navigate anywhere yet
-    if (
-      (!needProject && !needTeam && organizations.length !== 1) ||
-      (needProject && projects.length !== 1) ||
-      (needTeam && teams.length !== 1) ||
-      (integrationConfigs.length && isSuperuser)
-    ) {
+    const org =
+      selectedOrgSlug ??
+      (organizations.length === 1 ? organizations[0]!.slug : undefined);
+    if (!org) {
       return;
     }
 
-    window.clearTimeout(this.onFinishTimeout);
-    const pathname = typeof nextPath === 'string' ? nextPath : nextPath.pathname;
+    // All context resolved — navigate
+    navigateFinish(
+      org,
+      needProject ? projects[0]?.slug : undefined,
+      needTeam ? teams[0]?.slug : undefined
+    );
+  }, [
+    organizations,
+    selectedOrgSlug,
+    projects,
+    teams,
+    needProject,
+    needTeam,
+    navigateFinish,
+  ]);
 
-    // If there is only one org and we don't need a project or team slug, then call finish callback
+  // --- Selection handlers ---
+  function handleSelectOrganization({value}: {value: string}) {
     if (!needProject && !needTeam) {
-      const newPathname = replaceRouterParams(pathname, {
-        orgId: organizations[0]!.slug,
-      });
-      this.onFinishTimeout =
+      // Only org needed — navigate directly
+      const pathname = typeof nextPath === 'string' ? nextPath : nextPath.pathname;
+      const newPathname = replaceRouterParams(pathname, {orgId: value});
+      window.clearTimeout(onFinishTimeoutRef.current);
+      onFinishTimeoutRef.current =
         onFinish(
           typeof nextPath === 'string'
             ? newPathname
@@ -200,85 +231,33 @@ class ContextPickerModal extends Component<Props> {
         ) ?? undefined;
       return;
     }
+    setSelectedOrgSlug(value);
+  }
 
-    // Use latest org or if only 1 org, use that
-    let org = latestOrg;
-    if (!org && organizations.length === 1) {
-      org = organizations[0]!.slug;
-    }
-
-    const newPathname = replaceRouterParams(pathname, {
-      orgId: org,
-      projectId: projects[0]?.slug,
-      project: this.props.projects.find(p => p.slug === projects[0]?.slug)?.id,
-      teamId: teams[0]?.slug,
-    });
-    this.onFinishTimeout =
-      onFinish(
-        typeof nextPath === 'string' ? newPathname : {...nextPath, pathname: newPathname}
-      ) ?? undefined;
-  };
-
-  handleSelectOrganization = ({value}: {value: string}) => {
-    // If we do not need to select a project or team, we can early return after selecting an org
-    // No need to fetch org details
-    if (!this.props.needProject && !this.props.needTeam) {
-      this.navigateIfFinish([{slug: value}], [], []);
+  function handleSelectProject({value}: {value: string}) {
+    if (!value || !selectedOrgSlug) {
       return;
     }
+    setSelectedProjectSlug(value);
+    if (needTeam && !selectedTeamSlug) {
+      return; // wait for team
+    }
+    navigateFinish(selectedOrgSlug, value, selectedTeamSlug);
+  }
 
-    this.props.onSelectOrganization(value);
-  };
-
-  handleSelectProject = ({value}: {value: string}) => {
-    const {organization} = this.props;
-    if (!value || !organization) {
+  function handleSelectTeam({value}: {value: string}) {
+    if (!value || !selectedOrgSlug) {
       return;
     }
-
-    this.navigateIfFinish([{slug: organization}], [{slug: value}], []);
-  };
-
-  handleSelectTeam = ({value}: {value: string}) => {
-    const {organization, needProject, projects} = this.props;
-    if (!value || !organization) {
-      return;
+    setSelectedTeamSlug(value);
+    if (needProject && !selectedProjectSlug) {
+      return; // wait for project
     }
+    navigateFinish(selectedOrgSlug, selectedProjectSlug, value);
+  }
 
-    const projectsArg = needProject ? projects : [];
-    this.navigateIfFinish([{slug: organization}], projectsArg, [{slug: value}]);
-  };
-
-  handleSelectConfiguration = ({value}: {value: string}) => {
-    const {onFinish, nextPath} = this.props;
-
-    if (!value) {
-      return;
-    }
-    const newPath =
-      typeof nextPath === 'string'
-        ? `${nextPath}${value}/`
-        : {
-            ...nextPath,
-            pathname: `${nextPath.pathname}${value}/`,
-          };
-    onFinish(newPath);
-    return;
-  };
-
-  getMemberProjects = () => {
-    const {projects} = this.props;
-    const nonMemberProjects: Project[] = [];
-    const memberProjects: Project[] = [];
-    projects.forEach(project =>
-      project.isMember ? memberProjects.push(project) : nonMemberProjects.push(project)
-    );
-
-    return [memberProjects, nonMemberProjects];
-  };
-
-  get headerText() {
-    const {needOrg, needProject, needTeam, integrationConfigs} = this.props;
+  // --- Header text ---
+  function getHeaderText(): string {
     if (needOrg && needProject) {
       return t('Select an organization and a project to continue');
     }
@@ -294,384 +273,209 @@ class ContextPickerModal extends Component<Props> {
     if (needProject) {
       return t('Select a project to continue');
     }
-    if (integrationConfigs.length) {
-      return t('Select a configuration to continue');
-    }
-    // if neither project nor org needs to be selected, nothing will render anyways
     return '';
   }
 
-  renderProjectSelectOrMessage() {
-    const {projects, allowAllProjectsSelection, projectsLoading} = this.props;
+  // --- Render helpers ---
+  const shouldShowProjectSelector = !!selectedOrgSlug && needProject;
+  const shouldShowTeamSelector = !!selectedOrgSlug && needTeam;
+  // suppress org auto-focus when there's a downstream selector
+  const hasDownstreamSelector = shouldShowProjectSelector || shouldShowTeamSelector;
 
-    if (projectsLoading) {
-      return (
-        <Flex justify="center" align="center" minHeight="345px">
-          <LoadingIndicator />
-        </Flex>
-      );
-    }
+  const shouldShowPicker = needOrg || needProject || needTeam;
 
-    const [memberProjects, nonMemberProjects] = this.getMemberProjects();
-    const {isSuperuser} = ConfigStore.get('user') || {};
-
-    const {organization} = OrganizationStore.getState();
-
-    const projectOptions = [
-      {
-        label: t('My Projects'),
-        options: memberProjects!.map(p => ({
-          value: p.slug,
-          label: p.slug,
-          disabled: false,
-          leadingItems: <ProjectAvatar project={p} size={20} />,
-        })),
-      },
-      {
-        label: t('All Projects'),
-        options: nonMemberProjects!.map(p => ({
-          value: p.slug,
-          label: p.slug,
-          disabled: allowAllProjectsSelection ? false : !isSuperuser,
-          leadingItems: <ProjectAvatar project={p} size={20} />,
-        })),
-      },
-    ];
-
-    if (!projects.length && organization) {
-      return (
-        <div>
-          {tct('You have no projects. Click [link] to make one.', {
-            link: (
-              <Link to={makeProjectsPathname({path: '/new/', organization})}>
-                {t('here')}
-              </Link>
-            ),
-          })}
-        </div>
-      );
-    }
-
-    return (
-      <StyledSelectControl
-        ref={autoFocusReactSelect}
-        placeholder={t('Select a Project to continue')}
-        name="project"
-        options={projectOptions}
-        onChange={this.handleSelectProject}
-        components={{DropdownIndicator: null}}
-        styles={selectStyles}
-        menuIsOpen
-      />
-    );
+  if (!shouldShowPicker) {
+    return null;
   }
 
-  renderIntegrationConfigs() {
-    const {integrationConfigs} = this.props;
-    const {isSuperuser} = ConfigStore.get('user') || {};
-
-    const options = [
-      {
-        label: tct('[providerName] Configurations', {
-          providerName: integrationConfigs[0]!.provider.name,
-        }),
-        options: integrationConfigs.map(config => ({
-          value: config.id,
-          label: (
-            <Grid columns="32px auto" rows="1fr">
-              <IntegrationIcon size={22} integration={config} />
-              <span>{config.domainName}</span>
-            </Grid>
-          ),
-          disabled: isSuperuser ? false : true,
-        })),
-      },
-    ];
-    return (
-      <StyledSelectControl
-        ref={autoFocusReactSelect}
-        placeholder={t('Select a configuration to continue')}
-        name="configurations"
-        options={options}
-        onChange={this.handleSelectConfiguration}
-        components={{DropdownIndicator: null}}
-        styles={selectStyles}
-        menuIsOpen
-      />
-    );
-  }
-
-  renderTeamSelectOrMessage() {
-    const {teams, teamsLoading} = this.props;
-
-    if (teamsLoading) {
-      return (
-        <Flex justify="center" align="center" minHeight="345px">
-          <LoadingIndicator />
-        </Flex>
-      );
-    }
-
-    if (!teams.length) {
-      return <div>{t('No teams found.')}</div>;
-    }
-
-    const options = teams.map(team => ({
-      value: team.slug,
-      label: `#${team.slug}`,
-      leadingItems: <TeamAvatar team={team} size={20} />,
-    }));
-
-    return (
-      <StyledSelectControl
-        ref={autoFocusReactSelect}
-        placeholder={t('Select a Team to continue')}
-        name="team"
-        options={options}
-        onChange={this.handleSelectTeam}
-        components={{DropdownIndicator: null}}
-        styles={selectStyles}
-        menuIsOpen
-      />
-    );
-  }
-
-  render() {
-    const {
-      needOrg,
-      needProject,
-      needTeam,
-      organization,
-      organizations,
-      Header,
-      Body,
-      integrationConfigs,
-    } = this.props;
-    const {isSuperuser} = ConfigStore.get('user') || {};
-
-    const shouldShowProjectSelector = organization && needProject;
-    const shouldShowTeamSelector = organization && needTeam;
-
-    const shouldShowConfigSelector = integrationConfigs.length > 0 && isSuperuser;
-
-    const orgChoices = organizations
-      .filter(({status}) => status.id !== 'pending_deletion')
-      .map(({slug}) => ({label: slug, value: slug}));
-
-    const shouldShowPicker =
-      needOrg || needProject || needTeam || shouldShowConfigSelector;
-
-    if (!shouldShowPicker) {
-      return null;
-    }
-
-    return (
-      <Fragment>
-        <Header closeButton>
-          <Heading as="h5">{this.headerText}</Heading>
-        </Header>
-        <Body>
-          {needOrg && (
-            <StyledSelectControl
-              ref={shouldShowProjectSelector ? undefined : autoFocusReactSelect}
-              placeholder={t('Select an Organization')}
-              name="organization"
-              options={orgChoices}
-              value={organization}
-              onChange={this.handleSelectOrganization}
-              components={{DropdownIndicator: null}}
-              styles={selectStyles}
-              menuIsOpen
-            />
-          )}
-
-          {shouldShowProjectSelector && this.renderProjectSelectOrMessage()}
-          {shouldShowTeamSelector && this.renderTeamSelectOrMessage()}
-          {shouldShowConfigSelector && this.renderIntegrationConfigs()}
-        </Body>
-      </Fragment>
-    );
-  }
-}
-
-type ContainerProps = SharedProps & {
-  configQueryKey?: ApiQueryKey;
-
-  /**
-   * List of slugs we want to be able to choose from
-   */
-  projectSlugs?: string[];
-};
-
-export default function ContextPickerModalContainer({
-  configQueryKey,
-  projectSlugs,
-  ...sharedProps
-}: ContainerProps) {
-  const {organizations} = useLegacyStore(OrganizationsStore);
-
-  const {organization} = useLegacyStore(OrganizationStore);
-  const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
-
-  if (configQueryKey) {
-    return (
-      <ConfigUrlContainer
-        configQueryKey={configQueryKey}
-        selectedOrgSlug={selectedOrgSlug}
-        setSelectedOrgSlug={setSelectedOrgSlug}
-        {...sharedProps}
-      />
-    );
-  }
-  if (selectedOrgSlug) {
-    if (sharedProps.needProject) {
-      const projectsElement = (
-        renderChildren: (props: {
-          isLoading: boolean;
-          projects: Project[];
-        }) => React.ReactNode
-      ) =>
-        projectSlugs?.length ? (
-          <Projects orgId={selectedOrgSlug} slugs={projectSlugs}>
-            {({projects, initiallyLoaded}) =>
-              renderChildren({
-                projects: projects as Project[],
-                isLoading: !initiallyLoaded,
-              })
-            }
-          </Projects>
-        ) : (
-          <ProjectsForOrg orgSlug={selectedOrgSlug}>{renderChildren}</ProjectsForOrg>
-        );
-
-      if (sharedProps.needTeam) {
-        return projectsElement(({projects, isLoading: projectsLoading}) => (
-          <TeamsForOrg orgSlug={selectedOrgSlug}>
-            {({teams, isLoading: teamsLoading}) => (
-              <ContextPickerModal
-                {...sharedProps}
-                projects={projects}
-                projectsLoading={projectsLoading}
-                teams={teams}
-                teamsLoading={teamsLoading}
-                organizations={organizations}
-                organization={selectedOrgSlug}
-                onSelectOrganization={setSelectedOrgSlug}
-                integrationConfigs={[]}
-              />
-            )}
-          </TeamsForOrg>
-        ));
-      }
-
-      return projectsElement(({projects, isLoading}) => (
-        <ContextPickerModal
-          {...sharedProps}
-          projects={projects}
-          projectsLoading={isLoading}
-          teams={[]}
-          teamsLoading={false}
-          organizations={organizations}
-          organization={selectedOrgSlug}
-          onSelectOrganization={setSelectedOrgSlug}
-          integrationConfigs={[]}
-        />
-      ));
-    }
-
-    if (sharedProps.needTeam) {
-      return (
-        <TeamsForOrg orgSlug={selectedOrgSlug}>
-          {({teams, isLoading}) => (
-            <ContextPickerModal
-              {...sharedProps}
-              projects={[]}
-              projectsLoading={false}
-              teams={teams}
-              teamsLoading={isLoading}
-              organizations={organizations}
-              organization={selectedOrgSlug}
-              onSelectOrganization={setSelectedOrgSlug}
-              integrationConfigs={[]}
-            />
-          )}
-        </TeamsForOrg>
-      );
-    }
-  }
+  const orgChoices = organizations
+    .filter(({status}) => status.id !== 'pending_deletion')
+    .map(({slug}) => ({label: slug, value: slug}));
 
   return (
-    <ContextPickerModal
-      {...sharedProps}
-      projects={[]}
-      teams={[]}
-      organizations={organizations}
-      organization={selectedOrgSlug}
-      onSelectOrganization={setSelectedOrgSlug}
-      integrationConfigs={[]}
+    <Fragment>
+      <Header closeButton>
+        <Heading as="h5">{getHeaderText()}</Heading>
+      </Header>
+      <Body>
+        {needOrg && (
+          <StyledSelectControl
+            ref={hasDownstreamSelector ? undefined : autoFocusReactSelect}
+            placeholder={t('Select an Organization')}
+            name="organization"
+            options={orgChoices}
+            value={selectedOrgSlug}
+            onChange={handleSelectOrganization}
+            components={{DropdownIndicator: null}}
+            styles={selectStyles}
+            menuIsOpen
+          />
+        )}
+
+        {shouldShowProjectSelector && (
+          <ProjectSelector
+            projects={projects}
+            projectsLoading={projectsLoading}
+            allowAllProjectsSelection={allowAllProjectsSelection}
+            onSelectProject={handleSelectProject}
+            autoFocus
+          />
+        )}
+
+        {shouldShowTeamSelector && (
+          <TeamSelector
+            teams={teams}
+            teamsLoading={teamsLoading}
+            onSelectTeam={handleSelectTeam}
+            autoFocus={!shouldShowProjectSelector}
+          />
+        )}
+      </Body>
+    </Fragment>
+  );
+}
+
+function ProjectSelector({
+  projects,
+  projectsLoading,
+  allowAllProjectsSelection,
+  onSelectProject,
+  autoFocus,
+}: {
+  autoFocus: boolean;
+  onSelectProject: (option: {value: string}) => void;
+  projects: Project[];
+  projectsLoading: boolean;
+  allowAllProjectsSelection?: boolean;
+}) {
+  if (projectsLoading) {
+    return (
+      <Flex justify="center" align="center" minHeight="345px">
+        <LoadingIndicator />
+      </Flex>
+    );
+  }
+
+  const {isSuperuser} = ConfigStore.get('user') || {};
+  const {organization} = OrganizationStore.getState();
+
+  const memberProjects: Project[] = [];
+  const nonMemberProjects: Project[] = [];
+  for (const p of projects) {
+    if (p.isMember) {
+      memberProjects.push(p);
+    } else {
+      nonMemberProjects.push(p);
+    }
+  }
+
+  if (!projects.length && organization) {
+    return (
+      <div>
+        {tct('You have no projects. Click [link] to make one.', {
+          link: (
+            <Link to={makeProjectsPathname({path: '/new/', organization})}>
+              {t('here')}
+            </Link>
+          ),
+        })}
+      </div>
+    );
+  }
+
+  const projectOptions = [
+    {
+      label: t('My Projects'),
+      options: memberProjects.map(p => ({
+        value: p.slug,
+        label: p.slug,
+        disabled: false,
+        leadingItems: <ProjectAvatar project={p} size={20} />,
+      })),
+    },
+    {
+      label: t('All Projects'),
+      options: nonMemberProjects.map(p => ({
+        value: p.slug,
+        label: p.slug,
+        disabled: allowAllProjectsSelection ? false : !isSuperuser,
+        leadingItems: <ProjectAvatar project={p} size={20} />,
+      })),
+    },
+  ];
+
+  return (
+    <StyledSelectControl
+      ref={autoFocus ? autoFocusReactSelect : undefined}
+      placeholder={t('Select a Project to continue')}
+      name="project"
+      options={projectOptions}
+      onChange={onSelectProject}
+      components={{DropdownIndicator: null}}
+      styles={selectStyles}
+      menuIsOpen
     />
   );
 }
 
-function ProjectsForOrg({
-  orgSlug,
-  slugs,
-  children,
+function TeamSelector({
+  teams,
+  teamsLoading,
+  onSelectTeam,
+  autoFocus,
 }: {
-  children: (props: {isLoading: boolean; projects: Project[]}) => React.ReactNode;
-  orgSlug: string;
-  slugs?: string[];
+  autoFocus: boolean;
+  onSelectTeam: (option: {value: string}) => void;
+  teams: Team[];
+  teamsLoading: boolean;
 }) {
-  const {data, isPending} = useApiQuery<Project[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
-        path: {organizationIdOrSlug: orgSlug},
-      }),
-    ],
-    {staleTime: Infinity}
+  if (teamsLoading) {
+    return (
+      <Flex justify="center" align="center" minHeight="345px">
+        <LoadingIndicator />
+      </Flex>
+    );
+  }
+
+  if (!teams.length) {
+    return <div>{t('No teams found.')}</div>;
+  }
+
+  const options = teams.map(team => ({
+    value: team.slug,
+    label: `#${team.slug}`,
+    leadingItems: <TeamAvatar team={team} size={20} />,
+  }));
+
+  return (
+    <StyledSelectControl
+      ref={autoFocus ? autoFocusReactSelect : undefined}
+      placeholder={t('Select a Team to continue')}
+      name="team"
+      options={options}
+      onChange={onSelectTeam}
+      components={{DropdownIndicator: null}}
+      styles={selectStyles}
+      menuIsOpen
+    />
   );
-
-  const projects = useMemo(() => {
-    const all = data ?? [];
-    if (!slugs?.length) {
-      return all;
-    }
-    const slugSet = new Set(slugs);
-    return all.filter(p => slugSet.has(p.slug));
-  }, [data, slugs]);
-
-  return <Fragment>{children({projects, isLoading: isPending})}</Fragment>;
-}
-
-function TeamsForOrg({
-  orgSlug,
-  children,
-}: {
-  children: (props: {isLoading: boolean; teams: Team[]}) => React.ReactNode;
-  orgSlug: string;
-}) {
-  const {data, isPending} = useApiQuery<Team[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
-        path: {organizationIdOrSlug: orgSlug},
-      }),
-    ],
-    {staleTime: Infinity}
-  );
-
-  return <Fragment>{children({teams: data ?? [], isLoading: isPending})}</Fragment>;
 }
 
 function ConfigUrlContainer(
   props: SharedProps & {
     configQueryKey: ApiQueryKey;
+    organizations: Organization[];
     selectedOrgSlug: string | undefined;
     setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
   }
 ) {
-  const {configQueryKey, selectedOrgSlug, setSelectedOrgSlug, ...sharedProps} = props;
-
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const {
+    configQueryKey,
+    organizations,
+    selectedOrgSlug,
+    setSelectedOrgSlug,
+    ...sharedProps
+  } = props;
 
   const {data, isError, isPending, refetch} = useApiQuery<Integration[]>(configQueryKey, {
     staleTime: Infinity,
@@ -686,15 +490,149 @@ function ConfigUrlContainer(
   if (!data.length) {
     sharedProps.onFinish(sharedProps.nextPath);
   }
+
   return (
-    <ContextPickerModal
+    <ConfigPickerContent
       {...sharedProps}
-      projects={[]}
-      teams={[]}
       organizations={organizations}
-      organization={selectedOrgSlug}
-      onSelectOrganization={setSelectedOrgSlug}
+      selectedOrgSlug={selectedOrgSlug}
+      setSelectedOrgSlug={setSelectedOrgSlug}
       integrationConfigs={data}
+    />
+  );
+}
+
+function ConfigPickerContent({
+  organizations,
+  selectedOrgSlug,
+  setSelectedOrgSlug,
+  integrationConfigs,
+  needOrg,
+  nextPath,
+  onFinish,
+  Header,
+  Body,
+}: SharedProps & {
+  integrationConfigs: Integration[];
+  organizations: Organization[];
+  selectedOrgSlug: string | undefined;
+  setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
+}) {
+  const {isSuperuser} = ConfigStore.get('user') || {};
+  const shouldShowConfigSelector = integrationConfigs.length > 0 && isSuperuser;
+
+  function handleSelectOrganization({value}: {value: string}) {
+    setSelectedOrgSlug(value);
+  }
+
+  function handleSelectConfiguration({value}: {value: string}) {
+    if (!value) {
+      return;
+    }
+    const newPath =
+      typeof nextPath === 'string'
+        ? `${nextPath}${value}/`
+        : {
+            ...nextPath,
+            pathname: `${nextPath.pathname}${value}/`,
+          };
+    onFinish(newPath);
+  }
+
+  const orgChoices = organizations
+    .filter(({status}) => status.id !== 'pending_deletion')
+    .map(({slug}) => ({label: slug, value: slug}));
+
+  if (!needOrg && !shouldShowConfigSelector) {
+    return null;
+  }
+
+  const headerText = shouldShowConfigSelector
+    ? t('Select a configuration to continue')
+    : t('Select an organization to continue');
+
+  return (
+    <Fragment>
+      <Header closeButton>
+        <Heading as="h5">{headerText}</Heading>
+      </Header>
+      <Body>
+        {needOrg && (
+          <StyledSelectControl
+            ref={shouldShowConfigSelector ? undefined : autoFocusReactSelect}
+            placeholder={t('Select an Organization')}
+            name="organization"
+            options={orgChoices}
+            value={selectedOrgSlug}
+            onChange={handleSelectOrganization}
+            components={{DropdownIndicator: null}}
+            styles={selectStyles}
+            menuIsOpen
+          />
+        )}
+
+        {shouldShowConfigSelector && (
+          <StyledSelectControl
+            ref={autoFocusReactSelect}
+            placeholder={t('Select a configuration to continue')}
+            name="configurations"
+            options={[
+              {
+                label: tct('[providerName] Configurations', {
+                  providerName: integrationConfigs[0]!.provider.name,
+                }),
+                options: integrationConfigs.map(config => ({
+                  value: config.id,
+                  label: (
+                    <Grid columns="32px auto" rows="1fr">
+                      <IntegrationIcon size={22} integration={config} />
+                      <span>{config.domainName}</span>
+                    </Grid>
+                  ),
+                  disabled: !isSuperuser,
+                })),
+              },
+            ]}
+            onChange={handleSelectConfiguration}
+            components={{DropdownIndicator: null}}
+            styles={selectStyles}
+            menuIsOpen
+          />
+        )}
+      </Body>
+    </Fragment>
+  );
+}
+
+export default function ContextPickerModalContainer({
+  configQueryKey,
+  projectSlugs,
+  ...sharedProps
+}: ContainerProps) {
+  const {organizations} = useLegacyStore(OrganizationsStore);
+  const {organization} = useLegacyStore(OrganizationStore);
+  const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
+
+  if (configQueryKey) {
+    return (
+      <ConfigUrlContainer
+        configQueryKey={configQueryKey}
+        organizations={organizations}
+        selectedOrgSlug={selectedOrgSlug}
+        setSelectedOrgSlug={setSelectedOrgSlug}
+        {...sharedProps}
+      />
+    );
+  }
+
+  return (
+    <ContextPickerContent
+      key={selectedOrgSlug}
+      organizations={organizations}
+      selectedOrgSlug={selectedOrgSlug}
+      setSelectedOrgSlug={setSelectedOrgSlug}
+      projectSlugs={projectSlugs}
+      {...sharedProps}
     />
   );
 }
