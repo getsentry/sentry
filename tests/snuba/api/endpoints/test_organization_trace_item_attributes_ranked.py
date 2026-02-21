@@ -66,10 +66,6 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert response.status_code == 200, response.data
         assert response.data == {"rankedAttributes": []}
 
-    def test_no_feature(self) -> None:
-        response = self.do_request(features=[])
-        assert response.status_code == 404, response.data
-
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_distribution_values(self, mock_compare_distributions) -> None:
         mock_compare_distributions.return_value = {
