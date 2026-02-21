@@ -15,7 +15,7 @@ function RowLayout(props: LayoutProps) {
   const field = useFieldContext();
 
   return (
-    <Flex id={field.name} gap="sm" align="center" justify="between">
+    <Flex id={field.name} gap="sm" align="center" justify="between" flexGrow={1}>
       <Stack width="50%" gap="xs">
         <Flex gap="xs" align="center">
           <FieldMeta.Label
@@ -40,7 +40,7 @@ function StackLayout(props: LayoutProps) {
   const field = useFieldContext();
 
   return (
-    <Stack id={field.name} gap="md">
+    <Stack id={field.name} gap="md" flexGrow={1}>
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}
