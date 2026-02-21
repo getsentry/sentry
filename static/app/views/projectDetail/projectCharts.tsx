@@ -324,10 +324,7 @@ class ProjectCharts extends Component<Props, State> {
     const {totalValues} = this.state;
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
-    const hasAnrRateFeature = isPlatformANRCompatible(
-      project?.platform,
-      project?.features
-    );
+    const hasAnrRateFeature = isPlatformANRCompatible(project?.platform);
     const hasAnrForegroundRateFeature = isPlatformForegroundANRCompatible(
       project?.platform
     );
