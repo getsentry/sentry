@@ -1421,7 +1421,10 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
     def test_issue_owners_should_ratelimit(self, mock_incr: MagicMock) -> None:
         cache.set(
             f"issue_owner_assignment_ratelimiter:{self.project.id}",
-            (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
+            (
+                set(range(1_000_000, 1_000_000 + ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT)),
+                datetime.now(),
+            ),
         )
         event = self.create_event(
             data={
@@ -1467,7 +1470,12 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         cache.set(
             f"issue_owner_assignment_ratelimiter:{self.project.id}",
             (
-                set(range(0, HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)),
+                set(
+                    range(
+                        1_000_000,
+                        1_000_000 + HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
+                    )
+                ),
                 datetime.now(),
             ),
         )
