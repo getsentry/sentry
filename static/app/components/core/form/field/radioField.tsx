@@ -12,11 +12,12 @@ import {GroupProvider} from './groupContext';
 
 // Context for Radio.Group -> Radio.Item communication
 interface RadioContextValue {
-  ariaInvalid: boolean;
+  'aria-invalid': boolean;
   disabled: boolean;
   name: string;
+  onBlur: () => void;
   onChange: (value: string) => void;
-  value: string;
+  selectedValue: string;
 }
 
 const RadioContext = createContext<RadioContextValue | null>(null);
@@ -44,19 +45,19 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
 
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
   const disabledReason = typeof disabled === 'string' ? disabled : undefined;
-  const hasError = field.state.meta.isTouched && !field.state.meta.isValid;
 
   const contextValue: RadioContextValue = {
     name: field.name,
-    value,
+    selectedValue: value,
     onChange: (newValue: string) => {
       onChange(newValue);
       if (autoSaveContext) {
         field.handleBlur();
       }
     },
+    onBlur: field.handleBlur,
     disabled: isDisabled,
-    ariaInvalid: hasError,
+    'aria-invalid': !field.state.meta.isValid,
   };
 
   const content = (
@@ -85,16 +86,14 @@ interface RadioItemProps {
 }
 
 function RadioItem({children, value, description}: RadioItemProps) {
-  const {name, value: selectedValue, onChange, disabled, ariaInvalid} = useRadioContext();
+  const {selectedValue, onChange, ...fieldProps} = useRadioContext();
 
   return (
     <Flex as="label" gap="sm" align="start" margin="0">
       <Radio
-        name={name}
+        {...fieldProps}
         value={value}
         checked={selectedValue === value}
-        disabled={disabled}
-        aria-invalid={ariaInvalid}
         onChange={() => onChange(value)}
       />
       <Flex direction="column" gap="xs" paddingTop="xs">
