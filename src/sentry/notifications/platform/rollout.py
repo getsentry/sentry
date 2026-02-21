@@ -36,9 +36,6 @@ class NotificationRolloutService:
         early_adopter = features.has(
             "organizations:notification-platform.early-adopter", self.organization
         )
-        general_access = features.has(
-            "organizations:notification-platform.general-access", self.organization
-        )
 
         option_key = None
         if internal_testing:
@@ -47,7 +44,7 @@ class NotificationRolloutService:
             option_key = "notifications.platform-rollout.is-sentry"
         elif early_adopter:
             option_key = "notifications.platform-rollout.early-adopter"
-        elif general_access:
+        else:
             option_key = "notifications.platform-rollout.general-access"
 
         return option_key

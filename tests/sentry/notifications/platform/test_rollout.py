@@ -78,9 +78,9 @@ class NotificationRolloutServiceTest(TestCase):
         service = NotificationRolloutService(organization=self.organization)
         assert service.should_notify(NotificationSource.DATA_EXPORT_SUCCESS)
 
-    def test_has_feature_flag_access_returns_none_when_no_flags(self) -> None:
+    def test_has_feature_flag_access_returns_general_access_when_no_flags(self) -> None:
         service = NotificationRolloutService(organization=self.organization)
-        assert service.has_feature_flag_access() is None
+        assert service.has_feature_flag_access() == "notifications.platform-rollout.general-access"
 
     @with_feature("organizations:notification-platform.internal-testing")
     def test_has_feature_flag_access_returns_internal_testing_key(self) -> None:
@@ -89,7 +89,6 @@ class NotificationRolloutServiceTest(TestCase):
             service.has_feature_flag_access() == "notifications.platform-rollout.internal-testing"
         )
 
-    @with_feature("organizations:notification-platform.general-access")
     @with_feature("organizations:notification-platform.is-sentry")
     def test_has_feature_flag_access_gets_most_specific_key(self) -> None:
         service = NotificationRolloutService(organization=self.organization)
