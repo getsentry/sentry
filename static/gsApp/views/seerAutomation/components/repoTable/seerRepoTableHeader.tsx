@@ -19,6 +19,7 @@ import type {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomati
 
 interface Props {
   disabled: boolean;
+  gridColumns: string;
   hits: number;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   onSortClick: (key: Sort) => void;
@@ -47,6 +48,7 @@ const COLUMNS = [
 
 export default function SeerRepoTableHeader({
   disabled,
+  gridColumns,
   mutateRepositorySettings,
   onSortClick,
   hits,
@@ -98,7 +100,7 @@ export default function SeerRepoTableHeader({
 
   return (
     <Fragment>
-      <TableHeader>
+      <TableHeader gridColumns={gridColumns}>
         <SimpleTable.HeaderCell>
           <SelectAllCheckbox
             disabled={disabled}
@@ -131,7 +133,7 @@ export default function SeerRepoTableHeader({
       </TableHeader>
 
       {isAnySelected ? (
-        <TableHeader>
+        <TableHeader gridColumns={gridColumns}>
           <TableCellFirst>
             <SelectAllCheckbox
               disabled={disabled}
@@ -226,8 +228,10 @@ function SelectAllCheckbox({
   );
 }
 
-const TableHeader = styled(SimpleTable.Header)`
-  grid-row: 1;
+const TableHeader = styled(SimpleTable.Header)<{gridColumns: string}>`
+  grid-template-columns: ${p => p.gridColumns};
+  grid-column: unset;
+  grid-row: unset;
   z-index: ${p => p.theme.zIndex.initial};
   height: min-content;
 `;
