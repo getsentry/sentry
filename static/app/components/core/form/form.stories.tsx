@@ -18,7 +18,7 @@ import {
   setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
@@ -276,11 +276,13 @@ function AutoSaveExample() {
             onChange={field.handleChange}
           >
             <field.Layout.Stack label="Priority:" hintText="Select issue priority">
-              <field.Radio.Item value="low">Low</field.Radio.Item>
-              <field.Radio.Item value="medium">Medium</field.Radio.Item>
-              <field.Radio.Item value="high" description="Urgent issues">
-                High
-              </field.Radio.Item>
+              <Flex gap="lg">
+                <field.Radio.Item value="low">Low</field.Radio.Item>
+                <field.Radio.Item value="medium">Medium</field.Radio.Item>
+                <field.Radio.Item value="high" description="Urgent issues">
+                  High
+                </field.Radio.Item>
+              </Flex>
             </field.Layout.Stack>
           </field.Radio.Group>
         )}
@@ -386,11 +388,13 @@ function BasicForm() {
                 onChange={field.handleChange}
               >
                 <field.Layout.Row label="Priority:" hintText="Select issue priority">
-                  <field.Radio.Item value="low">Low</field.Radio.Item>
-                  <field.Radio.Item value="medium">Medium</field.Radio.Item>
-                  <field.Radio.Item value="high" description="Urgent issues">
-                    High
-                  </field.Radio.Item>
+                  <Stack gap="lg">
+                    <field.Radio.Item value="low">Low</field.Radio.Item>
+                    <field.Radio.Item value="medium">Medium</field.Radio.Item>
+                    <field.Radio.Item value="high" description="Urgent issues">
+                      High
+                    </field.Radio.Item>
+                  </Stack>
                 </field.Layout.Row>
               </field.Radio.Group>
             )}

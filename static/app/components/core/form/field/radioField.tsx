@@ -88,7 +88,7 @@ function RadioItem({children, value, description}: RadioItemProps) {
   const {name, value: selectedValue, onChange, disabled, ariaInvalid} = useRadioContext();
 
   return (
-    <Flex as="label" gap="sm" align="start">
+    <Flex as="label" gap="sm" align="start" margin="0">
       <Radio
         name={name}
         value={value}
