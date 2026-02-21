@@ -532,9 +532,9 @@ class WorkflowRuleSerializerTest(TestCase):
                 name="Jira Cloud",
                 external_id="jira:1",
             )
-        action_data = JIRA_ACTION_DATA_BLOBS[0]
+        action_data = {**JIRA_ACTION_DATA_BLOBS[0]}
         action_data["integration"] = integration.id
-        del action_data["uuid"]
+        action_data.pop("uuid")
 
         rule = self.create_project_rule(
             project=self.project,
@@ -553,9 +553,9 @@ class WorkflowRuleSerializerTest(TestCase):
                 name="Jira Server",
                 external_id="jira_server:1",
             )
-        action_data = JIRA_SERVER_ACTION_DATA_BLOBS[0]
+        action_data = {**JIRA_SERVER_ACTION_DATA_BLOBS[0]}
         action_data["integration"] = integration.id
-        del action_data["uuid"]
+        action_data.pop("uuid")
 
         rule = self.create_project_rule(
             project=self.project,
@@ -574,9 +574,9 @@ class WorkflowRuleSerializerTest(TestCase):
                 name="GitHub",
                 external_id="github:1",
             )
-        action_data = GITHUB_ACTION_DATA_BLOBS[0]
+        action_data = {**GITHUB_ACTION_DATA_BLOBS[0]}
         action_data["integration"] = integration.id
-        del action_data["uuid"]
+        action_data.pop("uuid")
 
         rule = self.create_project_rule(
             project=self.project,
@@ -595,9 +595,9 @@ class WorkflowRuleSerializerTest(TestCase):
                 name="GitHub Enterprise",
                 external_id="github_enterprise:1",
             )
-        action_data = GITHUB_ACTION_DATA_BLOBS[3]
+        action_data = {**GITHUB_ACTION_DATA_BLOBS[3]}
         action_data["integration"] = integration.id
-        del action_data["uuid"]
+        action_data.pop("uuid")
 
         rule = self.create_project_rule(
             project=self.project,
@@ -616,9 +616,9 @@ class WorkflowRuleSerializerTest(TestCase):
                 name="Azure DevOps",
                 external_id="vsts:1",
             )
-        action_data = AZURE_DEVOPS_ACTION_DATA_BLOBS[0]
+        action_data = {**AZURE_DEVOPS_ACTION_DATA_BLOBS[0]}
         action_data["integration"] = integration.id
-        del action_data["uuid"]
+        action_data.pop("uuid")
 
         rule = self.create_project_rule(
             project=self.project,
