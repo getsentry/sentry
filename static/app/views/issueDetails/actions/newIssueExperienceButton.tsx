@@ -19,7 +19,6 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   useIssueDetailsTour,
@@ -153,8 +152,6 @@ export function NewIssueExperienceButton() {
 
   const hasStreamlinedUI = useHasStreamlinedUI();
   const hasNewUIOnly = Boolean(organization.streamlineOnly);
-  const user = useUser();
-  const userStreamlinePreference = user?.options?.prefersIssueDetailsStreamlinedUI;
 
   const openForm = useFeedbackForm();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
@@ -164,11 +161,9 @@ export function NewIssueExperienceButton() {
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
       organization,
-      enforced_streamline_ui:
-        organization.features.includes('issue-details-streamline-enforce') &&
-        userStreamlinePreference === null,
+      enforced_streamline_ui: false,
     });
-  }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
+  }, [mutateUserOptions, organization, hasStreamlinedUI]);
 
   if (!hasStreamlinedUI) {
     return (
