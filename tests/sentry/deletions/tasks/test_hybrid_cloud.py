@@ -403,11 +403,13 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
         affected_monitors = [monitor]
 
-        reserve_model_ids(Monitor, 14)
+        all_setup_ids = [monitor.id] + [d["monitor"].id for d in unaffected_data]
+        start_id = max(all_setup_ids) + 2
+        reserve_model_ids(Monitor, start_id + 8)
         affected_monitors.extend(
             [
                 Monitor.objects.create(
-                    id=5 + i * 2,  # Ensure that each monitor is in its own batch
+                    id=start_id + i * 2,  # Ensure that each monitor is in its own batch
                     organization_id=organization.id,
                     project_id=project.id,
                     slug=f"test-monitor-{i}",
