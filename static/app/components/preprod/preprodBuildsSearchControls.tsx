@@ -6,7 +6,6 @@ import {MOBILE_BUILDS_ALLOWED_KEYS} from 'sentry/components/preprod/constants';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
 
 const displaySelectOptions: Array<SelectOption<PreprodBuildsDisplay>> = [
   {value: PreprodBuildsDisplay.SIZE, label: t('Size')},
@@ -59,11 +58,6 @@ export function PreprodBuildsSearchControls({
   onSearch,
   onDisplayChange,
 }: PreprodBuildsSearchControlsProps) {
-  const organization = useOrganization();
-  const hasDistributionFeature = organization.features.includes(
-    'preprod-build-distribution'
-  );
-
   return (
     <Flex
       align={{xs: 'stretch', sm: 'center'}}
@@ -80,22 +74,20 @@ export function PreprodBuildsSearchControls({
           projects={projects}
         />
       </Container>
-      {hasDistributionFeature && (
-        <Container maxWidth="200px">
-          <CompactSelect
-            options={displaySelectOptions}
-            value={display}
-            onChange={option => onDisplayChange(option.value)}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                prefix={t('Display')}
-                style={{width: '100%', zIndex: 1}}
-              />
-            )}
-          />
-        </Container>
-      )}
+      <Container maxWidth="200px">
+        <CompactSelect
+          options={displaySelectOptions}
+          value={display}
+          onChange={option => onDisplayChange(option.value)}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              prefix={t('Display')}
+              style={{width: '100%', zIndex: 1}}
+            />
+          )}
+        />
+      </Container>
     </Flex>
   );
 }

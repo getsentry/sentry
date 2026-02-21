@@ -105,13 +105,6 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             app_name="TestApp4",
         )
 
-        self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
-        self.feature_context.__enter__()
-
-    def tearDown(self) -> None:
-        self.feature_context.__exit__(None, None, None)
-        super().tearDown()
-
     def _get_url(self):
         return reverse(
             "sentry-api-0-organization-preprod-list-builds",
@@ -211,16 +204,6 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         assert len(response.json()["builds"]) == 3
-
-    def test_list_builds_feature_flag_disabled(self) -> None:
-        with self.feature({"organizations:preprod-frontend-routes": False}):
-            response = self.client.get(
-                f"{self._get_url()}?project={self.project.id}",
-                format="json",
-                HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
-            )
-            assert response.status_code == 403
-            assert response.json()["error"] == "Feature not enabled"
 
     def test_list_builds_invalid_pagination_params(self) -> None:
         response = self.client.get(

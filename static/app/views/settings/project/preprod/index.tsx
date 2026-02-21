@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -27,47 +26,41 @@ const DISTRIBUTION_ENABLED_QUERY_WRITE_KEY = 'preprodDistributionEnabledQuery';
 export default function PreprodSettings() {
   return (
     <Fragment>
-      <Feature features="organizations:preprod-frontend-routes" renderDisabled>
-        <SentryDocumentTitle title={t('Mobile Builds')} />
-        <SettingsPageHeader
-          title={t('Mobile Builds')}
-          action={
-            <Grid flow="column" align="center" gap="lg">
-              <FeedbackButton />
-            </Grid>
-          }
+      <SentryDocumentTitle title={t('Mobile Builds')} />
+      <SettingsPageHeader
+        title={t('Mobile Builds')}
+        action={
+          <Grid flow="column" align="center" gap="lg">
+            <FeedbackButton />
+          </Grid>
+        }
+      />
+      <TextBlock>
+        {t('Configure status checks and thresholds for your mobile build size analysis.')}
+      </TextBlock>
+      <PreprodQuotaAlert />
+      <Stack gap="lg">
+        <StatusCheckRules />
+        <FeatureFilter
+          enabledReadKey={SIZE_ENABLED_READ_KEY}
+          enabledWriteKey={SIZE_ENABLED_WRITE_KEY}
+          queryReadKey={SIZE_ENABLED_QUERY_READ_KEY}
+          queryWriteKey={SIZE_ENABLED_QUERY_WRITE_KEY}
+          title={t('Size Analysis')}
+          successMessage={t('Size analysis settings updated')}
+          docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
         />
-        <TextBlock>
-          {t(
-            'Configure status checks and thresholds for your mobile build size analysis.'
-          )}
-        </TextBlock>
-        <PreprodQuotaAlert />
-        <Stack gap="lg">
-          <StatusCheckRules />
-          <FeatureFilter
-            enabledReadKey={SIZE_ENABLED_READ_KEY}
-            enabledWriteKey={SIZE_ENABLED_WRITE_KEY}
-            queryReadKey={SIZE_ENABLED_QUERY_READ_KEY}
-            queryWriteKey={SIZE_ENABLED_QUERY_WRITE_KEY}
-            title={t('Size Analysis')}
-            successMessage={t('Size analysis settings updated')}
-            docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
-          />
-          <Feature features="organizations:preprod-build-distribution">
-            <FeatureFilter
-              enabledReadKey={DISTRIBUTION_ENABLED_READ_KEY}
-              enabledWriteKey={DISTRIBUTION_ENABLED_WRITE_KEY}
-              queryReadKey={DISTRIBUTION_ENABLED_QUERY_READ_KEY}
-              queryWriteKey={DISTRIBUTION_ENABLED_QUERY_WRITE_KEY}
-              title={t('Build Distribution')}
-              successMessage={t('Build distribution settings updated')}
-              docsUrl="https://docs.sentry.io/product/build-distribution/"
-              display={PreprodBuildsDisplay.DISTRIBUTION}
-            />
-          </Feature>
-        </Stack>
-      </Feature>
+        <FeatureFilter
+          enabledReadKey={DISTRIBUTION_ENABLED_READ_KEY}
+          enabledWriteKey={DISTRIBUTION_ENABLED_WRITE_KEY}
+          queryReadKey={DISTRIBUTION_ENABLED_QUERY_READ_KEY}
+          queryWriteKey={DISTRIBUTION_ENABLED_QUERY_WRITE_KEY}
+          title={t('Build Distribution')}
+          successMessage={t('Build distribution settings updated')}
+          docsUrl="https://docs.sentry.io/product/build-distribution/"
+          display={PreprodBuildsDisplay.DISTRIBUTION}
+        />
+      </Stack>
     </Fragment>
   );
 }

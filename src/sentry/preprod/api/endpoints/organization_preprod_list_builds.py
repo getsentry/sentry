@@ -8,7 +8,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -58,11 +58,6 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
         :qparam string cursor: (optional) cursor for pagination
         :auth: required
         """
-
-        if not features.has(
-            "organizations:preprod-frontend-routes", organization, actor=request.user
-        ):
-            return Response({"error": "Feature not enabled"}, status=403)
 
         projects = self.get_projects(request, organization)
         if not projects:

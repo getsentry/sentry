@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
-import useOrganization from 'sentry/utils/useOrganization';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -68,11 +67,9 @@ export function PreprodSearchBar({
   disallowLogicalOperators,
   searchSource = 'preprod',
 }: PreprodSearchBarProps) {
-  const organization = useOrganization();
-
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.PREPROD,
-    enabled: organization.features.includes('preprod-app-size-dashboard'),
+    enabled: true,
   };
 
   // When using allowedKeys, we fetch all attributes then filter to the allowlist.

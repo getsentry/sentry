@@ -234,10 +234,6 @@ export default function ReleasesList() {
   }, [selection.projects]);
 
   const shouldShowMobileBuildsTab = useMemo(() => {
-    if (!organization.features?.includes('preprod-frontend-routes')) {
-      return false;
-    }
-
     // When "All Projects" is selected (represented by [-1]), check all accessible projects
     // When specific projects are selected, check only those projects
     const isAllProjects =
@@ -254,7 +250,7 @@ export default function ReleasesList() {
       .some(project => project?.platform && isMobileRelease(project.platform, false));
 
     return hasAnyStrictlyMobileProject;
-  }, [organization.features, selectedProjectIds, projects]);
+  }, [selectedProjectIds, projects]);
 
   const selectedTab = useMemo(() => {
     if (!shouldShowMobileBuildsTab) {

@@ -28,15 +28,6 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
 
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
 
-        # Enable the feature flag for all tests by default
-        self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
-        self.feature_context.__enter__()
-
-    def tearDown(self) -> None:
-        # Exit the feature flag context manager
-        self.feature_context.__exit__(None, None, None)
-        super().tearDown()
-
     def _get_url(self):
         return reverse(
             "sentry-api-0-project-preprod-check-for-updates",
