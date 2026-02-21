@@ -4,12 +4,11 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
 import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
 import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
-import parseLinkHeader, {type ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {infiniteQueryOptions, queryOptions, skipToken} from 'sentry/utils/queryClient';
 import type {
   ApiQueryKey,
   InfiniteApiQueryKey,
-  InfiniteData,
   QueryKeyEndpointOptions,
   SkipToken,
 } from 'sentry/utils/queryClient';
@@ -83,9 +82,6 @@ function _apiOptionsInfinite<
     initialPageParam: undefined,
     enabled: pathParams !== skipToken,
     staleTime,
-    select: (
-      data: InfiniteData<ApiResponse<TActualData>, null | undefined | ParsedHeader>
-    ) => data.pages.map(page => page.json),
   });
 }
 

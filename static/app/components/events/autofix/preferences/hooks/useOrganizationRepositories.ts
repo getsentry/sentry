@@ -70,7 +70,13 @@ export function organizationRepositoriesInfiniteOptions({
   staleTime,
 }: {
   organization: Organization;
-  query?: {per_page: number};
+  query?: {
+    cursor?: string;
+    integration_id?: string;
+    per_page?: number;
+    query?: string;
+    status?: 'active' | 'deleted' | 'unmigratable';
+  };
   staleTime?: number;
 }) {
   return apiOptions.asInfinite<RepositoryWithSettings[]>()(
