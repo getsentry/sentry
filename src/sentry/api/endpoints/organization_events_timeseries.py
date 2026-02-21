@@ -299,19 +299,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
 
         self._emit_analytics_event(organization, referrer)
 
-        batch_features = self.get_features(organization, request)
-        use_metrics = (
-            batch_features.get("organizations:performance-use-metrics", False)
-            or True
-            or (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and features.has(
-                    "organizations:dynamic-sampling",
-                    organization=organization,
-                    actor=request.user,
-                )
-            )
-        )
+        use_metrics = True
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")

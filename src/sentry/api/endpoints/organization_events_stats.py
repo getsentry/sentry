@@ -168,18 +168,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 query_source = QuerySource.SENTRY_BACKEND
 
             batch_features = self.get_features(organization, request)
-            use_metrics = (
-                batch_features.get("organizations:performance-use-metrics", False)
-                or True
-                or (
-                    batch_features.get("organizations:mep-rollout-flag", False)
-                    and features.has(
-                        "organizations:dynamic-sampling",
-                        organization=organization,
-                        actor=request.user,
-                    )
-                )
-            )
+            use_metrics = True
 
             dataset = self.get_dataset(request)
             # Add more here until top events is supported on all the datasets
