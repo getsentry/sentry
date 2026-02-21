@@ -5,7 +5,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 interface LayoutProps {
   children: React.ReactNode;
   label: React.ReactNode;
-  as?: 'group';
   hintText?: React.ReactNode;
   required?: boolean;
   variant?: 'compact';
@@ -16,19 +15,12 @@ function RowLayout(props: LayoutProps) {
   const field = useFieldContext();
 
   return (
-    <Flex
-      id={field.name}
-      gap="sm"
-      align="center"
-      justify="between"
-      as={props.as === 'group' ? 'fieldset' : undefined}
-    >
+    <Flex id={field.name} gap="sm" align="center" justify="between">
       <Stack width="50%" gap="xs">
         <Flex gap="xs" align="center">
           <FieldMeta.Label
             required={props.required}
             description={isCompact ? props.hintText : undefined}
-            as={props.as}
           >
             {props.label}
           </FieldMeta.Label>
@@ -48,12 +40,11 @@ function StackLayout(props: LayoutProps) {
   const field = useFieldContext();
 
   return (
-    <Stack id={field.name} gap="md" as={props.as === 'group' ? 'fieldset' : undefined}>
+    <Stack id={field.name} gap="md">
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}
           description={isCompact ? props.hintText : undefined}
-          as={props.as}
         >
           {props.label}
         </FieldMeta.Label>

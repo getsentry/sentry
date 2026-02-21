@@ -271,22 +271,18 @@ function AutoSaveExample() {
         mutationOptions={userMutationOptions(client)}
       >
         {field => (
-          <field.Layout.Stack
-            label="Priority:"
-            hintText="Select issue priority"
-            as="group"
+          <field.Radio.Group
+            value={field.state.value ?? ''}
+            onChange={field.handleChange}
           >
-            <field.Radio.Group
-              value={field.state.value ?? ''}
-              onChange={field.handleChange}
-            >
+            <field.Layout.Stack label="Priority:" hintText="Select issue priority">
               <field.Radio.Item value="low">Low</field.Radio.Item>
               <field.Radio.Item value="medium">Medium</field.Radio.Item>
               <field.Radio.Item value="high" description="Urgent issues">
                 High
               </field.Radio.Item>
-            </field.Radio.Group>
-          </field.Layout.Stack>
+            </field.Layout.Stack>
+          </field.Radio.Group>
         )}
       </AutoSaveField>
     </FieldGroup>
@@ -385,22 +381,18 @@ function BasicForm() {
           </form.AppField>
           <form.AppField name="priority">
             {field => (
-              <field.Layout.Row
-                label="Priority:"
-                hintText="Select issue priority"
-                as="group"
+              <field.Radio.Group
+                value={field.state.value ?? ''}
+                onChange={field.handleChange}
               >
-                <field.Radio.Group
-                  value={field.state.value ?? ''}
-                  onChange={field.handleChange}
-                >
+                <field.Layout.Row label="Priority:" hintText="Select issue priority">
                   <field.Radio.Item value="low">Low</field.Radio.Item>
                   <field.Radio.Item value="medium">Medium</field.Radio.Item>
                   <field.Radio.Item value="high" description="Urgent issues">
                     High
                   </field.Radio.Item>
-                </field.Radio.Group>
-              </field.Layout.Row>
+                </field.Layout.Row>
+              </field.Radio.Group>
             )}
           </form.AppField>
           <form.AppField name="tags">

@@ -1,6 +1,7 @@
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
+import {useGroupContext} from '@sentry/scraps/form/field/groupContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {RequiredIndicator} from '@sentry/scraps/form/icons';
 import {InfoText} from '@sentry/scraps/info';
@@ -48,13 +49,13 @@ const scrollToFieldRef = (node: HTMLLabelElement | null) => {
 
 function Label(props: {
   children: React.ReactNode;
-  as?: 'group';
   description?: React.ReactNode;
   required?: boolean;
 }) {
   const {name: fieldName} = useFieldContext();
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
+  const isGroup = useGroupContext();
 
   const labelContent = props.description ? (
     <InfoText title={props.description}>{props.children}</InfoText>
@@ -68,12 +69,12 @@ function Label(props: {
         <Flex gap="xs">
           <Text
             {...containerProps}
-            as={props.as === 'group' ? 'legend' : 'label'}
+            as={isGroup ? 'legend' : 'label'}
             data-field={fieldName}
             htmlFor={fieldId}
             bold={false}
             ref={scrollToFieldRef}
-            style={props.as === 'group' ? legendStyles : undefined}
+            style={isGroup ? legendStyles : undefined}
           >
             {labelContent}
           </Text>
@@ -88,7 +89,7 @@ function Label(props: {
   );
 }
 
-const legendStyles = {
+const legendStyles: React.CSSProperties = {
   /* Reset global legend styles */
   fontSize: 'inherit',
   border: 'none',

@@ -8,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useFieldStateIndicator} from './baseField';
+import {GroupProvider} from './groupContext';
 
 // Context for Radio.Group -> Radio.Item communication
 interface RadioContextValue {
@@ -34,16 +35,9 @@ interface RadioGroupProps {
   onChange: (value: string) => void;
   value: string;
   disabled?: boolean | string;
-  orientation?: 'vertical' | 'horizontal';
 }
 
-function RadioGroup({
-  children,
-  value,
-  onChange,
-  disabled,
-  orientation = 'vertical',
-}: RadioGroupProps) {
+function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
   const field = useFieldContext();
   const autoSaveContext = useAutoSaveContext();
   const indicator = useFieldStateIndicator();
@@ -66,17 +60,14 @@ function RadioGroup({
   };
 
   const content = (
-    <Flex gap="md" align="center">
-      <Flex
-        role="radiogroup"
-        direction={orientation === 'horizontal' ? 'row' : 'column'}
-        gap="md"
-        align={orientation === 'horizontal' ? 'center' : 'start'}
-      >
-        <RadioContext.Provider value={contextValue}>{children}</RadioContext.Provider>
-      </Flex>
-      {indicator}
-    </Flex>
+    <GroupProvider>
+      <RadioContext.Provider value={contextValue}>
+        <Flex as="fieldset" gap="md" align="center">
+          {children}
+          {indicator}
+        </Flex>
+      </RadioContext.Provider>
+    </GroupProvider>
   );
 
   if (disabledReason) {

@@ -9,7 +9,6 @@ interface TestFormProps {
   defaultValue?: string;
   disabled?: boolean | string;
   hintText?: string;
-  orientation?: 'vertical' | 'horizontal';
   required?: boolean;
 }
 
@@ -19,7 +18,6 @@ function TestForm({
   required,
   defaultValue = 'low',
   disabled,
-  orientation,
 }: TestFormProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -32,25 +30,19 @@ function TestForm({
     <form.AppForm>
       <form.AppField name="priority">
         {field => (
-          <field.Layout.Row
-            label={label}
-            hintText={hintText}
-            required={required}
-            variant="group"
+          <field.Radio.Group
+            value={field.state.value}
+            onChange={field.handleChange}
+            disabled={disabled}
           >
-            <field.Radio.Group
-              value={field.state.value}
-              onChange={field.handleChange}
-              disabled={disabled}
-              orientation={orientation}
-            >
+            <field.Layout.Row label={label} hintText={hintText} required={required}>
               <field.Radio.Item value="low">Low</field.Radio.Item>
               <field.Radio.Item value="medium">Medium</field.Radio.Item>
               <field.Radio.Item value="high" description="Urgent issues">
                 High
               </field.Radio.Item>
-            </field.Radio.Group>
-          </field.Layout.Row>
+            </field.Layout.Row>
+          </field.Radio.Group>
         )}
       </form.AppField>
     </form.AppForm>
@@ -82,13 +74,13 @@ function AutoSaveTestForm({
       mutationOptions={{mutationFn, onError}}
     >
       {field => (
-        <field.Layout.Row label={label} variant="group">
-          <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+        <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+          <field.Layout.Row label={label}>
             <field.Radio.Item value="low">Low</field.Radio.Item>
             <field.Radio.Item value="medium">Medium</field.Radio.Item>
             <field.Radio.Item value="high">High</field.Radio.Item>
-          </field.Radio.Group>
-        </field.Layout.Row>
+          </field.Layout.Row>
+        </field.Radio.Group>
       )}
     </AutoSaveField>
   );
@@ -133,7 +125,7 @@ describe('RadioField', () => {
   it('renders as fieldset with legend', () => {
     render(<TestForm label="Priority" />);
 
-    expect(screen.getByRole('group')).toBeInTheDocument(); // fieldset has role="group"
+    expect(screen.getByRole('radiogroup')).toBeInTheDocument();
     expect(screen.getByText('Priority').tagName).toBe('LEGEND');
   });
 });
@@ -248,23 +240,5 @@ describe('RadioField a11y', () => {
 
     const radios = screen.getAllByRole('radio');
     expect(radios[2]!).toBeChecked(); // high should be selected
-  });
-});
-
-describe('RadioField orientation', () => {
-  it('renders with vertical orientation by default', () => {
-    render(<TestForm label="Priority" />);
-
-    // Verify the component renders with all options visible
-    expect(screen.getByRole('radiogroup')).toBeInTheDocument();
-    expect(screen.getAllByRole('radio')).toHaveLength(3);
-  });
-
-  it('renders with horizontal orientation', () => {
-    render(<TestForm label="Priority" orientation="horizontal" />);
-
-    // Verify the component renders with all options visible
-    expect(screen.getByRole('radiogroup')).toBeInTheDocument();
-    expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 });
