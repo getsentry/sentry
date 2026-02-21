@@ -192,7 +192,6 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             "organizations:mep-rollout-flag",
             "organizations:dynamic-sampling",
             "organizations:performance-use-metrics",
-            "organizations:dashboards-mep",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -273,7 +272,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
                     and batch_features.get("organizations:dynamic-sampling", False)
                 )
                 or batch_features.get("organizations:performance-use-metrics", False)
-                or batch_features.get("organizations:dashboards-mep", False)
+                or True
             )
             # When using the eps/epm functions, they require an interval argument
             # or to provide the start/end so that the interval can be computed.

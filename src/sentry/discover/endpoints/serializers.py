@@ -145,7 +145,6 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "organizations:mep-rollout-flag",
             "organizations:dynamic-sampling",
             "organizations:performance-use-metrics",
-            "organizations:dashboards-mep",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -252,7 +251,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                         and batch_features.get("organizations:dynamic-sampling", False)
                     )
                     or batch_features.get("organizations:performance-use-metrics", False)
-                    or batch_features.get("organizations:dashboards-mep", False)
+                    or True
                 )
 
                 equations, columns = categorize_columns(query["fields"])

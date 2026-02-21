@@ -68,7 +68,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     ) -> Mapping[str, bool | None]:
         feature_names = [
             "organizations:performance-use-metrics",
-            "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
@@ -171,7 +170,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             batch_features = self.get_features(organization, request)
             use_metrics = (
                 batch_features.get("organizations:performance-use-metrics", False)
-                or batch_features.get("organizations:dashboards-mep", False)
+                or True
                 or (
                     batch_features.get("organizations:mep-rollout-flag", False)
                     and features.has(

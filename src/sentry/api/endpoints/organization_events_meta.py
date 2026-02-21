@@ -34,7 +34,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
     def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
         feature_names = [
-            "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
             "organizations:performance-use-metrics",
             "organizations:profiling",
@@ -77,7 +76,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 and batch_features.get("organizations:dynamic-sampling", False)
             )
             or batch_features.get("organizations:performance-use-metrics", False)
-            or batch_features.get("organizations:dashboards-mep", False)
+            or True
         )
 
         with handle_query_errors():
