@@ -15,7 +15,7 @@ jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('PageOverviewWebVitalsDetailPanel', () => {
   const organization = OrganizationFixture({
-    features: ['performance-web-vitals-seer-suggestions'],
+    features: [],
   });
   const project = ProjectFixture();
   const location = LocationFixture({

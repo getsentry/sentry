@@ -12,7 +12,7 @@ const TRANSACTION_NAME = 'transaction';
 
 describe('PageOverviewSidebar', () => {
   const organization = OrganizationFixture({
-    features: ['performance-web-vitals-seer-suggestions', 'gen-ai-features'],
+    features: ['gen-ai-features'],
   });
   let seerSetupCheckMock: jest.Mock;
   let seerPreferencesMock: jest.Mock;

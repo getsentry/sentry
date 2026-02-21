@@ -14,7 +14,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -48,11 +48,6 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
     owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:performance-spans-suspect-attributes", organization, actor=request.user
-        ):
-            return Response(status=404)
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

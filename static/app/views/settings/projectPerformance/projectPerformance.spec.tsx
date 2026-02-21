@@ -55,11 +55,7 @@ const manageDetectorData = [
 
 describe('projectPerformance', () => {
   const org = OrganizationFixture({
-    features: [
-      'performance-view',
-      'performance-web-vitals-seer-suggestions',
-      'gen-ai-features',
-    ],
+    features: ['performance-view', 'gen-ai-features'],
   });
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
@@ -503,11 +499,7 @@ describe('projectPerformance', () => {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: [
-            'performance-view',
-            'performance-web-vitals-seer-suggestions',
-            'gen-ai-features',
-          ],
+          features: ['performance-view', 'gen-ai-features'],
         }),
         initialRouterConfig,
       });
@@ -570,11 +562,7 @@ describe('projectPerformance', () => {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: [
-            'performance-view',
-            'performance-web-vitals-seer-suggestions',
-            'gen-ai-features',
-          ],
+          features: ['performance-view', 'gen-ai-features'],
           access: ['project:read'],
         }),
         initialRouterConfig,
