@@ -179,26 +179,22 @@ export default function ProfilingContent() {
                 <Onboarding />
               ) : (
                 <Fragment>
-                  {organization.features.includes(
-                    'profiling-global-suspect-functions'
-                  ) && (
-                    <WidgetsContainer>
-                      <LandingWidgetSelector
-                        cursorName={LEFT_WIDGET_CURSOR}
-                        widgetHeight="410px"
-                        defaultWidget="slowest functions"
-                        storageKey="profiling-landing-widget-0"
-                        onDataState={updateWidget1DataState}
-                      />
-                      <LandingWidgetSelector
-                        cursorName={RIGHT_WIDGET_CURSOR}
-                        widgetHeight="410px"
-                        defaultWidget="regressed functions"
-                        storageKey="profiling-landing-widget-1"
-                        onDataState={updateWidget2DataState}
-                      />
-                    </WidgetsContainer>
-                  )}
+                  <WidgetsContainer>
+                    <LandingWidgetSelector
+                      cursorName={LEFT_WIDGET_CURSOR}
+                      widgetHeight="410px"
+                      defaultWidget="slowest functions"
+                      storageKey="profiling-landing-widget-0"
+                      onDataState={updateWidget1DataState}
+                    />
+                    <LandingWidgetSelector
+                      cursorName={RIGHT_WIDGET_CURSOR}
+                      widgetHeight="410px"
+                      defaultWidget="regressed functions"
+                      storageKey="profiling-landing-widget-1"
+                      onDataState={updateWidget2DataState}
+                    />
+                  </WidgetsContainer>
                   <div>
                     <Tabs value={tab} onChange={onTabChange}>
                       <TabList>
