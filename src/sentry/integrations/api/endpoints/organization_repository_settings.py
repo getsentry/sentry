@@ -91,6 +91,7 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
             for setting in RepositorySettings.objects.filter(repository_id__in=repository_ids)
         }
 
+        previous_triggers: set[str] = set()
         settings_to_upsert = []
         for repo in repositories:
             setting = existing_settings.get(repo.id) or RepositorySettings(repository=repo)
@@ -98,6 +99,7 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
             if updated_enabled_code_review is not None:
                 setting.enabled_code_review = updated_enabled_code_review
             if updated_code_review_triggers is not None:
+                previous_triggers.update(setting.code_review_triggers or [])
                 setting.code_review_triggers = updated_code_review_triggers
 
             settings_to_upsert.append(setting)
@@ -114,12 +116,12 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
             organization=organization,
             target_object=organization.id,
             event=audit_log.get_event_id("REPO_SETTINGS_EDIT"),
-            data={
-                "repository_count": len(repositories),
-                "repository_ids": repository_ids,
-                "enabled_code_review": updated_enabled_code_review,
-                "code_review_triggers": updated_code_review_triggers,
-            },
+            data=self._make_audit_log_data(
+                repositories,
+                previous_triggers,
+                updated_enabled_code_review,
+                updated_code_review_triggers,
+            ),
         )
 
         return Response(
@@ -130,3 +132,54 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
             ),
             status=200,
         )
+
+    def _make_audit_log_data(
+        self,
+        repositories: list[Repository],
+        previous_triggers: set[str],
+        updated_enabled_code_review: bool | None,
+        updated_code_review_triggers: list[str] | None,
+    ) -> dict:
+        code_review_change = self._format_code_review_change(
+            previous_triggers,
+            updated_enabled_code_review,
+            updated_code_review_triggers,
+        )
+        return {
+            "repository_count": len(repositories),
+            "repository_ids": [repo.id for repo in repositories],
+            "repository_names": ", ".join(sorted((repo.name or "") for repo in repositories)),
+            "code_review_change": code_review_change,
+            "enabled_code_review": updated_enabled_code_review,
+            "code_review_triggers": updated_code_review_triggers,
+        }
+
+    def _format_code_review_change(
+        self,
+        previous_triggers: set[str],
+        updated_enabled_code_review: bool | None,
+        updated_code_review_triggers: list[str] | None,
+    ) -> str:
+        if updated_enabled_code_review is True:
+            return " (enabled code review)"
+        if updated_enabled_code_review is False:
+            return " (disabled code review)"
+        if updated_code_review_triggers is None:
+            return ""
+
+        new_triggers = set(updated_code_review_triggers)
+        added = new_triggers - previous_triggers
+        removed = previous_triggers - new_triggers
+
+        parts = []
+        if added:
+            parts.append(f"added code review {', '.join(sorted(added))}")
+        if removed:
+            parts.append(f"removed code review {', '.join(sorted(removed))}")
+        if not parts:
+            if new_triggers:
+                parts.append(f"triggers set to {', '.join(sorted(new_triggers))}")
+            else:
+                parts.append("cleared code review triggers")
+
+        return " (" + "; ".join(parts) + ")"
