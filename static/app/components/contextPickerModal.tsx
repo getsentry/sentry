@@ -1,4 +1,11 @@
-import {Component, Fragment, useState, type Dispatch, type SetStateAction} from 'react';
+import {
+  Component,
+  Fragment,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
@@ -22,7 +29,6 @@ import type {Integration} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import Projects from 'sentry/utils/projects';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -520,20 +526,16 @@ export default function ContextPickerModalContainer({
     if (sharedProps.needProject) {
       if (sharedProps.needTeam) {
         return (
-          <Projects
-            orgId={selectedOrgSlug}
-            allProjects={!projectSlugs?.length}
-            slugs={projectSlugs}
-          >
-            {({projects, initiallyLoaded}) => (
+          <ProjectsForOrg orgSlug={selectedOrgSlug} slugs={projectSlugs}>
+            {({projects, isLoading: projectsLoading}) => (
               <TeamsForOrg orgSlug={selectedOrgSlug}>
-                {({teams, isLoading}) => (
+                {({teams, isLoading: teamsLoading}) => (
                   <ContextPickerModal
                     {...sharedProps}
-                    projects={projects as Project[]}
-                    projectsLoading={!initiallyLoaded}
+                    projects={projects}
+                    projectsLoading={projectsLoading}
                     teams={teams}
-                    teamsLoading={isLoading}
+                    teamsLoading={teamsLoading}
                     organizations={organizations}
                     organization={selectedOrgSlug}
                     onSelectOrganization={setSelectedOrgSlug}
@@ -542,21 +544,17 @@ export default function ContextPickerModalContainer({
                 )}
               </TeamsForOrg>
             )}
-          </Projects>
+          </ProjectsForOrg>
         );
       }
 
       return (
-        <Projects
-          orgId={selectedOrgSlug}
-          allProjects={!projectSlugs?.length}
-          slugs={projectSlugs}
-        >
-          {({projects, initiallyLoaded}) => (
+        <ProjectsForOrg orgSlug={selectedOrgSlug} slugs={projectSlugs}>
+          {({projects, isLoading}) => (
             <ContextPickerModal
               {...sharedProps}
-              projects={projects as Project[]}
-              projectsLoading={!initiallyLoaded}
+              projects={projects}
+              projectsLoading={isLoading}
               teams={[]}
               teamsLoading={false}
               organizations={organizations}
@@ -565,7 +563,7 @@ export default function ContextPickerModalContainer({
               integrationConfigs={[]}
             />
           )}
-        </Projects>
+        </ProjectsForOrg>
       );
     }
 
@@ -601,6 +599,36 @@ export default function ContextPickerModalContainer({
       integrationConfigs={[]}
     />
   );
+}
+
+function ProjectsForOrg({
+  orgSlug,
+  slugs,
+  children,
+}: {
+  children: (props: {isLoading: boolean; projects: Project[]}) => React.ReactNode;
+  orgSlug: string;
+  slugs?: string[];
+}) {
+  const {data, isPending} = useApiQuery<Project[]>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+    ],
+    {staleTime: Infinity}
+  );
+
+  const projects = useMemo(() => {
+    const all = data ?? [];
+    if (!slugs?.length) {
+      return all;
+    }
+    const slugSet = new Set(slugs);
+    return all.filter(p => slugSet.has(p.slug));
+  }, [data, slugs]);
+
+  return <Fragment>{children({projects, isLoading: isPending})}</Fragment>;
 }
 
 function TeamsForOrg({

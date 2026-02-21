@@ -210,6 +210,43 @@ describe('ContextPickerModal', () => {
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project3/');
   });
 
+  it('updates project list when switching organizations', async () => {
+    const orgProject = ProjectFixture({slug: 'org1-project'});
+    const org2Project = ProjectFixture({slug: 'org2-project'});
+
+    OrganizationsStore.load([org, org2]);
+    OrganizationStore.onUpdate(org);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [orgProject],
+    });
+    const fetchProjectsForOrg2 = MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/projects/`,
+      body: [org2Project],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: true,
+        nextPath: '/test/:orgId/path/:projectId/',
+      })
+    );
+
+    // Initially should show org1's project
+    expect(await screen.findByText('org1-project')).toBeInTheDocument();
+    expect(screen.queryByText('org2-project')).not.toBeInTheDocument();
+
+    // Switch to org2
+    await selectEvent.select(screen.getAllByText(org.slug)[0]!, org2.slug);
+
+    // Should now show org2's project
+    expect(fetchProjectsForOrg2).toHaveBeenCalled();
+    expect(await screen.findByText('org2-project')).toBeInTheDocument();
+    expect(screen.queryByText('org1-project')).not.toBeInTheDocument();
+  });
+
   it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async () => {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
@@ -420,6 +457,140 @@ describe('ContextPickerModal', () => {
         name: 'Select an organization and a team to continue',
       })
     ).toBeInTheDocument();
+  });
+
+  it('shows team picker when org is pre-selected and needTeam is true', async () => {
+    const team1 = TeamFixture({id: '1', slug: 'team-one'});
+    const team2 = TeamFixture({id: '2', slug: 'team-two'});
+
+    // Real-world scenario: single org, already selected
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+    const fetchTeams = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1, team2],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: false,
+        needTeam: true,
+        nextPath: '/settings/:orgId/teams/:teamId/settings/',
+      })
+    );
+
+    // Teams should be fetched for the pre-selected org
+    await waitFor(() => {
+      expect(fetchTeams).toHaveBeenCalled();
+    });
+
+    // Team picker should appear
+    expect(await screen.findByText(`#${team1.slug}`)).toBeInTheDocument();
+    expect(screen.getByText(`#${team2.slug}`)).toBeInTheDocument();
+
+    // Select a team
+    await selectEvent.select(screen.getByText(/Select a Team/), `#${team1.slug}`);
+
+    expect(onFinish).toHaveBeenCalledWith(
+      `/settings/${org.slug}/teams/${team1.slug}/settings/`
+    );
+  });
+
+  it('can select org and then team', async () => {
+    const team1 = TeamFixture({id: '1', slug: 'team-one'});
+    const team2 = TeamFixture({id: '2', slug: 'team-two'});
+
+    OrganizationsStore.load([org, org2]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+    const fetchTeamsForOrg2 = MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/teams/`,
+      body: [team1, team2],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: false,
+        needTeam: true,
+        nextPath: '/settings/:orgId/teams/:teamId/settings/',
+      })
+    );
+
+    // Should not have anything selected
+    expect(screen.getByText('Select an Organization')).toBeInTheDocument();
+
+    // Select org2
+    await selectEvent.select(screen.getByText('Select an Organization'), org2.slug);
+
+    // TeamsForOrg should fetch teams for org2
+    expect(fetchTeamsForOrg2).toHaveBeenCalled();
+
+    // Team picker should appear with teams from org2
+    expect(await screen.findByText(`#${team1.slug}`)).toBeInTheDocument();
+    expect(screen.getByText(`#${team2.slug}`)).toBeInTheDocument();
+
+    // Select a team
+    await selectEvent.select(screen.getByText(/Select a Team/), `#${team2.slug}`);
+
+    expect(onFinish).toHaveBeenCalledWith(
+      `/settings/${org2.slug}/teams/${team2.slug}/settings/`
+    );
+  });
+
+  it('updates team list when switching organizations', async () => {
+    const team1 = TeamFixture({id: '1', slug: 'org1-team'});
+    const team2 = TeamFixture({id: '2', slug: 'org2-team'});
+
+    OrganizationsStore.load([org, org2]);
+    OrganizationStore.onUpdate(org);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team1],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/projects/`,
+      body: [],
+    });
+    const fetchTeamsForOrg2 = MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/teams/`,
+      body: [team2],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: false,
+        needTeam: true,
+        nextPath: '/settings/:orgId/teams/:teamId/settings/',
+      })
+    );
+
+    // Initially should show org1's team
+    expect(await screen.findByText(`#${team1.slug}`)).toBeInTheDocument();
+    expect(screen.queryByText(`#${team2.slug}`)).not.toBeInTheDocument();
+
+    // Switch to org2 — org.slug appears twice (selected value + option), use getAllByText
+    await selectEvent.select(screen.getAllByText(org.slug)[0]!, org2.slug);
+
+    // Should now show org2's team
+    expect(fetchTeamsForOrg2).toHaveBeenCalled();
+    expect(await screen.findByText(`#${team2.slug}`)).toBeInTheDocument();
+    expect(screen.queryByText(`#${team1.slug}`)).not.toBeInTheDocument();
   });
 
   it('selects a team and navigates to the correct path', async () => {
