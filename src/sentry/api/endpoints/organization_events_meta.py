@@ -70,14 +70,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
         batch_features = self.get_features(organization, request)
 
-        use_metrics = (
-            (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and batch_features.get("organizations:dynamic-sampling", False)
-            )
-            or batch_features.get("organizations:performance-use-metrics", False)
-            or True
-        )
+        use_metrics = True
 
         with handle_query_errors():
             if dataset in RPC_DATASETS:

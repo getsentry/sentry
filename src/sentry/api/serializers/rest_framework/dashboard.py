@@ -263,17 +263,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             data["issue_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
 
         try:
-            batch_features = self.get_metrics_features(
-                self.context.get("organization"), self.context.get("user")
-            )
-            use_metrics = bool(
-                (
-                    batch_features.get("organizations:mep-rollout-flag", False)
-                    and batch_features.get("organizations:dynamic-sampling", False)
-                )
-                or batch_features.get("organizations:performance-use-metrics", False)
-                or True
-            )
+            use_metrics = True
             # When using the eps/epm functions, they require an interval argument
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds

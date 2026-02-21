@@ -198,14 +198,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         batch_features = self.get_features(organization, request)
 
-        use_metrics = (
-            (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and batch_features.get("organizations:dynamic-sampling", False)
-            )
-            or batch_features.get("organizations:performance-use-metrics", False)
-            or True
-        )
+        use_metrics = True
 
         try:
             use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)

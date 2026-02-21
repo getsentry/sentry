@@ -309,16 +309,7 @@ class DataExportEndpoint(OrganizationEndpoint):
         if request.data and hasattr(request.data, "get"):
             limit = request.data.get("limit")
 
-        batch_features = self.get_features(organization, request)
-
-        use_metrics = (
-            (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and batch_features.get("organizations:dynamic-sampling", False)
-            )
-            or batch_features.get("organizations:performance-use-metrics", False)
-            or True
-        )
+        use_metrics = True
 
         # Validate the data export payload
         serializer = DataExportQuerySerializer(

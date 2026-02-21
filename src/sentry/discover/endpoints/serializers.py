@@ -242,17 +242,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     0,
                 )
             try:
-                batch_features = self.get_metrics_features(
-                    self.context.get("organization"), self.context.get("user")
-                )
-                use_metrics = bool(
-                    (
-                        batch_features.get("organizations:mep-rollout-flag", False)
-                        and batch_features.get("organizations:dynamic-sampling", False)
-                    )
-                    or batch_features.get("organizations:performance-use-metrics", False)
-                    or True
-                )
+                use_metrics = True
 
                 equations, columns = categorize_columns(query["fields"])
 
