@@ -149,7 +149,8 @@ def launch_coding_agents(
             error_message = "Failed to launch coding agent"
             github_installation_id: str | None = None
             if isinstance(e, ApiError) and e.code == 403 and is_github_copilot:
-                if e.text and "not licensed" in e.text:
+                if e.text and "not licensed" in e.text.lower():
+                    failure_type = "github_copilot_not_licensed"
                     error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
                 else:
                     failure_type = "github_app_permissions"
