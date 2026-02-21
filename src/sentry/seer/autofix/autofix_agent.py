@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Literal
 from django.utils import timezone
 from pydantic import BaseModel
 
-from sentry import features
 from sentry.seer.autofix.artifact_schemas import (
     ImpactAssessmentArtifact,
     RootCauseArtifact,
@@ -239,26 +238,25 @@ def trigger_autofix_explorer(
             extra={"event_type": event_type},
         )
 
-    if features.has("organizations:seer-webhooks", group.organization):
-        # Send "started" webhook after we have the run_id
-        try:
-            broadcast_webhooks_for_organization.delay(
-                resource_name="seer",
-                event_name=event_name,
-                organization_id=group.organization.id,
-                payload=payload,
-            )
-        except Exception:
-            logger.exception(
-                "autofix.trigger.webhook_failed",
-                extra={
-                    "organization_id": group.organization.id,
-                    "webhook_event": event_name,
-                    "step": step.value,
-                    "run_id": run_id,
-                    "group_id": group.id,
-                },
-            )
+    # Send "started" webhook after we have the run_id
+    try:
+        broadcast_webhooks_for_organization.delay(
+            resource_name="seer",
+            event_name=event_name,
+            organization_id=group.organization.id,
+            payload=payload,
+        )
+    except Exception:
+        logger.exception(
+            "autofix.trigger.webhook_failed",
+            extra={
+                "organization_id": group.organization.id,
+                "webhook_event": event_name,
+                "step": step.value,
+                "run_id": run_id,
+                "group_id": group.id,
+            },
+        )
 
     return run_id
 
