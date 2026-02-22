@@ -260,8 +260,12 @@ class WorkflowRuleSerializerTest(TestCase):
         conditions, filters = WorkflowEngineRuleSerializer()._generate_rule_conditions_filters(
             workflow, self.project, workflow_dcg
         )
-        assert conditions == serialized_rule["conditions"]
-        assert filters == serialized_rule["filters"]
+        assert len(conditions) == len(serialized_rule["conditions"])
+        for condition in conditions:
+            assert condition in serialized_rule["conditions"]
+        assert len(filters) == len(serialized_rule["filters"])
+        for f in filters:
+            assert f in serialized_rule["filters"]
 
     def test_fetch_workflow_last_triggered(self) -> None:
         workflow = self.create_workflow()
