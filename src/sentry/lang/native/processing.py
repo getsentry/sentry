@@ -519,6 +519,19 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                 merged_frame = dict(raw_frame)
                 platform = merged_frame.get("platform") or data.get("platform") or "native"
                 _merge_frame(merged_frame, complete_frame, platform)
+                # If the frame has no package (binary name), try to resolve it from
+                # the module list using the addr_mode index. This handles the case
+                # where a frame is identified by debug_id but has no code_file.
+                if not merged_frame.get("package"):
+                    addr_mode = merged_frame.get("addr_mode")
+                    if addr_mode and addr_mode.startswith("rel:"):
+                        idx_str = addr_mode[4:]
+                        if idx_str.isdigit():
+                            module_idx = int(idx_str)
+                            if 0 <= module_idx < len(modules):
+                                code_file = modules[module_idx].get("code_file")
+                                if code_file:
+                                    merged_frame["package"] = code_file
                 if merged_frame.get("package"):
                     raw_frame["package"] = merged_frame["package"]
                 new_frames.append(merged_frame)

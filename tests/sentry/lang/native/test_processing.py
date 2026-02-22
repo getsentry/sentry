@@ -412,3 +412,87 @@ def test_il2cpp_symbolication(mock_symbolicator, default_project) -> None:
         == "/Users/swatinem/Coding/sentry-unity/samples/unity-of-bugs/Assets/Scripts/BugFarmButtons.cs"
     )
     assert frame["lineno"] == 51
+
+
+@django_db_all
+@mock.patch("sentry.lang.native.processing.Symbolicator")
+def test_package_resolved_from_module_when_missing_code_file(
+    mock_symbolicator, default_project
+) -> None:
+    """
+    When a frame has a debug_id but no code_file/package, the binary name
+    should be resolved from the matched module after symbolication.
+    See: https://github.com/getsentry/sentry/issues/108356
+    """
+    data = {
+        "event_id": "c87700da71534177b92bd912f21a062f",
+        "timestamp": "2022-06-15T10:13:46.963575+00:00",
+        "platform": "native",
+        "project": default_project.id,
+        "exception": {
+            "values": [
+                {
+                    "type": "EXC_CRASH",
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "instruction_addr": "0x0000000100004000",
+                                "addr_mode": "rel:a9669c0c-72b3-3d2c-952b-d9096f65bc4f",
+                            }
+                        ]
+                    },
+                }
+            ]
+        },
+        "debug_meta": {
+            "images": [
+                {
+                    "type": "macho",
+                    # No code_file here - this is the scenario from the issue
+                    "image_addr": "0x0000000100000000",
+                    "debug_id": "a9669c0c-72b3-3d2c-952b-d9096f65bc4f",
+                }
+            ]
+        },
+    }
+
+    mock_symbolicator.return_value = mock_symbolicator
+    mock_symbolicator.process_payload.return_value = {
+        "status": "completed",
+        "stacktraces": [
+            {
+                "frames": [
+                    {
+                        "status": "symbolicated",
+                        "original_index": 0,
+                        "instruction_addr": "0x4000",
+                        "addr_mode": "rel:0",
+                        # No package returned by symbolicator either
+                        "function": "my_function",
+                        "symbol": "my_function",
+                        "abs_path": "/path/to/source.c",
+                        "lineno": 42,
+                    }
+                ]
+            }
+        ],
+        "modules": [
+            {
+                "debug_status": "found",
+                "arch": "x86_64",
+                "type": "macho",
+                # Symbolicator resolved the code_file from the dSYM
+                "code_file": "/path/to/MyApp",
+                "debug_id": "a9669c0c-72b3-3d2c-952b-d9096f65bc4f",
+                "image_addr": "0x0000000100000000",
+            }
+        ],
+    }
+
+    process_native_stacktraces(mock_symbolicator, data)
+
+    frame = get_path(data, "exception", "values", 0, "stacktrace", "frames", 0)
+
+    assert frame["function"] == "my_function"
+    # The package should be resolved from the module's code_file
+    assert frame["package"] == "/path/to/MyApp"
