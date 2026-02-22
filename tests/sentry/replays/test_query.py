@@ -21,6 +21,7 @@ class ReplayStore:
 
 @pytest.fixture
 def replay_store() -> ReplayStore:
+    assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
     return ReplayStore()
 
 
