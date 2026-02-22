@@ -30,13 +30,16 @@ class GitHubClient:
     ) -> None:
         self.http.close()
 
-    def _request(self, path: str) -> dict[str, Any] | list[dict[str, Any]]:
+    def _request(
+        self, path: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         headers = {"Authorization": f"token {self.access_token}"}
 
         try:
             req = self.http.get(
                 f"https://{API_DOMAIN}/{path.lstrip('/')}",
                 headers=headers,
+                params=params,
             )
         except RequestException as e:
             raise GitHubApiError(f"{e}", status=getattr(e, "status_code", 0))
@@ -45,10 +48,23 @@ class GitHubClient:
         return orjson.loads(req.content)
 
     def get_org_list(self) -> list[dict[str, Any]]:
-        res = self._request("/user/orgs")
-        if not isinstance(res, list):
-            return [res]
-        return res
+        # GitHub paginates /user/orgs (default 30 per page, max 100).
+        # Fetch all pages so the full list of organizations is returned.
+        results: list[dict[str, Any]] = []
+        page = 1
+        per_page = 100
+        while True:
+            res = self._request("/user/orgs", params={"per_page": per_page, "page": page})
+            if not isinstance(res, list):
+                results.append(res)
+                break
+            if not res:
+                break
+            results.extend(res)
+            if len(res) < per_page:
+                break
+            page += 1
+        return results
 
     def get_user(self) -> dict[str, Any] | list[dict[str, Any]]:
         return self._request("/user")

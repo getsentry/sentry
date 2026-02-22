@@ -21,10 +21,53 @@ def test_request_sends_access_token(client) -> None:
     assert responses.calls[0].request.headers["Authorization"] == "token accessToken"
 
 
-@mock.patch.object(GitHubClient, "_request")
-def test_get_org_list(mock_request, client) -> None:
-    client.get_org_list()
-    mock_request.assert_called_once_with("/user/orgs")
+@responses.activate
+def test_get_org_list_single_page(client) -> None:
+    orgs = [{"id": i, "login": f"org{i}"} for i in range(5)]
+    responses.add(
+        responses.GET,
+        f"https://{API_DOMAIN}/user/orgs",
+        json=orgs,
+        status=200,
+    )
+    result = client.get_org_list()
+    assert result == orgs
+    assert len(responses.calls) == 1
+    assert responses.calls[0].request.params["per_page"] == "100"
+    assert responses.calls[0].request.params["page"] == "1"
+
+
+@responses.activate
+def test_get_org_list_multiple_pages(client) -> None:
+    page1 = [{"id": i, "login": f"org{i}"} for i in range(100)]
+    page2 = [{"id": i + 100, "login": f"org{i + 100}"} for i in range(3)]
+    responses.add(
+        responses.GET,
+        f"https://{API_DOMAIN}/user/orgs",
+        json=page1,
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        f"https://{API_DOMAIN}/user/orgs",
+        json=page2,
+        status=200,
+    )
+    result = client.get_org_list()
+    assert result == page1 + page2
+    assert len(responses.calls) == 2
+
+
+@responses.activate
+def test_get_org_list_empty(client) -> None:
+    responses.add(
+        responses.GET,
+        f"https://{API_DOMAIN}/user/orgs",
+        json=[],
+        status=200,
+    )
+    result = client.get_org_list()
+    assert result == []
 
 
 @mock.patch.object(GitHubClient, "_request")
