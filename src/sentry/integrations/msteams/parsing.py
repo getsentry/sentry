@@ -83,13 +83,26 @@ def is_new_integration_installation_event(data: Mapping[str, Any]) -> bool:
     try:
         raw_event_type = data["type"]
         event_type = MsTeamsEvents.get_from_value(value=raw_event_type)
-        if event_type != MsTeamsEvents.INSTALLATION_UPDATE:
-            return False
 
-        action = data.get("action", None)
-        if action is None or action != "add":
-            return False
+        if event_type == MsTeamsEvents.INSTALLATION_UPDATE:
+            action = data.get("action", None)
+            return action is not None and action == "add"
 
-        return True
+        if event_type == MsTeamsEvents.CONVERSATION_UPDATE:
+            # A conversationUpdate with teamMemberAdded is the older mechanism
+            # by which MS Teams notifies a bot that it has been added to a team.
+            # There is no integration record yet, so we must handle this in the
+            # control silo just like an installationUpdate "add" event.
+            channel_data = data.get("channelData", {})
+            if channel_data.get("eventType") == "teamMemberAdded":
+                return True
+
+            # A personal (1:1) installation also arrives as a conversationUpdate
+            # with a membersAdded list and conversationType "personal".
+            conversation = data.get("conversation", {})
+            if data.get("membersAdded") and conversation.get("conversationType") == "personal":
+                return True
+
+        return False
     except Exception:
         return False

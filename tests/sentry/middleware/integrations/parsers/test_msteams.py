@@ -199,3 +199,20 @@ class MsTeamsRequestParserTest(TestCase):
             assert response.content == b"passthrough"
             assert len(responses.calls) == 0
             assert_no_webhook_payloads()
+
+    def test_team_member_added_routed_to_control_silo(self) -> None:
+        # A conversationUpdate + teamMemberAdded event (the older bot-installation
+        # mechanism) must be forwarded to the control silo even when a matching
+        # integration already exists, because the same event fires for a *new*
+        # installation where no integration record has been created yet.
+        request = self.factory.post(
+            self.path,
+            json=EXAMPLE_TEAM_MEMBER_ADDED,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+        )
+        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.content == b"passthrough"
+        assert_no_webhook_payloads()
