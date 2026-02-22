@@ -1615,13 +1615,15 @@ class BaseMetricsTestCase(SnubaTestCase):
         for bucket in buckets:
             codec.validate(bucket)
 
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
-                data=json.dumps(buckets),
-            ).status_code
-            == 200
-        )
+        url = settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity)
+        data = json.dumps(buckets)
+        for attempt in range(3):
+            try:
+                assert requests.post(url, data=data).status_code == 200
+                break
+            except requests.ConnectionError:
+                if attempt == 2:
+                    raise
 
 
 class BaseMetricsLayerTestCase(BaseMetricsTestCase):
