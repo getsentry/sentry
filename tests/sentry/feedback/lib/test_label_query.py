@@ -37,44 +37,53 @@ class TestLabelQuery(APITestCase):
         create_feedback_issue(event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     def test_get_ai_labels_from_tags_retrieves_labels_correctly(self) -> None:
-        self._create_feedback(
-            "a",
-            ["Authentication"],
-            dt=before_now(days=2),
-        )
-        self._create_feedback(
-            "b",
-            ["Authentication", "Security"],
-            dt=before_now(days=1),
-        )
+        project = self.create_project()
+        original_project = self.project
+        self.project = project
+        try:
+            self._create_feedback(
+                "a",
+                ["Authentication"],
+                dt=before_now(days=2),
+            )
+            self._create_feedback(
+                "b",
+                ["Authentication", "Security"],
+                dt=before_now(days=1),
+            )
 
-        query = Query(
-            match=Entity(Dataset.IssuePlatform.value),
-            select=[
-                _get_ai_labels_from_tags(alias="labels"),
-            ],
-            where=[
-                Condition(Column("project_id"), Op.EQ, self.project.id),
-                Condition(Column("timestamp"), Op.GTE, before_now(days=30)),
-                Condition(Column("timestamp"), Op.LT, before_now(days=0)),
-                Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
-            ],
-            orderby=[OrderBy(Column("timestamp"), Direction.ASC)],
-        )
+            query = Query(
+                match=Entity(Dataset.IssuePlatform.value),
+                select=[
+                    _get_ai_labels_from_tags(alias="labels"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, project.id),
+                    Condition(Column("timestamp"), Op.GTE, before_now(days=30)),
+                    Condition(Column("timestamp"), Op.LT, before_now(days=0)),
+                    Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
+                ],
+                orderby=[OrderBy(Column("timestamp"), Direction.ASC)],
+            )
 
-        result = raw_snql_query(
-            Request(
-                dataset=Dataset.IssuePlatform.value,
-                app_id="feedback-backend-web",
-                query=query,
-                tenant_ids={"organization_id": self.organization.id},
-            ),
-            referrer="feedbacks.label_query",
-        )
+            result = raw_snql_query(
+                Request(
+                    dataset=Dataset.IssuePlatform.value,
+                    app_id="feedback-backend-web",
+                    query=query,
+                    tenant_ids={"organization_id": project.organization.id},
+                ),
+                referrer="feedbacks.label_query",
+            )
 
-        assert len(result["data"]) == 2
-        assert {label for label in result["data"][0]["labels"]} == {"Authentication"}
-        assert {label for label in result["data"][1]["labels"]} == {"Authentication", "Security"}
+            assert len(result["data"]) == 2
+            assert {label for label in result["data"][0]["labels"]} == {"Authentication"}
+            assert {label for label in result["data"][1]["labels"]} == {
+                "Authentication",
+                "Security",
+            }
+        finally:
+            self.project = original_project
 
     def test_query_top_ai_labels_by_feedback_count(self) -> None:
         self._create_feedback(
