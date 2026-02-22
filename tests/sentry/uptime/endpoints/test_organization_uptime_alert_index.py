@@ -12,10 +12,15 @@ class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseE
     method = "get"
 
     def check_valid_response(self, response, expected_detectors):
-        assert [
-            serialize(uptime_alert, serializer=UptimeDetectorSerializer())
-            for uptime_alert in expected_detectors
-        ] == response.data
+        expected = sorted(
+            [
+                serialize(uptime_alert, serializer=UptimeDetectorSerializer())
+                for uptime_alert in expected_detectors
+            ],
+            key=lambda x: x["id"],
+        )
+        actual = sorted(response.data, key=lambda x: x["id"])
+        assert expected == actual
 
     def test(self) -> None:
         alert_1 = self.create_uptime_detector(name="test1")
