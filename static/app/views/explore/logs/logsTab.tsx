@@ -17,6 +17,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -414,13 +415,18 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
             {tableTab === 'logs' && (
               <TableActionsContainer>
                 <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
-                <Button
-                  size="sm"
-                  icon={<IconRefresh />}
-                  disabled={canManuallyRefresh ? false : true}
-                  onClick={refreshTable}
-                  aria-label={t('Refresh')}
-                />
+                <Tooltip
+                  disabled={canManuallyRefresh}
+                  title={t('Manual refresh is only available for time periods of 1 hour or less.')}
+                >
+                  <Button
+                    size="sm"
+                    icon={<IconRefresh />}
+                    disabled={!canManuallyRefresh}
+                    onClick={refreshTable}
+                    aria-label={t('Refresh')}
+                  />
+                </Tooltip>
                 <TableActionButton
                   mobile={
                     <Button
