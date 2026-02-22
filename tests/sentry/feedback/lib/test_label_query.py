@@ -110,34 +110,40 @@ class TestLabelQuery(APITestCase):
         assert result[2]["count"] == 1
 
     def test_query_recent_feedbacks_with_ai_labels(self) -> None:
-        self._create_feedback(
-            "The UI is too slow and confusing",
-            ["User Interface"],
-            dt=before_now(days=3),
-        )
-        self._create_feedback(
-            "The app crashes frequently when loading data",
-            ["Performance"],
-            dt=before_now(days=2),
-        )
-        self._create_feedback(
-            "Hello",
-            [],
-            dt=before_now(days=1),
-        )
+        project = self.create_project()
+        original_project = self.project
+        self.project = project
+        try:
+            self._create_feedback(
+                "The UI is too slow and confusing",
+                ["User Interface"],
+                dt=before_now(days=3),
+            )
+            self._create_feedback(
+                "The app crashes frequently when loading data",
+                ["Performance"],
+                dt=before_now(days=2),
+            )
+            self._create_feedback(
+                "Hello",
+                [],
+                dt=before_now(days=1),
+            )
 
-        result = query_recent_feedbacks_with_ai_labels(
-            organization_id=self.organization.id,
-            project_ids=[self.project.id],
-            start=before_now(days=30),
-            end=before_now(days=0),
-            limit=1,
-        )
+            result = query_recent_feedbacks_with_ai_labels(
+                organization_id=project.organization.id,
+                project_ids=[project.id],
+                start=before_now(days=30),
+                end=before_now(days=0),
+                limit=1,
+            )
 
-        assert result[0] == {
-            "feedback": "The app crashes frequently when loading data",
-            "labels": ["Performance"],
-        }
+            assert result[0] == {
+                "feedback": "The app crashes frequently when loading data",
+                "labels": ["Performance"],
+            }
+        finally:
+            self.project = original_project
 
     def test_query_label_group_counts(self) -> None:
         self._create_feedback("a", ["User Interface", "Performance"])
