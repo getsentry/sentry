@@ -1,5 +1,6 @@
 import csv
 import datetime
+import random
 import uuid
 
 import pytest
@@ -26,18 +27,21 @@ def test_export_clickhouse_rows(replay_store) -> None:  # type: ignore[no-untype
     replay4_id = uuid.uuid4().hex
     replay5_id = uuid.uuid4().hex
 
+    project_id = random.randint(1_000_000, 2_000_000_000)
+    other_project_id = random.randint(1_000_000, 2_000_000_000)
+
     t0 = datetime.datetime.now()
     t1 = t0 + datetime.timedelta(minutes=1)
     t2 = t0 + datetime.timedelta(minutes=2)
     t3 = t0 + datetime.timedelta(minutes=3)
 
-    replay_store.save(mock_replay(t1, 1, replay1_id, segment_id=0))
-    replay_store.save(mock_replay(t1, 1, replay2_id, segment_id=0))
-    replay_store.save(mock_replay(t2, 1, replay3_id, segment_id=1))
-    replay_store.save(mock_replay(t3, 1, replay4_id, segment_id=0))
-    replay_store.save(mock_replay(t2, 2, replay5_id, segment_id=0))
+    replay_store.save(mock_replay(t1, project_id, replay1_id, segment_id=0))
+    replay_store.save(mock_replay(t1, project_id, replay2_id, segment_id=0))
+    replay_store.save(mock_replay(t2, project_id, replay3_id, segment_id=1))
+    replay_store.save(mock_replay(t3, project_id, replay4_id, segment_id=0))
+    replay_store.save(mock_replay(t2, other_project_id, replay5_id, segment_id=0))
 
-    query_fn = lambda limit, offset: query_replays_dataset(1, t0, t3, limit, offset)
+    query_fn = lambda limit, offset: query_replays_dataset(project_id, t0, t3, limit, offset)
     rows = list(export_clickhouse_rows(query_fn, limit=1, num_pages=10))
     assert len(rows) == 3
 
@@ -48,13 +52,16 @@ def test_export_replay_row_set(replay_store) -> None:  # type: ignore[no-untyped
     replay1_id = "030c5419-9e0f-46eb-ae18-bfe5fd0331b5"
     replay2_id = "0dbda2b3-9286-4ecc-a409-aa32b241563d"
     replay3_id = "ff08c103-a9a4-47c0-9c29-73b932c2da34"
-    t0 = datetime.datetime(year=2025, month=1, day=1)
+
+    project_id = random.randint(1_000_000, 2_000_000_000)
+
+    t0 = datetime.datetime.now()
     t1 = t0 + datetime.timedelta(seconds=30)
     t2 = t0 + datetime.timedelta(minutes=1)
 
-    replay_store.save(mock_replay(t0, 1, replay1_id, segment_id=0))
-    replay_store.save(mock_replay(t1, 1, replay2_id, segment_id=0))
-    replay_store.save(mock_replay(t2, 1, replay3_id, segment_id=0))
+    replay_store.save(mock_replay(t0, project_id, replay1_id, segment_id=0))
+    replay_store.save(mock_replay(t1, project_id, replay2_id, segment_id=0))
+    replay_store.save(mock_replay(t2, project_id, replay3_id, segment_id=0))
 
     class Sink:
         def __init__(self) -> None:
@@ -66,7 +73,6 @@ def test_export_replay_row_set(replay_store) -> None:  # type: ignore[no-untyped
             self.contents = contents
 
     sink = Sink()
-    project_id = 1
     initial_offset = 0
     export_replay_row_set(
         project_id, t0, t2, limit=100, initial_offset=initial_offset, write_to_storage=sink
@@ -94,17 +100,20 @@ def test_get_replay_date_query_ranges(replay_store) -> None:  # type: ignore[no-
     replay4_id = str(uuid.uuid4())
     replay5_id = str(uuid.uuid4())
 
+    project_id = random.randint(1_000_000, 2_000_000_000)
+    other_project_id = random.randint(1_000_000, 2_000_000_000)
+
     t0 = datetime.datetime.now()
     t1 = t0 + datetime.timedelta(days=10)
     t2 = t0 + datetime.timedelta(days=20)
 
-    replay_store.save(mock_replay(t0, 1, replay1_id, segment_id=0))
-    replay_store.save(mock_replay(t1, 1, replay2_id, segment_id=0))
-    replay_store.save(mock_replay(t2, 1, replay3_id, segment_id=0))
-    replay_store.save(mock_replay(t2, 1, replay4_id, segment_id=0))
-    replay_store.save(mock_replay(t2, 2, replay5_id, segment_id=0))
+    replay_store.save(mock_replay(t0, project_id, replay1_id, segment_id=0))
+    replay_store.save(mock_replay(t1, project_id, replay2_id, segment_id=0))
+    replay_store.save(mock_replay(t2, project_id, replay3_id, segment_id=0))
+    replay_store.save(mock_replay(t2, project_id, replay4_id, segment_id=0))
+    replay_store.save(mock_replay(t2, other_project_id, replay5_id, segment_id=0))
 
-    results = list(get_replay_date_query_ranges(1))
+    results = list(get_replay_date_query_ranges(project_id))
     assert len(results) == 3
     assert results[0][0] == datetime.datetime(year=t0.year, month=t0.month, day=t0.day)
     assert results[0][1] == datetime.datetime(
