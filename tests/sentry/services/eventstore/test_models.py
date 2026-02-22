@@ -212,7 +212,9 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Hello World!",
                 "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
                 "user": {"id": "test", "email": "test@test.com"},
-                "timestamp": before_now(seconds=1).isoformat(),
+                # Use a timestamp well in the past and at second precision to avoid
+                # flakiness from EventDict re-normalization adjusting timestamps near now()
+                "timestamp": before_now(minutes=1).replace(microsecond=0).isoformat(),
             },
             project_id=self.project.id,
         )
