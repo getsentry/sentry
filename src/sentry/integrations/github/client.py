@@ -120,19 +120,37 @@ class GithubSetupApiClient(IntegrationProxyClient):
         """
         return self.get("/user")
 
-    def get_user_info_installations(self):
+    def get_user_info_installations(self) -> dict[str, Any]:
         """
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
-        """
-        return self.get("/user/installations")
 
-    def get_organization_memberships_for_user(self):
+        Paginates through all pages to return the complete list of installations.
+        """
+        resp = self.get("/user/installations", params={"per_page": 100})
+        installations: list[Any] = list(resp.get("installations", []))
+        next_link = get_next_link(resp)
+        while next_link:
+            resp = self.get(next_link)
+            installations.extend(resp.get("installations", []))
+            next_link = get_next_link(resp)
+        return {"installations": installations}
+
+    def get_organization_memberships_for_user(self) -> list[Any]:
         """
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-an-organization-membership-for-the-authenticated-user
+
+        Paginates through all pages to return the complete list of memberships.
         """
-        return self.get("/user/memberships/orgs")
+        resp = self.get("/user/memberships/orgs", params={"per_page": 100})
+        memberships: list[Any] = list(resp)
+        next_link = get_next_link(resp)
+        while next_link:
+            resp = self.get(next_link)
+            memberships.extend(resp)
+            next_link = get_next_link(resp)
+        return memberships
 
 
 class GithubProxyClient(IntegrationProxyClient):
