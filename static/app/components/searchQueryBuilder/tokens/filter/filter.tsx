@@ -83,7 +83,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
                 {formatFilterValue({token: item.value!})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
-                <FilterValueOr> or </FilterValueOr>
+                <FilterValueOr>{token.negated ? ' and ' : ' or '}</FilterValueOr>
               ) : null}
             </Fragment>
           ))}
