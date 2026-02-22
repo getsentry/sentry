@@ -55,8 +55,8 @@ class TestLabelQuery(APITestCase):
             ],
             where=[
                 Condition(Column("project_id"), Op.EQ, self.project.id),
-                Condition(Column("timestamp"), Op.GTE, before_now(days=3)),
-                Condition(Column("timestamp"), Op.LT, before_now(hours=12)),
+                Condition(Column("timestamp"), Op.GTE, before_now(days=30)),
+                Condition(Column("timestamp"), Op.LT, before_now(days=0)),
                 Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
             ],
             orderby=[OrderBy(Column("timestamp"), Direction.ASC)],
