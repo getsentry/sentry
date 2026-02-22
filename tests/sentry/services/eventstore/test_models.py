@@ -17,7 +17,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba
@@ -205,6 +205,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event.group is None
         assert event.culprit == "app/components/events/eventEntries in map"
 
+    @freeze_time()
     def test_snuba_data(self) -> None:
         self.store_event(
             data={
@@ -212,7 +213,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Hello World!",
                 "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
                 "user": {"id": "test", "email": "test@test.com"},
-                "timestamp": before_now(seconds=1).isoformat(),
+                "timestamp": before_now(seconds=1).replace(microsecond=0).isoformat(),
             },
             project_id=self.project.id,
         )
