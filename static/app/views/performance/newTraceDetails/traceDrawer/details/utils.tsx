@@ -280,9 +280,11 @@ export function parseJsonWithFix(value: string): {
   }
 }
 
+export type TraceIssueSeverityClassName = Level | 'occurrence' | 'default';
+
 export function getTraceIssueSeverityClassName(
   issue: TraceTree.TraceIssue
-): Level | 'occurrence' {
+): TraceIssueSeverityClassName {
   const level = issue.level;
 
   if (issue.event_type === 'error') {

@@ -1,28 +1,35 @@
 import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 
-import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {
+  getTraceIssueSeverityClassName,
+  type TraceIssueSeverityClassName,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+
+const TRACE_ISSUE_SEVERITY_RANK: Record<TraceIssueSeverityClassName, number> = {
+  fatal: 0,
+  error: 1,
+  warning: 2,
+  info: 3,
+  occurrence: 4,
+  default: 5,
+  unknown: 6,
+  sample: 7,
+};
 
 function getMaxIssueSeverity(
   errors: TraceTree.TraceErrorIssue[],
   occurrences: TraceTree.TraceOccurrence[]
 ) {
   const issues = [...errors, ...occurrences];
-  return issues.reduce((acc, issue) => {
+  return issues.reduce<TraceIssueSeverityClassName>((acc, issue) => {
     const severity = getTraceIssueSeverityClassName(issue);
-    if (severity === 'fatal') {
-      return 'fatal';
-    }
-    if (severity === 'error') {
-      return acc === 'fatal' ? 'fatal' : 'error';
-    }
-    if (severity === 'warning' || severity === 'occurrence') {
-      return acc === 'fatal' || acc === 'error' ? acc : severity;
-    }
-    return acc;
+    return TRACE_ISSUE_SEVERITY_RANK[severity] < TRACE_ISSUE_SEVERITY_RANK[acc]
+      ? severity
+      : acc;
   }, 'default');
 }
 
