@@ -48,7 +48,7 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
         for i in range(len(config["team_table"])):
             seen_keys[team_table[i]["integration_key"]] = i
 
-        all_projects = Project.objects.filter(organization_id=organization_id)
+        all_projects = Project.objects.filter(organization_id=organization_id).order_by("id")
         plugin = OpsGeniePlugin()
         opsgenie_projects = [
             p
