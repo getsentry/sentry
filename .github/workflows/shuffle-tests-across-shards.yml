@@ -20,7 +20,7 @@ jobs:
   backend-test:
     name: run backend tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 120
     permissions:
       contents: read
       issues: write
