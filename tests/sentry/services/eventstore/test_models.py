@@ -205,6 +205,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event.group is None
         assert event.culprit == "app/components/events/eventEntries in map"
 
+    @freeze_time()
     def test_snuba_data(self) -> None:
         self.store_event(
             data={
@@ -212,9 +213,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Hello World!",
                 "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
                 "user": {"id": "test", "email": "test@test.com"},
-                # Use a timestamp well in the past and at second precision to avoid
-                # flakiness from EventDict re-normalization adjusting timestamps near now()
-                "timestamp": before_now(minutes=1).replace(microsecond=0).isoformat(),
+                "timestamp": before_now(seconds=1).replace(microsecond=0).isoformat(),
             },
             project_id=self.project.id,
         )
