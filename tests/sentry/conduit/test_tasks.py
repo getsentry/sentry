@@ -13,6 +13,7 @@ from sentry_protos.conduit.v1alpha.publish_pb2 import Phase, PublishRequest
 from sentry.conduit.tasks import (
     NUM_DELTAS,
     PUBLISH_REQUEST_MAX_RETRIES,
+    SEND_INTERVAL_SECONDS,
     generate_jwt,
     get_timestamp,
     publish_data,
@@ -271,7 +272,10 @@ class StreamDemoDataTest(TestCase):
         stream_demo_data(org_id=org_id, channel_id=channel_id)
 
         assert len(responses.calls) == NUM_DELTAS + 2
-        assert mock_sleep.call_count == NUM_DELTAS
+        send_interval_sleeps = [
+            c for c in mock_sleep.call_args_list if c.args == (SEND_INTERVAL_SECONDS,)
+        ]
+        assert len(send_interval_sleeps) == NUM_DELTAS
 
     @responses.activate
     @override_settings(
