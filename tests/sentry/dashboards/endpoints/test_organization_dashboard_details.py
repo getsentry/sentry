@@ -2632,16 +2632,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 403
 
     def test_all_users_can_edit_dashboard_with_edit_permissions_disabled(self) -> None:
-        self.create_user(id=12333)
+        creator = self.create_user()
         dashboard = Dashboard.objects.create(
-            id=67,
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=creator.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=dashboard)
 
-        user = self.create_user(id=3456)
+        user = self.create_user()
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
 
