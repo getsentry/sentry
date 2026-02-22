@@ -40,18 +40,32 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
             "dateClosed": None,
         }
 
+    @staticmethod
+    def _sort_triggers(incident: dict) -> dict:
+        """Sort triggers by label for order-independent comparison."""
+        incident = dict(incident)
+        incident["alertRule"] = dict(incident["alertRule"])
+        incident["alertRule"]["triggers"] = sorted(
+            incident["alertRule"]["triggers"], key=lambda t: t["label"]
+        )
+        return incident
+
     def test_simple(self) -> None:
         serialized_incident = serialize(
             self.group_open_period, self.user, WorkflowEngineIncidentSerializer()
         )
-        assert serialized_incident == self.incident_expected
+        assert self._sort_triggers(serialized_incident) == self._sort_triggers(
+            self.incident_expected
+        )
 
     def test_detailed(self) -> None:
         serialized_incident = serialize(
             self.group_open_period, self.user, WorkflowEngineDetailedIncidentSerializer()
         )
         self.incident_expected["discoverQuery"] = "(event.type:error) AND (level:error)"
-        assert serialized_incident == self.incident_expected
+        assert self._sort_triggers(serialized_incident) == self._sort_triggers(
+            self.incident_expected
+        )
 
     def test_no_incident(self) -> None:
         """
