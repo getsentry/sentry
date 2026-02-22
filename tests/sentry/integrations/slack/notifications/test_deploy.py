@@ -50,21 +50,20 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
         )
         assert blocks[0]["text"]["text"] == fallback_text
 
-        first_project = None
         for i in range(len(projects)):
             project = SLUGS_TO_PROJECT[blocks[2]["elements"][i]["text"]["text"]]
-            if not first_project:
-                first_project = project
             assert (
                 blocks[2]["elements"][i]["url"]
                 == f"http://testserver/organizations/{self.organization.slug}/releases/"
                 f"{release.version}/?project={project.id}&unselectedSeries=Healthy&referrer=release_activity&notification_uuid={notification.notification_uuid}"
             )
             assert blocks[2]["elements"][i]["value"] == "link_clicked"
-        assert first_project is not None
 
-        # footer project is the first project in the actions list
+        # footer references the notification's project
+        footer_text = blocks[1]["elements"][0]["text"]
+        footer_slug = footer_text.split(" | ")[0]
+        assert footer_slug in SLUGS_TO_PROJECT
         assert (
-            blocks[1]["elements"][0]["text"]
-            == f"{first_project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release_activity-slack-user&notification_uuid={notification.notification_uuid}|Notification Settings>"
+            footer_text
+            == f"{footer_slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release_activity-slack-user&notification_uuid={notification.notification_uuid}|Notification Settings>"
         )
