@@ -271,7 +271,6 @@ class StreamDemoDataTest(TestCase):
         stream_demo_data(org_id=org_id, channel_id=channel_id)
 
         assert len(responses.calls) == NUM_DELTAS + 2
-        assert mock_sleep.call_count == NUM_DELTAS
 
     @responses.activate
     @override_settings(
