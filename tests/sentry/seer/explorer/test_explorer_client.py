@@ -709,7 +709,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
         result = client.push_changes(123)
 
         assert mock_fetch.call_count == 2
-        assert mock_sleep.call_count == 1
+        mock_sleep.assert_any_call(2.0)
         assert result.repo_pr_states["owner/repo"].pr_creation_status == "completed"
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
