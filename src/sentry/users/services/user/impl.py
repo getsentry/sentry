@@ -230,7 +230,7 @@ class DatabaseBackedUserService(UserService):
         email: str,
         ident: str | None = None,
     ) -> RpcUser | None:
-        user_query = User.objects.filter(email__iexact=email, is_active=True)
+        user_query = User.objects.filter(email__iexact=email, is_active=True).order_by("id")
         if user_query.exists():
             # Users are not supposed to have the same email but right now our auth pipeline let this happen
             # So let's not break the user experience. Instead return the user with auth identity of ident or
