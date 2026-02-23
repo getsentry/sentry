@@ -71,7 +71,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
         with assume_test_silo_mode(SiloMode.REGION):
-            repos = Repository.objects.all()
+            repos = Repository.objects.all().order_by("name")
         assert len(repos) == 2
 
         for repo in repos:
