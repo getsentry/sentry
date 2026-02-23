@@ -247,7 +247,7 @@ class TracesExecutor:
         # We only do this on the first page, since if there are enough results to paginate the sampling is likely not an
         # issue
         if len(self.snuba_params.projects) < len(all_projects) and self.offset == 0:
-            selected_project_request = self.get_traces_rpc(self.snuba_params.projects)
+            selected_project_request = self.get_traces_rpc(list(self.snuba_params.projects))
             with ThreadPoolExecutor(
                 thread_name_prefix=__name__, max_workers=2
             ) as query_thread_pool:
@@ -274,6 +274,7 @@ class TracesExecutor:
             elif self.sort == "-timestamp":
                 traces.sort(key=lambda x: x["start"])
                 traces.reverse()
+            traces = traces[: self.limit]
         else:
             all_project_response = get_traces_rpc(all_project_request)
             traces = [
