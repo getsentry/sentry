@@ -221,9 +221,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
 
         base_artifact = self._get_base_artifact(request, project, head_artifact)
         if base_artifact:
-            comparisons = build_comparison_data(
-                project.id, head_artifact, base_artifact, size_metrics
-            )
+            comparisons = build_comparison_data(base_artifact, size_metrics)
             if comparisons:
                 response_data["base_build_id"] = str(base_artifact.id)
                 response_data["base_app_info"] = create_app_info_dict(base_artifact)

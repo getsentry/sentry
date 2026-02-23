@@ -175,8 +175,6 @@ def create_git_info_dict(artifact: PreprodArtifact) -> GitInfoResponseDict | Non
 
 
 def build_comparison_data(
-    project_id: int,
-    head_artifact: PreprodArtifact,
     base_artifact: PreprodArtifact,
     head_size_metrics: list[PreprodArtifactSizeMetrics],
 ) -> list[ComparisonResponseDict] | None:
