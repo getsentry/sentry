@@ -27,8 +27,6 @@ export {
 } from './styles';
 
 export type {
-  SearchConfig,
-  SearchMatchResult,
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
   SelectSectionWithKey,
