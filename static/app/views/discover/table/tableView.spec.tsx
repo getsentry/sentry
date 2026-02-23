@@ -86,7 +86,7 @@ describe('TableView > CellActions', () => {
     const firstRow = screen.getAllByRole('row')[1]!;
     const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex]!;
 
-    await userEvent.click(within(emptyValueCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(within(emptyValueCell).getByLabelText('Actions'));
   }
 
   beforeEach(() => {

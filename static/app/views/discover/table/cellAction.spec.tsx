@@ -83,13 +83,13 @@ describe('Discover -> CellAction', () => {
   const view = EventView.fromLocation(location);
 
   async function openMenu() {
-    await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+    await userEvent.click(screen.getByLabelText('Actions'));
   }
 
   describe('hover menu button', () => {
     it('shows no menu by default', () => {
       renderComponent({eventView: view});
-      expect(screen.getByRole('button', {name: 'Actions'})).toBeInTheDocument();
+      expect(screen.getByLabelText('Actions')).toBeInTheDocument();
     });
   });
 
@@ -386,7 +386,7 @@ describe('Discover -> CellAction', () => {
           'percentile(measurements.fcp, 0.5)': null,
         },
       });
-      expect(screen.queryByRole('button', {name: 'Actions'})).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Actions')).not.toBeInTheDocument();
     });
   });
 });
