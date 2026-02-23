@@ -7,7 +7,7 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.scm.actions import SourceCodeManager
 from sentry.scm.errors import SCMCodedError, SCMProviderException
-from sentry.scm.types import ReactionResult, Repository
+from sentry.scm.types import ActionResult, ReactionResult, Repository
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 
@@ -75,7 +75,7 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     ("get_pull_request_files", {"pull_request_id": "1"}),
     ("get_pull_request_commits", {"pull_request_id": "1"}),
     ("get_pull_request_diff", {"pull_request_id": "1"}),
-    ("list_pull_requests", {}),
+    ("get_pull_requests", {}),
     ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
     ("update_pull_request", {"pull_request_id": "1"}),
     ("request_review", {"pull_request_id": "1", "reviewers": ["user1"]}),
@@ -173,215 +173,238 @@ def make_scm():
 
 def _check_issue_comments(result: Any) -> None:
     assert len(result) == 1
-    assert result[0]["comment"]["id"] == "101"
-    assert result[0]["comment"]["body"] == "Test comment"
-    assert result[0]["comment"]["author"]["username"] == "testuser"
+    assert result[0]["data"]["id"] == "101"
+    assert result[0]["data"]["body"] == "Test comment"
+    assert result[0]["data"]["author"]["username"] == "testuser"
 
 
 def _check_pull_request(result: Any) -> None:
-    pr = result["pull_request"]
-    assert pr["id"] == 42
+    pr = result["data"]
+    assert pr["id"] == "42"
     assert pr["number"] == 1
     assert pr["title"] == "Test PR"
     assert pr["head"]["sha"] == "abc123"
     assert pr["head"]["ref"] == "feature-branch"
     assert pr["base"]["sha"] == "def456"
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_pull_request_comments(result: Any) -> None:
     assert len(result) == 1
-    assert result[0]["comment"]["id"] == "201"
-    assert result[0]["comment"]["body"] == "PR review comment"
-    assert result[0]["comment"]["author"]["username"] == "reviewer"
+    assert result[0]["data"]["id"] == "201"
+    assert result[0]["data"]["body"] == "PR review comment"
+    assert result[0]["data"]["author"]["username"] == "reviewer"
 
 
 def _check_comment_reactions(result: Any) -> None:
     assert len(result) == 2
-    assert result[0]["id"] == "1"
-    assert result[0]["content"] == "+1"
-    assert result[1]["id"] == "2"
-    assert result[1]["content"] == "eyes"
+    assert result[0]["data"]["id"] == "1"
+    assert result[0]["data"]["content"] == "+1"
+    assert result[1]["data"]["id"] == "2"
+    assert result[1]["data"]["content"] == "eyes"
 
 
 def _check_pr_comment_reactions(result: Any) -> None:
     assert len(result) == 2
-    assert result[0]["id"] == "3"
-    assert result[0]["content"] == "rocket"
-    assert result[1]["id"] == "4"
-    assert result[1]["content"] == "hooray"
+    assert result[0]["data"]["id"] == "3"
+    assert result[0]["data"]["content"] == "rocket"
+    assert result[1]["data"]["id"] == "4"
+    assert result[1]["data"]["content"] == "hooray"
 
 
 def _check_issue_reactions(result: Any) -> None:
     assert len(result) == 2
-    assert result[0]["id"] == "1"
-    assert result[0]["content"] == "+1"
-    assert result[0]["author"]["username"] == "testuser"
-    assert result[1]["id"] == "2"
-    assert result[1]["content"] == "heart"
-    assert result[1]["author"]["username"] == "otheruser"
+    assert result[0]["data"]["id"] == "1"
+    assert result[0]["data"]["content"] == "+1"
+    assert result[0]["data"]["author"]["username"] == "testuser"
+    assert result[1]["data"]["id"] == "2"
+    assert result[1]["data"]["content"] == "heart"
+    assert result[1]["data"]["author"]["username"] == "otheruser"
 
 
 def _check_pr_reactions(result: Any) -> None:
     assert len(result) == 2
-    assert result[0]["id"] == "5"
-    assert result[0]["content"] == "laugh"
-    assert result[0]["author"]["username"] == "testuser"
-    assert result[1]["id"] == "6"
-    assert result[1]["content"] == "confused"
-    assert result[1]["author"]["username"] == "otheruser"
+    assert result[0]["data"]["id"] == "5"
+    assert result[0]["data"]["content"] == "laugh"
+    assert result[0]["data"]["author"]["username"] == "testuser"
+    assert result[1]["data"]["id"] == "6"
+    assert result[1]["data"]["content"] == "confused"
+    assert result[1]["data"]["author"]["username"] == "otheruser"
 
 
 def _check_get_branch(result: Any) -> None:
-    assert result["git_ref"]["ref"] == "refs/heads/main"
-    assert result["git_ref"]["sha"] == "abc123def456"
-    assert result["provider"] == "github"
+    assert result["data"]["ref"] == "refs/heads/main"
+    assert result["data"]["sha"] == "abc123def456"
+    assert result["type"] == "github"
 
 
 def _check_create_branch(result: Any) -> None:
-    assert result["git_ref"]["ref"] == "refs/heads/feature"
-    assert result["git_ref"]["sha"] == "abc123"
-    assert result["provider"] == "github"
+    assert result["data"]["ref"] == "refs/heads/feature"
+    assert result["data"]["sha"] == "abc123"
+    assert result["type"] == "github"
 
 
 def _check_create_git_blob(result: Any) -> None:
-    assert result["git_blob"]["sha"] == "blob123abc"
-    assert result["provider"] == "github"
+    assert result["data"]["sha"] == "blob123abc"
+    assert result["type"] == "github"
 
 
 def _check_file_content(result: Any) -> None:
-    fc = result["file_content"]
+    fc = result["data"]
     assert fc["path"] == "README.md"
     assert fc["content"] == "SGVsbG8gV29ybGQ="
     assert fc["encoding"] == "base64"
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_get_commit(result: Any) -> None:
-    c = result["commit"]
+    c = result["data"]
     assert c["sha"] == "abc123"
     assert c["message"] == "Fix bug"
     assert c["author"]["name"] == "Test User"
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_get_commits(result: Any) -> None:
     assert len(result) == 1
-    assert result[0]["commit"]["sha"] == "abc123"
-    assert result[0]["provider"] == "github"
+    assert result[0]["data"]["sha"] == "abc123"
+    assert result[0]["type"] == "github"
 
 
 def _check_compare_commits(result: Any) -> None:
-    assert result["comparison"]["ahead_by"] == 3
-    assert result["comparison"]["behind_by"] == 1
-    assert result["provider"] == "github"
+    assert result["data"]["ahead_by"] == 3
+    assert result["data"]["behind_by"] == 1
+    assert result["type"] == "github"
 
 
 def _check_get_tree(result: Any) -> None:
-    gt = result["git_tree"]
+    gt = result["data"]
     assert len(gt["tree"]) == 1
     assert gt["tree"][0]["path"] == "src/main.py"
     assert gt["truncated"] is False
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_get_git_commit(result: Any) -> None:
-    gc = result["git_commit"]
+    gc = result["data"]
     assert gc["sha"] == "abc123"
     assert gc["tree"]["sha"] == "tree456"
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_create_git_tree(result: Any) -> None:
-    gt = result["git_tree"]
+    gt = result["data"]
     assert len(gt["tree"]) == 1
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_create_git_commit(result: Any) -> None:
-    gc = result["git_commit"]
+    gc = result["data"]
     assert gc["sha"] == "newcommit123"
     assert gc["message"] == "msg"
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_pr_files(result: Any) -> None:
-    assert len(result["files"]) == 1
-    assert result["files"][0]["filename"] == "src/main.py"
-    assert result["provider"] == "github"
+    assert len(result) == 1
+    assert result[0]["data"]["filename"] == "src/main.py"
+    assert result[0]["type"] == "github"
 
 
 def _check_pr_commits(result: Any) -> None:
-    assert len(result["commits"]) == 1
-    assert result["commits"][0]["sha"] == "commit123"
-    assert result["commits"][0]["message"] == "Fix bug"
-    assert result["provider"] == "github"
+    assert len(result) == 1
+    assert result[0]["data"]["sha"] == "commit123"
+    assert result[0]["data"]["message"] == "Fix bug"
+    assert result[0]["type"] == "github"
 
 
 def _check_pr_diff(result: Any) -> None:
-    assert "diff --git" in result["diff"]
-    assert result["provider"] == "github"
+    assert "diff --git" in result["data"]
+    assert result["type"] == "github"
 
 
 def _check_list_pull_requests(result: Any) -> None:
     assert len(result) == 1
-    assert result[0]["pull_request"]["number"] == 1
-    assert result[0]["provider"] == "github"
+    assert result[0]["data"]["number"] == 1
+    assert result[0]["type"] == "github"
 
 
 def _check_create_pull_request(result: Any) -> None:
-    pr = result["pull_request"]
+    pr = result["data"]
     assert pr["title"] == "T"
     assert pr["body"] == "B"
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_update_pull_request(result: Any) -> None:
-    pr = result["pull_request"]
+    pr = result["data"]
     assert pr["title"] == "Test PR"
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_none(result: Any) -> None:
     assert result is None
 
 
+def _check_created_comment(result: Any) -> None:
+    comment = result["data"]
+    assert comment["id"] == "101"
+    assert result["type"] == "github"
+
+
+def _check_created_pr_comment(result: Any) -> None:
+    comment = result["data"]
+    assert comment["id"] == "201"
+    assert result["type"] == "github"
+
+
+def _check_created_reaction(result: Any) -> None:
+    reaction = result["data"]
+    assert reaction["id"] == "1"
+    assert reaction["content"] == "eyes"
+    assert result["type"] == "github"
+
+
 def _check_review_comment(result: Any) -> None:
-    rc = result["review_comment"]
-    assert rc["id"] == 100
+    rc = result["data"]
+    assert rc["id"] == "100"
     assert rc["path"] == "f.py"
     assert rc["body"] == "comment"
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_review(result: Any) -> None:
-    r = result["review"]
-    assert r["id"] == 200
-    assert result["provider"] == "github"
+    r = result["data"]
+    assert r["id"] == "200"
+    assert result["type"] == "github"
 
 
 def _check_create_check_run(result: Any) -> None:
-    cr = result["check_run"]
+    cr = result["data"]
     assert cr["name"] == "check"
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_get_check_run(result: Any) -> None:
-    cr = result["check_run"]
-    assert cr["id"] == 300
+    cr = result["data"]
+    assert cr["id"] == "300"
     assert cr["status"] == "completed"
-    assert result["provider"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_update_check_run(result: Any) -> None:
-    cr = result["check_run"]
-    assert cr["id"] == 300
-    assert result["provider"] == "github"
+    cr = result["data"]
+    assert cr["id"] == "300"
+    assert result["type"] == "github"
 
 
 ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]], ...] = (
     (SourceCodeManager.get_issue_comments, {"issue_id": "1"}, _check_issue_comments),
-    (SourceCodeManager.create_issue_comment, {"issue_id": "1", "body": "test"}, _check_none),
+    (
+        SourceCodeManager.create_issue_comment,
+        {"issue_id": "1", "body": "test"},
+        _check_created_comment,
+    ),
     (SourceCodeManager.delete_issue_comment, {"comment_id": "1"}, _check_none),
     (SourceCodeManager.get_pull_request, {"pull_request_id": "1"}, _check_pull_request),
     (
@@ -392,14 +415,14 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (
         SourceCodeManager.create_pull_request_comment,
         {"pull_request_id": "1", "body": "test"},
-        _check_none,
+        _check_created_pr_comment,
     ),
     (SourceCodeManager.delete_pull_request_comment, {"comment_id": "1"}, _check_none),
     (SourceCodeManager.get_issue_comment_reactions, {"comment_id": "1"}, _check_comment_reactions),
     (
         SourceCodeManager.create_issue_comment_reaction,
         {"comment_id": "1", "reaction": "eyes"},
-        _check_none,
+        _check_created_reaction,
     ),
     (
         SourceCodeManager.delete_issue_comment_reaction,
@@ -414,7 +437,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (
         SourceCodeManager.create_pull_request_comment_reaction,
         {"comment_id": "1", "reaction": "eyes"},
-        _check_none,
+        _check_created_reaction,
     ),
     (
         SourceCodeManager.delete_pull_request_comment_reaction,
@@ -422,7 +445,11 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         _check_none,
     ),
     (SourceCodeManager.get_issue_reactions, {"issue_id": "1"}, _check_issue_reactions),
-    (SourceCodeManager.create_issue_reaction, {"issue_id": "1", "reaction": "eyes"}, _check_none),
+    (
+        SourceCodeManager.create_issue_reaction,
+        {"issue_id": "1", "reaction": "eyes"},
+        _check_created_reaction,
+    ),
     (SourceCodeManager.delete_issue_reaction, {"issue_id": "1", "reaction_id": "456"}, _check_none),
     (
         SourceCodeManager.get_pull_request_reactions,
@@ -432,7 +459,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (
         SourceCodeManager.create_pull_request_reaction,
         {"pull_request_id": "1", "reaction": "eyes"},
-        _check_none,
+        _check_created_reaction,
     ),
     (
         SourceCodeManager.delete_pull_request_reaction,
@@ -470,7 +497,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (SourceCodeManager.get_pull_request_files, {"pull_request_id": "1"}, _check_pr_files),
     (SourceCodeManager.get_pull_request_commits, {"pull_request_id": "1"}, _check_pr_commits),
     (SourceCodeManager.get_pull_request_diff, {"pull_request_id": "1"}, _check_pr_diff),
-    (SourceCodeManager.list_pull_requests, {}, _check_list_pull_requests),
+    (SourceCodeManager.get_pull_requests, {}, _check_list_pull_requests),
     (
         SourceCodeManager.create_pull_request,
         {"title": "T", "body": "B", "head": "h", "base": "b"},
@@ -566,9 +593,7 @@ def test_provider_exception_is_not_wrapped():
     """SCMProviderException should pass through exec_provider_fn, not be wrapped as SCMUnhandledException."""
 
     class FailingProvider(BaseTestProvider):
-        def get_issue_reactions(
-            self, repository: Repository, issue_id: str
-        ) -> list[ReactionResult]:
+        def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]:
             raise SCMProviderException("GitHub API error")
 
     scm = SourceCodeManager(

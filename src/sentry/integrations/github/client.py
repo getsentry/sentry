@@ -65,7 +65,7 @@ query GetPullRequestComments(
                     id
                     body
                     isMinimized
-                    author { login __typename }
+                    author { login databaseId __typename }
                 }
                 pageInfo { hasNextPage endCursor }
             }
@@ -92,7 +92,7 @@ query GetPullRequestComments(
                                 nodes { content }
                                 totalCount
                             }
-                            author { login __typename }
+                            author { login databaseId __typename }
                         }
                     }
                 }

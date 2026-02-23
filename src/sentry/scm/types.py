@@ -6,10 +6,99 @@ type EventType = "CheckRunEvent" | "CommentEvent" | "PullRequestEvent"
 type EventTypeHint = Literal["check_run", "comment", "pull_request"]
 type ExternalId = str
 type HybridCloudSilo = Literal["control", "region"]
+
 type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
+"""The SCM provider that owns an integration or repository."""
+
+type ResourceId = str
+"""An opaque provider-assigned identifier for a resource (pull request, review, check run, etc.).
+
+Represented as a string to accommodate providers that use non-integer IDs (e.g. GitLab uses
+integers but Bitbucket uses UUIDs). Callers should treat this as opaque and not assume numeric
+ordering or format.
+"""
+
 type Reaction = Literal["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"]
+"""Normalized reaction identifiers shared across all SCM providers."""
+
 type Referrer = Literal["emerge", "shared"]
+"""
+Identifies the caller so providers can apply per-referrer rate-limit policies and emit metrics
+scoped by referrer.
+"""
+
 type RepositoryId = int | tuple[ProviderName, ExternalId]
+"""A repository can be identified by its internal DB id or by a (provider, external_id) pair."""
+
+type FileStatus = Literal[
+    "added", "removed", "modified", "renamed", "copied", "changed", "unchanged", "unknown"
+]
+"""The change type applied to a file in a commit or pull request.
+
+- added: file was created
+- removed: file was deleted
+- modified: file contents changed
+- renamed: file was moved; see previous_filename for the old path
+- copied: file was duplicated from another path
+- changed: file metadata changed without content change (e.g. mode)
+- unchanged: file appears in the diff context but was not modified
+- unknown: file status could not be positively identified
+"""
+
+type BuildStatus = Literal["pending", "running", "completed"]
+"""The lifecycle stage of a CI build.
+
+- pending: created or queued but not yet running
+- running: actively executing
+- completed: finished; see BuildConclusion for the outcome
+"""
+
+type BuildConclusion = Literal[
+    "success",
+    "failure",
+    "cancelled",
+    "skipped",
+    "timed_out",
+    "neutral",
+    "action_required",
+    "unknown",
+]
+"""The terminal outcome of a completed build.
+
+- success: all checks passed
+- failure: one or more checks failed
+- cancelled: stopped before completion
+- skipped: deliberately bypassed
+- timed_out: exceeded the time limit
+- neutral: completed without a pass/fail determination
+- action_required: requires manual intervention before proceeding
+- unknown: outcome could not be determined
+"""
+
+type TreeEntryMode = Literal["100644", "100755", "040000", "160000", "120000"]
+"""UNIX file mode for a git tree entry, as stored in a git tree object.
+
+- 100644: regular file (non-executable)
+- 100755: executable file
+- 040000: directory (subtree)
+- 160000: git submodule (gitlink)
+- 120000: symbolic link
+"""
+
+type TreeEntryType = Literal["blob", "tree", "commit"]
+"""The object type stored at a git tree entry.
+
+- blob: a file
+- tree: a directory (subtree)
+- commit: a submodule reference
+"""
+
+type ReviewSide = Literal["LEFT", "RIGHT"]
+"""Which side of a diff a review comment is anchored to.
+
+- LEFT: the base (original) side of the diff
+- RIGHT: the head (modified) side of the diff
+"""
 
 
 class Author(TypedDict):
@@ -25,19 +114,6 @@ class Comment(TypedDict):
     id: str
     body: str | None
     author: Author | None
-
-
-class CommentActionResult(TypedDict):
-    """Wraps a Comment with provider metadata and the original API response.
-
-    ActionResult types pair a normalized domain object with the provider name
-    and the raw API payload. This lets callers work with a stable interface
-    while still having access to provider-specific fields when needed.
-    """
-
-    comment: Comment
-    provider: ProviderName
-    raw: dict[str, Any]
 
 
 class ReactionResult(TypedDict):
@@ -58,11 +134,11 @@ class PullRequestBranch(TypedDict):
 class PullRequest(TypedDict):
     """Provider-agnostic representation of a pull request."""
 
-    id: int
+    id: ResourceId
     number: int
     title: str
     body: str | None
-    state: str
+    state: Literal["open", "closed"]
     merged: bool
     url: str
     html_url: str
@@ -70,16 +146,16 @@ class PullRequest(TypedDict):
     base: PullRequestBranch
 
 
-class PullRequestActionResult(TypedDict):
-    """Wraps a PullRequest with provider metadata and the original API response.
+class ActionResult[T](TypedDict):
+    """Wraps a provider response with metadata and the original API payload.
 
-    ActionResult types pair a normalized domain object with the provider name
-    and the raw API payload. This lets callers work with a stable interface
-    while still having access to provider-specific fields when needed.
+    Pairs a normalized domain object with the provider name and raw API
+    payload. This lets callers work with a stable interface while still
+    having access to provider-specific fields when needed.
     """
 
-    pull_request: PullRequest
-    provider: ProviderName
+    data: T
+    type: ProviderName
     raw: dict[str, Any]
 
 
@@ -99,20 +175,8 @@ class GitRef(TypedDict):
     sha: str
 
 
-class GitRefActionResult(TypedDict):
-    git_ref: GitRef
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class GitBlob(TypedDict):
     sha: str
-
-
-class GitBlobActionResult(TypedDict):
-    git_blob: GitBlob
-    provider: ProviderName
-    raw: dict[str, Any]
 
 
 class FileContent(TypedDict):
@@ -123,12 +187,6 @@ class FileContent(TypedDict):
     size: int
 
 
-class FileContentActionResult(TypedDict):
-    file_content: FileContent
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class CommitAuthor(TypedDict):
     name: str
     email: str
@@ -137,7 +195,7 @@ class CommitAuthor(TypedDict):
 
 class CommitFile(TypedDict):
     filename: str
-    status: str
+    status: FileStatus
     patch: str | None
 
 
@@ -148,47 +206,29 @@ class Commit(TypedDict):
     files: list[CommitFile]
 
 
-class CommitActionResult(TypedDict):
-    commit: Commit
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class CommitComparison(TypedDict):
     ahead_by: int
     behind_by: int
 
 
-class CommitComparisonActionResult(TypedDict):
-    comparison: CommitComparison
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class TreeEntry(TypedDict):
     path: str
-    mode: str
-    type: str
+    mode: TreeEntryMode
+    type: TreeEntryType
     sha: str
     size: int | None
 
 
 class InputTreeEntry(TypedDict):
     path: str
-    mode: str
-    type: str
+    mode: TreeEntryMode
+    type: TreeEntryType
     sha: str | None  # None for deletions
 
 
 class GitTree(TypedDict):
     tree: list[TreeEntry]
     truncated: bool
-
-
-class GitTreeActionResult(TypedDict):
-    git_tree: GitTree
-    provider: ProviderName
-    raw: dict[str, Any]
 
 
 class GitCommitTree(TypedDict):
@@ -201,25 +241,13 @@ class GitCommitObject(TypedDict):
     message: str
 
 
-class GitCommitObjectActionResult(TypedDict):
-    git_commit: GitCommitObject
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class PullRequestFile(TypedDict):
     filename: str
-    status: str
+    status: FileStatus
     patch: str | None
     changes: int
     sha: str
     previous_filename: str | None
-
-
-class PullRequestFileActionResult(TypedDict):
-    files: list[PullRequestFile]
-    provider: ProviderName
-    raw: list[dict[str, Any]]
 
 
 class PullRequestCommit(TypedDict):
@@ -228,54 +256,31 @@ class PullRequestCommit(TypedDict):
     author: CommitAuthor | None
 
 
-class PullRequestCommitActionResult(TypedDict):
-    commits: list[PullRequestCommit]
-    provider: ProviderName
-    raw: list[dict[str, Any]]
-
-
-class PullRequestDiffActionResult(TypedDict):
-    diff: str
-    provider: ProviderName
-
-
 class ReviewCommentInput(TypedDict, total=False):
     """Input for an inline comment within a batch review."""
 
     path: Required[str]
     body: Required[str]
     line: int
-    side: str  # "LEFT" or "RIGHT"
+    side: ReviewSide
     start_line: int
-    start_side: str  # "LEFT" or "RIGHT"
+    start_side: ReviewSide
 
 
 class ReviewComment(TypedDict):
     """Provider-agnostic representation of a review comment."""
 
-    id: int
+    id: ResourceId
     html_url: str
     path: str
     body: str
 
 
-class ReviewCommentActionResult(TypedDict):
-    review_comment: ReviewComment
-    provider: ProviderName
-    raw: dict[str, Any]
-
-
 class Review(TypedDict):
     """Provider-agnostic representation of a pull request review."""
 
-    id: int
+    id: ResourceId
     html_url: str
-
-
-class ReviewActionResult(TypedDict):
-    review: Review
-    provider: ProviderName
-    raw: dict[str, Any]
 
 
 class CheckRunOutput(TypedDict, total=False):
@@ -289,17 +294,11 @@ class CheckRunOutput(TypedDict, total=False):
 class CheckRun(TypedDict):
     """Provider-agnostic representation of a check run."""
 
-    id: int
+    id: ResourceId
     name: str
-    status: str  # "queued", "in_progress", "completed"
-    conclusion: str | None  # "success", "failure", "neutral", etc.
+    status: BuildStatus
+    conclusion: BuildConclusion | None
     html_url: str
-
-
-class CheckRunActionResult(TypedDict):
-    check_run: CheckRun
-    provider: ProviderName
-    raw: dict[str, Any]
 
 
 class Provider(Protocol):
@@ -313,258 +312,173 @@ class Provider(Protocol):
     of behaviors which may or may not be explicitly defined on a service-provider.
     """
 
+    repository: Repository
+
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
 
-    def get_pull_request(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestActionResult: ...
+    def get_pull_request(self, pull_request_id: str) -> ActionResult[PullRequest]: ...
 
-    def get_issue_comments(
-        self, repository: Repository, issue_id: str
-    ) -> list[CommentActionResult]: ...
+    def get_issue_comments(self, issue_id: str) -> list[ActionResult[Comment]]: ...
 
-    def create_issue_comment(self, repository: Repository, issue_id: str, body: str) -> None: ...
+    def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]: ...
 
-    def delete_issue_comment(self, repository: Repository, comment_id: str) -> None: ...
+    def delete_issue_comment(self, comment_id: str) -> None: ...
 
-    def get_pull_request_comments(
-        self, repository: Repository, pull_request_id: str
-    ) -> list[CommentActionResult]: ...
+    def get_pull_request_comments(self, pull_request_id: str) -> list[ActionResult[Comment]]: ...
 
     def create_pull_request_comment(
-        self, repository: Repository, pull_request_id: str, body: str
-    ) -> None: ...
+        self, pull_request_id: str, body: str
+    ) -> ActionResult[Comment]: ...
 
-    def delete_pull_request_comment(self, repository: Repository, comment_id: str) -> None: ...
+    def delete_pull_request_comment(self, comment_id: str) -> None: ...
 
     def get_issue_comment_reactions(
-        self, repository: Repository, comment_id: str
-    ) -> list[ReactionResult]: ...
+        self, comment_id: str
+    ) -> list[ActionResult[ReactionResult]]: ...
 
     def create_issue_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction: Reaction
-    ) -> None: ...
+        self, comment_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]: ...
 
-    def delete_issue_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction_id: str
-    ) -> None: ...
+    def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None: ...
 
     def get_pull_request_comment_reactions(
-        self, repository: Repository, comment_id: str
-    ) -> list[ReactionResult]: ...
+        self, comment_id: str
+    ) -> list[ActionResult[ReactionResult]]: ...
 
     def create_pull_request_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction: Reaction
-    ) -> None: ...
+        self, comment_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]: ...
 
-    def delete_pull_request_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction_id: str
-    ) -> None: ...
+    def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None: ...
 
-    def get_issue_reactions(
-        self, repository: Repository, issue_id: str
-    ) -> list[ReactionResult]: ...
+    def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]: ...
 
     def create_issue_reaction(
-        self, repository: Repository, issue_id: str, reaction: Reaction
-    ) -> None: ...
+        self, issue_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]: ...
 
-    def delete_issue_reaction(
-        self, repository: Repository, issue_id: str, reaction: Reaction
-    ) -> None: ...
+    def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None: ...
 
     def get_pull_request_reactions(
-        self, repository: Repository, pull_request_id: str
-    ) -> list[ReactionResult]: ...
+        self, pull_request_id: str
+    ) -> list[ActionResult[ReactionResult]]: ...
 
     def create_pull_request_reaction(
-        self, repository: Repository, pull_request_id: str, reaction: Reaction
-    ) -> None: ...
+        self, pull_request_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]: ...
 
-    def delete_pull_request_reaction(
-        self, repository: Repository, pull_request_id: str, reaction_id: str
-    ) -> None: ...
+    def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None: ...
 
-    # Branch operations
+    def get_branch(self, branch: str) -> ActionResult[GitRef]: ...
 
-    def get_branch(self, repository: Repository, branch: str) -> GitRefActionResult: ...
+    def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]: ...
 
-    def create_branch(
-        self, repository: Repository, branch: str, sha: str
-    ) -> GitRefActionResult: ...
+    def update_branch(self, branch: str, sha: str, force: bool = False) -> None: ...
 
-    def update_branch(
-        self, repository: Repository, branch: str, sha: str, force: bool = False
-    ) -> None: ...
+    def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]: ...
 
-    # Git blob operations
+    def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]: ...
 
-    def create_git_blob(
-        self, repository: Repository, content: str, encoding: str
-    ) -> GitBlobActionResult: ...
-
-    # File content operations
-
-    def get_file_content(
-        self, repository: Repository, path: str, ref: str | None = None
-    ) -> FileContentActionResult: ...
-
-    # Commit operations
-
-    def get_commit(self, repository: Repository, sha: str) -> CommitActionResult: ...
+    def get_commit(self, sha: str) -> ActionResult[Commit]: ...
 
     def get_commits(
-        self,
-        repository: Repository,
-        *,
-        sha: str | None = None,
-        path: str | None = None,
-    ) -> list[CommitActionResult]: ...
+        self, sha: str | None = None, path: str | None = None
+    ) -> list[ActionResult[Commit]]: ...
 
-    def compare_commits(
-        self, repository: Repository, start_sha: str, end_sha: str
-    ) -> CommitComparisonActionResult: ...
+    def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]: ...
 
-    # Git data operations
+    def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]: ...
 
-    def get_tree(
-        self, repository: Repository, tree_sha: str, *, recursive: bool = True
-    ) -> GitTreeActionResult: ...
-
-    def get_git_commit(self, repository: Repository, sha: str) -> GitCommitObjectActionResult: ...
+    def get_git_commit(self, sha: str) -> ActionResult[GitCommitObject]: ...
 
     def create_git_tree(
-        self,
-        repository: Repository,
-        tree: list[InputTreeEntry],
-        *,
-        base_tree: str | None = None,
-    ) -> GitTreeActionResult: ...
+        self, tree: list[InputTreeEntry], base_tree: str | None = None
+    ) -> ActionResult[GitTree]: ...
 
     def create_git_commit(
-        self,
-        repository: Repository,
-        message: str,
-        tree_sha: str,
-        parent_shas: list[str],
-    ) -> GitCommitObjectActionResult: ...
-
-    # Expanded pull request operations
+        self, message: str, tree_sha: str, parent_shas: list[str]
+    ) -> ActionResult[GitCommitObject]: ...
 
     def get_pull_request_files(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestFileActionResult: ...
+        self, pull_request_id: str
+    ) -> list[ActionResult[PullRequestFile]]: ...
 
     def get_pull_request_commits(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestCommitActionResult: ...
+        self, pull_request_id: str
+    ) -> list[ActionResult[PullRequestCommit]]: ...
 
-    def get_pull_request_diff(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestDiffActionResult: ...
+    def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]: ...
 
-    def list_pull_requests(
-        self, repository: Repository, state: str = "open", head: str | None = None
-    ) -> list[PullRequestActionResult]: ...
+    def get_pull_requests(
+        self, state: str = "open", head: str | None = None
+    ) -> list[ActionResult[PullRequest]]: ...
 
     def create_pull_request(
         self,
-        repository: Repository,
         title: str,
         body: str,
         head: str,
         base: str,
-        *,
         draft: bool = False,
-    ) -> PullRequestActionResult: ...
+    ) -> ActionResult[PullRequest]: ...
 
     def update_pull_request(
         self,
-        repository: Repository,
         pull_request_id: str,
-        *,
         title: str | None = None,
         body: str | None = None,
         state: str | None = None,
-    ) -> PullRequestActionResult: ...
+    ) -> ActionResult[PullRequest]: ...
 
-    def request_review(
-        self, repository: Repository, pull_request_id: str, reviewers: list[str]
-    ) -> None: ...
-
-    # Review operations
+    def request_review(self, pull_request_id: str, reviewers: list[str]) -> None: ...
 
     def create_review_comment(
         self,
-        repository: Repository,
         pull_request_id: str,
         body: str,
         commit_sha: str,
         path: str,
-        *,
         line: int | None = None,
-        side: str | None = None,
+        side: ReviewSide | None = None,
         start_line: int | None = None,
-        start_side: str | None = None,
-    ) -> ReviewCommentActionResult: ...
+        start_side: ReviewSide | None = None,
+    ) -> ActionResult[ReviewComment]: ...
 
     def create_review(
         self,
-        repository: Repository,
         pull_request_id: str,
         commit_sha: str,
         event: str,
         comments: list[ReviewCommentInput],
-        *,
         body: str | None = None,
-    ) -> ReviewActionResult: ...
-
-    # Check run operations
+    ) -> ActionResult[Review]: ...
 
     def create_check_run(
         self,
-        repository: Repository,
         name: str,
         head_sha: str,
-        *,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
         output: CheckRunOutput | None = None,
-    ) -> CheckRunActionResult: ...
+    ) -> ActionResult[CheckRun]: ...
 
-    def get_check_run(
-        self,
-        repository: Repository,
-        check_run_id: str,
-    ) -> CheckRunActionResult: ...
+    def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]: ...
 
     def update_check_run(
         self,
-        repository: Repository,
         check_run_id: str,
-        *,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         output: CheckRunOutput | None = None,
-    ) -> CheckRunActionResult: ...
+    ) -> ActionResult[CheckRun]: ...
 
-    # GraphQL operations
+    def minimize_comment(self, comment_node_id: str, reason: str) -> None: ...
 
-    def minimize_comment(
-        self,
-        repository: Repository,
-        comment_node_id: str,
-        reason: str,
-    ) -> None: ...
-
-    def resolve_review_thread(
-        self,
-        repository: Repository,
-        thread_node_id: str,
-    ) -> None: ...
+    def resolve_review_thread(self, thread_node_id: str) -> None: ...
 
 
 class SubscriptionEvent(TypedDict):
