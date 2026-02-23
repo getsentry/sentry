@@ -294,7 +294,7 @@ describe('uptimeSavedDetectorToFormData', () => {
 
     expect(formData.assertion).toMatchObject({
       root: {
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [],
         id: expect.any(String),
       },
@@ -320,7 +320,7 @@ describe('uptimeSavedDetectorToFormData', () => {
       // null would cause a crash in getValue when accessing value.root.children.length
       assertion: {
         root: {
-          op: OpType.AND,
+          op: UptimeOpType.AND,
           children: [],
           id: expect.any(String),
         },
