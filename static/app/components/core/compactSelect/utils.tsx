@@ -111,12 +111,16 @@ export function getDisabledOptions<Value extends SelectKey>(
 export function getHiddenOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   search: string,
-  limit = Infinity
+  limit = Infinity,
+  searchMatcher?: (option: SelectOptionWithKey<Value>, search: string) => boolean
 ): Set<SelectKey> {
   //
   // First, filter options using `search` value
   //
-  const filterOption = (opt: SelectOption<Value>) => {
+  const filterOption = (opt: SelectOptionWithKey<Value>) => {
+    if (searchMatcher) {
+      return searchMatcher(opt, search);
+    }
     // Build search string: use textValue if provided, otherwise use label only if it's a string
     const searchableText =
       opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');

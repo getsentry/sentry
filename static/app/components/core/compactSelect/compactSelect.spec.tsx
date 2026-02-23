@@ -448,6 +448,118 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
+    it('restores full list when search query is cleared', async () => {
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // type 'Two' to filter to one option
+      await userEvent.keyboard('Two');
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+      // clear the search query — all options should return
+      await userEvent.clear(screen.getByPlaceholderText('Search here…'));
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+    });
+
+    it('resets search query and shows all options when menu is closed and reopened', async () => {
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      // open the menu and filter results
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Two');
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+      // close the menu by clicking outside
+      await userEvent.click(document.body);
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('option', {name: 'Option Two'})
+        ).not.toBeInTheDocument();
+      });
+
+      // reopen the menu — search input should be empty and all options visible
+      await userEvent.click(screen.getByRole('button'));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search here…')).toHaveValue('');
+      });
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+    });
+
+    it('uses custom searchMatcher when provided', async () => {
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          searchMatcher={(option, search) => String(option.value).endsWith(search)}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // '_one' matches opt_one by value suffix, opt_two does not match
+      await userEvent.keyboard('_one');
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
+    });
+
+    it('uses string.includes for default search matching', async () => {
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // 'ption On' is a mid-string substring of 'Option One' — only includes() catches it
+      await userEvent.keyboard('ption On');
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
+    });
+
     it('can search with sections', async () => {
       render(
         <CompactSelect
@@ -835,6 +947,96 @@ describe('CompactSelect', () => {
       await userEvent.keyboard('Two');
 
       // only Option Two should be available, Option One should be filtered out
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('restores full list when search query is cleared', async () => {
+      render(
+        <CompactSelect
+          grid
+          searchable
+          searchPlaceholder="Search here…"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // type 'Two' to filter to one option
+      await userEvent.keyboard('Two');
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+
+      // clear the search query — all options should return
+      await userEvent.clear(screen.getByPlaceholderText('Search here…'));
+      expect(screen.getByRole('row', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+    });
+
+    it('resets search query and shows all options when menu is closed and reopened', async () => {
+      render(
+        <CompactSelect
+          grid
+          searchable
+          searchPlaceholder="Search here…"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      // open the menu and filter results
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Two');
+      expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+
+      // close the menu by clicking outside
+      await userEvent.click(document.body);
+      await waitFor(() => {
+        expect(screen.queryByRole('row', {name: 'Option Two'})).not.toBeInTheDocument();
+      });
+
+      // reopen the menu — search input should be empty and all options visible
+      await userEvent.click(screen.getByRole('button'));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search here…')).toHaveValue('');
+      });
+      expect(screen.getByRole('row', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+    });
+
+    it('uses custom searchMatcher when provided', async () => {
+      render(
+        <CompactSelect
+          grid
+          searchable
+          searchPlaceholder="Search here…"
+          searchMatcher={(option, search) => String(option.value).endsWith(search)}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // '_two' matches opt_two by value suffix, opt_one does not match
+      await userEvent.keyboard('_two');
       expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
     });

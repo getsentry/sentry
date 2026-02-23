@@ -33,7 +33,7 @@ import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
-import type {SelectKey, SelectOptionOrSection} from './types';
+import type {SelectKey, SelectOptionOrSection, SelectOptionWithKey} from './types';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
@@ -65,6 +65,10 @@ interface ControlContextValue {
    * selector.
    */
   overlayState?: OverlayTriggerState;
+  /**
+   * Custom function to determine whether an option matches the search query.
+   */
+  searchMatcher?: (option: SelectOptionWithKey<SelectKey>, search: string) => boolean;
   size?: FormSize;
 }
 
@@ -174,6 +178,13 @@ export interface ControlProps
    */
   onSearch?: (value: string) => void;
   /**
+   * Custom function to determine whether an option matches the search query (applicable
+   * only when `searchable` is true). Receives the option and the current search string,
+   * and should return true if the option matches. If not provided, defaults to
+   * case-insensitive substring matching on `textValue` or `label`.
+   */
+  searchMatcher?: (option: SelectOptionWithKey<SelectKey>, search: string) => boolean;
+  /**
    * The search input's placeholder text (applicable only when `searchable` is true).
    */
   searchPlaceholder?: string;
@@ -231,6 +242,7 @@ export function Control({
   searchPlaceholder = 'Search…',
   disableSearchFilter = false,
   onSearch,
+  searchMatcher,
   clearable = false,
   onClear,
   loading = false,
@@ -466,8 +478,9 @@ export function Control({
       searchable,
       size,
       disabled,
+      searchMatcher,
     };
-  }, [overlayState, overlayIsOpen, search, searchable, size, disabled]);
+  }, [overlayState, overlayIsOpen, search, searchable, size, disabled, searchMatcher]);
 
   const theme = useTheme();
 
