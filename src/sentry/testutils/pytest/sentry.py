@@ -459,10 +459,15 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     newsletter.backend.test_only__downcast_to(DummyNewsletter).clear()
 
+    from redis.exceptions import ConnectionError as RedisConnectionError
+
     from sentry.utils.redis import clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
+    try:
+        with clusters.get("default").all() as client:
+            client.flushdb()
+    except RedisConnectionError:
+        pass
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption
