@@ -1,3 +1,4 @@
+import functools
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, cast
@@ -103,6 +104,17 @@ REACTION_MAP = {
 REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
 
 
+def catch_provider_exception(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+
+    return wrapper
+
+
 class GitHubProvider:
     def __init__(self, client: GitHubApiClient, repository: Repository) -> None:
         self.client = client
@@ -119,97 +131,74 @@ class GitHubProvider:
             allocation_policy=REFERRER_ALLOCATION,
         )
 
+    @catch_provider_exception
     def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]:
-        try:
-            raw_comments = self.client.get_issue_comments(self.repository["name"], issue_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw_comments = self.client.get_issue_comments(self.repository["name"], issue_id)
         return ActionResult(
             data=[map_comment(c) for c in raw_comments],
             type="github",
             raw=raw_comments,
         )
 
+    @catch_provider_exception
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
-        try:
-            raw = self.client.create_comment(self.repository["name"], issue_id, {"body": body})
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_comment(self.repository["name"], issue_id, {"body": body})
         return map_action(raw, map_comment)
 
+    @catch_provider_exception
     def delete_issue_comment(self, comment_id: str) -> None:
-        try:
-            self.client.delete_issue_comment(self.repository["name"], comment_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        self.client.delete_issue_comment(self.repository["name"], comment_id)
 
+    @catch_provider_exception
     def get_pull_request(self, pull_request_id: str) -> ActionResult[PullRequest]:
-        try:
-            raw = self.client.get_pull_request(self.repository["name"], pull_request_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.get_pull_request(self.repository["name"], pull_request_id)
         return map_action(raw, map_pull_request)
 
+    @catch_provider_exception
     def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]:
         owner, repo = self.repository["name"].split("/", 1)
-        try:
-            raw = self.client.get_pull_request_comments_graphql(
-                owner,
-                repo,
-                int(pull_request_id),
-            )
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.get_pull_request_comments_graphql(
+            owner,
+            repo,
+            int(pull_request_id),
+        )
         return ActionResult(
             data=map_graphql_pr_comments(raw),
             type="github",
             raw=raw,
         )
 
+    @catch_provider_exception
     def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
-        try:
-            raw = self.client.create_comment(
-                self.repository["name"], pull_request_id, {"body": body}
-            )
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_comment(self.repository["name"], pull_request_id, {"body": body})
         return map_action(raw, map_comment)
 
+    @catch_provider_exception
     def delete_pull_request_comment(self, comment_id: str) -> None:
-        try:
-            self.client.delete_issue_comment(self.repository["name"], comment_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        self.client.delete_issue_comment(self.repository["name"], comment_id)
 
+    @catch_provider_exception
     def get_issue_comment_reactions(self, comment_id: str) -> ActionResult[list[ReactionResult]]:
-        try:
-            raw_reactions = self.client.get_comment_reactions(self.repository["name"], comment_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
-
+        raw_reactions = self.client.get_comment_reactions(self.repository["name"], comment_id)
         return ActionResult(
             data=[map_reaction(r) for r in raw_reactions],
             type="github",
             raw={"items": raw_reactions},
         )
 
+    @catch_provider_exception
     def create_issue_comment_reaction(
         self, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]:
         github_reaction = REACTION_MAP[reaction]
-        try:
-            raw = self.client.create_comment_reaction(
-                self.repository["name"], comment_id, github_reaction
-            )
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_comment_reaction(
+            self.repository["name"], comment_id, github_reaction
+        )
         return map_action(raw, map_reaction)
 
+    @catch_provider_exception
     def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
-        try:
-            self.client.delete_comment_reaction(self.repository["name"], comment_id, reaction_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        self.client.delete_comment_reaction(self.repository["name"], comment_id, reaction_id)
 
     def get_pull_request_comment_reactions(
         self, comment_id: str
@@ -224,35 +213,26 @@ class GitHubProvider:
     def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
         return self.delete_issue_comment_reaction(comment_id, reaction_id)
 
+    @catch_provider_exception
     def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
-        try:
-            raw_reactions = self.client.get_issue_reactions(self.repository["name"], issue_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
-
+        raw_reactions = self.client.get_issue_reactions(self.repository["name"], issue_id)
         return ActionResult(
             data=[map_reaction(r) for r in raw_reactions],
             type="github",
             raw={"items": raw_reactions},
         )
 
+    @catch_provider_exception
     def create_issue_reaction(
         self, issue_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]:
         github_reaction = REACTION_MAP[reaction]
-        try:
-            raw = self.client.create_issue_reaction(
-                self.repository["name"], issue_id, github_reaction
-            )
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_issue_reaction(self.repository["name"], issue_id, github_reaction)
         return map_action(raw, map_reaction)
 
+    @catch_provider_exception
     def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None:
-        try:
-            self.client.delete_issue_reaction(self.repository["name"], issue_id, reaction_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        self.client.delete_issue_reaction(self.repository["name"], issue_id, reaction_id)
 
     def get_pull_request_reactions(
         self, pull_request_id: str
@@ -267,99 +247,67 @@ class GitHubProvider:
     def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None:
         return self.delete_issue_reaction(pull_request_id, reaction_id)
 
-    # Branch operations
-
+    @catch_provider_exception
     def get_branch(self, branch: str) -> ActionResult[GitRef]:
-        try:
-            raw = self.client.get_branch(self.repository["name"], branch)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.get_branch(self.repository["name"], branch)
         return map_action(raw, map_git_ref)
 
+    @catch_provider_exception
     def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]:
-        try:
-            raw = self.client.create_git_ref(
-                self.repository["name"], {"ref": f"refs/heads/{branch}", "sha": sha}
-            )
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_git_ref(
+            self.repository["name"], {"ref": f"refs/heads/{branch}", "sha": sha}
+        )
         return map_action(raw, map_git_ref)
 
+    @catch_provider_exception
     def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
-        try:
-            self.client.update_git_ref(
-                self.repository["name"], branch, {"sha": sha, "force": force}
-            )
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        self.client.update_git_ref(self.repository["name"], branch, {"sha": sha, "force": force})
 
-    # Git blob operations
-
+    @catch_provider_exception
     def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]:
         data: dict[str, Any] = {"content": content, "encoding": encoding}
-        try:
-            raw = self.client.create_git_blob(self.repository["name"], data)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_git_blob(self.repository["name"], data)
         return map_action(raw, map_git_blob)
 
-    # File content operations
-
+    @catch_provider_exception
     def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]:
-        try:
-            raw = self.client.get_file_content(self.repository["name"], path, ref)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.get_file_content(self.repository["name"], path, ref)
         return map_action(raw, map_file_content)
 
-    # Commit operations
-
+    @catch_provider_exception
     def get_commit(self, sha: str) -> ActionResult[Commit]:
-        try:
-            raw = self.client.get_commit(self.repository["name"], sha)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.get_commit(self.repository["name"], sha)
         return map_action(raw, map_commit)
 
+    @catch_provider_exception
     def get_commits(
         self,
         sha: str | None = None,
         path: str | None = None,
     ) -> ActionResult[list[Commit]]:
-        try:
-            raw_commits = self.client.get_commits(self.repository["name"], sha=sha, path=path)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
-
+        raw_commits = self.client.get_commits(self.repository["name"], sha=sha, path=path)
         return ActionResult(
             data=[map_commit(c) for c in raw_commits],
             type="github",
             raw={"items": raw_commits},
         )
 
+    @catch_provider_exception
     def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
-        try:
-            raw = self.client.compare_commits(self.repository["name"], start_sha, end_sha)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.compare_commits(self.repository["name"], start_sha, end_sha)
         return map_action(raw, map_commit_comparison)  # type: ignore[arg-type]
 
-    # Git data operations
-
+    @catch_provider_exception
     def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]:
-        try:
-            raw = self.client.get_tree_full(self.repository["name"], tree_sha, recursive=recursive)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.get_tree_full(self.repository["name"], tree_sha, recursive=recursive)
         return map_action(raw, map_git_tree)
 
+    @catch_provider_exception
     def get_git_commit(self, sha: str) -> ActionResult[GitCommitObject]:
-        try:
-            raw = self.client.get_git_commit(self.repository["name"], sha)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.get_git_commit(self.repository["name"], sha)
         return map_action(raw, map_git_commit_object)
 
+    @catch_provider_exception
     def create_git_tree(
         self,
         tree: list[InputTreeEntry],
@@ -368,12 +316,10 @@ class GitHubProvider:
         data: dict[str, Any] = {"tree": tree}
         if base_tree is not None:
             data["base_tree"] = base_tree
-        try:
-            raw = self.client.create_git_tree(self.repository["name"], data)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_git_tree(self.repository["name"], data)
         return map_action(raw, map_git_tree)
 
+    @catch_provider_exception
     def create_git_commit(
         self,
         message: str,
@@ -385,64 +331,50 @@ class GitHubProvider:
             "tree": tree_sha,
             "parents": parent_shas,
         }
-        try:
-            raw = self.client.create_git_commit(self.repository["name"], data)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_git_commit(self.repository["name"], data)
         return map_action(raw, map_git_commit_object)
 
-    # Expanded pull request operations
-
+    @catch_provider_exception
     def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
-        try:
-            raw_files = self.client.get_pull_request_files(self.repository["name"], pull_request_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw_files = self.client.get_pull_request_files(self.repository["name"], pull_request_id)
         return ActionResult(
             data=[map_pull_request_file(f) for f in raw_files],
             type="github",
             raw=raw_files,
         )
 
+    @catch_provider_exception
     def get_pull_request_commits(
         self, pull_request_id: str
     ) -> ActionResult[list[PullRequestCommit]]:
-        try:
-            raw_commits = self.client.get_pull_request_commits(
-                self.repository["name"], pull_request_id
-            )
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw_commits = self.client.get_pull_request_commits(self.repository["name"], pull_request_id)
         return ActionResult(
             data=[map_pull_request_commit(c) for c in raw_commits],
             type="github",
             raw=raw_commits,
         )
 
+    @catch_provider_exception
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
-        try:
-            resp = self.client.get_pull_request_diff(self.repository["name"], pull_request_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        resp = self.client.get_pull_request_diff(self.repository["name"], pull_request_id)
         return ActionResult(
             data=resp.text,
             type="github",
             raw={},
         )
 
+    @catch_provider_exception
     def get_pull_requests(
         self, state: str = "open", head: str | None = None
     ) -> ActionResult[list[PullRequest]]:
-        try:
-            raw_prs = self.client.list_pull_requests(self.repository["name"], state, head)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw_prs = self.client.list_pull_requests(self.repository["name"], state, head)
         return ActionResult(
             data=[map_pull_request(pr) for pr in raw_prs],
             type="github",
             raw=raw_prs,
         )
 
+    @catch_provider_exception
     def create_pull_request(
         self,
         title: str,
@@ -458,12 +390,10 @@ class GitHubProvider:
             "base": base,
             "draft": draft,
         }
-        try:
-            raw = self.client.create_pull_request(self.repository["name"], data)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_pull_request(self.repository["name"], data)
         return map_action(raw, map_pull_request)
 
+    @catch_provider_exception
     def update_pull_request(
         self,
         pull_request_id: str,
@@ -478,22 +408,16 @@ class GitHubProvider:
             data["body"] = body
         if state is not None:
             data["state"] = state
-        try:
-            raw = self.client.update_pull_request(self.repository["name"], pull_request_id, data)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.update_pull_request(self.repository["name"], pull_request_id, data)
         return map_action(raw, map_pull_request)
 
+    @catch_provider_exception
     def request_review(self, pull_request_id: str, reviewers: list[str]) -> None:
-        try:
-            self.client.create_review_request(
-                self.repository["name"], pull_request_id, {"reviewers": reviewers}
-            )
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        self.client.create_review_request(
+            self.repository["name"], pull_request_id, {"reviewers": reviewers}
+        )
 
-    # Review operations
-
+    @catch_provider_exception
     def create_review_comment(
         self,
         pull_request_id: str,
@@ -518,12 +442,10 @@ class GitHubProvider:
             data["start_line"] = start_line
         if start_side is not None:
             data["start_side"] = start_side
-        try:
-            raw = self.client.create_review_comment(self.repository["name"], pull_request_id, data)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_review_comment(self.repository["name"], pull_request_id, data)
         return map_action(raw, map_review_comment)
 
+    @catch_provider_exception
     def create_review(
         self,
         pull_request_id: str,
@@ -539,14 +461,10 @@ class GitHubProvider:
         }
         if body is not None:
             data["body"] = body
-        try:
-            raw = self.client.create_review(self.repository["name"], pull_request_id, data)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_review(self.repository["name"], pull_request_id, data)
         return map_action(raw, map_review)
 
-    # Check run operations
-
+    @catch_provider_exception
     def create_check_run(
         self,
         name: str,
@@ -574,19 +492,15 @@ class GitHubProvider:
             data["completed_at"] = completed_at
         if output is not None:
             data["output"] = output
-        try:
-            raw = self.client.create_check_run(self.repository["name"], data)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.create_check_run(self.repository["name"], data)
         return map_action(raw, map_check_run)
 
+    @catch_provider_exception
     def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]:
-        try:
-            raw = self.client.get_check_run(self.repository["name"], int(check_run_id))
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.get_check_run(self.repository["name"], int(check_run_id))
         return map_action(raw, map_check_run)
 
+    @catch_provider_exception
     def update_check_run(
         self,
         check_run_id: str,
@@ -601,25 +515,16 @@ class GitHubProvider:
             data["conclusion"] = GITHUB_CONCLUSION_WRITE_MAP[conclusion]
         if output is not None:
             data["output"] = output
-        try:
-            raw = self.client.update_check_run(self.repository["name"], check_run_id, data)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        raw = self.client.update_check_run(self.repository["name"], check_run_id, data)
         return map_action(raw, map_check_run)
 
-    # GraphQL mutation operations
-
+    @catch_provider_exception
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
-        try:
-            self.client.minimize_comment(comment_node_id, reason)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        self.client.minimize_comment(comment_node_id, reason)
 
+    @catch_provider_exception
     def resolve_review_thread(self, thread_node_id: str) -> None:
-        try:
-            self.client.resolve_review_thread(thread_node_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e
+        self.client.resolve_review_thread(thread_node_id)
 
 
 def map_author(raw_user: dict[str, Any] | None) -> Author | None:
