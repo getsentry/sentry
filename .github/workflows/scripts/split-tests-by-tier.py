@@ -15,22 +15,29 @@ Tiers:
 
 Sharding (--shards N --output-dir DIR):
   When --shards is specified, the selected tier's scopes are split into N
-  balanced shards using a greedy LPT (Longest Processing Time) algorithm,
-  using test count per scope as a proxy for duration. Each shard is written
-  to {output-dir}/shard-{i}.txt. Without --shards, a single file is written
-  to --output (or stdout).
+  balanced shards. If --durations is provided, uses worker-simulated LPT
+  (Longest Processing Time) which minimises max(worker wallclock) across the
+  N xdist workers inside each shard. Without --durations, falls back to
+  equal weights (test count per scope). Each shard is written to
+  {output-dir}/shard-{i}.txt.
+
+  --workers controls the assumed number of xdist workers per shard (default 3).
+  Set to 4 for tier1 (runs with -n 4), 3 for tier2 (runs with -n 3).
 
 Usage:
     python split-tests-by-tier.py --classification report.json --tier tier1 --output tier1.txt
     python split-tests-by-tier.py --classification report.json --summary
     python split-tests-by-tier.py --classification report.json --tier tier2 \\
-        --shards 17 --output-dir /tmp/tier2-shards/
+        --shards 17 --output-dir /tmp/tier2-shards/ --durations /tmp/test-durations.json --workers 3
+    python split-tests-by-tier.py --classification report.json --tier tier1 \\
+        --shards 5 --output-dir /tmp/tier1-shards/ --durations /tmp/test-durations.json --workers 4
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import statistics
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -76,10 +83,35 @@ def split(classification: dict, granularity: str = "file") -> dict[str, set[str]
     return {"tier1": tier1, "tier2": tier2}
 
 
+def load_durations(path: str, granularity: str) -> dict[str, float]:
+    """Load merged durations JSON and aggregate to the requested granularity.
+
+    The durations file (from merge-test-durations.py) is keyed at
+    file::class scope. We aggregate up to whatever granularity the caller
+    needs: file → sum all classes in the file; class → keep as-is;
+    test → not directly supported (class-level data is the finest available).
+    """
+    with open(path) as f:
+        raw: dict[str, float] = json.load(f)
+
+    aggregated: dict[str, float] = defaultdict(float)
+    for raw_key, duration in raw.items():
+        if granularity == "file":
+            key = raw_key.split("::")[0]
+        elif granularity == "class":
+            parts = raw_key.split("::")
+            key = "::".join(parts[:2]) if len(parts) >= 2 else raw_key
+        else:
+            key = raw_key
+        aggregated[key] += duration
+
+    return dict(aggregated)
+
+
 def _count_tests_per_scope(
     classification: dict, scopes: set[str], granularity: str
 ) -> dict[str, int]:
-    """Count the number of tests in each scope for LPT weight estimation."""
+    """Count the number of tests in each scope for fallback weight estimation."""
     counts: dict[str, int] = defaultdict(int)
     for test_id in classification.get("tests", {}):
         scope = _scope_key(test_id, granularity)
@@ -88,29 +120,70 @@ def _count_tests_per_scope(
     return counts
 
 
-def lpt_shard(scopes: set[str], n_shards: int, weights: dict[str, int]) -> list[list[str]]:
-    """Greedy LPT (Longest Processing Time) assignment of scopes to n_shards.
+def worker_lpt_shard(
+    scopes: set[str],
+    n_shards: int,
+    n_workers: int,
+    durations: dict[str, float],
+    default_duration: float,
+) -> list[list[str]]:
+    """Worker-simulated LPT: assign scopes to shards minimising max wallclock.
 
-    Sorts scopes by weight descending, then greedily assigns each to the
-    shard with the lowest current total weight. Minimizes the maximum shard
-    load (within a 4/3 approximation of optimal).
+    Each shard has n_workers xdist workers running in parallel (--dist=loadfile
+    dispatches whole files to workers). Shard wall-clock = max(worker loads).
+
+    Standard (flat) LPT minimises sum(loads) per shard, which is the wrong
+    objective — a shard with all its load on one worker runs no faster than a
+    shard with N balanced workers even if their totals are equal.
+
+    This variant tracks per-worker loads for each shard and picks the assignment
+    that minimises the resulting max(worker wallclock) globally.
+
+    Complexity: O(scopes × shards × workers) — trivial for our workload sizes.
+    Falls back gracefully when durations are missing (uses default_duration).
     """
-    sorted_scopes = sorted(scopes, key=lambda s: weights.get(s, 1), reverse=True)
-    shard_loads = [0] * n_shards
+    sorted_scopes = sorted(
+        scopes,
+        key=lambda s: durations.get(s, default_duration),
+        reverse=True,
+    )
+
+    # worker_loads[shard][worker] = cumulative seconds assigned so far
+    worker_loads: list[list[float]] = [[0.0] * n_workers for _ in range(n_shards)]
     shards: list[list[str]] = [[] for _ in range(n_shards)]
 
     for scope in sorted_scopes:
-        min_idx = shard_loads.index(min(shard_loads))
-        shards[min_idx].append(scope)
-        shard_loads[min_idx] += weights.get(scope, 1)
+        duration = durations.get(scope, default_duration)
+        best_shard = 0
+        best_wallclock = float("inf")
 
-    # Log shard balance to stderr for visibility in CI.
-    total = sum(shard_loads)
-    max_load = max(shard_loads)
-    min_load = min(shard_loads)
+        for s in range(n_shards):
+            # This scope would be dispatched to the lightest worker in shard s.
+            lightest = min(range(n_workers), key=lambda w: worker_loads[s][w])
+            # Predicted shard wallclock after adding this scope.
+            new_wallclock = max(
+                worker_loads[s][lightest] + duration if w == lightest else worker_loads[s][w]
+                for w in range(n_workers)
+            )
+            if new_wallclock < best_wallclock:
+                best_wallclock = new_wallclock
+                best_shard = s
+
+        lightest = min(range(n_workers), key=lambda w: worker_loads[best_shard][w])
+        worker_loads[best_shard][lightest] += duration
+        shards[best_shard].append(scope)
+
+    # Log predicted balance stats to stderr for CI visibility.
+    predicted = [max(loads) for loads in worker_loads]
+    total = sum(sum(loads) for loads in worker_loads)
+    coverage = sum(1 for s in scopes if s in durations)
     print(
-        f"[lpt] {n_shards} shards: total={total} tests, "
-        f"max={max_load}, min={min_load}, spread={max_load - min_load}",
+        f"[lpt] {n_shards} shards × {n_workers} workers: "
+        f"total={total:.0f}s, "
+        f"max_wallclock={max(predicted):.0f}s, "
+        f"min_wallclock={min(predicted):.0f}s, "
+        f"spread={max(predicted) - min(predicted):.0f}s "
+        f"({coverage}/{len(scopes)} scopes with duration data)",
         file=sys.stderr,
     )
     return shards
@@ -123,9 +196,22 @@ def main() -> int:
     parser.add_argument("--output", help="Output file (default: stdout)")
     parser.add_argument("--granularity", choices=["file", "class", "test"], default="file")
     parser.add_argument("--summary", action="store_true")
-    parser.add_argument("--shards", type=int, help="Split tier into N balanced shards (LPT)")
+    parser.add_argument("--shards", type=int, help="Split tier into N balanced shards")
     parser.add_argument(
         "--output-dir", help="Output directory for per-shard files (requires --shards)"
+    )
+    parser.add_argument(
+        "--durations",
+        help="Path to merged test durations JSON (from merge-test-durations.py). "
+        "When provided, uses worker-simulated LPT with real timings. "
+        "Without this flag, falls back to test-count weights.",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=3,
+        help="Number of xdist workers per shard (default: 3). "
+        "Used for worker-simulated LPT. Set to 4 for tier1, 3 for tier2.",
     )
     args = parser.parse_args()
 
@@ -169,10 +255,30 @@ def main() -> int:
     scopes = tiers[args.tier]
 
     if args.shards:
-        weights = _count_tests_per_scope(classification, scopes, args.granularity)
-        shards = lpt_shard(scopes, args.shards, weights)
         out_dir = Path(args.output_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
+
+        if args.durations:
+            durations = load_durations(args.durations, args.granularity)
+            # Default duration for scopes not in the map: median of known values.
+            default_dur = statistics.median(durations.values()) if durations else 1.0
+            print(
+                f"[lpt] Using duration data: {len(durations)} scopes known, "
+                f"default={default_dur:.1f}s",
+                file=sys.stderr,
+            )
+            shards = worker_lpt_shard(scopes, args.shards, args.workers, durations, default_dur)
+        else:
+            # No duration data — fall back to test-count weights.
+            print("[lpt] No duration data provided, using test-count weights", file=sys.stderr)
+            weights = _count_tests_per_scope(classification, scopes, args.granularity)
+            # Reuse worker_lpt_shard with count weights converted to floats.
+            count_durations = {s: float(w) for s, w in weights.items()}
+            default_dur = statistics.median(count_durations.values()) if count_durations else 1.0
+            shards = worker_lpt_shard(
+                scopes, args.shards, args.workers, count_durations, default_dur
+            )
+
         for i, shard_scopes in enumerate(shards):
             shard_file = out_dir / f"shard-{i}.txt"
             shard_file.write_text("\n".join(sorted(shard_scopes)) + "\n")

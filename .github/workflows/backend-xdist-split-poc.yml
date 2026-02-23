@@ -43,32 +43,56 @@ jobs:
           echo "Using classification from run $RUN_ID"
           gh run download "$RUN_ID" --name test-service-classification --dir /tmp/classification
 
+      - name: Download test durations from last successful run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Gracefully skip if no prior run exists yet (seed run).
+          RUN_ID=$(gh run list --workflow=backend-xdist-split-poc.yml --status=success \
+            --limit=1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
+          if [ -n "$RUN_ID" ]; then
+            echo "Downloading test-durations from run $RUN_ID"
+            gh run download "$RUN_ID" --name test-durations --dir /tmp/durations 2>/dev/null || true
+          fi
+          if [ -f /tmp/durations/test-durations.json ]; then
+            SCOPE_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/durations/test-durations.json')); print(len(d))")
+            echo "DURATIONS_FLAG=--durations /tmp/durations/test-durations.json" >> "$GITHUB_ENV"
+            echo "Duration data loaded ($SCOPE_COUNT scopes from run $RUN_ID)"
+          else
+            echo "DURATIONS_FLAG=" >> "$GITHUB_ENV"
+            echo "No duration data — seed run, using test-count weights"
+          fi
+
       - name: Split tests by tier
         id: split
         run: |
           SCRIPT=.github/workflows/scripts/split-tests-by-tier.py
           CLASS=/tmp/classification/test-service-classification.json
+          T1_SHARDS=5
           T2_SHARDS=17
 
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" --summary
 
+          # T1: worker-simulated LPT, n=4 workers per shard.
+          mkdir -p /tmp/tier1-shards
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
-            --tier tier1 --output /tmp/tier1-tests.txt
+            --tier tier1 --shards $T1_SHARDS --output-dir /tmp/tier1-shards \
+            --workers 4 $DURATIONS_FLAG
 
-          # T2: use LPT sharding to balance shards by test count rather than
-          # hash-based round-robin, which ignores per-file test counts.
+          # T2: worker-simulated LPT, n=3 workers per shard.
           mkdir -p /tmp/tier2-shards
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
-            --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards
+            --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards \
+            --workers 3 $DURATIONS_FLAG
 
-          echo "tier1-count=$(wc -l < /tmp/tier1-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          echo "tier1-count=$(find /tmp/tier1-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
           echo "tier2-count=$(find /tmp/tier2-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tier-file-lists
           path: |
-            /tmp/tier1-tests.txt
+            /tmp/tier1-shards/
             /tmp/tier2-shards/
           retention-days: 1
 
@@ -148,9 +172,12 @@ jobs:
 
       - name: Run tier 1 tests
         env:
-          SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
+          # LPT pre-assigns this shard's files; disable hash-based second filter.
+          SELECTED_TESTS_FILE: /tmp/tier1-shards/shard-${{ matrix.instance }}.txt
+          TOTAL_TEST_GROUPS: '1'
+          TEST_GROUP: '0'
         run: |
-          echo "=== Tier 1: $(wc -l < /tmp/tier1-tests.txt) scopes, shard ${{ matrix.instance }}/5 ==="
+          echo "=== Tier 1: $(wc -l < /tmp/tier1-shards/shard-${{ matrix.instance }}.txt) scopes, shard ${{ matrix.instance }}/5 ==="
           python3 -b -m pytest tests \
             --reuse-db \
             -n 4 \
@@ -168,6 +195,14 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: devservices logs 2>/dev/null || true
+
+      - name: Upload test report for duration merging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
+        with:
+          name: test-report-tier1-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          retention-days: 7
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
@@ -328,6 +363,14 @@ jobs:
           done
           devservices logs 2>/dev/null || true
 
+      - name: Upload test report for duration merging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
+        with:
+          name: test-report-tier2-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          retention-days: 7
+
       - name: Collect test data (tier2)
         uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() }}
@@ -338,3 +381,40 @@ jobs:
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
+
+  # ─── Merge per-shard reports into a single durations file ──────────
+  # Runs after all tier jobs complete (pass or fail). The output artifact
+  # (test-durations) is consumed by the next run's split-tiers job to
+  # drive worker-simulated LPT sharding.
+  merge-durations:
+    needs: [tier1, tier2]
+    if: always()
+    name: merge test durations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download all per-shard test reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: test-report-*
+          path: /tmp/reports/
+
+      - name: Merge durations
+        run: |
+          python3 .github/workflows/scripts/merge-test-durations.py \
+            --input-dir /tmp/reports/ \
+            --output /tmp/test-durations.json \
+            --summary
+
+      - name: Upload merged durations
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-durations
+          path: /tmp/test-durations.json
+          # Keep for 90 days so split-tiers can find it across runs.
+          retention-days: 90
