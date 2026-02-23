@@ -57,6 +57,18 @@ describe('useHasStreamlinedUI', () => {
     expect(legacyResult.current).toBe(true);
   });
 
+  it('defaults to streamlined UI when user has no preference', () => {
+    ConfigStore.init();
+    const user = UserFixture();
+    user.options.prefersIssueDetailsStreamlinedUI = null;
+    act(() => ConfigStore.set('user', user));
+
+    const {result} = renderHook(useHasStreamlinedUI, {
+      wrapper: contextWrapper(OrganizationFixture({streamlineOnly: null})),
+    });
+    expect(result.current).toBe(true);
+  });
+
   it('ignores the option if unset', () => {
     ConfigStore.init();
     const user = UserFixture();

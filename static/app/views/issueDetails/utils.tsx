@@ -287,8 +287,9 @@ export function useHasStreamlinedUI() {
     return true;
   }
 
-  // Apply the UI based on user preferences
-  return userStreamlinedUIOption ?? false;
+  // Apply the UI based on user preferences (default to streamlined UI for users
+  // who haven't explicitly set a preference, matching the previously enforced behavior)
+  return userStreamlinedUIOption ?? true;
 }
 
 export function useIsSampleEvent(): boolean {
