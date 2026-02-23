@@ -422,7 +422,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             assert set(hook.events) == set()
 
         # Update the webhook URL and events
-        with self.tasks():
+        with self.tasks(), outbox_runner():
             self.get_success_response(
                 published_app.slug,
                 webhookUrl="https://newurl.com",

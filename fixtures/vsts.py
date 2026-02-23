@@ -217,7 +217,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         assert f'<option value="{account_id}"'.encode() in response.content
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def assert_installation(self, new=False):
+    def assert_installation(self, new=False):  # noqa: FBT002 - new parameter kept for backwards compatibility
         # Initial request to the installation URL for VSTS
         resp = self.make_init_request()
         redirect = urlparse(resp["Location"])

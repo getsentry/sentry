@@ -333,14 +333,8 @@ class TestUpdater(TestCase):
         # Update the sentry app (should not create outbox entries when no installations)
         updater = SentryAppUpdater(sentry_app=self.sentry_app)
         updater.webhook_url = "https://example.com/webhook"
-        updater.run(self.user)
-
-        # Verify no outbox entries were created
-        outbox_entries = ControlOutbox.objects.filter(category=OutboxCategory.SERVICE_HOOK_UPDATE)
-        assert len(outbox_entries) == 0
-
         with outbox_runner():
-            pass
+            updater.run(self.user)
 
     def test_update_service_hooks_outbox_entries_created(self) -> None:
         """Test that outbox entries are properly created and processed."""

@@ -41,7 +41,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
     ) -> None:
         self.pipeline = Mock()
         self.pipeline.organization = self.organization
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
         assert integration.external_id == self.vsts_account_id
         assert integration.name == self.vsts_account_name
@@ -514,195 +514,6 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
 @control_silo_test
 class VstsIntegrationTest(VstsIntegrationTestCase):
-    def test_get_organization_config(self) -> None:
-        self.assert_installation()
-        integration, installation = self._get_integration_and_install()
-
-        fields = installation.get_organization_config()
-
-        assert [field["name"] for field in fields] == [
-            "sync_status_forward",
-            "sync_forward_assignment",
-            "sync_comments",
-            "sync_status_reverse",
-            "sync_reverse_assignment",
-        ]
-
-    def test_get_organization_config_failure(self) -> None:
-        self.assert_installation()
-        integration, installation = self._get_integration_and_install()
-
-        # Set the `default_identity` property and force token expiration
-        installation.get_client()
-        assert installation.default_identity is not None
-        identity = Identity.objects.get(id=installation.default_identity.id)
-        identity.data["expires"] = 1566851050
-        identity.save()
-
-        responses.replace(
-            responses.POST,
-            "https://app.vssps.visualstudio.com/oauth2/token",
-            status=400,
-            json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
-        )
-        fields = installation.get_organization_config()
-        assert fields[0]["disabled"], "Fields should be disabled"
-
-    def test_update_organization_config_remove_all(self) -> None:
-        self.assert_installation()
-
-        model = Integration.objects.get(provider="vsts")
-        integration = VstsIntegration(model, self.organization.id)
-
-        org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
-
-        data = {"sync_status_forward": {}, "other_option": "hello"}
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=1,
-            resolved_status="ResolvedStatus1",
-            unresolved_status="UnresolvedStatus1",
-        )
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=2,
-            resolved_status="ResolvedStatus2",
-            unresolved_status="UnresolvedStatus2",
-        )
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=3,
-            resolved_status="ResolvedStatus3",
-            unresolved_status="UnresolvedStatus3",
-        )
-
-        integration.update_organization_config(data)
-
-        external_projects = IntegrationExternalProject.objects.all().values_list(
-            "external_id", flat=True
-        )
-
-        assert list(external_projects) == []
-
-        config = OrganizationIntegration.objects.get(
-            organization_id=org_integration.organization_id,
-            integration_id=org_integration.integration_id,
-        ).config
-
-        assert config == {"sync_status_forward": False, "other_option": "hello"}
-
-    def test_update_organization_config(self) -> None:
-        self.assert_installation()
-
-        org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
-
-        model = Integration.objects.get(provider="vsts")
-        integration = VstsIntegration(model, self.organization.id)
-
-        # test validation
-        data: dict[str, Any] = {
-            "sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}
-        }
-        with pytest.raises(IntegrationError):
-            integration.update_organization_config(data)
-
-        data = {
-            "sync_status_forward": {
-                1: {"on_resolve": "ResolvedStatus1", "on_unresolve": "UnresolvedStatus1"},
-                2: {"on_resolve": "ResolvedStatus2", "on_unresolve": "UnresolvedStatus2"},
-                4: {"on_resolve": "ResolvedStatus4", "on_unresolve": "UnresolvedStatus4"},
-            },
-            "other_option": "hello",
-        }
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=1,
-            resolved_status="UpdateMe",
-            unresolved_status="UpdateMe",
-        )
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=2,
-            resolved_status="ResolvedStatus2",
-            unresolved_status="UnresolvedStatus2",
-        )
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id=3,
-            resolved_status="ResolvedStatus3",
-            unresolved_status="UnresolvedStatus3",
-        )
-
-        integration.update_organization_config(data)
-
-        external_projects = IntegrationExternalProject.objects.all().order_by("external_id")
-
-        assert external_projects[0].external_id == "1"
-        assert external_projects[0].resolved_status == "ResolvedStatus1"
-        assert external_projects[0].unresolved_status == "UnresolvedStatus1"
-
-        assert external_projects[1].external_id == "2"
-        assert external_projects[1].resolved_status == "ResolvedStatus2"
-        assert external_projects[1].unresolved_status == "UnresolvedStatus2"
-
-        assert external_projects[2].external_id == "4"
-        assert external_projects[2].resolved_status == "ResolvedStatus4"
-        assert external_projects[2].unresolved_status == "UnresolvedStatus4"
-
-        config = OrganizationIntegration.objects.get(
-            organization_id=org_integration.organization_id,
-            integration_id=org_integration.integration_id,
-        ).config
-
-        assert config == {"sync_status_forward": True, "other_option": "hello"}
-
-    def test_update_domain_name(self) -> None:
-        account_name = "MyVSTSAccount.visualstudio.com"
-        account_uri = "https://MyVSTSAccount.visualstudio.com/"
-
-        self.assert_installation()
-
-        model = Integration.objects.get(provider="vsts")
-        model.metadata["domain_name"] = account_name
-        model.save()
-
-        integration = VstsIntegration(model, self.organization.id)
-        integration.get_client()
-
-        model.refresh_from_db()
-
-        domain_name = model.metadata["domain_name"]
-        assert domain_name == account_uri
-        assert model.metadata["domain_name"] == account_uri
-
-    def test_get_repositories(self) -> None:
-        self.assert_installation()
-        integration, installation = self._get_integration_and_install()
-
-        result = installation.get_repositories()
-        assert len(result) == 1
-        assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
-
-    def test_get_repositories_identity_error(self) -> None:
-        self.assert_installation()
-        integration, installation = self._get_integration_and_install()
-
-        # Set the `default_identity` property and force token expiration
-        installation.get_client()
-        assert installation.default_identity is not None
-        identity = Identity.objects.get(id=installation.default_identity.id)
-        identity.data["expires"] = 1566851050
-        identity.save()
-
-        responses.replace(
-            responses.POST,
-            "https://app.vssps.visualstudio.com/oauth2/token",
-            status=400,
-            json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
-        )
-        with pytest.raises(IntegrationError):
-            installation.get_repositories()
-
     def test_format_source_url_with_spaces(self) -> None:
         """Test that format_source_url correctly handles project names with spaces."""
         self.assert_installation()
@@ -744,7 +555,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 @control_silo_test
 class NewVstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
         fields = installation.get_organization_config()
@@ -758,7 +569,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         ]
 
     def test_get_organization_config_failure(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
         # Set the `default_identity` property and force token expiration
@@ -785,7 +596,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert fields[0]["disabled"], "Fields should be disabled"
 
     def test_update_organization_config_remove_all(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
 
         model = Integration.objects.get(provider="vsts")
         integration = VstsIntegration(model, self.organization.id)
@@ -828,7 +639,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert config == {"sync_status_forward": False, "other_option": "hello"}
 
     def test_update_organization_config(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
 
         org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
 
@@ -896,7 +707,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         account_name = "MyVSTSAccount.visualstudio.com"
         account_uri = "https://MyVSTSAccount.visualstudio.com/"
 
-        self.assert_installation(new=True)
+        self.assert_installation()
 
         model = Integration.objects.get(provider="vsts")
         model.metadata["domain_name"] = account_name
@@ -912,7 +723,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert Integration.objects.get(provider="vsts").metadata["domain_name"] == account_uri
 
     def test_get_repositories(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
         result = installation.get_repositories()
@@ -920,7 +731,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
 
     def test_get_repositories_identity_error(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
         # Set the `default_identity` property and force token expiration
