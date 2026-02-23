@@ -16,6 +16,7 @@ from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
     CONDITION_GROUP_HELP_TEXT,
     DATA_SOURCES_HELP_TEXT,
@@ -89,9 +90,11 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     project_id = serializers.CharField(required=False)
 
     def validate_project_id(self, value: str) -> int:
+        project_id = to_valid_int_id("project_id", value)
+
         organization = self.context.get("organization")
         try:
-            project = Project.objects.get(id=int(value), organization=organization)
+            project = Project.objects.get(id=project_id, organization=organization)
         except Project.DoesNotExist:
             raise serializers.ValidationError("Project not in organization")
 
