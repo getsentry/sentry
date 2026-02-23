@@ -150,7 +150,7 @@ class OrgCellMappingsTest(APITestCase):
         url = reverse("sentry-api-0-org-cell-mappings")
         res = self.client.get(
             url,
-            data={"locale": "de"},
+            data={"locality": "de"},
             HTTP_AUTHORIZATION=self.auth_header(url),
         )
         assert res.status_code == 200

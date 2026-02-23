@@ -522,6 +522,8 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """An embedded watch artifact."""
         ANDROID_DYNAMIC_FEATURE = 2
         """An embedded Android dynamic feature artifact."""
+        APP_CLIP_ARTIFACT = 3
+        """An embedded App Clip artifact."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -529,6 +531,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.MAIN_ARTIFACT, "main_artifact"),
                 (cls.WATCH_ARTIFACT, "watch_artifact"),
                 (cls.ANDROID_DYNAMIC_FEATURE, "android_dynamic_feature_artifact"),
+                (cls.APP_CLIP_ARTIFACT, "app_clip_artifact"),
             )
 
     class SizeAnalysisState(IntEnum):

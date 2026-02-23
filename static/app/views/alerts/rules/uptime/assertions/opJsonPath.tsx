@@ -9,7 +9,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import {isNumericString} from 'sentry/utils';
-import type {JsonPathOp, JsonPathOperand} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  ComparisonType,
+  type JsonPathOp,
+  type JsonPathOperand,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer, STRING_OPERAND_OPTIONS} from './opCommon';
 import {
@@ -40,10 +44,14 @@ export function AssertionOpJsonPath({
   const isNumeric = isNumericString(operandValue);
 
   const comparisonOptions = COMPARISON_OPTIONS.filter(opt => {
-    if (opt.value === 'always' || opt.value === 'never') {
+    if (opt.value === ComparisonType.ALWAYS || opt.value === ComparisonType.NEVER) {
       return false;
     }
-    if (!isNumeric && (opt.value === 'less_than' || opt.value === 'greater_than')) {
+    if (
+      !isNumeric &&
+      (opt.value === ComparisonType.LESS_THAN ||
+        opt.value === ComparisonType.GREATER_THAN)
+    ) {
       return false;
     }
     return true;
@@ -58,10 +66,10 @@ export function AssertionOpJsonPath({
 
     if (
       !isNumeric &&
-      (normalizedOp.operator.cmp === 'less_than' ||
-        normalizedOp.operator.cmp === 'greater_than')
+      (normalizedOp.operator.cmp === ComparisonType.LESS_THAN ||
+        normalizedOp.operator.cmp === ComparisonType.GREATER_THAN)
     ) {
-      nextValue = {...normalizedOp, operator: {cmp: 'equals'}};
+      nextValue = {...normalizedOp, operator: {cmp: ComparisonType.EQUALS}};
     }
 
     if (isNumeric && normalizedOp.operand.jsonpath_op === 'glob') {
