@@ -12,12 +12,11 @@ from uuid import uuid4
 import pytest
 
 from sentry.search.events.types import SnubaParams
+from sentry.tasks.explorer_context_engine_tasks import build_service_map
 from sentry.tasks.explorer_service_map import (
     _build_nodes,
     _query_service_dependencies,
     _send_to_seer,
-    build_service_map,
-    schedule_service_map_builds,
 )
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -207,82 +206,6 @@ class TestQueryServiceDependenciesPhase2(TestCase):
         phase1_call_kwargs = mock_query.call_args_list[0][1]
         assert "has:parent_span" in phase1_call_kwargs["query_string"]
         assert "is_transaction:true" in phase1_call_kwargs["query_string"]
-
-
-@django_db_all
-class TestScheduleServiceMapBuilds(TestCase):
-    def test_respects_enable_flag(self):
-        org = self.create_organization()
-
-        with override_options(
-            {
-                "explorer.service_map.enable": False,
-                "explorer.service_map.allowed_organizations": [org.id],
-            }
-        ):
-            with mock.patch(
-                "sentry.tasks.explorer_service_map.build_service_map.apply_async"
-            ) as mock_task:
-                schedule_service_map_builds()
-
-        mock_task.assert_not_called()
-
-    def test_dispatches_tasks_for_allowed_orgs(self):
-        org1 = self.create_organization()
-        org2 = self.create_organization()
-        org3 = self.create_organization()
-
-        with override_options(
-            {
-                "explorer.service_map.enable": True,
-                "explorer.service_map.allowed_organizations": [org1.id, org2.id],
-            }
-        ):
-            with mock.patch(
-                "sentry.tasks.explorer_service_map.build_service_map.apply_async"
-            ) as mock_task:
-                schedule_service_map_builds()
-
-        # Should dispatch 2 tasks
-        assert mock_task.call_count == 2
-
-        # Verify correct org IDs
-        dispatched_org_ids = [call[1]["args"][0] for call in mock_task.call_args_list]
-        assert org1.id in dispatched_org_ids
-        assert org2.id in dispatched_org_ids
-        assert org3.id not in dispatched_org_ids
-
-    def test_handles_empty_allowlist(self):
-        with override_options(
-            {"explorer.service_map.enable": True, "explorer.service_map.allowed_organizations": []}
-        ):
-            with mock.patch(
-                "sentry.tasks.explorer_service_map.build_service_map.apply_async"
-            ) as mock_task:
-                schedule_service_map_builds()
-
-        mock_task.assert_not_called()
-
-    def test_continues_on_dispatch_error(self):
-        org1 = self.create_organization()
-        org2 = self.create_organization()
-
-        with override_options(
-            {
-                "explorer.service_map.enable": True,
-                "explorer.service_map.allowed_organizations": [org1.id, org2.id],
-            }
-        ):
-            with mock.patch(
-                "sentry.tasks.explorer_service_map.build_service_map.apply_async"
-            ) as mock_task:
-                # First call fails, second succeeds
-                mock_task.side_effect = [Exception("Dispatch error"), None]
-
-                schedule_service_map_builds()
-
-        # Should attempt both dispatches
-        assert mock_task.call_count == 2
 
 
 # =========================================================================================
