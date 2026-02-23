@@ -99,8 +99,8 @@ def calculate_shards(test_count: int | None) -> int:
         return DEFAULT_SHARDS
 
     if test_count == 0:
-        print(f"No tests to run, using minimum: {MIN_SHARDS}", file=sys.stderr)
-        return MIN_SHARDS
+        print("No tests to run, skipping (0 shards)", file=sys.stderr)
+        return 0
 
     if test_count > MAX_SHARDS * TESTS_PER_SHARD:
         print(
