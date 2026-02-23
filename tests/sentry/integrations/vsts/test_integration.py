@@ -18,6 +18,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
 
@@ -28,6 +29,7 @@ LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 @control_silo_test
 class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
     # Test regular install still works
+    @with_feature("organizations:migrate-azure-devops-integration")
     @patch(
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
@@ -53,6 +55,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
 
     # Test that install second time doesn't have the metadata and updates the integration object
     # Assert that the Integration object now has the migrated metadata
+    @with_feature("organizations:migrate-azure-devops-integration")
     @patch(
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
@@ -114,6 +117,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         )
 
     # Test that on reinstall of new migration, we keep the migration version
+    @with_feature("organizations:migrate-azure-devops-integration")
     @patch(
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
@@ -730,6 +734,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
 
 @control_silo_test
+@with_feature("organizations:migrate-azure-devops-integration")
 class NewVstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self) -> None:
         self.assert_installation(new=True)

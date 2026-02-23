@@ -18,6 +18,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -275,6 +276,7 @@ class TestUpdater(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
 
+    @with_feature("organizations:service-hooks-outbox")
     def test_update_service_hooks_with_outbox_feature_enabled(self) -> None:
         """Test _update_service_hooks when organizations:service-hooks-outbox feature is enabled."""
         # Create installation
@@ -317,6 +319,7 @@ class TestUpdater(TestCase):
                 "comment.updated",
             }
 
+    @with_feature("organizations:service-hooks-outbox")
     def test_update_service_hooks_no_installations(self) -> None:
         """Test _update_service_hooks when there are no installations."""
         # Ensure no installations exist
@@ -338,6 +341,7 @@ class TestUpdater(TestCase):
         with outbox_runner():
             pass
 
+    @with_feature("organizations:service-hooks-outbox")
     def test_update_service_hooks_outbox_entries_created(self) -> None:
         """Test that outbox entries are properly created and processed."""
         # Create installation

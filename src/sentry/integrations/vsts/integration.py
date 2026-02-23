@@ -451,9 +451,23 @@ class VstsIntegrationProvider(IntegrationProvider):
             )
 
     def get_scopes(self) -> Sequence[str]:
-        # This is the new way we need to pass scopes to the OAuth flow
-        # https://stackoverflow.com/questions/75729931/get-access-token-for-azure-devops-pat
-        return VstsIntegrationProvider.NEW_SCOPES
+        # TODO(ecosystem): Delete this after Azure DevOps migration is complete
+        assert self.pipeline.organization is not None
+        if features.has(
+            "organizations:migrate-azure-devops-integration", self.pipeline.organization
+        ):
+            logger.info(
+                "vsts.get_scopes.new_scopes",
+                extra={"organization_id": self.pipeline.organization.id},
+            )
+            # This is the new way we need to pass scopes to the OAuth flow
+            # https://stackoverflow.com/questions/75729931/get-access-token-for-azure-devops-pat
+            return VstsIntegrationProvider.NEW_SCOPES
+        logger.info(
+            "vsts.get_scopes.old_scopes",
+            extra={"organization_id": self.pipeline.organization.id},
+        )
+        return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         identity_pipeline_config = {
@@ -510,7 +524,13 @@ class VstsIntegrationProvider(IntegrationProvider):
                 "integration_migration_version", 0
             )
 
-            if integration_migration_version < VstsIntegrationProvider.CURRENT_MIGRATION_VERSION:
+            if (
+                features.has(
+                    "organizations:migrate-azure-devops-integration", self.pipeline.organization
+                )
+                and integration_migration_version
+                < VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+            ):
                 subscription_id, subscription_secret = self.create_subscription(
                     base_url=base_url, oauth_data=oauth_data
                 )
@@ -576,9 +596,16 @@ class VstsIntegrationProvider(IntegrationProvider):
                 "secret": subscription_secret,
             }
 
-        integration["metadata"]["integration_migration_version"] = (
-            VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
-        )
+        # Ensure integration_migration_version is set if the feature flag is active.
+        # This guarantees that if the new scopes are in use (due to the flag),
+        # the metadata correctly reflects the current migration version, even if
+        # the integration was already considered "up-to-date" based on DB records.
+        if features.has(
+            "organizations:migrate-azure-devops-integration", self.pipeline.organization
+        ):
+            integration["metadata"]["integration_migration_version"] = (
+                VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+            )
 
         return integration
 
