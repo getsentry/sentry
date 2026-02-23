@@ -38,7 +38,7 @@ class ThreadingConfig(ThreadingLookup):
     thread_identifier: str
 
     # Optional provider-specific metadata
-    provider_data: dict[str, Any] | None = None
+    provider_data: dict[str, Any] | None
 
 
 class ThreadingService:
