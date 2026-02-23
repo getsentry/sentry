@@ -17,6 +17,7 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
   TIER_GRANULARITY: file
+  T2_GRANULARITY: class
 
 jobs:
   # ─── Split tests into tiers using classification data ──────────────
@@ -81,8 +82,10 @@ jobs:
             --workers 4 $DURATIONS_FLAG
 
           # T2: worker-simulated LPT, n=3 workers per shard.
+          # Uses class-level granularity (~1500 atoms vs ~250 at file level)
+          # for dramatically better LPT balance.
           mkdir -p /tmp/tier2-shards
-          python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
+          python3 $SCRIPT --classification $CLASS --granularity "$T2_GRANULARITY" \
             --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards \
             --workers 3 $DURATIONS_FLAG
 
@@ -262,6 +265,9 @@ jobs:
           TOTAL_TEST_GROUPS: '1'
           TEST_GROUP: '0'
           SENTRY_DB_SOCKET: /tmp/pg-sock
+          # Class-level granularity: pytest_collection_modifyitems matches
+          # items against "file::class" identifiers in the shard file.
+          TIER_GRANULARITY: ${{ env.T2_GRANULARITY }}
         run: |
           XDIST_N=${XDIST_WORKERS:-3}
           PHASE_START=$(date +%s)
@@ -340,7 +346,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
