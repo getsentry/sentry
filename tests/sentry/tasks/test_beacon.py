@@ -1,10 +1,10 @@
-import pytest
 import platform
 from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 
+import pytest
 import responses
 from django.utils import timezone
 
