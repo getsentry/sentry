@@ -322,7 +322,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     return {
       canManuallyRefresh: false,
       manualRefreshDisabledReason: t(
-        'Manual refresh requires a relative period or absolute date range of 1 hour or less.'
+        'Manual refresh is only available for time ranges of 1 hour or less.'
       ),
     };
   }, [pageFilters.selection.datetime]);
