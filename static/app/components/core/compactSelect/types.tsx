@@ -38,6 +38,20 @@ export type SelectOptionOrSection<Value extends SelectKey> =
   | SelectOption<Value>
   | SelectSection<Value>;
 
+/**
+ * The result of a custom `searchMatcher` function. Returning this (instead of a plain
+ * boolean) allows callers to influence how matching options are sorted: options with a
+ * higher `score` are shown first. To hide an option, return `{score: 0}.
+ */
+export interface SearchMatchResult {
+  /**
+   * Match quality score. Higher values cause the option to appear earlier in the list.
+   * Options that match but return no score maintain their original order relative to
+   * each other.
+   */
+  score: number;
+}
+
 export interface SelectOptionWithKey<
   Value extends SelectKey,
 > extends SelectOption<Value> {

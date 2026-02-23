@@ -34,20 +34,20 @@ def serialize_event_data_as_item(
             Timestamp(seconds=int(event_data["received"])) if "received" in event_data else None
         ),
         retention_days=event_data.get("retention_days", 90),
-        attributes=encode_attributes(
+        attributes=_encode_attributes(
             event, event_data, ignore_fields={"event_id", "timestamp", "tags", "spans", "'spans'"}
         ),
     )
 
 
-def encode_attributes(
+def _encode_attributes(
     event: Event | GroupEvent, event_data: Mapping[str, Any], ignore_fields: set[str] | None = None
 ) -> Mapping[str, AnyValue]:
     raw_tags = event_data.get("tags") or []
     tags_dict = {kv[0]: kv[1] for kv in raw_tags if kv is not None and kv[1] is not None}
 
     all_ignore_fields = (ignore_fields or set()) | {"tags"}
-    attributes = build_occurrence_attributes(
+    attributes = _build_occurrence_attributes(
         event_data, tags=tags_dict, ignore_fields=all_ignore_fields
     )
 
@@ -57,7 +57,7 @@ def encode_attributes(
     return attributes
 
 
-def build_occurrence_attributes(
+def _build_occurrence_attributes(
     data: Mapping[str, Any],
     tags: Mapping[str, str] | None = None,
     ignore_fields: set[str] | None = None,

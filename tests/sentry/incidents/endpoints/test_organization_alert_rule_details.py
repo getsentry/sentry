@@ -66,7 +66,7 @@ from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule impo
     assert_dual_written_resolution_threshold_equals,
 )
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class AlertRuleDetailsBase(AlertRuleBase):
