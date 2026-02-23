@@ -73,8 +73,8 @@ def collect_test_count() -> int | None:
             return count
 
         if result.returncode == 5:
-            # Exit code 5 means "no tests were collected" (e.g. all selected files
-            # were deleted in this PR). Treat as 0 tests rather than an error.
+            # Exit code 5 indicates no tests collected (https://docs.pytest.org/en/stable/reference/exit-codes.html)
+            # This can stem from files being deleted in a branch/PR.
             print("No tests collected (exit 5)", file=sys.stderr)
             return 0
 
