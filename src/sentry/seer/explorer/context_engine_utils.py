@@ -246,7 +246,7 @@ def get_event_counts_for_org_projects(
             ),
         ],
         groupby=[Column("project_id"), Column("category")],
-        granularity=Granularity(3600 * 24),
+        granularity=Granularity(int((end - start).total_seconds())),
         limit=Limit(10000),
     )
     request = Request(
@@ -266,7 +266,7 @@ def get_event_counts_for_org_projects(
             total = row.get("total", 0)
             counts = all_counts.setdefault(project_id, ProjectEventCounts())
             if category == DataCategory.TRANSACTION:
-                counts.transaction_count += total
+                counts.transaction_count = total
             elif category in error_categories:
                 counts.error_count += total
     except Exception:
