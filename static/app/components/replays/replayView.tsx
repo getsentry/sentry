@@ -9,6 +9,7 @@ import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceCon
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {CanvasSupportNotice} from 'sentry/components/replays/canvasSupportNotice';
+import InspectModeToggle from 'sentry/components/replays/domInspector/inspectModeToggle';
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
@@ -87,6 +88,7 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
               <ReplayCurrentUrl />
             )}
 
+            <InspectModeToggle isLoading={isLoading} />
             <ErrorBoundary customComponent={FatalIconTooltip}>
               <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
             </ErrorBoundary>

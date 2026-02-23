@@ -54,6 +54,12 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   fastForwardSpeed: number;
 
   /**
+   * Returns the rrweb replay iframe element.
+   * Useful for attaching event listeners directly to the iframe's contentDocument.
+   */
+  getIframe: () => HTMLIFrameElement | null;
+
+  /**
    * Returns the replay DOM mirror
    */
   getMirror: () => Mirror | null;
@@ -132,6 +138,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   isFinished: false,
   isPlaying: false,
   isVideoReplay: false,
+  getIframe: () => null,
   removeHighlight: () => {},
   restart: () => {},
   setCurrentTime: () => {},
@@ -621,6 +628,7 @@ export function Provider({
           restart,
           setCurrentTime,
           togglePlayPause,
+          getIframe: () => replayerRef.current?.iframe ?? null,
           getMirror: () => replayerRef.current?.getMirror() ?? null,
           ...value,
         }}
