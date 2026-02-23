@@ -306,6 +306,38 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.assert_snuba_query_updated(snuba_query)
         mock_schedule_update_project_config.assert_called_once_with(detector)
 
+    def test_update_project(self) -> None:
+        project2 = self.create_project(organization=self.organization)
+        data = {"projectId": project2.id}
+
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        self.detector.refresh_from_db()
+        assert self.detector.project == project2
+
+    def test_update_project_other_org(self) -> None:
+        other_organization = self.create_organization()
+        project2 = self.create_project(organization=other_organization)
+        data = {"projectId": project2.id}
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+        assert "projectId" in response.data
+
+        # verify project was not updated
+        self.detector.refresh_from_db()
+        assert self.detector.project == self.project
+
     def test_update_description(self) -> None:
         assert self.detector.description is None
 

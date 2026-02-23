@@ -13,6 +13,7 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
+from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
     CONDITION_GROUP_HELP_TEXT,
@@ -84,6 +85,13 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     enabled = serializers.BooleanField(
         required=False, help_text="Set to False if you want to disable the monitor."
     )
+    project_id = serializers.CharField(required=False)
+
+    def validate_project_id(self, value: str) -> int:
+        organization = self.context.get("organization")
+        if not Project.objects.filter(id=int(value), organization=organization).exists():
+            raise serializers.ValidationError("Project not in organization")
+        return int(value)
 
     def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = grouptype.registry.get_by_slug(value)
@@ -198,6 +206,9 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                     instance.enforce_config_schema()
                 except JSONSchemaValidationError as error:
                     raise serializers.ValidationError({"config": [str(error)]})
+
+            if "project_id" in validated_data:
+                instance.project_id = validated_data["project_id"]
 
             instance.save()
 
