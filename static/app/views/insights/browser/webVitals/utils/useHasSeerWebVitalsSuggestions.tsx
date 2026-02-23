@@ -3,12 +3,16 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 // Checks for:
+// - Org has web vitals suggestions feature enabled
 // - Org has ai features enabled and has given consent
 // - Project has a github repository set up
 export function useHasSeerWebVitalsSuggestions(selectedProject?: Project) {
+  const organization = useOrganization();
+
   const {
     selection: {projects},
   } = usePageFilters();
@@ -27,5 +31,10 @@ export function useHasSeerWebVitalsSuggestions(selectedProject?: Project) {
 
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 
-  return areAiFeaturesAllowed && hasConfiguredRepos && hasGithubRepos;
+  return (
+    organization.features.includes('performance-web-vitals-seer-suggestions') &&
+    areAiFeaturesAllowed &&
+    hasConfiguredRepos &&
+    hasGithubRepos
+  );
 }

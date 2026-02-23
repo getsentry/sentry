@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -15,6 +16,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import GroupType, WebVitalsGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 
@@ -206,6 +208,13 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             return WebVitalsIssueDataSerializer(data=data)
         return ProjectUserIssueRequestSerializer(data=data)
 
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return features.has(
+            "organizations:performance-web-vitals-seer-suggestions",
+            organization,
+            actor=request.user,
+        )
+
     @extend_schema(
         operation_id="Create a user defined issue",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
@@ -218,6 +227,11 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
         """
         Create a user defined issue.
         """
+
+        organization = project.organization
+
+        if not self.has_feature(organization, request):
+            return Response(status=404)
 
         serializer = self.get_serializer(request.data)
 
