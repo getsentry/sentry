@@ -2,6 +2,7 @@ name: '[NOT REQUIRED] backend (selective)'
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -14,6 +15,7 @@ env:
 
 jobs:
   files-changed:
+    if: "github.event.action != 'labeled' || github.event.label.name == 'Trigger: Override Selective Testing'"
     name: detect what files changed
     runs-on: ubuntu-24.04
     timeout-minutes: 3
@@ -36,7 +38,7 @@ jobs:
           filters: .github/file-filters.yml
 
   prepare-selective-tests:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: "(github.event.action != 'labeled' || github.event.label.name == 'Trigger: Override Selective Testing') && needs.files-changed.outputs.backend == 'true'"
     needs: files-changed
     name: prepare selective tests
     runs-on: ubuntu-24.04
@@ -154,7 +156,7 @@ jobs:
           retention-days: 1
 
   calculate-shards:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: "(github.event.action != 'labeled' || github.event.label.name == 'Trigger: Override Selective Testing') && needs.files-changed.outputs.backend == 'true'"
     needs: [files-changed, prepare-selective-tests]
     name: calculate test shards
     runs-on: ubuntu-24.04
@@ -183,13 +185,13 @@ jobs:
       - name: Calculate test shards
         id: calculate-shards
         env:
-          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+          SELECTED_TESTS_FILE: "${{ !contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') && needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}"
           SELECTED_TEST_COUNT: ${{ needs.prepare-selective-tests.outputs.test-count }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
   backend-test-selective:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: "(github.event.action != 'labeled' || github.event.label.name == 'Trigger: Override Selective Testing') && needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0' && needs.calculate-shards.outputs.shard-count != ''"
     needs: [files-changed, prepare-selective-tests, calculate-shards]
     name: backend tests
     runs-on: ubuntu-24.04
@@ -227,7 +229,7 @@ jobs:
       - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run_backend_tests
         env:
-          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+          SELECTED_TESTS_FILE: "${{ !contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') && needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}"
         run: make test-python-ci
 
       - name: Inspect failure
