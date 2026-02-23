@@ -434,19 +434,17 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
         </Configuration>
         {hasRuntimeAssertions && (
           <Fragment>
-            <Flex justify="between">
-              <Stack>
-                <AlertListItem>{t('Verification')}</AlertListItem>
-
-                <ListItemSubText>
-                  {t(
-                    'Define conditions that must be met for the check to be considered successful.'
-                  )}
-                </ListItemSubText>
-              </Stack>
-
-              {hasAiAssertionSuggestions && (
-                <Flex alignSelf="end">
+            <AlertListItem>
+              <Flex justify="between" align="end">
+                <Stack>
+                  {t('Verification')}
+                  <ListItemSubText style={{paddingLeft: 0}}>
+                    {t(
+                      'Define conditions that must be met for the check to be considered successful.'
+                    )}
+                  </ListItemSubText>
+                </Stack>
+                {hasAiAssertionSuggestions && (
                   <AssertionSuggestionsButton
                     size="xs"
                     getFormData={() => {
@@ -466,9 +464,9 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
                       formModel.setValue('assertion', newAssertion as any);
                     }}
                   />
-                </Flex>
-              )}
-            </Flex>
+                )}
+              </Flex>
+            </AlertListItem>
 
             <Configuration>
               <ConfigurationPanel>
@@ -581,6 +579,8 @@ const AlertListItem = styled(ListItem)`
 
 const ListItemSubText = styled(Text)`
   padding-left: ${p => p.theme.space['3xl']};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
