@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class ImageMetadata(BaseModel):
-    display_name: str
+    display_name: str | None = None
     image_file_name: str
     group: str | None = None
     width: int = Field(ge=0)
