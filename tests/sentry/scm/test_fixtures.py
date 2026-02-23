@@ -1,50 +1,40 @@
+from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.models import Integration
 from sentry.scm.types import (
+    ActionResult,
+    BuildConclusion,
+    BuildStatus,
     CheckRun,
-    CheckRunActionResult,
     CheckRunOutput,
     Comment,
-    CommentActionResult,
     Commit,
-    CommitActionResult,
     CommitAuthor,
     CommitComparison,
-    CommitComparisonActionResult,
     CommitFile,
     FileContent,
-    FileContentActionResult,
     GitBlob,
-    GitBlobActionResult,
     GitCommitObject,
-    GitCommitObjectActionResult,
     GitCommitTree,
     GitRef,
-    GitRefActionResult,
     GitTree,
-    GitTreeActionResult,
     InputTreeEntry,
     Provider,
     PullRequest,
-    PullRequestActionResult,
     PullRequestBranch,
     PullRequestCommit,
-    PullRequestCommitActionResult,
-    PullRequestDiffActionResult,
     PullRequestFile,
-    PullRequestFileActionResult,
     Reaction,
     ReactionResult,
     Referrer,
     Repository,
     Review,
-    ReviewActionResult,
     ReviewComment,
-    ReviewCommentActionResult,
     ReviewCommentInput,
+    ReviewSide,
     TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -200,11 +190,13 @@ def make_github_commit(
 def make_github_commit_comparison(
     ahead_by: int = 3,
     behind_by: int = 1,
+    commits: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Factory for GitHub commit comparison API responses."""
     return {
         "ahead_by": ahead_by,
         "behind_by": behind_by,
+        "commits": commits if commits is not None else [],
     }
 
 
@@ -228,11 +220,13 @@ def make_github_tree_entry(
 
 
 def make_github_git_tree(
+    sha: str = "tree_sha_abc",
     entries: list[dict[str, Any]] | None = None,
     truncated: bool = False,
 ) -> dict[str, Any]:
     """Factory for GitHub git tree API responses."""
     return {
+        "sha": sha,
         "tree": entries if entries is not None else [make_github_tree_entry()],
         "truncated": truncated,
     }
@@ -348,6 +342,7 @@ def make_github_graphql_issue_comment(
     body: str = "Test issue comment",
     is_minimized: bool = False,
     author_login: str = "testuser",
+    author_database_id: int = 123,
     author_typename: str = "User",
 ) -> dict[str, Any]:
     """Factory for GraphQL issue comment nodes."""
@@ -355,7 +350,11 @@ def make_github_graphql_issue_comment(
         "id": node_id,
         "body": body,
         "isMinimized": is_minimized,
-        "author": {"login": author_login, "__typename": author_typename},
+        "author": {
+            "login": author_login,
+            "databaseId": author_database_id,
+            "__typename": author_typename,
+        },
     }
 
 
@@ -374,6 +373,7 @@ def make_github_graphql_review_thread_comment(
     reactions: list[dict[str, Any]] | None = None,
     reactions_total_count: int = 0,
     author_login: str = "reviewer",
+    author_database_id: int = 456,
     author_typename: str = "User",
 ) -> dict[str, Any]:
     """Factory for GraphQL review thread comment nodes."""
@@ -393,7 +393,11 @@ def make_github_graphql_review_thread_comment(
             "nodes": reactions if reactions is not None else [],
             "totalCount": reactions_total_count,
         },
-        "author": {"login": author_login, "__typename": author_typename},
+        "author": {
+            "login": author_login,
+            "databaseId": author_database_id,
+            "__typename": author_typename,
+        },
     }
 
 
@@ -458,18 +462,18 @@ def make_github_graphql_pr_comments_response(
 
 
 class BaseTestProvider(Provider):
+    repository: Repository
+
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
         return False
 
     # Pull request
 
-    def get_pull_request(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestActionResult:
+    def get_pull_request(self, pull_request_id: str) -> ActionResult[PullRequest]:
         raw = make_github_pull_request()
-        return PullRequestActionResult(
-            pull_request=PullRequest(
-                id=raw["id"],
+        return ActionResult(
+            data=PullRequest(
+                id=str(raw["id"]),
                 number=raw["number"],
                 title=raw["title"],
                 body=raw["body"],
@@ -480,226 +484,254 @@ class BaseTestProvider(Provider):
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
-            provider="github",
+            type="github",
             raw=raw,
         )
 
     # Issue comments
 
-    def get_issue_comments(
-        self, repository: Repository, issue_id: str
-    ) -> list[CommentActionResult]:
-        return [
-            CommentActionResult(
-                comment=Comment(
+    def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]:
+        return ActionResult(
+            data=[
+                Comment(
                     id="101",
                     body="Test comment",
                     author={"id": "1", "username": "testuser"},
                 ),
-                provider="github",
-                raw={},
-            )
-        ]
+            ],
+            type="github",
+            raw={},
+        )
 
-    def create_issue_comment(self, repository: Repository, issue_id: str, body: str) -> None:
-        return None
+    def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
+        return ActionResult(
+            data=Comment(id="101", body=body, author=None),
+            type="github",
+            raw={},
+        )
 
-    def delete_issue_comment(self, repository: Repository, comment_id: str) -> None:
+    def delete_issue_comment(self, comment_id: str) -> None:
         return None
 
     # Pull request comments
 
-    def get_pull_request_comments(
-        self, repository: Repository, pull_request_id: str
-    ) -> list[CommentActionResult]:
-        return [
-            CommentActionResult(
-                comment=Comment(
+    def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]:
+        return ActionResult(
+            data=[
+                Comment(
                     id="201",
                     body="PR review comment",
                     author={"id": "2", "username": "reviewer"},
                 ),
-                provider="github",
-                raw={},
-            )
-        ]
+            ],
+            type="github",
+            raw={},
+        )
 
-    def create_pull_request_comment(
-        self, repository: Repository, pull_request_id: str, body: str
-    ) -> None:
-        return None
+    def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
+        return ActionResult(
+            data=Comment(id="201", body=body, author=None),
+            type="github",
+            raw={},
+        )
 
-    def delete_pull_request_comment(self, repository: Repository, comment_id: str) -> None:
+    def delete_pull_request_comment(self, comment_id: str) -> None:
         return None
 
     # Issue comment reactions
 
-    def get_issue_comment_reactions(
-        self, repository: Repository, comment_id: str
-    ) -> list[ReactionResult]:
-        return [
-            ReactionResult(id="1", content="+1", author={"id": "1", "username": "testuser"}),
-            ReactionResult(id="2", content="eyes", author={"id": "2", "username": "otheruser"}),
-        ]
+    def get_issue_comment_reactions(self, comment_id: str) -> ActionResult[list[ReactionResult]]:
+        return ActionResult(
+            data=[
+                ReactionResult(id="1", content="+1", author={"id": "1", "username": "testuser"}),
+                ReactionResult(id="2", content="eyes", author={"id": "2", "username": "otheruser"}),
+            ],
+            type="github",
+            raw={},
+        )
 
     def create_issue_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction: Reaction
-    ) -> None:
-        return None
+        self, comment_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
+        return ActionResult(
+            data=ReactionResult(id="1", content=reaction, author=None),
+            type="github",
+            raw={},
+        )
 
-    def delete_issue_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction_id: str
-    ) -> None:
+    def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
         return None
 
     # Pull request comment reactions
 
     def get_pull_request_comment_reactions(
-        self, repository: Repository, comment_id: str
-    ) -> list[ReactionResult]:
-        return [
-            ReactionResult(id="3", content="rocket", author={"id": "1", "username": "testuser"}),
-            ReactionResult(id="4", content="hooray", author={"id": "2", "username": "otheruser"}),
-        ]
+        self, comment_id: str
+    ) -> ActionResult[list[ReactionResult]]:
+        return ActionResult(
+            data=[
+                ReactionResult(
+                    id="3", content="rocket", author={"id": "1", "username": "testuser"}
+                ),
+                ReactionResult(
+                    id="4", content="hooray", author={"id": "2", "username": "otheruser"}
+                ),
+            ],
+            type="github",
+            raw={},
+        )
 
     def create_pull_request_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction: Reaction
-    ) -> None:
-        return None
+        self, comment_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
+        return ActionResult(
+            data=ReactionResult(id="1", content=reaction, author=None),
+            type="github",
+            raw={},
+        )
 
-    def delete_pull_request_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction_id: str
-    ) -> None:
+    def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
         return None
 
     # Issue reactions
 
-    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[ReactionResult]:
-        return [
-            ReactionResult(id="1", content="+1", author={"id": "1", "username": "testuser"}),
-            ReactionResult(id="2", content="heart", author={"id": "2", "username": "otheruser"}),
-        ]
+    def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
+        return ActionResult(
+            data=[
+                ReactionResult(id="1", content="+1", author={"id": "1", "username": "testuser"}),
+                ReactionResult(
+                    id="2", content="heart", author={"id": "2", "username": "otheruser"}
+                ),
+            ],
+            type="github",
+            raw={},
+        )
 
     def create_issue_reaction(
-        self, repository: Repository, issue_id: str, reaction: Reaction
-    ) -> None:
-        return None
+        self, issue_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
+        return ActionResult(
+            data=ReactionResult(id="1", content=reaction, author=None),
+            type="github",
+            raw={},
+        )
 
-    def delete_issue_reaction(
-        self, repository: Repository, issue_id: str, reaction_id: str
-    ) -> None:
+    def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None:
         return None
 
     # Pull request reactions
 
     def get_pull_request_reactions(
-        self, repository: Repository, pull_request_id: str
-    ) -> list[ReactionResult]:
-        return [
-            ReactionResult(id="5", content="laugh", author={"id": "1", "username": "testuser"}),
-            ReactionResult(id="6", content="confused", author={"id": "2", "username": "otheruser"}),
-        ]
+        self, pull_request_id: str
+    ) -> ActionResult[list[ReactionResult]]:
+        return ActionResult(
+            data=[
+                ReactionResult(id="5", content="laugh", author={"id": "1", "username": "testuser"}),
+                ReactionResult(
+                    id="6", content="confused", author={"id": "2", "username": "otheruser"}
+                ),
+            ],
+            type="github",
+            raw={},
+        )
 
     def create_pull_request_reaction(
-        self, repository: Repository, pull_request_id: str, reaction: Reaction
-    ) -> None:
-        return None
+        self, pull_request_id: str, reaction: Reaction
+    ) -> ActionResult[ReactionResult]:
+        return ActionResult(
+            data=ReactionResult(id="1", content=reaction, author=None),
+            type="github",
+            raw={},
+        )
 
-    def delete_pull_request_reaction(
-        self, repository: Repository, pull_request_id: str, reaction_id: str
-    ) -> None:
+    def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None:
         return None
 
     # Branch operations
 
-    def get_branch(self, repository: Repository, branch: str) -> GitRefActionResult:
-        return GitRefActionResult(
-            git_ref=GitRef(ref=f"refs/heads/{branch}", sha="abc123def456"),
-            provider="github",
+    def get_branch(self, branch: str) -> ActionResult[GitRef]:
+        return ActionResult(
+            data=GitRef(ref=f"refs/heads/{branch}", sha="abc123def456"),
+            type="github",
             raw={},
         )
 
-    def create_branch(self, repository: Repository, branch: str, sha: str) -> GitRefActionResult:
-        return GitRefActionResult(
-            git_ref=GitRef(ref=f"refs/heads/{branch}", sha=sha),
-            provider="github",
+    def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]:
+        return ActionResult(
+            data=GitRef(ref=f"refs/heads/{branch}", sha=sha),
+            type="github",
             raw={},
         )
 
-    def update_branch(
-        self, repository: Repository, branch: str, sha: str, force: bool = False
-    ) -> None:
+    def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
         return None
 
     # Git blob operations
 
-    def create_git_blob(
-        self, repository: Repository, content: str, encoding: str
-    ) -> GitBlobActionResult:
-        return GitBlobActionResult(
-            git_blob=GitBlob(sha="blob123abc"),
-            provider="github",
+    def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]:
+        return ActionResult(
+            data=GitBlob(sha="blob123abc"),
+            type="github",
             raw={},
         )
 
     # File content operations
 
-    def get_file_content(
-        self, repository: Repository, path: str, ref: str | None = None
-    ) -> FileContentActionResult:
-        return FileContentActionResult(
-            file_content=FileContent(
+    def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]:
+        return ActionResult(
+            data=FileContent(
                 path=path,
                 sha="abc123",
                 content="SGVsbG8gV29ybGQ=",
                 encoding="base64",
                 size=11,
             ),
-            provider="github",
+            type="github",
             raw={},
         )
 
     # Commit operations
 
-    def get_commit(self, repository: Repository, sha: str) -> CommitActionResult:
-        return CommitActionResult(
-            commit=Commit(
-                sha=sha,
+    def get_commit(self, sha: str) -> ActionResult[Commit]:
+        return ActionResult(
+            data=Commit(
+                id=sha,
                 message="Fix bug",
                 author=CommitAuthor(
-                    name="Test User", email="test@example.com", date="2026-02-04T10:00:00Z"
+                    name="Test User",
+                    email="test@example.com",
+                    date=datetime.fromisoformat("2026-02-04T10:00:00Z"),
                 ),
                 files=[CommitFile(filename="src/main.py", status="modified", patch="@@ -1 +1 @@")],
             ),
-            provider="github",
+            type="github",
             raw={},
         )
 
     def get_commits(
         self,
-        repository: Repository,
-        *,
         sha: str | None = None,
         path: str | None = None,
-    ) -> list[CommitActionResult]:
-        return [self.get_commit(repository, "abc123")]
+    ) -> ActionResult[list[Commit]]:
+        inner = self.get_commit("abc123")
+        return ActionResult(
+            data=[inner["data"]],
+            type="github",
+            raw={},
+        )
 
-    def compare_commits(
-        self, repository: Repository, start_sha: str, end_sha: str
-    ) -> CommitComparisonActionResult:
-        return CommitComparisonActionResult(
-            comparison=CommitComparison(ahead_by=3, behind_by=1),
-            provider="github",
+    def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
+        return ActionResult(
+            data=CommitComparison(ahead_by=3, behind_by=1, commits=[]),
+            type="github",
             raw={},
         )
 
     # Git data operations
 
-    def get_tree(
-        self, repository: Repository, tree_sha: str, *, recursive: bool = True
-    ) -> GitTreeActionResult:
-        return GitTreeActionResult(
-            git_tree=GitTree(
+    def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]:
+        return ActionResult(
+            data=GitTree(
+                sha=tree_sha,
                 tree=[
                     TreeEntry(
                         path="src/main.py", mode="100644", type="blob", sha="abc123", size=1234
@@ -707,30 +739,29 @@ class BaseTestProvider(Provider):
                 ],
                 truncated=False,
             ),
-            provider="github",
+            type="github",
             raw={},
         )
 
-    def get_git_commit(self, repository: Repository, sha: str) -> GitCommitObjectActionResult:
-        return GitCommitObjectActionResult(
-            git_commit=GitCommitObject(
+    def get_git_commit(self, sha: str) -> ActionResult[GitCommitObject]:
+        return ActionResult(
+            data=GitCommitObject(
                 sha=sha,
                 tree=GitCommitTree(sha="tree456"),
                 message="Initial commit",
             ),
-            provider="github",
+            type="github",
             raw={},
         )
 
     def create_git_tree(
         self,
-        repository: Repository,
         tree: list[InputTreeEntry],
-        *,
         base_tree: str | None = None,
-    ) -> GitTreeActionResult:
-        return GitTreeActionResult(
-            git_tree=GitTree(
+    ) -> ActionResult[GitTree]:
+        return ActionResult(
+            data=GitTree(
+                sha="newtree123",
                 tree=[
                     TreeEntry(
                         path="src/main.py", mode="100644", type="blob", sha="new123", size=100
@@ -738,34 +769,31 @@ class BaseTestProvider(Provider):
                 ],
                 truncated=False,
             ),
-            provider="github",
+            type="github",
             raw={},
         )
 
     def create_git_commit(
         self,
-        repository: Repository,
         message: str,
         tree_sha: str,
         parent_shas: list[str],
-    ) -> GitCommitObjectActionResult:
-        return GitCommitObjectActionResult(
-            git_commit=GitCommitObject(
+    ) -> ActionResult[GitCommitObject]:
+        return ActionResult(
+            data=GitCommitObject(
                 sha="newcommit123",
                 tree=GitCommitTree(sha=tree_sha),
                 message=message,
             ),
-            provider="github",
+            type="github",
             raw={},
         )
 
     # Expanded pull request operations
 
-    def get_pull_request_files(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestFileActionResult:
-        return PullRequestFileActionResult(
-            files=[
+    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
+        return ActionResult(
+            data=[
                 PullRequestFile(
                     filename="src/main.py",
                     status="modified",
@@ -773,47 +801,46 @@ class BaseTestProvider(Provider):
                     changes=1,
                     sha="file123",
                     previous_filename=None,
-                )
+                ),
             ],
-            provider="github",
-            raw=[],
+            type="github",
+            raw={},
         )
 
     def get_pull_request_commits(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestCommitActionResult:
-        return PullRequestCommitActionResult(
-            commits=[
+        self, pull_request_id: str
+    ) -> ActionResult[list[PullRequestCommit]]:
+        return ActionResult(
+            data=[
                 PullRequestCommit(
                     sha="commit123",
                     message="Fix bug",
                     author=CommitAuthor(
                         name="Test User",
                         email="test@example.com",
-                        date="2026-02-04T10:00:00Z",
+                        date=datetime.fromisoformat("2026-02-04T10:00:00Z"),
                     ),
-                )
+                ),
             ],
-            provider="github",
-            raw=[],
+            type="github",
+            raw={},
         )
 
-    def get_pull_request_diff(
-        self, repository: Repository, pull_request_id: str
-    ) -> PullRequestDiffActionResult:
-        return PullRequestDiffActionResult(
-            diff="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
-            provider="github",
+    def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
+        return ActionResult(
+            data="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
+            type="github",
+            raw={},
         )
 
-    def list_pull_requests(
-        self, repository: Repository, state: str = "open", head: str | None = None
-    ) -> list[PullRequestActionResult]:
+    def get_pull_requests(
+        self, state: str = "open", head: str | None = None
+    ) -> ActionResult[list[PullRequest]]:
         raw = make_github_pull_request()
-        return [
-            PullRequestActionResult(
-                pull_request=PullRequest(
-                    id=raw["id"],
+        return ActionResult(
+            data=[
+                PullRequest(
+                    id=str(raw["id"]),
                     number=raw["number"],
                     title=raw["title"],
                     body=raw["body"],
@@ -824,25 +851,23 @@ class BaseTestProvider(Provider):
                     head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                     base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
                 ),
-                provider="github",
-                raw=raw,
-            )
-        ]
+            ],
+            type="github",
+            raw=raw,
+        )
 
     def create_pull_request(
         self,
-        repository: Repository,
         title: str,
         body: str,
         head: str,
         base: str,
-        *,
         draft: bool = False,
-    ) -> PullRequestActionResult:
+    ) -> ActionResult[PullRequest]:
         raw = make_github_pull_request(title=title, body=body)
-        return PullRequestActionResult(
-            pull_request=PullRequest(
-                id=raw["id"],
+        return ActionResult(
+            data=PullRequest(
+                id=str(raw["id"]),
                 number=raw["number"],
                 title=raw["title"],
                 body=raw["body"],
@@ -853,27 +878,25 @@ class BaseTestProvider(Provider):
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
-            provider="github",
+            type="github",
             raw=raw,
         )
 
     def update_pull_request(
         self,
-        repository: Repository,
         pull_request_id: str,
-        *,
         title: str | None = None,
         body: str | None = None,
         state: str | None = None,
-    ) -> PullRequestActionResult:
+    ) -> ActionResult[PullRequest]:
         raw = make_github_pull_request(
             title=title or "Test PR",
             body=body or "PR description",
             state=state or "open",
         )
-        return PullRequestActionResult(
-            pull_request=PullRequest(
-                id=raw["id"],
+        return ActionResult(
+            data=PullRequest(
+                id=str(raw["id"]),
                 number=raw["number"],
                 title=raw["title"],
                 body=raw["body"],
@@ -884,56 +907,50 @@ class BaseTestProvider(Provider):
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
-            provider="github",
+            type="github",
             raw=raw,
         )
 
-    def request_review(
-        self, repository: Repository, pull_request_id: str, reviewers: list[str]
-    ) -> None:
+    def request_review(self, pull_request_id: str, reviewers: list[str]) -> None:
         return None
 
     # Review operations
 
     def create_review_comment(
         self,
-        repository: Repository,
         pull_request_id: str,
         body: str,
         commit_sha: str,
         path: str,
-        *,
         line: int | None = None,
-        side: str | None = None,
+        side: ReviewSide | None = None,
         start_line: int | None = None,
-        start_side: str | None = None,
-    ) -> ReviewCommentActionResult:
+        start_side: ReviewSide | None = None,
+    ) -> ActionResult[ReviewComment]:
         raw = make_github_review_comment(body=body, path=path)
-        return ReviewCommentActionResult(
-            review_comment=ReviewComment(
-                id=raw["id"],
+        return ActionResult(
+            data=ReviewComment(
+                id=str(raw["id"]),
                 html_url=raw["html_url"],
                 path=raw["path"],
                 body=raw["body"],
             ),
-            provider="github",
+            type="github",
             raw=raw,
         )
 
     def create_review(
         self,
-        repository: Repository,
         pull_request_id: str,
         commit_sha: str,
         event: str,
         comments: list[ReviewCommentInput],
-        *,
         body: str | None = None,
-    ) -> ReviewActionResult:
+    ) -> ActionResult[Review]:
         raw = make_github_review()
-        return ReviewActionResult(
-            review=Review(id=raw["id"], html_url=raw["html_url"]),
-            provider="github",
+        return ActionResult(
+            data=Review(id=str(raw["id"]), html_url=raw["html_url"]),
+            type="github",
             raw=raw,
         )
 
@@ -941,79 +958,71 @@ class BaseTestProvider(Provider):
 
     def create_check_run(
         self,
-        repository: Repository,
         name: str,
         head_sha: str,
-        *,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
         output: CheckRunOutput | None = None,
-    ) -> CheckRunActionResult:
+    ) -> ActionResult[CheckRun]:
         raw = make_github_check_run(name=name)
-        return CheckRunActionResult(
-            check_run=CheckRun(
-                id=raw["id"],
+        return ActionResult(
+            data=CheckRun(
+                id=str(raw["id"]),
                 name=raw["name"],
                 status=raw["status"],
                 conclusion=raw["conclusion"],
                 html_url=raw["html_url"],
             ),
-            provider="github",
+            type="github",
             raw=raw,
         )
 
-    def get_check_run(
-        self,
-        repository: Repository,
-        check_run_id: str,
-    ) -> CheckRunActionResult:
+    def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]:
         raw = make_github_check_run()
-        return CheckRunActionResult(
-            check_run=CheckRun(
-                id=raw["id"],
+        return ActionResult(
+            data=CheckRun(
+                id=str(raw["id"]),
                 name=raw["name"],
                 status=raw["status"],
                 conclusion=raw["conclusion"],
                 html_url=raw["html_url"],
             ),
-            provider="github",
+            type="github",
             raw=raw,
         )
 
     def update_check_run(
         self,
-        repository: Repository,
         check_run_id: str,
-        *,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         output: CheckRunOutput | None = None,
-    ) -> CheckRunActionResult:
+    ) -> ActionResult[CheckRun]:
         raw = make_github_check_run(
             status=status or "completed",
             conclusion=conclusion,
         )
-        return CheckRunActionResult(
-            check_run=CheckRun(
-                id=raw["id"],
+        return ActionResult(
+            data=CheckRun(
+                id=str(raw["id"]),
                 name=raw["name"],
                 status=raw["status"],
                 conclusion=raw["conclusion"],
                 html_url=raw["html_url"],
             ),
-            provider="github",
+            type="github",
             raw=raw,
         )
 
     # GraphQL mutation operations
 
-    def minimize_comment(self, repository: Repository, comment_node_id: str, reason: str) -> None:
+    def minimize_comment(self, comment_node_id: str, reason: str) -> None:
         return None
 
-    def resolve_review_thread(self, repository: Repository, thread_node_id: str) -> None:
+    def resolve_review_thread(self, thread_node_id: str) -> None:
         return None
 
 
@@ -1220,7 +1229,7 @@ class FakeGitHubApiClient(GitHubApiClient):
             return self.commits_data
         return [make_github_commit()]
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> dict[str, Any]:
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> Any:
         self._record_call("compare_commits", repo, start_sha, end_sha)
         self._maybe_raise()
         if self.comparison_data is not None:
@@ -1349,7 +1358,7 @@ class FakeGitHubApiClient(GitHubApiClient):
             return self.check_run_data
         return make_github_check_run(name=data.get("name", ""))
 
-    def get_check_run(self, repo: str, check_run_id: str) -> dict[str, Any]:
+    def get_check_run(self, repo: str, check_run_id: int) -> dict[str, Any]:
         self._record_call("get_check_run", repo, check_run_id)
         self._maybe_raise()
         if self.check_run_data is not None:

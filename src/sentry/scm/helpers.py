@@ -57,6 +57,7 @@ def is_rate_limited_with_allocation_policy(
 def map_integration_to_provider(
     organization_id: int,
     integration: Integration | RpcIntegration,
+    repository: Repository,
     get_installation: Callable[
         [Integration | RpcIntegration, int], IntegrationInstallation
     ] = lambda i, oid: i.get_installation(organization_id=oid),
@@ -64,7 +65,7 @@ def map_integration_to_provider(
     client = get_installation(integration, organization_id).get_client()
 
     if integration.provider == "github":
-        return GitHubProvider(client)
+        return GitHubProvider(client, repository)
     else:
         raise SCMCodedError(integration.provider, code="unsupported_integration")
 
@@ -80,18 +81,19 @@ def map_repository_model_to_repository(repository: RepositoryModel) -> Repositor
 
 def fetch_service_provider(
     organization_id: int,
-    integration_id: int,
-    map_to_provider: Callable[[Integration | RpcIntegration, int], Provider] = lambda i,
-    oid: map_integration_to_provider(oid, i),
+    repository: Repository,
+    map_to_provider: Callable[[Integration | RpcIntegration, int, Repository], Provider] = lambda i,
+    oid,
+    r: map_integration_to_provider(oid, i, r),
 ) -> Provider:
     integration = integration_service.get_integration(
-        integration_id=integration_id,
+        integration_id=repository["integration_id"],
         organization_id=organization_id,
     )
     if not integration:
         raise SCMCodedError(code="unsupported_integration")
 
-    return map_to_provider(integration, organization_id)
+    return map_to_provider(integration, organization_id, repository)
 
 
 def fetch_repository(
@@ -118,8 +120,8 @@ def exec_provider_fn[T](
     *,
     referrer: Referrer = "shared",
     fetch_repository: Callable[[int, RepositoryId], Repository | None] = fetch_repository,
-    fetch_service_provider: Callable[[int, int], Provider] = fetch_service_provider,
-    provider_fn: Callable[[Repository, Provider], T],
+    fetch_service_provider: Callable[[int, Repository], Provider] = fetch_service_provider,
+    provider_fn: Callable[[Provider], T],
     record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
 ) -> T:
     repository = fetch_repository(organization_id, repository_id)
@@ -130,12 +132,12 @@ def exec_provider_fn[T](
     if repository["organization_id"] != organization_id:
         raise SCMCodedError(repository, code="repository_organization_mismatch")
 
-    provider = fetch_service_provider(organization_id, repository["integration_id"])
+    provider = fetch_service_provider(organization_id, repository)
     if provider.is_rate_limited(organization_id, referrer):
         raise SCMCodedError(provider, organization_id, referrer, code="rate_limit_exceeded")
 
     try:
-        result = provider_fn(repository, provider)
+        result = provider_fn(provider)
         record_count("sentry.scm.actions.success", 1, {"provider": provider.__class__.__name__})
         record_count("sentry.scm.actions.success", 1, {"referrer": referrer})
         return result

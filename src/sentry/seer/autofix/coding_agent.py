@@ -329,17 +329,20 @@ def _launch_agents_for_repos(
             if isinstance(e, ApiError):
                 url_part = f" ({e.url})" if e.url else ""
                 if e.code == 403 and client is not None:
-                    failure_type = "github_app_permissions"
-                    error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
-                    if repo and repo.integration_id:
-                        try:
-                            sentry_integration = integration_service.get_integration(
-                                integration_id=int(repo.integration_id)
-                            )
-                            if sentry_integration:
-                                github_installation_id = sentry_integration.external_id
-                        except Exception:
-                            sentry_sdk.capture_exception(level="warning")
+                    if e.text and "not licensed" in e.text:
+                        error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
+                    else:
+                        failure_type = "github_app_permissions"
+                        error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."
+                        if repo and repo.integration_id:
+                            try:
+                                sentry_integration = integration_service.get_integration(
+                                    integration_id=int(repo.integration_id)
+                                )
+                                if sentry_integration:
+                                    github_installation_id = sentry_integration.external_id
+                            except Exception:
+                                sentry_sdk.capture_exception(level="warning")
                 elif e.code == 401:
                     error_message = f"Failed to make request to coding agent{url_part}. Please check that your API credentials are correct: {e.code} Error: {e.text}"
                 else:

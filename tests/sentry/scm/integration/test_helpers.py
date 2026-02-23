@@ -4,8 +4,9 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import SCMCodedError
+from sentry.scm.errors import SCMCodedError, SCMProviderException, SCMUnhandledException
 from sentry.scm.helpers import (
+    exec_provider_fn,
     fetch_repository,
     fetch_service_provider,
     is_rate_limited,
@@ -14,7 +15,7 @@ from sentry.scm.helpers import (
     map_repository_model_to_repository,
 )
 from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.types import Referrer
+from sentry.scm.types import Referrer, Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -108,10 +109,17 @@ class TestMapIntegrationToProvider(TestCase):
             name="Github Test Org",
             external_id="1",
         )
+        repository: Repository = {
+            "integration_id": integration.id,
+            "name": "test-org/test-repo",
+            "organization_id": self.organization.id,
+            "status": 0,
+        }
 
         provider = map_integration_to_provider(
             self.organization.id,
             integration,
+            repository,
             get_installation=lambda _, oid: MagicMock(),
         )
 
@@ -124,11 +132,18 @@ class TestMapIntegrationToProvider(TestCase):
             name="Unsupported Provider Test",
             external_id="1",
         )
+        repository: Repository = {
+            "integration_id": integration.id,
+            "name": "test-org/test-repo",
+            "organization_id": self.organization.id,
+            "status": 0,
+        }
 
         with pytest.raises(SCMCodedError) as exc_info:
             map_integration_to_provider(
                 self.organization.id,
                 integration,
+                repository,
                 get_installation=lambda _, oid: MagicMock(),
             )
 
@@ -144,19 +159,31 @@ class TestFetchServiceProvider(TestCase):
             external_id="1",
         )
 
+        repository: Repository = {
+            "integration_id": integration.id,
+            "name": "test-org/test-repo",
+            "organization_id": self.organization.id,
+            "status": 0,
+        }
         provider = fetch_service_provider(
             self.organization.id,
-            integration.id,
-            map_to_provider=lambda i, oid: map_integration_to_provider(
-                oid, i, get_installation=lambda _, __: MagicMock()
+            repository,
+            map_to_provider=lambda i, oid, r: map_integration_to_provider(
+                oid, i, r, get_installation=lambda _, __: MagicMock()
             ),
         )
 
         assert isinstance(provider, GitHubProvider)
 
     def test_raises_error_for_nonexistent_integration(self):
+        repository: Repository = {
+            "integration_id": 99999,
+            "name": "test-org/test-repo",
+            "organization_id": self.organization.id,
+            "status": 0,
+        }
         with pytest.raises(SCMCodedError) as exc_info:
-            fetch_service_provider(self.organization.id, 99999)
+            fetch_service_provider(self.organization.id, repository)
 
         assert exc_info.value.code == "unsupported_integration"
 
@@ -288,3 +315,177 @@ class TestIsRateLimitedWithAllocationPolicy(TestCase):
             )
 
             assert result is True
+
+
+def _make_active_repository(organization_id: int) -> Repository:
+    return {
+        "integration_id": 1,
+        "name": "test-org/test-repo",
+        "organization_id": organization_id,
+        "status": ObjectStatus.ACTIVE,
+    }
+
+
+def _make_provider(is_rate_limited: bool = False):
+    provider = MagicMock()
+    provider.is_rate_limited.return_value = is_rate_limited
+    return provider
+
+
+class TestExecProviderFn(TestCase):
+    def test_returns_provider_fn_result(self):
+        org_id = self.organization.id
+        repository = _make_active_repository(org_id)
+        provider = _make_provider()
+
+        result = exec_provider_fn(
+            org_id,
+            1,
+            fetch_repository=lambda _, __: repository,
+            fetch_service_provider=lambda _, __: provider,
+            provider_fn=lambda p: "success",
+        )
+
+        assert result == "success"
+
+    def test_raises_repository_not_found(self):
+        with pytest.raises(SCMCodedError) as exc_info:
+            exec_provider_fn(
+                self.organization.id,
+                99999,
+                fetch_repository=lambda _, __: None,
+                fetch_service_provider=lambda _, __: _make_provider(),
+                provider_fn=lambda p: None,
+            )
+        assert exc_info.value.code == "repository_not_found"
+
+    def test_raises_repository_inactive(self):
+        repository = _make_active_repository(self.organization.id)
+        repository["status"] = ObjectStatus.PENDING_DELETION
+
+        with pytest.raises(SCMCodedError) as exc_info:
+            exec_provider_fn(
+                self.organization.id,
+                1,
+                fetch_repository=lambda _, __: repository,
+                fetch_service_provider=lambda _, __: _make_provider(),
+                provider_fn=lambda p: None,
+            )
+        assert exc_info.value.code == "repository_inactive"
+
+    def test_raises_repository_organization_mismatch(self):
+        repository = _make_active_repository(organization_id=99999)
+
+        with pytest.raises(SCMCodedError) as exc_info:
+            exec_provider_fn(
+                self.organization.id,
+                1,
+                fetch_repository=lambda _, __: repository,
+                fetch_service_provider=lambda _, __: _make_provider(),
+                provider_fn=lambda p: None,
+            )
+        assert exc_info.value.code == "repository_organization_mismatch"
+
+    def test_raises_rate_limit_exceeded(self):
+        org_id = self.organization.id
+        repository = _make_active_repository(org_id)
+
+        with pytest.raises(SCMCodedError) as exc_info:
+            exec_provider_fn(
+                org_id,
+                1,
+                fetch_repository=lambda _, __: repository,
+                fetch_service_provider=lambda _, __: _make_provider(is_rate_limited=True),
+                provider_fn=lambda p: None,
+            )
+        assert exc_info.value.code == "rate_limit_exceeded"
+
+    def test_scm_provider_exception_is_reraised(self):
+        """SCMError subclasses from provider_fn should pass through unwrapped."""
+        org_id = self.organization.id
+        repository = _make_active_repository(org_id)
+
+        def raise_scm_provider_exception(provider):
+            raise SCMProviderException("API failure")
+
+        with pytest.raises(SCMProviderException, match="API failure"):
+            exec_provider_fn(
+                org_id,
+                1,
+                fetch_repository=lambda _, __: repository,
+                fetch_service_provider=lambda _, __: _make_provider(),
+                provider_fn=raise_scm_provider_exception,
+            )
+
+    def test_scm_coded_error_is_reraised(self):
+        """SCMCodedError from provider_fn should pass through unwrapped."""
+        org_id = self.organization.id
+        repository = _make_active_repository(org_id)
+
+        def raise_scm_coded_error(provider):
+            raise SCMCodedError(code="unsupported_integration")
+
+        with pytest.raises(SCMCodedError) as exc_info:
+            exec_provider_fn(
+                org_id,
+                1,
+                fetch_repository=lambda _, __: repository,
+                fetch_service_provider=lambda _, __: _make_provider(),
+                provider_fn=raise_scm_coded_error,
+            )
+        assert exc_info.value.code == "unsupported_integration"
+
+    def test_generic_exception_wrapped_in_scm_unhandled_exception(self):
+        """Non-SCMError exceptions should be wrapped in SCMUnhandledException."""
+        org_id = self.organization.id
+        repository = _make_active_repository(org_id)
+
+        def raise_value_error(provider):
+            raise ValueError("something unexpected")
+
+        with pytest.raises(SCMUnhandledException) as exc_info:
+            exec_provider_fn(
+                org_id,
+                1,
+                fetch_repository=lambda _, __: repository,
+                fetch_service_provider=lambda _, __: _make_provider(),
+                provider_fn=raise_value_error,
+            )
+        assert isinstance(exc_info.value.__cause__, ValueError)
+        assert "something unexpected" in str(exc_info.value.__cause__)
+
+    def test_key_error_wrapped_in_scm_unhandled_exception(self):
+        """KeyError (e.g. from malformed response) should be wrapped."""
+        org_id = self.organization.id
+        repository = _make_active_repository(org_id)
+
+        def raise_key_error(provider):
+            raise KeyError("missing_field")
+
+        with pytest.raises(SCMUnhandledException) as exc_info:
+            exec_provider_fn(
+                org_id,
+                1,
+                fetch_repository=lambda _, __: repository,
+                fetch_service_provider=lambda _, __: _make_provider(),
+                provider_fn=raise_key_error,
+            )
+        assert isinstance(exc_info.value.__cause__, KeyError)
+
+    def test_runtime_error_wrapped_in_scm_unhandled_exception(self):
+        """RuntimeError should be wrapped in SCMUnhandledException."""
+        org_id = self.organization.id
+        repository = _make_active_repository(org_id)
+
+        def raise_runtime_error(provider):
+            raise RuntimeError("unexpected state")
+
+        with pytest.raises(SCMUnhandledException) as exc_info:
+            exec_provider_fn(
+                org_id,
+                1,
+                fetch_repository=lambda _, __: repository,
+                fetch_service_provider=lambda _, __: _make_provider(),
+                provider_fn=raise_runtime_error,
+            )
+        assert isinstance(exc_info.value.__cause__, RuntimeError)

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {Badge} from '@sentry/scraps/badge';
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -58,8 +57,7 @@ export function TestSuiteDropdown() {
       value: suite,
       isSelected: selectedSet.has(suite.toLowerCase()),
       leadingItems: ({isSelected}: {isSelected: boolean}) => (
-        <Checkbox
-          size="sm"
+        <HybridFilterComponents.Checkbox
           checked={isSelected}
           onChange={() => hybridFilterRef.current?.toggleOption(suite)}
           aria-label={t('Select %s', suite)}

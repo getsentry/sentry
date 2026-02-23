@@ -11,7 +11,7 @@ from snuba_sdk import BooleanCondition, Column, Condition, Function
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
-from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
+from sentry.release_health.base import AllowedResolution
 from sentry.search.events.builder.sessions import SessionsV2QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
@@ -285,7 +285,6 @@ class QueryDefinition:
         self,
         query,
         params,
-        query_config: SessionsQueryConfig,
         limit: int | None = 0,
         offset: int | None = 0,
     ):
@@ -295,7 +294,6 @@ class QueryDefinition:
         self.raw_orderby = query.getlist("orderBy")  # only respected by metrics implementation
         self.limit = limit
         self.offset = offset
-        self._query_config = query_config
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
@@ -326,8 +324,7 @@ class QueryDefinition:
 
         start, end, rollup = get_constrained_date_range(
             query,
-            allowed_resolution=query_config.allowed_resolution,
-            restrict_date_range=query_config.restrict_date_range,
+            allowed_resolution=AllowedResolution.ten_seconds,
         )
         self.rollup = rollup
         self.start = start
@@ -372,9 +369,8 @@ class QueryDefinition:
             "limit": max_groups,
             "granularity": self.rollup,
             "config": QueryBuilderConfig(auto_aggregations=True),
+            "extra_filter_allowlist_fields": ["session.status"],
         }
-        if self._query_config.allow_session_status_query:
-            query_builder_dict.update({"extra_filter_allowlist_fields": ["session.status"]})
         return query_builder_dict
 
     def get_filter_conditions(self):
@@ -450,7 +446,6 @@ def get_constrained_date_range(
     params,
     allowed_resolution: AllowedResolution = AllowedResolution.one_hour,
     max_points=MAX_POINTS,
-    restrict_date_range=True,
 ) -> tuple[datetime, datetime, int]:
     interval_td = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval_td is None else interval_td.total_seconds())

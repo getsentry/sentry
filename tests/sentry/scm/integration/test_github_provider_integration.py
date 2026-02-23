@@ -38,7 +38,9 @@ class TestGitHubProviderIntegration(TestCase):
             status=ObjectStatus.ACTIVE,
         )
         self.repository = map_repository_model_to_repository(self.repo_model)
-        self.provider = map_integration_to_provider(self.organization.id, self.integration)
+        self.provider = map_integration_to_provider(
+            self.organization.id, self.integration, self.repository
+        )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -69,14 +71,14 @@ class TestGitHubProviderIntegration(TestCase):
             ],
         )
 
-        comments = self.provider.get_issue_comments(self.repository, "1347")
+        comments = self.provider.get_issue_comments("1347")
 
-        assert len(comments) == 1
-        assert comments[0]["comment"]["id"] == "1"
-        assert comments[0]["comment"]["body"] == "Me too"
-        assert comments[0]["comment"]["author"] is not None
-        assert comments[0]["comment"]["author"]["id"] == "1"
-        assert comments[0]["comment"]["author"]["username"] == "octocat"
+        assert len(comments["data"]) == 1
+        assert comments["data"][0]["id"] == "1"
+        assert comments["data"][0]["body"] == "Me too"
+        assert comments["data"][0]["author"] is not None
+        assert comments["data"][0]["author"]["id"] == "1"
+        assert comments["data"][0]["author"]["username"] == "octocat"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -106,7 +108,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        self.provider.create_issue_comment(self.repository, "1", "hello")
+        self.provider.create_issue_comment("1", "hello")
 
         assert len(responses.calls) == 1
         assert (
@@ -161,9 +163,9 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        result = self.provider.get_pull_request(self.repository, "1347")
+        result = self.provider.get_pull_request("1347")
 
-        pr = result["pull_request"]
+        pr = result["data"]
         assert pr["head"]["sha"] == "6dcb09b5b57875f334f61aebed695e2e4193db5e"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -191,7 +193,11 @@ class TestGitHubProviderIntegration(TestCase):
                                         "id": "IC_10",
                                         "body": "Great stuff!",
                                         "isMinimized": False,
-                                        "author": {"login": "octocat", "__typename": "User"},
+                                        "author": {
+                                            "login": "octocat",
+                                            "databaseId": 1,
+                                            "__typename": "User",
+                                        },
                                     }
                                 ],
                                 "pageInfo": {"hasNextPage": False, "endCursor": None},
@@ -206,14 +212,15 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        result = self.provider.get_pull_request_comments(self.repository, "1")
+        result = self.provider.get_pull_request_comments("1")
 
-        assert len(result) == 1
-        assert result[0]["comment"]["id"] == "IC_10"
-        assert result[0]["comment"]["body"] == "Great stuff!"
-        assert result[0]["comment"]["author"] is not None
-        assert result[0]["comment"]["author"]["username"] == "octocat"
-        assert result[0]["provider"] == "github"
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] == "IC_10"
+        assert result["data"][0]["body"] == "Great stuff!"
+        assert result["data"][0]["author"] is not None
+        assert result["data"][0]["author"]["id"] == "1"
+        assert result["data"][0]["author"]["username"] == "octocat"
+        assert result["type"] == "github"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -242,15 +249,15 @@ class TestGitHubProviderIntegration(TestCase):
             headers={},
         )
 
-        reactions = self.provider.get_issue_comment_reactions(self.repository, "42")
+        reactions = self.provider.get_issue_comment_reactions("42")
 
-        assert len(reactions) == 2
-        assert reactions[0]["id"] == "1"
-        assert reactions[0]["content"] == "+1"
-        assert reactions[0]["author"] is not None
-        assert reactions[0]["author"]["username"] == "octocat"
-        assert reactions[1]["id"] == "2"
-        assert reactions[1]["content"] == "eyes"
+        assert len(reactions["data"]) == 2
+        assert reactions["data"][0]["id"] == "1"
+        assert reactions["data"][0]["content"] == "+1"
+        assert reactions["data"][0]["author"] is not None
+        assert reactions["data"][0]["author"]["username"] == "octocat"
+        assert reactions["data"][1]["id"] == "2"
+        assert reactions["data"][1]["content"] == "eyes"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -275,7 +282,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        self.provider.create_issue_comment_reaction(self.repository, "42", "heart")
+        self.provider.create_issue_comment_reaction("42", "heart")
 
         assert len(responses.calls) == 1
 
@@ -318,19 +325,19 @@ class TestGitHubProviderIntegration(TestCase):
             headers={},
         )
 
-        reactions = self.provider.get_issue_reactions(self.repository, "42")
+        reactions = self.provider.get_issue_reactions("42")
 
-        assert len(reactions) == 2
-        assert reactions[0]["id"] == "1"
-        assert reactions[0]["content"] == "heart"
-        assert reactions[0]["author"] is not None
-        assert reactions[0]["author"]["id"] == "1"
-        assert reactions[0]["author"]["username"] == "octocat"
-        assert reactions[1]["id"] == "2"
-        assert reactions[1]["content"] == "+1"
-        assert reactions[1]["author"] is not None
-        assert reactions[1]["author"]["id"] == "2"
-        assert reactions[1]["author"]["username"] == "hubot"
+        assert len(reactions["data"]) == 2
+        assert reactions["data"][0]["id"] == "1"
+        assert reactions["data"][0]["content"] == "heart"
+        assert reactions["data"][0]["author"] is not None
+        assert reactions["data"][0]["author"]["id"] == "1"
+        assert reactions["data"][0]["author"]["username"] == "octocat"
+        assert reactions["data"][1]["id"] == "2"
+        assert reactions["data"][1]["content"] == "+1"
+        assert reactions["data"][1]["author"] is not None
+        assert reactions["data"][1]["author"]["id"] == "2"
+        assert reactions["data"][1]["author"]["username"] == "hubot"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -355,7 +362,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        self.provider.create_issue_reaction(self.repository, "42", "rocket")
+        self.provider.create_issue_reaction("42", "rocket")
 
         assert len(responses.calls) == 1
 
@@ -373,7 +380,245 @@ class TestGitHubProviderIntegration(TestCase):
         )
 
         with pytest.raises(SCMProviderException):
-            self.provider.get_issue_comments(self.repository, "42")
+            self.provider.get_issue_comments("42")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_api_500_error_raises_scm_provider_exception(self, mock_get_jwt):
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/42/comments",
+            status=500,
+            json={"message": "Internal Server Error"},
+        )
+
+        with pytest.raises(SCMProviderException):
+            self.provider.get_issue_comments("42")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_api_403_error_raises_scm_provider_exception(self, mock_get_jwt):
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{REPO_NAME}/pulls/1",
+            status=403,
+            json={"message": "Forbidden"},
+        )
+
+        with pytest.raises(SCMProviderException):
+            self.provider.get_pull_request("1")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_api_422_error_raises_scm_provider_exception(self, mock_get_jwt):
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/repos/{REPO_NAME}/pulls",
+            status=422,
+            json={"message": "Validation Failed", "errors": [{"message": "head already exists"}]},
+        )
+
+        with pytest.raises(SCMProviderException):
+            self.provider.create_pull_request(
+                title="Test", body="body", head="feature", base="main"
+            )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_commit(self, mock_get_jwt):
+        sha = "abc123def456"
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{REPO_NAME}/commits/{sha}",
+            json={
+                "sha": sha,
+                "commit": {
+                    "message": "Fix bug",
+                    "author": {
+                        "name": "Test User",
+                        "email": "test@example.com",
+                        "date": "2026-02-04T10:00:00Z",
+                    },
+                },
+                "files": [
+                    {
+                        "filename": "src/main.py",
+                        "status": "modified",
+                        "patch": "@@ -1 +1 @@\n-old\n+new",
+                    }
+                ],
+            },
+        )
+
+        result = self.provider.get_commit(sha)
+
+        commit = result["data"]
+        assert commit["id"] == sha
+        assert commit["message"] == "Fix bug"
+        assert commit["author"] is not None
+        assert commit["author"]["name"] == "Test User"
+        assert len(commit["files"]) == 1
+        assert commit["files"][0]["filename"] == "src/main.py"
+        assert commit["files"][0]["status"] == "modified"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_branch(self, mock_get_jwt):
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{REPO_NAME}/branches/main",
+            json={
+                "name": "main",
+                "commit": {"sha": "abc123def456"},
+            },
+        )
+
+        result = self.provider.get_branch("main")
+
+        ref = result["data"]
+        assert ref["sha"] == "abc123def456"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_files(self, mock_get_jwt):
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{REPO_NAME}/pulls/1/files",
+            json=[
+                {
+                    "filename": "src/main.py",
+                    "status": "modified",
+                    "patch": "@@ -1 +1 @@",
+                    "changes": 2,
+                    "sha": "abc123",
+                },
+                {
+                    "filename": "src/new_file.py",
+                    "status": "added",
+                    "patch": "@@ -0,0 +1 @@\n+new",
+                    "changes": 1,
+                    "sha": "def456",
+                },
+            ],
+        )
+
+        result = self.provider.get_pull_request_files("1")
+
+        assert len(result["data"]) == 2
+        assert result["data"][0]["filename"] == "src/main.py"
+        assert result["data"][0]["status"] == "modified"
+        assert result["data"][1]["filename"] == "src/new_file.py"
+        assert result["data"][1]["status"] == "added"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_create_pull_request(self, mock_get_jwt):
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/repos/{REPO_NAME}/pulls",
+            status=201,
+            json={
+                "id": 1,
+                "number": 42,
+                "title": "New Feature",
+                "body": "Description",
+                "state": "open",
+                "merged": False,
+                "url": f"https://api.github.com/repos/{REPO_NAME}/pulls/42",
+                "html_url": f"https://github.com/{REPO_NAME}/pull/42",
+                "head": {"ref": "feature", "sha": "abc123"},
+                "base": {"ref": "main", "sha": "def456"},
+            },
+        )
+
+        result = self.provider.create_pull_request(
+            title="New Feature", body="Description", head="feature", base="main"
+        )
+
+        pr = result["data"]
+        assert pr["number"] == 42
+        assert pr["title"] == "New Feature"
+        assert pr["state"] == "open"
+        assert pr["head"]["ref"] == "feature"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_comments_with_databaseid(self, mock_get_jwt):
+        """Verify GraphQL author databaseId is used as the author id."""
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            json={
+                "resources": {
+                    "graphql": {"limit": 5000, "remaining": 4999, "reset": 9999999999, "used": 1}
+                }
+            },
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": {
+                    "repository": {
+                        "pullRequest": {
+                            "comments": {
+                                "nodes": [
+                                    {
+                                        "id": "IC_10",
+                                        "body": "Great stuff!",
+                                        "isMinimized": False,
+                                        "author": {
+                                            "login": "octocat",
+                                            "databaseId": 42,
+                                            "__typename": "User",
+                                        },
+                                    }
+                                ],
+                                "pageInfo": {"hasNextPage": False, "endCursor": None},
+                            },
+                            "reviewThreads": {
+                                "nodes": [],
+                                "pageInfo": {"hasNextPage": False, "endCursor": None},
+                            },
+                        }
+                    }
+                }
+            },
+        )
+
+        result = self.provider.get_pull_request_comments("1")
+
+        assert len(result["data"]) == 1
+        author = result["data"][0]["author"]
+        assert author is not None
+        assert author["id"] == "42"
+        assert author["username"] == "octocat"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_delete_issue_comment(self, mock_get_jwt):
+        responses.add(
+            method=responses.DELETE,
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/123",
+            status=204,
+        )
+
+        self.provider.delete_issue_comment("123")
+
+        assert len(responses.calls) == 1
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_delete_issue_comment_reaction(self, mock_get_jwt):
+        responses.add(
+            method=responses.DELETE,
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions/1",
+            status=204,
+        )
+
+        self.provider.delete_issue_comment_reaction("42", "1")
+
+        assert len(responses.calls) == 1
 
     def test_repository_conversion_preserves_fields(self):
         assert self.repository["name"] == REPO_NAME

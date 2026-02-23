@@ -893,6 +893,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.relocation.tasks.transfer",
     "sentry.replays.data_export",
     "sentry.replays.tasks",
+    "sentry.scm.private.ipc",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.seer.autofix.issue_summary",
