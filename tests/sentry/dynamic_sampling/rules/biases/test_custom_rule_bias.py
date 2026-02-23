@@ -7,11 +7,14 @@ from sentry.dynamic_sampling.rules.biases.custom_rule_bias import CustomRuleBias
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.project import Project
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
 
 
 @freeze_time("2023-09-19 10:00:00")
 @mock.patch("sentry.models.CustomDynamicSamplingRule.get_project_rules")
-def test_custom_rule_bias(custom_dynamic_sampling_rule_mock, insta_snapshot) -> None:
+def test_custom_rule_bias(
+    custom_dynamic_sampling_rule_mock: mock.MagicMock, insta_snapshot: InstaSnapshotter
+) -> None:
     """
     Test that the custom rule bias transforms the rules from the model into the expected format.
     """
@@ -46,7 +49,7 @@ def test_custom_rule_bias(custom_dynamic_sampling_rule_mock, insta_snapshot) -> 
 @freeze_time("2023-09-19 10:00:00")
 @mock.patch("sentry.models.CustomDynamicSamplingRule.get_project_rules")
 def test_custom_rule_bias_with_invalid_condition(
-    custom_dynamic_sampling_rule_mock, insta_snapshot
+    custom_dynamic_sampling_rule_mock: mock.MagicMock, insta_snapshot: InstaSnapshotter
 ) -> None:
     """
     Test that the custom rule bias throws an error if the condition is invalid.

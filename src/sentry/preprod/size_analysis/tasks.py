@@ -8,7 +8,6 @@ from django.db import router, transaction
 from django.utils import timezone
 
 from sentry import features
-from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.files.file import File
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -16,6 +15,11 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.size_analysis.compare import compare_size_analysis
+from sentry.preprod.size_analysis.grouptype import (
+    PreprodSizeAnalysisGroupType,
+    SizeAnalysisDataPacket,
+    SizeAnalysisValue,
+)
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -24,8 +28,8 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import metrics
 from sentry.utils.json import dumps_htmlsafe
-
-from .issues import diff_to_occurrence
+from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.processors.detector import process_detectors
 
 logger = logging.getLogger(__name__)
 
@@ -551,37 +555,45 @@ def _maybe_emit_issues(
         )
         return
 
-    # TODO(EME-80): Make threshold configurable:
-    arbitrary_threshold = 100 * 1024
+    detectors = list(
+        Detector.objects.filter(
+            project_id=project_id,
+            type=PreprodSizeAnalysisGroupType.slug,
+            enabled=True,
+        )
+    )
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.no_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
     diff = comparison_results.size_metric_diff_item
-    download_delta = diff.head_download_size - diff.base_download_size
-    install_delta = diff.head_install_size - diff.base_install_size
+    size_data: SizeAnalysisValue = {
+        "head_install_size_bytes": diff.head_install_size,
+        "head_download_size_bytes": diff.head_download_size,
+        "base_install_size_bytes": diff.base_install_size,
+        "base_download_size_bytes": diff.base_download_size,
+    }
 
-    issue_count = 0
-
-    if download_delta >= arbitrary_threshold:
-        occurrence, event_data = diff_to_occurrence("download", diff, head_metric, base_metric)
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.OCCURRENCE,
-            occurrence=occurrence,
-            event_data=event_data,
-        )
-        issue_count += 1
-
-    if install_delta >= arbitrary_threshold:
-        occurrence, event_data = diff_to_occurrence("install", diff, head_metric, base_metric)
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.OCCURRENCE,
-            occurrence=occurrence,
-            event_data=event_data,
-        )
-        issue_count += 1
+    data_packet: SizeAnalysisDataPacket = DataPacket(
+        source_id=f"preprod-size-analysis:{project_id}",
+        packet=size_data,
+    )
 
     logger.info(
-        "preprod.size_analysis.compare.issues",
+        "preprod.size_analysis.process_detectors.starting",
         extra={
             "project_id": project_id,
-            "organization_id": organization_id,
-            "issue_count": issue_count,
+            "detector_count": len(detectors),
+        },
+    )
+    results = process_detectors(data_packet, detectors)
+    logger.info(
+        "preprod.size_analysis.process_detectors.completed",
+        extra={
+            "project_id": project_id,
+            "detector_count": len(results),
         },
     )

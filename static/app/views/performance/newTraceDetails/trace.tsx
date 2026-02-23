@@ -1042,7 +1042,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
-      &.occurence {
+      &.occurrence {
         --pattern-odd: ${p => p.theme.tokens.content.accent};
         --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
@@ -1084,7 +1084,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
-      &.occurence {
+      &.occurrence {
         --pattern-odd: ${p => p.theme.tokens.content.accent};
         --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
@@ -1141,7 +1141,7 @@ const TraceStylingWrapper = styled('div')`
     }
     &.error,
     &.fatal,
-    &.occurence {
+    &.occurrence {
       color: ${p => p.theme.tokens.content.danger};
       --autogrouped: ${p => p.theme.tokens.content.danger};
       --row-children-button-border-color: ${p => p.theme.tokens.content.danger};
@@ -1192,8 +1192,8 @@ const TraceStylingWrapper = styled('div')`
       &.fatal {
         background-color: var(--error);
       }
-      &.occurence {
-        background-color: var(--occurence);
+      &.occurrence {
+        background-color: var(--occurrence);
       }
       &.default {
         background-color: var(--default);
@@ -1217,7 +1217,7 @@ const TraceStylingWrapper = styled('div')`
 
       &.info,
       &.warning,
-      &.occurence,
+      &.occurrence,
       &.default,
       &.unknown {
         svg {

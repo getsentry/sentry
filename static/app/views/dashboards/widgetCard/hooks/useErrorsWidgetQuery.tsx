@@ -50,6 +50,7 @@ export function useErrorsSeriesQuery(
     enabled = true,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -69,7 +70,8 @@ export function useErrorsSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.ERRORS,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       const {
@@ -104,7 +106,7 @@ export function useErrorsSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters]);
+  }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
   const createQueryFn = useCallback(
     () =>
