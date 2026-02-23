@@ -87,8 +87,6 @@ export class Thresholds implements Plottable {
     const {max1, max2} = this.thresholds.max_values;
     const isHigherBetter = this.thresholds.preferredPolarity === '+';
 
-    // For '-' (lower is better): green, yellow, red bottom-to-top
-    // For '+' (higher is better): red, yellow, green bottom-to-top
     const colorOrder = isHigherBetter
       ? POSITIVE_POLARITY_COLOR_ORDER
       : NEGATIVE_POLARITY_COLOR_ORDER;

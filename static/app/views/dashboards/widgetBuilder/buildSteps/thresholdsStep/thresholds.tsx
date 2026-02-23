@@ -110,8 +110,6 @@ export function Thresholds({
 
   const isHigherBetter = preferredPolarity === '+';
 
-  // Row colors: for '-' (lower is better): green, yellow , red top-to-bottom
-  // For '+' (higher is better): red, yellow, green top-to-bottom
   const rowColors = isHigherBetter
     ? POSITIVE_POLARITY_COLOR_ORDER
     : NEGATIVE_POLARITY_COLOR_ORDER;

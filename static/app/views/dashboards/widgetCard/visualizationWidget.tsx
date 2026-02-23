@@ -361,7 +361,7 @@ function VisualizationWidgetContent({
   ) {
     plottables.push(
       new Thresholds({
-        thresholds: {...widget.thresholds},
+        thresholds: widget.thresholds,
         dataType: timeSeriesWithPlottable[0]?.[0]?.meta?.valueType,
       })
     );
