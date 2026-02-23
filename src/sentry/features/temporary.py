@@ -228,8 +228,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ownership-size-limit-xlarge", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable mobile performance score calculation for transactions in relay
     manager.add("organizations:performance-calculate-mobile-perf-score-relay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enable UI sending a discover split for widget
-    manager.add("organizations:performance-discover-widget-split-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables setting the fetch all custom measurements request time range to match the user selected time range instead of 90 days
     manager.add("organizations:performance-discover-get-custom-measurements-reduced-range", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Temporary flag to test search performance that's running slow in S4S
@@ -282,8 +280,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-transaction-name-only-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable transaction name only search on indexed
     manager.add("organizations:performance-transaction-name-only-search-indexed", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Hides some fields and sections in the transaction summary page that are being deprecated
-    manager.add("organizations:performance-transaction-summary-cleanup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the EAP-powered transactions summary view
     manager.add("organizations:performance-transaction-summary-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the new UI for span summary and the spans tab
