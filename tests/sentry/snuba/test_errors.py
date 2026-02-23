@@ -799,7 +799,9 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 assert data[0]["tpm_60"] == 6
 
     def test_error_handled_alias(self) -> None:
-        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        project = self.create_project(organization=self.organization)
+        event_time = before_now(minutes=10)
+        data = load_data("android-ndk", timestamp=event_time)
         events = (
             ("a" * 32, "not handled", False),
             ("b" * 32, "is handled", True),
@@ -810,7 +812,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
             data["logentry"] = {"formatted": event[1]}
             data["exception"]["values"][0]["value"] = event[1]
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
-            self.store_event(data=data, project_id=self.project.id)
+            self.store_event(data=data, project_id=project.id)
 
         queries: list[tuple[str, list[int]]] = [
             ("", [0, 1, 1]),
@@ -828,9 +830,9 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 snuba_params=SnubaParams(
                     organization=self.organization,
-                    projects=[self.project],
-                    start=before_now(minutes=12),
-                    end=before_now(minutes=8),
+                    projects=[project],
+                    start=event_time - timedelta(minutes=2),
+                    end=event_time + timedelta(minutes=2),
                 ),
                 referrer="errors",
             )
