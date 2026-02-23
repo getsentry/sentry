@@ -200,6 +200,7 @@ export enum IssueType {
   // Preprod
   PREPROD_STATIC = 'preprod_static',
   PREPROD_DELTA = 'preprod_delta',
+  PREPROD_SIZE_ANALYSIS = 'preprod_size_analysis',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -254,6 +255,7 @@ export enum IssueTitle {
 
   PREPROD_STATIC = 'Static Analysis',
   PREPROD_DELTA = 'Static Analysis Delta',
+  PREPROD_SIZE_ANALYSIS = 'Size Analysis',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -296,6 +298,7 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
   preprod_static: IssueTitle.PREPROD_STATIC,
   preprod_delta: IssueTitle.PREPROD_DELTA,
+  preprod_size_analysis: IssueTitle.PREPROD_SIZE_ANALYSIS,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -332,6 +335,7 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   10001: IssueType.WEB_VITALS,
   11001: IssueType.PREPROD_STATIC,
   11002: IssueType.PREPROD_DELTA,
+  11003: IssueType.PREPROD_SIZE_ANALYSIS,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);

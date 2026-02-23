@@ -39,6 +39,7 @@ export function useMobileAppSizeSeriesQuery(
     dashboardFilters,
     skipDashboardFilterParens,
     samplingMode,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -58,7 +59,8 @@ export function useMobileAppSizeSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.PREPROD_SIZE,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       if (samplingMode) {
@@ -97,7 +99,7 @@ export function useMobileAppSizeSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode]);
+  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
 
   const createQueryFn = useCallback(
     () =>

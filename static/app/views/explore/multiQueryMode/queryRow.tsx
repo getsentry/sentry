@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {LazyRender} from 'sentry/components/lazyRender';
 import {space} from 'sentry/styles/space';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,

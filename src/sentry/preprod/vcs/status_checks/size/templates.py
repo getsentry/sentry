@@ -85,17 +85,29 @@ def format_status_check_messages(
     parts = []
     if analyzed_count > 0 and not triggered_rules:
         parts.append(
-            ngettext("%(count)d app analyzed", "%(count)d apps analyzed", analyzed_count)
+            ngettext(
+                "%(count)d component analyzed",
+                "%(count)d components analyzed",
+                analyzed_count,
+            )
             % {"count": analyzed_count}
         )
     if processing_count > 0:
         parts.append(
-            ngettext("%(count)d app processing", "%(count)d apps processing", processing_count)
+            ngettext(
+                "%(count)d component processing",
+                "%(count)d components processing",
+                processing_count,
+            )
             % {"count": processing_count}
         )
     if errored_count > 0:
         parts.append(
-            ngettext("%(count)d app errored", "%(count)d apps errored", errored_count)
+            ngettext(
+                "%(count)d component errored",
+                "%(count)d components errored",
+                errored_count,
+            )
             % {"count": errored_count}
         )
 
@@ -478,6 +490,8 @@ def _get_size_metric_type_display_name(
             return "Watch"
         case PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE:
             return "Dynamic Feature"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT:
+            return "App Clip"
         case _:
             return None
 
@@ -495,6 +509,8 @@ def _get_triggered_metric_type_display_name(
             if identifier:
                 return f"Dynamic Feature ({identifier})"
             return "Dynamic Feature"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT:
+            return "App Clip"
         case _:
             return ""
 

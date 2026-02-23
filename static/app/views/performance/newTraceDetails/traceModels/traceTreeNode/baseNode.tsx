@@ -174,7 +174,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       }
 
       if ('occurrences' in value && Array.isArray(value.occurrences)) {
-        value.occurrences.forEach(occurence => this.occurrences.add(occurence));
+        value.occurrences.forEach(occurrence => this.occurrences.add(occurrence));
       }
     }
   }
