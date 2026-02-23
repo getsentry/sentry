@@ -1,8 +1,6 @@
 from dataclasses import asdict
 from typing import Any
 
-from rest_framework import serializers
-
 from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseIssueAlertHandler
 from sentry.sentry_apps.services.app import RpcSentryAppComponent, app_service
@@ -13,8 +11,6 @@ from sentry.workflow_engine.typings.notification_action import (
     SentryAppDataBlob,
     SentryAppFormConfigDataBlob,
 )
-
-ValidationError = serializers.ValidationError
 
 
 @issue_alert_handler_registry.register(Action.Type.SENTRY_APP)
