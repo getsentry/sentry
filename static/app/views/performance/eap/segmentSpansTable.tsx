@@ -37,7 +37,6 @@ import {
   SEGMENT_SPANS_CURSOR,
 } from 'sentry/views/performance/eap/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 const LIMIT = 5;
 const PAGINATION_CURSOR_SIZE = 'xs';
@@ -69,9 +68,6 @@ export function SegmentSpansTable({
 
   const p95 = totalValues?.['p95()'] ?? 0;
   const eventViewQuery = new MutableSearch('');
-  if (selected.value === TransactionFilterOptions.SLOW && p95) {
-    eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
-  }
 
   const {
     data: tableData,
