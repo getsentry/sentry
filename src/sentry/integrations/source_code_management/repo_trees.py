@@ -209,7 +209,7 @@ class RepoTreesIntegration(ABC):
                     extra={"repo": repo_full_name},
                 )
                 cache.set(key, [], self.CACHE_SECONDS + shifted_seconds)
-                return []
+                tree = None
             if tree:
                 # Keep files; discard directories
                 repo_files = [node["path"] for node in tree if node["type"] == "blob"]
