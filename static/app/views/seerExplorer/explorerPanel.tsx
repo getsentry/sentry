@@ -340,6 +340,13 @@ function ExplorerPanel() {
     }
   }, [langfuseUrl]);
 
+  const handleOpenSentryTrace = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (conversationsUrl) {
+      window.open(conversationsUrl, '_blank');
+    }
+  }, [conversationsUrl]);
+
   const openFeedbackForm = useFeedbackForm();
 
   // Generic feedback handler
@@ -374,6 +381,7 @@ function ExplorerPanel() {
         onNew: startNewSession,
         onFeedback: openFeedbackForm ? handleFeedback : undefined,
         onLangfuse: handleOpenLangfuse,
+        onSentryTrace: handleOpenSentryTrace,
       },
       onChangeSession: switchToRun,
       menuAnchorRef: sessionHistoryButtonRef,
