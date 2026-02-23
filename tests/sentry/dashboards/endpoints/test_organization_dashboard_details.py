@@ -760,11 +760,10 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204
 
     def test_allow_delete_as_superuser_but_no_edit_perms(self) -> None:
-        self.create_user(id=12333)
+        other_user = self.create_user()
         dashboard = Dashboard.objects.create(
-            id=67,
             title="Dashboard With Dataset Source",
-            created_by_id=12333,
+            created_by_id=other_user.id,
             organization=self.organization,
         )
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
