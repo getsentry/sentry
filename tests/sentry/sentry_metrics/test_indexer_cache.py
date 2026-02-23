@@ -210,13 +210,15 @@ def test_ttl_jitter() -> None:
     base_ttl = 3600 * 2
     max_ttl = base_ttl + 1800  # 25% of base_ttl
 
-    ttl_1 = indexer_cache.randomized_ttl
-    assert base_ttl <= ttl_1 <= max_ttl
+    ttls = set()
+    for _ in range(20):
+        ttl = indexer_cache.randomized_ttl
+        assert base_ttl <= ttl <= max_ttl
+        ttls.add(ttl)
 
-    ttl_2 = indexer_cache.randomized_ttl
-    assert base_ttl <= ttl_2 <= max_ttl
-
-    assert not ttl_1 == ttl_2
+    # With 20 samples from 1801 possible integer values, the probability
+    # of all being identical is vanishingly small (~(1/1801)^19)
+    assert len(ttls) > 1
 
 
 def test_separate_namespacing() -> None:
