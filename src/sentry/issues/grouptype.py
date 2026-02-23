@@ -672,9 +672,9 @@ class LLMDetectedExperimentalGroupType(GroupType):
 
 
 @dataclass(frozen=True)
-class LLMDetectedExperimentalGroupType2(GroupType):
+class LLMDetectedExperimentalGroupTypeV2(GroupType):
     type_id = 3502
-    slug = "llm_detected_experimental_2"
+    slug = "llm_detected_experimental_v2"
     description = "LLM Detected Issue"
     category = GroupCategory.AI_DETECTED.value
     category_v2 = GroupCategory.AI_DETECTED.value
