@@ -1758,11 +1758,8 @@ class TestExpandedSentryAppsWebhooks(TestCase):
 
         assert not safe_urlopen.called
 
-    @with_feature("organizations:expanded-sentry-apps-webhooks")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_cron_issue_with_feature_flag(
-        self, mock_record: MagicMock, safe_urlopen: MagicMock
-    ) -> None:
+    def test_cron_issue(self, mock_record: MagicMock, safe_urlopen: MagicMock) -> None:
         event = self.store_event(
             data={
                 "event_id": "b" * 32,

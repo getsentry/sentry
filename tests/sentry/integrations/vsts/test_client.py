@@ -21,7 +21,6 @@ from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.asserts import assert_halt_metric
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -73,7 +72,6 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert identity.data["refresh_token"] == "new-refresh-token"
         assert identity.data["expires"] > int(time())
 
-    @with_feature("organizations:migrate-azure-devops-integration")
     def test_refreshes_expired_token_new_integration(self) -> None:
         self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
@@ -180,7 +178,6 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         projects = installation.get_client().get_projects()
         assert len(projects) == 220
 
-    @with_feature("organizations:migrate-azure-devops-integration")
     def test_metadata_is_correct(self) -> None:
         self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
