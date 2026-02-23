@@ -245,7 +245,9 @@ def main(context: dict[str, str]) -> int:
     except (subprocess.CalledProcessError, FileNotFoundError):
         git_common_dir = os.path.join(reporoot, ".git")
     hooks_dir = os.path.join(git_common_dir, "hooks")
-    hooks_src = os.path.join(reporoot, "config", "hooks")
+    # Use main clone root for hook sources so symlinks don't dangle when a worktree is removed.
+    main_repo_root = os.path.dirname(git_common_dir)
+    hooks_src = os.path.join(main_repo_root, "config", "hooks")
     if os.path.isdir(git_common_dir):
         fs.ensure_symlink(
             os.path.join(hooks_src, "post-merge"),
