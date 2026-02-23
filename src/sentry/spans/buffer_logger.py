@@ -244,6 +244,14 @@ def emit_observability_metrics(
         str, tuple[float, float, float, float]
     ] = {}  # metric, min, max, sum, count
 
+    size_buckets = {
+        "<1000": 0,
+        "1000-2000": 0,
+        "2000-5000": 0,
+        "5000-10000": 0,
+        "10000-20000": 0,
+        ">20000": 0,
+    }
     for evalsha_latency_metrics, evalsha_gauge_metrics in zip(latency_metrics, gauge_metrics):
         for raw_key, value in evalsha_latency_metrics:
             key = raw_key.decode("utf-8")
@@ -257,14 +265,6 @@ def emit_observability_metrics(
                     latency_metrics_dict[key][3] + 1.0,
                 )
 
-        size_buckets = {
-            "<1000": 0,
-            "1000-2000": 0,
-            "2000-5000": 0,
-            "5000-10000": 0,
-            "10000-20000": 0,
-            ">20000": 0,
-        }
         for raw_key, value in evalsha_gauge_metrics:
             key = raw_key.decode("utf-8")
             # Temporary metrics for potential limits being added
@@ -294,7 +294,10 @@ def emit_observability_metrics(
 
     # Temporary metrics for potential limits being added
     for size, count in size_buckets.items():
-        metrics.incr("spans.buffer.parent_span_set_after_size_bucket", count, tags={"size": size})
+        if count > 0:
+            metrics.incr(
+                "spans.buffer.parent_span_set_after_size_bucket", count, tags={"size": size}
+            )
 
     for metric, (min_value, max_value, sum_value, count) in latency_metrics_dict.items():
         tags = {"stage": metric}
