@@ -69,6 +69,7 @@ interface VisualizationWidgetProps {
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
+  widgetInterval?: string;
 }
 
 export function VisualizationWidget({
@@ -78,6 +79,7 @@ export function VisualizationWidget({
   onDataFetched,
   onDataFetchStart,
   tableItemLimit,
+  widgetInterval,
   renderErrorMessage,
   showReleaseAs = 'bubble',
 }: VisualizationWidgetProps) {
@@ -99,6 +101,7 @@ export function VisualizationWidget({
       onDataFetched={onDataFetched}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
+      widgetInterval={widgetInterval}
     >
       {({
         timeseriesResults,

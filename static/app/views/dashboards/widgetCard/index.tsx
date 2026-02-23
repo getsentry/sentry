@@ -116,6 +116,7 @@ type Props = WithRouterProps & {
   showStoredAlert?: boolean;
   tableItemLimit?: number;
   useTimeseriesVisualization?: boolean;
+  widgetInterval?: string;
   windowWidth?: number;
 };
 
@@ -179,6 +180,7 @@ function WidgetCard(props: Props) {
     onWidgetTableResizeColumn,
     disableTableActions,
     useTimeseriesVisualization,
+    widgetInterval,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -353,6 +355,7 @@ function WidgetCard(props: Props) {
               renderErrorMessage={renderErrorMessage}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
+              widgetInterval={widgetInterval}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
