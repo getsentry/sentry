@@ -347,7 +347,7 @@ def get_group_list(
 
     Returns: List of Group objects filtered to only valid groups in the org/projects
     """
-    groups = []
+    groups: list[Group] = []
     # Convert all group IDs to integers and filter out any non-integer values
     group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
     if group_ids_int:
@@ -357,9 +357,15 @@ def get_group_list(
             )
         )
     else:
+        project_ids = {p.id for p in projects}
         for group_id in group_ids:
             if isinstance(group_id, str):
-                groups.append(Group.objects.by_qualified_short_id(organization_id, group_id))
+                try:
+                    group = Group.objects.by_qualified_short_id(organization_id, group_id)
+                except Group.DoesNotExist:
+                    continue
+                if group.project_id in project_ids:
+                    groups.append(group)
 
     return groups
 

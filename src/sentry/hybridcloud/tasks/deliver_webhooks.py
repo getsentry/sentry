@@ -275,6 +275,11 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
 
 def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
     """Record delivery time metrics for a successfully delivered webhook payload."""
+    exclude_mailboxes = set(
+        options.get("hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes") or ()
+    )
+    if payload.mailbox_name in exclude_mailboxes:
+        return
     duration = timezone.now() - payload.date_added
     region_sent_to = (
         payload.region_name

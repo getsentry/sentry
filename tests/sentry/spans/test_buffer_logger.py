@@ -474,3 +474,21 @@ class TestEmitObservabilityMetrics:
                 call(LG, 55.0, tags=t("spopcalls")),
             ]
         )
+
+    @mock.patch("sentry.spans.buffer_logger.metrics.incr")
+    def test_emit_observability_metrics_oversized_count_metric(self, mock_incr):
+        emit_observability_metrics(
+            latency_metrics=[[]],
+            gauge_metrics=[
+                [
+                    (b"parent_span_set_already_oversized", 1.0),
+                    (b"redirect_depth", 1.0),
+                ],
+            ],
+            longest_evalsha_data=(0, [], []),
+        )
+
+        mock_incr.assert_called_once_with(
+            "spans.buffer.process_spans.parent_span_set_already_oversized.count",
+            amount=1,
+        )
