@@ -81,7 +81,7 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
 
     @classmethod
     def get_alert_rule_component(
-        self, sentry_app_id: int, sentry_app_name: str
+        cls, sentry_app_id: int, sentry_app_name: str
     ) -> RpcSentryAppComponent:
         components = app_service.find_app_components(app_id=sentry_app_id)
 
@@ -106,4 +106,4 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
         sentry_app = installations[0].sentry_app
         alert_rule_component = cls.get_alert_rule_component(sentry_app.id, sentry_app.name)
 
-        return str(alert_rule_component.app_schema.get("title"))
+        return str(alert_rule_component.app_schema.get("title", sentry_app.name))
