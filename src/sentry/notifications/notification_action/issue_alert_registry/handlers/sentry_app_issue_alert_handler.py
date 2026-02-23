@@ -3,7 +3,7 @@ from typing import Any
 
 from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseIssueAlertHandler
-from sentry.sentry_apps.services.app import RpcSentryAppComponent, app_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
@@ -76,18 +76,6 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
         return {}
 
     @classmethod
-    def get_alert_rule_component(
-        cls, sentry_app_id: int, sentry_app_name: str
-    ) -> RpcSentryAppComponent | None:
-        components = app_service.find_app_components(app_id=sentry_app_id)
-
-        for component in components:
-            if component.type == "alert-rule-action":
-                return component
-
-        return None
-
-    @classmethod
     def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
         sentry_app_installation_uuid = blob.get("sentryAppInstallationUuid")
 
@@ -98,7 +86,11 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
             return ""
 
         sentry_app = installations[0].sentry_app
-        alert_rule_component = cls.get_alert_rule_component(sentry_app.id, sentry_app.name)
+        alert_rule_component = None
+        for component in app_service.find_app_components(app_id=sentry_app.id):
+            if component.type == "alert-rule-action":
+                alert_rule_component = component
+
         if not alert_rule_component:
             return ""
 
