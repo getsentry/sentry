@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone as dt_timezone
-from typing import Any, NotRequired, TypeAlias, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict
 from uuid import uuid4
 
 from sentry.issues.grouptype import GroupCategory, GroupType
@@ -28,7 +28,44 @@ from sentry.workflow_engine.types import (
     DetectorSettings,
 )
 
+if TYPE_CHECKING:
+    from sentry.preprod.models import PreprodArtifact
+
 logger = logging.getLogger(__name__)
+
+
+def _artifact_to_tags(artifact: PreprodArtifact) -> dict[str, str]:
+    from sentry.preprod.models import PreprodArtifact as PreprodArtifactModel
+
+    tags: dict[str, str] = {}
+    if artifact.app_id:
+        tags["app_id"] = artifact.app_id
+
+    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    if mobile_app_info is not None:
+        if mobile_app_info.app_name:
+            tags["app_name"] = mobile_app_info.app_name
+        if mobile_app_info.build_version:
+            tags["build_version"] = mobile_app_info.build_version
+        if mobile_app_info.build_number:
+            tags["build_number"] = str(mobile_app_info.build_number)
+    if artifact.build_configuration:
+        tags["build_configuration"] = artifact.build_configuration.name
+    if artifact.artifact_type is not None:
+        tags["artifact_type"] = PreprodArtifactModel.ArtifactType(artifact.artifact_type).to_str()
+    return tags
+
+
+class SizeAnalysisMetadata(TypedDict):
+    """Metadata about the artifacts being compared, used for occurrence creation."""
+
+    platform: str  # "android", "apple", or "unknown"
+    head_metric_id: int
+    base_metric_id: int
+    head_artifact_id: int
+    base_artifact_id: int
+    head_artifact: PreprodArtifact
+    base_artifact: PreprodArtifact
 
 
 class SizeAnalysisValue(TypedDict):
@@ -36,6 +73,7 @@ class SizeAnalysisValue(TypedDict):
     head_download_size_bytes: int
     base_install_size_bytes: NotRequired[int | None]
     base_download_size_bytes: NotRequired[int | None]
+    metadata: NotRequired[SizeAnalysisMetadata | None]
 
 
 SizeAnalysisDataPacket = DataPacket[SizeAnalysisValue]
@@ -135,10 +173,38 @@ class PreprodSizeAnalysisDetectorHandler(
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         current_timestamp = datetime.now(dt_timezone.utc)
+        metadata = data_packet.packet.get("metadata")
+
+        measurement = self.detector.config["measurement"]
+        match measurement:
+            case "install_size":
+                issue_title = "Install size regression"
+            case "download_size":
+                issue_title = "Download size regression"
+            case _:
+                issue_title = "Size regression"
+
+        platform = metadata["platform"] if metadata else "unknown"
+
+        evidence_data: dict[str, Any] = {}
+        if metadata:
+            evidence_data["head_artifact_id"] = metadata["head_artifact_id"]
+            evidence_data["base_artifact_id"] = metadata["base_artifact_id"]
+            evidence_data["head_size_metric_id"] = metadata["head_metric_id"]
+            evidence_data["base_size_metric_id"] = metadata["base_metric_id"]
+
+        tags: dict[str, str] = {}
+        if metadata:
+            tags["regression_kind"] = measurement.replace("_size", "")
+            for key, value in _artifact_to_tags(metadata["head_artifact"]).items():
+                tags[f"head.{key}"] = value
+            for key, value in _artifact_to_tags(metadata["base_artifact"]).items():
+                tags[f"base.{key}"] = value
 
         occurrence = DetectorOccurrence(
-            issue_title="size",
+            issue_title=issue_title,
             subtitle="A preprod static analysis issue was detected",
+            evidence_data=evidence_data,
             evidence_display=[
                 IssueEvidence(
                     name="Source",
@@ -155,10 +221,10 @@ class PreprodSizeAnalysisDetectorHandler(
         event_data = {
             "event_id": uuid4().hex,
             "project_id": self.detector.project_id,
-            "platform": "android",
+            "platform": platform,
             "received": current_timestamp.timestamp(),
             "timestamp": current_timestamp.timestamp(),
-            "tags": {},
+            "tags": tags,
         }
 
         return occurrence, event_data

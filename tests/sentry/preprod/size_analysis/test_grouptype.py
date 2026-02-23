@@ -4,6 +4,8 @@ from unittest import mock
 
 import pytest
 
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisDetectorHandler,
     PreprodSizeAnalysisDetectorValidator,
@@ -408,3 +410,154 @@ class PreprodSizeAnalysisDetectorHandlerIntegrationTest(TestCase):
             process_detectors(packet, [detector])
 
         assert mock_produce_occurrence_to_kafka.call_count == 1
+
+
+@region_silo_test
+class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
+    """Tests for the content of created occurrences (title, platform, tags, evidence)."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.condition_group = self.create_data_condition_group(
+            organization=self.project.organization,
+        )
+        self.create_data_condition(
+            condition_group=self.condition_group,
+            type=Condition.GREATER,
+            comparison=1000000,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+    def _evaluate_with_metadata(self, measurement, metadata):
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={"threshold_type": "absolute", "measurement": measurement},
+            workflow_condition_group=self.condition_group,
+        )
+        data_packet: SizeAnalysisDataPacket = DataPacket(
+            source_id="test-source",
+            packet={
+                "head_install_size_bytes": 5000000,
+                "head_download_size_bytes": 5000000,
+                "metadata": metadata,
+            },
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+        return handler.evaluate(data_packet)
+
+    def test_create_occurrence_install_size_with_metadata(self):
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+        )
+        head_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
+            id=head_artifact.id
+        )
+        base_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
+            id=base_artifact.id
+        )
+        metadata = {
+            "platform": "android",
+            "head_metric_id": 100,
+            "base_metric_id": 200,
+            "head_artifact_id": head_artifact.id,
+            "base_artifact_id": base_artifact.id,
+            "head_artifact": head_artifact,
+            "base_artifact": base_artifact,
+        }
+        result = self._evaluate_with_metadata("install_size", metadata)
+
+        assert None in result
+        occurrence = result[None].result
+        event_data = result[None].event_data
+        assert isinstance(occurrence, IssueOccurrence)
+        assert event_data is not None
+
+        assert occurrence.issue_title == "Install size regression"
+        assert event_data["platform"] == "android"
+        assert event_data["tags"]["regression_kind"] == "install"
+        assert event_data["tags"]["head.app_id"] == "com.example.app"
+        assert event_data["tags"]["base.app_id"] == "com.example.app"
+        assert event_data["tags"]["head.artifact_type"] == "apk"
+        assert occurrence.evidence_data["head_artifact_id"] == head_artifact.id
+        assert occurrence.evidence_data["base_artifact_id"] == base_artifact.id
+        assert occurrence.evidence_data["head_size_metric_id"] == 100
+        assert occurrence.evidence_data["base_size_metric_id"] == 200
+
+    def test_create_occurrence_download_size_with_metadata(self):
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            app_name="MyApp",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+        head_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
+            id=head_artifact.id
+        )
+        base_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
+            id=base_artifact.id
+        )
+        metadata = {
+            "platform": "apple",
+            "head_metric_id": 101,
+            "base_metric_id": 201,
+            "head_artifact_id": head_artifact.id,
+            "base_artifact_id": base_artifact.id,
+            "head_artifact": head_artifact,
+            "base_artifact": base_artifact,
+        }
+        result = self._evaluate_with_metadata("download_size", metadata)
+
+        assert None in result
+        occurrence = result[None].result
+        event_data = result[None].event_data
+        assert isinstance(occurrence, IssueOccurrence)
+        assert event_data is not None
+
+        assert occurrence.issue_title == "Download size regression"
+        assert event_data["platform"] == "apple"
+        assert event_data["tags"]["regression_kind"] == "download"
+        assert event_data["tags"]["head.app_name"] == "MyApp"
+        assert occurrence.evidence_data["head_artifact_id"] == head_artifact.id
+
+    def test_create_occurrence_without_metadata(self):
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={"threshold_type": "absolute", "measurement": "install_size"},
+            workflow_condition_group=self.condition_group,
+        )
+        data_packet: SizeAnalysisDataPacket = DataPacket(
+            source_id="test-source",
+            packet={
+                "head_install_size_bytes": 5000000,
+                "head_download_size_bytes": 5000000,
+            },
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+        result = handler.evaluate(data_packet)
+
+        assert None in result
+        occurrence = result[None].result
+        event_data = result[None].event_data
+        assert isinstance(occurrence, IssueOccurrence)
+        assert event_data is not None
+
+        assert occurrence.issue_title == "Install size regression"
+        assert event_data["platform"] == "unknown"
+        assert event_data["tags"] == {}
+        assert occurrence.evidence_data == {}

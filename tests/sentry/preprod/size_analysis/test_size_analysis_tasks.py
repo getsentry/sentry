@@ -1,9 +1,15 @@
 from unittest.mock import patch
 
-from sentry.preprod.models import PreprodArtifactSizeMetrics
-from sentry.preprod.size_analysis.grouptype import PreprodSizeAnalysisGroupType
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.size_analysis.grouptype import (
+    PreprodSizeAnalysisGroupType,
+    _artifact_to_tags,
+)
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeMetricDiffItem
-from sentry.preprod.size_analysis.tasks import maybe_emit_issues
+from sentry.preprod.size_analysis.tasks import (
+    _get_platform,
+    maybe_emit_issues,
+)
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -144,3 +150,117 @@ class MaybeEmitIssuesTest(TestCase):
             maybe_emit_issues(comparison_results, head_metric, base_metric)
 
         assert mock_produce.call_count == 0
+
+    def test_maybe_emit_issues_populates_metadata(self):
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+        )
+
+        head_metric = self.create_preprod_artifact_size_metrics(
+            head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier=None,
+            max_install_size=5000000,
+            max_download_size=2000000,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+
+        base_metric = self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier=None,
+            max_install_size=4000000,
+            max_download_size=1500000,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+
+        condition_group = self.create_data_condition_group(
+            organization=self.project.organization,
+        )
+        self.create_data_condition(
+            condition_group=condition_group,
+            type=Condition.GREATER,
+            comparison=1000000,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        self.create_detector(
+            name="test-detector",
+            project=self.project,
+            type=PreprodSizeAnalysisGroupType.slug,
+            config={"threshold_type": "absolute", "measurement": "install_size"},
+            workflow_condition_group=condition_group,
+        )
+
+        comparison_results = self._create_comparison_results()
+
+        with self.feature("organizations:preprod-issues"):
+            with patch("sentry.preprod.size_analysis.tasks.process_detectors") as mock_process:
+                mock_process.return_value = {}
+                maybe_emit_issues(comparison_results, head_metric, base_metric)
+
+            assert mock_process.call_count == 1
+            data_packet = mock_process.call_args[0][0]
+            metadata = data_packet.packet["metadata"]
+
+            assert metadata["platform"] == "android"
+            assert metadata["head_metric_id"] == head_metric.id
+            assert metadata["base_metric_id"] == base_metric.id
+            assert metadata["head_artifact_id"] == head_artifact.id
+            assert metadata["base_artifact_id"] == base_artifact.id
+            assert metadata["head_artifact"].id == head_artifact.id
+            assert metadata["base_artifact"].id == base_artifact.id
+
+
+class GetPlatformTest(TestCase):
+    def test_xcarchive_returns_apple(self):
+        assert _get_platform(PreprodArtifact.ArtifactType.XCARCHIVE) == "apple"
+
+    def test_aab_returns_android(self):
+        assert _get_platform(PreprodArtifact.ArtifactType.AAB) == "android"
+
+    def test_apk_returns_android(self):
+        assert _get_platform(PreprodArtifact.ArtifactType.APK) == "android"
+
+    def test_none_returns_unknown(self):
+        assert _get_platform(None) == "unknown"
+
+
+class ArtifactToTagsTest(TestCase):
+    def test_full_artifact_data(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_name="MyApp",
+            build_version="1.2.3",
+            build_number=42,
+        )
+        # Refresh to load mobile_app_info
+        artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(id=artifact.id)
+
+        tags = _artifact_to_tags(artifact)
+
+        assert tags["app_id"] == "com.example.app"
+        assert tags["app_name"] == "MyApp"
+        assert tags["build_version"] == "1.2.3"
+        assert tags["build_number"] == "42"
+        assert tags["artifact_type"] == "apk"
+
+    def test_minimal_artifact_data(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=None,
+            create_mobile_app_info=False,
+        )
+
+        tags = _artifact_to_tags(artifact)
+
+        assert tags == {"app_id": "com.example.app"}
