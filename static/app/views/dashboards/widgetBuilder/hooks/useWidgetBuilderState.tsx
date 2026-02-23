@@ -167,7 +167,7 @@ export interface WidgetBuilderState {
  * position among all equations in the list (not its overall index).
  * Regular aggregates use generateFieldAsString.
  */
-export function generateSortField(aggregates: Column[], aggregateIndex: number): string {
+function generateSortField(aggregates: Column[], aggregateIndex: number): string {
   const target = aggregates[aggregateIndex]!;
   const equationIndex =
     aggregates
