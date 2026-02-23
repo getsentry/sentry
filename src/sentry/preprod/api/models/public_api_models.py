@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Literal, NotRequired, TypedDict
 
+import sentry_sdk
+
 from sentry.models.files.file import File
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -182,7 +184,6 @@ def build_comparison_data(
     base_size_metrics = list(
         PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact=base_artifact,
-            preprod_artifact__project_id=project_id,
         ).select_related("preprod_artifact")
     )
 
@@ -272,9 +273,10 @@ def _build_success_comparison(
     }
 
     if comparison_obj.file_id is None:
-        logger.warning(
+        sentry_sdk.capture_message(
             "preprod.public_api.compare.success_no_file",
-            extra={"comparison_id": comparison_obj.id},
+            level="warning",
+            extras={"comparison_id": comparison_obj.id},
         )
         return comparison_result
 
@@ -291,9 +293,10 @@ def _build_success_comparison(
         comparison_result["size_metric_diff"] = comparison_dict["size_metric_diff_item"]
 
     except File.DoesNotExist:
-        logger.warning(
+        sentry_sdk.capture_message(
             "preprod.public_api.compare.file_not_found",
-            extra={"comparison_id": comparison_obj.id, "file_id": comparison_obj.file_id},
+            level="warning",
+            extras={"comparison_id": comparison_obj.id, "file_id": comparison_obj.file_id},
         )
     except Exception:
         logger.exception(

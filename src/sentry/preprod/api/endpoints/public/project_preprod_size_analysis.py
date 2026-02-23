@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -111,7 +112,17 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
 
         app_info = create_app_info_dict(head_artifact)
         git_info = create_git_info_dict(head_artifact)
-        state_enum = PreprodArtifactSizeMetrics.SizeAnalysisState(main_metric.state)
+        try:
+            state_enum = PreprodArtifactSizeMetrics.SizeAnalysisState(main_metric.state)
+        except ValueError:
+            sentry_sdk.capture_message(
+                "preprod.public_api.size_analysis.invalid_state",
+                level="warning",
+                extras={"artifact_id": head_artifact.id, "state": main_metric.state},
+            )
+            return Response(
+                {"detail": "There was an error retrieving size analysis results"}, status=500
+            )
 
         if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
             return Response(
@@ -161,20 +172,22 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
 
         analysis_file_id = main_metric.analysis_file_id
         if not analysis_file_id:
-            logger.warning(
+            sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.no_file_id",
-                extra={"artifact_id": head_artifact.id, "size_metric_id": main_metric.id},
+                level="warning",
+                extras={"artifact_id": head_artifact.id, "size_metric_id": main_metric.id},
             )
             return Response(
-                {"detail": "Size analysis completed but results are unavailable"}, status=500
+                {"detail": "There was an error retrieving size analysis results"}, status=500
             )
 
         try:
             file_obj = File.objects.get(id=analysis_file_id)
         except File.DoesNotExist:
-            logger.warning(
+            sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.file_not_found",
-                extra={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
+                level="warning",
+                extras={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
             )
             return Response({"detail": "Analysis file not found"}, status=404)
 
@@ -188,7 +201,9 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                 "preprod.public_api.size_analysis.parse_error",
                 extra={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
             )
-            return Response({"detail": "Failed to parse size analysis results"}, status=500)
+            return Response(
+                {"detail": "There was an error retrieving size analysis results"}, status=500
+            )
 
         analysis_dict = analysis_results.dict()
         response_data: SizeAnalysisCompletedResponseDict = {
