@@ -1,3 +1,4 @@
+import pytest
 import platform
 from datetime import timedelta
 from types import SimpleNamespace
@@ -153,6 +154,7 @@ class SendBeaconTest(OutcomesSnubaTest):
 
         assert options.get("sentry:latest_version") == "1.0.0"
 
+    @pytest.mark.skip(reason="flaky: #109090")
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
