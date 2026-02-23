@@ -37,69 +37,57 @@ class TestLabelQuery(APITestCase):
         create_feedback_issue(event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     def test_get_ai_labels_from_tags_retrieves_labels_correctly(self) -> None:
-        project = self.create_project()
-        original_project = self.project
-        self.project = project
-        try:
-            self._create_feedback(
-                "a",
-                ["Authentication"],
-                dt=before_now(days=2),
-            )
-            self._create_feedback(
-                "b",
-                ["Authentication", "Security"],
-                dt=before_now(days=1),
-            )
+        self._create_feedback(
+            "a",
+            ["Authentication"],
+            dt=before_now(days=2),
+        )
+        self._create_feedback(
+            "b",
+            ["Authentication", "Security"],
+            dt=before_now(days=1),
+        )
 
-            query = Query(
-                match=Entity(Dataset.IssuePlatform.value),
-                select=[
-                    _get_ai_labels_from_tags(alias="labels"),
-                ],
-                where=[
-                    Condition(Column("project_id"), Op.EQ, project.id),
-                    Condition(Column("timestamp"), Op.GTE, before_now(days=30)),
-                    Condition(Column("timestamp"), Op.LT, before_now(days=0)),
-                    Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
-                ],
-                orderby=[OrderBy(Column("timestamp"), Direction.ASC)],
-            )
+        query = Query(
+            match=Entity(Dataset.IssuePlatform.value),
+            select=[
+                _get_ai_labels_from_tags(alias="labels"),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.EQ, self.project.id),
+                Condition(Column("timestamp"), Op.GTE, before_now(days=30)),
+                Condition(Column("timestamp"), Op.LT, before_now(days=0)),
+                Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
+            ],
+            orderby=[OrderBy(Column("timestamp"), Direction.ASC)],
+        )
 
-            result = raw_snql_query(
-                Request(
-                    dataset=Dataset.IssuePlatform.value,
-                    app_id="feedback-backend-web",
-                    query=query,
-                    tenant_ids={"organization_id": project.organization.id},
-                ),
-                referrer="feedbacks.label_query",
-            )
+        result = raw_snql_query(
+            Request(
+                dataset=Dataset.IssuePlatform.value,
+                app_id="feedback-backend-web",
+                query=query,
+                tenant_ids={"organization_id": self.organization.id},
+            ),
+            referrer="feedbacks.label_query",
+        )
 
-            assert len(result["data"]) == 2
-            assert {label for label in result["data"][0]["labels"]} == {"Authentication"}
-            assert {label for label in result["data"][1]["labels"]} == {
-                "Authentication",
-                "Security",
-            }
-        finally:
-            self.project = original_project
+        assert len(result["data"]) == 2
+        assert {label for label in result["data"][0]["labels"]} == {"Authentication"}
+        assert {label for label in result["data"][1]["labels"]} == {"Authentication", "Security"}
 
     def test_query_top_ai_labels_by_feedback_count(self) -> None:
         self._create_feedback(
             "UI issue 1",
             ["User Interface", "Performance"],
-            dt=before_now(hours=3),
         )
         self._create_feedback(
             "UI issue 2",
             ["Checkout", "User Interface"],
-            dt=before_now(hours=2),
         )
         self._create_feedback(
             "UI issue 3",
             ["Performance", "User Interface", "Colors"],
-            dt=before_now(hours=1),
         )
 
         result = query_top_ai_labels_by_feedback_count(
@@ -123,40 +111,34 @@ class TestLabelQuery(APITestCase):
 
     @freeze_time("2025-01-15T00:00:00Z")
     def test_query_recent_feedbacks_with_ai_labels(self) -> None:
-        project = self.create_project()
-        original_project = self.project
-        self.project = project
-        try:
-            self._create_feedback(
-                "The UI is too slow and confusing",
-                ["User Interface"],
-                dt=before_now(days=3),
-            )
-            self._create_feedback(
-                "The app crashes frequently when loading data",
-                ["Performance"],
-                dt=before_now(days=2),
-            )
-            self._create_feedback(
-                "Hello",
-                [],
-                dt=before_now(days=1),
-            )
+        self._create_feedback(
+            "The UI is too slow and confusing",
+            ["User Interface"],
+            dt=before_now(days=3),
+        )
+        self._create_feedback(
+            "The app crashes frequently when loading data",
+            ["Performance"],
+            dt=before_now(days=2),
+        )
+        self._create_feedback(
+            "Hello",
+            [],
+            dt=before_now(days=1),
+        )
 
-            result = query_recent_feedbacks_with_ai_labels(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                start=before_now(days=4),
-                end=before_now(days=0),
-                limit=1,
-            )
+        result = query_recent_feedbacks_with_ai_labels(
+            organization_id=self.organization.id,
+            project_ids=[self.project.id],
+            start=before_now(days=4),
+            end=before_now(days=0),
+            limit=1,
+        )
 
-            assert result[0] == {
-                "feedback": "The app crashes frequently when loading data",
-                "labels": ["Performance"],
-            }
-        finally:
-            self.project = original_project
+        assert result[0] == {
+            "feedback": "The app crashes frequently when loading data",
+            "labels": ["Performance"],
+        }
 
     def test_query_label_group_counts(self) -> None:
         self._create_feedback("a", ["User Interface", "Performance"])
