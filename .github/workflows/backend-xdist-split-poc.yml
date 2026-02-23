@@ -80,7 +80,7 @@ jobs:
           CLASS=/tmp/classification/test-service-classification.json
           T1_SHARDS=5
           T2_SHARDS=14
-          T3_SHARDS=3
+          T3_SHARDS=2
 
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" --summary
 
@@ -417,10 +417,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2]
+        instance: [0, 1]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 3
+      MATRIX_INSTANCE_TOTAL: 2
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
@@ -517,7 +517,7 @@ jobs:
           ) 2>&1 &
           SERVICES_PID=$!
 
-          echo "=== Tier 3: $(wc -l < /tmp/tier3-shards/shard-${{ matrix.instance }}.txt) scopes, shard ${{ matrix.instance }}/3 ==="
+          echo "=== Tier 3: $(wc -l < /tmp/tier3-shards/shard-${{ matrix.instance }}.txt) scopes, shard ${{ matrix.instance }}/2 ==="
           PYTEST_EXIT=0
           SERVICES_READY_FILE=/tmp/services-ready \
           python3 -b -m pytest tests \
