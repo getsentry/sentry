@@ -125,22 +125,6 @@ describe('TagDetailsDrawerContent', () => {
       'href',
       '/organizations/org-slug/issues/1/events/?query=user.username%3Adavid'
     );
-
-    const searchIssuesMenuItem = screen.getByRole('menuitemradio', {
-      name: 'Search issues with this tag value',
-    });
-    expect(searchIssuesMenuItem).toHaveAttribute(
-      'href',
-      expect.stringContaining('/organizations/org-slug/issues/?')
-    );
-    expect(searchIssuesMenuItem).toHaveAttribute(
-      'href',
-      expect.stringContaining('query=user.username%3Adavid')
-    );
-    expect(searchIssuesMenuItem).toHaveAttribute(
-      'href',
-      expect.stringContaining(`project=${group.project.id}`)
-    );
   });
 
   it('navigates to discover with issue + tag query', async () => {

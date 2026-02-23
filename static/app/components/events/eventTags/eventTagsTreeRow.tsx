@@ -187,10 +187,7 @@ function EventTagsTreeRowDropdown({
       hidden: isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/`,
-        query: {
-          ...query,
-          project: project.id,
-        },
+        query,
       },
     },
     {
@@ -199,10 +196,7 @@ function EventTagsTreeRowDropdown({
       hidden: !isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/feedback/`,
-        query: {
-          ...query,
-          project: project.id,
-        },
+        query,
       },
     },
     {
