@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable, cast
+from typing import Any, cast
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.scm.errors import SCMProviderException
@@ -232,7 +233,7 @@ class GitHubProvider:
         return ActionResult(
             data=[map_reaction(r) for r in raw_reactions],
             type="github",
-            raw={"item": raw_reactions},
+            raw={"items": raw_reactions},
         )
 
     def create_issue_reaction(
@@ -813,7 +814,7 @@ def map_graphql_pr_comments(raw: dict[str, Any]) -> list[Comment]:
 
 def map_pull_request_file(raw_file: dict[str, Any]) -> PullRequestFile:
     raw_status = raw_file.get("status", "modified")
-    status = raw_status if raw_status in _VALID_FILE_STATUSES else "modified"
+    status = raw_status if raw_status in _VALID_FILE_STATUSES else "unknown"
     return PullRequestFile(
         filename=raw_file["filename"],
         status=cast(FileStatus, status),
