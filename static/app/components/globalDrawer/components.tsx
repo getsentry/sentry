@@ -187,7 +187,11 @@ const DrawerContainer = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
-  overflow: hidden;
+  background: ${p => p.theme.tokens.background.primary};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    background: none;
+  }
 `;
 
 const DrawerSlidePanel = styled(SlideOverPanel)`
@@ -208,7 +212,7 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   ) !important;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    width: 100% !important;
+    min-width: 100%;
     top: 0;
     bottom: 0;
     left: 0;

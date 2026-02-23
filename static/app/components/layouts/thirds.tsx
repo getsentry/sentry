@@ -85,7 +85,8 @@ export const HeaderActions = styled('div')`
   margin-top: ${space(0.25)};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    width: max-content;
+    width: 100%;
+    min-width: 100%;
     margin-bottom: ${space(2)};
   }
 `;

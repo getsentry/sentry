@@ -103,7 +103,12 @@ export function ConversationSummary({
   });
 
   return (
-    <Flex align="center" gap="lg" flex={1}>
+    <Flex
+      align={{xs: 'start', md: 'center'}}
+      direction={{xs: 'column', md: 'row'}}
+      gap="lg"
+      flex={1}
+    >
       <Flex align="center" gap="sm" flexShrink={0}>
         <Text size="lg" bold>
           {t('Conversation')}
@@ -200,10 +205,15 @@ function AggregateItem({
 }
 
 const Divider = styled('div')`
-  width: 1px;
+  width: 100%;
+  height: 1px;
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
-  align-self: stretch;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    width: 1px;
+    height: auto;
+  }
 `;
 
 const AggregateItemContainer = styled(Flex)<{isInteractive?: boolean}>`
