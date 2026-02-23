@@ -2,10 +2,16 @@ from datetime import timedelta
 
 from django.urls import reverse
 
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
+# Freeze time to ensure statsPeriod="14d" produces a deterministic number
+# of hourly buckets. Without freezing, the bucket count can vary by ±1
+# depending on when the test runs relative to hour boundaries.
+_FROZEN_TIME = before_now(hours=3).replace(minute=30, second=0, microsecond=0)
 
+
+@freeze_time(_FROZEN_TIME)
 class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-stats"
 
