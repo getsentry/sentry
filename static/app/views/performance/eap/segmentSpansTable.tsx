@@ -47,6 +47,7 @@ type Props = {
   handleDropdownChange: (k: string) => void;
   totalValues: Record<string, number> | null;
   transactionName: string;
+  query?: string;
   showViewSampledEventsButton?: boolean;
 };
 
@@ -55,6 +56,7 @@ export function SegmentSpansTable({
   handleDropdownChange,
   totalValues,
   transactionName,
+  query = '',
   showViewSampledEventsButton,
 }: Props) {
   const theme = useTheme();
@@ -68,7 +70,9 @@ export function SegmentSpansTable({
   const {selected, options} = getEAPSegmentSpansListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const eventViewQuery = new MutableSearch('');
+  const eventViewQuery = new MutableSearch(
+    `is_transaction:true transaction:${transactionName} ${query}`
+  );
   if (selected.value === TransactionFilterOptions.SLOW && p95) {
     eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
@@ -96,10 +100,10 @@ export function SegmentSpansTable({
     };
   });
 
-  const handleCursor: CursorHandler = (_cursor, pathname, query) => {
+  const handleCursor: CursorHandler = (_cursor, pathname, cursorQuery) => {
     navigate({
       pathname,
-      query: {...query, [SEGMENT_SPANS_CURSOR]: _cursor},
+      query: {...cursorQuery, [SEGMENT_SPANS_CURSOR]: _cursor},
     });
   };
 
