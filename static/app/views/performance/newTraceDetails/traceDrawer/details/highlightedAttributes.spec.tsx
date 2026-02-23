@@ -33,6 +33,7 @@ describe('getHighlightedSpanAttributes', () => {
     const expectedContext = {
       level: 'warning',
       tags: {
+        ai_cost_warning: 'true',
         feature: 'agent-monitoring',
         span_type: 'gen_ai',
         has_model: 'true',
@@ -119,6 +120,7 @@ describe('getHighlightedSpanAttributes', () => {
           platform: 'python',
           version: '2.0.0',
           org_id: '42',
+          ai_cost_warning: 'true',
         },
         extra: {
           total_costs: '-1',

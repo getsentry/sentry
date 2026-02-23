@@ -17,6 +17,7 @@ from sentry.integrations.github.blame import (
     generate_file_path_mapping,
     is_graphql_response,
 )
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
@@ -102,7 +103,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
             token = self.jwt
 
         prepared_request.headers["Authorization"] = f"Bearer {token}"
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        prepared_request.headers["Accept"] = GITHUB_API_ACCEPT_HEADER
         return prepared_request
 
     def get_installation_info(self, installation_id: int | str) -> dict[str, Any]:
@@ -294,7 +295,7 @@ class GithubProxyClient(IntegrationProxyClient):
             return prepared_request
 
         prepared_request.headers["Authorization"] = f"Bearer {token}"
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        prepared_request.headers["Accept"] = GITHUB_API_ACCEPT_HEADER
         if prepared_request.headers.get("Content-Type") == "application/raw; charset=utf-8":
             prepared_request.headers["Accept"] = "application/vnd.github.raw"
 
@@ -329,12 +330,15 @@ class GitHubBaseClient(
         """
         return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> Any:
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> list[Any]:
         """
         See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
         """
-        return self.get_cached(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
+        return self._get_with_pagination(
+            f"/repos/{repo}/compare/{start_sha}...{end_sha}",
+            response_key="commits",
+        )
 
     def repo_hooks(self, repo: str) -> Sequence[Any]:
         """
@@ -808,6 +812,15 @@ class GitHubBaseClient(
         """
         endpoint = f"/repos/{repo}/check-runs"
         return self.post(endpoint, data=data)
+
+    def get_check_run(self, repo: str, check_run_id: int) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#get-a-check-run
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/check-runs/{check_run_id}"
+        return self.get(endpoint)
 
     def get_check_runs(self, repo: str, sha: str) -> Any:
         """

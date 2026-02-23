@@ -874,7 +874,11 @@ class DeleteUptimeDetectorTest(UptimeTestCase):
             detector.refresh_from_db()
 
         assert UptimeSubscription.objects.filter(id=other_uptime_subscription.id).exists()
-        mock_remove_seat.assert_called_with(seat_object=detector)
+        # Use assert_any_call because remove_seat is called from multiple
+        # places (delete_uptime_detector, UptimeSubscriptionDeletionTask, and
+        # DetectorDeletionTask). The last call's reference gets mutated when
+        # instance.delete() sets pk=None, so assert_called_with would fail.
+        mock_remove_seat.assert_any_call(seat_object=detector)
 
     @mock.patch("sentry.quotas.backend.remove_seat")
     def test_single_subscriptions(self, mock_remove_seat: mock.MagicMock) -> None:
@@ -897,7 +901,11 @@ class DeleteUptimeDetectorTest(UptimeTestCase):
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
             uptime_subscription.refresh_from_db()
-        mock_remove_seat.assert_called_with(seat_object=detector)
+        # Use assert_any_call because remove_seat is called from multiple
+        # places (delete_uptime_detector, UptimeSubscriptionDeletionTask, and
+        # DetectorDeletionTask). The last call's reference gets mutated when
+        # instance.delete() sets pk=None, so assert_called_with would fail.
+        mock_remove_seat.assert_any_call(seat_object=detector)
 
 
 class IsUrlMonitoredForProjectTest(UptimeTestCase):

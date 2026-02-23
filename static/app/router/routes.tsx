@@ -2424,6 +2424,10 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: ':projectSlug/snapshots/:snapshotId/',
+      component: make(() => import('sentry/views/preprod/snapshots/snapshots')),
+    },
     // TODO(EME-735): Remove old routes after backend deployment
     {
       path: ':projectId/:artifactId/',

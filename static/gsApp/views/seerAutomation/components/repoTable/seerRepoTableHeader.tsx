@@ -55,7 +55,7 @@ export default function SeerRepoTableHeader({
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
     listItemCheckboxState;
-  const queryOptions = parseQueryKey(queryKey).options;
+  const queryOptions = queryKey ? parseQueryKey(queryKey).options : undefined;
   const queryString = queryOptions?.query?.query;
 
   const handleBulkCodeReview = (enabledCodeReview: boolean) => {

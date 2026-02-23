@@ -88,10 +88,6 @@ def set_tags(scope: Scope, result: StacktraceLinkOutcome, integrations: list[Non
             "stacktrace_link.tried_url", result["current_config"]["outcome"].get("attemptedUrl")
         )
         scope.set_tag(
-            "stacktrace_link.empty_root",
-            result["current_config"]["config"].automatically_generated == "",
-        )
-        scope.set_tag(
             "stacktrace_link.auto_derived",
             result["current_config"]["config"].automatically_generated is True,
         )

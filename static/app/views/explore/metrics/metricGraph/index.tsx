@@ -18,6 +18,7 @@ import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVis
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
+import {canUseMetricsMultiAggregateUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
   useMetricName,
@@ -71,9 +72,7 @@ export function MetricsGraph({
   const visualizes = useMetricVisualizes();
   const setVisualize = useSetMetricVisualize();
 
-  const hasMultiVisualize = organization.features.includes(
-    'tracemetrics-overlay-charts-ui'
-  );
+  const hasMultiVisualize = canUseMetricsMultiAggregateUI(organization);
 
   useSynchronizeCharts(
     metricQueries.length,

@@ -8,7 +8,7 @@ from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.typings.notification_action import ActionType, SentryAppIdentifier
+from sentry.workflow_engine.typings.notification_action import ActionType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -27,7 +27,6 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         self.valid_data = {
             "type": Action.Type.SENTRY_APP,
             "config": {
-                "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "targetType": ActionType.SENTRY_APP,
                 "targetIdentifier": str(self.sentry_app.id),
             },
@@ -105,7 +104,6 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         self.valid_data = {
             "type": Action.Type.SENTRY_APP,
             "config": {
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "targetType": ActionType.SENTRY_APP,
                 "target_identifier": str(sentry_app.id),
             },
