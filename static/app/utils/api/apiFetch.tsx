@@ -27,13 +27,13 @@ export default async function apiFetch<TQueryFnData = unknown>(
     headers: options?.headers,
   });
 
-  const hits = response!.getResponseHeader('X-Hits') ?? null;
-  const maxHits = response!.getResponseHeader('X-Max-Hits') ?? null;
+  const hits = response?.getResponseHeader('X-Hits');
+  const maxHits = response?.getResponseHeader('X-Max-Hits');
   return {
     headers: {
-      Link: response!.getResponseHeader('Link') ?? undefined,
-      'X-Hits': hits === null ? undefined : Number(hits),
-      'X-Max-Hits': maxHits === null ? undefined : Number(maxHits),
+      Link: response?.getResponseHeader('Link') ?? undefined,
+      'X-Hits': typeof hits === 'string' ? Number(hits) : undefined,
+      'X-Max-Hits': typeof maxHits === 'string' ? Number(maxHits) : undefined,
     },
     json: json as TQueryFnData,
   };
@@ -56,13 +56,13 @@ export async function apiFetchInfinite<TQueryFnData = unknown>(
     headers: options?.headers,
   });
 
-  const hits = response!.getResponseHeader('X-Hits') ?? null;
-  const maxHits = response!.getResponseHeader('X-Max-Hits') ?? null;
+  const hits = response?.getResponseHeader('X-Hits');
+  const maxHits = response?.getResponseHeader('X-Max-Hits');
   return {
     headers: {
-      Link: response!.getResponseHeader('Link') ?? undefined,
-      'X-Hits': hits === null ? undefined : Number(hits),
-      'X-Max-Hits': maxHits === null ? undefined : Number(maxHits),
+      Link: response?.getResponseHeader('Link') ?? undefined,
+      'X-Hits': typeof hits === 'string' ? Number(hits) : undefined,
+      'X-Max-Hits': typeof maxHits === 'string' ? Number(maxHits) : undefined,
     },
     json: json as TQueryFnData,
   };
