@@ -144,7 +144,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 "Invalid dataset, valid values are %s" % [item.value for item in Dataset]
             )
 
-    def validate_query(self, query: str):
+    def validate_query(self, query: str) -> str:
         query_terms = query.split()
         for query_term in query_terms:
             if query_term in UNSUPPORTED_QUERIES:
@@ -383,7 +383,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 )
         return time_window_seconds
 
-    def _validate_performance_dataset(self, dataset):
+    def _validate_performance_dataset(self, dataset: Dataset) -> Dataset:
         if dataset != Dataset.Transactions:
             return dataset
 
