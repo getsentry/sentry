@@ -298,12 +298,6 @@ def emit_observability_metrics(
             value,
             tags={"stage": key},
         )
-    for data_point in longest_evalsha_data[1]:  # latency_metrics
-        key = data_point[0].decode("utf-8")
-        metrics.timing(f"spans.buffer.process_spans.longest_evalsha.latency.{key}", data_point[1])
-    for data_point in longest_evalsha_data[2]:  # gauge_metrics
-        key = data_point[0].decode("utf-8")
-        metrics.gauge(f"spans.buffer.process_spans.longest_evalsha.{key}", data_point[1])
 
     if oversized_count > 0:
         metrics.incr(
