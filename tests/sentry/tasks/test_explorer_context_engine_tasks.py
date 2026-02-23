@@ -21,10 +21,11 @@ class TestIndexOrgProjectKnowledge(TestCase):
         self.project.save()
 
     def test_returns_early_when_no_projects_found(self):
+        org_without_projects = self.create_organization()
         with mock.patch(
             "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects"
         ) as mock_counts:
-            index_org_project_knowledge(self.org.id, [999999])
+            index_org_project_knowledge(org_without_projects.id)
             mock_counts.assert_not_called()
 
     def test_returns_early_when_no_high_volume_projects(self):
@@ -35,7 +36,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
             with mock.patch(
                 "sentry.tasks.explorer_context_engine_tasks.requests.post"
             ) as mock_post:
-                index_org_project_knowledge(self.org.id, [self.project.id])
+                index_org_project_knowledge(self.org.id)
                 mock_post.assert_not_called()
 
     @responses.activate
@@ -62,10 +63,14 @@ class TestIndexOrgProjectKnowledge(TestCase):
                     return_value={self.project.id: [("db", "SELECT * FROM table")]},
                 ):
                     with mock.patch(
-                        "sentry.tasks.explorer_context_engine_tasks.sign_with_seer_secret",
-                        return_value={},
+                        "sentry.tasks.explorer_context_engine_tasks.get_sdk_names_for_org_projects",
+                        return_value={self.project.id: "sentry.python"},
                     ):
-                        index_org_project_knowledge(self.org.id, [self.project.id])
+                        with mock.patch(
+                            "sentry.tasks.explorer_context_engine_tasks.sign_with_seer_secret",
+                            return_value={},
+                        ):
+                            index_org_project_knowledge(self.org.id)
 
         assert len(responses.calls) == 1
         body = orjson.loads(responses.calls[0].request.body)
@@ -75,7 +80,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
         project_payload = body["projects"][0]
         assert project_payload["project_id"] == self.project.id
         assert project_payload["slug"] == self.project.slug
-        assert project_payload["sdk_name"] == "python"
+        assert project_payload["sdk_name"] == "sentry.python"
         assert project_payload["error_count"] == 5000
         assert project_payload["transaction_count"] == 2000
         assert "transactions" in project_payload["instrumentation"]
@@ -105,8 +110,12 @@ class TestIndexOrgProjectKnowledge(TestCase):
                     return_value={},
                 ):
                     with mock.patch(
-                        "sentry.tasks.explorer_context_engine_tasks.sign_with_seer_secret",
+                        "sentry.tasks.explorer_context_engine_tasks.get_sdk_names_for_org_projects",
                         return_value={},
                     ):
-                        with pytest.raises(Exception):
-                            index_org_project_knowledge(self.org.id, [self.project.id])
+                        with mock.patch(
+                            "sentry.tasks.explorer_context_engine_tasks.sign_with_seer_secret",
+                            return_value={},
+                        ):
+                            with pytest.raises(Exception):
+                                index_org_project_knowledge(self.org.id)

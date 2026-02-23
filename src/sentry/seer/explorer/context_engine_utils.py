@@ -155,6 +155,57 @@ def get_top_transactions_for_org_projects(
     return transactions_by_project
 
 
+def get_sdk_names_for_org_projects(
+    projects: list[Project],
+    start: datetime,
+    end: datetime,
+) -> dict[int, str]:
+    """Query EAP for the most common sdk.name per project."""
+    if not projects:
+        return {}
+
+    organization = projects[0].organization
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
+    )
+    config = SearchResolverConfig(auto_fields=True)
+
+    try:
+        result = Spans.run_table_query(
+            params=snuba_params,
+            query_string="",
+            selected_columns=[
+                "project.id",
+                "sdk.name",
+                "count()",
+            ],
+            orderby=["-count()"],
+            offset=0,
+            limit=len(projects),
+            referrer=Referrer.SEER_EXPLORER_INDEX,
+            config=config,
+            sampling_mode="NORMAL",
+        )
+    except Exception:
+        logger.exception(
+            "Failed to fetch SDK names for org projects",
+            extra={"org_id": organization.id},
+        )
+        return {}
+
+    sdk_names: dict[int, str] = {}
+    for row in result.get("data", []):
+        project_id = row.get("project.id")
+        sdk_name = row.get("sdk.name") or ""
+        if project_id is not None and project_id not in sdk_names and sdk_name:
+            sdk_names[project_id] = sdk_name
+
+    return sdk_names
+
+
 def get_event_counts_for_org_projects(
     org_id: int,
     project_ids: list[int],

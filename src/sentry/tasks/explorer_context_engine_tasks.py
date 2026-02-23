@@ -5,13 +5,16 @@ from datetime import UTC, datetime, timedelta
 
 import orjson
 import requests
+import sentry_sdk
 from django.conf import settings
 
+from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.explorer.context_engine_utils import (
     EVENT_COUNT_LOOKBACK_DAYS,
     get_event_counts_for_org_projects,
     get_instrumentation_types,
+    get_sdk_names_for_org_projects,
     get_top_span_ops_for_org_projects,
     get_top_transactions_for_org_projects,
 )
@@ -27,35 +30,40 @@ logger = logging.getLogger(__name__)
     namespace=seer_tasks,
     processing_deadline_duration=30 * 60,
 )
-def index_org_project_knowledge(org_id: int, project_ids: list[int]) -> None:
+def index_org_project_knowledge(org_id: int) -> None:
     """
-    For a given org and list of project IDs, assemble project metadata and call
+    For a given org, list active projects, assemble project metadata and call
     the Seer endpoint to generate LLM summaries and embeddings.
     """
     projects = list(
-        Project.objects.filter(id__in=project_ids, organization_id=org_id).select_related(
+        Project.objects.filter(organization_id=org_id, status=ObjectStatus.ACTIVE).select_related(
             "organization"
         )
     )
     if not projects:
         logger.warning(
             "No projects found for index_org_project_knowledge",
-            extra={"org_id": org_id, "project_ids": project_ids},
+            extra={"org_id": org_id},
         )
         return
 
     end = datetime.now(UTC)
     start = end - timedelta(days=EVENT_COUNT_LOOKBACK_DAYS)
 
+    project_ids = [p.id for p in projects]
     event_counts = get_event_counts_for_org_projects(org_id, project_ids, start, end)
     high_volume_projects = [p for p in projects if p.id in event_counts]
     if not high_volume_projects:
         return
 
-    transactions_by_project = get_top_transactions_for_org_projects(
-        high_volume_projects, start, end
-    )
-    span_ops_by_project = get_top_span_ops_for_org_projects(high_volume_projects, start, end)
+    with sentry_sdk.start_span(op="explorer.context_engine.get_top_transactions_for_org_projects"):
+        transactions_by_project = get_top_transactions_for_org_projects(
+            high_volume_projects, start, end
+        )
+    with sentry_sdk.start_span(op="explorer.context_engine.get_top_span_ops_for_org_projects"):
+        span_ops_by_project = get_top_span_ops_for_org_projects(high_volume_projects, start, end)
+    with sentry_sdk.start_span(op="explorer.context_engine.get_sdk_names_for_org_projects"):
+        sdk_names_by_project = get_sdk_names_for_org_projects(high_volume_projects, start, end)
 
     project_data = []
     for project in high_volume_projects:
@@ -64,7 +72,7 @@ def index_org_project_knowledge(org_id: int, project_ids: list[int]) -> None:
             {
                 "project_id": project.id,
                 "slug": project.slug,
-                "sdk_name": project.platform,
+                "sdk_name": sdk_names_by_project.get(project.id, ""),
                 "error_count": error_count,
                 "transaction_count": transaction_count,
                 "instrumentation": get_instrumentation_types(project),
