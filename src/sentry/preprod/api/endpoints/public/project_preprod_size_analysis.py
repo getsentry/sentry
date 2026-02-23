@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import assert_never
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -21,6 +22,8 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import (
     PreprodArtifactResourceDoesNotExist,
 )
 from sentry.preprod.api.models.public_api_models import (
+    AppInfoResponseDict,
+    GitInfoResponseDict,
     SizeAnalysisCompletedResponseDict,
     SizeAnalysisResponseDict,
     build_comparison_data,
@@ -124,52 +127,58 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                 {"detail": "There was an error retrieving size analysis results"}, status=500
             )
 
-        if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
-            return Response(
-                {
-                    "state": "PENDING",
-                    "build_id": str(head_artifact.id),
-                    "app_info": app_info,
-                    "git_info": git_info,
-                }
-            )
+        match state_enum:
+            case PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
+                return Response(
+                    {
+                        "state": "PENDING",
+                        "build_id": str(head_artifact.id),
+                        "app_info": app_info,
+                        "git_info": git_info,
+                    }
+                )
+            case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
+                return Response(
+                    {
+                        "state": "PROCESSING",
+                        "build_id": str(head_artifact.id),
+                        "app_info": app_info,
+                        "git_info": git_info,
+                    }
+                )
+            case (
+                PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+                | PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
+            ):
+                return Response(
+                    {
+                        "state": state_enum.name,
+                        "build_id": str(head_artifact.id),
+                        "app_info": app_info,
+                        "git_info": git_info,
+                        "error_code": main_metric.error_code,
+                        "error_message": main_metric.error_message,
+                    },
+                    status=200,
+                )
+            case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
+                return self._build_completed_response(
+                    request, project, head_artifact, main_metric, app_info, git_info, size_metrics
+                )
+            case _:
+                assert_never(state_enum)
 
-        if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
-            return Response(
-                {
-                    "state": "PROCESSING",
-                    "build_id": str(head_artifact.id),
-                    "app_info": app_info,
-                    "git_info": git_info,
-                }
-            )
-
-        if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
-            return Response(
-                {
-                    "state": "FAILED",
-                    "build_id": str(head_artifact.id),
-                    "app_info": app_info,
-                    "git_info": git_info,
-                    "error_code": main_metric.error_code,
-                    "error_message": main_metric.error_message,
-                },
-                status=200,
-            )
-
-        if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN:
-            return Response(
-                {
-                    "state": "NOT_RAN",
-                    "build_id": str(head_artifact.id),
-                    "app_info": app_info,
-                    "git_info": git_info,
-                    "error_code": main_metric.error_code,
-                    "error_message": main_metric.error_message,
-                },
-                status=200,
-            )
-
+    def _build_completed_response(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact: PreprodArtifact,
+        main_metric: PreprodArtifactSizeMetrics,
+        app_info: AppInfoResponseDict,
+        git_info: GitInfoResponseDict | None,
+        size_metrics: list[PreprodArtifactSizeMetrics],
+    ) -> Response:
+        """Build response for a completed size analysis."""
         analysis_file_id = main_metric.analysis_file_id
         if not analysis_file_id:
             sentry_sdk.capture_message(
@@ -192,8 +201,8 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
             return Response({"detail": "Analysis file not found"}, status=404)
 
         try:
-            fp = file_obj.getfile()
-            content = fp.read()
+            with file_obj.getfile() as fp:
+                content = fp.read()
             analysis_data = json.loads(content)
             analysis_results = SizeAnalysisResults(**analysis_data)
         except Exception:

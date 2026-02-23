@@ -259,8 +259,8 @@ def _build_success_comparison(
 
     try:
         file_obj = File.objects.get(id=comparison_obj.file_id)
-        fp = file_obj.getfile()
-        content = fp.read()
+        with file_obj.getfile() as fp:
+            content = fp.read()
         comparison_data = json.loads(content)
         comparison_results = ComparisonResults(**comparison_data)
 
