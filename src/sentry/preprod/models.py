@@ -149,6 +149,22 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.ARTIFACT_PROCESSING_ERROR, "artifact_processing_error"),
             )
 
+    class DistributionState(IntEnum):
+        PENDING = 0
+        """Distribution requested, not yet complete."""
+        COMPLETED = 1
+        """Installable file generated."""
+        NOT_RAN = 2
+        """Distribution skipped."""
+
+        @classmethod
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
+            return (
+                (cls.PENDING, "pending"),
+                (cls.COMPLETED, "completed"),
+                (cls.NOT_RAN, "not_ran"),
+            )
+
     __relocation_scope__ = RelocationScope.Excluded
     objects: ClassVar[PreprodArtifactModelManager] = PreprodArtifactModelManager()
 
@@ -200,6 +216,11 @@ class PreprodArtifact(DefaultFieldsModel):
 
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
+
+    distribution_state = BoundedPositiveIntegerField(
+        choices=DistributionState.as_choices(), null=True
+    )
+    distribution_skip_reason = models.CharField(max_length=32, null=True)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
