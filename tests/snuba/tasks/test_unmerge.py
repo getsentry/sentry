@@ -265,7 +265,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         events.setdefault(get_fingerprint(event), []).append(event)
 
-        merge_source, source, destination = list(Group.objects.all())
+        merge_source, source, destination = list(Group.objects.all().order_by("id"))
 
         assert len(events) == 3
         assert sum(len(x) for x in events.values()) == 17
