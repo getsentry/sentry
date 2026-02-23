@@ -141,14 +141,14 @@ class TestLaunchCodingAgents(TestCase):
     @patch("sentry.seer.explorer.coding_agent_handoff.GithubCopilotAgentClient")
     @patch("sentry.seer.explorer.coding_agent_handoff.github_copilot_identity_service")
     @patch("sentry.seer.explorer.coding_agent_handoff.features.has")
-    def test_copilot_not_licensed_403_returns_generic_failure_type(
+    def test_copilot_not_licensed_403_returns_github_copilot_not_licensed_failure_type(
         self,
         mock_features,
         mock_identity_service,
         mock_copilot_client_class,
         mock_store,
     ):
-        """Test that Copilot 403 'not licensed' errors return generic failure_type.
+        """Test that Copilot 403 'not licensed' errors return github_copilot_not_licensed failure_type.
 
         When GitHub Copilot returns a 403 with "not licensed to use Copilot", the user's
         account lacks an active Copilot subscription. This is distinct from a GitHub App
@@ -176,8 +176,5 @@ class TestLaunchCodingAgents(TestCase):
         assert len(result["successes"]) == 0
         assert len(result["failures"]) == 1
         failure = result["failures"][0]
-        assert failure["failure_type"] == "generic"
-        assert (
-            "not licensed" in failure["error_message"]
-            or "Copilot license" in failure["error_message"]
-        )
+        assert failure["failure_type"] == "github_copilot_not_licensed"
+        assert "Copilot license" in failure["error_message"]

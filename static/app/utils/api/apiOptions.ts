@@ -1,13 +1,12 @@
 import {queryOptions, skipToken} from '@tanstack/react-query';
 import type {SkipToken} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
+import apiFetch, {type ApiResponse} from 'sentry/utils/api/apiFetch';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
 import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
 import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
-import type {QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 
 type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
 
@@ -18,19 +17,13 @@ type PathParamOptions<TApiPath extends string> =
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
 
-const selectContent = <TData>(data: ApiResult<TData>) => data[0];
 /** @public **/
-export const selectWithHeaders =
-  <THeaders extends readonly string[]>(headers: THeaders) =>
-  <TData>(data: ApiResult<TData>) => ({
-    content: data[0],
-    headers: Object.fromEntries(
-      headers.flatMap(header => {
-        const value = data[2]?.getResponseHeader(header);
-        return value ? [[header, value]] : [];
-      })
-    ) as Record<THeaders[number], string | undefined>,
-  });
+export const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
+
+/** @public **/
+export const selectJsonWithHeaders = <TData>(
+  data: ApiResponse<TData>
+): ApiResponse<TData> => data;
 
 function _apiOptions<
   TManualData = never,
@@ -56,11 +49,13 @@ function _apiOptions<
 
   return queryOptions({
     queryKey:
-      Object.keys(options).length > 0 ? ([url, options] as const) : ([url] as const),
-    queryFn: pathParams === skipToken ? skipToken : fetchDataQuery<TActualData>,
+      Object.keys(options).length > 0
+        ? ([url, options] as ApiQueryKey)
+        : ([url] as ApiQueryKey),
+    queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
-    select: selectContent,
+    select: selectJson,
   });
 }
 
