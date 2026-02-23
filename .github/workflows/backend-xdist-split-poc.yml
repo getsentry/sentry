@@ -48,24 +48,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Try pre-merged durations from last successful run first.
-          SUCCESS_RUN=$(gh run list \
+          # Scan recent completed runs for a test-durations artifact.
+          # A run can have valid duration data even if some T2 shards were
+          # flaky — merge-durations succeeds independently of shard failures.
+          RUNS=$(gh run list \
             --workflow=backend-xdist-split-poc.yml \
-            --status=success --limit=1 \
-            --json databaseId --jq '.[0].databaseId')
-          if [ -n "$SUCCESS_RUN" ]; then
-            gh run download "$SUCCESS_RUN" --name test-durations --dir /tmp/durations 2>/dev/null \
-              && echo "Duration data from successful run $SUCCESS_RUN" \
-              && exit 0 \
-              || true
-          fi
+            --status=completed --limit=5 \
+            --json databaseId --jq '.[].databaseId')
+          for RUN_ID in $RUNS; do
+            if gh run download "$RUN_ID" --name test-durations \
+                --dir /tmp/durations 2>/dev/null; then
+              echo "Duration data from run $RUN_ID"
+              exit 0
+            fi
+          done
 
-          # Fallback: if merge-durations failed but T2 tests passed, the raw
-          # pytest JSON artifacts are still available. Download and merge inline.
-          LAST_RUN=$(gh run list \
-            --workflow=backend-xdist-split-poc.yml \
-            --status=completed --limit=1 \
-            --json databaseId --jq '.[0].databaseId')
+          # Fallback: if merge-durations itself failed, raw pytest JSON
+          # artifacts may still be available to merge inline.
+          LAST_RUN=$(echo "$RUNS" | head -1)
           if [ -n "$LAST_RUN" ]; then
             echo "Attempting fallback: merge pytest JSONs inline from run $LAST_RUN"
             mkdir -p /tmp/pytest-jsons-fallback
