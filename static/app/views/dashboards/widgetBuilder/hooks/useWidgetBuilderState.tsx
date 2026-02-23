@@ -194,6 +194,11 @@ function fixupCategoricalBarSort(
   if (aggregates.length === 0) {
     return null;
   }
+  // Clamp fallback to a valid index
+  const safeIdx =
+    fallbackIndex !== undefined && aggregates[fallbackIndex]
+      ? fallbackIndex
+      : aggregates.length - 1;
   const currentSortField = sort?.[0]?.field;
   if (currentSortField) {
     // Sorting by the X-axis column is always valid
@@ -213,19 +218,14 @@ function fixupCategoricalBarSort(
         getEquationAliasIndex(currentSortField) < equationCount);
 
     if (!isSortValid) {
-      const idx = fallbackIndex ?? aggregates.length - 1;
-      const sortField = generateSortField(
-        aggregates,
-        aggregates[idx] ? idx : aggregates.length - 1
-      );
-      return [{kind: sort[0]?.kind ?? 'desc', field: sortField}];
+      return [
+        {kind: sort[0]?.kind ?? 'desc', field: generateSortField(aggregates, safeIdx)},
+      ];
     }
     return null;
   }
   // No sort exists yet — set default to fallback aggregate
-  const idx = fallbackIndex ?? aggregates.length - 1;
-  const sortField = generateSortField(aggregates, idx);
-  return [{kind: 'desc', field: sortField}];
+  return [{kind: 'desc', field: generateSortField(aggregates, safeIdx)}];
 }
 
 /**
