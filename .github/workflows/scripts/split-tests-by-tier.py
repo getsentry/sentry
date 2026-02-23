@@ -120,6 +120,29 @@ def _count_tests_per_scope(
     return counts
 
 
+def hash_shard(scopes: set[str], n_shards: int) -> list[list[str]]:
+    """Hash-based round-robin: sha256(scope) % n_shards.
+
+    Used as the seed-run fallback when no duration data is available.
+    Identical to the existing pytest TEST_GROUP_STRATEGY=roundrobin logic,
+    so the distribution is the same as the current baseline on first run.
+    """
+    import hashlib
+
+    shards: list[list[str]] = [[] for _ in range(n_shards)]
+    for scope in sorted(scopes):  # sorted for determinism
+        idx = int(hashlib.sha256(scope.encode()).hexdigest(), 16) % n_shards
+        shards[idx].append(scope)
+
+    counts = [len(s) for s in shards]
+    print(
+        f"[hash] {n_shards} shards: max={max(counts)}, min={min(counts)}, "
+        f"spread={max(counts) - min(counts)} scopes",
+        file=sys.stderr,
+    )
+    return shards
+
+
 def worker_lpt_shard(
     scopes: set[str],
     n_shards: int,
@@ -269,15 +292,14 @@ def main() -> int:
             )
             shards = worker_lpt_shard(scopes, args.shards, args.workers, durations, default_dur)
         else:
-            # No duration data — fall back to test-count weights.
-            print("[lpt] No duration data provided, using test-count weights", file=sys.stderr)
-            weights = _count_tests_per_scope(classification, scopes, args.granularity)
-            # Reuse worker_lpt_shard with count weights converted to floats.
-            count_durations = {s: float(w) for s, w in weights.items()}
-            default_dur = statistics.median(count_durations.values()) if count_durations else 1.0
-            shards = worker_lpt_shard(
-                scopes, args.shards, args.workers, count_durations, default_dur
+            # No duration data — fall back to hash-based sharding (same as
+            # the pytest TEST_GROUP_STRATEGY=roundrobin baseline). Test-count
+            # LPT is proven harmful (+61% wall clock) and is not used here.
+            print(
+                "[hash] No duration data provided, using hash-based sharding (seed run)",
+                file=sys.stderr,
             )
+            shards = hash_shard(scopes, args.shards)
 
         for i, shard_scopes in enumerate(shards):
             shard_file = out_dir / f"shard-{i}.txt"
