@@ -8,6 +8,7 @@ class RuleArtifactType(StrEnum):
     MAIN_ARTIFACT = "main_artifact"
     WATCH_ARTIFACT = "watch_artifact"
     ANDROID_DYNAMIC_FEATURE_ARTIFACT = "android_dynamic_feature_artifact"
+    APP_CLIP_ARTIFACT = "app_clip_artifact"
     ALL_ARTIFACTS = "all_artifacts"
 
     @classmethod
