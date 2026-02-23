@@ -237,24 +237,19 @@ def process_subscription(subscription_id: str):
         CHECKSTATUS_FAILURE,
     )
 
-    cluster = get_cluster()
-    incoming_results = _drain_incoming(cluster, subscription_id)
-    # Annotate incoming results with False (for not being a pending result)
-    incoming_results = [(r[0], r[1], False) for r in incoming_results]
-
     pending_key = build_pending_key(subscription_id)
-    pending_results: list[tuple[bytes, float]] = cluster.zrange(pending_key, 0, -1, withscores=True)
-    # Annotate incoming results with True (for being a pending result)
-    pending_results = [(r[0], r[1], True) for r in pending_results]
 
-    all_results = sorted(incoming_results + pending_results, key=lambda r: r[1])
+    cluster = get_cluster()
+
+    incoming_results = _drain_incoming(cluster, subscription_id)
+    incoming_results = sorted(incoming_results, key=lambda r: r[1])
 
     try:
         subscription: UptimeSubscription = UptimeSubscription.objects.get_from_cache(
             subscription_id=subscription_id
         )
     except UptimeSubscription.DoesNotExist:
-        first_result = json.loads(pending_results[0][0])
+        first_result = json.loads(incoming_results[0][0])
         send_uptime_config_deletion(first_result["region"], subscription_id)
         metrics.incr("uptime.processor.subscription_not_found", sample_rate=1.0)
         return
@@ -283,9 +278,8 @@ def process_subscription(subscription_id: str):
     last_update_ms = 0 if last_update_raw is None else int(last_update_raw)
 
     pending_to_store: list[tuple[bytes, float]] = []
-    pending_to_remove: list[tuple[bytes, float]] = []
 
-    for i, (result_json, score, is_pending) in enumerate(all_results):
+    for i, (result_json, score) in enumerate(incoming_results):
         result = json.loads(result_json)
         metric_tags = {
             "status": result["status"],
@@ -325,34 +319,29 @@ def process_subscription(subscription_id: str):
         if last_update_ms > 0:
             expected_next_ms = last_update_ms + subscription_interval_ms
             if result["scheduled_check_time_ms"] != expected_next_ms:
-                # This is out of expected order.  If this result came from the incoming set,
-                # ready a backfill task, and add it to the pending set
-                if not is_pending:
-                    process_subscription_backfill.apply_async(
-                        args=[subscription_id],
-                        countdown=BACKFILL_DELAY_SECONDS,
-                    )
-                    pending_to_store.append((result_json, score))
-                    metrics.incr(
-                        "uptime.processor.gap_detected",
-                        sample_rate=1.0,
-                        tags=metric_tags,
-                    )
-                    logger.info(
-                        "uptime.processor.gap_detected",
-                        extra={
-                            "subscription_id": subscription_id,
-                            "expected_ms": expected_next_ms,
-                            "found_ms": result["scheduled_check_time_ms"],
-                        },
-                    )
+                # This is out of expected order--add it to the pending set
+                process_subscription_pending.apply_async(
+                    args=[subscription_id],
+                    countdown=BACKFILL_DELAY_SECONDS,
+                )
+                pending_to_store.append((result_json, score))
+                metrics.incr(
+                    "uptime.processor.gap_detected",
+                    sample_rate=1.0,
+                    tags=metric_tags,
+                )
+                logger.info(
+                    "uptime.processor.gap_detected",
+                    extra={
+                        "subscription_id": subscription_id,
+                        "expected_ms": expected_next_ms,
+                        "found_ms": result["scheduled_check_time_ms"],
+                    },
+                )
                 # No matter what, stop processing this check, and move on to the next one.
                 continue
 
         # If we got here, this is a valid and timely check.  Process it.
-
-        if is_pending:
-            pending_to_remove.append((result_json, score))
 
         if result["status"] == CHECKSTATUS_FAILURE and features.has(
             "organizations:uptime-response-capture", organization
@@ -371,15 +360,12 @@ def process_subscription(subscription_id: str):
         # Update local tracking so consecutive results chain correctly
         last_update_ms = result["scheduled_check_time_ms"]
 
-    # Update pending, by removing processed results, and adding newly-pending results
-    if pending_to_store or pending_to_remove:
+    # Update pending, and adding newly-pending results
+    if pending_to_store:
         pipeline = cluster.pipeline()
 
         for result_json, score in pending_to_store:
             pipeline.zadd(pending_key, {result_json: score})
-
-        for result_json, score in pending_to_remove:
-            pipeline.zrem(pending_key, {result_json: score})
 
         pipeline.expire(pending_key, RESULT_DATA_TTL_SECONDS)
 
@@ -387,15 +373,16 @@ def process_subscription(subscription_id: str):
 
 
 @instrumented_task(
-    name="sentry.uptime.consumers.tasks.process_subscription_backfill",
+    name="sentry.uptime.consumers.tasks.process_subscription_pending",
     namespace=uptime_tasks,
     retry=Retry(times=3, delay=1, on=(Exception,)),
 )
-def process_subscription_backfill(subscription_id: str):
+def process_subscription_pending(subscription_id: str):
     from sentry_kafka_schemas.schema_types.uptime_results_v1 import CHECKSTATUS_MISSED_WINDOW
 
     cluster = get_cluster()
     pending_key = build_pending_key(subscription_id)
+    incoming_key = build_incoming_key(subscription_id)
 
     results: list[tuple[bytes, float]] = cluster.zrange(pending_key, 0, -1, withscores=True)
     if not results:
@@ -426,7 +413,9 @@ def process_subscription_backfill(subscription_id: str):
 
     host_provider = get_host_provider_if_valid(subscription)
     now_ms = int(time.time() * 1000)
-    added_backfill = False
+
+    to_add: list[tuple[bytes, float]] = []
+    to_remove: list[tuple[bytes, float]] = []
 
     for result_json, _ in results:
         result = json.loads(result_json)
@@ -437,16 +426,20 @@ def process_subscription_backfill(subscription_id: str):
             continue
 
         expected_next_ms = last_update_ms + subscription_interval_ms
+
         if result["scheduled_check_time_ms"] == expected_next_ms:
-            # No gap here — processor will handle it
+            # We've encountered a now-valid result, move it from pending to incoming,
+            # so that the incoming processor can handle it.
             last_update_ms = expected_next_ms
+            to_add.append((result_json, result["scheduled_check_time_ms"]))
+            to_remove.append((result_json, result["scheduled_check_time_ms"]))
             continue
 
         # There's a gap between last_update_ms and this result.
         check_until_ms = expected_next_ms + (BACKFILL_DELAY_SECONDS * 1000)
 
         if now_ms < check_until_ms:
-            # Gap hasn't expired yet; another backfill task will check this (and any other tasks)
+            # Gap hasn't expired yet; another backfill task will check this
             break
 
         # Gap has expired — create synthetic misses
@@ -462,12 +455,12 @@ def process_subscription_backfill(subscription_id: str):
             ),
         )
         if num_missed > 0:
+            # Add synthetic misses + result to incoming; they can be processed now.
             missed_times = generate_scheduled_check_times_ms(
                 last_update_ms + subscription_interval_ms,
                 subscription_interval_ms,
                 num_missed,
             )
-            pipeline = cluster.pipeline()
             for scheduled_time_ms in missed_times:
                 missed_result = {
                     "guid": uuid.uuid4().hex,
@@ -486,13 +479,15 @@ def process_subscription_backfill(subscription_id: str):
                     "request_info": None,
                     "assertion_failure_data": None,
                 }
-                pipeline.zadd(
-                    pending_key,
-                    {json.dumps(missed_result): scheduled_time_ms},
-                )
-            pipeline.expire(pending_key, RESULT_DATA_TTL_SECONDS)
-            pipeline.execute()
-            added_backfill = True
+                to_add.append((json.dumps(missed_result), scheduled_time_ms))
+
+            # Move the provoking result from pending to incoming, as well
+            to_add.append((result_json, result["scheduled_check_time_ms"]))
+            to_remove.append((result_json, result["scheduled_check_time_ms"]))
+
+            # Because we have generated results, push our last_update_ms forward, in case
+            # we can continue checking results
+            last_update_ms = expected_next_ms
             metrics.incr(
                 "uptime.backfill.misses_created",
                 amount=num_missed,
@@ -500,7 +495,23 @@ def process_subscription_backfill(subscription_id: str):
                 tags=metric_tags,
             )
 
-    if added_backfill:
+    if to_add:
+        incoming_pipeline = cluster.pipeline()
+        for result_json, scheduled_check_time_ms in to_add:
+            incoming_pipeline.zadd(incoming_key, {result_json: scheduled_check_time_ms})
+
+        incoming_pipeline.expire(incoming_key, RESULT_DATA_TTL_SECONDS)
+        incoming_pipeline.execute()
+
+    if to_remove:
+        pending_pipeline = cluster.pipeline()
+        for result_json, scheduled_check_time_ms in to_remove:
+            pending_pipeline.zrem(pending_key, {result_json: scheduled_check_time_ms})
+
+        pending_pipeline.expire(pending_key, RESULT_DATA_TTL_SECONDS)
+        pending_pipeline.execute()
+
+    if to_remove or to_add:
         # Spawn a processor task — it will drain pending and process the
         # synthetic misses followed by the original gap-blocked results.
         process_subscription.delay(subscription_id)
