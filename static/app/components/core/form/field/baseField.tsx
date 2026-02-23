@@ -1,11 +1,9 @@
-import {useEffect, useRef, type Ref} from 'react';
+import {useEffect, useRef, useSyncExternalStore, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Checkmark, Spinner, Warning} from '@sentry/scraps/form/icons';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {useLocation} from 'sentry/utils/useLocation';
 
 export type BaseFieldProps = Record<never, unknown>;
 
@@ -55,6 +53,24 @@ export const useHintTextId = () => {
   return `${fieldId}-hint`;
 };
 
+// Subscribe only to hash changes, not full location
+function useHash() {
+  return useSyncExternalStore(
+    callback => {
+      window.addEventListener('hashchange', callback);
+      return () => window.removeEventListener('hashchange', callback);
+    },
+    () => {
+      try {
+        return decodeURIComponent(window.location.hash.slice(1));
+      } catch {
+        return '';
+      }
+    },
+    () => ''
+  );
+}
+
 export function BaseField(
   props: BaseFieldProps & {
     children: (props: FieldChildrenProps) => React.ReactNode;
@@ -64,22 +80,16 @@ export function BaseField(
   const ref = useRef<HTMLElement>(null);
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
-  const location = useLocation();
+  const hash = useHash();
 
   useEffect(() => {
-    let hash = '';
-    try {
-      hash = decodeURIComponent(location.hash.slice(1));
-    } catch {
-      return;
-    }
     if (hash !== field.name) {
       return;
     }
     ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
     ref.current?.focus({focusVisible: true});
     animateRowHighlight(ref.current);
-  }, [location.hash, field.name]);
+  }, [hash, field.name]);
 
   return props.children({
     ref,
