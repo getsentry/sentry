@@ -307,7 +307,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
       const start = new Date(pageFilters.selection.datetime.start).getTime();
       const end = new Date(pageFilters.selection.datetime.end).getTime();
       const difference = end - start;
-      const oneDayInMs = HOUR;
+      const oneHourInMs = HOUR;
       if (difference <= oneDayInMs) {
         return {canManuallyRefresh: true, manualRefreshDisabledReason: null};
       }
