@@ -197,7 +197,7 @@ def get_sdk_names_for_org_projects(
             ],
             orderby=["-count()"],
             offset=0,
-            limit=3 * len(projects),
+            limit=min(3 * len(projects), MAX_BATCH_QUERY_LIMIT),
             referrer=Referrer.SEER_EXPLORER_INDEX,
             config=config,
             sampling_mode="NORMAL",
