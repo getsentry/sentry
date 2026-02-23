@@ -41,7 +41,7 @@ export type SelectOptionOrSection<Value extends SelectKey> =
 /**
  * The result of a custom `searchMatcher` function. Returning this (instead of a plain
  * boolean) allows callers to influence how matching options are sorted: options with a
- * higher `score` are shown first. To hide an option, return `false` instead.
+ * higher `score` are shown first. To hide an option, return `{score: 0}.
  */
 export interface SearchMatchResult {
   /**
