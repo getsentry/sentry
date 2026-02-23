@@ -72,6 +72,12 @@ def collect_test_count() -> int | None:
             print(f"Collected {count} tests", file=sys.stderr)
             return count
 
+        if result.returncode == 5:
+            # Exit code 5 means "no tests were collected" (e.g. all selected files
+            # were deleted in this PR). Treat as 0 tests rather than an error.
+            print("No tests collected (exit 5)", file=sys.stderr)
+            return 0
+
         if result.returncode != 0:
             print(
                 f"Pytest collection failed (exit {result.returncode})",
