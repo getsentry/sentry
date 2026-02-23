@@ -79,7 +79,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "details_url": "https://sentry.io/preprod/artifacts/123/",
                 "output": {
-                    "title": "1 app analyzed",
+                    "title": "1 component analyzed",
                     "summary": "## Test summary",
                 },
             },

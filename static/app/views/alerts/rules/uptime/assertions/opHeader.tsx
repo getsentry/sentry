@@ -7,7 +7,11 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import type {HeaderCheckOp, HeaderOperand} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  ComparisonType,
+  type HeaderCheckOp,
+  type HeaderOperand,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer, STRING_OPERAND_OPTIONS} from './opCommon';
 import {
@@ -27,10 +31,10 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
   const inputId = useId();
 
   const headerKeyComparisonOptions = COMPARISON_OPTIONS.filter(
-    opt => !['less_than', 'greater_than'].includes(opt.value)
+    opt => ![ComparisonType.LESS_THAN, ComparisonType.GREATER_THAN].includes(opt.value)
   );
   const headerValueComparisonOptions = COMPARISON_OPTIONS.filter(opt =>
-    ['equals', 'not_equal'].includes(opt.value)
+    [ComparisonType.EQUALS, ComparisonType.NOT_EQUAL].includes(opt.value)
   );
 
   const showValueInput = shouldShowHeaderValueInput(value);
@@ -70,8 +74,14 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                 label={t('Key is')}
                 value={value.key_op.cmp}
                 onChange={option => {
-                  const isAlwaysNever = ['always', 'never'].includes(option.value);
-                  const wasAlwaysNever = ['always', 'never'].includes(value.key_op.cmp);
+                  const isAlwaysNever = [
+                    ComparisonType.ALWAYS,
+                    ComparisonType.NEVER,
+                  ].includes(option.value);
+                  const wasAlwaysNever = [
+                    ComparisonType.ALWAYS,
+                    ComparisonType.NEVER,
+                  ].includes(value.key_op.cmp);
 
                   onChange({
                     ...value,
@@ -79,7 +89,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                     value_op: isAlwaysNever
                       ? {cmp: option.value}
                       : wasAlwaysNever
-                        ? {cmp: 'equals'}
+                        ? {cmp: ComparisonType.EQUALS}
                         : value.value_op,
                     value_operand: isAlwaysNever
                       ? {header_op: 'none'}
