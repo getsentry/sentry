@@ -108,7 +108,7 @@ class LLMIssueDetectionTest(TestCase):
 
         occurrence = call_kwargs["occurrence"]
         assert occurrence.type == LLMDetectedExperimentalGroupTypeV2
-        assert occurrence.issue_title == "Database Connection Pool Exhaustion"
+        assert occurrence.issue_title == "Slow Database Query"
         assert occurrence.subtitle == "Your application is running out of database connections"
         assert occurrence.project_id == self.project.id
         assert occurrence.culprit == "test_transaction"
