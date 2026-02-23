@@ -78,7 +78,12 @@ describe('NewIssueExperienceButton', () => {
     act(() =>
       ConfigStore.set(
         'user',
-        UserFixture({options: {prefersIssueDetailsStreamlinedUI: false}})
+        UserFixture({
+          options: {
+            ...UserFixture().options,
+            prefersIssueDetailsStreamlinedUI: false,
+          },
+        })
       )
     );
 
@@ -143,7 +148,12 @@ describe('NewIssueExperienceButton', () => {
     act(() =>
       ConfigStore.set(
         'user',
-        UserFixture({options: {prefersIssueDetailsStreamlinedUI: false}})
+        UserFixture({
+          options: {
+            ...UserFixture().options,
+            prefersIssueDetailsStreamlinedUI: false,
+          },
+        })
       )
     );
 
