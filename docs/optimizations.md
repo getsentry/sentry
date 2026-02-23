@@ -1251,3 +1251,15 @@ def pytest_collection_modifyitems(items):
 **Root cause of the assumption failure**: Sentry's `TestCase` base class (via `APITestCase`, `TestCase`, etc.) creates `Organization`, `Project`, and `Team` fixtures in `setUp`. These models route to `control` and `secondary` via the silo routing layer, so virtually every test that uses any fixture touches all three DBs — not just tests that explicitly exercise cross-silo logic.
 
 **Dead end.** The `--classify-databases` instrumentation and `--narrow-databases` narrowing code remain in `service_classifier.py` for completeness but will have no practical impact on wall time.
+
+---
+
+## Bug Fix: Flaky `test_organization_dashboard_details` ordering
+
+**Tests:** `test_remove_widget_and_add_new`, `test_reorder_widgets_has_no_effect`
+
+**Symptom:** Intermittent `AssertionError: assert 336 == 337` / `assert 368 == 366` — positional widget ID comparisons failing non-deterministically.
+
+**Root cause:** `DashboardWidget.order` is `BoundedPositiveIntegerField(null=True)` with no default. Both `setUp` and the endpoint's `create_widget`/`update_widget` never set `order`, leaving all widgets with `order=NULL`. `get_widgets()` returns `.order_by("order")` — PostgreSQL `ORDER BY` on all-NULL values produces undefined ordering (heap scan order), which varies based on prior test activity within the worker session.
+
+**Fix:** Set `order=0..3` on `widget_1..4` in both `setUp` methods. Existing widgets retain their order through `update_widget` (which never touches the field), and widgets newly created by the endpoint without an explicit order sort last (PostgreSQL `NULLS LAST` default for ascending). 4-line change, no endpoint changes needed.
