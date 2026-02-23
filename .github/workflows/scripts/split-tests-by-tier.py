@@ -94,7 +94,13 @@ def _scope_key(test_id: str, granularity: str) -> str:
     if granularity == "file":
         return test_id.split("::")[0]
     elif granularity == "class":
-        return "::".join(test_id.split("::")[:2])
+        parts = test_id.split("::")
+        # Module-level tests (file::test_fn) have no class component.
+        # --dist=loadscope groups them by file, and merge-test-durations.py
+        # stores them under the file key. Use file to match.
+        if len(parts) >= 3:
+            return "::".join(parts[:2])  # file::ClassName
+        return parts[0]  # file (module-level)
     return test_id
 
 

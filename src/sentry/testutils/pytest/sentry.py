@@ -533,7 +533,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
                     if granularity == "test":
                         key = item.nodeid
                     elif granularity == "class":
-                        key = "::".join(parts[:2])
+                        key = "::".join(parts[:2]) if len(parts) >= 3 else parts[0]
                     else:
                         key = parts[0]
                     if key in selected_ids:
