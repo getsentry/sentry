@@ -268,7 +268,6 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         mock_integration.provider = "test_provider"
 
         with (
-            self.feature({"organizations:seer-coding-agent-integrations": True}),
             self.mock_integration_service_calls(integrations=[mock_integration]),
         ):
             response = self.get_response(organization.slug)
@@ -341,7 +340,6 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
     def test_github_copilot_shown_with_feature_flag(self):
         """Test GET endpoint shows GitHub Copilot when feature flag is enabled."""
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             self.feature("organizations:integrations-github-copilot-agent"),
             self.mock_integration_service_calls(integrations=[]),
         ):
@@ -363,7 +361,6 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         mock_identity_service.get_access_token_for_user.return_value = "mock-access-token"
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             self.feature("organizations:integrations-github-copilot-agent"),
             self.mock_integration_service_calls(integrations=[]),
         ):
@@ -385,7 +382,6 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         mock_identity_service.get_access_token_for_user.return_value = None
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             self.feature("organizations:integrations-github-copilot-agent"),
             self.mock_integration_service_calls(integrations=[]),
         ):
@@ -412,7 +408,6 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         )
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             self.feature("organizations:integrations-github-copilot-agent"),
             self.mock_integration_service_calls(integrations=[]),
         ):
@@ -430,7 +425,6 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
     def test_github_copilot_not_shown_without_feature_flag(self):
         """Test GET endpoint does not show GitHub Copilot without feature flag."""
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             self.feature({"organizations:integrations-github-copilot-agent": False}),
             self.mock_integration_service_calls(integrations=[]),
         ):
@@ -673,7 +667,6 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -721,7 +714,6 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -821,7 +813,6 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         data = {"integration_id": str(self.integration.id), "run_id": 123}
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -907,7 +898,6 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         data = {"integration_id": str(self.integration.id), "run_id": 123}
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -1140,7 +1130,6 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
         data = {"provider": "github_copilot", "run_id": 123}
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             self.feature("organizations:integrations-github-copilot-agent"),
             patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"),
         ):
@@ -1189,7 +1178,6 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
         data = {"provider": "github_copilot", "run_id": 123}
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             self.feature("organizations:integrations-github-copilot-agent"),
             patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"),
         ):
@@ -1283,7 +1271,6 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -1365,7 +1352,6 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -1435,7 +1421,6 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -1482,7 +1467,6 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -1564,7 +1548,6 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.get_coding_agent_prompt",
                 return_value=None,
@@ -1615,7 +1598,6 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -1666,7 +1648,6 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -1713,7 +1694,6 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -1763,7 +1743,6 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
@@ -1846,7 +1825,6 @@ class OrganizationCodingAgentsPostInstructionTest(BaseOrganizationCodingAgentsTe
         }
 
         with (
-            self.feature("organizations:seer-coding-agent-integrations"),
             patch(
                 "sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer",
             ),
