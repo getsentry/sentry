@@ -82,16 +82,14 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
     def get_alert_rule_component(
         cls, sentry_app_id: int, sentry_app_name: str
-    ) -> RpcSentryAppComponent:
+    ) -> RpcSentryAppComponent | None:
         components = app_service.find_app_components(app_id=sentry_app_id)
 
         for component in components:
             if component.type == "alert-rule-action":
                 return component
 
-        raise ValidationError(
-            f"Alert Actions are not enabled for the {sentry_app_name} integration."
-        )
+        return None
 
     @classmethod
     def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
@@ -105,5 +103,7 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
 
         sentry_app = installations[0].sentry_app
         alert_rule_component = cls.get_alert_rule_component(sentry_app.id, sentry_app.name)
+        if not alert_rule_component:
+            return ""
 
         return str(alert_rule_component.app_schema.get("title", sentry_app.name))
