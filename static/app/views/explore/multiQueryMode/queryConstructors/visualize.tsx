@@ -82,7 +82,7 @@ export function VisualizeSection({query, index}: Props) {
             }}
           />
           <CompactSelect
-            search={{}}
+            search
             options={options}
             value={parsedFunction?.arguments?.[0] ?? ''}
             onChange={newField => {

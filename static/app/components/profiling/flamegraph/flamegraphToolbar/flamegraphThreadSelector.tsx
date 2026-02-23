@@ -121,7 +121,7 @@ function FlamegraphThreadSelector({
       ]}
       value={threadId ?? 0}
       onChange={handleChange}
-      search={{}}
+      search
     />
   );
 }

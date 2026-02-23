@@ -54,7 +54,7 @@ export function OwnershipOwnerFilter({
     <CompactSelect
       multiple
       clearable
-      search={{}}
+      search
       menuTitle={t('Filter owners')}
       options={actorOptions}
       value={selectedTeams}

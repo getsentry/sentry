@@ -231,7 +231,7 @@ export function EnvironmentPageFilter({
       {...selectProps}
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
-      search={{}}
+      search
       options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}

@@ -244,7 +244,7 @@ sentry-cli releases finalize "$VERSION"`;
           options={apps.map(makeAppOption)}
           value={selectedApp?.slug}
           emptyMessage={t('No Integrations')}
-          search={{}}
+          search
           disabled={false}
           menuFooter={({closeOverlay}) => (
             <Button

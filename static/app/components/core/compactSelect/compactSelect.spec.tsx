@@ -797,7 +797,7 @@ describe('CompactSelect', () => {
           onChange={jest.fn()}
           sizeLimit={2}
           sizeLimitMessage="Use search for more options…"
-          search={{}}
+          search
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -1234,7 +1234,7 @@ describe('CompactSelect', () => {
           grid
           sizeLimit={2}
           sizeLimitMessage="Use search for more options…"
-          search={{}}
+          search
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},

@@ -345,7 +345,7 @@ export default function ChoiceMapperField({
             : addDropdown.noResultsMessage
         }
         size="xs"
-        search={{}}
+        search
         disabled={false}
         options={selectableValues}
         menuWidth={250}

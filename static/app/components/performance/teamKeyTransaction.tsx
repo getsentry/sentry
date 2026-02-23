@@ -117,7 +117,7 @@ function TeamKeyTransaction({
         value={value}
         onChange={handleChange}
         options={options}
-        search={options.length > 8 ? {} : undefined}
+        search={options.length > 8}
         {...props}
       />
     </Wrapper>

@@ -48,7 +48,7 @@ export function EnvironmentSelector() {
     <CompactSelect
       size="md"
       options={options}
-      search={{}}
+      search
       disabled={!projectsLoaded}
       sizeLimit={20}
       multiple={false}

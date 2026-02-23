@@ -69,7 +69,7 @@ export function ToolbarVisualizeDropdown({
     <ToolbarRow>
       {label}
       <AggregateCompactSelect
-        search={{}}
+        search
         options={aggregateOptions}
         value={parsedFunction?.name ?? ''}
         onChange={onChangeAggregate}

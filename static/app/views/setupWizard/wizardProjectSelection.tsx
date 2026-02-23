@@ -291,7 +291,7 @@ export function WizardProjectSelection({
       <label>{t('Platform')}</label>
       <StyledCompactSelect
         value={newProjectPlatform as string}
-        search={{}}
+        search
         options={platformOptions}
         trigger={triggerProps => (
           <OverlayTrigger.Button
@@ -334,7 +334,7 @@ export function WizardProjectSelection({
           <StyledCompactSelect
             autoFocus
             value={selectedOrgId as string}
-            search={{}}
+            search
             options={orgOptions}
             trigger={triggerProps => (
               <OverlayTrigger.Button

@@ -317,7 +317,7 @@ function GroupBySelector({
       options={options}
       value={groupBy.groupBy}
       onChange={handleChange}
-      search={{}}
+      search
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
@@ -417,7 +417,7 @@ function AggregateSelector({
         options={aggregateOptions}
         value={parsedFunction?.name}
         onChange={handleFunctionChange}
-        search={{}}
+        search
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
@@ -436,7 +436,7 @@ function AggregateSelector({
             options={argumentOptions}
             value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
             onChange={option => handleArgumentChange(index, option)}
-            search={{}}
+            search
             disabled={argumentOptions.length === 1}
             trigger={triggerProps => (
               <OverlayTrigger.Button
@@ -455,7 +455,7 @@ function AggregateSelector({
           options={argumentOptions}
           value={parsedFunction?.arguments[0] ?? ''}
           onChange={option => handleArgumentChange(0, option)}
-          search={{}}
+          search
           disabled
           trigger={triggerProps => (
             <OverlayTrigger.Button

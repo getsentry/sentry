@@ -23,7 +23,7 @@ export default function ProjectPicker({
     <CompactSelect
       onChange={selected => onChange(selected.value)}
       options={options}
-      search={{}}
+      search
       size="xs"
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix="Project" />

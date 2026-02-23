@@ -206,7 +206,7 @@ export function SelectRow({
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
       <AggregateCompactSelect
-        search={{}}
+        search
         hasColumnParameter={hasColumnParameter}
         disabled={disabled || aggregateOptions.length <= 1}
         options={sortSelectedFirst(aggregateValue, aggregateOptions)}
@@ -466,7 +466,7 @@ export function SelectRow({
       {hasColumnParameter && (
         <SelectWrapper ref={columnSelectRef}>
           <ColumnCompactSelect
-            search={{}}
+            search
             options={sortSelectedFirst(columnValue, columnOptions)}
             value={columnValue}
             onChange={newField => {

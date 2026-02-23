@@ -296,7 +296,7 @@ function ColumnEditorRow({
         value={column.column ?? ''}
         onChange={handleColumnChange}
         disabled={required}
-        search={{}}
+        search
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}

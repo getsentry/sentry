@@ -177,8 +177,10 @@ export interface ControlProps
   onOpenChange?: (newOpenState: boolean) => void;
   /**
    * Search configuration. When provided, enables the search input.
+   * Pass `true` to enable search with default settings, or a config object
+   * to customise placeholder, filtering, or the onChange callback.
    */
-  search?: SearchConfig<SelectKey>;
+  search?: boolean | SearchConfig<SelectKey>;
   size?: FormSize;
 
   /**
@@ -239,9 +241,12 @@ export function Control({
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const searchEnabled = searchConfig !== undefined;
+  // Normalise boolean shorthand: `search` / `search={true}` → `search`
+  const normalizedSearch =
+    searchConfig === true ? {} : searchConfig === false ? undefined : searchConfig;
+  const searchEnabled = normalizedSearch !== undefined;
   const searchFilter =
-    typeof searchConfig?.filter === 'function' ? searchConfig.filter : undefined;
+    typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
 
   /**
    * Search/filter value, used to filter out the list of displayed elements
@@ -250,9 +255,9 @@ export function Control({
   const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
   const updateSearch = (newValue: string) => {
-    searchConfig?.onChange?.(newValue);
+    normalizedSearch?.onChange?.(newValue);
     setSearchInputValue(newValue);
-    if (searchConfig?.filter !== false) {
+    if (normalizedSearch?.filter !== false) {
       setSearch(newValue);
     }
   };
@@ -543,7 +548,7 @@ export function Control({
                     </InputGroup.LeadingItems>
                     <SearchInput
                       ref={searchRef}
-                      placeholder={searchConfig?.placeholder ?? 'Search…'}
+                      placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                       value={searchInputValue}
                       onFocus={onSearchFocus}
                       onBlur={onSearchBlur}
