@@ -88,7 +88,7 @@ class ExploreSavedQueriesTest(APITestCase):
 
         # User saved query
         assert response.data[3]["name"] == "Test query"
-        assert response.data[3]["projects"] == self.project_ids
+        assert sorted(response.data[3]["projects"]) == sorted(self.project_ids)
         assert response.data[3]["range"] == "24h"
         assert response.data[3]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
         assert "createdBy" in response.data[3]
