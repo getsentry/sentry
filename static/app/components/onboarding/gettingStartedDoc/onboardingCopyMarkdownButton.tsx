@@ -44,6 +44,7 @@ export function CopyMarkdownButton({
         analyticsEventName="Setup Guide: Copy as Markdown"
         analyticsParams={{format: 'markdown', source}}
         onClick={() => copyToClipboard(getMarkdown())}
+        size="xs"
       >
         {t('Copy instructions')}
       </Button>
