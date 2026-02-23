@@ -22,7 +22,7 @@ ordering or format.
 type Reaction = Literal["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"]
 """Normalized reaction identifiers shared across all SCM providers."""
 
-type Referrer = Literal["emerge", "shared"]
+type Referrer = str
 """
 Identifies the caller so providers can apply per-referrer rate-limit policies and emit metrics
 scoped by referrer.

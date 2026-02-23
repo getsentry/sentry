@@ -1229,7 +1229,7 @@ class FakeGitHubApiClient(GitHubApiClient):
             return self.commits_data
         return [make_github_commit()]
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> dict[str, Any]:
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> Any:
         self._record_call("compare_commits", repo, start_sha, end_sha)
         self._maybe_raise()
         if self.comparison_data is not None:
