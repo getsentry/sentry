@@ -255,14 +255,38 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     ) -> None:
         logger.info("Flusher process main started for shards %s", shards)
 
-        # TODO: remove once span buffer is live in all regions
-        scope = sentry_sdk.get_isolation_scope()
-        scope.level = "warning"
+        # Use a new isolation scope so that modifications (like setting level)
+        # don't leak into the parent thread's scope via shared contextvars.
+        with sentry_sdk.isolation_scope() as scope:
+            # TODO: remove once span buffer is live in all regions
+            scope.level = "warning"
 
-        shard_tag = ",".join(map(str, shards))
-        sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
-        sentry_sdk.set_tag("sentry_spans_buffer_shards", shard_tag)
+            shard_tag = ",".join(map(str, shards))
+            sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
+            sentry_sdk.set_tag("sentry_spans_buffer_shards", shard_tag)
 
+            SpanFlusher._main_loop(
+                buffer=buffer,
+                shards=shards,
+                stopped=stopped,
+                current_drift=current_drift,
+                backpressure_since=backpressure_since,
+                healthy_since=healthy_since,
+                produce_to_pipe=produce_to_pipe,
+                shard_tag=shard_tag,
+            )
+
+    @staticmethod
+    def _main_loop(
+        buffer: SpansBuffer,
+        shards: list[int],
+        stopped,
+        current_drift,
+        backpressure_since,
+        healthy_since,
+        produce_to_pipe: Callable[[KafkaPayload], None] | None,
+        shard_tag: str,
+    ) -> None:
         logger.info("Flusher process started for shards %s", shard_tag)
 
         try:
