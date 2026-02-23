@@ -265,7 +265,7 @@ def _check_file_content(result: Any) -> None:
 
 def _check_get_commit(result: Any) -> None:
     c = result["data"]
-    assert c["sha"] == "abc123"
+    assert c["id"] == "abc123"
     assert c["message"] == "Fix bug"
     assert c["author"]["name"] == "Test User"
     assert result["type"] == "github"
@@ -273,7 +273,7 @@ def _check_get_commit(result: Any) -> None:
 
 def _check_get_commits(result: Any) -> None:
     assert len(result["data"]) == 1
-    assert result["data"][0]["sha"] == "abc123"
+    assert result["data"][0]["id"] == "abc123"
     assert result["type"] == "github"
 
 

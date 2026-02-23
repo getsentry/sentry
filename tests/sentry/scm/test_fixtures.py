@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -189,11 +190,13 @@ def make_github_commit(
 def make_github_commit_comparison(
     ahead_by: int = 3,
     behind_by: int = 1,
+    commits: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Factory for GitHub commit comparison API responses."""
     return {
         "ahead_by": ahead_by,
         "behind_by": behind_by,
+        "commits": commits if commits is not None else [],
     }
 
 
@@ -217,11 +220,13 @@ def make_github_tree_entry(
 
 
 def make_github_git_tree(
+    sha: str = "tree_sha_abc",
     entries: list[dict[str, Any]] | None = None,
     truncated: bool = False,
 ) -> dict[str, Any]:
     """Factory for GitHub git tree API responses."""
     return {
+        "sha": sha,
         "tree": entries if entries is not None else [make_github_tree_entry()],
         "truncated": truncated,
     }
@@ -689,10 +694,12 @@ class BaseTestProvider(Provider):
     def get_commit(self, sha: str) -> ActionResult[Commit]:
         return ActionResult(
             data=Commit(
-                sha=sha,
+                id=sha,
                 message="Fix bug",
                 author=CommitAuthor(
-                    name="Test User", email="test@example.com", date="2026-02-04T10:00:00Z"
+                    name="Test User",
+                    email="test@example.com",
+                    date=datetime.fromisoformat("2026-02-04T10:00:00Z"),
                 ),
                 files=[CommitFile(filename="src/main.py", status="modified", patch="@@ -1 +1 @@")],
             ),
@@ -714,7 +721,7 @@ class BaseTestProvider(Provider):
 
     def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
         return ActionResult(
-            data=CommitComparison(ahead_by=3, behind_by=1),
+            data=CommitComparison(ahead_by=3, behind_by=1, commits=[]),
             type="github",
             raw={},
         )
@@ -724,6 +731,7 @@ class BaseTestProvider(Provider):
     def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]:
         return ActionResult(
             data=GitTree(
+                sha=tree_sha,
                 tree=[
                     TreeEntry(
                         path="src/main.py", mode="100644", type="blob", sha="abc123", size=1234
@@ -753,6 +761,7 @@ class BaseTestProvider(Provider):
     ) -> ActionResult[GitTree]:
         return ActionResult(
             data=GitTree(
+                sha="newtree123",
                 tree=[
                     TreeEntry(
                         path="src/main.py", mode="100644", type="blob", sha="new123", size=100
@@ -809,7 +818,7 @@ class BaseTestProvider(Provider):
                     author=CommitAuthor(
                         name="Test User",
                         email="test@example.com",
-                        date="2026-02-04T10:00:00Z",
+                        date=datetime.fromisoformat("2026-02-04T10:00:00Z"),
                     ),
                 ),
             ],

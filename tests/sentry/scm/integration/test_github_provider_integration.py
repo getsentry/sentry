@@ -453,7 +453,7 @@ class TestGitHubProviderIntegration(TestCase):
         result = self.provider.get_commit(sha)
 
         commit = result["data"]
-        assert commit["sha"] == sha
+        assert commit["id"] == sha
         assert commit["message"] == "Fix bug"
         assert commit["author"] is not None
         assert commit["author"]["name"] == "Test User"

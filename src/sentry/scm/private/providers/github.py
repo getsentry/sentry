@@ -808,18 +808,11 @@ def map_graphql_pr_comments(raw: dict[str, Any]) -> list[Comment]:
     results: list[Comment] = []
 
     for node in pr_data.get("comments", {}).get("nodes", []):
-        results.append(map_graphql_comment(node, comment_type="issue_comment"))
+        results.append(map_graphql_comment(node))
 
     for thread in pr_data.get("reviewThreads", {}).get("nodes", []):
-        # thread_meta = {
-        #     "thread_id": thread.get("id"),
-        #     "isResolved": thread.get("isResolved", False),
-        #     "isOutdated": thread.get("isOutdated", False),
-        #     "isCollapsed": thread.get("isCollapsed", False),
-        # }
         for node in thread.get("comments", {}).get("nodes", []):
-            result = map_graphql_comment(node, comment_type="pull_request_review_comment")
-            results.append(result)
+            results.append(map_graphql_comment(node))
 
     return results
 

@@ -478,19 +478,12 @@ def _check_graphql_pr_comments(result: Any) -> None:
     assert result["data"][0]["author"] is not None
     assert result["data"][0]["author"]["id"] == "123"
     assert result["data"][0]["author"]["username"] == "testuser"
-    assert result["raw"][0]["comment_type"] == "issue_comment"
     # Second: review thread comment
     assert result["data"][1]["id"] == "PRRC_abc123"
     assert result["data"][1]["body"] == "Review thread comment"
     assert result["data"][1]["author"] is not None
     assert result["data"][1]["author"]["id"] == "456"
     assert result["data"][1]["author"]["username"] == "reviewer"
-    assert result["raw"][1]["comment_type"] == "pull_request_review_comment"
-    # Thread metadata injected into raw
-    assert result["raw"][1]["thread_id"] == "PRT_abc123"
-    assert result["raw"][1]["isResolved"] is False
-    assert result["raw"][1]["isOutdated"] is False
-    assert result["raw"][1]["isCollapsed"] is False
 
 
 def _check_pull_request(result: Any) -> None:
@@ -560,7 +553,7 @@ def _check_file_content(result: Any) -> None:
 
 def _check_get_commit(result: Any) -> None:
     c = result["data"]
-    assert c["sha"] == "abc123"
+    assert c["id"] == "abc123"
     assert c["message"] == "Fix bug"
     assert c["author"] is not None
     assert c["author"]["name"] == "Test User"
@@ -572,7 +565,7 @@ def _check_get_commit(result: Any) -> None:
 
 def _check_get_commits(result: Any) -> None:
     assert len(result["data"]) == 1
-    assert result["data"][0]["sha"] == "abc123"
+    assert result["data"][0]["id"] == "abc123"
     assert result["type"] == "github"
 
 
@@ -1310,11 +1303,6 @@ class TestGetPullRequestCommentsEdgeCases:
         result = provider.get_pull_request_comments("42")
 
         assert len(result["data"]) == 1
-        # Reactions are preserved in the raw dict
-        assert len(result["raw"][0]["reactions"]["nodes"]) == 2
-        assert result["raw"][0]["reactions"]["nodes"][0]["content"] == "THUMBS_UP"
-        assert result["raw"][0]["reactions"]["nodes"][1]["content"] == "HEART"
-        assert result["raw"][0]["reactions"]["totalCount"] == 2
 
     def test_issue_comment_with_null_author(self):
         repository = make_repository()
@@ -1380,12 +1368,10 @@ class TestGetPullRequestCommentsEdgeCases:
         assert len(result["data"]) == 2
         assert result["data"][0]["id"] == "IC_1"
         assert result["data"][0]["body"] == "issue comment"
-        assert result["raw"][0]["comment_type"] == "issue_comment"
         assert result["data"][1]["id"] == "PRRC_1"
         assert result["data"][1]["body"] == "thread comment"
-        assert result["raw"][1]["comment_type"] == "pull_request_review_comment"
 
-    def test_thread_metadata_injected_into_raw(self):
+    def test_thread_metadata_in_raw_response(self):
         repository = make_repository()
         comment = make_github_graphql_review_thread_comment(node_id="PRRC_1")
         thread = make_github_graphql_review_thread(
@@ -1402,10 +1388,12 @@ class TestGetPullRequestCommentsEdgeCases:
         result = provider.get_pull_request_comments("42")
 
         assert len(result["data"]) == 1
-        assert result["raw"][0]["thread_id"] == "PRT_resolved"
-        assert result["raw"][0]["isResolved"] is True
-        assert result["raw"][0]["isOutdated"] is True
-        assert result["raw"][0]["isCollapsed"] is True
+        # The raw field contains the full GraphQL response
+        threads = result["raw"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
+        assert threads[0]["id"] == "PRT_resolved"
+        assert threads[0]["isResolved"] is True
+        assert threads[0]["isOutdated"] is True
+        assert threads[0]["isCollapsed"] is True
 
     def test_splits_owner_repo_correctly(self):
         repository = make_repository()
