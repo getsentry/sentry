@@ -48,28 +48,24 @@ jobs:
         run: |
           SCRIPT=.github/workflows/scripts/split-tests-by-tier.py
           CLASS=/tmp/classification/test-service-classification.json
-          T2_SHARDS=17
 
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" --summary
 
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier1 --output /tmp/tier1-tests.txt
 
-          # T2: use LPT sharding to balance shards by test count rather than
-          # hash-based round-robin, which ignores per-file test counts.
-          mkdir -p /tmp/tier2-shards
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
-            --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards
+            --tier tier2 --output /tmp/tier2-tests.txt
 
           echo "tier1-count=$(wc -l < /tmp/tier1-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
-          echo "tier2-count=$(find /tmp/tier2-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "tier2-count=$(wc -l < /tmp/tier2-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tier-file-lists
           path: |
             /tmp/tier1-tests.txt
-            /tmp/tier2-shards/
+            /tmp/tier2-tests.txt
           retention-days: 1
 
   # ─── Tier 1: Postgres + Redis only (no Snuba stack) ────────────────
@@ -221,10 +217,7 @@ jobs:
         env:
           SNUBA_WAIT_TIMEOUT: '180'
           DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
-          # LPT pre-assigns this shard's files; disable hash-based second filter.
-          SELECTED_TESTS_FILE: /tmp/tier2-shards/shard-${{ matrix.instance }}.txt
-          TOTAL_TEST_GROUPS: '1'
-          TEST_GROUP: '0'
+          SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
           SENTRY_DB_SOCKET: /tmp/pg-sock
         run: |
           XDIST_N=${XDIST_WORKERS:-3}
@@ -298,7 +291,7 @@ jobs:
           # ── Foreground: pytest starts immediately ──
           # Collection overlaps with service startup. The _wait_for_services
           # session fixture blocks on /tmp/services-ready before running tests.
-          echo "=== Tier 2: $(wc -l < /tmp/tier2-shards/shard-${{ matrix.instance }}.txt) scopes, shard ${{ matrix.instance }}/17 ==="
+          echo "=== Tier 2: $(wc -l < /tmp/tier2-tests.txt) scopes, shard ${{ matrix.instance }}/17 ==="
           PYTEST_EXIT=0
           SERVICES_READY_FILE=/tmp/services-ready \
           python3 -b -m pytest tests \
