@@ -1255,7 +1255,7 @@ wheels = [
 
 [[package]]
 name = "objectstore-client"
-version = "0.0.16"
+version = "0.0.17"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "filetype", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -1265,7 +1265,7 @@ dependencies = [
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.0.16-py3-none-any.whl", hash = "sha256:230ead5a7fb0040f733046fb54500a598d116e08797197575f1e73b1ba380bb2" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.0.17-py3-none-any.whl", hash = "sha256:114c596ee167316183d07fe570bbe9ce814fe56eb02488cf92a4a8525ca9f86c" },
 ]
 
 [[package]]
@@ -2249,7 +2249,7 @@ requires-dist = [
     { name = "mmh3", specifier = ">=4.0.0" },
     { name = "msgpack", specifier = ">=1.1.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
-    { name = "objectstore-client", specifier = ">=0.0.16" },
+    { name = "objectstore-client", specifier = ">=0.0.17" },
     { name = "openai", specifier = ">=1.3.5" },
     { name = "orjson", specifier = ">=3.10.10" },
     { name = "p4python", specifier = ">=2025.1.2767466" },
@@ -2279,7 +2279,7 @@ requires-dist = [
     { name = "requests-oauthlib", specifier = ">=1.2.0" },
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
-    { name = "sentry-arroyo", specifier = ">=2.38.0" },
+    { name = "sentry-arroyo", specifier = ">=2.38.1" },
     { name = "sentry-conventions", specifier = ">=0.3.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.1.23" },
@@ -2368,13 +2368,13 @@ dev = [
 
 [[package]]
 name = "sentry-arroyo"
-version = "2.38.0"
+version = "2.38.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.38.0-py3-none-any.whl", hash = "sha256:a5f63ed023487c5e9c7e58a2c5e161c161d3ae864f504b4a46fef87915f9ebd2" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.38.1-py3-none-any.whl", hash = "sha256:e86e02127bcfc884e94d5c36c4e6c97e3e39df033effe96a4eca4346852db1b4" },
 ]
 
 [[package]]

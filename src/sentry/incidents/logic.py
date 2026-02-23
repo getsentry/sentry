@@ -704,7 +704,7 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
 
         TODO: Refactor to not violate the type system
         """
-        model.id = None  # type: ignore[assignment]
+        model.id = None
 
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
@@ -1853,6 +1853,7 @@ EAP_FUNCTIONS = [
     "min",
     "sum",
     "epm",
+    "failure_count",
     "failure_rate",
     "eps",
     "apdex",

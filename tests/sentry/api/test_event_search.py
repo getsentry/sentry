@@ -531,6 +531,19 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
+    def test_currency_filter(self, mock_type: MagicMock) -> None:
+        config = SearchConfig()
+        mock_type.return_value = "currency"
+
+        assert parse_search_query("ai.total_cost:>0.5", config=config) == [
+            SearchFilter(
+                key=SearchKey(name="ai.total_cost"),
+                operator=">",
+                value=SearchValue(0.5),
+            ),
+        ]
+
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_numeric_measurement_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "number"

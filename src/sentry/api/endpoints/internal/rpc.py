@@ -1,5 +1,6 @@
 import pydantic
 import sentry_sdk
+from rest_framework import status
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,7 +10,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RpcSignatureAuthentication
 from sentry.api.base import Endpoint, internal_all_silo_endpoint
 from sentry.auth.services.auth import AuthenticationContext
-from sentry.hybridcloud.rpc.service import RpcResolutionException, dispatch_to_local_service
+from sentry.hybridcloud.rpc.service import (
+    RpcResolutionException,
+    RpcValidationException,
+    dispatch_to_local_service,
+)
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.utils.env import in_test_environment
 
@@ -59,6 +64,11 @@ class InternalRpcServiceEndpoint(Endpoint):
         try:
             with auth_context.applied_to_request(request):
                 result = dispatch_to_local_service(service_name, method_name, arguments)
+        except RpcValidationException as e:
+            return Response(
+                data={"detail": e.detail, "code": e.code},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
         except RpcResolutionException as e:
             sentry_sdk.capture_exception()
             raise NotFound from e

@@ -161,10 +161,10 @@ function useReminderCopywriting() {
     [Steps.SETUP_CODE_REVIEW]: {
       title: t('Start using Seer\u2019s AI Code Review'),
       description: t(
-        'Seer is enabled but Code Review is not configured for any repos. Configure Seer to automatically review PRs and flag potential issues.'
+        'Seer is enabled but Code Review is not configured. Configure Seer to automatically review PRs and flag potential issues.'
       ),
       pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/seer/?tab=repos`
+        ? `/settings/${organization.slug}/#enablePrReviewTestGeneration`
         : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_DEFAULTS]: null,
@@ -229,7 +229,7 @@ export default function PrimaryNavSeerConfigReminder() {
             <Text>{copy.description}</Text>
             <Flex justify="end">
               <LinkButton
-                to={{pathname: copy.pathname}}
+                to={copy.pathname}
                 priority="primary"
                 onClick={() => state.close()}
                 analyticsEventName="Seer Config Reminder: Configure Now Clicked"

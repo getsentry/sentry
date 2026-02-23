@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, MutableMapping
 
 from django.utils.functional import cached_property
-from snuba_sdk import Column, Condition, Function, Op, OrderBy
+from snuba_sdk import Column, Condition, Direction, Function, Op, OrderBy
 
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
@@ -946,8 +946,13 @@ class MetricsDatasetConfig(DatasetConfig):
         return function_converter
 
     @property
-    def orderby_converter(self) -> Mapping[str, OrderBy]:
-        return {}
+    def orderby_converter(self) -> Mapping[str, Callable[[Direction], OrderBy]]:
+        return {
+            constants.DEVICE_CLASS_ALIAS: self._device_class_orderby_converter,
+        }
+
+    def _device_class_orderby_converter(self, direction: Direction) -> OrderBy:
+        return OrderBy(self.builder.column("device.class"), direction)
 
     # Field Aliases
     def _resolve_title_alias(self, alias: str) -> SelectType:

@@ -610,8 +610,9 @@ function setUpMocks(
     },
   });
   MockApiClient.addMockResponse({
-    url: `/customers/${organization.slug}/billing-config/?tier=all`,
+    url: `/customers/${organization.slug}/billing-config/`,
     body: BillingConfigFixture(PlanTier.ALL),
+    match: [MockApiClient.matchQuery({tier: 'all'})],
   });
   // TODO(isabella): remove this once all billing config api calls are updated to use tier=all
   MockApiClient.addMockResponse({
@@ -2227,10 +2228,6 @@ describe('Customer Details', () => {
         method: 'PUT',
         body: Subscription,
       });
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${sub.slug}/`,
-        body: sub,
-      });
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
@@ -2276,7 +2273,7 @@ describe('Customer Details', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${sub.slug}/`,
+        url: `/customers/${sub.slug}/`,
         body: sub,
       });
 

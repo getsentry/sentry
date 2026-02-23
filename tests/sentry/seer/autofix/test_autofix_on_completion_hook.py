@@ -322,41 +322,43 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             },
         ]
 
-        for i, test_case in enumerate(test_cases):
-            mock_broadcast.reset_mock()
-            state = run_state(blocks=[test_case["block"]])
-            AutofixOnCompletionHook._send_step_webhook(self.organization, run_id, state)
+        with self.feature({"organizations:seer-webhooks": True}):
+            for i, test_case in enumerate(test_cases):
+                mock_broadcast.reset_mock()
+                state = run_state(blocks=[test_case["block"]])
+                AutofixOnCompletionHook._send_step_webhook(self.organization, run_id, state)
 
-            mock_broadcast.assert_called_once()
-            call_kwargs = mock_broadcast.call_args.kwargs
-            if i == 0:  # First test - verify common fields
-                assert call_kwargs["resource_name"] == "seer"
-                assert call_kwargs["organization_id"] == self.organization.id
-                assert call_kwargs["payload"]["run_id"] == run_id
-            assert call_kwargs["event_name"] == test_case["expected_event"].value
-            assert (
-                call_kwargs["payload"][test_case["expected_payload_key"]]
-                == test_case["block"].artifacts[0].data
-            )
+                mock_broadcast.assert_called_once()
+                call_kwargs = mock_broadcast.call_args.kwargs
+                if i == 0:  # First test - verify common fields
+                    assert call_kwargs["resource_name"] == "seer"
+                    assert call_kwargs["organization_id"] == self.organization.id
+                    assert call_kwargs["payload"]["run_id"] == run_id
+                assert call_kwargs["event_name"] == test_case["expected_event"].value
+                assert (
+                    call_kwargs["payload"][test_case["expected_payload_key"]]
+                    == test_case["block"].artifacts[0].data
+                )
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_coding(self, mock_broadcast):
         """Sends coding_completed webhook when file patches exist."""
-        state = run_state(
-            blocks=[
-                root_cause_memory_block(),
-                solution_memory_block(),
-                code_changes_memory_block(),
-            ]
-        )
-        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state)
+        with self.feature({"organizations:seer-webhooks": True}):
+            state = run_state(
+                blocks=[
+                    root_cause_memory_block(),
+                    solution_memory_block(),
+                    code_changes_memory_block(),
+                ]
+            )
+            AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state)
 
-        mock_broadcast.assert_called_once()
-        call_kwargs = mock_broadcast.call_args.kwargs
-        assert call_kwargs["event_name"] == SeerActionType.CODING_COMPLETED.value
-        assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["path"] == "test.py"
-        assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["added"] == 5
-        assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["removed"] == 2
+            mock_broadcast.assert_called_once()
+            call_kwargs = mock_broadcast.call_args.kwargs
+            assert call_kwargs["event_name"] == SeerActionType.CODING_COMPLETED.value
+            assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["path"] == "test.py"
+            assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["added"] == 5
+            assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["removed"] == 2
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_no_artifacts_no_webhook(self, mock_broadcast):
@@ -562,7 +564,10 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_calls_function(self, mock_trigger):
         """Test _trigger_coding_agent_handoff calls the trigger function correctly."""
-        mock_trigger.return_value = {"successes": [{"repo": "owner/repo"}], "failures": []}
+        mock_trigger.return_value = {
+            "successes": [{"repo": "owner/repo"}],
+            "failures": [],
+        }
         handoff_config = self._make_handoff_config()
 
         AutofixOnCompletionHook._trigger_coding_agent_handoff(

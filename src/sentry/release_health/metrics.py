@@ -10,7 +10,6 @@ from snuba_sdk.expressions import Granularity, Limit, Offset
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.release_health.base import (
-    AllowedResolution,
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
@@ -28,7 +27,6 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
-    SessionsQueryConfig,
     SessionsQueryResult,
     StatsPeriod,
 )
@@ -401,13 +399,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rv[project_id, release] = adoption
 
         return rv
-
-    def sessions_query_config(self, organization: Any) -> SessionsQueryConfig:
-        return SessionsQueryConfig(
-            allowed_resolution=AllowedResolution.ten_seconds,
-            allow_session_status_query=True,
-            restrict_date_range=False,
-        )
 
     def run_sessions_query(
         self,
@@ -1006,10 +997,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             projects, where, org_id, rollup, summary_start, now
         )
 
-        # XXX: In order to be able to dual-read and compare results from both
-        # old and new backend, this should really go back through the
-        # release_health service instead of directly calling `self`. For now
-        # that makes the entire backend too hard to test though.
         release_adoption = self.get_release_adoption(project_releases, environments)
 
         rv: dict[ProjectRelease, ReleaseHealthOverview] = {}
