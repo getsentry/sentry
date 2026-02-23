@@ -402,12 +402,12 @@ export function HybridFilter<Value extends SelectKey>({
     stagedSelect.toggleOption,
   ]);
 
-  const callerConfig = typeof searchProp === 'object' ? searchProp : undefined;
-  const mergedSearch = {
-    ...callerConfig,
+  const searchConfig = typeof searchProp === 'object' ? searchProp : undefined;
+  const search = {
+    ...searchConfig,
     onChange: (value: string) => {
       stagedSelect.handleSearch(value);
-      callerConfig?.onChange?.(value);
+      searchConfig?.onChange?.(value);
     },
   };
 
@@ -477,7 +477,7 @@ export function HybridFilter<Value extends SelectKey>({
       options={mappedOptions}
       {...stagedSelect.compactSelectProps}
       {...selectProps}
-      search={mergedSearch}
+      search={search}
       onOpenChange={handleOpenChange}
     />
   );
