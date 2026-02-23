@@ -258,7 +258,6 @@ describe('Incident Rules Form', () => {
     });
 
     it('creates a rule with generic_metrics dataset', async () => {
-      organization.features = [...organization.features, 'mep-rollout-flag'];
       const rule = MetricRuleFixture();
       createWrapper({
         rule: {
@@ -583,11 +582,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('creates a metrics Apdex rule without satisfaction parameter', async () => {
-      organization.features = [
-        ...organization.features,
-        'performance-view',
-        'mep-rollout-flag',
-      ];
+      organization.features = [...organization.features, 'performance-view'];
 
       const rule = MetricRuleFixture();
       createWrapper({
