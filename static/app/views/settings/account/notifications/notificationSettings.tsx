@@ -4,7 +4,7 @@ import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -112,56 +112,64 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     <Fragment>
       <SentryDocumentTitle title={t('Notifications')} />
       <SettingsPageHeader title={t('Notifications')} />
-      <TextBlock>
-        {tct(
-          'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
-          {
-            link: <Link to="/settings/account/emails" />,
-          }
+      <FormSearch route="/settings/account/notifications/">
+        <TextBlock>
+          {tct(
+            'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
+            {
+              link: <Link to="/settings/account/emails" />,
+            }
+          )}
+        </TextBlock>
+        {isError && <LoadingError onRetry={refetch} />}
+        <Panel>
+          <PanelHeader>{t('Notification')}</PanelHeader>
+          <PanelBody>{notificationFields.map(renderOneSetting)}</PanelBody>
+        </Panel>
+        {isPending && <LoadingIndicator />}
+        {initialData && (
+          <FieldGroup title={t('My Activity')}>
+            <AutoSaveField
+              name="personalActivityNotifications"
+              schema={notificationSchema}
+              initialValue={initialData.personalActivityNotifications}
+              mutationOptions={notificationMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('My Own Activity')}
+                  hintText={t('Notifications about your own actions on Sentry.')}
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+            <AutoSaveField
+              name="selfAssignOnResolve"
+              schema={notificationSchema}
+              initialValue={initialData.selfAssignOnResolve}
+              mutationOptions={notificationMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Resolve and Auto-Assign')}
+                  hintText={t(
+                    "When you resolve an unassigned issue, we'll auto-assign it to you."
+                  )}
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+          </FieldGroup>
         )}
-      </TextBlock>
-      {isError && <LoadingError onRetry={refetch} />}
-      <Panel>
-        <PanelHeader>{t('Notification')}</PanelHeader>
-        <PanelBody>{notificationFields.map(renderOneSetting)}</PanelBody>
-      </Panel>
-      {isPending && <LoadingIndicator />}
-      {initialData && (
-        <FieldGroup title={t('My Activity')}>
-          <AutoSaveField
-            name="personalActivityNotifications"
-            schema={notificationSchema}
-            initialValue={initialData.personalActivityNotifications}
-            mutationOptions={notificationMutationOptions}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('My Own Activity')}
-                hintText={t('Notifications about your own actions on Sentry.')}
-              >
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Row>
-            )}
-          </AutoSaveField>
-          <AutoSaveField
-            name="selfAssignOnResolve"
-            schema={notificationSchema}
-            initialValue={initialData.selfAssignOnResolve}
-            mutationOptions={notificationMutationOptions}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Resolve and Auto-Assign')}
-                hintText={t(
-                  "When you resolve an unassigned issue, we'll auto-assign it to you."
-                )}
-              >
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Row>
-            )}
-          </AutoSaveField>
-        </FieldGroup>
-      )}
+      </FormSearch>
     </Fragment>
   );
 }
