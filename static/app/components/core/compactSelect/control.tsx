@@ -189,9 +189,7 @@ export interface ControlProps
    * Custom function to determine whether an option matches the search query (applicable
    * only when `searchable` is true). Receives the option and the current search string,
    * and must return a `SearchMatchResult`. A score greater than 0 means the option
-   * matches; options with higher scores are sorted first. If not provided, defaults to
-   * case-insensitive substring matching on `textValue` or `label` with a static score
-   * of 1.
+   * matches; options with higher scores are sorted first.
    */
   searchMatcher?: (
     option: SelectOptionWithKey<SelectKey>,

@@ -525,6 +525,19 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             validator.save()
 
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.log_alerting_quota_hit")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_enforce_quota_calls_log(
+        self, mock_log: mock.MagicMock, mock_get_limit: mock.MagicMock
+    ) -> None:
+        mock_get_limit.return_value = 0
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        validator.is_valid()
+        with pytest.raises(ValidationError):
+            validator.save()
+        mock_log.assert_called_once()
+
     @with_feature("organizations:discover-saved-queries-deprecation")
     def test_transaction_dataset_deprecation_transactions(self) -> None:
         data = {

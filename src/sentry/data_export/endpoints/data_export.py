@@ -252,7 +252,6 @@ class DataExportEndpoint(OrganizationEndpoint):
             "organizations:performance-use-metrics",
             "organizations:profiling",
             "organizations:dynamic-sampling",
-            "organizations:use-metrics-layer",
             "organizations:starfish-view",
         ]
         batch_features = features.batch_has(

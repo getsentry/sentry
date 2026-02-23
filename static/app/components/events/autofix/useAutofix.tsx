@@ -3,6 +3,7 @@ import {useCallback, useMemo, useState} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
 import {
   AutofixStatus,
   AutofixStepType,
@@ -413,8 +414,13 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
         const permissionFailures = data.failures.filter(
           f => f.failure_type === 'github_app_permissions'
         );
+        const copilotLicenseFailures = data.failures.filter(
+          f => f.failure_type === 'github_copilot_not_licensed'
+        );
         const otherFailures = data.failures.filter(
-          f => f.failure_type !== 'github_app_permissions'
+          f =>
+            f.failure_type !== 'github_app_permissions' &&
+            f.failure_type !== 'github_copilot_not_licensed'
         );
 
         if (permissionFailures.length > 0) {
@@ -428,6 +434,10 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
               installationUrl={installationUrl}
             />
           ));
+        }
+
+        if (copilotLicenseFailures.length > 0) {
+          openModal(deps => <AutofixGithubCopilotPurchaseModal {...deps} />);
         }
 
         otherFailures.forEach(failure => {

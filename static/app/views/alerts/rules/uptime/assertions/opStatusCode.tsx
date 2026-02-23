@@ -6,7 +6,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import type {StatusCodeOp} from 'sentry/views/alerts/rules/uptime/types';
+import {ComparisonType, type StatusCodeOp} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer} from './opCommon';
 
@@ -25,7 +25,7 @@ export function AssertionOpStatusCode({
 
   // Filter out 'always' and 'never' which are not valid for status code checks
   const statusCodeOptions = COMPARISON_OPTIONS.filter(
-    opt => !['always', 'never'].includes(opt.value)
+    opt => ![ComparisonType.ALWAYS, ComparisonType.NEVER].includes(opt.value)
   );
   const selectedOption = statusCodeOptions.find(opt => opt.value === value.operator.cmp);
 

@@ -646,6 +646,39 @@ describe('CompactSelect', () => {
       expect(options[2]).toHaveTextContent('Option Three'); // no score, original order
     });
 
+    it('sizeLimit keeps highest-scored options visible, not first-in-order options', async () => {
+      // Natural order: One (score 1), Two (score 3), Three (score 2).
+      // sizeLimit=2 should keep the two highest-scored items: Two (3) and Three (2),
+      // not the first two in original order: One (1) and Two (3).
+      const scores: Record<string, number> = {opt_one: 1, opt_two: 3, opt_three: 2};
+
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          sizeLimit={2}
+          searchMatcher={option => ({score: scores[String(option.value)] ?? 0})}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('opt');
+
+      const options = screen.getAllByRole('option');
+      expect(options).toHaveLength(2);
+      expect(options[0]).toHaveTextContent('Option Two'); // score 3, visible
+      expect(options[1]).toHaveTextContent('Option Three'); // score 2, visible
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument(); // score 1, hidden
+    });
+
     it('passes option and search string to searchMatcher', async () => {
       const searchMatcher = jest.fn().mockReturnValue({score: 1});
 
