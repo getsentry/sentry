@@ -40,6 +40,7 @@ import type {
   SelectOptionOrSection,
   SelectOptionWithKey,
 } from './types';
+import {getSearchConfig} from './utils';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
@@ -241,9 +242,7 @@ export function Control({
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Normalise boolean shorthand: `search` / `search={true}` → `search`
-  const normalizedSearch =
-    searchConfig === true ? {} : searchConfig === false ? undefined : searchConfig;
+  const normalizedSearch = getSearchConfig(searchConfig);
   const searchEnabled = normalizedSearch !== undefined;
   const searchFilter =
     typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;

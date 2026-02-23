@@ -402,20 +402,14 @@ export function HybridFilter<Value extends SelectKey>({
     stagedSelect.toggleOption,
   ]);
 
-  const normalizedSearchProp =
-    searchProp === true ? {} : searchProp === false ? undefined : searchProp;
-
-  const mergedSearch = useMemo(
-    () => ({
-      ...normalizedSearchProp,
-      onChange: (value: string) => {
-        stagedSelect.handleSearch(value);
-        normalizedSearchProp?.onChange?.(value);
-      },
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [normalizedSearchProp, stagedSelect.handleSearch]
-  );
+  const callerConfig = typeof searchProp === 'object' ? searchProp : undefined;
+  const mergedSearch = {
+    ...callerConfig,
+    onChange: (value: string) => {
+      stagedSelect.handleSearch(value);
+      callerConfig?.onChange?.(value);
+    },
+  };
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
