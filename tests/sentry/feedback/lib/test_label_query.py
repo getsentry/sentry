@@ -15,7 +15,7 @@ from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.snuba import raw_snql_query
 from tests.sentry.feedback import mock_feedback_event
 
@@ -121,6 +121,7 @@ class TestLabelQuery(APITestCase):
         assert result[2]["label"] == "Checkout" or result[2]["label"] == "Colors"
         assert result[2]["count"] == 1
 
+    @freeze_time("2025-01-15T00:00:00Z")
     def test_query_recent_feedbacks_with_ai_labels(self) -> None:
         project = self.create_project()
         original_project = self.project
@@ -143,9 +144,9 @@ class TestLabelQuery(APITestCase):
             )
 
             result = query_recent_feedbacks_with_ai_labels(
-                organization_id=project.organization.id,
-                project_ids=[project.id],
-                start=before_now(days=30),
+                organization_id=self.organization.id,
+                project_ids=[self.project.id],
+                start=before_now(days=4),
                 end=before_now(days=0),
                 limit=1,
             )
