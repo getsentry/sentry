@@ -6,7 +6,7 @@ import {Observer} from 'mobx-react-lite';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -248,27 +248,6 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
               <Button priority="danger">{t('Delete Rule')}</Button>
             </Confirm>
           )}
-          {hasRuntimeAssertions && hasAiAssertionSuggestions && (
-            <AssertionSuggestionsButton
-              getFormData={() => {
-                const data = formModel.getTransformedData();
-                return {
-                  url: data.url,
-                  method: data.method ?? DEFAULT_METHOD,
-                  headers: data.headers ?? [],
-                  body: methodHasBody(formModel) ? data.body : null,
-                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-                };
-              }}
-              getCurrentAssertion={() =>
-                formModel.getValue<UptimeAssertion | null>('assertion')
-              }
-              onApplySuggestion={newAssertion => {
-                // Cast to any to satisfy FormModel's FieldValue type
-                formModel.setValue('assertion', newAssertion as any);
-              }}
-            />
-          )}
           {hasRuntimeAssertions && (
             <TestUptimeMonitorButton
               label={t('Test Rule')}
@@ -455,12 +434,42 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
         </Configuration>
         {hasRuntimeAssertions && (
           <Fragment>
-            <AlertListItem>{t('Verification')}</AlertListItem>
-            <ListItemSubText>
-              {t(
-                'Define conditions that must be met for the check to be considered successful.'
+            <Flex justify="between">
+              <Stack>
+                <AlertListItem>{t('Verification')}</AlertListItem>
+
+                <ListItemSubText>
+                  {t(
+                    'Define conditions that must be met for the check to be considered successful.'
+                  )}
+                </ListItemSubText>
+              </Stack>
+
+              {hasAiAssertionSuggestions && (
+                <Flex alignSelf="end">
+                  <AssertionSuggestionsButton
+                    size="xs"
+                    getFormData={() => {
+                      const data = formModel.getTransformedData();
+                      return {
+                        url: data.url,
+                        method: data.method ?? DEFAULT_METHOD,
+                        headers: data.headers ?? [],
+                        body: methodHasBody(formModel) ? data.body : null,
+                        timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                      };
+                    }}
+                    getCurrentAssertion={() =>
+                      formModel.getValue<Assertion | null>('assertion')
+                    }
+                    onApplySuggestion={newAssertion => {
+                      formModel.setValue('assertion', newAssertion as any);
+                    }}
+                  />
+                </Flex>
               )}
-            </ListItemSubText>
+            </Flex>
+
             <Configuration>
               <ConfigurationPanel>
                 <UptimeAssertionsField
