@@ -437,6 +437,16 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         member.flags["idp:provisioned"] = True
         member.save()
 
+        if previous_role != member.role:
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=member.id,
+                target_user_id=member.user_id,
+                event=audit_log.get_event_id("MEMBER_EDIT"),
+                data={"role": member.role, "email": member.get_email()},
+            )
+
         # only update metric if the role changed
         if (
             previous_role != organization.default_role

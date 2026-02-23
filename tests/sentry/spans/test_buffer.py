@@ -290,6 +290,62 @@ def test_observability_metrics(
     emit_observability_metrics.assert_called_once()
 
 
+@mock.patch("sentry.spans.buffer.emit_observability_metrics")
+def test_observability_metrics_parent_span_already_oversized(
+    emit_observability_metrics: mock.MagicMock,
+    buffer: SpansBuffer,
+) -> None:
+    # Disable compression so payload size in Redis is predictable, then force a
+    # low max-segment-bytes threshold so the destination set is already too
+    # large before merge.
+    oversized_parent_payload = orjson.dumps({"span_id": "b" * 16, "blob": "x" * 2048})
+    spans = [
+        Span(
+            # payload=_payload("a" * 16),
+            payload=oversized_parent_payload,
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+        Span(
+            # payload=oversized_parent_payload,
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+    ]
+
+    with override_options(
+        {"spans.buffer.max-segment-bytes": 200, "spans.buffer.compression.level": -1}
+    ):
+        process_spans(spans, buffer, now=0)
+
+    emit_observability_metrics.assert_called_once()
+    args, _ = emit_observability_metrics.call_args
+    gauge_metrics = args[1]
+
+    oversized_metric_values = [
+        value
+        for evalsha_metrics in gauge_metrics
+        for metric_name, value in evalsha_metrics
+        if metric_name == b"parent_span_set_already_oversized"
+    ]
+    assert oversized_metric_values, (
+        "Expected parent_span_set_already_oversized metric to be emitted"
+    )
+    assert 1 in oversized_metric_values, (
+        "Expected at least one evalsha call with an already oversized parent set"
+    )
+
+
 @pytest.mark.parametrize(
     "spans",
     list(
