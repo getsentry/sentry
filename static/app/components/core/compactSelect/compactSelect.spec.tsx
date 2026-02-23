@@ -749,6 +749,48 @@ describe('CompactSelect', () => {
       expect(screen.getAllByRole('option')).toHaveLength(1);
     });
 
+    it('uses custom searchMatcher with sections', async () => {
+      render(
+        <CompactSelect
+          value={undefined}
+          onChange={jest.fn()}
+          searchable
+          searchPlaceholder="Search here…"
+          searchMatcher={(option, search) => ({
+            score: String(option.value).endsWith(search) ? 1 : 0,
+          })}
+          options={[
+            {
+              key: 'section-1',
+              label: 'Section 1',
+              options: [
+                {value: 'opt_one', label: 'Option One'},
+                {value: 'opt_two', label: 'Option Two'},
+              ],
+            },
+            {
+              key: 'section-2',
+              label: 'Section 2',
+              options: [
+                {value: 'opt_three', label: 'Option Three'},
+                {value: 'opt_four', label: 'Option Four'},
+              ],
+            },
+          ]}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // 'e' matches opt_one (section 1) and opt_three (section 2) by value suffix
+      await userEvent.keyboard('e');
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option Four'})).not.toBeInTheDocument();
+    });
+
     it('can limit the number of options', async () => {
       render(
         <CompactSelect
