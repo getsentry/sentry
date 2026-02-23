@@ -382,11 +382,12 @@ function FilterSelector({
     <HybridFilter
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
-      searchable
+      search={{
+        placeholder: t('Search or enter a custom value...'),
+        onChange: setSearchQuery,
+      }}
       disabled={false}
       options={translatedOptions}
-      searchPlaceholder={t('Search or enter a custom value...')}
-      onSearch={setSearchQuery}
       sizeLimit={30}
       onClose={() => {
         setSearchQuery('');

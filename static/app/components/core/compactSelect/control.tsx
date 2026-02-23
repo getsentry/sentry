@@ -34,6 +34,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
 import type {
+  SearchConfig,
   SearchMatchResult,
   SelectKey,
   SelectOptionOrSection,
@@ -114,12 +115,6 @@ export interface ControlProps
    * If true, there will be a "Clear" button in the menu header.
    */
   clearable?: boolean;
-  /**
-   * Whether to disable the search input's filter function (applicable only when
-   * `searchable` is true). This is useful for implementing custom search behaviors,
-   * like fetching new options on search (via the onSearch() prop).
-   */
-  disableSearchFilter?: boolean;
   disabled?: boolean;
   /**
    * Message to be displayed when all options have been filtered out (via search).
@@ -181,29 +176,9 @@ export interface ControlProps
    */
   onOpenChange?: (newOpenState: boolean) => void;
   /**
-   * Called when the search input's value changes (applicable only when `searchable`
-   * is true).
+   * Search configuration. When provided, enables the search input.
    */
-  onSearch?: (value: string) => void;
-  /**
-   * Custom function to determine whether an option matches the search query (applicable
-   * only when `searchable` is true). Receives the option and the current search string,
-   * and must return a `SearchMatchResult`. A score greater than 0 means the option
-   * matches; options with higher scores are sorted first.
-   */
-  searchMatcher?: (
-    option: SelectOptionWithKey<SelectKey>,
-    search: string
-  ) => SearchMatchResult;
-  /**
-   * The search input's placeholder text (applicable only when `searchable` is true).
-   */
-  searchPlaceholder?: string;
-  /**
-   * If true, there will be a search box on top of the menu, useful for quickly finding
-   * menu items.
-   */
-  searchable?: boolean;
+  search?: SearchConfig<SelectKey>;
   size?: FormSize;
 
   /**
@@ -249,11 +224,7 @@ export function Control({
 
   // Select props
   size = 'md',
-  searchable = false,
-  searchPlaceholder = 'Search…',
-  disableSearchFilter = false,
-  onSearch,
-  searchMatcher,
+  search: searchConfig,
   clearable = false,
   onClear,
   loading = false,
@@ -267,6 +238,11 @@ export function Control({
   value?: SelectKey | SelectKey[] | undefined;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const searchEnabled = searchConfig !== undefined;
+  const searchFilter =
+    typeof searchConfig?.filter === 'function' ? searchConfig.filter : undefined;
+
   /**
    * Search/filter value, used to filter out the list of displayed elements
    */
@@ -274,12 +250,10 @@ export function Control({
   const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
   const updateSearch = (newValue: string) => {
-    onSearch?.(newValue);
-
+    searchConfig?.onChange?.(newValue);
     setSearchInputValue(newValue);
-    if (!disableSearchFilter) {
+    if (searchConfig?.filter !== false) {
       setSearch(newValue);
-      return;
     }
   };
 
@@ -347,7 +321,7 @@ export function Control({
           // Force a overlay update, as sometimes the overlay is misaligned when opened
           updateOverlay?.();
           // Focus on search box if present
-          if (searchable) {
+          if (searchEnabled) {
             searchRef.current?.focus();
             return;
           }
@@ -486,12 +460,12 @@ export function Control({
       overlayState,
       overlayIsOpen,
       search,
-      searchable,
+      searchable: searchEnabled,
       size,
       disabled,
-      searchMatcher,
+      searchMatcher: searchFilter,
     };
-  }, [overlayState, overlayIsOpen, search, searchable, size, disabled, searchMatcher]);
+  }, [overlayState, overlayIsOpen, search, searchEnabled, size, disabled, searchFilter]);
 
   const theme = useTheme();
 
@@ -528,7 +502,7 @@ export function Control({
               maxHeight={overlayProps.style!.maxHeight}
               maxHeightProp={maxMenuHeight}
               data-menu-has-header={!!menuTitle || clearable}
-              data-menu-has-search={searchable}
+              data-menu-has-search={searchEnabled}
               data-menu-has-footer={!!menuFooter}
             >
               <FocusScope contain>
@@ -554,7 +528,7 @@ export function Control({
                     </MenuHeaderTrailingItems>
                   </MenuHeader>
                 )}
-                {searchable && (
+                {searchEnabled && (
                   <InputGroup>
                     <InputGroup.LeadingItems disablePointerEvents>
                       <Flex
@@ -569,7 +543,7 @@ export function Control({
                     </InputGroup.LeadingItems>
                     <SearchInput
                       ref={searchRef}
-                      placeholder={searchPlaceholder}
+                      placeholder={searchConfig?.placeholder ?? 'Search…'}
                       value={searchInputValue}
                       onFocus={onSearchFocus}
                       onBlur={onSearchBlur}

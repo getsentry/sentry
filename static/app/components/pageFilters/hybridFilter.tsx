@@ -394,7 +394,7 @@ export function HybridFilter<Value extends SelectKey>({
   ref,
   options,
   stagedSelect,
-  onSearch: onSearchProp,
+  search: searchProp,
   onOpenChange: onOpenChangeProp,
   ...selectProps
 }: HybridFilterProps<Value>) {
@@ -402,10 +402,17 @@ export function HybridFilter<Value extends SelectKey>({
     stagedSelect.toggleOption,
   ]);
 
-  const handleSearch = (value: string) => {
-    stagedSelect.handleSearch(value);
-    onSearchProp?.(value);
-  };
+  const mergedSearch = useMemo(
+    () => ({
+      ...searchProp,
+      onChange: (value: string) => {
+        stagedSelect.handleSearch(value);
+        searchProp?.onChange?.(value);
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [searchProp, stagedSelect.handleSearch]
+  );
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
@@ -473,7 +480,7 @@ export function HybridFilter<Value extends SelectKey>({
       options={mappedOptions}
       {...stagedSelect.compactSelectProps}
       {...selectProps}
-      onSearch={handleSearch}
+      search={mergedSearch}
       onOpenChange={handleOpenChange}
     />
   );

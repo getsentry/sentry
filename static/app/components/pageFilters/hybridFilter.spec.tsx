@@ -70,7 +70,7 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search={{}}
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
@@ -124,7 +124,7 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search={{}}
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
@@ -188,7 +188,7 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search={{}}
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
@@ -261,7 +261,7 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search={{}}
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
@@ -327,7 +327,7 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search={{}}
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
@@ -393,7 +393,7 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search={{}}
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
@@ -471,7 +471,7 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search={{}}
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
@@ -533,7 +533,7 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search={{}}
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
@@ -592,7 +592,7 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search={{}}
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
@@ -646,7 +646,7 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search={{}}
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
@@ -700,7 +700,7 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search={{}}
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
@@ -758,7 +758,7 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search={{}}
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
@@ -817,7 +817,7 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search={{}}
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
@@ -876,7 +876,7 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search={{}}
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
@@ -937,7 +937,7 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search={{}}
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
@@ -1000,7 +1000,7 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search={{}}
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}

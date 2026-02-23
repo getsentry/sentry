@@ -90,12 +90,11 @@ export function MetricSelector({
 
   return (
     <CompactSelect
-      searchable
+      search={{onChange: debouncedSetSearch}}
       options={isFetching ? previousOptions : (metricOptions ?? [])}
       value={traceMetricSelectValue}
       loading={isFetching}
       menuTitle={t('Metrics')}
-      onSearch={debouncedSetSearch}
       onChange={option => {
         if ('metricType' in option) {
           const typedOption = option as MetricSelectOption;

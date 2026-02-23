@@ -48,7 +48,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 export interface ProjectPageFilterProps extends Partial<
   Omit<
     HybridFilterProps<number>,
-    | 'searchable'
+    | 'search'
     | 'multiple'
     | 'options'
     | 'value'
@@ -450,10 +450,9 @@ export function ProjectPageFilter({
   return (
     <HybridFilter
       ref={hybridFilterRef}
-      searchMatcher={projectSearchMatcher}
       {...selectProps}
       stagedSelect={stagedSelect}
-      searchable
+      search={{filter: projectSearchMatcher}}
       options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
