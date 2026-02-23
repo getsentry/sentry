@@ -60,10 +60,11 @@ OAuth-authenticated, HTTP streaming, no HTML parsing required.
 
 Docs: https://mcp.sentry.dev
 
-## IDE / Agent Plugins
+## CLI
 
-- **Claude Code**: https://github.com/getsentry/sentry-for-claude
-- **Cursor**: https://github.com/getsentry/sentry-for-cursor
+Query issues and analyze errors from the terminal.
+
+https://cli.sentry.dev
 
 ## REST API
 
