@@ -97,9 +97,11 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
     def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
         sentry_app_installation_uuid = blob.get("sentryAppInstallationUuid")
 
-        installations = app_service.get_many(filter=dict(uuids=[sentry_app_installation_uuid]))
+        installations = app_service.get_many(
+            filter=dict(uuids=[sentry_app_installation_uuid], organization_id=organization_id)
+        )
         if not installations:
-            raise ValidationError("Could not identify integration from the installation uuid.")
+            return ""
 
         sentry_app = installations[0].sentry_app
         alert_rule_component = cls.get_alert_rule_component(sentry_app.id, sentry_app.name)
