@@ -326,7 +326,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         # Images should be sorted by key
         assert response.data["images"][0]["key"] == "img1"
         assert (
-            response.data["images"][0]["file_name"] == "Screen1"
+            response.data["images"][0]["image_file_name"] == "Screen1"
         )  # response field is still "file_name"
         assert response.data["images"][1]["key"] == "img2"
 
