@@ -68,6 +68,8 @@ def schedule_task(
         return
 
     # Validate payload before scheduling to catch schema mismatches early
+    from pydantic import ValidationError
+
     try:
         request_type = transformed_event.get("request_type")
         validated_payload: (
@@ -83,7 +85,7 @@ def schedule_task(
         # When upgrading to Pydantic v2, we can remove the convert_enum_keys_to_strings call.
         # Pydantic v2 will automatically convert enum keys to strings.
         # payload = validated_payload.model_dump(mode="json")
-    except Exception:
+    except ValidationError:
         logger.warning("%s.validation_failed_before_scheduling", PREFIX)
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.INVALID_PAYLOAD
