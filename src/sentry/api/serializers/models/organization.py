@@ -399,10 +399,6 @@ class OrganizationSerializer(Serializer):
             feature_set.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_set.add("shared-issues")
-        if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:
-            feature_set.remove("mep-rollout-flag")
-        if options.get("performance.hide-metrics-ui") and "mep-rollout-flag" in feature_set:
-            feature_set.remove("mep-rollout-flag")
 
         return sorted(feature_set)
 

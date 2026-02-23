@@ -207,14 +207,26 @@ describe('conversationMessages utilities', () => {
       expect(parseUserContent(node as any)).toBeNull();
     });
 
-    it('returns raw string on parse error', () => {
+    it('returns null on parse error instead of raw string', () => {
       const node = createMockNode({
         id: 'node-1',
         attributes: {
           [SpanFields.GEN_AI_INPUT_MESSAGES]: 'not valid json',
         },
       });
-      expect(parseUserContent(node as any)).toBe('not valid json');
+      expect(parseUserContent(node as any)).toBeNull();
+    });
+
+    it('returns null when request messages JSON is truncated', () => {
+      const truncatedJson =
+        '[{"role":"assistant","content":[{"type":"tool_use","name":"search","input":"{}"}]},{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_123","content":"GoCD API 401 Unautho';
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: truncatedJson,
+        },
+      });
+      expect(parseUserContent(node as any)).toBeNull();
     });
 
     it('returns null when no messages attribute', () => {

@@ -204,7 +204,7 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
     }
     return extractTextFromMessage(userMessage);
   } catch {
-    return requestMessages;
+    return null;
   }
 }
 

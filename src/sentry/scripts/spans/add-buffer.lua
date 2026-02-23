@@ -127,6 +127,12 @@ table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_arg
 -- Used outside the if statement
 local spop_end_time_ms = -1
 if #sunionstore_args > 0 then
+    if (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes then
+        table.insert(metrics_table, {"parent_span_set_already_oversized", 1})
+    else
+        table.insert(metrics_table, {"parent_span_set_already_oversized", 0})
+    end
+
     local start_output_size = redis.call("scard", set_key)
     local scard_end_time_ms = get_time_ms()
     table.insert(latency_table, {"scard_step_latency_ms", scard_end_time_ms - sunionstore_args_end_time_ms})
