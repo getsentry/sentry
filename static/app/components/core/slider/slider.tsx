@@ -250,8 +250,8 @@ const SliderOutput = styled('output')`
   opacity: var(--o);
   transform: translate(var(--tx), var(--ty));
   transition:
-    opacity ${p => p.theme.motion.exit.fast},
-    transform ${p => p.theme.motion.smooth.fast};
+    opacity linear,
+    transform linear;
 `;
 
 const SliderLabel = styled('span')`
