@@ -17,7 +17,7 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
-  TIER_GRANULARITY: file
+  TIER_GRANULARITY: class
 
 jobs:
   # ─── Split tests into tiers using classification data ──────────────
@@ -327,7 +327,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadfile \
+            --dist=loadscope \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
