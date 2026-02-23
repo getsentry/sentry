@@ -37,6 +37,7 @@ export function SnapshotMainContent({
 
   const imageUrl = `/api/0/projects/${organizationSlug}/${projectSlug}/files/images/${selectedImage.key}/`;
   const totalVariants = currentGroupImages.length;
+  const displayName = selectedImage.display_name ?? selectedImage.image_file_name;
 
   return (
     <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
@@ -73,7 +74,7 @@ export function SnapshotMainContent({
         </Stack>
       </Flex>
       <Separator orientation="horizontal" />
-      <SingleImageDisplay imageUrl={imageUrl} alt={selectedImage.display_name} />
+      <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
     </Flex>
   );
 }

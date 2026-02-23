@@ -2,8 +2,8 @@
 import type {BuildDetailsVcsInfo} from './buildDetailsTypes';
 
 export interface SnapshotImage {
-  display_name: string;
-  file_name: string;
+  display_name: string | null;
+  image_file_name: string;
   group: string | null;
   height: number;
   key: string;
