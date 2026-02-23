@@ -2,9 +2,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
-import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField';
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -180,14 +180,16 @@ export function Thresholds({
 
   return (
     <ThresholdsContainer>
-      <SegmentedControl
+      <RadioGroup
+        label={t('Preferred polarity')}
         value={preferredPolarity || '-'}
         onChange={value => onPolarityChange?.(value as Polarity)}
-        size="sm"
-      >
-        <SegmentedControl.Item key="-">{t('Lower is better')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="+">{t('Higher is better')}</SegmentedControl.Item>
-      </SegmentedControl>
+        orientInline
+        choices={[
+          ['-', t('Lower is better')],
+          ['+', t('Higher is better')],
+        ]}
+      />
       {thresholdRowProps.map((props, index) => (
         <ThresholdRow
           {...props}
