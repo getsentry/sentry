@@ -154,6 +154,8 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 
 const PanelContainer = styled(Flex)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
@@ -178,8 +180,9 @@ const MessageBubble = styled('div')<{
   position: relative;
   z-index: 0;
   border-radius: ${p => p.theme.radius.md};
-  overflow: hidden;
-  width: 90%;
+  overflow: clip;
+  max-width: 90%;
+  min-width: 0;
   align-self: ${p => (p.role === 'user' ? 'flex-end' : 'flex-start')};
   background-color: ${p =>
     p.role === 'user'
@@ -224,6 +227,17 @@ const MessageBubble = styled('div')<{
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
+  min-width: 0;
+
+  pre {
+    overflow-x: auto;
+  }
+
+  table {
+    max-width: 100%;
+    overflow-x: auto;
+    display: block;
+  }
 `;
 
 const ToolCallsFooter = styled(Flex)`

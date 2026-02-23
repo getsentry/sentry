@@ -187,6 +187,7 @@ const DrawerContainer = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
+  overflow: hidden;
 `;
 
 const DrawerSlidePanel = styled(SlideOverPanel)`
@@ -205,6 +206,16 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
     var(--drawer-width),
     var(--drawer-max-width)
   ) !important;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    width: 100% !important;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border: none;
+    box-shadow: none;
+  }
 
   &[data-resizing] {
     /* Hide scrollbars during resize */

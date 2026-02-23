@@ -1,16 +1,19 @@
 import {memo, useCallback, useEffect, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ConversationDrawerOpenSource} from 'sentry/utils/analytics/conversationsAnalyticsEvents';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
@@ -136,7 +139,9 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
 export function useConversationViewDrawer({
   onClose,
 }: UseConversationViewDrawerProps = {}) {
+  const theme = useTheme();
   const organization = useOrganization();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const {openDrawer, isDrawerOpen, drawerUrlState} = useUrlConversationDrawer();
 
   const openConversationViewDrawer = useCallback(
@@ -158,11 +163,13 @@ export function useConversationViewDrawer({
         ariaLabel: t('Conversation'),
         onClose,
         shouldCloseOnInteractOutside: () => true,
-        drawerWidth: `${DRAWER_WIDTH}px`,
-        drawerCss: css`
-          min-width: ${DRAWER_WIDTH}px;
-        `,
-        resizable: true,
+        drawerWidth: isSmallScreen ? '100%' : `${DRAWER_WIDTH}px`,
+        drawerCss: isSmallScreen
+          ? undefined
+          : css`
+              min-width: ${DRAWER_WIDTH}px;
+            `,
+        resizable: !isSmallScreen,
         conversationId: conversation.conversationId,
         startTimestamp: conversation.startTimestamp,
         endTimestamp: conversation.endTimestamp,
@@ -170,7 +177,7 @@ export function useConversationViewDrawer({
         drawerKey: 'conversation-view-drawer',
       });
     },
-    [openDrawer, onClose, organization]
+    [openDrawer, onClose, organization, isSmallScreen]
   );
 
   useEffect(() => {
@@ -210,7 +217,10 @@ function ConversationView({
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNode: AITraceSpanNode | undefined;
 }) {
+  const theme = useTheme();
   const organization = useOrganization();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.md})`);
+  const [showDetails, setShowDetails] = useState(false);
   const [activeTab, setActiveTab] = useState<ConversationTab>('messages');
 
   const handleTabChange = useCallback(
@@ -225,6 +235,16 @@ function ConversationView({
       setActiveTab(newTab);
     },
     [organization, activeTab]
+  );
+
+  const handleSelectNode = useCallback(
+    (node: AITraceSpanNode) => {
+      onSelectNode(node);
+      if (isSmallScreen) {
+        setShowDetails(true);
+      }
+    },
+    [onSelectNode, isSmallScreen]
   );
 
   if (isLoading) {
@@ -243,54 +263,79 @@ function ConversationView({
     return <EmptyMessage>{t('No AI spans found in this conversation')}</EmptyMessage>;
   }
 
+  const showListPanel = !isSmallScreen || !showDetails;
+  const showDetailsPanel = !isSmallScreen || showDetails;
+
   return (
     <Flex flex="1" minHeight="0">
-      <LeftPanel>
-        <StyledTabs
-          value={activeTab}
-          onChange={key => handleTabChange(key as ConversationTab)}
-        >
-          <Container padding="xs lg">
-            <TabList>
-              <TabList.Item key="messages">{t('Messages')}</TabList.Item>
-              <TabList.Item key="trace">{t('AI Spans')}</TabList.Item>
-            </TabList>
-          </Container>
-          <Flex flex="1" minHeight="0" width="100%" overflowX="hidden" overflowY="auto">
-            <FullWidthTabPanels>
-              <TabPanels.Item key="messages">
-                <MessagesPanel
-                  nodes={nodes}
-                  selectedNodeId={selectedNode?.id ?? null}
-                  onSelectNode={onSelectNode}
-                />
-              </TabPanels.Item>
-              <TabPanels.Item key="trace">
-                <Container padding="md lg">
-                  <AISpanList
+      {showListPanel && (
+        <LeftPanel isFullWidth={isSmallScreen}>
+          <StyledTabs
+            value={activeTab}
+            onChange={key => handleTabChange(key as ConversationTab)}
+          >
+            <Container padding="xs lg">
+              <TabList>
+                <TabList.Item key="messages">{t('Messages')}</TabList.Item>
+                <TabList.Item key="trace">{t('AI Spans')}</TabList.Item>
+              </TabList>
+            </Container>
+            <Flex
+              flex="1"
+              minHeight="0"
+              width="100%"
+              overflowX="hidden"
+              overflowY="auto"
+            >
+              <FullWidthTabPanels>
+                <TabPanels.Item key="messages">
+                  <MessagesPanel
                     nodes={nodes}
-                    selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-                    onSelectNode={onSelectNode}
-                    compressGaps
+                    selectedNodeId={selectedNode?.id ?? null}
+                    onSelectNode={handleSelectNode}
                   />
-                </Container>
-              </TabPanels.Item>
-            </FullWidthTabPanels>
-          </Flex>
-        </StyledTabs>
-      </LeftPanel>
-      <DetailsPanel>
-        {selectedNode?.renderDetails({
-          node: selectedNode,
-          manager: null,
-          onParentClick: () => {},
-          onTabScrollToNode: () => {},
-          organization,
-          replay: null,
-          traceId: nodeTraceMap.get(selectedNode.id) ?? '',
-          hideNodeActions: true,
-        })}
-      </DetailsPanel>
+                </TabPanels.Item>
+                <TabPanels.Item key="trace">
+                  <Container padding="md lg">
+                    <AISpanList
+                      nodes={nodes}
+                      selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
+                      onSelectNode={handleSelectNode}
+                      compressGaps
+                    />
+                  </Container>
+                </TabPanels.Item>
+              </FullWidthTabPanels>
+            </Flex>
+          </StyledTabs>
+        </LeftPanel>
+      )}
+      {showDetailsPanel && (
+        <DetailsPanel isFullWidth={isSmallScreen}>
+          {isSmallScreen && (
+            <Container padding="sm lg" borderBottom="primary">
+              <Button
+                size="xs"
+                priority="transparent"
+                icon={<IconChevron direction="left" />}
+                onClick={() => setShowDetails(false)}
+              >
+                {t('Back')}
+              </Button>
+            </Container>
+          )}
+          {selectedNode?.renderDetails({
+            node: selectedNode,
+            manager: null,
+            onParentClick: () => {},
+            onTabScrollToNode: () => {},
+            organization,
+            replay: null,
+            traceId: nodeTraceMap.get(selectedNode.id) ?? '',
+            hideNodeActions: true,
+          })}
+        </DetailsPanel>
+      )}
     </Flex>
   );
 }
@@ -303,11 +348,11 @@ const StyledDrawerBody = styled(DrawerBody)`
   flex-direction: column;
 `;
 
-const LeftPanel = styled('div')`
+const LeftPanel = styled('div')<{isFullWidth?: boolean}>`
   flex: 1;
-  min-width: ${LEFT_PANEL_WIDTH}px;
+  min-width: ${p => (p.isFullWidth ? '0' : `${LEFT_PANEL_WIDTH}px`)};
   min-height: 0;
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  border-right: ${p => (p.isFullWidth ? 'none' : `1px solid ${p.theme.tokens.border.primary}`)};
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -325,9 +370,10 @@ const FullWidthTabPanels = styled(TabPanels)`
   }
 `;
 
-const DetailsPanel = styled('div')`
-  width: ${DETAILS_PANEL_WIDTH}px;
-  min-width: ${DETAILS_PANEL_WIDTH}px;
+const DetailsPanel = styled('div')<{isFullWidth?: boolean}>`
+  width: ${p => (p.isFullWidth ? '100%' : `${DETAILS_PANEL_WIDTH}px`)};
+  min-width: ${p => (p.isFullWidth ? '0' : `${DETAILS_PANEL_WIDTH}px`)};
+  flex: ${p => (p.isFullWidth ? '1' : 'none')};
   min-height: 0;
   background-color: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
