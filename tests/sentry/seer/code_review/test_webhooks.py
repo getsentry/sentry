@@ -581,7 +581,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         assert mock_request.call_count == 1
 
-
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_pr_closed_validation_passes_with_required_fields(
         self, mock_request: MagicMock
