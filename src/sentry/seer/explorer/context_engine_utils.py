@@ -90,7 +90,7 @@ def get_top_span_ops_for_org_projects(
             ],
             orderby=["-sum(span.self_time)"],
             offset=0,
-            limit=min(TOP_SPAN_OPS_LIMIT * len(projects), MAX_BATCH_QUERY_LIMIT),
+            limit=MAX_BATCH_QUERY_LIMIT,  # hard cap to avoid overloading Snuba; increase if needed
             referrer=Referrer.SEER_EXPLORER_INDEX,
             config=config,
             sampling_mode="NORMAL",
@@ -144,7 +144,7 @@ def get_top_transactions_for_org_projects(
             ],
             orderby=["-sum(span.duration)"],
             offset=0,
-            limit=min(TOP_TRANSACTIONS_LIMIT * len(projects), MAX_BATCH_QUERY_LIMIT),
+            limit=MAX_BATCH_QUERY_LIMIT,  # hard cap to avoid overloading Snuba; increase if needed
             referrer=Referrer.SEER_EXPLORER_INDEX,
             config=config,
             sampling_mode="NORMAL",
