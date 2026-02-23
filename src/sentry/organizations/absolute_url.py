@@ -9,7 +9,7 @@ from sentry.utils.http import absolute_uri, is_using_customer_domain
 
 _path_patterns: list[tuple[re.Pattern[str], str]] = [
     # /organizations/slug/section, but not /organizations/new
-    (re.compile(r"\/?organizations\/(?!new)[^/]+\/(.*)"), r"/\1"),
+    (re.compile(r"\/?organizations\/(?!new\/)[^/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
     (
         re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|teams)[^/]+\/?$"),

@@ -66,7 +66,7 @@ class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
         super().setUp()
         self.user = self.create_user()
         self.login_as(self.user)
-        self.org = self.create_organization()
+        self.org = self.create_organization(name="Albertos Apples")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.project = self.create_project(organization=self.org, teams=[self.team])
@@ -77,7 +77,6 @@ class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
 
     @with_feature("system:multi-region")
     def test_redirect_to_event_customer_domain(self) -> None:
-        self.org.refresh_from_db()
         resp = self.client.get(
             reverse(
                 "sentry-organization-project-event-redirect",

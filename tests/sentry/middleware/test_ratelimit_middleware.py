@@ -227,23 +227,26 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=1)
     def test_impersonation_enforces_rate_limits_when_disabled(self) -> None:
         """Test that rate limiting is enforced during impersonation even when endpoint has enforce_rate_limit=False"""
-        request = self.factory.get("/")
-        request.session = {}
-        request.user = self.user
+        with freeze_time("2000-01-01"):
+            request = self.factory.get("/")
+            request.session = {}
+            request.user = self.user
 
-        # Set up impersonation
-        impersonator = self.create_user(email="impersonator@example.com")
-        request.actual_user = impersonator
+            # Set up impersonation
+            impersonator = self.create_user(email="impersonator@example.com")
+            request.actual_user = impersonator
 
-        # Call this endpoint multiple times get hit by rate limit
-        self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
-        self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
-        response = self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+            # Call this endpoint multiple times get hit by rate limit
+            self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+            self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+            response = self.middleware.process_view(
+                request, self._test_endpoint_no_rate_limits, [], {}
+            )
 
-        assert response is not None
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == 429
-        assert request.will_be_rate_limited is True
+            assert response is not None
+            assert isinstance(response, HttpResponse)
+            assert response.status_code == 429
+            assert request.will_be_rate_limited is True
 
     @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=1)
     def test_impersonation_without_actual_user_not_enforced(self) -> None:
