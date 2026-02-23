@@ -12,7 +12,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.size_analysis.models import ComparisonResults
-from sentry.preprod.size_analysis.utils import build_size_metrics_map
+from sentry.preprod.size_analysis.utils import match_and_fetch_comparisons
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -188,35 +188,15 @@ def build_comparison_data(
     if not base_size_metrics:
         return None
 
-    head_metrics_map = build_size_metrics_map(head_size_metrics)
-    base_metrics_map = build_size_metrics_map(base_size_metrics)
-
-    # Batch-fetch all comparisons in one query instead of one per metric
-    head_base_pairs = []
-    for key, head_metric in head_metrics_map.items():
-        base_metric = base_metrics_map.get(key)
-        if base_metric:
-            head_base_pairs.append((head_metric.id, base_metric.id))
-
-    comparison_objs_by_key: dict[tuple[int, int], PreprodArtifactSizeComparison] = {}
-    if head_base_pairs:
-        from django.db.models import Q
-
-        q = Q()
-        for head_id, base_id in head_base_pairs:
-            q |= Q(head_size_analysis_id=head_id, base_size_analysis_id=base_id)
-        for obj in PreprodArtifactSizeComparison.objects.filter(q):
-            comparison_objs_by_key[(obj.head_size_analysis_id, obj.base_size_analysis_id)] = obj
+    matched = match_and_fetch_comparisons(head_size_metrics, base_size_metrics)
 
     comparisons: list[ComparisonResponseDict] = []
-    for key, head_metric in head_metrics_map.items():
-        base_metric = base_metrics_map.get(key)
-
-        if not base_metric:
+    for match in matched:
+        if not match.base_metric:
             comparisons.append(
                 {
-                    "metrics_artifact_type": head_metric.metrics_artifact_type,
-                    "identifier": head_metric.identifier,
+                    "metrics_artifact_type": match.head_metric.metrics_artifact_type,
+                    "identifier": match.head_metric.identifier,
                     "state": PreprodArtifactSizeComparison.State.FAILED,
                     "error_code": "NO_BASE_METRIC",
                     "error_message": "No matching base artifact size metric found.",
@@ -224,11 +204,10 @@ def build_comparison_data(
             )
             continue
 
-        comparison_obj = comparison_objs_by_key.get((head_metric.id, base_metric.id))
-        if not comparison_obj:
+        if not match.comparison:
             continue
 
-        comparison_result = _build_comparison_result(head_metric, comparison_obj)
+        comparison_result = _build_comparison_result(match.head_metric, match.comparison)
         comparisons.append(comparison_result)
 
     return comparisons if comparisons else None
