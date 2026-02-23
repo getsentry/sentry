@@ -77,6 +77,7 @@ class PrebuiltDashboardId(IntEnum):
     MOBILE_SESSION_HEALTH = 13
     FRONTEND_OVERVIEW = 14
     NEXTJS_FRONTEND_OVERVIEW = 15
+    LARAVEL_OVERVIEW = 23
 
 
 class PrebuiltDashboard(TypedDict):
@@ -153,6 +154,10 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.NEXTJS_FRONTEND_OVERVIEW,
         "title": "Next.js Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.LARAVEL_OVERVIEW,
+        "title": "Laravel Overview",
     },
 ]
 
