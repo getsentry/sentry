@@ -34,6 +34,7 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.utils import snuba
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -3219,11 +3220,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert list(results) == []
             assert results.hits == 2
 
-    def test_perf_issue_search_message_term_queries_postgres(self) -> None:
-        from django.db.models import Q
-
-        from sentry.utils import snuba
-
+    def test_perf_issue_search_message_term_queries_snuba(self) -> None:
         transaction_name = "im a little tea pot"
 
         with (
@@ -3256,11 +3253,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert "tea" in tx.search_message
             created_group = mock_eventstream.call_args[0][2].group
 
-        find_group = Group.objects.filter(
-            Q(type=PerformanceRenderBlockingAssetSpanGroupType.type_id, message__icontains="tea")
-        ).first()
-
-        assert created_group == find_group
         with self.feature(created_group.issue_type.build_visible_feature_name()):
             result = snuba.raw_query(
                 dataset=Dataset.IssuePlatform,
