@@ -73,12 +73,12 @@ class TestGitHubProviderIntegration(TestCase):
 
         comments = self.provider.get_issue_comments("1347")
 
-        assert len(comments) == 1
-        assert comments[0]["data"]["id"] == "1"
-        assert comments[0]["data"]["body"] == "Me too"
-        assert comments[0]["data"]["author"] is not None
-        assert comments[0]["data"]["author"]["id"] == "1"
-        assert comments[0]["data"]["author"]["username"] == "octocat"
+        assert len(comments["data"]) == 1
+        assert comments["data"][0]["id"] == "1"
+        assert comments["data"][0]["body"] == "Me too"
+        assert comments["data"][0]["author"] is not None
+        assert comments["data"][0]["author"]["id"] == "1"
+        assert comments["data"][0]["author"]["username"] == "octocat"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -214,13 +214,13 @@ class TestGitHubProviderIntegration(TestCase):
 
         result = self.provider.get_pull_request_comments("1")
 
-        assert len(result) == 1
-        assert result[0]["data"]["id"] == "IC_10"
-        assert result[0]["data"]["body"] == "Great stuff!"
-        assert result[0]["data"]["author"] is not None
-        assert result[0]["data"]["author"]["id"] == "1"
-        assert result[0]["data"]["author"]["username"] == "octocat"
-        assert result[0]["type"] == "github"
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] == "IC_10"
+        assert result["data"][0]["body"] == "Great stuff!"
+        assert result["data"][0]["author"] is not None
+        assert result["data"][0]["author"]["id"] == "1"
+        assert result["data"][0]["author"]["username"] == "octocat"
+        assert result["type"] == "github"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -251,13 +251,13 @@ class TestGitHubProviderIntegration(TestCase):
 
         reactions = self.provider.get_issue_comment_reactions("42")
 
-        assert len(reactions) == 2
-        assert reactions[0]["data"]["id"] == "1"
-        assert reactions[0]["data"]["content"] == "+1"
-        assert reactions[0]["data"]["author"] is not None
-        assert reactions[0]["data"]["author"]["username"] == "octocat"
-        assert reactions[1]["data"]["id"] == "2"
-        assert reactions[1]["data"]["content"] == "eyes"
+        assert len(reactions["data"]) == 2
+        assert reactions["data"][0]["id"] == "1"
+        assert reactions["data"][0]["content"] == "+1"
+        assert reactions["data"][0]["author"] is not None
+        assert reactions["data"][0]["author"]["username"] == "octocat"
+        assert reactions["data"][1]["id"] == "2"
+        assert reactions["data"][1]["content"] == "eyes"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -327,17 +327,17 @@ class TestGitHubProviderIntegration(TestCase):
 
         reactions = self.provider.get_issue_reactions("42")
 
-        assert len(reactions) == 2
-        assert reactions[0]["data"]["id"] == "1"
-        assert reactions[0]["data"]["content"] == "heart"
-        assert reactions[0]["data"]["author"] is not None
-        assert reactions[0]["data"]["author"]["id"] == "1"
-        assert reactions[0]["data"]["author"]["username"] == "octocat"
-        assert reactions[1]["data"]["id"] == "2"
-        assert reactions[1]["data"]["content"] == "+1"
-        assert reactions[1]["data"]["author"] is not None
-        assert reactions[1]["data"]["author"]["id"] == "2"
-        assert reactions[1]["data"]["author"]["username"] == "hubot"
+        assert len(reactions["data"]) == 2
+        assert reactions["data"][0]["id"] == "1"
+        assert reactions["data"][0]["content"] == "heart"
+        assert reactions["data"][0]["author"] is not None
+        assert reactions["data"][0]["author"]["id"] == "1"
+        assert reactions["data"][0]["author"]["username"] == "octocat"
+        assert reactions["data"][1]["id"] == "2"
+        assert reactions["data"][1]["content"] == "+1"
+        assert reactions["data"][1]["author"] is not None
+        assert reactions["data"][1]["author"]["id"] == "2"
+        assert reactions["data"][1]["author"]["username"] == "hubot"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -504,11 +504,11 @@ class TestGitHubProviderIntegration(TestCase):
 
         result = self.provider.get_pull_request_files("1")
 
-        assert len(result) == 2
-        assert result[0]["data"]["filename"] == "src/main.py"
-        assert result[0]["data"]["status"] == "modified"
-        assert result[1]["data"]["filename"] == "src/new_file.py"
-        assert result[1]["data"]["status"] == "added"
+        assert len(result["data"]) == 2
+        assert result["data"][0]["filename"] == "src/main.py"
+        assert result["data"][0]["status"] == "modified"
+        assert result["data"][1]["filename"] == "src/new_file.py"
+        assert result["data"][1]["status"] == "added"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -588,8 +588,8 @@ class TestGitHubProviderIntegration(TestCase):
 
         result = self.provider.get_pull_request_comments("1")
 
-        assert len(result) == 1
-        author = result[0]["data"]["author"]
+        assert len(result["data"]) == 1
+        author = result["data"][0]["author"]
         assert author is not None
         assert author["id"] == "42"
         assert author["username"] == "octocat"

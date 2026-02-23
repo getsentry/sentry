@@ -118,19 +118,23 @@ class GitHubProvider:
             allocation_policy=REFERRER_ALLOCATION,
         )
 
-    def get_issue_comments(self, issue_id: str) -> list[ActionResult[Comment]]:
+    def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]:
         try:
             raw_comments = self.client.get_issue_comments(self.repository["name"], issue_id)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return [map_comment(c) for c in raw_comments]
+        return ActionResult(
+            data=[map_comment(c) for c in raw_comments],
+            type="github",
+            raw=raw_comments,
+        )
 
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
         try:
             raw = self.client.create_comment(self.repository["name"], issue_id, {"body": body})
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_comment(raw)
+        return map_action(raw, map_comment)
 
     def delete_issue_comment(self, comment_id: str) -> None:
         try:
@@ -143,9 +147,9 @@ class GitHubProvider:
             raw = self.client.get_pull_request(self.repository["name"], pull_request_id)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_pull_request(raw)
+        return map_action(raw, map_pull_request)
 
-    def get_pull_request_comments(self, pull_request_id: str) -> list[ActionResult[Comment]]:
+    def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]:
         owner, repo = self.repository["name"].split("/", 1)
         try:
             raw = self.client.get_pull_request_comments_graphql(
@@ -155,7 +159,11 @@ class GitHubProvider:
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_graphql_pr_comments(raw)
+        return ActionResult(
+            data=map_graphql_pr_comments(raw),
+            type="github",
+            raw=raw,
+        )
 
     def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
         try:
@@ -164,7 +172,7 @@ class GitHubProvider:
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_comment(raw)
+        return map_action(raw, map_comment)
 
     def delete_pull_request_comment(self, comment_id: str) -> None:
         try:
@@ -172,12 +180,16 @@ class GitHubProvider:
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
 
-    def get_issue_comment_reactions(self, comment_id: str) -> list[ActionResult[ReactionResult]]:
+    def get_issue_comment_reactions(self, comment_id: str) -> ActionResult[list[ReactionResult]]:
         try:
             raw_reactions = self.client.get_comment_reactions(self.repository["name"], comment_id)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return [map_reaction(r) for r in raw_reactions]
+        return ActionResult(
+            data=[map_reaction(r) for r in raw_reactions],
+            type="github",
+            raw=raw_reactions,
+        )
 
     def create_issue_comment_reaction(
         self, comment_id: str, reaction: Reaction
@@ -189,7 +201,7 @@ class GitHubProvider:
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_reaction(raw)
+        return map_action(raw, map_reaction)
 
     def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
         try:
@@ -199,7 +211,7 @@ class GitHubProvider:
 
     def get_pull_request_comment_reactions(
         self, comment_id: str
-    ) -> list[ActionResult[ReactionResult]]:
+    ) -> ActionResult[list[ReactionResult]]:
         return self.get_issue_comment_reactions(comment_id)
 
     def create_pull_request_comment_reaction(
@@ -210,12 +222,16 @@ class GitHubProvider:
     def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
         return self.delete_issue_comment_reaction(comment_id, reaction_id)
 
-    def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]:
+    def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
         try:
             raw_reactions = self.client.get_issue_reactions(self.repository["name"], issue_id)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return [map_reaction(r) for r in raw_reactions]
+        return ActionResult(
+            data=[map_reaction(r) for r in raw_reactions],
+            type="github",
+            raw=raw_reactions,
+        )
 
     def create_issue_reaction(
         self, issue_id: str, reaction: Reaction
@@ -227,7 +243,7 @@ class GitHubProvider:
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_reaction(raw)
+        return map_action(raw, map_reaction)
 
     def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None:
         try:
@@ -237,7 +253,7 @@ class GitHubProvider:
 
     def get_pull_request_reactions(
         self, pull_request_id: str
-    ) -> list[ActionResult[ReactionResult]]:
+    ) -> ActionResult[list[ReactionResult]]:
         return self.get_issue_reactions(pull_request_id)
 
     def create_pull_request_reaction(
@@ -255,7 +271,7 @@ class GitHubProvider:
             raw = self.client.get_branch(self.repository["name"], branch)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_git_ref(raw)
+        return map_action(raw, map_git_ref)
 
     def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]:
         try:
@@ -264,7 +280,7 @@ class GitHubProvider:
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_git_ref(raw)
+        return map_action(raw, map_git_ref)
 
     def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
         try:
@@ -282,7 +298,7 @@ class GitHubProvider:
             raw = self.client.create_git_blob(self.repository["name"], data)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_git_blob(raw)
+        return map_action(raw, map_git_blob)
 
     # File content operations
 
@@ -291,7 +307,7 @@ class GitHubProvider:
             raw = self.client.get_file_content(self.repository["name"], path, ref)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_file_content(raw)
+        return map_action(raw, map_file_content)
 
     # Commit operations
 
@@ -300,25 +316,29 @@ class GitHubProvider:
             raw = self.client.get_commit(self.repository["name"], sha)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_commit(raw)
+        return map_action(raw, map_commit)
 
     def get_commits(
         self,
         sha: str | None = None,
         path: str | None = None,
-    ) -> list[ActionResult[Commit]]:
+    ) -> ActionResult[list[Commit]]:
         try:
             raw_commits = self.client.get_commits(self.repository["name"], sha=sha, path=path)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return [map_commit(c) for c in raw_commits]
+        return ActionResult(
+            data=[map_commit(c) for c in raw_commits],
+            type="github",
+            raw=raw_commits,
+        )
 
     def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
         try:
             raw = self.client.compare_commits(self.repository["name"], start_sha, end_sha)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_commit_comparison(raw)
+        return map_action(raw, map_commit_comparison)
 
     # Git data operations
 
@@ -327,14 +347,14 @@ class GitHubProvider:
             raw = self.client.get_tree_full(self.repository["name"], tree_sha, recursive=recursive)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_git_tree(raw)
+        return map_action(raw, map_git_tree)
 
     def get_git_commit(self, sha: str) -> ActionResult[GitCommitObject]:
         try:
             raw = self.client.get_git_commit(self.repository["name"], sha)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_git_commit_object(raw)
+        return map_action(raw, map_git_commit_object)
 
     def create_git_tree(
         self,
@@ -348,7 +368,7 @@ class GitHubProvider:
             raw = self.client.create_git_tree(self.repository["name"], data)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_git_tree(raw)
+        return map_action(raw, map_git_tree)
 
     def create_git_commit(
         self,
@@ -365,31 +385,35 @@ class GitHubProvider:
             raw = self.client.create_git_commit(self.repository["name"], data)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_git_commit_object(raw)
+        return map_action(raw, map_git_commit_object)
 
     # Expanded pull request operations
 
-    def get_pull_request_files(self, pull_request_id: str) -> list[ActionResult[PullRequestFile]]:
+    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
         try:
             raw_files = self.client.get_pull_request_files(self.repository["name"], pull_request_id)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return [
-            ActionResult(data=map_pull_request_file(f), type="github", raw=f) for f in raw_files
-        ]
+        return ActionResult(
+            data=[map_pull_request_file(f) for f in raw_files],
+            type="github",
+            raw=raw_files,
+        )
 
     def get_pull_request_commits(
         self, pull_request_id: str
-    ) -> list[ActionResult[PullRequestCommit]]:
+    ) -> ActionResult[list[PullRequestCommit]]:
         try:
             raw_commits = self.client.get_pull_request_commits(
                 self.repository["name"], pull_request_id
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return [
-            ActionResult(data=map_pull_request_commit(c), type="github", raw=c) for c in raw_commits
-        ]
+        return ActionResult(
+            data=[map_pull_request_commit(c) for c in raw_commits],
+            type="github",
+            raw=raw_commits,
+        )
 
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
         try:
@@ -404,12 +428,16 @@ class GitHubProvider:
 
     def get_pull_requests(
         self, state: str = "open", head: str | None = None
-    ) -> list[ActionResult[PullRequest]]:
+    ) -> ActionResult[list[PullRequest]]:
         try:
             raw_prs = self.client.list_pull_requests(self.repository["name"], state, head)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return [map_pull_request(pr) for pr in raw_prs]
+        return ActionResult(
+            data=[map_pull_request(pr) for pr in raw_prs],
+            type="github",
+            raw=raw_prs,
+        )
 
     def create_pull_request(
         self,
@@ -430,7 +458,7 @@ class GitHubProvider:
             raw = self.client.create_pull_request(self.repository["name"], data)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_pull_request(raw)
+        return map_action(raw, map_pull_request)
 
     def update_pull_request(
         self,
@@ -450,7 +478,7 @@ class GitHubProvider:
             raw = self.client.update_pull_request(self.repository["name"], pull_request_id, data)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_pull_request(raw)
+        return map_action(raw, map_pull_request)
 
     def request_review(self, pull_request_id: str, reviewers: list[str]) -> None:
         try:
@@ -490,7 +518,7 @@ class GitHubProvider:
             raw = self.client.create_review_comment(self.repository["name"], pull_request_id, data)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_review_comment(raw)
+        return map_action(raw, map_review_comment)
 
     def create_review(
         self,
@@ -511,7 +539,7 @@ class GitHubProvider:
             raw = self.client.create_review(self.repository["name"], pull_request_id, data)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_review(raw)
+        return map_action(raw, map_review)
 
     # Check run operations
 
@@ -546,14 +574,14 @@ class GitHubProvider:
             raw = self.client.create_check_run(self.repository["name"], data)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_check_run(raw)
+        return map_action(raw, map_check_run)
 
     def get_check_run(self, check_run_id: str) -> ActionResult[CheckRun]:
         try:
             raw = self.client.get_check_run(self.repository["name"], int(check_run_id))
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_check_run(raw)
+        return map_action(raw, map_check_run)
 
     def update_check_run(
         self,
@@ -573,7 +601,7 @@ class GitHubProvider:
             raw = self.client.update_check_run(self.repository["name"], check_run_id, data)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return map_check_run(raw)
+        return map_action(raw, map_check_run)
 
     # GraphQL mutation operations
 

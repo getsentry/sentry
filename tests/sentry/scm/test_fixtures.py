@@ -485,18 +485,18 @@ class BaseTestProvider(Provider):
 
     # Issue comments
 
-    def get_issue_comments(self, issue_id: str) -> list[ActionResult[Comment]]:
-        return [
-            ActionResult(
-                data=Comment(
+    def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]:
+        return ActionResult(
+            data=[
+                Comment(
                     id="101",
                     body="Test comment",
                     author={"id": "1", "username": "testuser"},
                 ),
-                type="github",
-                raw={},
-            )
-        ]
+            ],
+            type="github",
+            raw={},
+        )
 
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
         return ActionResult(
@@ -510,18 +510,18 @@ class BaseTestProvider(Provider):
 
     # Pull request comments
 
-    def get_pull_request_comments(self, pull_request_id: str) -> list[ActionResult[Comment]]:
-        return [
-            ActionResult(
-                data=Comment(
+    def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]:
+        return ActionResult(
+            data=[
+                Comment(
                     id="201",
                     body="PR review comment",
                     author={"id": "2", "username": "reviewer"},
                 ),
-                type="github",
-                raw={},
-            )
-        ]
+            ],
+            type="github",
+            raw={},
+        )
 
     def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
         return ActionResult(
@@ -535,23 +535,15 @@ class BaseTestProvider(Provider):
 
     # Issue comment reactions
 
-    def get_issue_comment_reactions(self, comment_id: str) -> list[ActionResult[ReactionResult]]:
-        return [
-            ActionResult(
-                data=ReactionResult(
-                    id="1", content="+1", author={"id": "1", "username": "testuser"}
-                ),
-                type="github",
-                raw={},
-            ),
-            ActionResult(
-                data=ReactionResult(
-                    id="2", content="eyes", author={"id": "2", "username": "otheruser"}
-                ),
-                type="github",
-                raw={},
-            ),
-        ]
+    def get_issue_comment_reactions(self, comment_id: str) -> ActionResult[list[ReactionResult]]:
+        return ActionResult(
+            data=[
+                ReactionResult(id="1", content="+1", author={"id": "1", "username": "testuser"}),
+                ReactionResult(id="2", content="eyes", author={"id": "2", "username": "otheruser"}),
+            ],
+            type="github",
+            raw={},
+        )
 
     def create_issue_comment_reaction(
         self, comment_id: str, reaction: Reaction
@@ -569,23 +561,19 @@ class BaseTestProvider(Provider):
 
     def get_pull_request_comment_reactions(
         self, comment_id: str
-    ) -> list[ActionResult[ReactionResult]]:
-        return [
-            ActionResult(
-                data=ReactionResult(
+    ) -> ActionResult[list[ReactionResult]]:
+        return ActionResult(
+            data=[
+                ReactionResult(
                     id="3", content="rocket", author={"id": "1", "username": "testuser"}
                 ),
-                type="github",
-                raw={},
-            ),
-            ActionResult(
-                data=ReactionResult(
+                ReactionResult(
                     id="4", content="hooray", author={"id": "2", "username": "otheruser"}
                 ),
-                type="github",
-                raw={},
-            ),
-        ]
+            ],
+            type="github",
+            raw={},
+        )
 
     def create_pull_request_comment_reaction(
         self, comment_id: str, reaction: Reaction
@@ -601,23 +589,17 @@ class BaseTestProvider(Provider):
 
     # Issue reactions
 
-    def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]:
-        return [
-            ActionResult(
-                data=ReactionResult(
-                    id="1", content="+1", author={"id": "1", "username": "testuser"}
-                ),
-                type="github",
-                raw={},
-            ),
-            ActionResult(
-                data=ReactionResult(
+    def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
+        return ActionResult(
+            data=[
+                ReactionResult(id="1", content="+1", author={"id": "1", "username": "testuser"}),
+                ReactionResult(
                     id="2", content="heart", author={"id": "2", "username": "otheruser"}
                 ),
-                type="github",
-                raw={},
-            ),
-        ]
+            ],
+            type="github",
+            raw={},
+        )
 
     def create_issue_reaction(
         self, issue_id: str, reaction: Reaction
@@ -635,23 +617,17 @@ class BaseTestProvider(Provider):
 
     def get_pull_request_reactions(
         self, pull_request_id: str
-    ) -> list[ActionResult[ReactionResult]]:
-        return [
-            ActionResult(
-                data=ReactionResult(
-                    id="5", content="laugh", author={"id": "1", "username": "testuser"}
-                ),
-                type="github",
-                raw={},
-            ),
-            ActionResult(
-                data=ReactionResult(
+    ) -> ActionResult[list[ReactionResult]]:
+        return ActionResult(
+            data=[
+                ReactionResult(id="5", content="laugh", author={"id": "1", "username": "testuser"}),
+                ReactionResult(
                     id="6", content="confused", author={"id": "2", "username": "otheruser"}
                 ),
-                type="github",
-                raw={},
-            ),
-        ]
+            ],
+            type="github",
+            raw={},
+        )
 
     def create_pull_request_reaction(
         self, pull_request_id: str, reaction: Reaction
@@ -728,8 +704,13 @@ class BaseTestProvider(Provider):
         self,
         sha: str | None = None,
         path: str | None = None,
-    ) -> list[ActionResult[Commit]]:
-        return [self.get_commit("abc123")]
+    ) -> ActionResult[list[Commit]]:
+        inner = self.get_commit("abc123")
+        return ActionResult(
+            data=[inner["data"]],
+            type="github",
+            raw={},
+        )
 
     def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
         return ActionResult(
@@ -801,10 +782,10 @@ class BaseTestProvider(Provider):
 
     # Expanded pull request operations
 
-    def get_pull_request_files(self, pull_request_id: str) -> list[ActionResult[PullRequestFile]]:
-        return [
-            ActionResult(
-                data=PullRequestFile(
+    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
+        return ActionResult(
+            data=[
+                PullRequestFile(
                     filename="src/main.py",
                     status="modified",
                     patch="@@ -1 +1 @@",
@@ -812,17 +793,17 @@ class BaseTestProvider(Provider):
                     sha="file123",
                     previous_filename=None,
                 ),
-                type="github",
-                raw={},
-            )
-        ]
+            ],
+            type="github",
+            raw={},
+        )
 
     def get_pull_request_commits(
         self, pull_request_id: str
-    ) -> list[ActionResult[PullRequestCommit]]:
-        return [
-            ActionResult(
-                data=PullRequestCommit(
+    ) -> ActionResult[list[PullRequestCommit]]:
+        return ActionResult(
+            data=[
+                PullRequestCommit(
                     sha="commit123",
                     message="Fix bug",
                     author=CommitAuthor(
@@ -831,10 +812,10 @@ class BaseTestProvider(Provider):
                         date="2026-02-04T10:00:00Z",
                     ),
                 ),
-                type="github",
-                raw={},
-            )
-        ]
+            ],
+            type="github",
+            raw={},
+        )
 
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
         return ActionResult(
@@ -845,11 +826,11 @@ class BaseTestProvider(Provider):
 
     def get_pull_requests(
         self, state: str = "open", head: str | None = None
-    ) -> list[ActionResult[PullRequest]]:
+    ) -> ActionResult[list[PullRequest]]:
         raw = make_github_pull_request()
-        return [
-            ActionResult(
-                data=PullRequest(
+        return ActionResult(
+            data=[
+                PullRequest(
                     id=str(raw["id"]),
                     number=raw["number"],
                     title=raw["title"],
@@ -861,10 +842,10 @@ class BaseTestProvider(Provider):
                     head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                     base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
                 ),
-                type="github",
-                raw=raw,
-            )
-        ]
+            ],
+            type="github",
+            raw=raw,
+        )
 
     def create_pull_request(
         self,

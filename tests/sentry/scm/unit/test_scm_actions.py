@@ -172,10 +172,11 @@ def make_scm():
 
 
 def _check_issue_comments(result: Any) -> None:
-    assert len(result) == 1
-    assert result[0]["data"]["id"] == "101"
-    assert result[0]["data"]["body"] == "Test comment"
-    assert result[0]["data"]["author"]["username"] == "testuser"
+    assert len(result["data"]) == 1
+    assert result["data"][0]["id"] == "101"
+    assert result["data"][0]["body"] == "Test comment"
+    assert result["data"][0]["author"]["username"] == "testuser"
+    assert result["type"] == "github"
 
 
 def _check_pull_request(result: Any) -> None:
@@ -190,46 +191,51 @@ def _check_pull_request(result: Any) -> None:
 
 
 def _check_pull_request_comments(result: Any) -> None:
-    assert len(result) == 1
-    assert result[0]["data"]["id"] == "201"
-    assert result[0]["data"]["body"] == "PR review comment"
-    assert result[0]["data"]["author"]["username"] == "reviewer"
+    assert len(result["data"]) == 1
+    assert result["data"][0]["id"] == "201"
+    assert result["data"][0]["body"] == "PR review comment"
+    assert result["data"][0]["author"]["username"] == "reviewer"
+    assert result["type"] == "github"
 
 
 def _check_comment_reactions(result: Any) -> None:
-    assert len(result) == 2
-    assert result[0]["data"]["id"] == "1"
-    assert result[0]["data"]["content"] == "+1"
-    assert result[1]["data"]["id"] == "2"
-    assert result[1]["data"]["content"] == "eyes"
+    assert len(result["data"]) == 2
+    assert result["data"][0]["id"] == "1"
+    assert result["data"][0]["content"] == "+1"
+    assert result["data"][1]["id"] == "2"
+    assert result["data"][1]["content"] == "eyes"
+    assert result["type"] == "github"
 
 
 def _check_pr_comment_reactions(result: Any) -> None:
-    assert len(result) == 2
-    assert result[0]["data"]["id"] == "3"
-    assert result[0]["data"]["content"] == "rocket"
-    assert result[1]["data"]["id"] == "4"
-    assert result[1]["data"]["content"] == "hooray"
+    assert len(result["data"]) == 2
+    assert result["data"][0]["id"] == "3"
+    assert result["data"][0]["content"] == "rocket"
+    assert result["data"][1]["id"] == "4"
+    assert result["data"][1]["content"] == "hooray"
+    assert result["type"] == "github"
 
 
 def _check_issue_reactions(result: Any) -> None:
-    assert len(result) == 2
-    assert result[0]["data"]["id"] == "1"
-    assert result[0]["data"]["content"] == "+1"
-    assert result[0]["data"]["author"]["username"] == "testuser"
-    assert result[1]["data"]["id"] == "2"
-    assert result[1]["data"]["content"] == "heart"
-    assert result[1]["data"]["author"]["username"] == "otheruser"
+    assert len(result["data"]) == 2
+    assert result["data"][0]["id"] == "1"
+    assert result["data"][0]["content"] == "+1"
+    assert result["data"][0]["author"]["username"] == "testuser"
+    assert result["data"][1]["id"] == "2"
+    assert result["data"][1]["content"] == "heart"
+    assert result["data"][1]["author"]["username"] == "otheruser"
+    assert result["type"] == "github"
 
 
 def _check_pr_reactions(result: Any) -> None:
-    assert len(result) == 2
-    assert result[0]["data"]["id"] == "5"
-    assert result[0]["data"]["content"] == "laugh"
-    assert result[0]["data"]["author"]["username"] == "testuser"
-    assert result[1]["data"]["id"] == "6"
-    assert result[1]["data"]["content"] == "confused"
-    assert result[1]["data"]["author"]["username"] == "otheruser"
+    assert len(result["data"]) == 2
+    assert result["data"][0]["id"] == "5"
+    assert result["data"][0]["content"] == "laugh"
+    assert result["data"][0]["author"]["username"] == "testuser"
+    assert result["data"][1]["id"] == "6"
+    assert result["data"][1]["content"] == "confused"
+    assert result["data"][1]["author"]["username"] == "otheruser"
+    assert result["type"] == "github"
 
 
 def _check_get_branch(result: Any) -> None:
@@ -266,9 +272,9 @@ def _check_get_commit(result: Any) -> None:
 
 
 def _check_get_commits(result: Any) -> None:
-    assert len(result) == 1
-    assert result[0]["data"]["sha"] == "abc123"
-    assert result[0]["type"] == "github"
+    assert len(result["data"]) == 1
+    assert result["data"][0]["sha"] == "abc123"
+    assert result["type"] == "github"
 
 
 def _check_compare_commits(result: Any) -> None:
@@ -306,16 +312,16 @@ def _check_create_git_commit(result: Any) -> None:
 
 
 def _check_pr_files(result: Any) -> None:
-    assert len(result) == 1
-    assert result[0]["data"]["filename"] == "src/main.py"
-    assert result[0]["type"] == "github"
+    assert len(result["data"]) == 1
+    assert result["data"][0]["filename"] == "src/main.py"
+    assert result["type"] == "github"
 
 
 def _check_pr_commits(result: Any) -> None:
-    assert len(result) == 1
-    assert result[0]["data"]["sha"] == "commit123"
-    assert result[0]["data"]["message"] == "Fix bug"
-    assert result[0]["type"] == "github"
+    assert len(result["data"]) == 1
+    assert result["data"][0]["sha"] == "commit123"
+    assert result["data"][0]["message"] == "Fix bug"
+    assert result["type"] == "github"
 
 
 def _check_pr_diff(result: Any) -> None:
@@ -324,9 +330,9 @@ def _check_pr_diff(result: Any) -> None:
 
 
 def _check_list_pull_requests(result: Any) -> None:
-    assert len(result) == 1
-    assert result[0]["data"]["number"] == 1
-    assert result[0]["type"] == "github"
+    assert len(result["data"]) == 1
+    assert result["data"][0]["number"] == 1
+    assert result["type"] == "github"
 
 
 def _check_create_pull_request(result: Any) -> None:
@@ -586,14 +592,14 @@ def test_active_repository_with_int_status_is_not_rejected():
     # This should succeed, but currently raises SCMCodedError("repository_inactive")
     # because 0 != "active" is always True.
     result = scm.get_issue_comments(issue_id="1")
-    assert len(result) == 1
+    assert len(result["data"]) == 1
 
 
 def test_provider_exception_is_not_wrapped():
     """SCMProviderException should pass through exec_provider_fn, not be wrapped as SCMUnhandledException."""
 
     class FailingProvider(BaseTestProvider):
-        def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]:
+        def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
             raise SCMProviderException("GitHub API error")
 
     scm = SourceCodeManager(
