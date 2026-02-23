@@ -465,7 +465,7 @@ class TestBatchedOccurrenceConsumer(
         strategy = OccurrenceStrategyFactory(
             mode="batched-parallel",
             max_batch_size=6,
-            max_batch_time=1,
+            max_batch_time=sys.maxsize,
         ).create_with_partitions(
             commit=mock_commit,
             partitions={},
