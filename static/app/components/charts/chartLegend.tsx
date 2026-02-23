@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
@@ -10,7 +10,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
+import {useDimensions} from 'sentry/utils/useDimensions';
 
 import {LegendCheckbox} from './components/legendCheckbox';
 
@@ -41,27 +41,23 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const [firstOverflowIndex, setFirstOverflowIndex] = useState<number | null>(null);
   const outerGap = parseInt(theme.space.xs, 10);
   const innerGap = parseInt(theme.space.md, 10);
 
-  const computeOverflowIndex = useCallback(() => {
-    const wrapper = wrapperRef.current;
-    const container = containerRef.current;
-    if (!wrapper || !container) {
-      return;
-    }
+  // useDimensions handles ResizeObserver internally — when the wrapper or
+  // trigger resize, these values update and the useMemo below recomputes.
+  const {width: wrapperWidth} = useDimensions({elementRef: wrapperRef});
+  const {width: triggerWidth} = useDimensions({elementRef: triggerRef});
 
-    // Use the wrapper's width as the total available space, then subtract
-    // the trigger width ourselves. This avoids double-counting: the items
-    // container has flex:1 so its offsetWidth already shrinks when the
-    // trigger is rendered — reading it directly would under-count space.
-    const totalWidth = wrapper.offsetWidth;
-    const triggerWidth = triggerRef.current?.offsetWidth ?? 0;
+  // Pure derivation: recompute the overflow index whenever dimensions change.
+  const firstOverflowIndex = useMemo(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return null;
+    }
 
     const children = Array.from(container.children);
     let usedWidth = 0;
-    let newFirstOverflowIndex: number | null = null;
 
     for (let i = 0; i < children.length; i++) {
       const childWidth = children[i]!.getBoundingClientRect().width;
@@ -74,54 +70,16 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       const remainingItems = children.length - i - 1;
       const reservedSpace = remainingItems > 0 ? triggerWidth + outerGap : 0;
 
-      if (usedWidth > totalWidth - reservedSpace) {
-        newFirstOverflowIndex = i;
-        break;
+      if (usedWidth > wrapperWidth - reservedSpace) {
+        return i;
       }
     }
 
-    setFirstOverflowIndex(newFirstOverflowIndex);
-  }, [outerGap, innerGap]);
-
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) {
-      return () => {};
-    }
-
-    computeOverflowIndex();
-
-    // Re-compute when the wrapper resizes. We observe the wrapper (not the
-    // items container) because the wrapper's width reflects total available
-    // space, while the container's width fluctuates as the trigger appears.
-    const resizeObserver = new ResizeObserver(() => {
-      scheduleMicroTask(computeOverflowIndex);
-    });
-    resizeObserver.observe(wrapper);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [computeOverflowIndex, items]);
-
-  const hasTrigger = firstOverflowIndex !== null;
-
-  // Re-compute when the trigger appears or resizes
-  useEffect(() => {
-    const trigger = triggerRef.current;
-    if (!trigger) {
-      return () => {};
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      scheduleMicroTask(computeOverflowIndex);
-    });
-    resizeObserver.observe(trigger);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [computeOverflowIndex, hasTrigger]);
+    return null;
+    // `items` isn't read inside the memo, but when it changes the DOM children
+    // change and we must recompute.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wrapperWidth, triggerWidth, items, innerGap, outerGap]);
 
   const overflowItems = useMemo(
     () => (firstOverflowIndex === null ? [] : items.slice(firstOverflowIndex)),
