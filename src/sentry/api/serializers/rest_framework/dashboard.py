@@ -372,7 +372,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         # Validate text widget feature flag
         if display_type_id == DashboardWidgetDisplayTypes.TEXT:
             if not features.has(
-                "organizations:dashboards-text-widgets", self.context["organization"]
+                "organizations:dashboards-text-widgets",
+                organization=self.context["organization"],
+                actor=self.context["request"].user,
             ):
                 raise serializers.ValidationError("Text widgets are not enabled")
 
