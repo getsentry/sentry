@@ -8,6 +8,7 @@ import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Theme} from 'sentry/utils/theme';
+import {normalizeUnit} from 'sentry/views/dashboards/utils';
 import type {
   Thresholds as ThresholdsConfig,
   TimeSeriesValueUnit,
@@ -19,6 +20,7 @@ import type {
 
 type ThresholdPlottableOptions = {
   thresholds: ThresholdsConfig;
+  dataType?: string;
   showLabels?: boolean;
 };
 
@@ -41,7 +43,27 @@ export class Thresholds implements Plottable {
   end: number | null = null;
 
   constructor(options: ThresholdPlottableOptions) {
-    this.thresholds = options.thresholds;
+    const {thresholds, dataType} = options;
+    const thresholdUnit = thresholds.unit;
+
+    // Normalize threshold values to the base unit (e.g., milliseconds for duration)
+    // so they align with the chart's y-axis values
+    if (thresholdUnit && dataType) {
+      this.thresholds = {
+        ...thresholds,
+        max_values: {
+          max1: thresholds.max_values.max1
+            ? normalizeUnit(thresholds.max_values.max1, thresholdUnit, dataType)
+            : thresholds.max_values.max1,
+          max2: thresholds.max_values.max2
+            ? normalizeUnit(thresholds.max_values.max2, thresholdUnit, dataType)
+            : thresholds.max_values.max2,
+        },
+      };
+    } else {
+      this.thresholds = thresholds;
+    }
+
     this.showLabels = options.showLabels ?? false;
     this.isEmpty = !this.thresholds.max_values.max1 && !this.thresholds.max_values.max2;
   }

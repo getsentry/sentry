@@ -365,6 +365,7 @@ function VisualizationWidgetContent({
           ...widget.thresholds,
           preferredPolarity: widget.thresholds?.preferredPolarity ?? '-',
         },
+        dataType: timeSeriesWithPlottable[0]?.[0]?.meta?.valueType,
       })
     );
   }

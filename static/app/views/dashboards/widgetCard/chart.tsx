@@ -526,6 +526,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                                       preferredPolarity:
                                         widget.thresholds?.preferredPolarity ?? '-',
                                     },
+                                    dataType: outputType,
                                   }).toSeries({theme})
                                 : []),
                             ],
