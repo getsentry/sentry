@@ -90,6 +90,7 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
         for component in app_service.find_app_components(app_id=sentry_app.id):
             if component.type == "alert-rule-action":
                 alert_rule_component = component
+                break
 
         if not alert_rule_component:
             return ""
