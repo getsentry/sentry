@@ -85,7 +85,8 @@ class PrebuiltDashboardId(IntEnum):
     MCP_RESOURCES = 21
     MCP_PROMPTS = 22
     LARAVEL_OVERVIEW = 23
-    
+
+
 class PrebuiltDashboard(TypedDict):
     prebuilt_id: PrebuiltDashboardId
     title: str
@@ -192,7 +193,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.LARAVEL_OVERVIEW,
         "title": "Laravel Overview",
-    }
+    },
 ]
 
 
