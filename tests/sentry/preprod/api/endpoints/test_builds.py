@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 from django.utils.functional import cached_property
 
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -96,6 +96,8 @@ class BuildsEndpointTest(APITestCase):
                     "download_count": 0,
                     "is_installable": False,
                     "release_notes": None,
+                    "state": None,
+                    "skip_reason": None,
                 },
                 "vcs_info": {
                     "head_sha": None,
@@ -895,6 +897,44 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="test.app")
         assert self._request({"query": "size_state:bogus"}).status_code == 400
         assert self._request({"query": "size_state:[bogus, completed]"}).status_code == 400
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_excludes_distribution_not_ran(self) -> None:
+        self.create_preprod_artifact(app_id="visible.app")
+        self.create_preprod_artifact(
+            app_id="skipped.app",
+            distribution_state=PreprodArtifact.DistributionState.NOT_RAN,
+            distribution_skip_reason="quota",
+        )
+
+        response = self._request({})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "visible.app"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_includes_legacy_none_distribution_state(self) -> None:
+        self.create_preprod_artifact(app_id="legacy.app")
+        response = self._request({})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "legacy.app"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_distribution_info_state_fields(self) -> None:
+        self.create_preprod_artifact(
+            app_id="pending.app",
+            distribution_state=PreprodArtifact.DistributionState.PENDING,
+        )
+
+        response = self._request({})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["distribution_info"]["state"] == "pending"
+        assert data[0]["distribution_info"]["skip_reason"] is None
 
     @with_feature("organizations:preprod-frontend-routes")
     @patch("sentry.preprod.api.endpoints.builds.get_size_retention_cutoff")

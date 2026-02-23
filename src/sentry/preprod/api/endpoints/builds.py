@@ -62,6 +62,9 @@ class BuildsEndpoint(OrganizationEndpoint):
         try:
             queryset = queryset_for_query(query, organization)
             queryset = queryset.filter(date_added__gte=cutoff)
+            queryset = queryset.exclude(
+                distribution_state=PreprodArtifact.DistributionState.NOT_RAN
+            )
             if start:
                 queryset = queryset.filter(date_added__gte=start)
             if end:

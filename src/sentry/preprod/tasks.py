@@ -739,7 +739,11 @@ def _assemble_preprod_artifact_installable_app(
     # Update artifact state in its own transaction with proper database routing
     with transaction.atomic(router.db_for_write(PreprodArtifact)):
         preprod_artifact.installable_app_file_id = assemble_result.bundle.id
-        preprod_artifact.save(update_fields=["installable_app_file_id", "date_updated"])
+        if preprod_artifact.distribution_state == PreprodArtifact.DistributionState.PENDING:
+            preprod_artifact.distribution_state = PreprodArtifact.DistributionState.COMPLETED
+        preprod_artifact.save(
+            update_fields=["installable_app_file_id", "distribution_state", "date_updated"]
+        )
 
     try:
         organization = preprod_artifact.project.organization
