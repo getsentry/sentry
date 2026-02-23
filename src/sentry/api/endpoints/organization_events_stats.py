@@ -328,11 +328,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 comparison_delta=comparison_delta,
                 allow_metric_aggregates=allow_metric_aggregates,
                 has_metrics=True,
-                # We want to allow people to force use the new metrics layer in the query builder. We decided to go for
-                # this approach so that we can have only a subset of parts of sentry that use the new metrics layer for
-                # their queries since right now the metrics layer has not full feature parity with the query builder.
-                use_metrics_layer=force_metrics_layer
-                or batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=use_on_demand_metrics
                 and (
                     batch_features.get("organizations:on-demand-metrics-extraction", False)
