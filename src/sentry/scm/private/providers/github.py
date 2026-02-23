@@ -338,7 +338,9 @@ class GitHubProvider:
 
     def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
         try:
-            raw = self.client.compare_commits(self.repository["name"], start_sha, end_sha)
+            raw: dict[str, Any] = self.client.compare_commits(
+                self.repository["name"], start_sha, end_sha
+            )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
         return map_action(raw, map_commit_comparison)
