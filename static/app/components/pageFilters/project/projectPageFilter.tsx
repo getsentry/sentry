@@ -92,7 +92,7 @@ function projectSearchMatcher(option: SelectOptionWithKey<SelectKey>, search: st
   if (!text) {
     return {score: 0};
   }
-  return fzf(text, search, false);
+  return fzf(text, search.toLowerCase(), false);
 }
 
 /**
