@@ -245,34 +245,6 @@ class DataExportEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationDataExportPermission,)
 
-    def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
-        feature_names = [
-            "organizations:mep-rollout-flag",
-            "organizations:performance-use-metrics",
-            "organizations:profiling",
-            "organizations:dynamic-sampling",
-            "organizations:starfish-view",
-        ]
-        batch_features = features.batch_has(
-            feature_names,
-            organization=organization,
-            actor=request.user,
-        )
-
-        all_features = (
-            batch_features.get(f"organization:{organization.id}", {})
-            if batch_features is not None
-            else {}
-        )
-
-        for feature_name in feature_names:
-            if feature_name not in all_features:
-                all_features[feature_name] = features.has(
-                    feature_name, organization=organization, actor=request.user
-                )
-
-        return all_features
-
     def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a new asynchronous file export task, and
