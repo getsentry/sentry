@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+import pytest
+
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
@@ -84,6 +86,57 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         all_result = self._query_occurrences()
         assert all_result["data"][0]["count()"] == 2
 
+    def test_attributes_are_queryable(self) -> None:
+        group = self.create_group(project=self.project)
+
+        trace_item = self.create_eap_occurrence(
+            group_id=group.id,
+            level="warning",
+            title="something broke",
+            environment="production",
+            transaction="/api/users",
+        )
+        self.store_occurrences([trace_item])
+
+        result = self._query_occurrences(
+            query_string=f"group_id:{group.id}",
+            selected_columns=["level", "title", "environment", "transaction"],
+        )
+        assert len(result["data"]) == 1
+        row = result["data"][0]
+        assert row["level"] == "warning"
+        assert row["title"] == "something broke"
+        assert row["environment"] == "production"
+        assert row["transaction"] == "/api/users"
+
+    # TODO: once support for tags on occurrences in EAP is solidified, remove this skip
+    @pytest.mark.skip(reason="tag encoding is still an open question for EAP")
+    def test_tags_are_queryable(self) -> None:
+        group = self.create_group(project=self.project)
+
+        trace_item = self.create_eap_occurrence(
+            group_id=group.id,
+            tags={"browser": "chrome", "os": "linux"},
+        )
+        self.store_occurrences([trace_item])
+
+        matching = self._query_occurrences(query_string="browser:chrome")
+        assert len(matching["data"]) == 1
+        assert matching["data"][0]["count()"] == 1
+
+        non_matching = self._query_occurrences(query_string="browser:firefox")
+        assert len(non_matching["data"]) == 0
+
+    def test_multiple_occurrences_per_group(self) -> None:
+        group = self.create_group(project=self.project)
+
+        occurrences = [self.create_eap_occurrence(group_id=group.id) for _ in range(5)]
+        self.store_occurrences(occurrences)
+
+        result = self._query_occurrences(query_string=f"group_id:{group.id}")
+        assert len(result["data"]) == 1
+        assert result["data"][0]["count()"] == 5
+
     def test_eap_forwarding_rate_dual_write(self) -> None:
         trace_id = uuid4().hex
 
@@ -94,6 +147,7 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
                     "fingerprint": ["dual-write-group"],
                     "timestamp": before_now(minutes=1).timestamp(),
                     "contexts": {"trace": {"trace_id": trace_id}},
+                    "tags": {"browser": "chrome"},
                 },
                 project_id=self.project.id,
                 assert_no_errors=False,
@@ -101,6 +155,12 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         assert event.group is not None
 
-        result = self._query_occurrences(query_string=f"group_id:{event.group_id}")
+        result = self._query_occurrences(
+            query_string=f"group_id:{event.group_id}",
+            selected_columns=["group_id", "level", "title"],
+        )
         assert len(result["data"]) == 1
-        assert result["data"][0]["count()"] > 0
+        row = result["data"][0]
+        assert row["group_id"] == event.group_id
+        assert row["level"] == "error"
+        assert row["title"] == event.title
