@@ -16,6 +16,11 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {
+  ComparisonType,
+  OpType,
+  type Assertion,
+} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 
 describe('Uptime Alert Form', () => {
@@ -461,19 +466,19 @@ describe('Uptime Alert Form', () => {
           url: 'http://example.com',
           assertion: {
             root: {
-              op: 'and',
+              op: OpType.AND,
               id: expect.any(String),
               children: [
                 {
-                  op: 'status_code_check',
+                  op: OpType.STATUS_CODE_CHECK,
                   id: expect.any(String),
-                  operator: {cmp: 'greater_than'},
+                  operator: {cmp: ComparisonType.GREATER_THAN},
                   value: 199,
                 },
                 {
-                  op: 'status_code_check',
+                  op: OpType.STATUS_CODE_CHECK,
                   id: expect.any(String),
-                  operator: {cmp: 'less_than'},
+                  operator: {cmp: ComparisonType.LESS_THAN},
                   value: 300,
                 },
               ],
@@ -503,14 +508,14 @@ describe('Uptime Alert Form', () => {
     });
     OrganizationStore.onUpdate(orgWithAssertions);
 
-    const assertion = {
+    const assertion: Assertion = {
       root: {
-        op: 'and' as const,
+        op: OpType.AND,
         children: [
           {
             id: 'test-1',
-            op: 'status_code_check' as const,
-            operator: {cmp: 'equals' as const},
+            op: OpType.STATUS_CODE_CHECK,
+            operator: {cmp: ComparisonType.EQUALS},
             value: 200,
           },
         ],
@@ -718,14 +723,14 @@ describe('Uptime Alert Form', () => {
     });
     OrganizationStore.onUpdate(orgWithoutAssertions);
 
-    const existingAssertion = {
+    const existingAssertion: Assertion = {
       root: {
-        op: 'and' as const,
+        op: OpType.AND,
         children: [
           {
             id: 'test-1',
-            op: 'status_code_check' as const,
-            operator: {cmp: 'equals' as const},
+            op: OpType.STATUS_CODE_CHECK,
+            operator: {cmp: ComparisonType.EQUALS},
             value: 200,
           },
         ],

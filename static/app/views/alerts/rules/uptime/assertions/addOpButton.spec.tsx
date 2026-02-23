@@ -1,5 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ComparisonType, OpType} from 'sentry/views/alerts/rules/uptime/types';
+
 import {AddOpButton} from './addOpButton';
 
 describe('AddOpButton', () => {
@@ -61,8 +63,8 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenCalledWith({
         id: expect.any(String),
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: OpType.STATUS_CODE_CHECK,
+        operator: {cmp: ComparisonType.EQUALS},
         value: 200,
       });
     });
@@ -77,9 +79,9 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenCalledWith({
         id: expect.any(String),
-        op: 'json_path',
+        op: OpType.JSON_PATH,
         value: '',
-        operator: {cmp: 'equals'},
+        operator: {cmp: ComparisonType.EQUALS},
         operand: {jsonpath_op: 'literal', value: ''},
       });
     });
@@ -92,10 +94,10 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenCalledWith({
         id: expect.any(String),
-        op: 'header_check',
-        key_op: {cmp: 'equals'},
+        op: OpType.HEADER_CHECK,
+        key_op: {cmp: ComparisonType.EQUALS},
         key_operand: {header_op: 'literal', value: ''},
-        value_op: {cmp: 'equals'},
+        value_op: {cmp: ComparisonType.EQUALS},
         value_operand: {header_op: 'literal', value: ''},
       });
     });
@@ -110,7 +112,7 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenCalledWith({
         id: expect.any(String),
-        op: 'and',
+        op: OpType.AND,
         children: [],
       });
     });
@@ -126,8 +128,8 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenNthCalledWith(1, {
         id: expect.any(String),
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: OpType.STATUS_CODE_CHECK,
+        operator: {cmp: ComparisonType.EQUALS},
         value: 200,
       });
 
@@ -141,8 +143,8 @@ describe('AddOpButton', () => {
 
       expect(mockOnAddOp).toHaveBeenNthCalledWith(2, {
         id: expect.any(String),
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: OpType.STATUS_CODE_CHECK,
+        operator: {cmp: ComparisonType.EQUALS},
         value: 200,
       });
 
