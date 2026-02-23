@@ -21,11 +21,13 @@ if [ ! -f "$WORKTREE_ROOT/.git" ]; then
     exit 0
 fi
 
-# Only run for Sentry repo (has devenv/sync.py) and when .venv doesn't exist yet
+# Only run in worktrees that have our devenv setup (sync.py); skip when .venv already exists
 if [ ! -d "$WORKTREE_ROOT/.venv" ] && [ -f "$WORKTREE_ROOT/devenv/sync.py" ]; then
     if command -v devenv >/dev/null 2>&1; then
-        echo "New worktree detected. Running devenv sync to create virtualenv..."
-        (cd "$WORKTREE_ROOT" && devenv sync)
+        echo "New worktree detected. Running devenv sync (backend only) to create virtualenv..."
+        if ! (cd "$WORKTREE_ROOT" && SENTRY_DEVENV_SKIP_FRONTEND=1 devenv sync); then
+            echo "Warning: devenv sync failed. Run 'cd $WORKTREE_ROOT && devenv sync' manually."
+        fi
     else
         echo "New worktree detected. Install devenv and run: cd $WORKTREE_ROOT && devenv sync"
     fi
