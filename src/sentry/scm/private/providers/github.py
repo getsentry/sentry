@@ -185,10 +185,11 @@ class GitHubProvider:
             raw_reactions = self.client.get_comment_reactions(self.repository["name"], comment_id)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
+
         return ActionResult(
             data=[map_reaction(r) for r in raw_reactions],
             type="github",
-            raw=raw_reactions,
+            raw={"items": raw_reactions},
         )
 
     def create_issue_comment_reaction(
@@ -227,10 +228,11 @@ class GitHubProvider:
             raw_reactions = self.client.get_issue_reactions(self.repository["name"], issue_id)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
+
         return ActionResult(
             data=[map_reaction(r) for r in raw_reactions],
             type="github",
-            raw=raw_reactions,
+            raw={"item": raw_reactions},
         )
 
     def create_issue_reaction(
@@ -327,10 +329,11 @@ class GitHubProvider:
             raw_commits = self.client.get_commits(self.repository["name"], sha=sha, path=path)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
+
         return ActionResult(
             data=[map_commit(c) for c in raw_commits],
             type="github",
-            raw=raw_commits,
+            raw={"items": raw_commits},
         )
 
     def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
