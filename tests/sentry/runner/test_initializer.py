@@ -263,26 +263,36 @@ def test_require_secret_key(settings) -> None:
 def test_bind_cache_to_option_store_with_options_cache() -> None:
     from django.conf import settings
 
+    original_cache = default_store.cache
+
     cache_config = settings.CACHES.copy()
     cache_config["options"] = {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 
-    with override_settings(CACHES=cache_config):
-        bind_cache_to_option_store()
+    try:
+        with override_settings(CACHES=cache_config):
+            bind_cache_to_option_store()
 
-        # Should use 'options' cache, not 'default'
-        assert default_store.cache == caches["options"]
+            # Should use 'options' cache, not 'default'
+            assert default_store.cache == caches["options"]
+    finally:
+        default_store.set_cache_impl(original_cache)
 
 
 def test_bind_cache_to_option_store_without_options_cache() -> None:
     from django.conf import settings
 
+    original_cache = default_store.cache
+
     cache_config = settings.CACHES.copy()
     cache_config.pop("options", None)
 
-    with override_settings(CACHES=cache_config):
-        bind_cache_to_option_store()
+    try:
+        with override_settings(CACHES=cache_config):
+            bind_cache_to_option_store()
 
-        # Should use 'default' cache when 'options' doesn't exist
-        assert default_store.cache == caches["default"]
+            # Should use 'default' cache when 'options' doesn't exist
+            assert default_store.cache == caches["default"]
+    finally:
+        default_store.set_cache_impl(original_cache)
