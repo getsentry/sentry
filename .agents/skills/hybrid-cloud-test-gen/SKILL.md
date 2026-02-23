@@ -15,8 +15,6 @@ This skill generates tests for Sentry's hybrid cloud architecture. It covers RPC
 
 > **ALWAYS** use `pytest`-style assertions (`assert x == y`) — never `self.assertEqual()`.
 
-> **NEVER** add branching logic (`if` statements) in test method bodies.
-
 > **ALWAYS** add tests to existing test files rather than creating new ones, unless no file exists for that module.
 
 > For cross-silo ORM access: use `assume_test_silo_mode_of(Model)` when accessing a single model (auto-detects silo). Use `assume_test_silo_mode(SiloMode.X)` when the block covers multiple models or non-model operations.
@@ -138,7 +136,6 @@ Before presenting the generated test, verify against this checklist:
 - [ ] Factory methods (`self.create_*`) are NEVER wrapped in `assume_test_silo_mode`
 - [ ] Factory methods used — never `Model.objects.create()`
 - [ ] `pytest`-style assertions only (`assert x == y`)
-- [ ] No branching logic (`if` statements) in test bodies
 - [ ] Correct base class (`TestCase` for most tests; `TransactionTestCase` only for threading/concurrency)
 - [ ] Imports are correct and minimal
 - [ ] Test file at correct mirror path
