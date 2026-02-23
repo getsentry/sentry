@@ -337,10 +337,10 @@ def _format_failed_checks_details(
     if not triggered_rules:
         return ""
 
-    # Group rules by app_id
-    rules_by_app: dict[str, list[TriggeredRule]] = {}
+    # Group rules by (app_id, build_configuration_name, platform)
+    rules_by_app: dict[tuple[str, str | None, str | None], list[TriggeredRule]] = {}
     for tr in triggered_rules:
-        app_key = tr.app_id or "Unknown"
+        app_key = (tr.app_id or "Unknown", tr.build_configuration_name, tr.platform)
         if app_key not in rules_by_app:
             rules_by_app[app_key] = []
         rules_by_app[app_key].append(tr)
@@ -353,10 +353,10 @@ def _format_failed_checks_details(
     ) % {"count": total_failed}
 
     details_content = []
-    for app_id, app_rules in rules_by_app.items():
-        platform = app_rules[0].platform if app_rules else None
+    for (app_id, config_name, platform), app_rules in rules_by_app.items():
         platform_text = f" ({platform})" if platform else ""
-        details_content.append(f"`{app_id}`{platform_text}")
+        config_text = f" | {config_name}" if config_name else ""
+        details_content.append(f"`{app_id}`{config_text}{platform_text}")
 
         for tr in app_rules:
             metric_display = _get_metric_display_name(tr.rule.metric)
