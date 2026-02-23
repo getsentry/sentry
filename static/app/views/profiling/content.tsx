@@ -179,22 +179,30 @@ export default function ProfilingContent() {
                 <Onboarding />
               ) : (
                 <Fragment>
-                  <WidgetsContainer>
-                    <LandingWidgetSelector
-                      cursorName={LEFT_WIDGET_CURSOR}
-                      widgetHeight="410px"
-                      defaultWidget="slowest functions"
-                      storageKey="profiling-landing-widget-0"
-                      onDataState={updateWidget1DataState}
-                    />
-                    <LandingWidgetSelector
-                      cursorName={RIGHT_WIDGET_CURSOR}
-                      widgetHeight="410px"
-                      defaultWidget="regressed functions"
-                      storageKey="profiling-landing-widget-1"
-                      onDataState={updateWidget2DataState}
-                    />
-                  </WidgetsContainer>
+                  {organization.features.includes(
+                    'profiling-global-suspect-functions'
+                  ) && (
+                    <WidgetsContainer>
+                      <LandingWidgetSelector
+                        cursorName={LEFT_WIDGET_CURSOR}
+                        widgetHeight="410px"
+                        defaultWidget="slowest functions"
+                        storageKey="profiling-landing-widget-0"
+                        onDataState={updateWidget1DataState}
+                      />
+                      <LandingWidgetSelector
+                        cursorName={RIGHT_WIDGET_CURSOR}
+                        widgetHeight="410px"
+                        defaultWidget={
+                          organization.features.includes('profiling-function-trends')
+                            ? 'regressed functions'
+                            : 'slowest functions avg'
+                        }
+                        storageKey="profiling-landing-widget-1"
+                        onDataState={updateWidget2DataState}
+                      />
+                    </WidgetsContainer>
+                  )}
                   <div>
                     <Tabs value={tab} onChange={onTabChange}>
                       <TabList>
