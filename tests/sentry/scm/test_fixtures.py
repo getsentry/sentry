@@ -5,6 +5,8 @@ from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.models import Integration
 from sentry.scm.types import (
     ActionResult,
+    BuildConclusion,
+    BuildStatus,
     CheckRun,
     CheckRunOutput,
     Comment,
@@ -31,6 +33,7 @@ from sentry.scm.types import (
     Review,
     ReviewComment,
     ReviewCommentInput,
+    ReviewSide,
     TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -476,7 +479,7 @@ class BaseTestProvider(Provider):
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
-            type="test",
+            type="github",
             raw=raw,
         )
 
@@ -490,7 +493,7 @@ class BaseTestProvider(Provider):
                     body="Test comment",
                     author={"id": "1", "username": "testuser"},
                 ),
-                type="test",
+                type="github",
                 raw={},
             )
         ]
@@ -498,7 +501,7 @@ class BaseTestProvider(Provider):
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
         return ActionResult(
             data=Comment(id="101", body=body, author=None),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -515,7 +518,7 @@ class BaseTestProvider(Provider):
                     body="PR review comment",
                     author={"id": "2", "username": "reviewer"},
                 ),
-                type="test",
+                type="github",
                 raw={},
             )
         ]
@@ -523,7 +526,7 @@ class BaseTestProvider(Provider):
     def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
         return ActionResult(
             data=Comment(id="201", body=body, author=None),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -555,7 +558,7 @@ class BaseTestProvider(Provider):
     ) -> ActionResult[ReactionResult]:
         return ActionResult(
             data=ReactionResult(id="1", content=reaction, author=None),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -589,7 +592,7 @@ class BaseTestProvider(Provider):
     ) -> ActionResult[ReactionResult]:
         return ActionResult(
             data=ReactionResult(id="1", content=reaction, author=None),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -621,7 +624,7 @@ class BaseTestProvider(Provider):
     ) -> ActionResult[ReactionResult]:
         return ActionResult(
             data=ReactionResult(id="1", content=reaction, author=None),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -655,7 +658,7 @@ class BaseTestProvider(Provider):
     ) -> ActionResult[ReactionResult]:
         return ActionResult(
             data=ReactionResult(id="1", content=reaction, author=None),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -667,14 +670,14 @@ class BaseTestProvider(Provider):
     def get_branch(self, branch: str) -> ActionResult[GitRef]:
         return ActionResult(
             data=GitRef(ref=f"refs/heads/{branch}", sha="abc123def456"),
-            type="test",
+            type="github",
             raw={},
         )
 
     def create_branch(self, branch: str, sha: str) -> ActionResult[GitRef]:
         return ActionResult(
             data=GitRef(ref=f"refs/heads/{branch}", sha=sha),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -686,7 +689,7 @@ class BaseTestProvider(Provider):
     def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]:
         return ActionResult(
             data=GitBlob(sha="blob123abc"),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -701,7 +704,7 @@ class BaseTestProvider(Provider):
                 encoding="base64",
                 size=11,
             ),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -717,13 +720,12 @@ class BaseTestProvider(Provider):
                 ),
                 files=[CommitFile(filename="src/main.py", status="modified", patch="@@ -1 +1 @@")],
             ),
-            type="test",
+            type="github",
             raw={},
         )
 
     def get_commits(
         self,
-        *,
         sha: str | None = None,
         path: str | None = None,
     ) -> list[ActionResult[Commit]]:
@@ -732,13 +734,13 @@ class BaseTestProvider(Provider):
     def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
         return ActionResult(
             data=CommitComparison(ahead_by=3, behind_by=1),
-            type="test",
+            type="github",
             raw={},
         )
 
     # Git data operations
 
-    def get_tree(self, tree_sha: str, *, recursive: bool = True) -> ActionResult[GitTree]:
+    def get_tree(self, tree_sha: str, recursive: bool = True) -> ActionResult[GitTree]:
         return ActionResult(
             data=GitTree(
                 tree=[
@@ -748,7 +750,7 @@ class BaseTestProvider(Provider):
                 ],
                 truncated=False,
             ),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -759,14 +761,13 @@ class BaseTestProvider(Provider):
                 tree=GitCommitTree(sha="tree456"),
                 message="Initial commit",
             ),
-            type="test",
+            type="github",
             raw={},
         )
 
     def create_git_tree(
         self,
         tree: list[InputTreeEntry],
-        *,
         base_tree: str | None = None,
     ) -> ActionResult[GitTree]:
         return ActionResult(
@@ -778,7 +779,7 @@ class BaseTestProvider(Provider):
                 ],
                 truncated=False,
             ),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -794,7 +795,7 @@ class BaseTestProvider(Provider):
                 tree=GitCommitTree(sha=tree_sha),
                 message=message,
             ),
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -811,7 +812,7 @@ class BaseTestProvider(Provider):
                     sha="file123",
                     previous_filename=None,
                 ),
-                type="test",
+                type="github",
                 raw={},
             )
         ]
@@ -830,7 +831,7 @@ class BaseTestProvider(Provider):
                         date="2026-02-04T10:00:00Z",
                     ),
                 ),
-                type="test",
+                type="github",
                 raw={},
             )
         ]
@@ -838,7 +839,7 @@ class BaseTestProvider(Provider):
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
         return ActionResult(
             data="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
-            type="test",
+            type="github",
             raw={},
         )
 
@@ -860,7 +861,7 @@ class BaseTestProvider(Provider):
                     head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                     base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
                 ),
-                type="test",
+                type="github",
                 raw=raw,
             )
         ]
@@ -871,7 +872,6 @@ class BaseTestProvider(Provider):
         body: str,
         head: str,
         base: str,
-        *,
         draft: bool = False,
     ) -> ActionResult[PullRequest]:
         raw = make_github_pull_request(title=title, body=body)
@@ -888,14 +888,13 @@ class BaseTestProvider(Provider):
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
-            type="test",
+            type="github",
             raw=raw,
         )
 
     def update_pull_request(
         self,
         pull_request_id: str,
-        *,
         title: str | None = None,
         body: str | None = None,
         state: str | None = None,
@@ -918,7 +917,7 @@ class BaseTestProvider(Provider):
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
-            type="test",
+            type="github",
             raw=raw,
         )
 
@@ -933,11 +932,10 @@ class BaseTestProvider(Provider):
         body: str,
         commit_sha: str,
         path: str,
-        *,
         line: int | None = None,
-        side: str | None = None,
+        side: ReviewSide | None = None,
         start_line: int | None = None,
-        start_side: str | None = None,
+        start_side: ReviewSide | None = None,
     ) -> ActionResult[ReviewComment]:
         raw = make_github_review_comment(body=body, path=path)
         return ActionResult(
@@ -947,7 +945,7 @@ class BaseTestProvider(Provider):
                 path=raw["path"],
                 body=raw["body"],
             ),
-            type="test",
+            type="github",
             raw=raw,
         )
 
@@ -957,13 +955,12 @@ class BaseTestProvider(Provider):
         commit_sha: str,
         event: str,
         comments: list[ReviewCommentInput],
-        *,
         body: str | None = None,
     ) -> ActionResult[Review]:
         raw = make_github_review()
         return ActionResult(
             data=Review(id=str(raw["id"]), html_url=raw["html_url"]),
-            type="test",
+            type="github",
             raw=raw,
         )
 
@@ -973,9 +970,8 @@ class BaseTestProvider(Provider):
         self,
         name: str,
         head_sha: str,
-        *,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         external_id: str | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
@@ -990,7 +986,7 @@ class BaseTestProvider(Provider):
                 conclusion=raw["conclusion"],
                 html_url=raw["html_url"],
             ),
-            type="test",
+            type="github",
             raw=raw,
         )
 
@@ -1004,16 +1000,15 @@ class BaseTestProvider(Provider):
                 conclusion=raw["conclusion"],
                 html_url=raw["html_url"],
             ),
-            type="test",
+            type="github",
             raw=raw,
         )
 
     def update_check_run(
         self,
         check_run_id: str,
-        *,
-        status: str | None = None,
-        conclusion: str | None = None,
+        status: BuildStatus | None = None,
+        conclusion: BuildConclusion | None = None,
         output: CheckRunOutput | None = None,
     ) -> ActionResult[CheckRun]:
         raw = make_github_check_run(
@@ -1028,7 +1023,7 @@ class BaseTestProvider(Provider):
                 conclusion=raw["conclusion"],
                 html_url=raw["html_url"],
             ),
-            type="test",
+            type="github",
             raw=raw,
         )
 
@@ -1373,7 +1368,7 @@ class FakeGitHubApiClient(GitHubApiClient):
             return self.check_run_data
         return make_github_check_run(name=data.get("name", ""))
 
-    def get_check_run(self, repo: str, check_run_id: str) -> dict[str, Any]:
+    def get_check_run(self, repo: str, check_run_id: int) -> dict[str, Any]:
         self._record_call("get_check_run", repo, check_run_id)
         self._maybe_raise()
         if self.check_run_data is not None:

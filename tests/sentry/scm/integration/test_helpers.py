@@ -60,18 +60,18 @@ class TestFetchRepository(TestCase):
         RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
-            provider="integrations:github",
+            provider="github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
         )
 
-        result = fetch_repository(self.organization.id, ("integrations:github", "12345"))
+        result = fetch_repository(self.organization.id, ("github", "12345"))
 
         assert result is not None
         assert result["name"] == "test-org/test-repo"
 
     def test_fetch_by_provider_and_external_id_returns_none_for_nonexistent(self):
-        result = fetch_repository(self.organization.id, ("integrations:github", "nonexistent"))
+        result = fetch_repository(self.organization.id, ("github", "nonexistent"))
 
         assert result is None
 
@@ -109,7 +109,7 @@ class TestMapIntegrationToProvider(TestCase):
             name="Github Test Org",
             external_id="1",
         )
-        repository = {
+        repository: Repository = {
             "integration_id": integration.id,
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
@@ -132,7 +132,7 @@ class TestMapIntegrationToProvider(TestCase):
             name="Unsupported Provider Test",
             external_id="1",
         )
-        repository = {
+        repository: Repository = {
             "integration_id": integration.id,
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
@@ -159,14 +159,15 @@ class TestFetchServiceProvider(TestCase):
             external_id="1",
         )
 
+        repository: Repository = {
+            "integration_id": integration.id,
+            "name": "test-org/test-repo",
+            "organization_id": self.organization.id,
+            "status": 0,
+        }
         provider = fetch_service_provider(
             self.organization.id,
-            {
-                "integration_id": integration.id,
-                "name": "test-org/test-repo",
-                "organization_id": self.organization.id,
-                "status": 0,
-            },
+            repository,
             map_to_provider=lambda i, oid, r: map_integration_to_provider(
                 oid, i, r, get_installation=lambda _, __: MagicMock()
             ),
@@ -175,7 +176,7 @@ class TestFetchServiceProvider(TestCase):
         assert isinstance(provider, GitHubProvider)
 
     def test_raises_error_for_nonexistent_integration(self):
-        repository = {
+        repository: Repository = {
             "integration_id": 99999,
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,

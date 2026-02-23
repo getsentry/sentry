@@ -186,7 +186,7 @@ def _check_pull_request(result: Any) -> None:
     assert pr["head"]["sha"] == "abc123"
     assert pr["head"]["ref"] == "feature-branch"
     assert pr["base"]["sha"] == "def456"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_pull_request_comments(result: Any) -> None:
@@ -235,18 +235,18 @@ def _check_pr_reactions(result: Any) -> None:
 def _check_get_branch(result: Any) -> None:
     assert result["data"]["ref"] == "refs/heads/main"
     assert result["data"]["sha"] == "abc123def456"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_create_branch(result: Any) -> None:
     assert result["data"]["ref"] == "refs/heads/feature"
     assert result["data"]["sha"] == "abc123"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_create_git_blob(result: Any) -> None:
     assert result["data"]["sha"] == "blob123abc"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_file_content(result: Any) -> None:
@@ -254,7 +254,7 @@ def _check_file_content(result: Any) -> None:
     assert fc["path"] == "README.md"
     assert fc["content"] == "SGVsbG8gV29ybGQ="
     assert fc["encoding"] == "base64"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_get_commit(result: Any) -> None:
@@ -262,19 +262,19 @@ def _check_get_commit(result: Any) -> None:
     assert c["sha"] == "abc123"
     assert c["message"] == "Fix bug"
     assert c["author"]["name"] == "Test User"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_get_commits(result: Any) -> None:
     assert len(result) == 1
     assert result[0]["data"]["sha"] == "abc123"
-    assert result[0]["type"] == "test"
+    assert result[0]["type"] == "github"
 
 
 def _check_compare_commits(result: Any) -> None:
     assert result["data"]["ahead_by"] == 3
     assert result["data"]["behind_by"] == 1
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_get_tree(result: Any) -> None:
@@ -282,64 +282,64 @@ def _check_get_tree(result: Any) -> None:
     assert len(gt["tree"]) == 1
     assert gt["tree"][0]["path"] == "src/main.py"
     assert gt["truncated"] is False
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_get_git_commit(result: Any) -> None:
     gc = result["data"]
     assert gc["sha"] == "abc123"
     assert gc["tree"]["sha"] == "tree456"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_create_git_tree(result: Any) -> None:
     gt = result["data"]
     assert len(gt["tree"]) == 1
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_create_git_commit(result: Any) -> None:
     gc = result["data"]
     assert gc["sha"] == "newcommit123"
     assert gc["message"] == "msg"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_pr_files(result: Any) -> None:
     assert len(result) == 1
     assert result[0]["data"]["filename"] == "src/main.py"
-    assert result[0]["type"] == "test"
+    assert result[0]["type"] == "github"
 
 
 def _check_pr_commits(result: Any) -> None:
     assert len(result) == 1
     assert result[0]["data"]["sha"] == "commit123"
     assert result[0]["data"]["message"] == "Fix bug"
-    assert result[0]["type"] == "test"
+    assert result[0]["type"] == "github"
 
 
 def _check_pr_diff(result: Any) -> None:
     assert "diff --git" in result["data"]
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_list_pull_requests(result: Any) -> None:
     assert len(result) == 1
     assert result[0]["data"]["number"] == 1
-    assert result[0]["type"] == "test"
+    assert result[0]["type"] == "github"
 
 
 def _check_create_pull_request(result: Any) -> None:
     pr = result["data"]
     assert pr["title"] == "T"
     assert pr["body"] == "B"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_update_pull_request(result: Any) -> None:
     pr = result["data"]
     assert pr["title"] == "Test PR"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_none(result: Any) -> None:
@@ -349,20 +349,20 @@ def _check_none(result: Any) -> None:
 def _check_created_comment(result: Any) -> None:
     comment = result["data"]
     assert comment["id"] == "101"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_created_pr_comment(result: Any) -> None:
     comment = result["data"]
     assert comment["id"] == "201"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_created_reaction(result: Any) -> None:
     reaction = result["data"]
     assert reaction["id"] == "1"
     assert reaction["content"] == "eyes"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_review_comment(result: Any) -> None:
@@ -370,32 +370,32 @@ def _check_review_comment(result: Any) -> None:
     assert rc["id"] == "100"
     assert rc["path"] == "f.py"
     assert rc["body"] == "comment"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_review(result: Any) -> None:
     r = result["data"]
     assert r["id"] == "200"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_create_check_run(result: Any) -> None:
     cr = result["data"]
     assert cr["name"] == "check"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_get_check_run(result: Any) -> None:
     cr = result["data"]
     assert cr["id"] == "300"
     assert cr["status"] == "completed"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 def _check_update_check_run(result: Any) -> None:
     cr = result["data"]
     assert cr["id"] == "300"
-    assert result["type"] == "test"
+    assert result["type"] == "github"
 
 
 ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]], ...] = (

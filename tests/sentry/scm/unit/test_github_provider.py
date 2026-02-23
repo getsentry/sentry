@@ -1342,8 +1342,10 @@ class TestGetPullRequestCommentsEdgeCases:
         result = provider.get_pull_request_comments("42")
 
         assert len(result) == 1
-        assert result[0]["data"]["author"]["id"] == ""
-        assert result[0]["data"]["author"]["username"] == "testuser"
+        author = result[0]["data"]["author"]
+        assert author is not None
+        assert author["id"] == ""
+        assert author["username"] == "testuser"
 
     def test_graphql_author_database_id_used_as_id(self):
         """Author databaseId should be used as the author id."""
@@ -1356,8 +1358,10 @@ class TestGetPullRequestCommentsEdgeCases:
         result = provider.get_pull_request_comments("42")
 
         assert len(result) == 1
-        assert result[0]["data"]["author"]["id"] == "999"
-        assert result[0]["data"]["author"]["username"] == "testuser"
+        author = result[0]["data"]["author"]
+        assert author is not None
+        assert author["id"] == "999"
+        assert author["username"] == "testuser"
 
     def test_flattens_issue_comments_and_thread_comments(self):
         repository = make_repository()

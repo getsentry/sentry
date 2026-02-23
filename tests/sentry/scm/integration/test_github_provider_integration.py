@@ -589,8 +589,10 @@ class TestGitHubProviderIntegration(TestCase):
         result = self.provider.get_pull_request_comments("1")
 
         assert len(result) == 1
-        assert result[0]["data"]["author"]["id"] == "42"
-        assert result[0]["data"]["author"]["username"] == "octocat"
+        author = result[0]["data"]["author"]
+        assert author is not None
+        assert author["id"] == "42"
+        assert author["username"] == "octocat"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
