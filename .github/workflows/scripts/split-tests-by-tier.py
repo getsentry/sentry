@@ -15,14 +15,50 @@ Tiers:
 
 Sharding (--shards N --output-dir DIR):
   When --shards is specified, the selected tier's scopes are split into N
-  balanced shards using a greedy LPT (Longest Processing Time) algorithm,
-  using test count per scope as a proxy for duration. Each shard is written
-  to {output-dir}/shard-{i}.txt. Without --shards, a single file is written
-  to --output (or stdout).
+  balanced shards and each shard is written to {output-dir}/shard-{i}.txt.
+
+  Sharding strategy:
+    - With --durations-file: worker-simulated LPT (see below).
+    - Without: hash-based round-robin (sha256 of scope name mod N).
+
+  Worker-simulated LPT (--durations-file, --n-workers):
+    Each shard runs --n-workers xdist workers in parallel with --dist=loadfile,
+    so shard wall-clock = max(worker loads), not sum(worker loads). Flat LPT
+    optimises the sum and produces terrible wall-clock balance (proven in
+    experiment "LPT Second Run Analysis"). Worker-simulated LPT instead tracks
+    per-worker loads within each candidate shard and picks the assignment that
+    minimises the global max wall-clock.
+
+    Algorithm:
+      1. Sort scopes heaviest-first by duration.
+      2. For each scope, for each candidate shard:
+           - Find that shard's lightest worker.
+           - Compute predicted_wallclock = max(worker loads after placing scope
+             on the lightest worker).
+      3. Assign to the shard with the lowest predicted_wallclock.
+
+    Optional swap refinement (--swap-rounds N, default 50):
+      After the initial greedy pass, iteratively try swapping scopes between
+      the heaviest and lightest shards. Accept swaps that reduce the global
+      max wall-clock. Converges quickly in practice.
+
+  Fallback (no duration data / new scopes):
+    Scopes not present in the durations file use the median of known durations
+    (or 1.0 if none). This keeps unknown scopes from dominating assignment.
 
 Usage:
-    python split-tests-by-tier.py --classification report.json --tier tier1 --output tier1.txt
+    # Tier summary
     python split-tests-by-tier.py --classification report.json --summary
+
+    # Single-tier output
+    python split-tests-by-tier.py --classification report.json --tier tier1 --output tier1.txt
+
+    # Worker-simulated LPT sharding for T2
+    python split-tests-by-tier.py --classification report.json --tier tier2 \\
+        --shards 17 --output-dir /tmp/tier2-shards/ \\
+        --durations-file /tmp/test-durations.json --n-workers 3
+
+    # Hash-based sharding (seed run, no duration data)
     python split-tests-by-tier.py --classification report.json --tier tier2 \\
         --shards 17 --output-dir /tmp/tier2-shards/
 """
@@ -30,7 +66,9 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import statistics
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -45,6 +83,11 @@ FORCE_TIER2_FILES: set[str] = {
 
 # Services that require tier2 (full Snuba stack).
 TIER2_SERVICES: set[str] = {"snuba", "kafka", "symbolicator", "objectstore", "bigtable"}
+
+
+# ---------------------------------------------------------------------------
+# Tier splitting
+# ---------------------------------------------------------------------------
 
 
 def _scope_key(test_id: str, granularity: str) -> str:
@@ -76,10 +119,207 @@ def split(classification: dict, granularity: str = "file") -> dict[str, set[str]
     return {"tier1": tier1, "tier2": tier2}
 
 
+# ---------------------------------------------------------------------------
+# Sharding: hash-based fallback
+# ---------------------------------------------------------------------------
+
+
+def hash_shard(scopes: set[str], n_shards: int) -> list[list[str]]:
+    """Deterministic hash-based sharding (sha256 of scope mod n_shards).
+
+    Used when no duration data is available. Gives statistically even
+    distribution for large scope counts without duration knowledge.
+    """
+    shards: list[list[str]] = [[] for _ in range(n_shards)]
+    for scope in sorted(scopes):  # sorted for determinism
+        idx = int(hashlib.sha256(scope.encode()).hexdigest(), 16) % n_shards
+        shards[idx].append(scope)
+    return shards
+
+
+# ---------------------------------------------------------------------------
+# Sharding: worker-simulated LPT
+# ---------------------------------------------------------------------------
+
+
+def _simulate_wallclock(files: list[str], n_workers: int, durations: dict[str, float]) -> float:
+    """Simulate --dist=loadfile LPT dispatch: return max(worker loads).
+
+    Sorts files heaviest-first (matching xdist's internal dispatch order) and
+    greedily assigns each to the lightest worker.
+    """
+    worker_times = [0.0] * n_workers
+    for f in sorted(files, key=lambda s: durations.get(s, 0.0), reverse=True):
+        lightest = min(range(n_workers), key=lambda w: worker_times[w])
+        worker_times[lightest] += durations.get(f, 0.0)
+    return max(worker_times) if worker_times else 0.0
+
+
+def worker_simulated_lpt_shard(
+    scopes: set[str],
+    n_shards: int,
+    n_workers: int,
+    durations: dict[str, float],
+) -> list[list[str]]:
+    """Greedy LPT minimising shard wall-clock time (max worker load).
+
+    Unlike flat LPT (which minimises sum per shard), this tracks per-worker
+    loads within each candidate shard and assigns each scope to the shard
+    where placing it — on that shard's lightest worker — yields the lowest
+    global max wall-clock.
+    """
+    # Fallback weight for scopes without duration data: median known duration.
+    known = [v for v in durations.values() if v > 0]
+    fallback = statistics.median(known) if known else 1.0
+
+    sorted_scopes = sorted(
+        scopes,
+        key=lambda s: durations.get(s, fallback),
+        reverse=True,
+    )
+
+    # worker_loads[shard_idx][worker_idx] = cumulative seconds assigned
+    worker_loads: list[list[float]] = [[0.0] * n_workers for _ in range(n_shards)]
+    shards: list[list[str]] = [[] for _ in range(n_shards)]
+
+    for scope in sorted_scopes:
+        dur = durations.get(scope, fallback)
+
+        best_shard = 0
+        best_wallclock = float("inf")
+
+        for shard_idx in range(n_shards):
+            workers = worker_loads[shard_idx]
+            # This scope goes to the lightest worker in this candidate shard.
+            min_w = min(range(n_workers), key=lambda w: workers[w])
+            predicted = max(
+                workers[w] + (dur if w == min_w else 0) for w in range(n_workers)
+            )
+            if predicted < best_wallclock:
+                best_wallclock = predicted
+                best_shard = shard_idx
+
+        min_w = min(range(n_workers), key=lambda w: worker_loads[best_shard][w])
+        worker_loads[best_shard][min_w] += dur
+        shards[best_shard].append(scope)
+
+    # Log balance stats.
+    wallclocks = [_simulate_wallclock(s, n_workers, durations) for s in shards]
+    max_wc = max(wallclocks)
+    min_wc = min(wallclocks)
+    total = sum(durations.get(s, fallback) for shard in shards for s in shard)
+    print(
+        f"[lpt] {n_shards} shards × {n_workers} workers: "
+        f"total={total:.0f}s, max_wallclock={max_wc:.1f}s, "
+        f"min_wallclock={min_wc:.1f}s, spread={max_wc - min_wc:.1f}s",
+        file=sys.stderr,
+    )
+
+    return shards
+
+
+def swap_refine(
+    shards: list[list[str]],
+    n_workers: int,
+    durations: dict[str, float],
+    max_rounds: int = 50,
+) -> list[list[str]]:
+    """Swap-based refinement between the heaviest and lightest shards.
+
+    After the initial greedy LPT pass, iteratively swap scopes between the
+    heaviest and lightest shards if the swap reduces the global max wall-clock.
+    Only pairs the two extreme shards each round — O(files_per_shard²) per
+    round instead of O(all_pairs²), which keeps this tractable.
+    """
+    known = [v for v in durations.values() if v > 0]
+    fallback = statistics.median(known) if known else 1.0
+
+    def dur(scope: str) -> float:
+        return durations.get(scope, fallback)
+
+    wallclocks = [_simulate_wallclock(s, n_workers, durations) for s in shards]
+
+    for round_num in range(max_rounds):
+        heavy_idx = max(range(len(shards)), key=lambda i: wallclocks[i])
+        light_idx = min(range(len(shards)), key=lambda i: wallclocks[i])
+
+        if heavy_idx == light_idx:
+            break
+
+        global_max = wallclocks[heavy_idx]
+
+        # Max wallclock of shards we're not touching — a lower bound on
+        # the new global max regardless of the swap outcome.
+        rest_max = (
+            max(wc for i, wc in enumerate(wallclocks) if i not in (heavy_idx, light_idx))
+            if len(shards) > 2
+            else 0.0
+        )
+
+        improved = False
+
+        # Try heaviest scopes from the heavy shard first; lightest from light.
+        heavy_sorted = sorted(shards[heavy_idx], key=dur, reverse=True)
+        light_sorted = sorted(shards[light_idx], key=dur)
+
+        for fa in heavy_sorted:
+            heavy_without_fa = [f for f in shards[heavy_idx] if f != fa]
+
+            # Early skip: if the heavy shard without fa is still >= global_max,
+            # no swap of fa can reduce the heavy shard below global_max.
+            if _simulate_wallclock(heavy_without_fa, n_workers, durations) >= global_max:
+                continue
+
+            for fb in light_sorted:
+                heavy_new = heavy_without_fa + [fb]
+                new_heavy_wc = _simulate_wallclock(heavy_new, n_workers, durations)
+
+                if new_heavy_wc >= global_max:
+                    continue
+
+                light_new = [f for f in shards[light_idx] if f != fb] + [fa]
+                new_light_wc = _simulate_wallclock(light_new, n_workers, durations)
+                new_max = max(new_heavy_wc, new_light_wc, rest_max)
+
+                if new_max < global_max:
+                    shards[heavy_idx] = heavy_new
+                    shards[light_idx] = light_new
+                    wallclocks[heavy_idx] = new_heavy_wc
+                    wallclocks[light_idx] = new_light_wc
+                    improved = True
+                    break
+
+            if improved:
+                break
+
+        if not improved:
+            print(
+                f"[swap] Converged after {round_num + 1} round(s), "
+                f"spread={global_max - wallclocks[light_idx]:.1f}s",
+                file=sys.stderr,
+            )
+            break
+
+    wallclocks = [_simulate_wallclock(s, n_workers, durations) for s in shards]
+    max_wc = max(wallclocks)
+    min_wc = min(wallclocks)
+    print(
+        f"[swap] Final: max_wallclock={max_wc:.1f}s, "
+        f"min_wallclock={min_wc:.1f}s, spread={max_wc - min_wc:.1f}s",
+        file=sys.stderr,
+    )
+
+    return shards
+
+
+# ---------------------------------------------------------------------------
+# Summary helpers
+# ---------------------------------------------------------------------------
+
+
 def _count_tests_per_scope(
     classification: dict, scopes: set[str], granularity: str
 ) -> dict[str, int]:
-    """Count the number of tests in each scope for LPT weight estimation."""
     counts: dict[str, int] = defaultdict(int)
     for test_id in classification.get("tests", {}):
         scope = _scope_key(test_id, granularity)
@@ -88,32 +328,9 @@ def _count_tests_per_scope(
     return counts
 
 
-def lpt_shard(scopes: set[str], n_shards: int, weights: dict[str, int]) -> list[list[str]]:
-    """Greedy LPT (Longest Processing Time) assignment of scopes to n_shards.
-
-    Sorts scopes by weight descending, then greedily assigns each to the
-    shard with the lowest current total weight. Minimizes the maximum shard
-    load (within a 4/3 approximation of optimal).
-    """
-    sorted_scopes = sorted(scopes, key=lambda s: weights.get(s, 1), reverse=True)
-    shard_loads = [0] * n_shards
-    shards: list[list[str]] = [[] for _ in range(n_shards)]
-
-    for scope in sorted_scopes:
-        min_idx = shard_loads.index(min(shard_loads))
-        shards[min_idx].append(scope)
-        shard_loads[min_idx] += weights.get(scope, 1)
-
-    # Log shard balance to stderr for visibility in CI.
-    total = sum(shard_loads)
-    max_load = max(shard_loads)
-    min_load = min(shard_loads)
-    print(
-        f"[lpt] {n_shards} shards: total={total} tests, "
-        f"max={max_load}, min={min_load}, spread={max_load - min_load}",
-        file=sys.stderr,
-    )
-    return shards
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 
 def main() -> int:
@@ -123,10 +340,32 @@ def main() -> int:
     parser.add_argument("--output", help="Output file (default: stdout)")
     parser.add_argument("--granularity", choices=["file", "class", "test"], default="file")
     parser.add_argument("--summary", action="store_true")
-    parser.add_argument("--shards", type=int, help="Split tier into N balanced shards (LPT)")
+
+    # Sharding
+    parser.add_argument("--shards", type=int, help="Split tier into N shards")
     parser.add_argument(
         "--output-dir", help="Output directory for per-shard files (requires --shards)"
     )
+
+    # Worker-simulated LPT options
+    parser.add_argument(
+        "--durations-file",
+        help="JSON file mapping scope → duration in seconds (from merge-test-durations.py). "
+        "Enables worker-simulated LPT. Without this, falls back to hash-based sharding.",
+    )
+    parser.add_argument(
+        "--n-workers",
+        type=int,
+        default=3,
+        help="Number of xdist workers per shard (default: 3)",
+    )
+    parser.add_argument(
+        "--swap-rounds",
+        type=int,
+        default=50,
+        help="Max swap-refinement rounds after initial LPT (default: 50, 0 to disable)",
+    )
+
     args = parser.parse_args()
 
     if args.shards and not args.output_dir:
@@ -169,10 +408,41 @@ def main() -> int:
     scopes = tiers[args.tier]
 
     if args.shards:
-        weights = _count_tests_per_scope(classification, scopes, args.granularity)
-        shards = lpt_shard(scopes, args.shards, weights)
         out_dir = Path(args.output_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
+
+        if args.durations_file:
+            # Worker-simulated LPT using real per-scope durations.
+            with open(args.durations_file) as f:
+                durations: dict[str, float] = json.load(f)
+
+            coverage = sum(1 for s in scopes if s in durations)
+            print(
+                f"[lpt] Duration coverage: {coverage}/{len(scopes)} scopes "
+                f"({coverage / len(scopes) * 100:.1f}%)",
+                file=sys.stderr,
+            )
+
+            shards = worker_simulated_lpt_shard(scopes, args.shards, args.n_workers, durations)
+
+            if args.swap_rounds > 0:
+                shards = swap_refine(shards, args.n_workers, durations, args.swap_rounds)
+        else:
+            # No duration data: hash-based sharding (stable, good fallback).
+            print(
+                "[lpt] No --durations-file provided; using hash-based sharding (seed run).",
+                file=sys.stderr,
+            )
+            shards = hash_shard(scopes, args.shards)
+
+            test_counts = _count_tests_per_scope(classification, scopes, args.granularity)
+            shard_counts = [sum(test_counts.get(s, 1) for s in shard) for shard in shards]
+            print(
+                f"[hash] {args.shards} shards: max={max(shard_counts)} tests, "
+                f"min={min(shard_counts)} tests, spread={max(shard_counts) - min(shard_counts)}",
+                file=sys.stderr,
+            )
+
         for i, shard_scopes in enumerate(shards):
             shard_file = out_dir / f"shard-{i}.txt"
             shard_file.write_text("\n".join(sorted(shard_scopes)) + "\n")
