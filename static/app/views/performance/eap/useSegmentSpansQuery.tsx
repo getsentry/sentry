@@ -74,6 +74,7 @@ export function useSegmentSpansQuery({
     pageLinks: multipleQueriesPageLinks,
     meta: multipleQueriesMeta,
   } = useMultipleQueries({
+    query,
     transactionName,
     sort,
     p95,
@@ -150,22 +151,22 @@ function useSingleQuery(options: UseSingleQueryOptions) {
 type UseMultipleQueriesOptions = {
   limit: number;
   p95: number;
+  query: string;
   sort: Sort;
   transactionName: string;
   enabled?: boolean;
 };
 
 function useMultipleQueries(options: UseMultipleQueriesOptions) {
-  const {transactionName, sort, p95, enabled, limit} = options;
+  const {query, sort, p95, enabled, limit} = options;
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR_NAME]);
   const selectedOption = decodeScalar(location.query?.showTransactions);
   const {selection} = usePageFilters();
   const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
-  const categorizedSpansQuery = new MutableSearch(
-    `transaction:${transactionName} span.category:${spanCategoryUrlParam}`
-  );
+  const categorizedSpansQuery = new MutableSearch(query);
+  categorizedSpansQuery.addFilterValue('span.category', spanCategoryUrlParam ?? '');
 
   // The slow (p95) option is the only one that requires an explicit duration filter
   if (selectedOption === TransactionFilterOptions.SLOW && p95) {
