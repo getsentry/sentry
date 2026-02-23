@@ -41,11 +41,9 @@ export default function SeerRepoTable() {
     parseAsSort.withDefault({field: 'name', kind: 'asc'})
   );
 
-  const lowerCaseSearchTerm = searchTerm?.toLowerCase() ?? '';
-
   const queryOptions = organizationRepositoriesInfiniteOptions({
     organization,
-    query: {per_page: 100},
+    query: {per_page: 100, query: searchTerm, sort},
   });
   const {
     data: repositories,
@@ -79,10 +77,7 @@ export default function SeerRepoTable() {
           //   return a.status.localeCompare(b.status);
           // }
           return 0;
-        })
-        .filter(repository =>
-          repository.name.toLowerCase().includes(lowerCaseSearchTerm)
-        ),
+        }),
   });
 
   // Auto-fetch each page, one at a time

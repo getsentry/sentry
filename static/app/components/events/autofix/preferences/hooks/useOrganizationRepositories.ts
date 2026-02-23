@@ -5,6 +5,8 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
+import {encodeSort} from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -75,15 +77,17 @@ export function organizationRepositoriesInfiniteOptions({
     integration_id?: string;
     per_page?: number;
     query?: string;
+    sort?: Sort;
     status?: 'active' | 'deleted' | 'unmigratable';
   };
   staleTime?: number;
 }) {
+  const sortQuery = query?.sort ? encodeSort(query.sort) : undefined;
   return apiOptions.asInfinite<RepositoryWithSettings[]>()(
     '/organizations/$organizationIdOrSlug/repos/',
     {
       path: {organizationIdOrSlug: organization.slug},
-      query: {expand: 'settings', per_page: 100, ...query},
+      query: {expand: 'settings', per_page: 100, ...query, sort: sortQuery},
       staleTime: staleTime ?? 0,
     }
   );
