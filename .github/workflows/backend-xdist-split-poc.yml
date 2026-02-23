@@ -48,7 +48,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Gracefully skip if no prior run exists yet (seed run).
-          RUN_ID=$(gh run list --workflow=backend-xdist-split-poc.yml --status=success \
+          RUN_ID=$(gh run list --workflow=backend-xdist-split-poc.yml \
+            --branch=worktree-duration-lpt --status=success \
             --limit=1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
           if [ -n "$RUN_ID" ]; then
             echo "Downloading test-durations from run $RUN_ID"
