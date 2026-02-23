@@ -330,12 +330,15 @@ class GitHubBaseClient(
         """
         return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> Any:
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> list[Any]:
         """
         See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
         """
-        return self.get_cached(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
+        return self._get_with_pagination(
+            f"/repos/{repo}/compare/{start_sha}...{end_sha}",
+            response_key="commits",
+        )
 
     def repo_hooks(self, repo: str) -> Sequence[Any]:
         """

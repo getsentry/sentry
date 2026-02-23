@@ -138,16 +138,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dynamic-sampling-minimum-sample-rate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metrics emission for dynamic sampling rules
     manager.add("organizations:dynamic-sampling-count-biases", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable archive/escalating issue workflow features in v2
-    manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable emiting escalating data to the metrics backend
     manager.add("organizations:escalating-metrics-backend", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable returning the migrated discover queries in explore saved queries
     manager.add("organizations:expose-migrated-discover-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI features such as Autofix and Issue Summary
     manager.add("organizations:gen-ai-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the 'generate me a query' functionality on the explore > traces page
-    manager.add("organizations:gen-ai-explore-traces", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the 'translate' functionality for GenAI on the explore > traces page
     manager.add("organizations:gen-ai-search-agent-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI consent
@@ -162,7 +158,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:indexed-spans-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable integration functionality to work deployment integrations like Vercel
     manager.add("organizations:integrations-deployment", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
-    manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("organizations:integrations-cursor", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-github-copilot-agent", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-perforce", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -186,7 +181,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable AI-generated titles for issue views
     manager.add("organizations:issue-view-ai-title", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("projects:metric-issue-creation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Large HTTP Payload Detector Improvements
     manager.add("organizations:large-http-payload-detector-improvements", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -230,12 +224,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
     manager.add("organizations:ownership-size-limit-xlarge", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable games tab in the project creation component
-    manager.add("organizations:project-creation-games-tab", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable mobile performance score calculation for transactions in relay
     manager.add("organizations:performance-calculate-mobile-perf-score-relay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enable deprecate discover widget type
-    manager.add("organizations:deprecate-discover-widget-type", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable UI sending a discover split for widget
     manager.add("organizations:performance-discover-widget-split-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables setting the fetch all custom measurements request time range to match the user selected time range instead of 90 days
@@ -398,6 +388,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:search-query-builder-input-flow-changes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder raw search replacement
     manager.add("organizations:search-query-builder-raw-search-replacement", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:seer-agent-pr-consolidation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Seer Autopilot
     manager.add("organizations:seer-autopilot", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable linking from 'new issue' email notifs to the issue replay list
@@ -460,8 +451,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tag-key-sample-n", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable dynamic grouping UI (top issues)
     manager.add("organizations:top-issues-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable feature to load new trace view.
-    manager.add("organizations:trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load new tracing onboarding ui
     manager.add("organizations:tracing-onboarding-new-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to expose export csv button in trace explorer
@@ -470,16 +459,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-view-quota-exceeded-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to use span only trace endpoint.
     manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable feature to load traces schema hints.
-    manager.add("organizations:traces-schema-hints", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extraction metrics for transactions during ingestion.
     manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable feature to load explore link for transaction widgets
     manager.add("organizations:transaction-widget-deprecation-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Normalize URL transaction names during ingestion.
     manager.add("organizations:transaction-name-normalize", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
-    # Enables unlimited auto-triggered autofix runs
-    manager.add("organizations:unlimited-auto-triggered-autofix-runs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables view hierarchy attachment scrubbing
     manager.add("organizations:view-hierarchy-scrubbing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable AI-powered assertion suggestions for uptime monitors
@@ -515,8 +500,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:visibility-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable high date range options on new explore page
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable medium date range options on new explore page
-    manager.add("organizations:visibility-explore-range-medium", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Update action status when integration is installed/deleted
     manager.add("organizations:update-action-status", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable logging to debug workflow engine process workflows
@@ -630,8 +613,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Starfish: extract metrics from the spans
     manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     manager.add("projects:span-metrics-extraction-addons", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enable num events in an issue debugging
-    manager.add("projects:num-events-issue-debugging", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Project plugin features
     manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Enables experimental span v2 processing in Relay.

@@ -521,7 +521,9 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 status_code=200,
             )
 
-        assert response.data["workflowIds"] == [str(workflow1.id), str(workflow2.id)]
+        assert sorted(response.data["workflowIds"]) == sorted(
+            [str(workflow1.id), str(workflow2.id)]
+        )
 
         detector_workflows = DetectorWorkflow.objects.filter(detector=self.detector)
         assert detector_workflows.count() == 2

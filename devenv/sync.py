@@ -218,6 +218,19 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
+    # Agent skills are non-fatal — private skill repos may not be accessible in CI
+    if os.path.exists(f"{reporoot}/agents.toml") and shutil.which(
+        "pnpm", path=f"{reporoot}/.devenv/bin"
+    ):
+        if not run_procs(
+            repo,
+            reporoot,
+            venv_dir,
+            (("agent skills", ("pnpm", "dlx", "@sentry/dotagents", "install", "--frozen"), {}),),
+            verbose,
+        ):
+            print("⚠️  agent skills failed to install (non-fatal)")
+
     # In a worktree, .git is a file; hooks live in the shared git dir. Resolve it so
     # devenv sync works from both main clone and worktrees.
     try:
