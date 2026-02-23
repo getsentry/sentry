@@ -672,6 +672,19 @@ class LLMDetectedExperimentalGroupType(GroupType):
 
 
 @dataclass(frozen=True)
+class LLMDetectedExperimentalGroupTypeV2(GroupType):
+    type_id = 3502
+    slug = "llm_detected_experimental_v2"
+    description = "LLM Detected Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.AI_DETECTED.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
 class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"

@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 
 import jsonschema
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
 from sentry.feedback.usecases.label_generation import (
@@ -298,9 +298,7 @@ def create_feedback_issue(
     )
     issue_fingerprint = [uuid4().hex]
 
-    use_ai_title = should_query_seer and features.has(
-        "organizations:user-feedback-ai-titles", project.organization
-    )
+    use_ai_title = should_query_seer
     title = truncate_feedback_title(
         get_feedback_title(feedback_message, project.organization_id, use_ai_title)
     )
@@ -335,9 +333,7 @@ def create_feedback_issue(
     )
 
     # Generating labels using Seer, which will later be used to categorize feedbacks
-    if should_query_seer and features.has(
-        "organizations:user-feedback-ai-categorization", project.organization
-    ):
+    if should_query_seer:
         try:
             labels = generate_labels(feedback_message, project.organization_id)
             # This will rarely happen unless the user writes a really long feedback message

@@ -23,6 +23,7 @@ import {
   getEscapedKey,
   getHiddenOptions,
   getSelectedOptions,
+  getSortedItems,
   HiddenSectionToggle,
   shouldCloseOnSelect,
 } from './utils';
@@ -174,11 +175,17 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, search, searchable, overlayIsOpen} = useContext(ControlContext);
+  const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
+    useContext(ControlContext);
 
-  const hiddenOptions = useMemo(
-    () => getHiddenOptions(items, search, sizeLimit),
-    [items, search, sizeLimit]
+  const {hidden: hiddenOptions, scores} = useMemo(
+    () => getHiddenOptions(items, search, sizeLimit, searchMatcher),
+    [items, search, sizeLimit, searchMatcher]
+  );
+
+  const sortedItems = useMemo(
+    () => (searchMatcher && scores.size > 0 ? getSortedItems(items, scores) : items),
+    [items, scores, searchMatcher]
   );
 
   /**
@@ -249,7 +256,7 @@ export function List<Value extends SelectKey>({
   const listState = useListState({
     ...props,
     ...listStateProps,
-    items,
+    items: sortedItems,
   });
 
   // In composite selects, focus should seamlessly move from one region (list) to

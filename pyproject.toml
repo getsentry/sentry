@@ -913,4 +913,5 @@ module = [
 ]
 disallow_any_generics = true
 disallow_untyped_defs = true
+strict_equality = true
 # end: stronger typing

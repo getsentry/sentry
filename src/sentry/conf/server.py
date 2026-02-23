@@ -927,6 +927,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.explorer_service_map",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
@@ -963,6 +964,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer_explorer_index",
+    "sentry.tasks.explorer_context_engine_tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )

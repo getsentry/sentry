@@ -1047,12 +1047,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleMEPAlertDataset = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isMetricsData} = data ?? {};
-    const {organization} = this.props;
 
-    if (
-      isMetricsData === undefined ||
-      !organization.features.includes('mep-rollout-flag')
-    ) {
+    if (isMetricsData === undefined) {
       return;
     }
 
@@ -1213,12 +1209,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
     // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
     const {dataset} = this.state;
-    const {organization} = this.props;
-    const hasMetricsFeatureFlags =
-      organization.features.includes('mep-rollout-flag') ||
-      hasOnDemandMetricAlertFeature(organization);
-
-    if (hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+    if (dataset === Dataset.TRANSACTIONS) {
       return Dataset.GENERIC_METRICS;
     }
     return dataset;
