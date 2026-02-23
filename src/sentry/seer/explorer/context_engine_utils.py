@@ -71,6 +71,7 @@ def get_top_span_ops_for_org_projects(
             query_string="",
             selected_columns=[
                 "project.id",
+                "span.op",
                 "span.category",
                 "sentry.normalized_description",
                 "sum(span.self_time)",
@@ -92,7 +93,7 @@ def get_top_span_ops_for_org_projects(
     ops_by_project: dict[int, list[tuple[str, str]]] = {}
     for row in result.get("data", []):
         project_id = row.get("project.id")
-        category = row.get("span.category") or ""
+        category = row.get("span.category") or row.get("span.op") or ""
         description = row.get("sentry.normalized_description") or ""
         if project_id is not None:
             ops_by_project.setdefault(project_id, [])
