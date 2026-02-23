@@ -198,8 +198,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         batch_features = self.get_features(organization, request)
 
-        use_metrics = True
-
         try:
             use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
         except ValueError:
@@ -264,7 +262,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=use_aggregate_conditions,
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
-                has_metrics=use_metrics,
+                has_metrics=True,
+                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 fallback_to_transactions=True,

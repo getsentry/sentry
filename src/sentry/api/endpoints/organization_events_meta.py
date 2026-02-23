@@ -70,8 +70,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
         batch_features = self.get_features(organization, request)
 
-        use_metrics = True
-
         with handle_query_errors():
             if dataset in RPC_DATASETS:
                 result = dataset.run_table_query(
@@ -92,7 +90,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                     snuba_params=snuba_params,
                     query=request.query_params.get("query"),
                     referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
-                    has_metrics=use_metrics,
+                    has_metrics=True,
+                    use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                     # TODO: @athena - add query_source when all datasets support it
                     # query_source=(
                     #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API

@@ -309,8 +309,6 @@ class DataExportEndpoint(OrganizationEndpoint):
         if request.data and hasattr(request.data, "get"):
             limit = request.data.get("limit")
 
-        use_metrics = True
-
         # Validate the data export payload
         serializer = DataExportQuerySerializer(
             data=request.data,
@@ -320,7 +318,7 @@ class DataExportEndpoint(OrganizationEndpoint):
                     request=request, organization=organization, project_ids=project_query
                 ),
                 "get_projects": lambda: self.get_projects(request, organization),
-                "has_metrics": use_metrics,
+                "has_metrics": True,
             },
         )
         if not serializer.is_valid():

@@ -7,7 +7,6 @@ from rest_framework import serializers
 from rest_framework.serializers import ListField
 
 import sentry
-from sentry import features
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.discover.models import (
@@ -16,13 +15,11 @@ from sentry.discover.models import (
     TeamKeyTransaction,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES as ERROR_PARSER_CONFIG_OVERRIDES
-from sentry.users.models import User
 from sentry.utils.dates import parse_stats_period, validate_interval
 
 
@@ -135,32 +132,6 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         2: {"groupby", "rollup", "aggregations", "conditions", "limit"},
     }
 
-    def get_metrics_features(
-        self, organization: Organization | None, user: User | None
-    ) -> dict[str, bool | None]:
-        if organization is None or user is None:
-            return {}
-
-        feature_names = [
-            "organizations:mep-rollout-flag",
-            "organizations:dynamic-sampling",
-            "organizations:performance-use-metrics",
-        ]
-        batch_features = features.batch_has(
-            feature_names,
-            organization=organization,
-            actor=user,
-        )
-
-        return (
-            batch_features.get(f"organization:{organization.id}", {})
-            if batch_features is not None
-            else {
-                feature_name: features.has(feature_name, organization=organization, actor=user)
-                for feature_name in feature_names
-            }
-        )
-
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids
 
@@ -242,15 +213,13 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     0,
                 )
             try:
-                use_metrics = True
-
                 equations, columns = categorize_columns(query["fields"])
 
                 config = QueryBuilderConfig()
                 if data.get("queryDataset") == DiscoverSavedQueryTypes.ERROR_EVENTS:
                     config.parser_config_overrides = ERROR_PARSER_CONFIG_OVERRIDES
                 elif data.get("queryDataset") == DiscoverSavedQueryTypes.TRANSACTION_LIKE:
-                    config.has_metrics = use_metrics
+                    config.has_metrics = True
 
                 builder = DiscoverQueryBuilder(
                     dataset=Dataset.Discover,
