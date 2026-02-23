@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -71,57 +72,64 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
             if not seer_data:
                 return {"data": []}
 
-            # Filter out runs without a group_id (non-autofix runs have group_id=None)
-            runs = [run for run in seer_data if run.group_id is not None]
+            runs = list(seer_data)
 
             if not runs:
                 return {"data": []}
 
-            group_ids = [run.group_id for run in runs]
-            qs = Group.objects.filter(id__in=group_ids, project_id__in=project_ids)
-            groups = list(qs)
+            group_ids = [run.group_id for run in runs if run.group_id is not None]
+            groups_by_id: dict[str, dict] = {}
 
-            if not groups:
-                return {"data": []}
+            if group_ids:
+                qs = Group.objects.filter(id__in=group_ids, project_id__in=project_ids)
+                groups = list(qs)
 
-            serialized_groups = serialize(
-                groups,
-                request.user,
-                GroupSerializerSnuba(
-                    organization_id=organization.id,
-                    project_ids=project_ids,
-                ),
-                request=request,
-            )
+                if groups:
+                    serialized_groups = serialize(
+                        groups,
+                        request.user,
+                        GroupSerializerSnuba(
+                            organization_id=organization.id,
+                            project_ids=project_ids,
+                        ),
+                        request=request,
+                    )
+                    groups_by_id = {sg["id"]: sg for sg in serialized_groups}
 
-            serialized_groups_by_id: dict[str, dict] = {sg["id"]: sg for sg in serialized_groups}
-
-            # Runs are sorted newest-first; keep only the first entry per group_id
-            seen_group_ids: set[int] = set()
             results: list[dict] = []
             for run in runs:
-                if run.group_id is not None and run.group_id not in seen_group_ids:
-                    seen_group_ids.add(run.group_id)
-                    serialized_group = serialized_groups_by_id.get(str(run.group_id))
-                    if serialized_group:
-                        results.append(
-                            {
-                                "runId": run.run_id,
-                                "userId": run.user_id,
-                                "createdAt": run.created_at,
-                                "repoPrStates": {
-                                    repo_name: {
-                                        "repoName": state.repo_name,
-                                        "branchName": state.branch_name,
-                                        "prNumber": state.pr_number,
-                                        "prUrl": state.pr_url,
-                                        "prCreationStatus": state.pr_creation_status,
-                                    }
-                                    for repo_name, state in (run.repo_pr_states or {}).items()
-                                },
-                                "group": serialized_group,
-                            }
+                serialized_group = None
+                if run.group_id is not None:
+                    serialized_group = groups_by_id.get(str(run.group_id))
+                    if serialized_group is None:
+                        sentry_sdk.capture_message(
+                            f"Seer Explorer PR group not found: group_id={run.group_id}",
+                            level="warning",
                         )
+                else:
+                    sentry_sdk.capture_message(
+                        f"Seer Explorer PR run has no group_id: run_id={run.run_id}",
+                        level="warning",
+                    )
+
+                results.append(
+                    {
+                        "runId": run.run_id,
+                        "userId": run.user_id,
+                        "createdAt": run.created_at,
+                        "repoPrStates": {
+                            repo_name: {
+                                "repoName": state.repo_name,
+                                "branchName": state.branch_name,
+                                "prNumber": state.pr_number,
+                                "prUrl": state.pr_url,
+                                "prCreationStatus": state.pr_creation_status,
+                            }
+                            for repo_name, state in (run.repo_pr_states or {}).items()
+                        },
+                        "group": serialized_group,
+                    }
+                )
 
             return {"data": results}
 

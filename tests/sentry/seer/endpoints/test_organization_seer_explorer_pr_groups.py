@@ -126,7 +126,8 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         self.mock_serialize.assert_not_called()
 
     def test_get_filters_by_project_id(self) -> None:
-        """Groups not matching the requested project_id are excluded from the DB query."""
+        """Groups not matching the requested project_id are excluded from the DB query,
+        but the run is still returned with group=None."""
         group_in_project = self.create_group(project=self.project)
         other_project = self.create_project(organization=self.organization)
         group_in_other_project = self.create_group(project=other_project)
@@ -141,8 +142,9 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
 
         assert response.status_code == 200
         data = response.json()["data"]
-        assert len(data) == 1
+        assert len(data) == 2
         assert data[0]["group"]["id"] == str(group_in_project.id)
+        assert data[1]["group"] is None
 
     def test_get_multiple_projects(self) -> None:
         """Passing multiple ?project= params returns groups from all requested projects."""
@@ -167,18 +169,19 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         returned_ids = {d["group"]["id"] for d in data}
         assert returned_ids == {str(group1.id), str(group2.id)}
 
-    def test_get_no_matching_groups_returns_empty(self) -> None:
-        """When Seer returns group IDs that don't exist in the requested project, return empty."""
+    def test_get_no_matching_groups_returns_null_group(self) -> None:
+        """When Seer returns group IDs that don't exist in the requested project, group is None."""
         self.mock_client.get_runs.return_value = [self._make_seer_item(group_id=999999)]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        assert response.json()["data"] == []
-        self.mock_serialize.assert_not_called()
+        data = response.json()["data"]
+        assert len(data) == 1
+        assert data[0]["group"] is None
 
-    def test_get_filters_out_null_group_ids(self) -> None:
-        """Runs without a group_id (non-autofix) are filtered out before querying groups."""
+    def test_get_includes_null_group_id_runs(self) -> None:
+        """Runs without a group_id are included with group=None."""
         group = self.create_group(project=self.project)
 
         self.mock_client.get_runs.return_value = [
@@ -191,8 +194,9 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
 
         assert response.status_code == 200
         data = response.json()["data"]
-        assert len(data) == 1
+        assert len(data) == 2
         assert data[0]["group"]["id"] == str(group.id)
+        assert data[1]["group"] is None
 
     def test_get_seer_permission_error(self) -> None:
         self.mock_client_class.side_effect = SeerPermissionError("Feature flag not enabled")
