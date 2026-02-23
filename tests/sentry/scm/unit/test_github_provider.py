@@ -1000,7 +1000,7 @@ class TestGetCommitEdgeCases:
 
         assert result["data"]["files"][0]["patch"] is None
 
-    def test_unknown_file_status_passes_through(self):
+    def test_invalid_file_status_defaults_to_unknown(self):
         repository = make_repository()
         raw = make_github_commit(
             files=[make_github_commit_file(filename="file.py", status="unknown_status")]
@@ -1010,7 +1010,7 @@ class TestGetCommitEdgeCases:
 
         result = provider.get_commit("abc123")
 
-        assert result["data"]["files"][0]["status"] == "unknown_status"
+        assert result["data"]["files"][0]["status"] == "unknown"
 
     def test_missing_file_status_defaults_to_modified(self):
         repository = make_repository()

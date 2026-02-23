@@ -26,7 +26,7 @@ type RepositoryId = int | tuple[ProviderName, ExternalId]
 """A repository can be identified by its internal DB id or by a (provider, external_id) pair."""
 
 type FileStatus = Literal[
-    "added", "removed", "modified", "renamed", "copied", "changed", "unchanged"
+    "added", "removed", "modified", "renamed", "copied", "changed", "unchanged", "unknown"
 ]
 """The change type applied to a file in a commit or pull request.
 
@@ -37,6 +37,7 @@ type FileStatus = Literal[
 - copied: file was duplicated from another path
 - changed: file metadata changed without content change (e.g. mode)
 - unchanged: file appears in the diff context but was not modified
+- unknown: file status could not be positively identified
 """
 
 type BuildStatus = Literal["pending", "running", "completed"]

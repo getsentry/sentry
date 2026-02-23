@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.scm.errors import SCMProviderException
@@ -15,6 +15,7 @@ from sentry.scm.types import (
     CommitComparison,
     CommitFile,
     FileContent,
+    FileStatus,
     GitBlob,
     GitCommitObject,
     GitCommitTree,
@@ -175,10 +176,23 @@ def _transform_commit_author(raw_author: dict[str, Any] | None) -> CommitAuthor 
     )
 
 
+_VALID_FILE_STATUSES: set[str] = {
+    "added",
+    "removed",
+    "modified",
+    "renamed",
+    "copied",
+    "changed",
+    "unchanged",
+}
+
+
 def _transform_commit_file(raw_file: dict[str, Any]) -> CommitFile:
+    raw_status = raw_file.get("status", "modified")
+    status = raw_status if raw_status in _VALID_FILE_STATUSES else "unknown"
     return CommitFile(
         filename=raw_file["filename"],
-        status=raw_file.get("status", "modified"),
+        status=cast(FileStatus, status),
         patch=raw_file.get("patch"),
     )
 
@@ -347,9 +361,11 @@ def _transform_graphql_pr_comments(raw: dict[str, Any]) -> list[ActionResult[Com
 
 
 def _transform_pull_request_file(raw_file: dict[str, Any]) -> PullRequestFile:
+    raw_status = raw_file.get("status", "modified")
+    status = raw_status if raw_status in _VALID_FILE_STATUSES else "modified"
     return PullRequestFile(
         filename=raw_file["filename"],
-        status=raw_file.get("status", "modified"),
+        status=cast(FileStatus, status),
         patch=raw_file.get("patch"),
         changes=raw_file.get("changes", 0),
         sha=raw_file.get("sha", ""),
