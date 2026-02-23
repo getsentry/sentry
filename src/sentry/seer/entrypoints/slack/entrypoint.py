@@ -256,11 +256,14 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                             "repo_name": repo,
                             "title": change["path"],
                             # TODO: add the diff to the change list
+                            "description": "",
+                            "diff": "",
                         }
                         for repo, change in explorer_changes.items()
                     ]
                 else:
                     changes_list = []
+
                 data_kwargs.update(
                     {
                         "current_point": AutofixStoppingPoint.CODE_CHANGES,
