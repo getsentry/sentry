@@ -49,7 +49,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve Size Analysis for a Build",
+        operation_id="Retrieve Size Analysis results for a given artifact",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -61,8 +61,8 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                 location="path",
             ),
             OpenApiParameter(
-                name="base_id",
-                description="Optional ID of the base artifact to compare against. If not provided, uses the default base from the commit comparison.",
+                name="base_artifact_id",
+                description="Optional ID of the base artifact to compare against. If not provided, uses the default base head artifact.",
                 required=False,
                 type=str,
                 location="query",
@@ -89,7 +89,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
         Retrieve size analysis results for a build artifact.
 
         Returns size metrics including download size, install size, and optional insights.
-        When a base artifact exists (either from commit comparison or via the base_id parameter),
+        When a base artifact exists (either from commit comparison or via the base_artifact_id parameter),
         comparison data showing size differences is included.
         """
 
@@ -101,7 +101,9 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
         size_metrics = list(head_artifact.get_size_metrics())
 
         if not size_metrics:
-            return Response({"detail": "Size analysis not available for this artifact"}, status=404)
+            return Response(
+                {"detail": "Size analysis is not available for this artifact"}, status=404
+            )
 
         main_metric = next(
             (
@@ -244,22 +246,20 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
         project: Project,
         head_artifact: PreprodArtifact,
     ) -> PreprodArtifact | None:
-        """Get the base artifact for comparison."""
-        base_id = request.GET.get("base_id")
+        base_artifact_id = request.GET.get("base_artifact_id")
 
-        if base_id:
+        if base_artifact_id:
             try:
                 base_artifact = PreprodArtifact.objects.select_related(
-                    "mobile_app_info", "build_configuration"
-                ).get(id=int(base_id), project=project)
+                    "mobile_app_info", "build_configuration", "commit_comparison"
+                ).get(id=int(base_artifact_id), project=project)
                 return base_artifact
             except (PreprodArtifact.DoesNotExist, ValueError):
                 raise PreprodArtifactResourceDoesNotExist(
                     detail="The requested base preprod artifact does not exist"
                 )
 
-        # Use default base from commit_comparison
         base_artifact_qs = head_artifact.get_base_artifact_for_commit().select_related(
-            "mobile_app_info", "build_configuration"
+            "mobile_app_info", "build_configuration", "commit_comparison"
         )
         return base_artifact_qs.first()

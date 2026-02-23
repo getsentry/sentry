@@ -63,7 +63,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
     def test_no_size_metrics(self):
         response = self.client.get(self._get_url())
         assert response.status_code == 404
-        assert response.json()["detail"] == "Size analysis not available for this artifact"
+        assert response.json()["detail"] == "Size analysis is not available for this artifact"
 
     def test_pending_state(self):
         self.create_preprod_artifact_size_metrics(
@@ -447,7 +447,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             MockModelsFile.objects.get.side_effect = get_file_side_effect
             MockModelsFile.DoesNotExist = Exception
 
-            response = self.client.get(self._get_url() + f"?base_id={base_artifact.id}")
+            response = self.client.get(self._get_url() + f"?base_artifact_id={base_artifact.id}")
 
         assert response.status_code == 200
         data = response.json()
@@ -483,7 +483,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             mock_file_obj.getfile.return_value = mock_fp
             MockFile.objects.get.return_value = mock_file_obj
 
-            response = self.client.get(self._get_url() + "?base_id=999999")
+            response = self.client.get(self._get_url() + "?base_artifact_id=999999")
 
         assert response.status_code == 404
         assert "base preprod artifact does not exist" in response.json()["detail"]
@@ -526,7 +526,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             mock_file_obj.getfile.return_value = mock_fp
             MockFile.objects.get.return_value = mock_file_obj
 
-            response = self.client.get(self._get_url() + f"?base_id={other_artifact.id}")
+            response = self.client.get(self._get_url() + f"?base_artifact_id={other_artifact.id}")
 
         assert response.status_code == 404
         assert "base preprod artifact does not exist" in response.json()["detail"]

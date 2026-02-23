@@ -54,7 +54,7 @@ class PreprodArtifactEndpoint(ProjectEndpoint):
 
         try:
             head_artifact = PreprodArtifact.objects.select_related(
-                "mobile_app_info", "build_configuration"
+                "mobile_app_info", "build_configuration", "commit_comparison"
             ).get(id=int(head_artifact_id))
         except (PreprodArtifact.DoesNotExist, ValueError):
             raise HeadPreprodArtifactResourceDoesNotExist
@@ -70,7 +70,7 @@ class PreprodArtifactEndpoint(ProjectEndpoint):
 
         try:
             base_artifact = PreprodArtifact.objects.select_related(
-                "mobile_app_info", "build_configuration"
+                "mobile_app_info", "build_configuration", "commit_comparison"
             ).get(id=int(base_artifact_id))
         except (PreprodArtifact.DoesNotExist, ValueError):
             raise BasePreprodArtifactResourceDoesNotExist
