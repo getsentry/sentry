@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
+from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -333,6 +334,38 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             status_code=400,
         )
         assert "projectId" in response.data
+
+        # verify project was not updated
+        self.detector.refresh_from_db()
+        assert self.detector.project == self.project
+
+    def test_update_project_no_access(self) -> None:
+        # Disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create a user who is a member of the org but NOT a member of any team
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        project2 = self.create_project(organization=self.organization)
+        data = {"projectId": project2.id}
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=403,
+        )
+        assert response.data == {
+            "detail": ErrorDetail(
+                "You do not have permission to perform this action.",
+                code="permission_denied",
+            ),
+        }
 
         # verify project was not updated
         self.detector.refresh_from_db()

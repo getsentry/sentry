@@ -89,8 +89,15 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
 
     def validate_project_id(self, value: str) -> int:
         organization = self.context.get("organization")
-        if not Project.objects.filter(id=int(value), organization=organization).exists():
+        try:
+            project = Project.objects.get(id=int(value), organization=organization)
+        except Project.DoesNotExist:
             raise serializers.ValidationError("Project not in organization")
+
+        request = self.context["request"]
+        if not request.access.has_project_access(project):
+            raise serializers.ValidationError("User does not have access to this project")
+
         return int(value)
 
     def validate_type(self, value: str) -> builtins.type[GroupType]:

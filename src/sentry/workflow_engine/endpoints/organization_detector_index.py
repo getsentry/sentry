@@ -342,10 +342,6 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if project.organization.id != organization.id:
             raise ValidationError({"projectId": ["Project not found"]})
 
-        # TODO: Should be in the validator?
-        if not request.access.has_project_access(project):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
         validator = get_detector_validator(request, project, detector_type)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
