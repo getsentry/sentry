@@ -48,17 +48,41 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RUN_ID=$(gh run list \
+          # Try pre-merged durations from last successful run first.
+          SUCCESS_RUN=$(gh run list \
             --workflow=backend-xdist-split-poc.yml \
             --status=success --limit=1 \
             --json databaseId --jq '.[0].databaseId')
-          if [ -n "$RUN_ID" ]; then
-            echo "Attempting to download test-durations from run $RUN_ID"
-            gh run download "$RUN_ID" --name test-durations --dir /tmp/durations 2>/dev/null \
-              && echo "Duration data available: $(wc -l < /tmp/durations/test-durations.json) bytes" \
-              || echo "No test-durations artifact in run $RUN_ID (seed run)"
+          if [ -n "$SUCCESS_RUN" ]; then
+            gh run download "$SUCCESS_RUN" --name test-durations --dir /tmp/durations 2>/dev/null \
+              && echo "Duration data from successful run $SUCCESS_RUN" \
+              && exit 0 \
+              || true
+          fi
+
+          # Fallback: if merge-durations failed but T2 tests passed, the raw
+          # pytest JSON artifacts are still available. Download and merge inline.
+          LAST_RUN=$(gh run list \
+            --workflow=backend-xdist-split-poc.yml \
+            --status=completed --limit=1 \
+            --json databaseId --jq '.[0].databaseId')
+          if [ -n "$LAST_RUN" ]; then
+            echo "Attempting fallback: merge pytest JSONs inline from run $LAST_RUN"
+            mkdir -p /tmp/pytest-jsons-fallback
+            if gh run download "$LAST_RUN" --pattern "pytest-json-tier2-*" \
+                --dir /tmp/pytest-jsons-fallback 2>/dev/null; then
+              mkdir -p /tmp/durations
+              python3 .github/workflows/scripts/merge-test-durations.py \
+                --input-dir /tmp/pytest-jsons-fallback/ \
+                --output /tmp/durations/test-durations.json \
+                --summary \
+                && echo "Fallback merge succeeded" \
+                || { echo "Fallback merge failed (seed run)"; rm -f /tmp/durations/test-durations.json; }
+            else
+              echo "No pytest JSON artifacts in run $LAST_RUN (seed run)"
+            fi
           else
-            echo "No previous successful run found (seed run)"
+            echo "No previous completed run found (seed run)"
           fi
 
       - name: Split tests by tier
