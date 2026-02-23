@@ -91,6 +91,7 @@ function ThresholdsSection({
             payload: {
               max_values: state.thresholds?.max_values ?? {},
               unit,
+              preferredPolarity: state.thresholds?.preferredPolarity,
             },
           });
         }}

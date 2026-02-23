@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -101,6 +102,7 @@ export function Thresholds({
   preferredPolarity = '-',
   onPolarityChange,
 }: ThresholdsStepProps) {
+  const theme = useTheme();
   const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
   const maxTwoValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2] ?? '';
   const unit = thresholdsConfig?.unit ?? dataUnit;
@@ -113,6 +115,10 @@ export function Thresholds({
   const rowColors = isHigherBetter
     ? POSITIVE_POLARITY_COLOR_ORDER
     : NEGATIVE_POLARITY_COLOR_ORDER;
+
+  const bottomColor = theme.colors[rowColors[0]];
+  const middleColor = theme.colors[rowColors[1]];
+  const topColor = theme.colors[rowColors[2]];
 
   const thresholdRowProps: ThresholdRowProp[] = [
     {
@@ -128,7 +134,7 @@ export function Thresholds({
         'aria-label': 'First Maximum',
         error: errors?.max1,
       },
-      color: rowColors[0],
+      color: bottomColor,
       unitOptions,
       unitSelectProps: {
         name: 'First unit select',
@@ -148,7 +154,7 @@ export function Thresholds({
         'aria-label': 'Second Maximum',
         error: errors?.max2,
       },
-      color: rowColors[1],
+      color: middleColor,
       unitOptions,
       unitSelectProps: {
         name: 'Second unit select',
@@ -168,7 +174,7 @@ export function Thresholds({
         placeholder: t('No max'),
         'aria-label': 'Third Maximum',
       },
-      color: rowColors[2],
+      color: topColor,
       unitOptions,
       unitSelectProps: {
         name: 'Third unit select',
