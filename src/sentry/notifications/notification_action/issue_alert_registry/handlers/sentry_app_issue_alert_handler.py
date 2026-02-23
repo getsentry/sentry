@@ -95,4 +95,5 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
         if not alert_rule_component:
             return ""
 
-        return str(alert_rule_component.app_schema.get("title", sentry_app.name))
+        schema_title = alert_rule_component.app_schema.get("title")
+        return schema_title if schema_title is not None else sentry_app.name
