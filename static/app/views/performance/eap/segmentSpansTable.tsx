@@ -70,9 +70,9 @@ export function SegmentSpansTable({
   const {selected, options} = getEAPSegmentSpansListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const eventViewQuery = new MutableSearch(
-    `is_transaction:true transaction:${transactionName} ${query}`
-  );
+  const eventViewQuery = new MutableSearch(query);
+  eventViewQuery.addFilterValue('is_transaction', 'true');
+  eventViewQuery.addFilterValue('transaction', transactionName);
   if (selected.value === TransactionFilterOptions.SLOW && p95) {
     eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
