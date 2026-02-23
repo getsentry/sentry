@@ -701,15 +701,6 @@ def map_commit_file(raw_file: dict[str, Any]) -> CommitFile:
     )
 
 
-def _map_commit(commit: dict[str, Any]) -> Commit:
-    return Commit(
-        id=commit["tree"]["sha"],
-        message=commit["message"],
-        author=map_commit_author(commit["author"]),
-        files=[map_commit_file(f) for f in commit.get("files", [])],
-    )
-
-
 def map_commit(raw: dict[str, Any]) -> Commit:
     commit = raw.get("commit", {})
     return Commit(
