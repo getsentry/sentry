@@ -77,6 +77,13 @@ class PrebuiltDashboardId(IntEnum):
     MOBILE_SESSION_HEALTH = 13
     FRONTEND_OVERVIEW = 14
     NEXTJS_FRONTEND_OVERVIEW = 15
+    AI_AGENTS_OVERVIEW = 16
+    AI_AGENTS_MODELS = 17
+    AI_AGENTS_TOOLS = 18
+    MCP_OVERVIEW = 19
+    MCP_TOOLS = 20
+    MCP_RESOURCES = 21
+    MCP_PROMPTS = 22
 
 
 class PrebuiltDashboard(TypedDict):
@@ -153,6 +160,34 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.NEXTJS_FRONTEND_OVERVIEW,
         "title": "Next.js Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_MODELS,
+        "title": "AI Agents Models",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_TOOLS,
+        "title": "AI Agents Tools",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_TOOLS,
+        "title": "MCP Tools",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_RESOURCES,
+        "title": "MCP Resources",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_PROMPTS,
+        "title": "MCP Prompts",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
+        "title": "AI Agents Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_OVERVIEW,
+        "title": "MCP Overview",
     },
 ]
 
