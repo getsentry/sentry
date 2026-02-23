@@ -780,6 +780,7 @@ module = [
     "tests.sentry.demo_mode.*",
     "tests.sentry.digests.*",
     "tests.sentry.discover.translation.*",
+    "tests.sentry.event_manager.interfaces.*",
     "tests.sentry.event_manager.test_event_manager",
     "tests.sentry.eventstream.*",
     "tests.sentry.eventtypes.*",
