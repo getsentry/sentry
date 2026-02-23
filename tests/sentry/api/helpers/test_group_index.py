@@ -569,7 +569,10 @@ class MergeGroupsTest(TestCase):
                     platform="javascript",
                     metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
                 ).id,
-                self.create_group(platform="javascript").id,
+                self.create_group(
+                    platform="javascript",
+                    metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
+                ).id,
             ]
             project = self.project
 
