@@ -55,7 +55,7 @@ export function AssertionOpGroup({
       // possible that someone could send something to the API that we can't
       // render, in which case we'll just render this as an empty group
       value.operand.op !== OpType.AND && value.operand.op !== OpType.OR
-      ? {id: value.id, op: OpType.AND as const, children: []}
+      ? {id: value.id, op: OpType.AND, children: []}
       : value.operand
     : value;
 
