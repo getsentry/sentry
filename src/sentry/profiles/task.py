@@ -288,6 +288,9 @@ def process_profile_task(
 
 
 def _is_deprecated(profile: Profile, project: Project, organization: Organization) -> bool:
+    if not features.has("organizations:profiling-sdks", organization):
+        return False
+
     try:
         event_type = determine_profile_type(profile)
     except UnknownProfileTypeException:
@@ -341,7 +344,9 @@ def _is_deprecated(profile: Profile, project: Project, organization: Organizatio
         )
         return True
 
-    if is_sdk_deprecated(event_type, sdk_name, sdk_version):
+    if features.has("organizations:profiling-deprecate-sdks", organization) and is_sdk_deprecated(
+        event_type, sdk_name, sdk_version
+    ):
         _track_outcome(
             profile=profile,
             project=project,
@@ -1426,25 +1431,28 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                         get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
                     )
                     profile_functions_producer.produce(topic, payload)
-            with sentry_sdk.start_span(op="processing", name="extract functions metrics (eap)"):
-                eap_functions = prof.extract_functions_metrics(
-                    min_depth=1,
-                    filter_system_frames=True,
-                    max_unique_functions=100,
-                    generate_stack_fingerprints=True,
-                )
-                if eap_functions is not None and len(eap_functions) > 0:
-                    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
-                    tot = 0
-                    for payload in build_profile_functions_eap_trace_items(prof, eap_functions):
-                        eap_producer.produce(topic, payload)
-                        tot += 1
-                    metrics.incr(
-                        "process_profile.eap_functions_metrics.ingested.count",
-                        tot,
-                        tags={"type": "profile", "platform": profile["platform"]},
-                        sample_rate=1.0,
+            if features.has("projects:profile-functions-metrics-eap-ingestion", project):
+                with sentry_sdk.start_span(op="processing", name="extract functions metrics (eap)"):
+                    eap_functions = prof.extract_functions_metrics(
+                        min_depth=1,
+                        filter_system_frames=True,
+                        max_unique_functions=100,
+                        generate_stack_fingerprints=True,
                     )
+                    if eap_functions is not None and len(eap_functions) > 0:
+                        topic = ArroyoTopic(
+                            get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+                        )
+                        tot = 0
+                        for payload in build_profile_functions_eap_trace_items(prof, eap_functions):
+                            eap_producer.produce(topic, payload)
+                            tot += 1
+                        metrics.incr(
+                            "process_profile.eap_functions_metrics.ingested.count",
+                            tot,
+                            tags={"type": "profile", "platform": profile["platform"]},
+                            sample_rate=1.0,
+                        )
             if prof.is_sampled():
                 # Send profile metadata to Kafka
                 with sentry_sdk.start_span(op="processing", name="send profile kafka message"):
@@ -1501,25 +1509,28 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                         get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
                     )
                     profile_functions_producer.produce(topic, payload)
-            with sentry_sdk.start_span(op="processing", name="extract functions metrics (eap)"):
-                eap_functions = chunk.extract_functions_metrics(
-                    min_depth=1,
-                    filter_system_frames=True,
-                    max_unique_functions=100,
-                    generate_stack_fingerprints=True,
-                )
-                if eap_functions is not None and len(eap_functions) > 0:
-                    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
-                    tot = 0
-                    for payload in build_chunk_functions_eap_trace_items(chunk, eap_functions):
-                        eap_producer.produce(topic, payload)
-                        tot += 1
-                    metrics.incr(
-                        "process_profile.eap_functions_metrics.ingested.count",
-                        tot,
-                        tags={"type": "chunk", "platform": profile["platform"]},
-                        sample_rate=1.0,
+            if features.has("projects:profile-functions-metrics-eap-ingestion", project):
+                with sentry_sdk.start_span(op="processing", name="extract functions metrics (eap)"):
+                    eap_functions = chunk.extract_functions_metrics(
+                        min_depth=1,
+                        filter_system_frames=True,
+                        max_unique_functions=100,
+                        generate_stack_fingerprints=True,
                     )
+                    if eap_functions is not None and len(eap_functions) > 0:
+                        topic = ArroyoTopic(
+                            get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+                        )
+                        tot = 0
+                        for payload in build_chunk_functions_eap_trace_items(chunk, eap_functions):
+                            eap_producer.produce(topic, payload)
+                            tot += 1
+                        metrics.incr(
+                            "process_profile.eap_functions_metrics.ingested.count",
+                            tot,
+                            tags={"type": "chunk", "platform": profile["platform"]},
+                            sample_rate=1.0,
+                        )
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)

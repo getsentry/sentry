@@ -972,7 +972,8 @@ def test_track_latest_sdk(
     profile["organization_id"] = organization.id
     profile["project_id"] = project.id
 
-    process_profile_task(profile=profile)
+    with Feature("organizations:profiling-sdks"):
+        process_profile_task(profile=profile)
 
     assert (
         ProjectSDK.objects.get(
@@ -1019,7 +1020,8 @@ def test_unknown_sdk(
     profile["platform"] = platform
     del profile["client_sdk"]
 
-    process_profile_task(profile=profile)
+    with Feature("organizations:profiling-sdks"):
+        process_profile_task(profile=profile)
 
     assert (
         ProjectSDK.objects.get(
@@ -1062,7 +1064,8 @@ def test_track_latest_sdk_with_payload(
 
     payload = b64encode(msgpack.packb(kafka_payload)).decode("utf-8")
 
-    process_profile_task(payload=payload)
+    with Feature("organizations:profiling-sdks"):
+        process_profile_task(payload=payload)
 
     assert (
         ProjectSDK.objects.get(
@@ -1109,13 +1112,19 @@ def test_deprecated_sdks(
     }
     _symbolicate_profile.return_value = True
 
-    with override_options(
-        {
-            "sdk-deprecation.profile-chunk.python": "2.24.1",
-            "sdk-deprecation.profile-chunk.python.hard": "2.24.0",
-        }
+    with Feature(
+        [
+            "organizations:profiling-sdks",
+            "organizations:profiling-deprecate-sdks",
+        ]
     ):
-        process_profile_task(profile=profile)
+        with override_options(
+            {
+                "sdk-deprecation.profile-chunk.python": "2.24.1",
+                "sdk-deprecation.profile-chunk.python.hard": "2.24.0",
+            }
+        ):
+            process_profile_task(profile=profile)
 
     if dropped:
         _process_vroomrs_profile.assert_not_called()
@@ -1164,7 +1173,13 @@ def test_rejected_sdks(
     }
     _symbolicate_profile.return_value = True
 
-    with Feature("organizations:profiling-reject-sdks"):
+    with Feature(
+        [
+            "organizations:profiling-sdks",
+            "organizations:profiling-deprecate-sdks",
+            "organizations:profiling-reject-sdks",
+        ]
+    ):
         with override_options(
             {
                 "sdk-deprecation.profile-chunk.cocoa": "2.24.1",
