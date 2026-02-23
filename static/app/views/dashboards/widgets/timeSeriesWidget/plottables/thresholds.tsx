@@ -9,6 +9,10 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUnit} from 'sentry/views/dashboards/utils';
+import {
+  NEGATIVE_POLARITY_COLOR_ORDER,
+  POSITIVE_POLARITY_COLOR_ORDER,
+} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/constants';
 import type {
   Thresholds as ThresholdsConfig,
   TimeSeriesValueUnit,
@@ -85,9 +89,13 @@ export class Thresholds implements Plottable {
 
     // For '-' (lower is better): green, yellow, red bottom-to-top
     // For '+' (higher is better): red, yellow, green bottom-to-top
-    const [bottomColor, middleColor, topColor] = isHigherBetter
-      ? [theme.colors.red400, theme.colors.yellow400, theme.colors.green400]
-      : [theme.colors.green400, theme.colors.yellow400, theme.colors.red400];
+    const colorOrder = isHigherBetter
+      ? POSITIVE_POLARITY_COLOR_ORDER
+      : NEGATIVE_POLARITY_COLOR_ORDER;
+
+    const bottomColor = theme.colors[colorOrder[0]];
+    const middleColor = theme.colors[colorOrder[1]];
+    const topColor = theme.colors[colorOrder[2]];
 
     const markAreas = [
       this.toMarkArea([0, max1 ?? Infinity], {
@@ -144,9 +152,14 @@ export class Thresholds implements Plottable {
 
     // For '-' (lower is better): Good (green), Meh (yellow), Poor (red) bottom-to-top
     // For '+' (higher is better): Poor (red), Meh (yellow), Good (green) bottom-to-top
-    const [bottomColor, middleColor, topColor] = isHigherBetter
-      ? [theme.colors.red400, theme.colors.yellow400, theme.colors.green400]
-      : [theme.colors.green400, theme.colors.yellow400, theme.colors.red400];
+    const colorOrder = isHigherBetter
+      ? POSITIVE_POLARITY_COLOR_ORDER
+      : NEGATIVE_POLARITY_COLOR_ORDER;
+
+    const bottomColor = theme.colors[colorOrder[0]];
+    const middleColor = theme.colors[colorOrder[1]];
+    const topColor = theme.colors[colorOrder[2]];
+
     const [bottomLabel, middleLabel, topLabel] = isHigherBetter
       ? [t('Poor'), t('Meh'), t('Good')]
       : [t('Good'), t('Meh'), t('Poor')];

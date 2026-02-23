@@ -361,10 +361,7 @@ function VisualizationWidgetContent({
   ) {
     plottables.push(
       new Thresholds({
-        thresholds: {
-          ...widget.thresholds,
-          preferredPolarity: widget.thresholds?.preferredPolarity ?? '-',
-        },
+        thresholds: {...widget.thresholds},
         dataType: timeSeriesWithPlottable[0]?.[0]?.meta?.valueType,
       })
     );

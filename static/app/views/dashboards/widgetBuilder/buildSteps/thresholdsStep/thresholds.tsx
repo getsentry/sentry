@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -14,6 +13,10 @@ import type {Polarity} from 'sentry/components/percentChange';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
+import {
+  NEGATIVE_POLARITY_COLOR_ORDER,
+  POSITIVE_POLARITY_COLOR_ORDER,
+} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/constants';
 
 type ThresholdErrors = Partial<Record<ThresholdMaxKeys, string>>;
 
@@ -98,7 +101,6 @@ export function Thresholds({
   preferredPolarity = '-',
   onPolarityChange,
 }: ThresholdsStepProps) {
-  const theme = useTheme();
   const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
   const maxTwoValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2] ?? '';
   const unit = thresholdsConfig?.unit ?? dataUnit;
@@ -108,11 +110,11 @@ export function Thresholds({
 
   const isHigherBetter = preferredPolarity === '+';
 
-  // Row colors: for '-' (lower is better): green, yellow, red top-to-bottom
+  // Row colors: for '-' (lower is better): green, yellow , red top-to-bottom
   // For '+' (higher is better): red, yellow, green top-to-bottom
   const rowColors = isHigherBetter
-    ? [theme.colors.red400, theme.colors.yellow400, theme.colors.green400]
-    : [theme.colors.green400, theme.colors.yellow400, theme.colors.red400];
+    ? POSITIVE_POLARITY_COLOR_ORDER
+    : NEGATIVE_POLARITY_COLOR_ORDER;
 
   const thresholdRowProps: ThresholdRowProp[] = [
     {
@@ -128,7 +130,7 @@ export function Thresholds({
         'aria-label': 'First Maximum',
         error: errors?.max1,
       },
-      color: rowColors[0]!,
+      color: rowColors[0],
       unitOptions,
       unitSelectProps: {
         name: 'First unit select',
@@ -148,7 +150,7 @@ export function Thresholds({
         'aria-label': 'Second Maximum',
         error: errors?.max2,
       },
-      color: rowColors[1]!,
+      color: rowColors[1],
       unitOptions,
       unitSelectProps: {
         name: 'Second unit select',
@@ -168,7 +170,7 @@ export function Thresholds({
         placeholder: t('No max'),
         'aria-label': 'Third Maximum',
       },
-      color: rowColors[2]!,
+      color: rowColors[2],
       unitOptions,
       unitSelectProps: {
         name: 'Third unit select',
@@ -183,7 +185,7 @@ export function Thresholds({
       <RadioGroup
         label={t('Preferred polarity')}
         value={preferredPolarity || '-'}
-        onChange={value => onPolarityChange?.(value as Polarity)}
+        onChange={value => onPolarityChange?.(value)}
         orientInline
         choices={[
           ['-', t('Lower is better')],
