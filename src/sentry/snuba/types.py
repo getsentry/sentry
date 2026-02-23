@@ -28,7 +28,6 @@ class DatasetQuery(Protocol):
         transform_alias_to_input_format: bool = False,
         sample: float | None = None,
         has_metrics: bool = False,
-        use_metrics_layer: bool = False,
         skip_tag_resolution: bool = False,
         extra_columns: list[Column] | None = None,
         on_demand_metrics_enabled: bool = False,

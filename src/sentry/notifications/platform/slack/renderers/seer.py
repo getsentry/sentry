@@ -27,7 +27,10 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixTrigger,
     SeerAutofixUpdate,
 )
-from sentry.notifications.platform.types import NotificationData, NotificationRenderedTemplate
+from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationRenderedTemplate,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 
 if TYPE_CHECKING:
@@ -179,7 +182,12 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def _render_link_button(
-        cls, *, organization_id: int, project_id: int, group_link: str, text: str = "View in Sentry"
+        cls,
+        *,
+        organization_id: int,
+        project_id: int,
+        group_link: str,
+        text: str = "View in Sentry",
     ) -> LinkButtonElement:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction

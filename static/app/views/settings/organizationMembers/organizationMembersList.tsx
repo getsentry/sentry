@@ -296,7 +296,11 @@ function OrganizationMembersList() {
   const currentUser = ConfigStore.get('user');
 
   // Find out if current user is the only owner
-  const isOnlyOwner = !activeOwnerMembers.some(({email}) => email !== currentUser.email);
+  // Filter to members with valid users (user_id set and user exists)
+  // Members with user: null during eventual consistency window are excluded
+  const isOnlyOwner = !activeOwnerMembers
+    .filter(member => member.user !== null)
+    .some(member => member.email !== currentUser.email);
 
   // Only admins/owners can remove members
   const requireLink = !!authProvider && authProvider.require_link;

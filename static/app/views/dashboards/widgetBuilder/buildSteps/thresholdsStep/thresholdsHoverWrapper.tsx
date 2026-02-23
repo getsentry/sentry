@@ -8,6 +8,10 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {
+  NEGATIVE_POLARITY_COLOR_ORDER,
+  POSITIVE_POLARITY_COLOR_ORDER,
+} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/constants';
 
 import type {ThresholdsConfig} from './thresholds';
 
@@ -16,9 +20,6 @@ type Props = {
   thresholds: ThresholdsConfig;
   type?: string;
 };
-
-const NEGATIVE_POLARITY_COLOR_ORDER = ['green400', 'yellow400', 'red400'] as const;
-const POSITIVE_POLARITY_COLOR_ORDER = ['red400', 'yellow400', 'green400'] as const;
 
 export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
   const {

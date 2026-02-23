@@ -7,7 +7,12 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
-from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message, SeerRunState
+from sentry.seer.explorer.client_models import (
+    Artifact,
+    MemoryBlock,
+    Message,
+    SeerRunState,
+)
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 
@@ -262,24 +267,25 @@ class TestTriggerAutofixExplorer(TestCase):
         mock_client.start_run.return_value = 12345
         mock_client.continue_run.return_value = 12345
 
-        step_to_action = {
-            AutofixStep.ROOT_CAUSE: SeerActionType.ROOT_CAUSE_STARTED,
-            AutofixStep.SOLUTION: SeerActionType.SOLUTION_STARTED,
-            AutofixStep.CODE_CHANGES: SeerActionType.CODING_STARTED,
-            AutofixStep.IMPACT_ASSESSMENT: SeerActionType.IMPACT_ASSESSMENT_STARTED,
-            AutofixStep.TRIAGE: SeerActionType.TRIAGE_STARTED,
-        }
+        with self.feature({"organizations:seer-webhooks": True}):
+            step_to_action = {
+                AutofixStep.ROOT_CAUSE: SeerActionType.ROOT_CAUSE_STARTED,
+                AutofixStep.SOLUTION: SeerActionType.SOLUTION_STARTED,
+                AutofixStep.CODE_CHANGES: SeerActionType.CODING_STARTED,
+                AutofixStep.IMPACT_ASSESSMENT: SeerActionType.IMPACT_ASSESSMENT_STARTED,
+                AutofixStep.TRIAGE: SeerActionType.TRIAGE_STARTED,
+            }
 
-        for step, expected_action in step_to_action.items():
-            mock_broadcast.reset_mock()
-            trigger_autofix_explorer(
-                group=self.group,
-                step=step,
-                run_id=None,
-            )
-            mock_broadcast.assert_called_once()
-            call_kwargs = mock_broadcast.call_args.kwargs
-            assert call_kwargs["event_name"] == expected_action.value
+            for step, expected_action in step_to_action.items():
+                mock_broadcast.reset_mock()
+                trigger_autofix_explorer(
+                    group=self.group,
+                    step=step,
+                    run_id=None,
+                )
+                mock_broadcast.assert_called_once()
+                call_kwargs = mock_broadcast.call_args.kwargs
+                assert call_kwargs["event_name"] == expected_action.value
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
@@ -291,18 +297,19 @@ class TestTriggerAutofixExplorer(TestCase):
         mock_client_class.return_value = mock_client
         mock_client.continue_run.return_value = 67890
 
-        result = trigger_autofix_explorer(
-            group=self.group,
-            step=AutofixStep.SOLUTION,
-            run_id=67890,
-        )
+        with self.feature({"organizations:seer-webhooks": True}):
+            result = trigger_autofix_explorer(
+                group=self.group,
+                step=AutofixStep.SOLUTION,
+                run_id=67890,
+            )
 
-        assert result == 67890
-        # Verify started webhook was sent with the existing run_id
-        mock_broadcast.assert_called_once()
-        call_kwargs = mock_broadcast.call_args.kwargs
-        assert call_kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
-        assert call_kwargs["payload"]["run_id"] == 67890
+            assert result == 67890
+            # Verify started webhook was sent with the existing run_id
+            mock_broadcast.assert_called_once()
+            call_kwargs = mock_broadcast.call_args.kwargs
+            assert call_kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
+            assert call_kwargs["payload"]["run_id"] == 67890
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
@@ -455,7 +462,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 ),
             ]
         )
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
         mock_get_prefs.return_value = self._make_preference_response()
 
         trigger_coding_agent_handoff(
@@ -479,7 +489,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
         mock_get_prefs.return_value = self._make_preference_response()
 
         # Set a specific title on the group
@@ -504,7 +517,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
 
         # Set up preferences with auto_create_pr=True
         mock_get_prefs.return_value = self._make_preference_response(auto_create_pr=True)
@@ -527,7 +543,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
         # Use helper with default args: repos are set but auto_create_pr=False (no handoff config)
         mock_get_prefs.return_value = self._make_preference_response()
 

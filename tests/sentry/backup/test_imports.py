@@ -40,6 +40,7 @@ from sentry.models.importchunk import (
     RegionImportChunk,
 )
 from sentry.models.options.option import ControlOption, Option
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -643,6 +644,55 @@ class SanitizationTests(ImportTestCase):
 
                 assert err.value.context.get_kind() == RpcImportErrorKind.ValidationError
                 assert err.value.context.on.model == "sentry.useroption"
+
+    def test_org_and_project_option_type_preserve(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "wb+") as tmp_file:
+                models = self.json_of_org_and_project()
+
+                # Add project options with several types that should be preserved
+                option_values = (
+                    ("bool-val", True),
+                    ("int-val", 0),
+                    ("str-int", "1"),
+                    ("list-val", ["ie", "edge"]),
+                    ("string-list", '["a","b"]'),
+                    ("str-dict-val", '{"k":"v"}'),
+                    ("dict-val", {"k": "v"}),
+                )
+                for key, value in option_values:
+                    models.append(
+                        {
+                            "model": "sentry.projectoption",
+                            "pk": 3,
+                            "fields": {
+                                "project": 1,
+                                "key": key,
+                                "value": value,
+                            },
+                        }
+                    )
+
+                # Also check organization options
+                for key, value in option_values:
+                    models.append(
+                        {
+                            "model": "sentry.organizationoption",
+                            "pk": 2,
+                            "fields": {"organization": 1, "key": key, "value": value},
+                        }
+                    )
+
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+        # Ensure that values come back out with the correct type.
+        for key, value in option_values:
+            assert ProjectOption.objects.get(key=key).value == value
+            assert OrganizationOption.objects.get(key=key).value == value
 
 
 class SignalingTests(ImportTestCase):

@@ -39,7 +39,7 @@ const TRUNCATED_LABEL_MAX_LENGTH = 15;
 const ROTATION_CATEGORY_THRESHOLD = 10;
 const ROTATED_LABEL_ANGLE = 45;
 
-export interface CategoricalSeriesWidgetVisualizationProps {
+interface CategoricalSeriesWidgetVisualizationProps {
   /**
    * An array of `CategoricalPlottable` objects to render on the chart.
    */

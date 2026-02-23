@@ -20,6 +20,7 @@ class OrganizationSlugReservationReplica(Model):
     slug = models.SlugField(unique=True, db_index=True)
     organization_id = BoundedBigIntegerField(db_index=True)
     user_id = BoundedBigIntegerField(db_index=True, null=True)
+    # TODO(cells): rename to cell_name
     region_name = models.CharField(max_length=REGION_NAME_LENGTH, null=False)
     reservation_type = BoundedBigIntegerField(
         choices=OrganizationSlugReservationType.as_choices(),

@@ -124,7 +124,6 @@ def get_crash_free_historical_data(
         params=params,
         offset=None,
         limit=None,
-        query_config=release_health.backend.sessions_query_config(organization),
     )
     result = release_health.backend.run_sessions_query(
         organization.id, query, span_op="sessions.anomaly_detection"

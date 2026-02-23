@@ -18,7 +18,6 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -93,6 +92,7 @@ type Props = {
   onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
   useTimeseriesVisualization?: boolean;
+  widgetInterval?: string;
 };
 
 interface LayoutState extends Record<string, Layout[]> {
@@ -117,6 +117,7 @@ function Dashboard({
   onNewWidgetScrollComplete,
   onSetNewWidget,
   useTimeseriesVisualization,
+  widgetInterval,
 }: Props) {
   const theme = useTheme();
   const location = useLocation();
@@ -189,7 +190,6 @@ function Dashboard({
       }
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
-      GroupStore.reset();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -444,6 +444,7 @@ function Dashboard({
               newlyAddedWidget={newlyAddedWidget}
               onNewWidgetScrollComplete={onNewWidgetScrollComplete}
               useTimeseriesVisualization={useTimeseriesVisualization}
+              widgetInterval={widgetInterval}
             />
           </div>
         ))}

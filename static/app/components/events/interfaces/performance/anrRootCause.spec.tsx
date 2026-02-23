@@ -242,8 +242,7 @@ describe('anrRootCause', () => {
       },
     ]);
     const {organization} = initializeOrg();
-    const org = {...organization, features: ['anr-analyze-frames']};
-    render(<AnrRootCause event={event} organization={org} />, {wrapper});
+    render(<AnrRootCause event={event} organization={organization} />, {wrapper});
 
     expect(
       screen.getByText(
