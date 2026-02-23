@@ -9,7 +9,7 @@ from django.conf import settings
 
 import sentry
 from sentry.conf.types.taskworker import crontab
-from sentry.taskworker.registry import taskregistry
+from sentry.taskworker.runtime import app
 
 
 @pytest.fixture
@@ -44,7 +44,7 @@ def test_taskworker_schedule_unique() -> None:
 def test_taskworker_schedule_type(name: str, config: dict[str, Any], load_tasks) -> None:
     assert config["task"], f"schedule {name} is missing a task name"
     (namespace, taskname) = config["task"].split(":")
-    assert taskregistry.get_task(namespace, taskname), f"task for {name} is not registered"
+    assert app.taskregistry.get_task(namespace, taskname), f"task for {name} is not registered"
 
     assert config["schedule"], f"Schedule {name} is missing a schedule"
     schedule = config.get("schedule")
@@ -56,7 +56,7 @@ def test_taskworker_schedule_type(name: str, config: dict[str, Any], load_tasks)
 def test_taskworker_schedule_parameters() -> None:
     for config in settings.TASKWORKER_SCHEDULES.values():
         (namespace, taskname) = config["task"].split(":")
-        task = taskregistry.get_task(namespace, taskname)
+        task = app.taskregistry.get_task(namespace, taskname)
         signature = inspect.signature(task)
 
         for parameter in signature.parameters.values():

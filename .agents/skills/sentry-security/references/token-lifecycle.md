@@ -45,6 +45,16 @@ OAuth applications with org-level access did not require `organization_id`, allo
 
 ## Member Status Checks
 
+### Member disabled states in Sentry
+
+| State                 | Field / Flag                                          | Can log in? | Reachable in OAuth? | Where enforced                                                                    |
+| --------------------- | ----------------------------------------------------- | ----------- | ------------------- | --------------------------------------------------------------------------------- |
+| Account deactivated   | `OrganizationMember.user_is_active=False`             | No          | No — login blocked  | Login flow                                                                        |
+| Pending invitation    | `OrganizationMember.is_pending`                       | No          | No — requires login | Login flow                                                                        |
+| Seat-limit restricted | `OrganizationMember.flags["member-limit:restricted"]` | **Yes**     | **Yes**             | `OrganizationPermission.determine_access()` via `is_member_disabled_from_limit()` |
+
+The seat-limit restricted state is the one that matters for OAuth and token issuance reviews. The user can still log in and complete an OAuth flow, but all organization-scoped DRF endpoints block the resulting token via `is_member_disabled_from_limit()` in `OrganizationPermission`.
+
 ### Real vulnerability: Disabled member tokens (PR #92616)
 
 Disabled organization members could still request auth tokens.
@@ -60,6 +70,8 @@ member = OrganizationMember.objects.get(
 if member.is_pending or not member.user_is_active:
     return Response({"detail": "Member is not active"}, status=403)
 ```
+
+**Known downstream enforcement:** PR #92616 added `is_member_disabled_from_limit()` checks via the organization permission base class. This is **centralized enforcement** — the check runs for every organization-scoped DRF endpoint via `OrganizationPermission.determine_access()`. Tokens held by seat-limit restricted members are blocked at all organization API endpoints. Because the enforcement covers all endpoints the token can be used against, this pattern is **LOW** (do not report). See `enforcement-layers.md` "Cross-Flow Enforcement."
 
 ### Real vulnerability: Personal tokens managing org tokens (PR #99457)
 
@@ -82,6 +94,8 @@ Impersonated sessions (staff acting as a user) had no rate limiting, allowing un
 □ Token issuance/refresh endpoints for org-scoped tokens require and validate organization_id
   (authentication classes reading existing tokens are exempt — org scoping is enforced by from_rpc_auth())
 □ Member active status is checked before token issuance
+  If missing at issuance but enforced at usage via is_member_disabled_from_limit() in OrganizationPermission → LOW (centralized, do not report)
+  If enforced only in specific endpoint subclasses → MEDIUM
 □ Auth method is appropriate for the operation (org token vs personal token)
 □ Impersonated sessions are rate-limited
 □ Token revocation cascades properly (revoking app revokes all its tokens)

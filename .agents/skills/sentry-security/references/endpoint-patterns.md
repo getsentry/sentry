@@ -107,6 +107,49 @@ class BaseDataConditionGroupValidator(serializers.Serializer):
 □ For PUT/POST/DELETE: the object being modified is scoped by org/project
 ```
 
+## Guard Queries vs. Data Queries
+
+Not all unscoped queries are exploitable. Before flagging an unscoped query, determine
+whether it is a **data query** or a **guard query**:
+
+**Data query** — fetches an object whose attributes are returned to the caller (in a
+Response, serializer, or side effect). An unscoped data query is a real IDOR because the
+attacker receives cross-org information.
+
+**Guard query** — checks for the existence of a record only to raise an error or block
+access. The query result is never returned to the caller.
+
+**A guard query is not exploitable when:**
+
+1. It only raises an error (e.g., `ResourceDoesNotExist`, `PermissionDenied`)
+2. A downstream query in the same request flow IS org-scoped
+3. The downstream query raises the same error class for the same input
+4. Therefore the attacker observes identical responses regardless of the guard
+
+**Example (not exploitable):**
+
+```python
+# Guard query — no org scope, but only raises an error
+invite = OrganizationMemberInvite.objects.filter(organization_member_id=om_id).first()
+if invite is not None:
+    raise ResourceDoesNotExist          # ← same error as below
+
+# Data query — properly org-scoped
+return OrganizationMember.objects.filter(id=om_id, organization_id=org.id).get()
+#                                        ↑ DoesNotExist → ResourceDoesNotExist
+```
+
+**Example (exploitable — still flag this):**
+
+```python
+# Unscoped query whose result is RETURNED to the caller
+widget = DashboardWidget.objects.get(id=widget_id)  # ← no org scope
+return Response(serialize(widget))                   # ← attacker gets cross-org data
+```
+
+**Note:** Even when a guard query is not exploitable, adding org scoping is valid
+defense-in-depth. But it should not be reported as a finding.
+
 ## Using self.get_projects()
 
 When project IDs come from the request, always use `self.get_projects()`:

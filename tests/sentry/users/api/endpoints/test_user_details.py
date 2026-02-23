@@ -4,9 +4,11 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from pytest import fixture
 
+from sentry import audit_log
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.interfaces.stacktrace import StacktraceOrder
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
@@ -875,6 +877,14 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
             # should NOT delete `not_owned_org`
             assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
             assert DeletedOrganization.objects.count() == 1
+
+        member_remove_entries = AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("MEMBER_REMOVE"),
+            target_user_id=self.user.id,
+        )
+        removed_org_ids = {e.organization_id for e in member_remove_entries}
+        assert org_with_other_owner.id in removed_org_ids
+        assert org_as_other_owner.id in removed_org_ids
 
         user = User.objects.get(id=self.user.id)
         assert not user.is_active

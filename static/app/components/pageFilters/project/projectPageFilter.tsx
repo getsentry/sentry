@@ -1,13 +1,14 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -276,17 +277,14 @@ export function ProjectPageFilter({
         value: parseInt(project.id, 10),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
-          <Flex align="center" gap="sm" flex="1 1 100%">
-            <Checkbox
-              size="sm"
-              checked={isSelected}
-              onChange={() =>
-                hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
-              }
-              aria-label={t('Select %s', project.slug)}
-              tabIndex={-1}
-            />
-          </Flex>
+          <HybridFilterComponents.Checkbox
+            checked={isSelected}
+            onChange={() =>
+              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+            }
+            aria-label={t('Select %s', project.slug)}
+            tabIndex={-1}
+          />
         ),
         label: (
           <Flex align="center" gap="sm" flex="1 1 100%">
@@ -440,7 +438,23 @@ export function ProjectPageFilter({
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       emptyMessage={emptyMessage ?? t('No projects found')}
-      menuTitle={menuTitle ?? t('Filter Projects')}
+      menuTitle={
+        menuTitle ?? (
+          <Flex gap="xs" align="center">
+            <Text>{t('Filter Projects')}</Text>
+            <InfoTip
+              size="xs"
+              title={tct(
+                '[rangeModifier] + click to select a range of projects or [multiModifier] + click to select multiple projects at once.',
+                {
+                  rangeModifier: t('Shift'),
+                  multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
+                }
+              )}
+            />
+          </Flex>
+        )
+      }
       menuWidth={menuWidth ?? defaultMenuWidth}
       onOpenChange={() => {
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
