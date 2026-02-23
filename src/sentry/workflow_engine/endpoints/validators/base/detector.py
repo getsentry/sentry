@@ -98,7 +98,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         if not request.access.has_project_access(project):
             raise serializers.ValidationError("User does not have access to this project")
 
-        return int(value)
+        return project.id
 
     def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = grouptype.registry.get_by_slug(value)
