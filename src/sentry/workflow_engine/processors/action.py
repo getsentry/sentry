@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import NamedTuple
 
-from django.db import connection, models
+from django.db import IntegrityError, connection, models, router, transaction
 from django.db.models import Case, Value, When
 from django.utils import timezone
 
@@ -119,6 +119,53 @@ def process_workflow_action_group_statuses(
     return updated_action_to_workflows_ids, statuses_to_update, missing_statuses
 
 
+def _bulk_insert_workflow_action_group_statuses(
+    missing_statuses: list[WorkflowActionGroupStatus],
+    now: datetime,
+    *,
+    exists_checks: bool,
+) -> set[tuple[int, int]]:
+    """Execute a batch INSERT and return the set of (workflow_id, action_id) rows created.
+
+    When exists_checks=True the INSERT filters out rows whose FK targets have been
+    deleted, avoiding IntegrityErrors at the cost of 3 correlated EXISTS subqueries
+    per row.  Use exists_checks=False for the fast path and only retry with
+    exists_checks=True after an IntegrityError.
+    """
+    # XXX: the query does not currently include batch size limit like bulk_create does
+    values_placeholders = []
+    values_data = []
+    for s in missing_statuses:
+        values_placeholders.append("(%s, %s, %s, %s, %s)")
+        values_data.extend([s.workflow_id, s.action_id, s.group_id, now, now])
+
+    values_clause = ", ".join(values_placeholders)
+
+    if exists_checks:
+        source = f"""
+            SELECT v.workflow_id, v.action_id, v.group_id, v.date_added, v.date_updated
+            FROM (VALUES {values_clause})
+                AS v(workflow_id, action_id, group_id, date_added, date_updated)
+            WHERE EXISTS (SELECT 1 FROM workflow_engine_workflow w WHERE w.id = v.workflow_id)
+              AND EXISTS (SELECT 1 FROM workflow_engine_action a WHERE a.id = v.action_id)
+              AND EXISTS (SELECT 1 FROM sentry_groupedmessage g WHERE g.id = v.group_id)
+        """
+    else:
+        source = f"VALUES {values_clause}"
+
+    sql = f"""
+        INSERT INTO workflow_engine_workflowactiongroupstatus
+        (workflow_id, action_id, group_id, date_added, date_updated)
+        {source}
+        ON CONFLICT (workflow_id, action_id, group_id) DO NOTHING
+        RETURNING workflow_id, action_id
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, values_data)
+        return set(cursor.fetchall())
+
+
 def update_workflow_action_group_statuses(
     now: datetime, statuses_to_update: set[int], missing_statuses: list[WorkflowActionGroupStatus]
 ) -> StatusUpdateResult:
@@ -129,33 +176,17 @@ def update_workflow_action_group_statuses(
     if not missing_statuses:
         return StatusUpdateResult(updated=updated_count, created=0, not_created=[])
 
-    # Use INSERT ... SELECT with EXISTS checks so that rows referencing
-    # deleted groups / workflows / actions are silently skipped instead of
-    # raising an IntegrityError.  Combined with ON CONFLICT DO NOTHING this
-    # handles both FK-missing and unique-conflict cases in one statement.
-    # XXX: the query does not currently include batch size limit like bulk_create does
-    with connection.cursor() as cursor:
-        values_placeholders = []
-        values_data = []
-        for s in missing_statuses:
-            values_placeholders.append("(%s, %s, %s, %s, %s)")
-            values_data.extend([s.workflow_id, s.action_id, s.group_id, now, now])
-
-        sql = f"""
-            INSERT INTO workflow_engine_workflowactiongroupstatus
-            (workflow_id, action_id, group_id, date_added, date_updated)
-            SELECT v.workflow_id, v.action_id, v.group_id, v.date_added, v.date_updated
-            FROM (VALUES {", ".join(values_placeholders)})
-                AS v(workflow_id, action_id, group_id, date_added, date_updated)
-            WHERE EXISTS (SELECT 1 FROM workflow_engine_workflow w WHERE w.id = v.workflow_id)
-              AND EXISTS (SELECT 1 FROM workflow_engine_action a WHERE a.id = v.action_id)
-              AND EXISTS (SELECT 1 FROM sentry_groupedmessage g WHERE g.id = v.group_id)
-            ON CONFLICT (workflow_id, action_id, group_id) DO NOTHING
-            RETURNING workflow_id, action_id
-        """
-
-        cursor.execute(sql, values_data)
-        created_rows = set(cursor.fetchall())  # Only returns newly inserted rows
+    try:
+        with transaction.atomic(router.db_for_write(WorkflowActionGroupStatus)):
+            created_rows = _bulk_insert_workflow_action_group_statuses(
+                missing_statuses, now, exists_checks=False
+            )
+    except IntegrityError:
+        # A referenced workflow/action/group was deleted between our read and this
+        # insert.  Retry with EXISTS checks to silently skip the orphaned rows.
+        created_rows = _bulk_insert_workflow_action_group_statuses(
+            missing_statuses, now, exists_checks=True
+        )
 
     # Rows not returned were either unique conflicts or FK-missing (dropped)
     dropped_statuses: DroppedStatuses = [
