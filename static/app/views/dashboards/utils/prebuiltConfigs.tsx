@@ -32,7 +32,7 @@ export enum PrebuiltDashboardId {
   MOBILE_SESSION_HEALTH = 13,
   FRONTEND_OVERVIEW = 14,
   NEXTJS_FRONTEND_OVERVIEW = 15,
-  LARAVEL_OVERVIEW = 16,
+  LARAVEL_OVERVIEW = 23,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
