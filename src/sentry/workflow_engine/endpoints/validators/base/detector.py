@@ -90,7 +90,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     project_id = serializers.CharField(required=False)
 
     def validate_project_id(self, value: str) -> int:
-        project_id = to_valid_int_id("project_id", value)
+        project_id = to_valid_int_id("projectId", value)
 
         organization = self.context.get("organization")
         try:
