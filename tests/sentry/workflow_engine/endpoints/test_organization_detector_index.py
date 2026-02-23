@@ -881,6 +881,24 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == {"projectId": ["Project not found"]}
 
+    def test_no_access_project(self) -> None:
+        # Disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create a user who is a member of the org but NOT a member of any team
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        self.get_error_response(
+            self.organization.slug,
+            **self.valid_data,
+            status_code=403,
+        )
+
     def test_without_feature_flag(self) -> None:
         with self.feature({"organizations:incidents": False}):
             response = self.get_error_response(
