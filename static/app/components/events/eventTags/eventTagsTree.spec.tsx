@@ -105,11 +105,18 @@ describe('EventTagsTree', () => {
 
     for (const link of linkDropdowns) {
       await userEvent.click(link);
-      expect(
-        await within(link.parentElement!).findByLabelText(
-          'Search issues with this tag value'
-        )
-      ).toBeInTheDocument();
+      const searchIssuesLink = await within(link.parentElement!).findByLabelText(
+        'Search issues with this tag value'
+      );
+      expect(searchIssuesLink).toBeInTheDocument();
+      expect(searchIssuesLink).toHaveAttribute(
+        'href',
+        expect.stringContaining(`/organizations/${organization.slug}/issues/?`)
+      );
+      expect(searchIssuesLink).toHaveAttribute(
+        'href',
+        expect.stringContaining(`project=${project.id}`)
+      );
       expect(
         await within(link.parentElement!).findByLabelText(
           'View other events with this tag value'

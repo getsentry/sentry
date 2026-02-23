@@ -322,7 +322,10 @@ function TagValueActionsMenu({
           label: t('Search issues with this tag value'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/`,
-            query,
+            query: {
+              ...query,
+              project: group.project.id,
+            },
           },
         },
         {
