@@ -98,6 +98,7 @@ class HistoricGroupCounts(
             "project_id": event.project_id,
         }
 
+    @freeze_time(TIME_YESTERDAY)
     def test_query_single_group(self) -> None:
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
