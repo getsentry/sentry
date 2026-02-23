@@ -13,7 +13,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+        instance:
+          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 
     env:
       MATRIX_INSTANCE_TOTAL: 22
@@ -29,7 +30,7 @@ jobs:
 
       - name: Run tests with classification
         env:
-          PYTEST_ADDOPTS: '${{ env.PYTEST_ADDOPTS }} --classify-services --classification-output=test-service-classification.json'
+          PYTEST_ADDOPTS: '${{ env.PYTEST_ADDOPTS }} --classify-services --classification-output=test-service-classification.json --classify-databases --database-usage-output=test-database-usage.json'
         run: |
           python3 -b -m pytest tests \
             --ignore tests/acceptance \
@@ -38,12 +39,14 @@ jobs:
             --ignore tests/tools \
             || true
 
-      - name: Upload classification report
+      - name: Upload classification reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: classification-shard-${{ matrix.instance }}
-          path: test-service-classification.json
+          path: |
+            test-service-classification.json
+            test-database-usage.json
           retention-days: 90
 
   merge-reports:
@@ -65,24 +68,37 @@ jobs:
           from collections import defaultdict
           from pathlib import Path
 
-          merged = defaultdict(set)
-          for shard_dir in sorted(Path("shards").iterdir()):
-              report = shard_dir / "test-service-classification.json"
-              if not report.exists():
-                  continue
-              for tid, svcs in json.loads(report.read_text()).get("tests", {}).items():
-                  merged[tid].update(svcs)
+          merged_svcs = defaultdict(set)
+          merged_dbs = defaultdict(set)
+          shard_dirs = sorted(Path("shards").iterdir())
+
+          for shard_dir in shard_dirs:
+              svc_report = shard_dir / "test-service-classification.json"
+              if svc_report.exists():
+                  for tid, svcs in json.loads(svc_report.read_text()).get("tests", {}).items():
+                      merged_svcs[tid].update(svcs)
+
+              db_report = shard_dir / "test-database-usage.json"
+              if db_report.exists():
+                  for cls, aliases in json.loads(db_report.read_text()).get("classes", {}).items():
+                      merged_dbs[cls].update(aliases)
 
           Path("test-service-classification.json").write_text(json.dumps(
-              {"total_tests": len(merged), "tests": {k: sorted(v) for k, v in sorted(merged.items())}},
+              {"total_tests": len(merged_svcs), "tests": {k: sorted(v) for k, v in sorted(merged_svcs.items())}},
               indent=2,
           ) + "\n")
-          print(f"Merged {len(merged)} tests from {len(list(Path('shards').iterdir()))} shards")
+          Path("test-database-usage.json").write_text(json.dumps(
+              {"total_classes": len(merged_dbs), "classes": {k: sorted(v) for k, v in sorted(merged_dbs.items())}},
+              indent=2,
+          ) + "\n")
+          print(f"Merged {len(merged_svcs)} tests, {len(merged_dbs)} classes from {len(shard_dirs)} shards")
           SCRIPT
 
-      - name: Upload merged report
+      - name: Upload merged reports
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-service-classification
-          path: test-service-classification.json
+          path: |
+            test-service-classification.json
+            test-database-usage.json
           retention-days: 90
