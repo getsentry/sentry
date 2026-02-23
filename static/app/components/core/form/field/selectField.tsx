@@ -1,4 +1,4 @@
-import {useRef, type ComponentProps, type Ref} from 'react';
+import {useRef, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
@@ -14,10 +14,15 @@ function SelectInput({
   selectProps,
   ...props
 }: React.ComponentProps<typeof components.Input> & {
-  ref: Ref<{input: HTMLInputElement}>;
-  selectProps: {'aria-invalid': boolean};
+  selectProps: {'aria-invalid': boolean; inputRef: Ref<{input: HTMLInputElement}>};
 }) {
-  return <components.Input {...props} aria-invalid={selectProps['aria-invalid']} />;
+  return (
+    <components.Input
+      {...props}
+      {...{ref: selectProps.inputRef}}
+      aria-invalid={selectProps['aria-invalid']}
+    />
+  );
 }
 
 function SelectIndicatorsContainer({
@@ -113,11 +118,10 @@ export function SelectField<TValue = string>({
             disabled={isDisabled}
             multiple={multiple}
             value={value}
+            inputRef={applyInputToRef(ref)}
             components={{
               ...props.components,
-              Input: (p: ComponentProps<typeof SelectInput>) => (
-                <SelectInput {...p} ref={applyInputToRef(ref)} />
-              ),
+              Input: SelectInput,
               IndicatorsContainer: SelectIndicatorsContainer,
             }}
             onMenuOpen={() => {
