@@ -81,7 +81,6 @@ from sentry.testutils.cases import (
     PerformanceIssueTestCase,
     SnubaTestCase,
     TestCase,
-    TransactionTestCase,
 )
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -2381,7 +2380,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             with (
                 mock.patch("sentry.event_manager.track_outcome", mock_track_outcome),
                 self.feature("organizations:event-attachments"),
-                self.feature("organizations:grouptombstones-hit-counter"),
                 self.tasks(),
                 pytest.raises(HashDiscarded),
             ):
@@ -4216,7 +4214,7 @@ class DSLatestReleaseBoostTest(TestCase):
         ]
 
 
-class TestSaveGroupHashAndGroup(TransactionTestCase):
+class TestSaveGroupHashAndGroup(TestCase):
     def test_simple(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
         perf_data["event_id"] = "a" * 32

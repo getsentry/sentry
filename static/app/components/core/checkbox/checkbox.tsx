@@ -66,7 +66,7 @@ const checkboxSizeMap: Record<NonNullable<CheckboxProps['size']>, CheckboxConfig
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-interface CheckboxProps extends Omit<
+export interface CheckboxProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   'checked' | 'size'
 > {
@@ -74,6 +74,10 @@ interface CheckboxProps extends Omit<
    * Is the checkbox active? Supports 'indeterminate'
    */
   checked?: React.InputHTMLAttributes<HTMLInputElement>['checked'] | 'indeterminate';
+  /**
+   * Ref to the native checkbox input element.
+   */
+  ref?: React.Ref<HTMLInputElement>;
   /**
    * The size of the checkbox. Defaults to 'sm'.
    */
@@ -86,7 +90,7 @@ export function Checkbox({
   className,
   ref,
   ...props
-}: CheckboxProps & {ref?: React.Ref<HTMLInputElement>}) {
+}: CheckboxProps) {
   const nativeCheckBoxRef = useCallback(
     (node: HTMLInputElement | null) => {
       if (node) {

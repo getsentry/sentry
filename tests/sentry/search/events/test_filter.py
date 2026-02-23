@@ -23,6 +23,7 @@ from sentry.search.events.filter import (
     _semver_build_filter_converter,
     _semver_filter_converter,
     _semver_package_filter_converter,
+    convert_search_filter_to_snuba_query,
     parse_semver,
 )
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -1132,6 +1133,39 @@ def _project(x):
             ],
             [],
         ),
+        (
+            "all-wildcard IN on ARRAY_FIELD",
+            'error.mechanism:["*signalhandler*", "*minidump*"]',
+            [
+                Or(
+                    conditions=[
+                        Condition(
+                            lhs=Column(name="exception_stacks.mechanism_type"),
+                            op=Op.LIKE,
+                            rhs="%signalhandler%",
+                        ),
+                        Condition(
+                            lhs=Column(name="exception_stacks.mechanism_type"),
+                            op=Op.LIKE,
+                            rhs="%minidump%",
+                        ),
+                    ]
+                )
+            ],
+            [],
+        ),
+        (
+            "single-wildcard IN on ARRAY_FIELD",
+            'error.mechanism:["*signalhandler*"]',
+            [
+                Condition(
+                    lhs=Column(name="exception_stacks.mechanism_type"),
+                    op=Op.LIKE,
+                    rhs="%signalhandler%",
+                ),
+            ],
+            [],
+        ),
     ],
 )
 def test_snql_boolean_search(description, query, expected_where, expected_having) -> None:
@@ -1537,3 +1571,77 @@ class DetectorFilterTest(TestCase):
 
         # Should return no groups
         assert len(results.results) == 0
+
+
+class ConvertSearchFilterToSnubaQueryTest(unittest.TestCase):
+    def test_all_wildcard_in_on_array_field(self) -> None:
+        result = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey("error.mechanism"),
+                "IN",
+                SearchValue(["*signalhandler*", "*minidump*"]),
+            )
+        )
+        assert result == [
+            ["error.mechanism", "LIKE", "%signalhandler%"],
+            ["error.mechanism", "LIKE", "%minidump%"],
+        ]
+
+    def test_mixed_wildcard_in_on_array_field(self) -> None:
+        result = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey("error.mechanism"),
+                "IN",
+                SearchValue(["abc", "*ABC*"]),
+            )
+        )
+        assert isinstance(result, list)
+        assert len(result) == 2
+        # Wildcard value produces LIKE
+        assert result[0] == ["error.mechanism", "LIKE", "%ABC%"]
+        # Non-wildcard value produces hasAny
+        has_any_cond = result[1]
+        assert has_any_cond[0][0] == "hasAny"
+        assert has_any_cond[1] == "="
+        assert has_any_cond[2] == 1
+
+    def test_not_in_wildcard_on_array_field(self) -> None:
+        result = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey("error.mechanism"),
+                "NOT IN",
+                SearchValue(["*signalhandler*", "*minidump*"]),
+            )
+        )
+        assert result == [
+            ["error.mechanism", "NOT LIKE", "%signalhandler%"],
+            ["error.mechanism", "NOT LIKE", "%minidump%"],
+        ]
+
+    def test_non_wildcard_in_on_array_field(self) -> None:
+        result = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey("error.mechanism"),
+                "IN",
+                SearchValue(["signalhandler", "minidump"]),
+            )
+        )
+        assert isinstance(result, list)
+        assert result[0][0] == "hasAny"
+        assert result[1] == "="
+        assert result[2] == 1
+
+    def test_wildcard_in_on_non_array_field(self) -> None:
+        result = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey("title"),
+                "IN",
+                SearchValue(["*foo*", "*bar*"]),
+            )
+        )
+        assert isinstance(result, list)
+        assert len(result) == 2
+        for cond in result:
+            assert cond[0][0] == "match"
+            assert cond[1] == "="
+            assert cond[2] == 1

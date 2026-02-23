@@ -60,7 +60,7 @@ def save_with_snowflake_id(
                 save_callback()
             return
         except IntegrityError:
-            instance.id = None  # type: ignore[assignment]  # see typeddjango/django-stubs#2014
+            instance.id = None
     raise MaxSnowflakeRetryError
 
 

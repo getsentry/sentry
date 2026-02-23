@@ -331,6 +331,24 @@ describe('Dashboards > Dashboard', () => {
   describe('Issue Widgets', () => {
     beforeEach(() => {
       MemberListStore.init();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/',
+        method: 'GET',
+        body: {
+          annotations: [],
+          id: '1',
+          title: 'Error: Failed',
+          project: {
+            id: '3',
+          },
+          assignedTo: {
+            email: 'test@sentry.io',
+            type: 'user',
+            id: '1',
+            name: 'Test User',
+          },
+        },
+      });
     });
 
     const mount = (dashboard: DashboardDetails) => {

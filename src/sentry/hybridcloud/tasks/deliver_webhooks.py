@@ -37,6 +37,9 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+SLOW_DELIVERY_THRESHOLD = datetime.timedelta(minutes=10)
+"""Duration threshold for logging slow webhook deliveries."""
+
 MAX_MAILBOX_DRAIN = 300
 """
 The maximum number of records that will be updated when scheduling a mailbox
@@ -188,12 +191,7 @@ def drain_mailbox(payload_id: int) -> None:
         # We could have hit a race condition. Since we've lost already return
         # and let the other process continue, or a future process.
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
-        logger.info(
-            "deliver_webhook.potential_race",
-            extra={
-                "id": payload_id,
-            },
-        )
+        logger.info("deliver_webhook.potential_race", extra={"id": payload_id})
         return
 
     _set_webhook_delivery_sentry_context(payload)
@@ -207,7 +205,7 @@ def drain_mailbox(payload_id: int) -> None:
             logger.info(
                 "deliver_webhook.delivery_deadline",
                 extra={
-                    "mailbox_name": payload.mailbox_name,
+                    **payload.as_dict(),
                     "delivered": delivered,
                 },
             )
@@ -237,7 +235,7 @@ def drain_mailbox(payload_id: int) -> None:
             logger.debug(
                 "deliver_webhook.delivery_complete",
                 extra={
-                    "mailbox_name": payload.mailbox_name,
+                    **payload.as_dict(),
                     "delivered": delivered,
                 },
             )
@@ -266,7 +264,7 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
             logger.info(
                 "deliver_webhook_parallel.max_age_discard",
                 extra={
-                    "mailbox_name": payload.mailbox_name,
+                    **payload.as_dict(),
                     "deleted": deleted,
                 },
             )
@@ -277,6 +275,11 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
 
 def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
     """Record delivery time metrics for a successfully delivered webhook payload."""
+    exclude_mailboxes = set(
+        options.get("hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes") or ()
+    )
+    if payload.mailbox_name in exclude_mailboxes:
+        return
     duration = timezone.now() - payload.date_added
     region_sent_to = (
         payload.region_name
@@ -300,6 +303,7 @@ def _handle_parallel_delivery_result(
     Process one result from the parallel delivery threadpool.
     Returns (request_failed, should_reraise).
     """
+    payload_data = payload_record.as_dict()
     if err:
         if payload_record.attempts >= MAX_ATTEMPTS:
             payload_record.delete()
@@ -309,7 +313,7 @@ def _handle_parallel_delivery_result(
             )
             logger.info(
                 "deliver_webhook_parallel.discard",
-                extra={"id": payload_record.id, "attempts": payload_record.attempts},
+                extra={**payload_data},
             )
             request_failed = False
         else:
@@ -317,9 +321,12 @@ def _handle_parallel_delivery_result(
             payload_record.schedule_next_attempt()
             request_failed = True
         return (request_failed, not isinstance(err, DeliveryFailed))
+    date_added = payload_record.date_added
     payload_record.delete()
     _record_delivery_time_metrics(payload_record)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
+    if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
+        logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
     return (False, False)
 
 
@@ -380,12 +387,7 @@ def drain_mailbox_parallel(payload_id: int) -> None:
         # We could have hit a race condition. Since we've lost already return
         # and let the other process continue, or a future process.
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
-        logger.info(
-            "deliver_webhook_parallel.potential_race",
-            extra={
-                "id": payload_id,
-            },
-        )
+        logger.info("deliver_webhook_parallel.potential_race", extra={"id": payload_id})
         return
 
     _set_webhook_delivery_sentry_context(payload)
@@ -394,7 +396,7 @@ def drain_mailbox_parallel(payload_id: int) -> None:
     worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     delivered = 0
-    extra = {"mailbox_name": payload.mailbox_name, "delivered": delivered}
+    extra = {**payload.as_dict(), "delivered": delivered}
     while True:
         if timezone.now() >= deadline:
             logger.info("deliver_webhook_parallel.delivery_deadline", extra=extra)
@@ -428,19 +430,21 @@ def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, E
 
 def deliver_message(payload: WebhookPayload) -> None:
     """Deliver a message if it still has delivery attempts remaining"""
+    payload_data = payload.as_dict()
     if payload.attempts >= MAX_ATTEMPTS:
         payload.delete()
 
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "attempts_exceed"})
-        logger.info(
-            "deliver_webhook.discard", extra={"id": payload.id, "attempts": payload.attempts}
-        )
+        logger.info("deliver_webhook.discard", extra={**payload_data})
         return
 
     payload.schedule_next_attempt()
     perform_request(payload)
+    date_added = payload.date_added
     payload.delete()
     _record_delivery_time_metrics(payload)
+    if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
+        logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
 
 
@@ -457,22 +461,12 @@ def perform_request(payload: WebhookPayload) -> None:
 
 
 def perform_region_request(region: Region, payload: WebhookPayload) -> None:
-    logging_context: dict[str, str | int] = {
-        "payload_id": payload.id,
-        "mailbox_name": payload.mailbox_name,
-        "attempt": payload.attempts,
-    }
-
     try:
         client = RegionSiloClient(region=region)
         with metrics.timer(
             "hybridcloud.deliver_webhooks.send_request",
             tags={"destination_region": region.name},
         ):
-            logging_context["region"] = region.name
-            logging_context["request_method"] = payload.request_method
-            logging_context["request_path"] = payload.request_path
-
             headers = orjson.loads(payload.request_headers)
             response = client.request(
                 method=payload.request_method,
@@ -488,7 +482,7 @@ def perform_region_request(region: Region, payload: WebhookPayload) -> None:
                 "status": getattr(
                     response, "status_code", 204
                 ),  # Request returns empty dict instead of a response object when the code is a 204
-                **logging_context,
+                **payload.as_dict(),
             },
         )
     except ApiHostError as err:
@@ -514,7 +508,9 @@ def perform_region_request(region: Region, payload: WebhookPayload) -> None:
                 raise DeliveryFailed()
 
             sentry_sdk.capture_exception(err)
-        logger.warning("deliver_webhooks.host_error", extra={"error": str(err), **logging_context})
+        logger.warning(
+            "deliver_webhooks.host_error", extra={"error": str(err), **payload.as_dict()}
+        )
         raise DeliveryFailed() from err
     except ApiConflictError as err:
         metrics.incr(
@@ -523,7 +519,7 @@ def perform_region_request(region: Region, payload: WebhookPayload) -> None:
         )
         logger.warning(
             "deliver_webhooks.conflict_occurred",
-            extra={"conflict_text": err.text, **logging_context},
+            extra={"conflict_text": err.text, **payload.as_dict()},
         )
         # We don't retry conflicts as those are explicit failure code to drop webhook.
     except (ApiTimeoutError, ApiConnectionResetError) as err:
@@ -531,7 +527,7 @@ def perform_region_request(region: Region, payload: WebhookPayload) -> None:
             "hybridcloud.deliver_webhooks.failure",
             tags={"reason": "timeout_reset", "destination_region": region.name},
         )
-        logger.warning("deliver_webhooks.timeout_error", extra=logging_context)
+        logger.warning("deliver_webhooks.timeout_error", extra=payload.as_dict())
         raise DeliveryFailed() from err
     except ApiError as err:
         err_cause = err.__cause__
@@ -560,7 +556,7 @@ def perform_region_request(region: Region, payload: WebhookPayload) -> None:
                 )
                 logger.info(
                     "deliver_webhooks.40x_error",
-                    extra={"reason": reason, **logging_context},
+                    extra={"reason": reason, **payload.as_dict()},
                 )
                 return
 
@@ -571,7 +567,7 @@ def perform_region_request(region: Region, payload: WebhookPayload) -> None:
         )
         logger.warning(
             "deliver_webhooks.api_error",
-            extra={"error": str(err), "response_code": response_code, **logging_context},
+            extra={"error": str(err), "response_code": response_code, **payload.as_dict()},
         )
         raise DeliveryFailed() from err
 
@@ -610,14 +606,6 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
     """
     We don't retry forwarding Codecov requests for now. We want to prove out that it would work.
     """
-    logging_context: dict[str, str | int] = {
-        "payload_id": payload.id,
-        "mailbox_name": payload.mailbox_name,
-        "attempt": payload.attempts,
-        "request_method": payload.request_method,
-        "request_path": payload.request_path,
-    }
-
     with metrics.timer(
         "hybridcloud.deliver_webhooks.send_request_to_codecov",
     ):
@@ -628,7 +616,7 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
             )
             logger.warning(
                 "deliver_webhooks.send_request_to_codecov.unexpected_path",
-                extra={"error": "unexpected path", **logging_context},
+                extra={"error": "unexpected path", **payload.as_dict()},
             )
             return
 
@@ -646,7 +634,7 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
             )
             logger.warning(
                 "deliver_webhooks.send_request_to_codecov.configuration_error",
-                extra={"error": str(err), **logging_context},
+                extra={"error": str(err), **payload.as_dict()},
             )
             return
 
@@ -658,7 +646,7 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
             )
             logger.warning(
                 "deliver_webhooks.send_request_to_codecov.json_decode_error",
-                extra={"error": str(err), **logging_context},
+                extra={"error": str(err), **payload.as_dict()},
             )
             return
 
@@ -678,7 +666,7 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
                     extra={
                         "error": "unexpected status code",
                         "status_code": response.status_code,
-                        **logging_context,
+                        **payload.as_dict(),
                     },
                 )
                 return
@@ -688,6 +676,6 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
             )
             logger.warning(
                 "deliver_webhooks.send_request_to_codecov.failure",
-                extra={"error": str(err), **logging_context},
+                extra={"error": str(err), **payload.as_dict()},
             )
             return

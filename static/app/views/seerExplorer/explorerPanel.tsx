@@ -102,12 +102,10 @@ function ExplorerPanel() {
     createPR,
   } = useSeerExplorer();
 
-  const copySessionEnabled = Boolean(
-    sessionData?.status === 'completed' && !!runId && !!organization?.slug
-  );
-
+  const copySessionEnabled = Boolean(runId && organization?.slug);
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
-    blocks: sessionData?.blocks || [],
+    blocks: sessionData?.blocks,
+    status: sessionData?.status,
     organization,
     projects,
     enabled: copySessionEnabled,

@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.dsn_lookup import DsnLookupEndpoint
 from sentry.api.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
@@ -607,6 +608,9 @@ from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
 )
 from sentry.uptime.endpoints.organization_uptime_alert_preview_check import (
     OrganizationUptimeAlertPreviewCheckEndpoint,
+)
+from sentry.uptime.endpoints.organization_uptime_assertion_suggestions import (
+    OrganizationUptimeAssertionSuggestionsEndpoint,
 )
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.organization_uptime_summary import OrganizationUptimeSummaryEndpoint
@@ -2155,6 +2159,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationSearchesEndpoint.as_view(),
         name="sentry-api-0-organization-searches",
     ),
+    # DSN Lookup
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dsn-lookup/$",
+        DsnLookupEndpoint.as_view(),
+        name="sentry-api-0-organization-dsn-lookup",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sessions/$",
         OrganizationSessionsEndpoint.as_view(),
@@ -2653,6 +2663,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/uptime-preview-check/$",
         OrganizationUptimeAlertPreviewCheckEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-preview-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/uptime-assertion-suggestions/$",
+        OrganizationUptimeAssertionSuggestionsEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-assertion-suggestions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/uptime-count/$",
