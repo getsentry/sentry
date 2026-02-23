@@ -429,6 +429,9 @@ importers:
       mockdate:
         specifier: 3.0.5
         version: 3.0.5
+      modern-screenshot:
+        specifier: ^4.6.8
+        version: 4.6.8
       moment-timezone:
         specifier: 0.6.0
         version: 0.6.0
@@ -7164,6 +7167,9 @@ packages:
 
   mockdate@3.0.5:
     resolution: {integrity: sha512-iniQP4rj1FhBdBYS/+eQv7j1tadJ9lJtdzgOpvsOHng/GbcDh2Fhdeq+ZRldrPYdXvCyfFUmFeEwEGXZB5I/AQ==}
+
+  modern-screenshot@4.6.8:
+    resolution: {integrity: sha512-GJkv/yWPOJTlxj1LZDU2k474cDyOWL+LVaqTdDWQwQ5d8zIuTz1892+1cV9V0ZpK6HYZFo/+BNLBbierO9d2TA==}
 
   module-details-from-path@1.0.4:
     resolution: {integrity: sha512-EGWKgxALGMgzvxYF1UyGTy0HXX/2vHLkw6+NvDKW2jypWbHpjQuj4UMcqQWXHERJhVGKikolT06G3bcKe4fi7w==}
@@ -17601,6 +17607,8 @@ snapshots:
   mobx@6.13.7: {}
 
   mockdate@3.0.5: {}
+
+  modern-screenshot@4.6.8: {}
 
   module-details-from-path@1.0.4: {}
 

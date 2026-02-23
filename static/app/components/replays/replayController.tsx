@@ -7,6 +7,7 @@ import {Grid} from '@sentry/scraps/layout';
 
 import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import ReplayExportVideoButton from 'sentry/components/replays/replayExportVideoButton';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
@@ -98,6 +99,7 @@ export default function ReplayController({
       </TimelineScaleContextProvider>
 
       <Grid flow="column" align="center" gap="md">
+        <ReplayExportVideoButton isLoading={isLoading} />
         <ReplayPreferenceDropdown
           isLoading={isLoading}
           speedOptions={speedOptions}
