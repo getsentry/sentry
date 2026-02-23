@@ -50,7 +50,7 @@ export default function SnapshotsPage() {
     });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGroupName, setSelectedGroupName] = useState<string | null>(null);
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
 
   const firstPageData = data?.pages[0]?.[0];
@@ -62,12 +62,12 @@ export default function SnapshotsPage() {
     const allImages = data.pages.flatMap(page => page[0].images);
     const groups = new Map<string, SnapshotImage[]>();
     for (const image of allImages) {
-      const name = image.display_name ?? image.image_file_name;
-      const existing = groups.get(name);
+      const groupKey = image.group ?? image.image_file_name;
+      const existing = groups.get(groupKey);
       if (existing) {
         existing.push(image);
       } else {
-        groups.set(name, [image]);
+        groups.set(groupKey, [image]);
       }
     }
     return new Map([...groups.entries()].sort(([a], [b]) => a.localeCompare(b)));
@@ -79,25 +79,25 @@ export default function SnapshotsPage() {
     }
     const query = searchQuery.toLowerCase();
     const filtered = new Map<string, SnapshotImage[]>();
-    for (const [name, images] of groupedImages) {
-      if (name.toLowerCase().includes(query)) {
-        filtered.set(name, images);
+    for (const [groupKey, images] of groupedImages) {
+      if (groupKey.toLowerCase().includes(query)) {
+        filtered.set(groupKey, images);
       }
     }
     return filtered;
   }, [groupedImages, searchQuery]);
 
   // Default to first group if nothing selected or selection no longer in filtered results
-  const currentGroupName =
-    selectedGroupName && filteredGroups.has(selectedGroupName)
-      ? selectedGroupName
+  const currentGroupKey =
+    selectedGroupKey && filteredGroups.has(selectedGroupKey)
+      ? selectedGroupKey
       : (filteredGroups.keys().next().value ?? null);
-  const currentGroupImages = currentGroupName
-    ? (filteredGroups.get(currentGroupName) ?? [])
+  const currentGroupImages = currentGroupKey
+    ? (filteredGroups.get(currentGroupKey) ?? [])
     : [];
 
-  const handleSelectGroupName = (name: string) => {
-    setSelectedGroupName(name);
+  const handleSelectGroupKey = (key: string) => {
+    setSelectedGroupKey(key);
     setVariantIndex(0);
   };
 
@@ -134,17 +134,17 @@ export default function SnapshotsPage() {
         <Flex direction="row" gap="0" height="100%" width="100%">
           <SnapshotSidebarContent
             filteredGroups={filteredGroups}
-            currentGroupName={currentGroupName}
+            currentGroupKey={currentGroupKey}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            onSelectGroupName={handleSelectGroupName}
+            onSelectGroupKey={handleSelectGroupKey}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
             fetchNextPage={fetchNextPage}
           />
           <Separator orientation="vertical" />
           <SnapshotMainContent
-            currentGroupName={currentGroupName}
+            currentGroupKey={currentGroupKey}
             currentGroupImages={currentGroupImages}
             variantIndex={variantIndex}
             onVariantChange={setVariantIndex}

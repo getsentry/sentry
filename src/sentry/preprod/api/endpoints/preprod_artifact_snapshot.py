@@ -157,6 +157,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 key=key,
                 display_name=metadata.display_name,
                 image_file_name=metadata.image_file_name,
+                group=metadata.group,
                 width=metadata.width,
                 height=metadata.height,
             )

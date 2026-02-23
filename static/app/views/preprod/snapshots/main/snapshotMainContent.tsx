@@ -11,7 +11,7 @@ import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
 
 interface SnapshotMainContentProps {
   currentGroupImages: SnapshotImage[];
-  currentGroupName: string | null;
+  currentGroupKey: string | null;
   onVariantChange: (index: number) => void;
   organizationSlug: string;
   projectSlug: string;
@@ -19,7 +19,7 @@ interface SnapshotMainContentProps {
 }
 
 export function SnapshotMainContent({
-  currentGroupName,
+  currentGroupKey,
   currentGroupImages,
   variantIndex,
   onVariantChange,
@@ -27,7 +27,7 @@ export function SnapshotMainContent({
   projectSlug,
 }: SnapshotMainContentProps) {
   const selectedImage = currentGroupImages[variantIndex];
-  if (!currentGroupName || !selectedImage) {
+  if (!currentGroupKey || !selectedImage) {
     return (
       <Flex align="center" justify="center" padding="3xl">
         <Text variant="muted">{t('Select an image from the sidebar.')}</Text>
@@ -37,7 +37,6 @@ export function SnapshotMainContent({
 
   const imageUrl = `/api/0/projects/${organizationSlug}/${projectSlug}/files/images/${selectedImage.key}/`;
   const totalVariants = currentGroupImages.length;
-  const displayName = selectedImage.display_name ?? selectedImage.image_file_name;
 
   return (
     <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
@@ -64,7 +63,7 @@ export function SnapshotMainContent({
         )}
         <Stack gap="md">
           <Text size="lg" bold>
-            {displayName}
+            {currentGroupKey}
           </Text>
           {totalVariants > 1 && (
             <Text variant="muted" size="sm">
@@ -74,7 +73,7 @@ export function SnapshotMainContent({
         </Stack>
       </Flex>
       <Separator orientation="horizontal" />
-      <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
+      <SingleImageDisplay imageUrl={imageUrl} alt={selectedImage.display_name} />
     </Flex>
   );
 }

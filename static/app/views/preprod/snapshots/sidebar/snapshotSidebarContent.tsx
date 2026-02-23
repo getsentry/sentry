@@ -12,22 +12,22 @@ import {t} from 'sentry/locale';
 import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SnapshotSidebarContentProps {
-  currentGroupName: string | null;
+  currentGroupKey: string | null;
   fetchNextPage: () => Promise<unknown>;
   filteredGroups: Map<string, SnapshotImage[]>;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   onSearchChange: (query: string) => void;
-  onSelectGroupName: (name: string) => void;
+  onSelectGroupKey: (key: string) => void;
   searchQuery: string;
 }
 
 export function SnapshotSidebarContent({
   filteredGroups,
-  currentGroupName,
+  currentGroupKey,
   searchQuery,
   onSearchChange,
-  onSelectGroupName,
+  onSelectGroupKey,
   hasNextPage,
   isFetchingNextPage,
   fetchNextPage,
@@ -68,13 +68,13 @@ export function SnapshotSidebarContent({
         </InputGroup>
       </Container>
       <Stack overflow="auto" flex="1">
-        {[...filteredGroups.entries()].map(([name, images]) => {
-          const isSelected = name === currentGroupName;
+        {[...filteredGroups.entries()].map(([groupKey, images]) => {
+          const isSelected = groupKey === currentGroupKey;
           return (
             <SidebarItem
-              key={name}
+              key={groupKey}
               isSelected={isSelected}
-              onClick={() => onSelectGroupName(name)}
+              onClick={() => onSelectGroupKey(groupKey)}
             >
               <Text
                 size="md"
@@ -82,7 +82,7 @@ export function SnapshotSidebarContent({
                 bold={isSelected}
                 ellipsis
               >
-                {name}
+                {groupKey}
               </Text>
               <Tag variant="muted">{images.length}</Tag>
             </SidebarItem>

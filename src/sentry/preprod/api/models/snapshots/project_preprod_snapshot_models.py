@@ -22,6 +22,7 @@ class SnapshotImageResponse(BaseModel):
     key: str
     display_name: str | None = None
     image_file_name: str
+    group: str | None = None
     width: int
     height: int
 
