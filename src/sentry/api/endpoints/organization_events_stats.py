@@ -68,7 +68,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     ) -> Mapping[str, bool | None]:
         feature_names = [
             "organizations:performance-use-metrics",
-            "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
@@ -169,18 +168,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 query_source = QuerySource.SENTRY_BACKEND
 
             batch_features = self.get_features(organization, request)
-            use_metrics = (
-                batch_features.get("organizations:performance-use-metrics", False)
-                or batch_features.get("organizations:dashboards-mep", False)
-                or (
-                    batch_features.get("organizations:mep-rollout-flag", False)
-                    and features.has(
-                        "organizations:dynamic-sampling",
-                        organization=organization,
-                        actor=request.user,
-                    )
-                )
-            )
 
             dataset = self.get_dataset(request)
             # Add more here until top events is supported on all the datasets
@@ -340,7 +327,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 zerofill_results=zerofill_results,
                 comparison_delta=comparison_delta,
                 allow_metric_aggregates=allow_metric_aggregates,
-                has_metrics=use_metrics,
+                has_metrics=True,
                 on_demand_metrics_enabled=use_on_demand_metrics
                 and (
                     batch_features.get("organizations:on-demand-metrics-extraction", False)
