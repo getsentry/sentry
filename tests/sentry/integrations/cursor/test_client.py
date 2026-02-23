@@ -3,7 +3,12 @@ from unittest.mock import Mock, patch
 import pytest
 
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
-from sentry.integrations.cursor.client import CursorAgentClient
+from sentry.integrations.cursor.client import (
+    CursorAgentClient,
+    _extract_failed_model_from_error,
+    _get_model_family,
+    _prioritize_models_by_family,
+)
 from sentry.seer.models import SeerRepoDefinition
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -447,3 +452,154 @@ class CursorAgentClientTest(TestCase):
 
         assert models == ["claude-4-opus", "gpt-4", "gemini-pro"]
         mock_get.assert_called_once()
+
+    @patch.object(CursorAgentClient, "get")
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_deprecated_model_retries_same_family_first(
+        self, mock_post: Mock, mock_get: Mock
+    ) -> None:
+        """Deprecated gpt-4 error retries with gpt-family model first."""
+        deprecated_error = ApiError("Bad Request", code=400)
+        deprecated_error.json = {"error": "Model 'gpt-4' is not available or invalid."}
+
+        mock_post.side_effect = [
+            deprecated_error,
+            self._make_success_response(),
+        ]
+        mock_get.return_value = self._make_models_response(
+            ["claude-4.6-opus-high-thinking", "composer-1.5", "gpt-5.3-codex-high"]
+        )
+
+        result = self.cursor_client.launch(
+            webhook_url=self.webhook_url, request=self.launch_request
+        )
+
+        assert result.id == "agent_123"
+        assert mock_post.call_count == 2
+        # Should retry with gpt-family model first, not claude or composer
+        retry_model = mock_post.call_args_list[1][1]["data"]["model"]
+        assert retry_model == "gpt-5.3-codex-high"
+
+    @patch.object(CursorAgentClient, "get")
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_deprecated_model_same_family_fails_falls_through(
+        self, mock_post: Mock, mock_get: Mock
+    ) -> None:
+        """Same-family model also fails, falls through to other families."""
+        deprecated_error = ApiError("Bad Request", code=400)
+        deprecated_error.json = {"error": "Model 'gpt-4' is not available or invalid."}
+
+        mock_post.side_effect = [
+            deprecated_error,
+            ApiError("Also bad", code=400),
+            self._make_success_response(),
+        ]
+        mock_get.return_value = self._make_models_response(
+            ["claude-4.6-opus", "gpt-5.3-codex-high", "composer-1.5"]
+        )
+
+        result = self.cursor_client.launch(
+            webhook_url=self.webhook_url, request=self.launch_request
+        )
+
+        assert result.id == "agent_123"
+        assert mock_post.call_count == 3
+        # First retry: gpt-family (prioritized), second retry: claude (next in order)
+        assert mock_post.call_args_list[1][1]["data"]["model"] == "gpt-5.3-codex-high"
+        assert mock_post.call_args_list[2][1]["data"]["model"] == "claude-4.6-opus"
+
+    @patch.object(CursorAgentClient, "get")
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_non_model_error_preserves_original_order(
+        self, mock_post: Mock, mock_get: Mock
+    ) -> None:
+        """Non-model 500 error preserves original model order."""
+        mock_post.side_effect = [
+            ApiError("Internal Server Error", code=500),
+            self._make_success_response(),
+        ]
+        mock_get.return_value = self._make_models_response(
+            ["claude-4.6-opus", "gpt-5.3-codex-high", "composer-1.5"]
+        )
+
+        result = self.cursor_client.launch(
+            webhook_url=self.webhook_url, request=self.launch_request
+        )
+
+        assert result.id == "agent_123"
+        # Original order preserved since error doesn't identify a model
+        retry_model = mock_post.call_args_list[1][1]["data"]["model"]
+        assert retry_model == "claude-4.6-opus"
+
+
+class GetModelFamilyTest(TestCase):
+    def test_gpt_family(self) -> None:
+        assert _get_model_family("gpt-4") == "gpt"
+        assert _get_model_family("gpt-5.3-codex-high") == "gpt"
+
+    def test_claude_family(self) -> None:
+        assert _get_model_family("claude-4.6-opus-high-thinking") == "claude"
+        assert _get_model_family("claude-3.5-sonnet") == "claude"
+
+    def test_gemini_family(self) -> None:
+        assert _get_model_family("gemini-2.0-flash") == "gemini"
+
+    def test_composer_family(self) -> None:
+        assert _get_model_family("composer-1.5") == "composer"
+
+    def test_unknown_no_version(self) -> None:
+        assert _get_model_family("custom-model") == "custom-model"
+
+    def test_single_word_with_version(self) -> None:
+        assert _get_model_family("llama3.1") == "llama"
+
+
+class ExtractFailedModelFromErrorTest(TestCase):
+    def test_model_error(self) -> None:
+        error = ApiError("Bad Request", code=400)
+        error.json = {"error": "Model 'gpt-4' is not available or invalid."}
+        assert _extract_failed_model_from_error(error) == "gpt-4"
+
+    def test_non_model_error(self) -> None:
+        error = ApiError("Internal Server Error", code=500)
+        error.json = {"error": "Something went wrong."}
+        assert _extract_failed_model_from_error(error) is None
+
+    def test_non_json_error(self) -> None:
+        error = ApiError("Internal Server Error", code=500)
+        error.json = None
+        assert _extract_failed_model_from_error(error) is None
+
+    def test_missing_error_key(self) -> None:
+        error = ApiError("Bad Request", code=400)
+        error.json = {"message": "Something went wrong."}
+        assert _extract_failed_model_from_error(error) is None
+
+    def test_no_json_attribute(self) -> None:
+        error = ApiError("Internal Server Error", code=500)
+        # ApiError without json attribute set
+        if hasattr(error, "json"):
+            del error.json
+        assert _extract_failed_model_from_error(error) is None
+
+
+class PrioritizeModelsByFamilyTest(TestCase):
+    def test_same_family_first(self) -> None:
+        models = ["claude-4.6-opus", "gpt-5.3-codex-high", "composer-1.5", "gpt-4.1"]
+        result = _prioritize_models_by_family(models, "gpt-4")
+        assert result == ["gpt-5.3-codex-high", "gpt-4.1", "claude-4.6-opus", "composer-1.5"]
+
+    def test_no_failed_model_preserves_order(self) -> None:
+        models = ["claude-4.6-opus", "gpt-5.3-codex-high", "composer-1.5"]
+        result = _prioritize_models_by_family(models, None)
+        assert result == ["claude-4.6-opus", "gpt-5.3-codex-high", "composer-1.5"]
+
+    def test_no_matching_family(self) -> None:
+        models = ["claude-4.6-opus", "composer-1.5"]
+        result = _prioritize_models_by_family(models, "gpt-4")
+        assert result == ["claude-4.6-opus", "composer-1.5"]
+
+    def test_all_same_family(self) -> None:
+        models = ["gpt-5.3-codex-high", "gpt-4.1", "gpt-3.5-turbo"]
+        result = _prioritize_models_by_family(models, "gpt-4")
+        assert result == ["gpt-5.3-codex-high", "gpt-4.1", "gpt-3.5-turbo"]

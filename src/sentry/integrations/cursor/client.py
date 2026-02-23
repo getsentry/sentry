@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -26,6 +27,38 @@ logger = logging.getLogger(__name__)
 
 NON_RETRYABLE_ERRORS = (ApiUnauthorized, ApiForbiddenError, ApiRateLimitedError)
 MAX_MODEL_RETRIES = 3
+
+_MODEL_NAME_PATTERN = re.compile(r"Model '([^']+)'")
+_MODEL_FAMILY_PATTERN = re.compile(r"^([a-zA-Z]+(?:-[a-zA-Z]+)*)-?\d")
+
+
+def _extract_failed_model_from_error(error: ApiError) -> str | None:
+    """Extract the model name from a Cursor API 'Model not available' error."""
+    try:
+        message = error.json["error"]
+    except (AttributeError, KeyError, TypeError):
+        return None
+    match = _MODEL_NAME_PATTERN.search(message)
+    return match.group(1) if match else None
+
+
+def _get_model_family(model_name: str) -> str:
+    """Extract the alphabetic family prefix from a model name.
+
+    Examples: 'gpt-4' -> 'gpt', 'claude-4.6-opus-high-thinking' -> 'claude'
+    """
+    match = _MODEL_FAMILY_PATTERN.match(model_name)
+    return match.group(1).lower() if match else model_name.lower()
+
+
+def _prioritize_models_by_family(models: list[str], failed_model: str | None) -> list[str]:
+    """Reorder models so same-family models come first, preserving relative order."""
+    if failed_model is None:
+        return models
+    family = _get_model_family(failed_model)
+    same_family = [m for m in models if _get_model_family(m) == family]
+    other = [m for m in models if _get_model_family(m) != family]
+    return same_family + other
 
 
 class CursorAgentClient(CodingAgentClient):
@@ -157,6 +190,10 @@ class CursorAgentClient(CodingAgentClient):
         if not models:
             logger.warning("coding_agent.cursor.no_models_available")
             raise initial_error
+
+        # Prioritize same-family models when the error identifies a deprecated model
+        failed_model = _extract_failed_model_from_error(initial_error)
+        models = _prioritize_models_by_family(models, failed_model)
 
         # Retry with each model up to MAX_MODEL_RETRIES
         last_error: ApiError = initial_error
