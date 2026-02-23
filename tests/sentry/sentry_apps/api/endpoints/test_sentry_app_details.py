@@ -272,9 +272,12 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         self.internal_integration.refresh_from_db()
         assert self.internal_integration.webhook_url == "https://updatedurl.com"
 
-        # Verify the service hook URL is also updated
-        hook.refresh_from_db()
-        assert hook.url == "https://updatedurl.com"
+        # Verify the service hook URL is also updated (re-query since outbox deletes+recreates hooks)
+        with assume_test_silo_mode(SiloMode.REGION):
+            updated_hook = ServiceHook.objects.get(
+                application_id=self.internal_integration.application_id
+            )
+        assert updated_hook.url == "https://updatedurl.com"
 
     @override_options({"staff.ga-rollout": True})
     def test_can_update_name_with_non_unique_name(self) -> None:

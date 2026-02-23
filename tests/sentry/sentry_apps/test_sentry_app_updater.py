@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.db import router
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
@@ -19,7 +20,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, unguarded_write
 
 
 @control_silo_test
@@ -324,7 +325,8 @@ class TestUpdater(TestCase):
     def test_update_service_hooks_no_installations(self) -> None:
         """Test _update_service_hooks when there are no installations."""
         # Ensure no installations exist
-        SentryAppInstallation.objects.filter(sentry_app=self.sentry_app).delete()
+        with unguarded_write(using=router.db_for_write(SentryAppInstallation)):
+            SentryAppInstallation.objects.filter(sentry_app=self.sentry_app).delete()
 
         # Clear any existing outbox entries
         with outbox_runner():
