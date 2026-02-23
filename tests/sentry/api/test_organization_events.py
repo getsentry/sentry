@@ -54,6 +54,7 @@ class OrganizationEventsEndpointTest(APITestCase):
             "field": ["project.name", "environment"],
             "project": [self.project.id],
             "statsPeriod": "1h",
+            "query": "environment:staging",
         }
 
         url = self.reverse_url()
