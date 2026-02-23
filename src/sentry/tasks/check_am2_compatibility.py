@@ -513,7 +513,6 @@ class CheckAM2Compatibility:
                 config=QueryBuilderConfig(
                     allow_metric_aggregates=True,
                     auto_fields=False,
-                    use_metrics_layer=False,
                     on_demand_metrics_enabled=False,
                 ),
             )

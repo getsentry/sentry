@@ -86,3 +86,4 @@ class TriggeredRule:
     platform: str | None
     metrics_artifact_type: int | None = None
     identifier: str | None = None
+    build_configuration_name: str | None = None

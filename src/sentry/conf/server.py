@@ -1394,13 +1394,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
-    "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:device-classification": "Enable device.class as a selectable column",
-    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
-    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
-    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
 }
 
