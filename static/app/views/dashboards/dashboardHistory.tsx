@@ -13,7 +13,6 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -124,6 +123,11 @@ function DashboardHistoryDrawerContent({
         </Flex>
       </DrawerHeader>
       <DrawerBody>
+        <HistoryDescription>
+          {t(
+            'Restore to a previous snapshot of the dashboard. Up to 10 snapshots are stored and created on each dashboard edit, deleting the oldest snapshots first when the limit is reached.'
+          )}
+        </HistoryDescription>
         {isPending ? (
           <LoadingIndicator />
         ) : history?.length === 0 ? (
@@ -171,6 +175,12 @@ function DashboardHistoryDrawerContent({
   );
 }
 
+const HistoryDescription = styled('p')`
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
 const HistoryList = styled('ul')`
   list-style: none;
   padding: 0;
@@ -181,7 +191,7 @@ const HistoryItem = styled('li')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1.5)} 0;
+  padding: ${p => p.theme.space.md} 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   &:last-child {
@@ -192,14 +202,14 @@ const HistoryItem = styled('li')`
 const HistoryInfo = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space.sm};
   min-width: 0;
 `;
 
 const HistoryTitleRow = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const HistoryTitle = styled('span')`

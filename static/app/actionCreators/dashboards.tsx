@@ -201,6 +201,7 @@ export function updateDashboard(
 
   promise.then(
     () => {
+      // Invalidate the dashboard history query so that we re-fetch new history
       if (queryClient && dashboard.id) {
         queryClient.invalidateQueries({
           queryKey: makeDashboardHistoryQueryKey(orgId, dashboard.id),

@@ -57,10 +57,10 @@ class DashboardHistoryEndpoint(OrganizationDashboardBase):
         ).order_by("-date_added")
 
         def serialize_results(results: list[DashboardHistory]) -> list[dict[str, Any]]:
-            user_ids = [e.created_by_id for e in results if e.created_by_id is not None]
+            user_ids = [entry.created_by_id for entry in results if entry.created_by_id is not None]
             users_by_id = {
-                u.id: {"id": str(u.id), "name": u.name, "email": u.email}
-                for u in user_service.get_many_by_id(ids=user_ids)
+                user.id: {"id": str(user.id), "name": user.name, "email": user.email}
+                for user in user_service.get_many_by_id(ids=user_ids)
             }
             return [
                 {
