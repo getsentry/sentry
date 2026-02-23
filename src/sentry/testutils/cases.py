@@ -82,7 +82,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
-from sentry.eventstream.item_helpers import build_occurrence_attributes
+from sentry.eventstream.item_helpers import _build_occurrence_attributes
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
@@ -3556,7 +3556,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         if attributes:
             data.update(attributes)
 
-        attributes_proto = build_occurrence_attributes(data, tags=tags)
+        attributes_proto = _build_occurrence_attributes(data, tags=tags)
 
         return TraceItem(
             organization_id=organization.id,
