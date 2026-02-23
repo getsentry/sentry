@@ -1086,7 +1086,8 @@ function useWidgetBuilderState(): {
           } else if (
             displayType === DisplayType.LINE ||
             displayType === DisplayType.AREA ||
-            displayType === DisplayType.BAR
+            displayType === DisplayType.BAR ||
+            displayType === DisplayType.TOP_N
           ) {
             // Time series: aggregates are in yAxis
             const newYAxis = yAxis?.filter((_, i) => i !== deleteIndex) ?? [];

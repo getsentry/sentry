@@ -26,7 +26,10 @@ export function getSelectedAggregateIndex(
   selectedAggregate: number | undefined,
   aggregateCount: number
 ): number {
-  return selectedAggregate ?? (aggregateCount > 0 ? aggregateCount - 1 : 0);
+  if (selectedAggregate === undefined) {
+    return aggregateCount > 0 ? aggregateCount - 1 : 0;
+  }
+  return Math.min(selectedAggregate, Math.max(0, aggregateCount - 1));
 }
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
