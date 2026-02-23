@@ -1,9 +1,11 @@
 from dataclasses import asdict
 from typing import Any
 
+from rest_framework import serializers
+
 from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseIssueAlertHandler
-from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app import RpcSentryAppComponent, app_service
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
@@ -11,6 +13,8 @@ from sentry.workflow_engine.typings.notification_action import (
     SentryAppDataBlob,
     SentryAppFormConfigDataBlob,
 )
+
+ValidationError = serializers.ValidationError
 
 
 @issue_alert_handler_registry.register(Action.Type.SENTRY_APP)
@@ -74,3 +78,30 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
             settings = cls.process_settings(blob.settings)
             return {"settings": settings}
         return {}
+
+    @classmethod
+    def get_alert_rule_component(
+        self, sentry_app_id: int, sentry_app_name: str
+    ) -> RpcSentryAppComponent:
+        components = app_service.find_app_components(app_id=sentry_app_id)
+
+        for component in components:
+            if component.type == "alert-rule-action":
+                return component
+
+        raise ValidationError(
+            f"Alert Actions are not enabled for the {sentry_app_name} integration."
+        )
+
+    @classmethod
+    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        sentry_app_installation_uuid = blob.get("sentryAppInstallationUuid")
+
+        installations = app_service.get_many(filter=dict(uuids=[sentry_app_installation_uuid]))
+        if not installations:
+            raise ValidationError("Could not identify integration from the installation uuid.")
+
+        sentry_app = installations[0].sentry_app
+        alert_rule_component = cls.get_alert_rule_component(sentry_app.id, sentry_app.name)
+
+        return str(alert_rule_component.app_schema.get("title"))
