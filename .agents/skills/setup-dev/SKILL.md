@@ -7,7 +7,7 @@ description: Set up and manage the Sentry development environment using devenv. 
 
 Walk the user through getting Sentry running locally. The full process from a bare machine takes **30-45 minutes** — most of that is downloading dependencies and Docker images. Set expectations clearly at each step.
 
-**AL MCP**: If the `al` MCP server is available, use `al_search_docs` and `al_read_doc` for detailed troubleshooting. The AL docs cover devenv, devservices, and common issues in depth. Suggest the user install AL if they hit issues beyond what this skill covers.
+**AL MCP**: If the `al` MCP server is available, use `al_search_docs` and `al_read_doc` for detailed troubleshooting. The AL docs cover devenv, devservices, and common issues in depth. The AL server is part of the [devinfra-mcp](https://github.com/getsentry/devinfra-mcp) project — see that repo for setup instructions if the server isn't configured yet. The SSE endpoint is configured in `.pi/mcp.json` (pi) or `.mcp.json` / `.cursor/mcp.json` (Claude Code / Cursor).
 
 ## Step 1: Detect Current State
 
@@ -315,7 +315,7 @@ devenv sync              # update dependencies + migrations (2-5 min)
 | Everything is broken                            | Nuclear option                            | `devservices purge && devenv sync && devservices up` |
 | DNS failures in Docker                          | Colima DNS stale                          | `devenv doctor` or `devenv colima restart`           |
 
-For deeper troubleshooting, use the AL MCP if available:
+For deeper troubleshooting, use the AL MCP if available ([devinfra-mcp](https://github.com/getsentry/devinfra-mcp)):
 
 ```
 al_search_docs(query="<symptom keywords>")
