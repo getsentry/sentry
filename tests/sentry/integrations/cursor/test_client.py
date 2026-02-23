@@ -510,10 +510,10 @@ class CursorAgentClientTest(TestCase):
 
     @patch.object(CursorAgentClient, "get")
     @patch.object(CursorAgentClient, "post")
-    def test_launch_non_model_error_preserves_original_order(
+    def test_launch_non_model_500_error_preserves_original_order(
         self, mock_post: Mock, mock_get: Mock
     ) -> None:
-        """Non-model 500 error preserves original model order."""
+        """Non-model 500 error still retries, preserving original model order."""
         mock_post.side_effect = [
             ApiError("Internal Server Error", code=500),
             self._make_success_response(),
@@ -530,6 +530,70 @@ class CursorAgentClientTest(TestCase):
         # Original order preserved since error doesn't identify a model
         retry_model = mock_post.call_args_list[1][1]["data"]["model"]
         assert retry_model == "claude-4.6-opus"
+
+    @patch.object(CursorAgentClient, "get")
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_non_model_400_error_does_not_retry(
+        self, mock_post: Mock, mock_get: Mock
+    ) -> None:
+        """A 400 error not about models (e.g., invalid branch name) raises immediately."""
+        bad_request = ApiError("Bad Request", code=400)
+        bad_request.json = {"error": "Invalid branch name."}
+        mock_post.side_effect = bad_request
+        mock_get.return_value = self._make_models_response(
+            ["claude-4.6-opus", "gpt-5.3-codex-high"]
+        )
+
+        with pytest.raises(ApiError, match="Bad Request"):
+            self.cursor_client.launch(webhook_url=self.webhook_url, request=self.launch_request)
+
+        # Only the initial attempt, no model retries
+        assert mock_post.call_count == 1
+
+    @patch.object(CursorAgentClient, "get")
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_non_json_400_error_does_not_retry(
+        self, mock_post: Mock, mock_get: Mock
+    ) -> None:
+        """A 400 error without JSON body raises immediately without retrying."""
+        bad_request = ApiError("Bad Request", code=400)
+        bad_request.json = None
+        mock_post.side_effect = bad_request
+        mock_get.return_value = self._make_models_response(
+            ["claude-4.6-opus", "gpt-5.3-codex-high"]
+        )
+
+        with pytest.raises(ApiError, match="Bad Request"):
+            self.cursor_client.launch(webhook_url=self.webhook_url, request=self.launch_request)
+
+        assert mock_post.call_count == 1
+
+    @patch.object(CursorAgentClient, "get")
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_deprecated_gemini_retries_gpt_before_claude(
+        self, mock_post: Mock, mock_get: Mock
+    ) -> None:
+        """Deprecated gemini model with no gemini available retries GPT models first."""
+        deprecated_error = ApiError("Bad Request", code=400)
+        deprecated_error.json = {"error": "Model 'gemini-2.0-flash' is not available or invalid."}
+
+        mock_post.side_effect = [
+            deprecated_error,
+            self._make_success_response(),
+        ]
+        mock_get.return_value = self._make_models_response(
+            ["claude-4.6-opus-high-thinking", "composer-1.5", "gpt-5.3-codex-high"]
+        )
+
+        result = self.cursor_client.launch(
+            webhook_url=self.webhook_url, request=self.launch_request
+        )
+
+        assert result.id == "agent_123"
+        assert mock_post.call_count == 2
+        # No gemini models available, so GPT should be tried before claude/composer
+        retry_model = mock_post.call_args_list[1][1]["data"]["model"]
+        assert retry_model == "gpt-5.3-codex-high"
 
 
 class GetModelFamilyTest(TestCase):
@@ -587,7 +651,25 @@ class PrioritizeModelsByFamilyTest(TestCase):
     def test_same_family_first(self) -> None:
         models = ["claude-4.6-opus", "gpt-5.3-codex-high", "composer-1.5", "gpt-4.1"]
         result = _prioritize_models_by_family(models, "gpt-4")
+        # Same-family (gpt) first, then remaining in original relative order
         assert result == ["gpt-5.3-codex-high", "gpt-4.1", "claude-4.6-opus", "composer-1.5"]
+
+    def test_gpt_fallback_when_no_same_family(self) -> None:
+        """When no same-family models exist, GPT models come before other families."""
+        models = ["claude-4.6-opus", "gpt-5.3-codex-high", "composer-1.5", "gpt-4.1"]
+        result = _prioritize_models_by_family(models, "gemini-2.0-flash")
+        assert result == ["gpt-5.3-codex-high", "gpt-4.1", "claude-4.6-opus", "composer-1.5"]
+
+    def test_gpt_fallback_after_same_family(self) -> None:
+        """Same-family models come first, then GPT, then the rest."""
+        models = ["gpt-5.3-codex-high", "claude-4.6-opus", "claude-3.5-sonnet", "composer-1.5"]
+        result = _prioritize_models_by_family(models, "claude-4-opus")
+        assert result == [
+            "claude-4.6-opus",
+            "claude-3.5-sonnet",
+            "gpt-5.3-codex-high",
+            "composer-1.5",
+        ]
 
     def test_no_failed_model_preserves_order(self) -> None:
         models = ["claude-4.6-opus", "gpt-5.3-codex-high", "composer-1.5"]
@@ -596,8 +678,13 @@ class PrioritizeModelsByFamilyTest(TestCase):
 
     def test_no_matching_family(self) -> None:
         models = ["claude-4.6-opus", "composer-1.5"]
-        result = _prioritize_models_by_family(models, "gpt-4")
+        result = _prioritize_models_by_family(models, "gemini-2.0-flash")
         assert result == ["claude-4.6-opus", "composer-1.5"]
+
+    def test_no_matching_family_with_gpt_available(self) -> None:
+        models = ["claude-4.6-opus", "gpt-4.1", "composer-1.5"]
+        result = _prioritize_models_by_family(models, "gemini-2.0-flash")
+        assert result == ["gpt-4.1", "claude-4.6-opus", "composer-1.5"]
 
     def test_all_same_family(self) -> None:
         models = ["gpt-5.3-codex-high", "gpt-4.1", "gpt-3.5-turbo"]

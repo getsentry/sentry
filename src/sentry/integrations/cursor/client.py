@@ -52,13 +52,16 @@ def _get_model_family(model_name: str) -> str:
 
 
 def _prioritize_models_by_family(models: list[str], failed_model: str | None) -> list[str]:
-    """Reorder models so same-family models come first, preserving relative order."""
+    """Reorder models so same-family models come first, then GPT models, then the rest."""
     if failed_model is None:
         return models
     family = _get_model_family(failed_model)
     same_family = [m for m in models if _get_model_family(m) == family]
-    other = [m for m in models if _get_model_family(m) != family]
-    return same_family + other
+    gpt_fallback = [
+        m for m in models if _get_model_family(m) != family and _get_model_family(m) == "gpt"
+    ]
+    other = [m for m in models if _get_model_family(m) != family and _get_model_family(m) != "gpt"]
+    return same_family + gpt_fallback + other
 
 
 class CursorAgentClient(CodingAgentClient):
@@ -191,8 +194,12 @@ class CursorAgentClient(CodingAgentClient):
             logger.warning("coding_agent.cursor.no_models_available")
             raise initial_error
 
-        # Prioritize same-family models when the error identifies a deprecated model
+        # For 4xx errors, only retry if the error is specifically about an unavailable model.
+        # Other 4xx errors (invalid branch name, bad prompt, etc.) won't be fixed by switching models.
         failed_model = _extract_failed_model_from_error(initial_error)
+        if initial_error.code is not None and 400 <= initial_error.code < 500 and not failed_model:
+            raise initial_error
+
         models = _prioritize_models_by_family(models, failed_model)
 
         # Retry with each model up to MAX_MODEL_RETRIES
