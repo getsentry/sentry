@@ -169,7 +169,7 @@ class ThreadingService:
             )
             raise
 
-    def store_existing_thread(
+    @staticmethod
         *,
         thread: NotificationThread,
         external_message_id: str,
