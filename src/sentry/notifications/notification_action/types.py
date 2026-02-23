@@ -150,15 +150,24 @@ class BaseIssueAlertHandler(ABC):
         return {}
 
     @classmethod
+    def get_action_mapping(cls, action: Action) -> ActionFieldMapping:
+        mapping = ACTION_FIELD_MAPPINGS.get(Action.Type(action.type))
+        if mapping is None:
+            raise ValueError(f"No mapping found for action type: {action.type}")
+        return mapping
+
+    @classmethod
+    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        return "Send a notification"
+
+    @classmethod
     def build_rule_action_blob(
         cls,
         action: Action,
         organization_id: int,
     ) -> dict[str, Any]:
         """Build the base action blob using the standard mapping"""
-        mapping = ACTION_FIELD_MAPPINGS.get(Action.Type(action.type))
-        if mapping is None:
-            raise ValueError(f"No mapping found for action type: {action.type}")
+        mapping = cls.get_action_mapping(action)
         blob: dict[str, Any] = {
             "id": mapping["id"],
         }

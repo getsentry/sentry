@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Generator, Sequence
+from collections.abc import Collection, Generator, Iterable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 
 from django.test import override_settings
 
-from sentry.types.region import Region, RegionDirectory, get_global_directory
+from sentry.types.region import Locality, Region, RegionDirectory, get_global_directory
 
 
 @dataclass(frozen=True)
@@ -19,10 +19,13 @@ class TestEnvRegionDirectory(RegionDirectory):
     __test__ = False
 
     def __init__(self, regions: Collection[Region]) -> None:
-        super().__init__(regions)
+        super().__init__(regions, self.localities_from_regions(regions))
         self._tmp_state = _TemporaryRegionDirectoryState(
             regions=super().regions, default_region=next(iter(regions))
         )
+
+    def localities_from_regions(self, regions: Collection[Region]) -> frozenset[Locality]:
+        return frozenset(Locality(name=cell.name, cells=frozenset([cell.name])) for cell in regions)
 
     @contextmanager
     def swap_state(
@@ -31,8 +34,9 @@ class TestEnvRegionDirectory(RegionDirectory):
         local_region: Region | None = None,
     ) -> Generator[None]:
         monolith_region = regions[0]
+        new_regions = self.regions if regions is None else frozenset(regions)
         new_state = _TemporaryRegionDirectoryState(
-            regions=self.regions if regions is None else frozenset(regions),
+            regions=new_regions,
             default_region=local_region or monolith_region,
         )
 
@@ -75,6 +79,18 @@ class TestEnvRegionDirectory(RegionDirectory):
             return next(match)
         except StopIteration:
             return None
+
+    def get_locality_for_cell(self, cell_name: str) -> Locality | None:
+        region = self.get_by_name(cell_name)
+        if region is None:
+            return None
+        return Locality(name=cell_name, cells=frozenset([cell_name]))
+
+    def get_cells_for_locality(self, locality_name: str) -> Iterable[Region]:
+        region = self.get_by_name(locality_name)
+        if region is None:
+            return ()
+        return (region,)
 
 
 def get_test_env_directory() -> TestEnvRegionDirectory:
