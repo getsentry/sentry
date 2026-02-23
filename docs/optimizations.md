@@ -1233,3 +1233,21 @@ def pytest_collection_modifyitems(items):
 - **Stale map**: if a test class adds a new database dependency and the map is stale, Django raises an integrity error on the first test that touches the un-flushed database — caught immediately in CI. Re-run `classify-services` to refresh.
 - **Refresh cadence**: weekly scheduled run of `classify-services --classify-databases`, or triggered manually after large model changes.
 - **Zero per-test boilerplate**: no touching individual test files; the narrowing is entirely driven by the GCS data.
+
+### Results (n=1, 2026-02-23, run 22320333592)
+
+`--classify-databases` was run against the full test suite across 22 shards. The merged `test-database-usage.json` covered **3,111 test classes**. Alias distribution:
+
+| Alias set | Classes | % |
+|---|---|---|
+| `[control, default, secondary]` | 3,078 | 98.9% |
+| `[default]` | 15 | 0.5% |
+| `[control, default]` | 10 | 0.3% |
+| `[__no_db__, control, default, secondary]` | 6 | 0.2% |
+| `[__no_db__]` | 2 | 0.1% |
+
+**98.9% of test classes touch all three databases.** The 60%-default-only assumption in the estimate was completely wrong. The actual narrowable fraction is 0.5% (15 classes), which would save less than 1s — not worth the added complexity of loading and applying the map at collection time.
+
+**Root cause of the assumption failure**: Sentry's `TestCase` base class (via `APITestCase`, `TestCase`, etc.) creates `Organization`, `Project`, and `Team` fixtures in `setUp`. These models route to `control` and `secondary` via the silo routing layer, so virtually every test that uses any fixture touches all three DBs — not just tests that explicitly exercise cross-silo logic.
+
+**Dead end.** The `--classify-databases` instrumentation and `--narrow-databases` narrowing code remain in `service_classifier.py` for completeness but will have no practical impact on wall time.
