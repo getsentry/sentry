@@ -78,17 +78,7 @@ def schedule_task(
         # Pydantic v2 will automatically convert enum keys to strings.
         # payload = validated_payload.model_dump(mode="json")
     except Exception as e:
-        logger.warning(
-            "%s.validation_failed_before_scheduling",
-            PREFIX,
-            extra={
-                "error": str(e),
-                "github_event": github_event.value,
-                "github_event_action": github_event_action,
-                "organization_id": organization.id,
-                "repo_id": repo.id,
-            },
-        )
+        logger.warning("%s.validation_failed_before_scheduling", PREFIX)
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.INVALID_PAYLOAD
         )
