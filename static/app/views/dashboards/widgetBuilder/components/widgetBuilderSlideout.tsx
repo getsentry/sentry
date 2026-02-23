@@ -429,18 +429,17 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
-                    {(state.displayType === DisplayType.BIG_NUMBER ||
-                      (usesTimeSeriesData(state.displayType) &&
-                        (state.query?.length ?? 1) <= 1)) && (
-                      <Section>
-                        <ThresholdsSection
-                          dataType={thresholdMetaState?.dataType}
-                          dataUnit={thresholdMetaState?.dataUnit}
-                          error={error}
-                          setError={setError}
-                        />
-                      </Section>
-                    )}
+                    {state.displayType === DisplayType.BIG_NUMBER ||
+                      (usesTimeSeriesData(state.displayType) && (
+                        <Section>
+                          <ThresholdsSection
+                            dataType={thresholdMetaState?.dataType}
+                            dataUnit={thresholdMetaState?.dataUnit}
+                            error={error}
+                            setError={setError}
+                          />
+                        </Section>
+                      ))}
                     {showGroupBySelector && (
                       <Section>
                         <WidgetBuilderGroupBySelector
