@@ -1251,3 +1251,52 @@ def pytest_collection_modifyitems(items):
 **Root cause of the assumption failure**: Sentry's `TestCase` base class (via `APITestCase`, `TestCase`, etc.) creates `Organization`, `Project`, and `Team` fixtures in `setUp`. These models route to `control` and `secondary` via the silo routing layer, so virtually every test that uses any fixture touches all three DBs — not just tests that explicitly exercise cross-silo logic.
 
 **Dead end.** The `--classify-databases` instrumentation and `--narrow-databases` narrowing code remain in `service_classifier.py` for completeness but will have no practical impact on wall time.
+
+---
+
+## Experiment: Worker-Simulated LPT with `--dist=loadscope` + Class-Level Sharding
+
+### Background
+
+Previous worker-simulated LPT attempts were confounded by indivisible mega-scopes under `--dist=loadscope` and stale file-level duration data. This experiment starts clean on a new worktree (`mchen/worker-lpt`) with the correct algorithm and granularity.
+
+### Why file-level sharding + `--dist=loadfile` was wrong for LPT
+
+`--dist=loadfile` dispatches whole files to workers. The correct LPT unit is therefore the file. But for the seed run (no prior duration data), file-level hash sharding over ~722 files gives poor statistical distribution — one unlucky shard can concentrate several large files (e.g., `test_organization_events.py` at 204 tests, `test_organization_events_stats.py` at 108). With `--fail-slow=60s` and `--reruns=5`, each slow test consumes up to 360s, causing 20+ minute shards on the seed run.
+
+The solution: switch to `--dist=loadscope` (class-level dispatch) and shard at the class level. The T2 suite has ~2117 class-level scopes vs ~722 files — nearly 3× more items — giving much better hash distribution on seed runs. And since `--dist=loadscope` dispatches by class, the sharding unit matches the execution unit.
+
+### The 56% duration coverage trap
+
+The first LPT run achieved only 56.2% duration coverage (1190/2117 scopes). The cause: a scope key mismatch between `split-tests-by-tier.py` and `merge-test-durations.py` for **module-level tests** (tests not inside any class):
+
+- `merge-test-durations.py` stores module-level tests under the **file** key: `nodeid.rsplit("::", 1)[0]` → `tests/foo/test_bar.py`
+- `split-tests-by-tier.py` with `--granularity class` stored them as `file::test_function` (taking first 2 nodeid parts)
+
+These never matched, so 44% of T2 scopes (927 module-level test functions) always fell back to median duration. The two scripts were generating different keys for the same tests.
+
+**Fix:** `_scope_key` now returns just `file` (not `file::test_function`) for 2-part nodeids (module-level tests with no class component), matching `--dist=loadscope`'s actual grouping behavior and `merge-test-durations.py`'s output. Same fix applied to `pytest_collection_modifyitems` in `sentry.py` for consistent test filtering.
+
+After this fix, module-level tests in the same file collapse to a single `file` scope key (instead of N individual `file::test_fn` scopes), reducing the total scope count and giving ~100% duration coverage from the next run onward.
+
+### The stuck-run / artifact recovery pattern
+
+A run can have valid T2 duration data even if its `merge-durations` job failed or individual shards were flaky. The `split-tiers` duration download step was changed to:
+
+1. Scan the last 5 **completed** runs (any status) for a `test-durations` artifact — use the most recent one found.
+2. If no `test-durations` artifact exists anywhere, fall back to downloading raw `pytest-json-tier2-*` artifacts from the last completed run and merging inline.
+
+This avoids wasting a full T2 re-run just because `merge-durations` failed or a couple of shards were flaky.
+
+### Results
+
+| Run | Coverage | LPT predicted max | Actual max | Spread | All pass? |
+|---|---|---|---|---|---|
+| Seed (file-level hash) | — | — | 20+ min (stuck) | — | No |
+| LPT run 1 (56% cov, file-level data) | 56.2% | 521s | 786s | 368s | No (2 flakes) |
+| LPT run 2 (56% cov, same data) | 56.2% | 640s | 610s | 153s | No (1 flake) |
+| LPT run 3 (56% cov, same data) | 56.2% | 640s | 610s | **153s** | **Yes** ✓ |
+
+Run 3 wall clock: **10m46s**, all 17 shards passing.
+
+The 56% coverage runs are using file-level duration data (from an earlier run that used `--dist=loadfile`) mapped onto class-level scopes — only class-level tests match, module-level tests fall back to median. After the scope key fix lands and a fresh run collects class-level durations, coverage should reach ~100% and LPT assignment quality will improve further.
