@@ -86,7 +86,6 @@ export function SegmentSpansTable({
   } = useSegmentSpansQuery({
     query: eventViewQuery.formatString(),
     sort: selected.sort,
-    transactionName,
     p95,
     limit: LIMIT,
   });

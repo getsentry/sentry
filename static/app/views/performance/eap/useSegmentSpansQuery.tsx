@@ -12,7 +12,6 @@ type Options = {
   p95: number;
   query: string;
   sort: Sort;
-  transactionName: string;
   limit?: number;
 };
 
@@ -35,13 +34,7 @@ const FIELDS: SpanProperty[] = [
   'precise.finish_ts',
 ];
 
-export function useSegmentSpansQuery({
-  query,
-  transactionName,
-  sort,
-  p95,
-  limit = DEFAULT_LIMIT,
-}: Options) {
+export function useSegmentSpansQuery({query, sort, p95, limit = DEFAULT_LIMIT}: Options) {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const selectedOption = decodeScalar(location.query?.showTransactions);
@@ -75,7 +68,6 @@ export function useSegmentSpansQuery({
     meta: multipleQueriesMeta,
   } = useMultipleQueries({
     query,
-    transactionName,
     sort,
     p95,
     enabled: isMultipleQueriesEnabled,
@@ -153,7 +145,6 @@ type UseMultipleQueriesOptions = {
   p95: number;
   query: string;
   sort: Sort;
-  transactionName: string;
   enabled?: boolean;
 };
 
