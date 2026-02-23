@@ -624,6 +624,62 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "size_analysis" in resp_data["requestedFeatures"]
         assert "build_distribution" not in resp_data["requestedFeatures"]
 
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_sets_distribution_state_pending_when_can_run(self) -> None:
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.distribution_state == PreprodArtifact.DistributionState.PENDING
+        assert self.preprod_artifact.distribution_skip_reason is None
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    @patch("sentry.preprod.quotas.has_installable_quota")
+    def test_update_sets_distribution_state_not_ran_when_no_quota(
+        self, mock_has_installable_quota
+    ) -> None:
+        mock_has_installable_quota.return_value = False
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.distribution_state == PreprodArtifact.DistributionState.NOT_RAN
+        assert self.preprod_artifact.distribution_skip_reason == "quota"
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_sets_distribution_state_not_ran_when_filtered(self) -> None:
+        self.preprod_artifact.app_id = "com.my.app"
+        self.preprod_artifact.save()
+
+        self.project.update_option(DISTRIBUTION_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.distribution_state == PreprodArtifact.DistributionState.NOT_RAN
+        assert self.preprod_artifact.distribution_skip_reason == "filtered"
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_respects_explicit_distribution_state_from_request(self) -> None:
+        """Test that distribution_state from request body overrides server-side decision."""
+        data = {
+            "distribution_state": PreprodArtifact.DistributionState.NOT_RAN,
+            "distribution_skip_reason": "simulator",
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.distribution_state == PreprodArtifact.DistributionState.NOT_RAN
+        assert self.preprod_artifact.distribution_skip_reason == "simulator"
+        # Should not include build_distribution in requested features
+        assert "build_distribution" not in response.json()["requestedFeatures"]
+
 
 class FindOrCreateReleaseTest(TestCase):
     def test_exact_version_matching_prevents_incorrect_matches(self):

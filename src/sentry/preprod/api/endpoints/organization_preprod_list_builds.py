@@ -94,6 +94,7 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
             )
             .prefetch_related("preprodartifactsizemetrics_set")
             .filter(project_id__in=project_ids, date_added__gte=cutoff)
+            .exclude(distribution_state=PreprodArtifact.DistributionState.NOT_RAN)
         )
 
         if start and end:
