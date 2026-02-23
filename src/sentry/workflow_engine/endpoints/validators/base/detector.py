@@ -5,6 +5,7 @@ from typing import Any
 from django.db import router, transaction
 from jsonschema import ValidationError as JSONSchemaValidationError
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from sentry import audit_log
 from sentry.api.fields.actor import OwnerActorField
@@ -96,7 +97,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
 
         request = self.context["request"]
         if not request.access.has_project_access(project):
-            raise serializers.ValidationError("User does not have access to this project")
+            raise PermissionDenied("User does not have access to this project")
 
         return project.id
 
