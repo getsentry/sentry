@@ -95,8 +95,11 @@ jobs:
             --testids-file "$GITHUB_WORKSPACE/testids" \
             | tee "$GITHUB_WORKSPACE/detect-test-pollution-output"
           read -r POLLUTING_TESTID < <(tail -1 "$GITHUB_WORKSPACE/detect-test-pollution-output")
-          echo "detected test pollution: \`pytest $POLLUTING_TESTID $FAILING_TESTID\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "sentry sha: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "detected test pollution: \`pytest $POLLUTING_TESTID $FAILING_TESTID\`"
+            echo "sentry sha: ${{ github.sha }}"
+            echo "run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } | tee -a "$GITHUB_STEP_SUMMARY" > "$GITHUB_WORKSPACE/issue-body"
 
       - name: Create GitHub issue for test pollution
         if: failure() && steps.detect-test-pollution.outcome == 'success'
@@ -108,7 +111,7 @@ jobs:
           gh issue create \
             --title "Test pollution: $FAILING_TESTID" \
             --label test-pollution \
-            --body "$(cat "$GITHUB_STEP_SUMMARY")"
+            --body "$(cat "$GITHUB_WORKSPACE/issue-body")"
 
       - name: Create GitHub issue for flaky test
         if: failure() && steps.detect-test-pollution.outcome == 'failure'
