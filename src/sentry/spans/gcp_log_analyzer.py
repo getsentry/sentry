@@ -28,14 +28,17 @@ import logging
 import os
 import sys
 from datetime import datetime, timedelta, timezone
+from typing import cast
 
 from dateutil import parser as dateutil_parser
 
 from sentry.spans.log_analyzer import (
     FlusherLogAnalyzer,
+    FlusherLogEntry,
     FlusherSummaryStats,
     FlusherTraceStats,
     LogAnalyzer,
+    LogEntry,
     SummaryStats,
     TraceStats,
     fetch_logs_from_file,
@@ -287,37 +290,37 @@ def main() -> int:
         return 0
 
     if args.log_type == "flusher":
-        analyzer = FlusherLogAnalyzer(log_entries)
+        flusher_analyzer = FlusherLogAnalyzer(cast(list[FlusherLogEntry], log_entries))
 
         if args.project_id:
             logger.info("Filtering by project ID: %s", args.project_id)
-            analyzer = analyzer.filter_by_project(args.project_id)
+            flusher_analyzer = flusher_analyzer.filter_by_project(args.project_id)
 
         if args.trace_id:
             logger.info("Filtering by trace ID: %s", args.trace_id)
-            analyzer = analyzer.filter_by_trace(args.trace_id)
+            flusher_analyzer = flusher_analyzer.filter_by_trace(args.trace_id)
 
-        top_traces = analyzer.get_top_traces(limit=args.limit)
-        summary_stats = analyzer.get_summary_stats()
+        flusher_traces = flusher_analyzer.get_top_traces(limit=args.limit)
+        flusher_summary = flusher_analyzer.get_summary_stats()
 
-        sys.stdout.write(format_flusher_trace_table(top_traces) + "\n")
-        sys.stdout.write(format_flusher_summary(summary_stats) + "\n")
+        sys.stdout.write(format_flusher_trace_table(flusher_traces) + "\n")
+        sys.stdout.write(format_flusher_summary(flusher_summary) + "\n")
     else:
-        analyzer = LogAnalyzer(log_entries)
+        buffer_analyzer = LogAnalyzer(cast(list[LogEntry], log_entries))
 
         if args.project_id:
             logger.info("Filtering by project ID: %s", args.project_id)
-            analyzer = analyzer.filter_by_project(args.project_id)
+            buffer_analyzer = buffer_analyzer.filter_by_project(args.project_id)
 
         if args.trace_id:
             logger.info("Filtering by trace ID: %s", args.trace_id)
-            analyzer = analyzer.filter_by_trace(args.trace_id)
+            buffer_analyzer = buffer_analyzer.filter_by_trace(args.trace_id)
 
-        top_traces = analyzer.get_top_traces(limit=args.limit)
-        summary_stats = analyzer.get_summary_stats()
+        buffer_traces = buffer_analyzer.get_top_traces(limit=args.limit)
+        buffer_summary = buffer_analyzer.get_summary_stats()
 
-        sys.stdout.write(format_trace_table(top_traces) + "\n")
-        sys.stdout.write(format_summary(summary_stats) + "\n")
+        sys.stdout.write(format_trace_table(buffer_traces) + "\n")
+        sys.stdout.write(format_summary(buffer_summary) + "\n")
 
     return 0
 

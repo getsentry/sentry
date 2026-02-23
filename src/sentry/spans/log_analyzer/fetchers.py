@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from dateutil import parser as dateutil_parser
 
@@ -332,7 +334,7 @@ def fetch_logs_from_gcp(
     return _parse_buffer_gcp_entries(entries)
 
 
-def _parse_buffer_gcp_entries(entries: object) -> list[LogEntry]:
+def _parse_buffer_gcp_entries(entries: Iterable[Any]) -> list[LogEntry]:
     log_entries = []
     for entry in entries:
         timestamp = entry.timestamp
@@ -347,7 +349,7 @@ def _parse_buffer_gcp_entries(entries: object) -> list[LogEntry]:
     return log_entries
 
 
-def _parse_flusher_gcp_entries(entries: object) -> list[FlusherLogEntry]:
+def _parse_flusher_gcp_entries(entries: Iterable[Any]) -> list[FlusherLogEntry]:
     log_entries = []
     for entry in entries:
         timestamp = entry.timestamp
