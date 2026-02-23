@@ -16,14 +16,13 @@ import {
   useQueryClient,
   type UseApiQueryResult,
 } from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildCompareHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildCompareHeaderContent';
 import {SizeCompareMainContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareMainContent';
 import {SizeCompareSelectionContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectionContent';
+import {useResolveProjectFromArtifact} from 'sentry/views/preprod/hooks/useResolveProjectFromArtifact';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getCompareApiUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
@@ -38,41 +37,35 @@ export default function BuildComparison() {
     baseArtifactId?: string;
     headArtifactId?: string;
   }>();
-  const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
-  // TODO(EME-735): Remove this once refactoring is complete and we don't need to extract projects from the URL.
-  if (projectIds.length !== 1) {
-    throw new Error(
-      `Expected exactly one project in query string but got ${projectIds.length}`
-    );
-  }
-  const projectId = projectIds[0]!;
-
   const headBuildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
       [
         getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+          '/organizations/$organizationIdOrSlug/preprodartifacts/$artifactId/build-details/',
           {
             path: {
               organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectId,
-              headArtifactId: headArtifactId!,
+              artifactId: headArtifactId!,
             },
           }
         ),
       ],
       {
         staleTime: 0,
-        enabled: !!projectId && !!headArtifactId,
+        enabled: !!headArtifactId,
       }
     );
 
-  const compareUrl = getCompareApiUrl({
-    organizationSlug: organization.slug,
-    projectId,
-    headArtifactId: headArtifactId!,
-    baseArtifactId: baseArtifactId!,
-  });
+  const projectId = useResolveProjectFromArtifact(headBuildDetailsQuery.data);
+
+  const compareUrl = projectId
+    ? getCompareApiUrl({
+        organizationSlug: organization.slug,
+        projectId,
+        headArtifactId: headArtifactId!,
+        baseArtifactId: baseArtifactId!,
+      })
+    : null;
 
   const queryClient = useQueryClient();
   const {mutate: rerunComparison, isPending: isRerunning} = useMutation<
@@ -80,7 +73,7 @@ export default function BuildComparison() {
     RequestError
   >({
     mutationFn: () => {
-      return fetchMutation({url: compareUrl, method: 'POST'});
+      return fetchMutation({url: compareUrl!, method: 'POST'});
     },
     onSuccess: response => {
       if (response?.status === 'exists') {
@@ -127,6 +120,10 @@ export default function BuildComparison() {
         {headBuildDetailsQuery.error?.message || t('Failed to load build details')}
       </Alert>
     );
+  }
+
+  if (!projectId) {
+    return null;
   }
 
   let mainContent = null;

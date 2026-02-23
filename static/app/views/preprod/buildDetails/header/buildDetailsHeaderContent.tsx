@@ -44,8 +44,8 @@ import {useBuildDetailsActions} from './useBuildDetailsActions';
 interface BuildDetailsHeaderContentProps {
   artifactId: string;
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
-  projectId: string;
   projectType: string | null;
+  projectId?: string;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
@@ -128,7 +128,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     areActionsEnabled || isSizeInfoRetryable(buildDetailsData?.size_info);
 
   const handleCompareClick = () => {
-    if (!areActionsEnabled) {
+    if (!areActionsEnabled || !projectId) {
       return;
     }
     trackAnalytics('preprod.builds.details.compare_build_clicked', {

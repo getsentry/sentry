@@ -11,7 +11,7 @@ import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermis
 
 interface UseBuildDetailsActionsProps {
   artifactId: string;
-  projectId: string;
+  projectId?: string;
 }
 
 export function useBuildDetailsActions({

@@ -18,15 +18,14 @@ import {
   useMutation,
   type UseApiQueryResult,
 } from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
+import {useResolveProjectFromArtifact} from 'sentry/views/preprod/hooks/useResolveProjectFromArtifact';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   isSizeInfoPendingOrProcessing,
@@ -42,31 +41,23 @@ export default function BuildDetails() {
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
   const {artifactId} = useParams<{artifactId: string}>();
-  const {project: projectSlug} = useLocationQuery({fields: {project: decodeScalar}});
-  // Handle project as query param - take first value if array
-  const projectId = Array.isArray(projectSlug) ? projectSlug[0] : projectSlug;
-  const {handleDownloadAction, handleRerunAction} = useBuildDetailsActions({
-    projectId,
-    artifactId,
-  });
 
   const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
       [
         getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+          '/organizations/$organizationIdOrSlug/preprodartifacts/$artifactId/build-details/',
           {
             path: {
               organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectId,
-              headArtifactId: artifactId,
+              artifactId,
             },
           }
         ),
       ],
       {
         staleTime: 0,
-        enabled: !!projectId && !!artifactId,
+        enabled: !!artifactId,
         refetchInterval: query => {
           const data = query.state.data;
           const sizeInfo = data?.[0]?.size_info;
@@ -74,6 +65,12 @@ export default function BuildDetails() {
         },
       }
     );
+
+  const projectId = useResolveProjectFromArtifact(buildDetailsQuery.data);
+  const {handleDownloadAction, handleRerunAction} = useBuildDetailsActions({
+    projectId,
+    artifactId,
+  });
 
   const sizeInfo = buildDetailsQuery.data?.size_info;
   const isPendingOrProcessing = isSizeInfoPendingOrProcessing(sizeInfo);
