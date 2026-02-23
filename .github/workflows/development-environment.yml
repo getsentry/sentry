@@ -17,6 +17,8 @@ on:
       - 'src/sentry/runner/commands/devserver.py'
       - 'src/sentry/runner/commands/devservices.py'
       - 'bin/load-mocks'
+      - 'config/hooks/**'
+      - 'devenv/sync.py'
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -70,3 +72,28 @@ jobs:
       - name: devenv sync
         run: |
           devenv --nocoderoot sync
+
+  validate-worktree:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.9.28'
+          enable-cache: false
+
+      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
+        with:
+          cache-dependency-path: uv.lock
+          install-cmd: uv sync --frozen --active
+
+      - name: install direnv
+        run: |
+          curl -sfL https://direnv.net/install.sh | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+
+      - name: validate worktree env
+        run: ./scripts/validate-worktree-env.sh

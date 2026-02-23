@@ -242,7 +242,7 @@ def main(context: dict[str, str]) -> int:
             check=True,
         )
         git_common_dir = os.path.normpath(os.path.join(reporoot, out.stdout.strip()))
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         git_common_dir = os.path.join(reporoot, ".git")
     hooks_dir = os.path.join(git_common_dir, "hooks")
     hooks_src = os.path.join(reporoot, "config", "hooks")
