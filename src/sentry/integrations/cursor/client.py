@@ -35,7 +35,10 @@ _MODEL_FAMILY_PATTERN = re.compile(r"^([a-zA-Z]+(?:-[a-zA-Z]+)*)-?\d")
 def _extract_failed_model_from_error(error: ApiError) -> str | None:
     """Extract the model name from a Cursor API 'Model not available' error."""
     try:
-        message = error.json["error"]
+        error_json = error.json
+        if error_json is None:
+            return None
+        message = error_json["error"]
     except (AttributeError, KeyError, TypeError):
         return None
     match = _MODEL_NAME_PATTERN.search(message)
