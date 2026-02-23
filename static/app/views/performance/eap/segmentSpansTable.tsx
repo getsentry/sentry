@@ -18,7 +18,6 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -67,7 +66,6 @@ export function SegmentSpansTable({
   const {selected, options} = getEAPSegmentSpansListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const eventViewQuery = new MutableSearch('');
 
   const {
     data: tableData,
@@ -76,7 +74,7 @@ export function SegmentSpansTable({
     meta,
     error,
   } = useSegmentSpansQuery({
-    query: eventViewQuery.formatString(),
+    query: '',
     sort: selected.sort,
     transactionName,
     p95,

@@ -44,7 +44,10 @@ export function useSegmentSpansQuery({
 }: Options) {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
-  const selectedOption = decodeScalar(location.query?.showTransactions);
+  const selectedOption = decodeScalar(
+    location.query?.showTransactions,
+    TransactionFilterOptions.SLOW
+  );
 
   const isSingleQueryEnabled =
     selectedOption === TransactionFilterOptions.RECENT || !spanCategoryUrlParam;
@@ -61,6 +64,7 @@ export function useSegmentSpansQuery({
     p95,
     enabled: isSingleQueryEnabled,
     limit,
+    selectedOption,
   });
 
   const isMultipleQueriesEnabled = Boolean(
@@ -79,6 +83,7 @@ export function useSegmentSpansQuery({
     p95,
     enabled: isMultipleQueriesEnabled,
     limit,
+    selectedOption,
   });
 
   if (isSingleQueryEnabled) {
@@ -104,6 +109,7 @@ type UseSingleQueryOptions = {
   limit: number;
   p95: number;
   query: string;
+  selectedOption: string;
   sort: Sort;
   enabled?: boolean;
 };
@@ -112,9 +118,8 @@ type UseSingleQueryOptions = {
 function useSingleQuery(options: UseSingleQueryOptions) {
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR_NAME]);
-  const selectedOption = decodeScalar(location.query?.showTransactions);
   const {selection} = usePageFilters();
-  const {query, sort, p95, enabled, limit} = options;
+  const {query, sort, p95, enabled, limit, selectedOption} = options;
   const newQuery = new MutableSearch(query);
 
   if (selectedOption === TransactionFilterOptions.SLOW && p95) {
@@ -150,16 +155,16 @@ function useSingleQuery(options: UseSingleQueryOptions) {
 type UseMultipleQueriesOptions = {
   limit: number;
   p95: number;
+  selectedOption: string;
   sort: Sort;
   transactionName: string;
   enabled?: boolean;
 };
 
 function useMultipleQueries(options: UseMultipleQueriesOptions) {
-  const {transactionName, sort, p95, enabled, limit} = options;
+  const {transactionName, sort, p95, enabled, limit, selectedOption} = options;
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR_NAME]);
-  const selectedOption = decodeScalar(location.query?.showTransactions);
   const {selection} = usePageFilters();
   const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
