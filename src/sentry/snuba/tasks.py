@@ -9,7 +9,6 @@ from django.utils import timezone
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 
-from sentry import features
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
@@ -223,10 +222,6 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
     with sentry_sdk.start_span(op="snuba.tasks", name="create_in_snuba") as span:
-        span.set_tag(
-            "uses_metrics_layer",
-            features.has("organizations:use-metrics-layer", subscription.project.organization),
-        )
         span.set_tag("dataset", subscription.snuba_query.dataset)
 
         snuba_query = subscription.snuba_query
@@ -281,7 +276,7 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
     if SNUBA_INFO:
         import pprint
 
-        print(  # NOQA: only prints when an env variable is set
+        print(  # noqa: S002, T201 -- only prints when an env variable is set
             f"subscription.body:\n {pprint.pformat(body)}"
         )
 

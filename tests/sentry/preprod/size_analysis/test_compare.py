@@ -23,6 +23,7 @@ from sentry.preprod.size_analysis.models import (
     DiffType,
     FileAnalysis,
     FileInfo,
+    FlaggedInsight,
     SizeAnalysisResults,
     SizeMetricDiffItem,
     TreemapElement,
@@ -44,7 +45,7 @@ class CompareSizeAnalysisTest(TestCase):
         path=None,
         children=None,
         element_type="files",
-        flagged_insights: list[str] | None = None,
+        flagged_insights: list[str | FlaggedInsight] | None = None,
     ):
         return TreemapElement(
             name=name,
@@ -1310,7 +1311,6 @@ class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
 
 
 class CompareInsightsTest(TestCase):
-
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)

@@ -3,6 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -15,7 +16,6 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -48,6 +48,7 @@ interface ReleaseWidgetQueriesProps {
   }) => void;
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
+  widgetInterval?: string;
 }
 
 export function derivedMetricsToField(field: string): string {
@@ -157,6 +158,7 @@ function ReleaseWidgetQueries({
   onDataFetchStart,
   selection: propsSelection,
   children,
+  widgetInterval,
 }: ReleaseWidgetQueriesProps) {
   const config = ReleasesConfig;
 
@@ -336,6 +338,7 @@ function ReleaseWidgetQueries({
     loading: requiresCustomReleaseSorting(widget.queries[0]!) ? !releases : undefined,
     afterFetchTableData: afterFetchData,
     afterFetchSeriesData: afterFetchData,
+    widgetInterval,
   });
 
   return children({

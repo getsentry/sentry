@@ -1,9 +1,9 @@
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useUpdateQueryAtIndex,

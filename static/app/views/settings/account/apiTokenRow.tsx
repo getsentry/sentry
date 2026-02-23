@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import Confirm from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -70,7 +71,9 @@ const ScopeList = styled('div')`
   max-width: 400px;
 `;
 
-const Actions = styled(ButtonBar)`
+const Actions = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   justify-content: flex-end;
 `;
 

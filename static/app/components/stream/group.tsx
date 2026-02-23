@@ -19,6 +19,7 @@ import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
@@ -27,9 +28,6 @@ import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {
@@ -52,11 +50,14 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
+import {
+  useOptionalIssueSelectionActions,
+  useOptionalIssueSelectionSummary,
+} from 'sentry/views/issueList/issueSelectionContext';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
@@ -74,15 +75,10 @@ const COLUMNS: GroupListColumn[] = [
 ];
 
 type Props = {
-  id: string;
+  group: Group;
   canSelect?: boolean;
   customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
-  /**
-   * If you have access to the group data, it is preferred to pass it in as a prop here.
-   * Otherwise, the group data will come from the deprecated GroupStore.
-   */
-  group?: Group;
   hasGuideAnchor?: boolean;
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
@@ -105,18 +101,19 @@ function GroupCheckbox({
   group: Group;
   displayReprocessingLayout?: boolean;
 }) {
-  const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
-  const isSelected = selectedGroupMap.get(group.id) ?? false;
+  const issueSelectionSummary = useOptionalIssueSelectionSummary();
+  const issueSelectionActions = useOptionalIssueSelectionActions();
+  const isSelected = issueSelectionSummary?.records.get(group.id);
 
   const handleToggle = useCallback(
     (isShiftClick: boolean) => {
       if (isShiftClick) {
-        SelectedGroupStore.shiftToggleItems(group.id);
+        issueSelectionActions?.shiftToggleSelect(group.id);
       } else {
-        SelectedGroupStore.toggleSelect(group.id);
+        issueSelectionActions?.toggleSelect(group.id);
       }
     },
-    [group.id]
+    [group.id, issueSelectionActions]
   );
 
   const onChange = useCallback(
@@ -271,8 +268,7 @@ export function LoadingStreamGroup({
 }
 
 function StreamGroup({
-  id,
-  group: incomingGroup,
+  group,
   customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
@@ -290,17 +286,16 @@ function StreamGroup({
   onPriorityChange,
   onAssigneeChange,
 }: Props) {
+  const issueSelectionSummary = useOptionalIssueSelectionSummary();
+  const issueSelectionActions = useOptionalIssueSelectionActions();
+  const groupId = group.id;
+
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const groups = useLegacyStore(GroupStore);
-  const group = useMemo(() => {
-    if (incomingGroup) {
-      return incomingGroup;
-    }
-    return groups.find(item => item.id === id) as Group | undefined;
-  }, [incomingGroup, groups, id]);
-  const originalInboxState = useRef(group?.inbox as InboxDetails | null);
+  const selectionEnabled =
+    canSelect && !!issueSelectionSummary && !!issueSelectionActions;
+  const originalInboxState = useRef(group.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
 
   const referrer = source ? `${source}-issue-stream` : 'issue-stream';
@@ -332,7 +327,7 @@ function StreamGroup({
     ): Promise<AssignableEntity | null> => {
       if (newAssignee) {
         await assignToActor({
-          id: group!.id,
+          id: groupId,
           orgSlug: organization.slug,
           actor: {id: newAssignee.id, type: newAssignee.type},
           assignedBy: 'assignee_selector',
@@ -340,7 +335,7 @@ function StreamGroup({
         return Promise.resolve(newAssignee);
       }
 
-      await clearAssignment(group!.id, organization.slug, 'assignee_selector');
+      await clearAssignment(groupId, organization.slug, 'assignee_selector');
       return Promise.resolve(null);
     },
     onSuccess: (newAssignee: AssignableEntity | null) => {
@@ -358,55 +353,36 @@ function StreamGroup({
     onError: () => {},
   });
 
-  const clickHasBeenHandled = useCallback(
-    (evt: React.MouseEvent<HTMLDivElement>) => {
-      const targetElement = evt.target as Partial<HTMLElement>;
-      if (!group) {
-        return true;
-      }
+  const clickHasBeenHandled = useCallback((evt: React.MouseEvent<HTMLDivElement>) => {
+    const targetElement = evt.target as Partial<HTMLElement>;
+    const tagName = targetElement?.tagName?.toLowerCase();
 
-      const tagName = targetElement?.tagName?.toLowerCase();
+    const ignoredTags = new Set(['a', 'input', 'label']);
 
-      const ignoredTags = new Set(['a', 'input', 'label']);
-
-      if (tagName && ignoredTags.has(tagName)) {
-        return true;
-      }
-
-      let e = targetElement;
-      while (e.parentElement) {
-        if (ignoredTags.has(e?.tagName?.toLowerCase() ?? '')) {
-          return true;
-        }
-        e = e.parentElement!;
-      }
-
-      return false;
-    },
-    [group]
-  );
-
-  const groupStats = useMemo<readonly TimeseriesValue[]>(() => {
-    if (!group) {
-      return [];
+    if (tagName && ignoredTags.has(tagName)) {
+      return true;
     }
 
+    let e = targetElement;
+    while (e.parentElement) {
+      if (ignoredTags.has(e?.tagName?.toLowerCase() ?? '')) {
+        return true;
+      }
+      e = e.parentElement!;
+    }
+
+    return false;
+  }, []);
+
+  const groupStats = useMemo<readonly TimeseriesValue[]>(() => {
     return group.filtered
       ? group.filtered.stats?.[statsPeriod]!
       : group.stats?.[statsPeriod]!;
   }, [group, statsPeriod]);
 
   const groupSecondaryStats = useMemo<readonly TimeseriesValue[]>(() => {
-    if (!group) {
-      return [];
-    }
-
     return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
-
-  if (!group) {
-    return null;
-  }
 
   const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {
     // when there is no discover feature open events page
@@ -627,14 +603,14 @@ function StreamGroup({
       return;
     }
 
-    if (canSelect && e.shiftKey) {
-      SelectedGroupStore.shiftToggleItems(group.id);
+    if (selectionEnabled && e.shiftKey) {
+      issueSelectionActions?.shiftToggleSelect(group.id);
       window.getSelection()?.removeAllRanges();
       return;
     }
 
-    if (canSelect && isCtrlKeyPressed(e)) {
-      SelectedGroupStore.toggleSelect(group.id);
+    if (selectionEnabled && isCtrlKeyPressed(e)) {
+      issueSelectionActions?.toggleSelect(group.id);
       return;
     }
 
@@ -661,13 +637,13 @@ function StreamGroup({
     >
       <InteractionStateLayer />
       <Fragment>
-        {canSelect && (
+        {selectionEnabled && (
           <GroupCheckbox
             group={group}
             displayReprocessingLayout={displayReprocessingLayout}
           />
         )}
-        <GroupSummary canSelect={canSelect}>
+        <GroupSummary canSelect={selectionEnabled}>
           <EventOrGroupHeader data={group} query={query} source={referrer} />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupSummary>

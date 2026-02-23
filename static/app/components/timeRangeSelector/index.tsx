@@ -10,7 +10,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -85,11 +84,6 @@ export interface TimeRangeSelectorProps extends Omit<
    */
   defaultPeriod?: string;
   /**
-   * (Specific to DatePageFilter) Whether the current value is out of sync with the
-   * stored persistent value.
-   */
-  desynced?: boolean;
-  /**
    * Forces the user to select from the set of defined relative options
    */
   disallowArbitraryRelativeRanges?: boolean;
@@ -137,12 +131,7 @@ export interface TimeRangeSelectorProps extends Omit<
    * Start date value for absolute date selector
    */
   start?: DateString;
-  trigger?: (
-    props: TriggerProps & {
-      desynced?: boolean;
-    },
-    isOpen: boolean
-  ) => React.ReactNode;
+  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
   /**
    * Default initial value for using UTC
    */
@@ -171,7 +160,6 @@ export function TimeRangeSelector({
   menuBody,
   menuFooter,
   menuFooterMessage,
-  desynced,
   ...selectProps
 }: TimeRangeSelectorProps) {
   const router = useRouter();
@@ -375,7 +363,6 @@ export function TimeRangeSelector({
             const mergedProps = mergeProps(triggerProps, {
               'data-test-id': 'page-filter-timerange-selector',
               children: defaultLabel,
-              desynced,
             });
 
             return trigger ? (
@@ -492,17 +479,11 @@ export function TimeRangeSelector({
   );
 }
 
-export function TimeRangeSelectTrigger({
-  desynced,
-  ...props
-}: TriggerProps & {
-  desynced?: boolean;
-}) {
+export function TimeRangeSelectTrigger(props: TriggerProps) {
   return (
     <OverlayTrigger.Button {...props}>
       <TriggerLabelWrap>
         <TriggerLabel>{props.children}</TriggerLabel>
-        {desynced && <DesyncedFilterIndicator />}
       </TriggerLabelWrap>
     </OverlayTrigger.Button>
   );

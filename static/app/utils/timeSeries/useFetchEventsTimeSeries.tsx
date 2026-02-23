@@ -1,4 +1,5 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -9,7 +10,6 @@ import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatSearchStringForQueryParam} from 'sentry/utils/url/formatSearchStringForQueryParam';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';

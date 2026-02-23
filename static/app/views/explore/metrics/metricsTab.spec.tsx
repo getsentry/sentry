@@ -12,7 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
@@ -128,7 +128,7 @@ describe('MetricsTabContent', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -462,7 +462,7 @@ describe('MetricsTabContent', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });

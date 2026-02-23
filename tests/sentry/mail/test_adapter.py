@@ -411,9 +411,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         ]
         for checked_value in checked_values:
             assert isinstance(msg.alternatives[0][0], str)
-            assert (
-                checked_value in msg.alternatives[0][0]
-            ), f"{checked_value} not present in message"
+            assert checked_value in msg.alternatives[0][0], (
+                f"{checked_value} not present in message"
+            )
 
     def test_simple_notification_generic_no_evidence(self) -> None:
         """Test that an issue with no evidence that is neither error nor performance type renders a generic email template"""
@@ -487,9 +487,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         ]
         for checked_value in checked_values:
             assert isinstance(msg.alternatives[0][0], str)
-            assert (
-                checked_value in msg.alternatives[0][0]
-            ), f"{checked_value} not present in message"
+            assert checked_value in msg.alternatives[0][0], (
+                f"{checked_value} not present in message"
+            )
         assert "notification_uuid" in msg.body
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")

@@ -1,0 +1,295 @@
+---
+title: Slider
+description: A range slider component for selecting numeric values by dragging a handle along a track.
+category: forms
+source: '@sentry/scraps/slider'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/slider/index.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WAI-ARIA Slider: https://www.w3.org/WAI/ARIA/apg/patterns/slider/
+---
+
+import {Fragment, useState} from 'react';
+
+import {Stack} from '@sentry/scraps/layout';
+import {Slider} from '@sentry/scraps/slider';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/slider';
+
+export {documentation};
+
+`<Slider>` is a range slider component that allows users to select a numeric value by dragging a handle along a track. It provides visual and interactive feedback, making it ideal for adjusting continuous values.
+
+Use `<Slider>` for selecting numeric values from a range, such as volume controls, zoom levels, or adjustable thresholds.
+
+```jsx
+const [value, setValue] = useState(50);
+
+<Slider value={value} onChange={setValue} min={0} max={100} />;
+```
+
+## Basic Usage
+
+The simplest slider with default range (0-100):
+
+export function BasicDemo() {
+  const [value, setValue] = useState(50);
+  return (
+    <Stack as="label" align="center" gap="md">
+      Basic slider (value: {value})
+      <Slider value={value} onChange={setValue} />
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <BasicDemo />
+</Storybook.Demo>
+
+```jsx
+const [value, setValue] = useState(50);
+
+<Slider value={value} onChange={setValue} />;
+```
+
+## Min and Max Values
+
+Use `min` and `max` props to define the slider's range:
+
+export function MinMaxDemo() {
+  const [value, setValue] = useState(150);
+  return (
+    <Stack as="label" align="center" gap="md">
+      Range 100-200 (value: {value})
+      <Slider value={value} onChange={setValue} min={100} max={200} />
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <MinMaxDemo />
+</Storybook.Demo>
+
+```jsx
+<Slider value={value} onChange={setValue} min={100} max={200} />
+```
+
+## Step Control
+
+The `step` prop restricts which values can be selected. This creates discrete stops along the slider track.
+
+export function StepDemo() {
+  const [value, setValue] = useState(0);
+  return (
+    <Fragment>
+      <Stack as="label" align="center" gap="md">
+        Every 10th value (value: {value})
+        <Slider value={value} onChange={setValue} defaultValue={0} step={10} />
+      </Stack>
+      <Stack as="label" align="center" gap="md">
+        Steps of 25 (value: {value})
+        <Slider value={value} onChange={setValue} min={100} max={200} step={25} />
+      </Stack>
+    </Fragment>
+  );
+}
+
+<Storybook.Demo>
+  <StepDemo />
+</Storybook.Demo>
+
+```jsx
+// Step by 10
+<Slider value={value} onChange={setValue} step={10} />
+
+// Custom range with steps
+<Slider value={value} onChange={setValue} min={100} max={200} step={25} />
+```
+
+## Label Formatting
+
+Use the `formatLabel` callback to customize how the value is displayed:
+
+export function FormatDemo() {
+  const [value, setValue] = useState(50);
+  return (
+    <Fragment>
+      <Stack as="label" align="center" gap="md">
+        Percentage format
+        <Slider value={value} onChange={setValue} formatLabel={v => `${v}%`} />
+      </Stack>
+      <Stack as="label" align="center" gap="md">
+        Currency format
+        <Slider
+          value={value}
+          onChange={setValue}
+          min={0}
+          max={1000}
+          step={50}
+          formatLabel={v => `$${v}`}
+        />
+      </Stack>
+    </Fragment>
+  );
+}
+
+<Storybook.Demo>
+  <FormatDemo />
+</Storybook.Demo>
+
+```jsx
+<Slider
+  value={value}
+  onChange={setValue}
+  formatLabel={v => `${v}%`}
+/>
+
+<Slider
+  value={value}
+  onChange={setValue}
+  formatLabel={v => `$${v}`}
+/>
+```
+
+## Disabled State
+
+Set `disabled` to prevent interaction with the slider:
+
+<Storybook.Demo>
+  <Stack as="label" align="center" gap="md">
+    Disabled slider
+    <Slider disabled defaultValue={50} />
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<Slider disabled defaultValue={50} />
+```
+
+## Controlled vs Uncontrolled
+
+Sliders can be controlled or uncontrolled:
+
+```jsx
+// Controlled (recommended)
+const [value, setValue] = useState(50);
+<Slider value={value} onChange={setValue} />
+
+// Uncontrolled
+<Slider defaultValue={50} />
+```
+
+## Keyboard Controls
+
+`<Slider>` provides full keyboard support:
+
+- **Arrow Left/Down**: Decrease value by step
+- **Arrow Right/Up**: Increase value by step
+- **Home**: Jump to minimum value
+- **End**: Jump to maximum value
+- **Page Up/Down**: Larger increments (10× step)
+
+## Usage Patterns
+
+### Volume Controls
+
+```jsx
+const [volume, setVolume] = useState(75);
+
+<label>
+  Volume
+  <Slider
+    value={volume}
+    onChange={setVolume}
+    min={0}
+    max={100}
+    formatLabel={v => `${v}%`}
+    aria-label="Volume level"
+  />
+</label>;
+```
+
+### Zoom Controls
+
+```jsx
+const [zoom, setZoom] = useState(100);
+
+<Slider
+  value={zoom}
+  onChange={setZoom}
+  min={50}
+  max={200}
+  step={10}
+  formatLabel={v => `${v}%`}
+  aria-label="Zoom level"
+/>;
+```
+
+### Threshold Adjustments
+
+```jsx
+const [threshold, setThreshold] = useState(80);
+
+<label>
+  Error Threshold
+  <Slider
+    value={threshold}
+    onChange={setThreshold}
+    min={0}
+    max={100}
+    step={5}
+    formatLabel={v => `${v}%`}
+  />
+</label>;
+```
+
+## Accessibility
+
+`<Slider>` follows the [WAI-ARIA Slider pattern](https://www.w3.org/WAI/ARIA/apg/patterns/slider/) and meets WCAG 2.2 AA standards:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Full keyboard control
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators
+
+The component automatically includes:
+
+- `role="slider"`
+- `aria-valuemin`, `aria-valuemax`, `aria-valuenow` attributes
+- `aria-valuetext` for formatted values
+- Keyboard navigation
+
+### Developer Responsibilities
+
+**Labels**
+
+- Every slider must have an associated label
+- Use `<label>`, `aria-label`, or `aria-labelledby`
+
+```jsx
+// Good: Visible label
+<label>
+  Volume
+  <Slider value={volume} onChange={setVolume} />
+</label>
+
+// Good: aria-label
+<Slider value={volume} onChange={setVolume} aria-label="Volume level" />
+```
+
+**Value Communication**
+
+- Use `formatLabel` to provide meaningful value displays
+- Consider showing the current value near the slider
+- Ensure the value format is clear to users
+
+**Keyboard Interaction**
+
+- Test that all keyboard shortcuts work correctly
+- Ensure focus indicators are visible
+- Verify that Home/End keys reach min/max values
+
+For more information, see the [WAI-ARIA Slider practices](https://www.w3.org/WAI/ARIA/apg/patterns/slider/).

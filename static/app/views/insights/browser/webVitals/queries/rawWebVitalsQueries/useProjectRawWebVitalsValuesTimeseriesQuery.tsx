@@ -1,7 +1,7 @@
 import {getInterval} from 'sentry/components/charts/utils';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';

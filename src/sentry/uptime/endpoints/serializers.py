@@ -42,7 +42,6 @@ class UptimeSubscriptionSerializerResponse(TypedDict):
 
 @register(UptimeSubscription)
 class UptimeSubscriptionSerializer(Serializer):
-
     @override
     def serialize(self, obj: UptimeSubscription, attrs, user, **kwargs) -> dict[str, Any]:
         return {
@@ -172,7 +171,6 @@ class EapCheckEntrySerializerResponse(TypedDict):
 
 @register(EapCheckEntry)
 class EapCheckEntrySerializer(Serializer):
-
     def serialize(
         self, obj: EapCheckEntry, attrs, user, **kwargs
     ) -> EapCheckEntrySerializerResponse:

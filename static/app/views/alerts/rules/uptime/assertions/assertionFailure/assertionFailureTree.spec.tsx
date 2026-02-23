@@ -7,7 +7,7 @@ import {
   makeOrOp,
   makeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/assertions/testUtils';
-import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
+import {ComparisonType, type Assertion} from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionFailureTree} from './assertionFailureTree';
 
@@ -15,7 +15,9 @@ describe('AssertionFailureTree', () => {
   it('renders rows in order for a simple assertion', () => {
     const assertion: Assertion = {
       root: makeAndOp({
-        children: [makeStatusCodeOp({operator: {cmp: 'equals'}, value: 500})],
+        children: [
+          makeStatusCodeOp({operator: {cmp: ComparisonType.EQUALS}, value: 500}),
+        ],
       }),
     };
 
@@ -40,7 +42,7 @@ describe('AssertionFailureTree', () => {
             children: [
               makeJsonPathOp({
                 value: '$.status',
-                operator: {cmp: 'equals'},
+                operator: {cmp: ComparisonType.EQUALS},
                 operand: {jsonpath_op: 'literal', value: 'ok'},
               }),
               makeHeaderCheckOp({
@@ -56,17 +58,15 @@ describe('AssertionFailureTree', () => {
     render(<AssertionFailureTree assertion={assertion} />);
 
     const rows = screen.getAllByTestId('assertion-failure-tree-row');
-    expect(rows).toHaveLength(4);
+    expect(rows).toHaveLength(3);
 
-    expect(rows[0]!).toHaveTextContent(/Assert All/);
-    expect(rows[1]!).toHaveTextContent(/Assert Any/);
+    expect(rows[0]!).toHaveTextContent(/Assert Any/);
 
-    expect(rows[2]!).toHaveTextContent(
+    expect(rows[1]!).toHaveTextContent(
       /\[Failed\]\s*JSON Path \| Rule:\s*\$\.status\s*=\s*""\s*ok/
     );
 
-    const headerText = rows[3]!.textContent ?? '';
-    expect(headerText).toMatch(
+    expect(rows[2]!).toHaveTextContent(
       /\[Failed\]\s*Header Check \| Rule:\s*key\s*=\s*""\s*content-type,\s*value\s*=\s*""\s*application\/json/
     );
   });

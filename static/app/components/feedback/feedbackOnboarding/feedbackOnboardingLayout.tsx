@@ -1,11 +1,16 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -106,53 +111,63 @@ export function FeedbackOnboardingLayout({
     />
   );
 
+  // TODO(aknaus): Move inserting the toggle into the docs definitions
+  // once the content blocks migration is done. This logic here is very brittle.
+  const transformedSteps = steps.map(step => {
+    if (
+      step.type !== StepType.CONFIGURE ||
+      configType !== 'feedbackOnboardingNpm' ||
+      hideFeedbackConfigToggle
+    ) {
+      return step;
+    }
+
+    if (step.content) {
+      // Insert the feedback config toggle before the code block
+      const codeIndex = step.content?.findIndex(b => b.type === 'code');
+      if (codeIndex === -1) {
+        return step;
+      }
+      const newContent = [...step.content];
+      if (codeIndex !== undefined) {
+        newContent.splice(codeIndex, 0, {
+          type: 'custom',
+          bottomMargin: false,
+          content: feedbackConfigToggle,
+        });
+      }
+      return {
+        ...step,
+        content: newContent,
+      };
+    }
+
+    return {
+      ...step,
+      codeHeader: feedbackConfigToggle,
+    };
+  });
+
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
-      <Wrapper>
-        {introduction && <Stack marginBottom="3xl">{introduction}</Stack>}
-        <Steps>
-          {steps
-            // TODO(aknaus): Move inserting the toggle into the docs definitions
-            // once the content blocks migration is done. This logic here is very brittle.
-            .map(step => {
-              if (
-                step.type !== StepType.CONFIGURE ||
-                configType !== 'feedbackOnboardingNpm' ||
-                hideFeedbackConfigToggle
-              ) {
-                return step;
-              }
-
-              if (step.content) {
-                // Insert the feedback config toggle before the code block
-                const codeIndex = step.content?.findIndex(b => b.type === 'code');
-                if (codeIndex === -1) {
-                  return step;
-                }
-                const newContent = [...step.content];
-                if (codeIndex !== undefined) {
-                  newContent.splice(codeIndex, 0, {
-                    type: 'custom',
-                    bottomMargin: false,
-                    content: feedbackConfigToggle,
-                  });
-                }
-                return {
-                  ...step,
-                  content: newContent,
-                };
-              }
-
-              return {
-                ...step,
-                codeHeader: feedbackConfigToggle,
-              };
-            })
-            .map(step => (
-              <Step key={step.title ?? step.type} {...step} />
+      <TabSelectionScope>
+        <Wrapper>
+          {introduction && <Stack marginBottom="3xl">{introduction}</Stack>}
+          <CopySetupInstructionsGate>
+            <Container paddingBottom="md">
+              <OnboardingCopyMarkdownButton
+                steps={transformedSteps}
+                source="feedback_onboarding"
+              />
+            </Container>
+          </CopySetupInstructionsGate>
+          <Steps>
+            {transformedSteps.map((step, index) => (
+              <Step key={step.title ?? step.type} stepIndex={index} {...step} />
             ))}
-        </Steps>
-      </Wrapper>
+          </Steps>
+        </Wrapper>
+      </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }

@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {
   EventsStats,
@@ -16,7 +17,6 @@ import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   isEventsStats,
   isGroupedMultiSeriesEventsStats,

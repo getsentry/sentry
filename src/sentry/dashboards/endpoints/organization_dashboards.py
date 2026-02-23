@@ -76,6 +76,14 @@ class PrebuiltDashboardId(IntEnum):
     BACKEND_OVERVIEW = 12
     MOBILE_SESSION_HEALTH = 13
     FRONTEND_OVERVIEW = 14
+    NEXTJS_FRONTEND_OVERVIEW = 15
+    AI_AGENTS_OVERVIEW = 16
+    AI_AGENTS_MODELS = 17
+    AI_AGENTS_TOOLS = 18
+    MCP_OVERVIEW = 19
+    MCP_TOOLS = 20
+    MCP_RESOURCES = 21
+    MCP_PROMPTS = 22
 
 
 class PrebuiltDashboard(TypedDict):
@@ -127,15 +135,15 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS,
-        "title": "App Starts",
+        "title": "Mobile Vitals App Starts",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
-        "title": "Screen Loads",
+        "title": "Mobile Vitals Screen Loads",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
-        "title": "Screen Rendering",
+        "title": "Mobile Vitals Screen Rendering",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
@@ -148,6 +156,38 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_OVERVIEW,
         "title": "Frontend Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.NEXTJS_FRONTEND_OVERVIEW,
+        "title": "Next.js Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_MODELS,
+        "title": "AI Agents Models",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_TOOLS,
+        "title": "AI Agents Tools",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_TOOLS,
+        "title": "MCP Tools",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_RESOURCES,
+        "title": "MCP Resources",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_PROMPTS,
+        "title": "MCP Prompts",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
+        "title": "AI Agents Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MCP_OVERVIEW,
+        "title": "MCP Overview",
     },
 ]
 
@@ -554,7 +594,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard_create_lock.acquire(),
                 transaction.atomic(router.db_for_write(Dashboard)),
             ):
-
                 dashboard_count = Dashboard.objects.filter(
                     organization=organization, prebuilt_id=None
                 ).count()

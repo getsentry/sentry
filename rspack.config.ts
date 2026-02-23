@@ -75,6 +75,7 @@ const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const SENTRY_RELEASE_VERSION = env.SENTRY_RELEASE_VERSION;
+const SENTRY_DEVSERVER_NGROK = env.SENTRY_DEVSERVER_NGROK;
 
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
@@ -645,19 +646,27 @@ if (
       // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
       // since ngrok urls are public and can be accessed by anyone.
       // '.ngrok.io',
+
+      // Needed if you want to use ngrok w/ backend
+      ...(SENTRY_DEVSERVER_NGROK ? [`.${SENTRY_DEVSERVER_NGROK}`] : []),
     ],
     static: {
       directory: './src/sentry/static/sentry',
       watch: true,
     },
     host: SENTRY_WEBPACK_PROXY_HOST,
-    hot: SHOULD_HOT_MODULE_RELOAD,
+    hot: SHOULD_HOT_MODULE_RELOAD ? 'only' : false,
+    liveReload: !SENTRY_DEVSERVER_NGROK,
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
     devMiddleware: {
       stats: 'errors-only',
     },
     client: {
       overlay: false,
+      // When behind a reverse proxy (ngrok/Coder), the WebSocket client must
+      // derive its URL from window.location instead of the dev server's host.
+      // Without this, HMR tries ws://127.0.0.1:8000/ws which is unreachable.
+      ...(SENTRY_DEVSERVER_NGROK && {webSocketURL: 'auto://0.0.0.0:0/ws'}),
     },
   };
 

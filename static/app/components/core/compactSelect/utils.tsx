@@ -116,11 +116,12 @@ export function getHiddenOptions<Value extends SelectKey>(
   //
   // First, filter options using `search` value
   //
-  const filterOption = (opt: SelectOption<Value>) =>
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    `${opt.label ?? ''}${opt.textValue ?? ''}`
-      .toLowerCase()
-      .includes(search.toLowerCase());
+  const filterOption = (opt: SelectOption<Value>) => {
+    // Build search string: use textValue if provided, otherwise use label only if it's a string
+    const searchableText =
+      opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
+    return searchableText.toLowerCase().includes(search.toLowerCase());
+  };
 
   const hiddenOptionsSet = new Set<SelectKey>();
   const remainingItems = items
@@ -352,4 +353,36 @@ export function shouldCloseOnSelect({
   // By default, single-selection lists close on select, while multiple-selection
   // lists stay open
   return !multiple;
+}
+
+export function getDuplicateOptionKeysInfo<Value extends SelectKey>(
+  items: Array<SelectOptionOrSectionWithKey<Value>>
+): {duplicateOptionKeys: string[]; hasSections: boolean; optionCount: number} {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  let optionCount = 0;
+  let hasSections = false;
+
+  const collect = (list: Array<SelectOptionOrSectionWithKey<Value>>) => {
+    for (const item of list) {
+      if ('options' in item) {
+        hasSections = true;
+        collect(item.options);
+        continue;
+      }
+
+      optionCount += 1;
+      const key = String(item.key);
+      if (duplicates.has(key)) continue;
+
+      if (seen.has(key)) {
+        duplicates.add(key);
+      } else {
+        seen.add(key);
+      }
+    }
+  };
+
+  collect(items);
+  return {duplicateOptionKeys: [...duplicates], hasSections, optionCount};
 }

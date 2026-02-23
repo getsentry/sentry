@@ -33,7 +33,7 @@ export function TreemapControlButtons({buttons}: TreemapControlButtonsProps) {
           key={button.onClick.toString()}
           size="xs"
           aria-label={button.ariaLabel}
-          title={button.title}
+          tooltipProps={{title: button.title}}
           priority="transparent"
           icon={button.icon}
           onClick={button.onClick}

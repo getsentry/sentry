@@ -12,7 +12,6 @@ __all__ = [
 
 @dataclasses.dataclass
 class ParameterizationRegex:
-
     name: str  # name of the pattern (also used as group name in combined regex)
     raw_pattern: str  # regex pattern w/o matching group name
     raw_pattern_experimental: str | None = None
@@ -160,6 +159,15 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
+    ParameterizationRegex(
+        name="swift_txn_id",
+        raw_pattern=r"""
+            # OpenStack Swift transaction IDs: "tx" + 21 hex chars + "-" + 10 hex chars,
+            # optionally followed by a suffix (e.g. cluster ID or client-provided extra)
+            # https://docs.openstack.org/api-ref/object-store/
+            (\btx[0-9a-f]{21}-[0-9a-f]{10}\S*)
+        """,
+    ),
     ParameterizationRegex(
         name="hex",
         raw_pattern=r"""

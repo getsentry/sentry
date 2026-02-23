@@ -225,7 +225,7 @@ function DeprecatedLine({
           </DefaultLineTitleWrapper>
           <FrameActions>
             <RepeatsIndicator timesRepeated={timesRepeated} />
-            {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
+            {anrCulprit ? (
               <Tag variant="warning" onClick={scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>
@@ -273,9 +273,11 @@ function DeprecatedLine({
                 <SourceMapDebuggerModalButton
                   size="zero"
                   priority="default"
-                  title={t(
-                    'Click to learn how to show the original source code for this stack frame.'
-                  )}
+                  tooltipProps={{
+                    title: t(
+                      'Click to learn how to show the original source code for this stack frame.'
+                    ),
+                  }}
                   onClick={e => {
                     e.stopPropagation();
 

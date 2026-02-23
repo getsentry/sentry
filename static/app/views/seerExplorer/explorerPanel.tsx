@@ -102,12 +102,10 @@ function ExplorerPanel() {
     createPR,
   } = useSeerExplorer();
 
-  const copySessionEnabled = Boolean(
-    sessionData?.status === 'completed' && !!runId && !!organization?.slug
-  );
-
+  const copySessionEnabled = Boolean(runId && organization?.slug);
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
-    blocks: sessionData?.blocks || [],
+    blocks: sessionData?.blocks,
+    status: sessionData?.status,
     organization,
     projects,
     enabled: copySessionEnabled,
@@ -488,10 +486,7 @@ function ExplorerPanel() {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
       if (e.key === 'Escape') {
-        if (isPolling && !readOnly && !interruptRequested && !isFileApprovalPending) {
-          e.preventDefault();
-          interruptRun();
-        } else if (readOnly || !isFileApprovalPending) {
+        if (readOnly || !isFileApprovalPending) {
           // Don't minimize if file approval is pending (Escape is used to reject)
           e.preventDefault();
           setIsMinimized(true);
@@ -529,11 +524,8 @@ function ExplorerPanel() {
   }, [
     isVisible,
     isMenuOpen,
-    isPolling,
     readOnly,
     focusedBlockIndex,
-    interruptRun,
-    interruptRequested,
     isMinimized,
     isFileApprovalPending,
     isQuestionPending,

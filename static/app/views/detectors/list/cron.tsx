@@ -12,6 +12,7 @@ import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlace
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
@@ -23,7 +24,6 @@ import type {CronDetector, Detector} from 'sentry/types/workflowEngine/detectors
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderCell} from 'sentry/views/detectors/components/detectorListTable';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';

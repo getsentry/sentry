@@ -8,11 +8,12 @@ import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -21,9 +22,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
@@ -34,7 +35,6 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -390,12 +390,14 @@ const ChevronButton = styled(Button)<{expanded: boolean}>`
   ${p =>
     p.expanded &&
     css`
-      margin-left: -13px;
+      margin-left: -17px;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
 
       &::after {
         border-left-color: ${p.theme.tokens.border.primary};
-        border-top-left-radius: 0px;
-        border-bottom-left-radius: 0px;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
       }
     `}
 `;

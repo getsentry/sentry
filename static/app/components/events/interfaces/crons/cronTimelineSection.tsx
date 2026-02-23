@@ -1,7 +1,8 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
@@ -75,7 +76,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
     (new Date(event.dateReceived).valueOf() - start.valueOf()) / msPerPixel;
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <LinkButton
         size="xs"
         icon={<IconOpen />}
@@ -90,7 +91,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
         {t('View in Monitor Details')}
       </LinkButton>
       <ResolutionSelector />
-    </ButtonBar>
+    </Grid>
   );
 
   return (
@@ -158,6 +159,7 @@ const TimelineWidthTracker = styled('div')`
 `;
 
 const EventLineTick = styled('div')<{left: number}>`
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   width: 2px;
   height: 100%;

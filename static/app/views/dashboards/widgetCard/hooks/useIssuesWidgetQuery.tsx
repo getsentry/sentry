@@ -1,9 +1,9 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
 import type {ApiResult} from 'sentry/api';
-import GroupStore from 'sentry/stores/groupStore';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -21,6 +21,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -41,6 +42,7 @@ export function useIssuesSeriesQuery(
     enabled = true,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -60,7 +62,8 @@ export function useIssuesSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.ISSUE_PLATFORM,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       requestData.generatePathname = () =>
@@ -96,7 +99,9 @@ export function useIssuesSeriesQuery(
       }
 
       return [
-        `/organizations/${organization.slug}/issues-timeseries/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/issues-timeseries/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -105,7 +110,7 @@ export function useIssuesSeriesQuery(
     });
 
     return keys;
-  }, [filteredWidget, organization, pageFilters]);
+  }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
   const createQueryFn = useCallback(
     () =>
@@ -139,7 +144,7 @@ export function useIssuesSeriesQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false
@@ -262,7 +267,9 @@ export function useIssuesTableQuery(
       }
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/issues/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/issues/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           data: queryParams,
@@ -306,7 +313,7 @@ export function useIssuesTableQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false
@@ -318,19 +325,6 @@ export function useIssuesTableQuery(
           },
       retryDelay: getRetryDelay,
     })),
-  });
-
-  // Populate GroupStore in effect (outside render phase)
-  // Track by data reference to avoid redundant calls
-  const prevGroupDataRef = useRef<IssuesTableResponse[]>([]);
-  useEffect(() => {
-    queryResults.forEach((q, i) => {
-      const data = q?.data?.[0];
-      if (data && data !== prevGroupDataRef.current[i]) {
-        GroupStore.add(data);
-        prevGroupDataRef.current[i] = data;
-      }
-    });
   });
 
   const transformedData = (() => {

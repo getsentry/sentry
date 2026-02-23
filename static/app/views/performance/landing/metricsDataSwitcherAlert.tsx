@@ -3,7 +3,7 @@ import {useCallback, useMemo} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {t, tct} from 'sentry/locale';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,

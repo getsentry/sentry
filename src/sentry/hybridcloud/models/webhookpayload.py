@@ -36,6 +36,7 @@ class WebhookPayload(Model):
     destination_type = models.CharField(
         choices=DestinationType.choices, null=False, db_default=DestinationType.SENTRY_REGION
     )
+    # TODO(cells): rename to cell_name
     region_name = models.CharField(null=True)
 
     # May need to add organization_id in the future for debugging.
@@ -130,6 +131,22 @@ class WebhookPayload(Model):
             integration_id=integration_id,
             **cls.get_attributes_from_request(request),
         )
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return payload attributes as a dict for logging context."""
+        return {
+            "attempts": self.attempts,
+            "date_added": self.date_added.isoformat() if self.date_added else None,
+            "destination_type": self.destination_type,
+            "id": self.id,
+            "integration_id": self.integration_id,
+            "mailbox_name": self.mailbox_name,
+            "provider": self.provider,
+            "region_name": self.region_name,
+            "request_method": self.request_method,
+            "request_path": self.request_path,
+            "schedule_for": self.schedule_for.isoformat() if self.schedule_for else None,
+        }
 
     def schedule_next_attempt(self) -> None:
         attempts = self.attempts + 1

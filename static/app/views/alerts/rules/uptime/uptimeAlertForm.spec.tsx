@@ -5,11 +5,22 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {
+  ComparisonType,
+  OpType,
+  type Assertion,
+} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 
 describe('Uptime Alert Form', () => {
@@ -36,6 +47,22 @@ describe('Uptime Alert Form', () => {
   function numberInput(name: string) {
     return screen.getByRole('spinbutton', {name});
   }
+
+  it('shows validation errors on required sibling fields after first field change', async () => {
+    render(<UptimeAlertForm />, {organization});
+    await screen.findByText('Configure Request');
+
+    // Initially no validation error tooltips should be rendered
+    expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
+
+    // Change one field (Method) to trigger first-change validation
+    await selectEvent.select(input('Method'), 'POST');
+
+    // Validation error tooltips should now appear on other required empty fields
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
+    });
+  });
 
   it('can create a new rule', async () => {
     render(<UptimeAlertForm />, {organization});
@@ -439,19 +466,19 @@ describe('Uptime Alert Form', () => {
           url: 'http://example.com',
           assertion: {
             root: {
-              op: 'and',
+              op: OpType.AND,
               id: expect.any(String),
               children: [
                 {
-                  op: 'status_code_check',
+                  op: OpType.STATUS_CODE_CHECK,
                   id: expect.any(String),
-                  operator: {cmp: 'greater_than'},
+                  operator: {cmp: ComparisonType.GREATER_THAN},
                   value: 199,
                 },
                 {
-                  op: 'status_code_check',
+                  op: OpType.STATUS_CODE_CHECK,
                   id: expect.any(String),
-                  operator: {cmp: 'less_than'},
+                  operator: {cmp: ComparisonType.LESS_THAN},
                   value: 300,
                 },
               ],
@@ -481,14 +508,14 @@ describe('Uptime Alert Form', () => {
     });
     OrganizationStore.onUpdate(orgWithAssertions);
 
-    const assertion = {
+    const assertion: Assertion = {
       root: {
-        op: 'and' as const,
+        op: OpType.AND,
         children: [
           {
             id: 'test-1',
-            op: 'status_code_check' as const,
-            operator: {cmp: 'equals' as const},
+            op: OpType.STATUS_CODE_CHECK,
+            operator: {cmp: ComparisonType.EQUALS},
             value: 200,
           },
         ],
@@ -696,14 +723,14 @@ describe('Uptime Alert Form', () => {
     });
     OrganizationStore.onUpdate(orgWithoutAssertions);
 
-    const existingAssertion = {
+    const existingAssertion: Assertion = {
       root: {
-        op: 'and' as const,
+        op: OpType.AND,
         children: [
           {
             id: 'test-1',
-            op: 'status_code_check' as const,
-            operator: {cmp: 'equals' as const},
+            op: OpType.STATUS_CODE_CHECK,
+            operator: {cmp: ComparisonType.EQUALS},
             value: 200,
           },
         ],

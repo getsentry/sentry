@@ -8,7 +8,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 

@@ -141,7 +141,7 @@ def safe_join(base, *paths):
     # the base path is /.
     base_path_len = len(base_path)
     if not final_path.startswith(base_path) or final_path[base_path_len] != "/":
-        raise ValueError("the joined path is located outside of the base path" " component")
+        raise ValueError("the joined path is located outside of the base path component")
 
     return final_path.lstrip("/")
 

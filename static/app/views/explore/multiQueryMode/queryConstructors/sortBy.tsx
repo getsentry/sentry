@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';

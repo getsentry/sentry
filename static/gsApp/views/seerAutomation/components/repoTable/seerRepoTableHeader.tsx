@@ -27,6 +27,7 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Name'), key: 'name', sortKey: 'name'},
+  {title: t('Code Review'), key: 'code_review'},
   {
     title: (
       <Flex gap="sm" align="center">
@@ -42,7 +43,6 @@ const COLUMNS = [
     ),
     key: 'trigger',
   },
-  {title: t('Code Review'), key: 'code_review'},
 ];
 
 export default function SeerRepoTableHeader({
@@ -55,7 +55,7 @@ export default function SeerRepoTableHeader({
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
     listItemCheckboxState;
-  const queryOptions = parseQueryKey(queryKey).options;
+  const queryOptions = queryKey ? parseQueryKey(queryKey).options : undefined;
   const queryString = queryOptions?.query?.query;
 
   const handleBulkCodeReview = (enabledCodeReview: boolean) => {
@@ -158,10 +158,11 @@ export default function SeerRepoTableHeader({
             {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
             <a onClick={selectAll}>
               {queryString
-                ? tct('Select all repositories that match: [queryString].', {
+                ? tct('Select all [count] repositories that match: [queryString].', {
+                    count: listItemCheckboxState.hits,
                     queryString: <var>{queryString}</var>,
                   })
-                : t('Select all repositories.')}
+                : t('Select all %s repositories.', listItemCheckboxState.hits)}
             </a>
           </Flex>
         </FullGridAlert>
@@ -172,7 +173,8 @@ export default function SeerRepoTableHeader({
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString
-                ? tct('Selected all repositories matching: [queryString].', {
+                ? tct('Selected all [count] repositories matching: [queryString].', {
+                    count: countSelected,
                     queryString: <var>{queryString}</var>,
                   })
                 : countSelected > repositories.length

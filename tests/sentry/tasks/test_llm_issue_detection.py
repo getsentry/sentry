@@ -47,7 +47,7 @@ class LLMIssueDetectionTest(TestCase):
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch(
-        "sentry.tasks.llm_issue_detection.detection.get_project_top_transaction_traces_for_llm_detection"
+        "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
     def test_detect_llm_issues_no_transactions(self, mock_get_transactions, mock_seer_request):
         mock_get_transactions.return_value = []
@@ -93,6 +93,7 @@ class LLMIssueDetectionTest(TestCase):
             subcategory="Connection Pool Exhaustion",
             category="Database",
             verification_reason="Problem is correctly identified",
+            group_for_fingerprint="",
         )
 
         create_issue_occurrence_from_detection(
@@ -113,11 +114,7 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.culprit == "test_transaction"
         assert occurrence.level == "warning"
 
-        assert len(occurrence.fingerprint) == 1
-        assert (
-            occurrence.fingerprint[0]
-            == "llm-detected-database-connection-pool-exhaustion-test_transaction"
-        )
+        assert occurrence.fingerprint == ["llm-detected--test_transaction"]
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
         assert occurrence.evidence_data["transaction"] == "test_transaction"
@@ -146,6 +143,31 @@ class LLMIssueDetectionTest(TestCase):
         assert "event_id" in event_data
         assert "received" in event_data
         assert "timestamp" in event_data
+
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    def test_create_issue_occurrence_uses_group_for_fingerprint_when_set(
+        self, mock_produce_occurrence
+    ):
+        detected_issue = DetectedIssue(
+            title="N+1 Queries",
+            explanation="Multiple queries in loop",
+            impact="Medium",
+            evidence="5 queries",
+            missing_telemetry=None,
+            offender_span_ids=[],
+            trace_id="trace456",
+            transaction_name="GET /api",
+            subcategory="N+1",
+            category="Performance",
+            verification_reason="Verified",
+            group_for_fingerprint="seer-group-key-123",
+        )
+        create_issue_occurrence_from_detection(
+            detected_issue=detected_issue,
+            project=self.project,
+        )
+        occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
+        assert occurrence.fingerprint == ["llm-detected-seer-group-key-123-get-/api"]
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
@@ -322,25 +344,25 @@ class TestGetValidTraceIdsBySpanCount:
             # All valid
             (
                 {"data": [{"trace": "a", "count()": 50}, {"trace": "b", "count()": 100}]},
-                {"a", "b"},
+                {"a": 50, "b": 100},
             ),
             # Some below lower limit
             (
                 {"data": [{"trace": "a", "count()": 10}, {"trace": "b", "count()": 50}]},
-                {"b"},
+                {"b": 50},
             ),
             # Some above upper limit
             (
                 {"data": [{"trace": "a", "count()": 50}, {"trace": "b", "count()": 600}]},
-                {"a"},
+                {"a": 50},
             ),
             # Empty result
-            ({"data": []}, set()),
+            ({"data": []}, {}),
         ],
     )
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     def test_filters_by_span_count(
-        self, mock_spans_query: Mock, query_result: dict, expected: set
+        self, mock_spans_query: Mock, query_result: dict, expected: dict[str, int]
     ) -> None:
         mock_spans_query.return_value = query_result
         mock_snuba_params = Mock()
@@ -363,7 +385,7 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
     @patch("sentry.tasks.llm_issue_detection.trace_data.get_valid_trace_ids_by_span_count")
     def test_returns_deduped_transaction_traces(self, mock_span_count) -> None:
         # Mock span count check to return all traces as valid
-        mock_span_count.side_effect = lambda trace_ids, *args: set(trace_ids)
+        mock_span_count.side_effect = lambda trace_ids, *args: {tid: 50 for tid in trace_ids}
 
         trace_id_1 = uuid.uuid4().hex
         span1 = self.create_span(
@@ -412,10 +434,6 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
 
         assert len(evidence_traces) == 2
 
-        assert (
-            evidence_traces[0].trace_id == trace_id_2
-        )  # prevails over trace_id_1 because transaction span duration was higher
-        assert evidence_traces[0].transaction_name == "GET /api/users/<NUM>"
-
+        # trace_id_2 prevails over trace_id_1 because transaction span duration was higher
+        assert evidence_traces[0].trace_id == trace_id_2
         assert evidence_traces[1].trace_id == trace_id_3
-        assert evidence_traces[1].transaction_name == "POST /api/orders"

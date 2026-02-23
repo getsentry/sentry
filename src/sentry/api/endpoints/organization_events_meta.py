@@ -39,7 +39,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
             "organizations:performance-use-metrics",
             "organizations:profiling",
             "organizations:dynamic-sampling",
-            "organizations:use-metrics-layer",
             "organizations:starfish-view",
         ]
         batch_features = features.batch_has(
@@ -102,7 +101,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                     query=request.query_params.get("query"),
                     referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
                     has_metrics=use_metrics,
-                    use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                     # TODO: @athena - add query_source when all datasets support it
                     # query_source=(
                     #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
@@ -187,7 +185,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

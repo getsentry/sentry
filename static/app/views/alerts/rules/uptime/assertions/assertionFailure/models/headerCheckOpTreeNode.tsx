@@ -6,6 +6,10 @@ import type {HeaderCheckOp} from 'sentry/views/alerts/rules/uptime/types';
 import {TreeNode} from './treeNode';
 
 export class HeaderCheckOpTreeNode extends TreeNode<HeaderCheckOp> {
+  printNode(): string {
+    return `HEADER CHECK - ${this.id}`;
+  }
+
   renderRow(): ReactNode {
     return <HeaderCheckOpRow node={this} />;
   }

@@ -39,7 +39,7 @@ describe('GithubInstallationSelectInstallButton', () => {
 
   it('renders Install button when installationID is -1', async () => {
     MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
+      url: '/customers/org-slug/',
       method: 'GET',
       body: subscription,
     });
@@ -78,7 +78,7 @@ describe('GithubInstallationSelectInstallButton', () => {
 
   it('opens upsell modal and tracks analytics when Upgrade button is clicked', async () => {
     MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
+      url: '/customers/org-slug/',
       method: 'GET',
       body: subscription,
     });

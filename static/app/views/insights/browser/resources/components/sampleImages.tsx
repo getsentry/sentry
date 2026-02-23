@@ -8,13 +8,13 @@ import {Link} from '@sentry/scraps/link';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';

@@ -546,10 +546,7 @@ class EventManager:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
         except HashDiscarded as e:
-            if features.has("organizations:grouptombstones-hit-counter", project.organization):
-                increment_group_tombstone_hit_counter(
-                    getattr(e, "tombstone_id", None), job["event"]
-                )
+            increment_group_tombstone_hit_counter(getattr(e, "tombstone_id", None), job["event"])
             discard_event(job, attachments)
             raise
 
@@ -924,7 +921,6 @@ def _get_or_create_group_environment(
     event_datetime: datetime,
 ) -> None:
     for group_info in groups:
-
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
@@ -1113,7 +1109,6 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
 
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
-
         if job["event"].project_id == settings.SENTRY_PROJECT:
             metrics.incr(
                 "internal.captured.eventstream_insert",
@@ -1555,7 +1550,6 @@ def _create_group(
     first_release: Release | None = None,
     **group_creation_kwargs: Any,
 ) -> Group:
-
     short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
@@ -1738,8 +1732,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         )
         .exclude(
             # add to the regression window to account for races here
-            active_at__gte=date
-            - timedelta(seconds=5)
+            active_at__gte=date - timedelta(seconds=5)
         )
         .update(
             active_at=date,
@@ -1883,8 +1876,8 @@ def _get_updated_group_title(existing_container, incoming_container):
 
     return (
         incoming_title
+        # Real titles beat both placeholder and non-existent titles
         if (
-            # Real titles beat both placeholder and non-existent titles
             _is_real_title(incoming_title)
             or
             # Conversely, placeholder titles lose to both real titles and lack of a title (the

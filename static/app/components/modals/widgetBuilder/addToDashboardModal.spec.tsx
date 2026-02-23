@@ -6,7 +6,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import type {
   DashboardDetails,

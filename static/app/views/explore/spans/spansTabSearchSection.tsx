@@ -9,11 +9,11 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
@@ -103,7 +103,7 @@ function CrossEventQueryingDropdown() {
           isDisabled={isDisabled}
           triggerProps={{
             ...triggerProps,
-            title: tooltipTitle,
+            tooltipProps: {title: tooltipTitle},
             size: 'md',
             showChevron: false,
             icon: <IconAdd />,

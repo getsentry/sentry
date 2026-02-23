@@ -1,4 +1,5 @@
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
@@ -42,7 +43,7 @@ function ActionButtons({
   const publishRequestButton = showPublish ? (
     <Button
       disabled={!!disablePublishReason}
-      title={disablePublishReason}
+      tooltipProps={{title: disablePublishReason}}
       icon={<IconUpgrade />}
       size="sm"
       onClick={onPublish}
@@ -59,7 +60,7 @@ function ActionButtons({
     disableDeleteReason ? (
       <Button
         disabled
-        title={disableDeleteReason}
+        tooltipProps={{title: disableDeleteReason}}
         size="sm"
         icon={<IconDelete />}
         aria-label={t('Delete')}
@@ -79,11 +80,11 @@ function ActionButtons({
   ) : null;
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {appDashboardButton}
       {publishRequestButton}
       {deleteButton}
-    </ButtonBar>
+    </Grid>
   );
 }
 

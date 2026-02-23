@@ -4,9 +4,11 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from pytest import fixture
 
+from sentry import audit_log
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.interfaces.stacktrace import StacktraceOrder
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
@@ -210,6 +212,20 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_user_cannot_elevate_when_superuser_org_not_configured(self) -> None:
+        """Verify users cannot elevate when SUPERUSER_ORG_ID is None (not configured)"""
+        from sentry.users.api.endpoints.user_details import user_can_elevate
+
+        # SUPERUSER_ORG_ID defaults to None, don't override it
+        # Even if user is in org 1, they can't elevate without SUPERUSER_ORG_ID configured
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = self.create_organization(id=1, name="Default Org")
+            self.create_member(user=self.user, organization=org)
+
+        # user_can_elevate should return False when SUPERUSER_ORG_ID is None
+        assert not user_can_elevate(self.user)
 
 
 @control_silo_test
@@ -504,7 +520,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert user.name == "New Name"
         assert user.username == "newemail@example.com"
 
-    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=1)
     def test_superuser_with_permission_can_remove_superuser(self) -> None:
         """Test that superuser with permission can remove superuser status"""
         # Add user to org 1 so they pass the user_can_elevate check
@@ -525,7 +541,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_superuser
 
-    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=1)
     def test_superuser_with_permission_can_remove_staff(self) -> None:
         """Test that superuser with permission can remove staff status"""
         # Add user to org 1 so they pass the user_can_elevate check
@@ -862,6 +878,14 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
             assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
             assert DeletedOrganization.objects.count() == 1
 
+        member_remove_entries = AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("MEMBER_REMOVE"),
+            target_user_id=self.user.id,
+        )
+        removed_org_ids = {e.organization_id for e in member_remove_entries}
+        assert org_with_other_owner.id in removed_org_ids
+        assert org_as_other_owner.id in removed_org_ids
+
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
@@ -934,3 +958,23 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
 
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
+
+    @override_options({"staff.ga-rollout": True})
+    def test_deactivation_deletes_auth_identities(self) -> None:
+        from sentry.models.authidentity import AuthIdentity
+        from sentry.models.authprovider import AuthProvider
+
+        auth_provider = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
+        auth_identity = AuthIdentity.objects.create(
+            user=self.user,
+            auth_provider=auth_provider,
+            ident="test-ident",
+        )
+
+        self.get_success_response(self.user.id, organizations=[], status_code=204)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
+        assert not AuthIdentity.objects.filter(id=auth_identity.id).exists()

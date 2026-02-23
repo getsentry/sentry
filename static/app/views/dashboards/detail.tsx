@@ -30,7 +30,7 @@ import {
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -46,10 +46,12 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {decodeBoolean} from 'sentry/utils/queryString';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -141,6 +143,7 @@ type Props = {
   children?: React.ReactNode;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   useTimeseriesVisualization?: boolean;
+  widgetInterval?: string;
 };
 
 type State = {
@@ -212,7 +215,12 @@ class DashboardDetail extends Component<Props, State> {
   componentDidMount() {
     this.checkIfShouldMountWidgetViewerModal();
     if (this.isWidgetBuilder()) {
-      this.setState({isWidgetBuilderOpen: true});
+      const {location} = this.props;
+      const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
+      this.setState({
+        isWidgetBuilderOpen: true,
+        openWidgetTemplates: shouldOpenTemplates,
+      });
     }
     window.addEventListener('beforeunload', this.handleBeforeUnload);
   }
@@ -221,7 +229,12 @@ class DashboardDetail extends Component<Props, State> {
     this.checkIfShouldMountWidgetViewerModal();
 
     if (!this.state.isWidgetBuilderOpen && this.isWidgetBuilder()) {
-      this.setState({isWidgetBuilderOpen: true});
+      const {location} = this.props;
+      const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
+      this.setState({
+        isWidgetBuilderOpen: true,
+        openWidgetTemplates: shouldOpenTemplates,
+      });
     }
 
     if (prevProps.initialState !== this.props.initialState) {
@@ -1300,6 +1313,7 @@ class DashboardDetail extends Component<Props, State> {
                                       useTimeseriesVisualization={
                                         useTimeseriesVisualization
                                       }
+                                      widgetInterval={this.props.widgetInterval}
                                     />
                                   </WidgetQueryQueueProvider>
 
@@ -1384,6 +1398,14 @@ export default function DashboardDetailWithInjectedProps(
   const location = useLocation();
   const params = useParams<RouteParams>();
   const router = useRouter();
+  const [chartInterval] = useChartInterval();
+
+  // Always use the validated chart interval so the UI dropdown and widget
+  // requests stay in sync. chartInterval is validated against the current page
+  // filter period (e.g. won't return 1m for a 30d range) and always has a value.
+  const widgetInterval = organization.features.includes('dashboards-interval-selection')
+    ? chartInterval
+    : undefined;
 
   return (
     <DashboardDetail
@@ -1396,6 +1418,7 @@ export default function DashboardDetailWithInjectedProps(
       location={location}
       params={params}
       router={router}
+      widgetInterval={widgetInterval}
     />
   );
 }
