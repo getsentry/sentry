@@ -177,8 +177,8 @@ def test_caching_many() -> None:
     users = [Factories.create_user() for _ in range(3)]
     user_ids = [u.id for u in users]
 
-    wrapped_result = get_users(user_ids)
-    direct_result = get_users.cb(user_ids)
+    wrapped_result = sorted(get_users(user_ids), key=lambda u: u.id)
+    direct_result = sorted(get_users.cb(user_ids), key=lambda u: u.id)
     assert len(wrapped_result) == len(direct_result)
     for wrapped, direct in zip(wrapped_result, direct_result):
         assert wrapped == direct
