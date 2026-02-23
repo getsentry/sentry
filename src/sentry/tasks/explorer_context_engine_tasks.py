@@ -55,6 +55,10 @@ def index_org_project_knowledge(org_id: int) -> None:
     event_counts = get_event_counts_for_org_projects(org_id, project_ids, start, end)
     high_volume_projects = [p for p in projects if p.id in event_counts]
     if not high_volume_projects:
+        logger.info(
+            "No high-volume projects found for index_org_project_knowledge",
+            extra={"org_id": org_id, "num_projects": len(projects)},
+        )
         return
 
     with sentry_sdk.start_span(op="explorer.context_engine.get_top_transactions_for_org_projects"):
