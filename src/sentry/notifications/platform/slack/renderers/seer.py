@@ -158,12 +158,13 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.changes:
             for change in data.changes[:MAX_CHANGES]:
                 change_mrkdwn = [f"_In {change['repo_name']}_:"]
-                if change["title"]:
+                if change.get("title"):
                     change_mrkdwn.append(f"*{change['title']}*")
-                if change["description"]:
+
+                if change.get("description"):
                     change_mrkdwn.append(f"{change['description']}")
-                if change["diff"]:
-                    change_mrkdwn.append(f"{change['diff']}")
+                if change.get("diff"):
+                    change_mrkdwn.append(f"```{change['diff']}```")
                 blocks.append(SectionBlock(text=MarkdownTextObject(text="\n".join(change_mrkdwn))))
         if data.pull_requests:
             action_id = encode_action_id(

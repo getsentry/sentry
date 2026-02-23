@@ -259,7 +259,8 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                             "description": "",
                             "diff": "",
                         }
-                        for repo, change in explorer_changes.items()
+                        for repo, changes in explorer_changes.items()
+                        for change in changes
                     ]
                 else:
                     changes_list = []
