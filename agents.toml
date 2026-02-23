@@ -9,11 +9,3 @@ allow_all = true
 [[skills]]
 name = "*"
 source = "getsentry/skills"
-
-[[skills]]
-name = "sentry-backend-bugs"
-source = "getsentry/warden-sentry"
-
-[[skills]]
-name = "sentry-javascript-bugs"
-source = "getsentry/warden-sentry"

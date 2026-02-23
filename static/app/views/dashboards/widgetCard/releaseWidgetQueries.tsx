@@ -48,6 +48,7 @@ interface ReleaseWidgetQueriesProps {
   }) => void;
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
+  widgetInterval?: string;
 }
 
 export function derivedMetricsToField(field: string): string {
@@ -157,6 +158,7 @@ function ReleaseWidgetQueries({
   onDataFetchStart,
   selection: propsSelection,
   children,
+  widgetInterval,
 }: ReleaseWidgetQueriesProps) {
   const config = ReleasesConfig;
 
@@ -336,6 +338,7 @@ function ReleaseWidgetQueries({
     loading: requiresCustomReleaseSorting(widget.queries[0]!) ? !releases : undefined,
     afterFetchTableData: afterFetchData,
     afterFetchSeriesData: afterFetchData,
+    widgetInterval,
   });
 
   return children({

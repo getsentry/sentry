@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry import ratelimits as ratelimiter
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -22,6 +23,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.parsers.email import AllowedEmailField
+from sentry.utils.audit import create_system_audit_entry
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +110,13 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         member = create_organization_join_request(organization, email, ip_address)
 
         if member:
+            create_system_audit_entry(
+                organization=organization,
+                target_object=member.id,
+                event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
+                ip_address=ip_address,
+                data={"email": email},
+            )
             async_send_notification(JoinRequestNotification, member, request.user)
             # legacy analytics
             join_request_created.send_robust(sender=self, member=member)

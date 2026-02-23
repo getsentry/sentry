@@ -24,7 +24,6 @@ import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -62,6 +61,7 @@ import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useI
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
 type WidgetBuilderSlideoutProps = {
@@ -74,7 +74,7 @@ type WidgetBuilderSlideoutProps = {
   openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
-  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  onDataFetched?: (results: OnDataFetchedParams) => void;
   thresholdMetaState?: ThresholdMetaState;
 };
 
@@ -429,7 +429,8 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
-                    {state.displayType === DisplayType.BIG_NUMBER && (
+                    {(state.displayType === DisplayType.BIG_NUMBER ||
+                      usesTimeSeriesData(state.displayType)) && (
                       <Section>
                         <ThresholdsSection
                           dataType={thresholdMetaState?.dataType}

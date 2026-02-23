@@ -1,11 +1,13 @@
 import {t} from 'sentry/locale';
-import type {
-  GroupOp,
-  HeaderCheckOp,
-  HeaderOperand,
-  JsonPathOp,
-  JsonPathOperand,
-  Op,
+import {
+  ComparisonType,
+  OpType,
+  type GroupOp,
+  type HeaderCheckOp,
+  type HeaderOperand,
+  type JsonPathOp,
+  type JsonPathOperand,
+  type Op,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, STRING_OPERAND_OPTIONS} from './opCommon';
@@ -20,7 +22,7 @@ import {COMPARISON_OPTIONS, STRING_OPERAND_OPTIONS} from './opCommon';
  */
 export function isAfterOp(containerOp: Op, opId: string, afterOpId: string): boolean {
   // Only group ops have children where one can be after another
-  if (containerOp.op === 'and' || containerOp.op === 'or') {
+  if (containerOp.op === OpType.AND || containerOp.op === OpType.OR) {
     for (let i = 0; i < containerOp.children.length - 1; i++) {
       if (containerOp.children[i]?.id === afterOpId) {
         return containerOp.children[i + 1]?.id === opId;
@@ -29,12 +31,12 @@ export function isAfterOp(containerOp: Op, opId: string, afterOpId: string): boo
   }
 
   // Also check recursively in nested groups
-  if (containerOp.op === 'and' || containerOp.op === 'or') {
+  if (containerOp.op === OpType.AND || containerOp.op === OpType.OR) {
     return containerOp.children.some(child => isAfterOp(child, opId, afterOpId));
   }
 
   // Check in not operand
-  if (containerOp.op === 'not') {
+  if (containerOp.op === OpType.NOT) {
     return isAfterOp(containerOp.operand, opId, afterOpId);
   }
 
@@ -58,7 +60,7 @@ function findOpById(op: Op, id: string): {op: Op; parent: GroupOp | null} | null
       return {op: currentOp, parent: parentOp};
     }
 
-    if (currentOp.op === 'and' || currentOp.op === 'or') {
+    if (currentOp.op === OpType.AND || currentOp.op === OpType.OR) {
       for (const child of currentOp.children) {
         const found = search(child, currentOp);
         if (found) {
@@ -67,9 +69,9 @@ function findOpById(op: Op, id: string): {op: Op; parent: GroupOp | null} | null
       }
     }
 
-    if (currentOp.op === 'not') {
+    if (currentOp.op === OpType.NOT) {
       // For 'not' ops, check if the operand is a group op to use as parent
-      if (currentOp.operand.op === 'and' || currentOp.operand.op === 'or') {
+      if (currentOp.operand.op === OpType.AND || currentOp.operand.op === OpType.OR) {
         return search(currentOp.operand, currentOp.operand);
       }
       return search(currentOp.operand, parentOp);
@@ -97,10 +99,10 @@ function isAncestorOf(op: Op, ancestorId: string, descendantId: string): boolean
       if (node.id === descendantId) {
         return true;
       }
-      if (node.op === 'and' || node.op === 'or') {
+      if (node.op === OpType.AND || node.op === OpType.OR) {
         return node.children.some(child => hasDescendant(child));
       }
-      if (node.op === 'not') {
+      if (node.op === OpType.NOT) {
         return hasDescendant(node.operand);
       }
       return false;
@@ -109,10 +111,10 @@ function isAncestorOf(op: Op, ancestorId: string, descendantId: string): boolean
   }
 
   // Continue searching for the ancestor in the tree
-  if (op.op === 'and' || op.op === 'or') {
+  if (op.op === OpType.AND || op.op === OpType.OR) {
     return op.children.some(child => isAncestorOf(child, ancestorId, descendantId));
   }
-  if (op.op === 'not') {
+  if (op.op === OpType.NOT) {
     return isAncestorOf(op.operand, ancestorId, descendantId);
   }
 
@@ -156,7 +158,7 @@ export function moveTo(
   // For 'inside' position, target must be a group op and doesn't need a parent
   if (position === 'inside') {
     const {op: targetOp} = targetResult;
-    if (targetOp.op !== 'and' && targetOp.op !== 'or') {
+    if (targetOp.op !== OpType.AND && targetOp.op !== OpType.OR) {
       return rootOp; // Can only move inside group ops
     }
   } else {
@@ -168,13 +170,13 @@ export function moveTo(
 
   // Remove the source op from its current location
   const removeOp = (op: Op): Op => {
-    if (op.op === 'and' || op.op === 'or') {
+    if (op.op === OpType.AND || op.op === OpType.OR) {
       const newChildren = op.children
         .filter(child => child.id !== sourceId)
         .map(child => removeOp(child));
       return {...op, children: newChildren};
     }
-    if (op.op === 'not') {
+    if (op.op === OpType.NOT) {
       return {...op, operand: removeOp(op.operand)};
     }
     return op;
@@ -182,7 +184,7 @@ export function moveTo(
 
   // Insert the source op at the target location
   const insertOp = (op: Op): Op => {
-    if (op.op === 'and' || op.op === 'or') {
+    if (op.op === OpType.AND || op.op === OpType.OR) {
       // Check if we should insert inside this group
       if (position === 'inside' && op.id === targetId) {
         // Append to the end of this group's children
@@ -202,7 +204,7 @@ export function moveTo(
       // Target not in this container, recurse into children
       return {...op, children: op.children.map(child => insertOp(child))};
     }
-    if (op.op === 'not') {
+    if (op.op === OpType.NOT) {
       return {...op, operand: insertOp(op.operand)};
     }
     return op;
@@ -222,7 +224,7 @@ export function getHeaderOperandValue(operand: HeaderOperand): string {
 }
 
 export function shouldShowHeaderValueInput(op: HeaderCheckOp): boolean {
-  return ['equals', 'not_equal'].includes(op.key_op.cmp);
+  return [ComparisonType.EQUALS, ComparisonType.NOT_EQUAL].includes(op.key_op.cmp);
 }
 
 export function getHeaderKeyCombinedLabelAndTooltip(op: HeaderCheckOp): {
@@ -308,7 +310,7 @@ export function normalizeJsonPathOp(op: JsonPathOp): JsonPathOp {
 
   return {
     ...op,
-    operator: hasOperator ? op.operator : {cmp: 'equals'},
+    operator: hasOperator ? op.operator : {cmp: ComparisonType.EQUALS},
     operand: hasOperand ? op.operand : {jsonpath_op: 'literal', value: ''},
   };
 }
@@ -333,7 +335,8 @@ export function getJsonPathCombinedLabelAndTooltip(op: JsonPathOp): {
       : (STRING_OPERAND_OPTIONS.find(opt => opt.value === operandType)?.symbol ?? '');
 
   const isNumericComparison =
-    op.operator.cmp === 'less_than' || op.operator.cmp === 'greater_than';
+    op.operator.cmp === ComparisonType.LESS_THAN ||
+    op.operator.cmp === ComparisonType.GREATER_THAN;
 
   const combinedLabel = isNumericComparison
     ? comparisonSymbol
@@ -352,7 +355,7 @@ export function getJsonPathCombinedLabelAndTooltip(op: JsonPathOp): {
 }
 
 export function getGroupOpLabel(op: GroupOp, isNegated: boolean): string {
-  if (op.op === 'and') {
+  if (op.op === OpType.AND) {
     // By De Morgan's Laws, NOT (A AND B) is equivalent to (NOT A OR NOT B),
     // i.e. passing when at least one child fails.
     return isNegated ? t('Assert Not All') : t('Assert All');

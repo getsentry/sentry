@@ -468,6 +468,7 @@ class ControlOutboxBase(OutboxBase):
         "object_identifier",
     )
 
+    # TODO(cells): rename to cell_name
     region_name = models.CharField(max_length=REGION_NAME_LENGTH)
 
     def send_signal(self) -> None:
