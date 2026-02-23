@@ -890,7 +890,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         DashboardWidget.objects.filter(dashboard_id=dashboard_id).exclude(id__in=keep_ids).delete()
 
     def create_widget(self, dashboard, widget_data):
-        is_text_widget = widget_data["display_type"] == DashboardWidgetDisplayTypes.TEXT
+        is_text_widget = widget_data.get("display_type") == DashboardWidgetDisplayTypes.TEXT
 
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
