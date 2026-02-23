@@ -9,7 +9,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -130,7 +130,7 @@ function useDurationBreakdownVisualization({
   const plottables =
     spanSeriesData?.timeSeries.map(series => {
       const name = `${parseFunction(series.yAxis)?.name}()`;
-      return new Area(series, {name, alias: name});
+      return new Line(series, {name, alias: name});
     }) ?? [];
 
   return (
