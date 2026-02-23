@@ -272,7 +272,7 @@ describe('TableWidgetVisualization', () => {
     it('Renders default action', async () => {
       render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />);
 
-      const $cell = screen.getAllByRole('button')[0]!;
+      const $cell = screen.getAllByLabelText('Actions')[0]!;
       await userEvent.click($cell);
       await screen.findByText('Copy to clipboard');
     });
@@ -284,7 +284,7 @@ describe('TableWidgetVisualization', () => {
           allowedCellActions={[Actions.ADD]}
         />
       );
-      const $cell = screen.getAllByRole('button')[0]!;
+      const $cell = screen.getAllByLabelText('Actions')[0]!;
       await userEvent.click($cell);
       await screen.findByText('Add to filter');
     });
@@ -322,13 +322,13 @@ describe('TableWidgetVisualization', () => {
       );
 
       const cells = screen.getAllByRole('cell');
-      const stringCellTrigger = within(cells[0]!).getByRole('button');
+      const stringCellTrigger = within(cells[0]!).getByLabelText('Actions');
       await userEvent.click(stringCellTrigger);
       expect(await screen.findByText('Add to filter')).toBeInTheDocument();
       expect(screen.queryByText('Show values greater than')).not.toBeInTheDocument();
       await userEvent.keyboard('{Escape}');
 
-      const numberCellTrigger = within(cells[1]!).getByRole('button');
+      const numberCellTrigger = within(cells[1]!).getByLabelText('Actions');
       await userEvent.click(numberCellTrigger);
       expect(await screen.findByText('Show values greater than')).toBeInTheDocument();
       expect(screen.queryByText('Add to filter')).not.toBeInTheDocument();
@@ -351,7 +351,7 @@ describe('TableWidgetVisualization', () => {
         />
       );
 
-      const $cell = screen.getAllByRole('button')[0]!;
+      const $cell = screen.getAllByLabelText('Actions')[0]!;
       await userEvent.click($cell);
       const $option = screen.getAllByRole('menuitemradio')[0]!;
       await userEvent.click($option);

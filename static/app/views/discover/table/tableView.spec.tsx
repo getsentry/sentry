@@ -627,9 +627,10 @@ describe('TableView > CellActions', () => {
         },
       }
     );
-    await userEvent.hover(screen.getByText('444.3 KB'));
-    const buttons = screen.getAllByRole('button');
-    await userEvent.click(buttons[buttons.length - 1]!);
+    const cellText = screen.getByText('444.3 KB');
+    await userEvent.hover(cellText);
+    const cell = cellText.closest('[data-test-id="cell-action-container"]')!;
+    await userEvent.click(within(cell as HTMLElement).getByLabelText('Actions'));
     await userEvent.click(screen.getByText('Show values less than'));
 
     await waitFor(() => {

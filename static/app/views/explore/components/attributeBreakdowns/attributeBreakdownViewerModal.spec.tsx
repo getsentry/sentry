@@ -113,9 +113,9 @@ describe('AttributeBreakdownViewerModal', () => {
       expect(screen.getByRole('columnheader', {name: 'Percentage'})).toBeInTheDocument();
 
       // Table should have attribute values
-      expect(screen.getByRole('cell', {name: 'Chrome'})).toBeInTheDocument();
-      expect(screen.getByRole('cell', {name: 'Firefox'})).toBeInTheDocument();
-      expect(screen.getByRole('cell', {name: 'Safari'})).toBeInTheDocument();
+      expect(screen.getByText('Chrome')).toBeInTheDocument();
+      expect(screen.getByText('Firefox')).toBeInTheDocument();
+      expect(screen.getByText('Safari')).toBeInTheDocument();
     });
 
     it('calculates percentage correctly', () => {
@@ -278,9 +278,9 @@ describe('AttributeBreakdownViewerModal', () => {
       );
 
       // Table should have attribute values
-      expect(screen.getByRole('cell', {name: 'Chrome'})).toBeInTheDocument();
-      expect(screen.getByRole('cell', {name: 'Firefox'})).toBeInTheDocument();
-      expect(screen.getByRole('cell', {name: 'Safari'})).toBeInTheDocument();
+      expect(screen.getByText('Chrome')).toBeInTheDocument();
+      expect(screen.getByText('Firefox')).toBeInTheDocument();
+      expect(screen.getByText('Safari')).toBeInTheDocument();
     });
 
     it('handles zero cohort totals without crashing', () => {
@@ -345,7 +345,7 @@ describe('AttributeBreakdownViewerModal', () => {
       const cells = screen.getAllByRole('cell');
       // First cell should be the Value column (Chrome)
       const valueCell = cells[0]!;
-      const valueCellButton = within(valueCell).getByRole('button');
+      const valueCellButton = within(valueCell).getByLabelText('Actions');
       await userEvent.click(valueCellButton);
 
       // Verify all expected menu items are present
@@ -370,7 +370,7 @@ describe('AttributeBreakdownViewerModal', () => {
       // Count column should be the second cell (500)
       const countCell = cells[1]!;
       // Non-Value columns should not have action buttons
-      expect(within(countCell).queryByRole('button')).not.toBeInTheDocument();
+      expect(within(countCell).queryByLabelText('Actions')).not.toBeInTheDocument();
     });
 
     it('navigates correctly when OPEN_ROW_IN_EXPLORE action is triggered', async () => {
@@ -386,7 +386,7 @@ describe('AttributeBreakdownViewerModal', () => {
 
       const cells = screen.getAllByRole('cell');
       const valueCell = cells[0]!;
-      const valueCellButton = within(valueCell).getByRole('button');
+      const valueCellButton = within(valueCell).getByLabelText('Actions');
       await userEvent.click(valueCellButton);
 
       const menuOption = await screen.findByText('View span samples');
@@ -410,7 +410,7 @@ describe('AttributeBreakdownViewerModal', () => {
 
       const cells = screen.getAllByRole('cell');
       const valueCell = cells[0]!;
-      const valueCellButton = within(valueCell).getByRole('button');
+      const valueCellButton = within(valueCell).getByLabelText('Actions');
       await userEvent.click(valueCellButton);
 
       const menuOption = await screen.findByText('Add to filter');
@@ -435,7 +435,7 @@ describe('AttributeBreakdownViewerModal', () => {
 
       const cells = screen.getAllByRole('cell');
       const valueCell = cells[0]!;
-      const valueCellButton = within(valueCell).getByRole('button');
+      const valueCellButton = within(valueCell).getByLabelText('Actions');
       await userEvent.click(valueCellButton);
 
       const menuOption = await screen.findByText('Exclude from filter');
@@ -467,7 +467,7 @@ describe('AttributeBreakdownViewerModal', () => {
 
       const cells = screen.getAllByRole('cell');
       const valueCell = cells[0]!;
-      const valueCellButton = within(valueCell).getByRole('button');
+      const valueCellButton = within(valueCell).getByLabelText('Actions');
       await userEvent.click(valueCellButton);
 
       const menuOption = await screen.findByText('Copy to clipboard');
@@ -509,7 +509,7 @@ describe('AttributeBreakdownViewerModal', () => {
 
       const cells = screen.getAllByRole('cell');
       const valueCell = cells[0]!;
-      const valueCellButton = within(valueCell).getByRole('button');
+      const valueCellButton = within(valueCell).getByLabelText('Actions');
       await userEvent.click(valueCellButton);
 
       const menuOption = await screen.findByText('View span samples');
