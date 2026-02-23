@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - worktree-duration-lpt
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -18,6 +19,7 @@ env:
   SNUBA_NO_WORKERS: 1
   TIER_GRANULARITY: file
   T2_GRANULARITY: class
+  T3_GRANULARITY: class
 
 jobs:
   # ─── Split tests into tiers using classification data ──────────────
@@ -32,6 +34,7 @@ jobs:
     outputs:
       tier1-count: ${{ steps.split.outputs.tier1-count }}
       tier2-count: ${{ steps.split.outputs.tier2-count }}
+      tier3-count: ${{ steps.split.outputs.tier3-count }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -44,25 +47,30 @@ jobs:
           echo "Using classification from run $RUN_ID"
           gh run download "$RUN_ID" --name test-service-classification --dir /tmp/classification
 
-      - name: Download test durations from last successful run
+      - name: Download test durations from most recent run
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Gracefully skip if no prior run exists yet (seed run).
-          RUN_ID=$(gh run list --workflow=backend-xdist-split-poc.yml \
-            --branch=worktree-duration-lpt --status=success \
-            --limit=1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
-          if [ -n "$RUN_ID" ]; then
-            echo "Downloading test-durations from run $RUN_ID"
-            gh run download "$RUN_ID" --name test-durations --dir /tmp/durations 2>/dev/null || true
-          fi
+          # Try the last 5 runs regardless of conclusion — flaky test failures
+          # should not prevent us from using fresh duration data. merge-durations
+          # always runs (if: always()), so the artifact exists even on failed runs.
+          FOUND=""
+          for RUN_ID in $(gh run list --workflow=backend-xdist-split-poc.yml \
+            --branch=worktree-duration-lpt --limit=5 \
+            --json databaseId --jq '.[].databaseId' 2>/dev/null); do
+            if gh run download "$RUN_ID" --name test-durations --dir /tmp/durations 2>/dev/null; then
+              echo "Downloaded test-durations from run $RUN_ID"
+              FOUND="$RUN_ID"
+              break
+            fi
+          done
           if [ -f /tmp/durations/test-durations.json ]; then
             SCOPE_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/durations/test-durations.json')); print(len(d))")
             echo "DURATIONS_FLAG=--durations /tmp/durations/test-durations.json" >> "$GITHUB_ENV"
-            echo "Duration data loaded ($SCOPE_COUNT scopes from run $RUN_ID)"
+            echo "Duration data loaded ($SCOPE_COUNT scopes from run $FOUND)"
           else
             echo "DURATIONS_FLAG=" >> "$GITHUB_ENV"
-            echo "No duration data — seed run, using test-count weights"
+            echo "No duration data found in last 5 runs — seed run, using hash-based sharding"
           fi
 
       - name: Split tests by tier
@@ -71,26 +79,32 @@ jobs:
           SCRIPT=.github/workflows/scripts/split-tests-by-tier.py
           CLASS=/tmp/classification/test-service-classification.json
           T1_SHARDS=5
-          T2_SHARDS=17
+          T2_SHARDS=14
+          T3_SHARDS=3
 
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" --summary
 
-          # T1: worker-simulated LPT, n=4 workers per shard.
+          # T1: worker-simulated LPT, n=4 workers per shard, file granularity.
           mkdir -p /tmp/tier1-shards
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier1 --shards $T1_SHARDS --output-dir /tmp/tier1-shards \
             --workers 4 $DURATIONS_FLAG
 
-          # T2: worker-simulated LPT, n=3 workers per shard.
-          # Uses class-level granularity (~1500 atoms vs ~250 at file level)
-          # for dramatically better LPT balance.
+          # T2: Snuba tests (no symbolicator), class granularity, n=3 workers.
           mkdir -p /tmp/tier2-shards
           python3 $SCRIPT --classification $CLASS --granularity "$T2_GRANULARITY" \
             --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards \
             --workers 3 $DURATIONS_FLAG
 
+          # T3: Symbolicator tests, class granularity, n=3 workers.
+          mkdir -p /tmp/tier3-shards
+          python3 $SCRIPT --classification $CLASS --granularity "$T3_GRANULARITY" \
+            --tier tier3 --shards $T3_SHARDS --output-dir /tmp/tier3-shards \
+            --workers 3 $DURATIONS_FLAG
+
           echo "tier1-count=$(find /tmp/tier1-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
           echo "tier2-count=$(find /tmp/tier2-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "tier3-count=$(find /tmp/tier3-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -98,6 +112,7 @@ jobs:
           path: |
             /tmp/tier1-shards/
             /tmp/tier2-shards/
+            /tmp/tier3-shards/
           retention-days: 1
 
   # ─── Tier 1: Postgres + Redis only (no Snuba stack) ────────────────
@@ -232,10 +247,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 17
+      MATRIX_INSTANCE_TOTAL: 14
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
@@ -340,7 +355,7 @@ jobs:
           # ── Foreground: pytest starts immediately ──
           # Collection overlaps with service startup. The _wait_for_services
           # session fixture blocks on /tmp/services-ready before running tests.
-          echo "=== Tier 2: $(wc -l < /tmp/tier2-shards/shard-${{ matrix.instance }}.txt) scopes, shard ${{ matrix.instance }}/17 ==="
+          echo "=== Tier 2: $(wc -l < /tmp/tier2-shards/shard-${{ matrix.instance }}.txt) scopes, shard ${{ matrix.instance }}/14 ==="
           PYTEST_EXIT=0
           SERVICES_READY_FILE=/tmp/services-ready \
           python3 -b -m pytest tests \
@@ -389,12 +404,174 @@ jobs:
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
+  # ─── Tier 3: Symbolicator tests (backend-ci mode) ────────────────
+  tier3:
+    needs: split-tiers
+    name: 'tier3 (${{ matrix.instance }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0, 1, 2]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 3
+      TEST_GROUP_STRATEGY: roundrobin
+      PYTHONHASHSEED: '0'
+      XDIST_PER_WORKER_SNUBA: '1'
+      XDIST_WORKERS: '3'
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tier-file-lists
+          path: /tmp/
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+          skip-devservices: true
+
+      - name: Run tier 3 tests (symbolicator, overlapped startup)
+        env:
+          SNUBA_WAIT_TIMEOUT: '180'
+          DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
+          SELECTED_TESTS_FILE: /tmp/tier3-shards/shard-${{ matrix.instance }}.txt
+          TOTAL_TEST_GROUPS: '1'
+          TEST_GROUP: '0'
+          SENTRY_DB_SOCKET: /tmp/pg-sock
+          TIER_GRANULARITY: ${{ env.T3_GRANULARITY }}
+        run: |
+          XDIST_N=${XDIST_WORKERS:-3}
+          PHASE_START=$(date +%s)
+
+          (
+            SERVICE_START=$(date +%s)
+            sentry init
+            devservices up --mode backend-ci
+            SERVICE_END=$(date +%s)
+            echo "[services] devservices ready in $((SERVICE_END - SERVICE_START))s"
+
+            mkdir -p /tmp/pg-sock
+            PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+            docker stop postgres-postgres-1 && docker rm postgres-postgres-1
+            docker run -d --name postgres-postgres-1 \
+              --network devservices --label orchestrator=devservices \
+              -p 127.0.0.1:5432:5432 \
+              -v postgres-data:/var/lib/postgresql/data \
+              -v /tmp/pg-sock:/var/run/postgresql \
+              -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
+              "$PG_IMAGE" postgres \
+                -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+            until [ -S "/tmp/pg-sock/.s.PGSQL.5432" ]; do sleep 0.5; done
+            echo "[services] postgres Unix socket ready at /tmp/pg-sock/.s.PGSQL.5432"
+
+            SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
+            SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+
+            BOOTSTRAP_START=$(date +%s)
+            for i in $(seq 0 $((XDIST_N - 1))); do
+              (
+                WORKER_DB="default_gw${i}"
+                WORKER_PORT=$((1230 + i))
+                curl -sf 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
+                docker run --rm --network "$SNUBA_NETWORK" \
+                  -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
+                  -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
+                  -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
+                  -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
+                  "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -3
+                docker run -d --name "snuba-gw${i}" --network "$SNUBA_NETWORK" \
+                  -p "${WORKER_PORT}:1218" \
+                  -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
+                  -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
+                  -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
+                  -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
+                  -e "DEBUG=1" "$SNUBA_IMAGE" api
+              ) &
+            done
+            wait
+            BOOTSTRAP_END=$(date +%s)
+            echo "[services] bootstrap complete in $((BOOTSTRAP_END - BOOTSTRAP_START))s"
+
+            for i in $(seq 0 $((XDIST_N - 1))); do
+              WORKER_PORT=$((1230 + i))
+              for attempt in $(seq 1 30); do
+                if curl -sf "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
+                  echo "[services] snuba-gw${i} ready"; break; fi
+                [ "$attempt" -eq 30 ] && echo "[services] ERROR: snuba-gw${i} failed" && docker logs "snuba-gw${i}" 2>&1 | tail -20 && exit 1
+                sleep 1
+              done
+            done
+            echo "[services] All ready in $(($(date +%s) - SERVICE_START))s"
+            touch /tmp/services-ready
+          ) 2>&1 &
+          SERVICES_PID=$!
+
+          echo "=== Tier 3: $(wc -l < /tmp/tier3-shards/shard-${{ matrix.instance }}.txt) scopes, shard ${{ matrix.instance }}/3 ==="
+          PYTEST_EXIT=0
+          SERVICES_READY_FILE=/tmp/services-ready \
+          python3 -b -m pytest tests \
+            --reuse-db \
+            -n $XDIST_N \
+            --dist=loadscope \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=.artifacts/pytest.junit.xml \
+            -o junit_suite_name=pytest-tier3 || PYTEST_EXIT=$?
+
+          PHASE_END=$(date +%s)
+          echo "=== Wall-clock: $((PHASE_END - PHASE_START))s ==="
+          wait $SERVICES_PID 2>/dev/null || true
+          exit $PYTEST_EXIT
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          for name in $(docker ps -a --filter "name=snuba-gw" --format '{{.Names}}'); do
+            echo "--- $name ---"; docker logs "$name" 2>&1 | tail -30
+          done
+          devservices logs 2>/dev/null || true
+
+      - name: Upload test report for duration merging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
+        with:
+          name: test-report-tier3-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          retention-days: 7
+
+      - name: Collect test data (tier3)
+        uses: ./.github/actions/collect-test-data
+        if: ${{ !cancelled() }}
+        with:
+          artifact_path: .artifacts/pytest.json
+          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
+
   # ─── Merge per-shard reports into a single durations file ──────────
   # Runs after all tier jobs complete (pass or fail). The output artifact
   # (test-durations) is consumed by the next run's split-tiers job to
   # drive worker-simulated LPT sharding.
   merge-durations:
-    needs: [tier1, tier2]
+    needs: [tier1, tier2, tier3]
     if: always()
     name: merge test durations
     runs-on: ubuntu-24.04

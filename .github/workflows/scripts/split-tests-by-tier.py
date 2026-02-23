@@ -11,7 +11,8 @@ Granularity (--granularity):
 
 Tiers:
   tier1: Postgres + Redis only (migrations mode).
-  tier2: Full Snuba stack (backend-ci mode).
+  tier2: Full Snuba stack (backend-ci mode), no symbolicator.
+  tier3: Symbolicator tests (backend-ci mode + symbolicator).
 
 Sharding (--shards N --output-dir DIR):
   When --shards is specified, the selected tier's scopes are split into N
@@ -22,7 +23,7 @@ Sharding (--shards N --output-dir DIR):
   {output-dir}/shard-{i}.txt.
 
   --workers controls the assumed number of xdist workers per shard (default 3).
-  Set to 4 for tier1 (runs with -n 4), 3 for tier2 (runs with -n 3).
+  Set to 4 for tier1 (runs with -n 4), 3 for tier2/tier3 (runs with -n 3).
 
 Usage:
     python split-tests-by-tier.py --classification report.json --tier tier1 --output tier1.txt
@@ -31,6 +32,8 @@ Usage:
         --shards 17 --output-dir /tmp/tier2-shards/ --durations /tmp/test-durations.json --workers 3
     python split-tests-by-tier.py --classification report.json --tier tier1 \\
         --shards 5 --output-dir /tmp/tier1-shards/ --durations /tmp/test-durations.json --workers 4
+    python split-tests-by-tier.py --classification report.json --tier tier3 \\
+        --shards 3 --output-dir /tmp/tier3-shards/ --durations /tmp/test-durations.json --workers 3
 """
 
 from __future__ import annotations
@@ -50,8 +53,11 @@ FORCE_TIER2_FILES: set[str] = {
     "tests/sentry/preprod/api/endpoints/test_preprod_artifact_snapshot.py",
 }
 
-# Services that require tier2 (full Snuba stack).
-TIER2_SERVICES: set[str] = {"snuba", "kafka", "symbolicator", "objectstore", "bigtable"}
+# Services that require tier3 (symbolicator — isolated for better LPT balance).
+TIER3_SERVICES: set[str] = {"symbolicator"}
+
+# Services that require tier2 (full Snuba stack, no symbolicator).
+TIER2_SERVICES: set[str] = {"snuba", "kafka", "objectstore", "bigtable"}
 
 
 def _scope_key(test_id: str, granularity: str) -> str:
@@ -73,14 +79,21 @@ def split(classification: dict, granularity: str = "file") -> dict[str, set[str]
 
     tier1: set[str] = set()
     tier2: set[str] = set()
+    tier3: set[str] = set()
     for scope, services in scope_services.items():
         file_path = scope.split("::")[0]
-        if file_path in FORCE_TIER2_FILES or (services & TIER2_SERVICES):
+        if file_path in FORCE_TIER2_FILES:
+            # Forced into tier2 regardless of service detection.
+            tier2.add(scope)
+        elif services & TIER3_SERVICES:
+            # Symbolicator tests go to dedicated tier3.
+            tier3.add(scope)
+        elif services & TIER2_SERVICES:
             tier2.add(scope)
         else:
             tier1.add(scope)
 
-    return {"tier1": tier1, "tier2": tier2}
+    return {"tier1": tier1, "tier2": tier2, "tier3": tier3}
 
 
 def load_durations(path: str, granularity: str) -> dict[str, float]:
@@ -215,7 +228,7 @@ def worker_lpt_shard(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Split tests into tiers")
     parser.add_argument("--classification", required=True)
-    parser.add_argument("--tier", choices=["tier1", "tier2"])
+    parser.add_argument("--tier", choices=["tier1", "tier2", "tier3"])
     parser.add_argument("--output", help="Output file (default: stdout)")
     parser.add_argument("--granularity", choices=["file", "class", "test"], default="file")
     parser.add_argument("--summary", action="store_true")
@@ -248,19 +261,22 @@ def main() -> int:
     tiers = split(classification, granularity=args.granularity)
 
     if args.summary:
-        total = len(tiers["tier1"]) + len(tiers["tier2"])
+        total = len(tiers["tier1"]) + len(tiers["tier2"]) + len(tiers["tier3"])
         label = {"file": "files", "class": "scopes", "test": "tests"}[args.granularity]
         print(f"Granularity: {args.granularity}")
         print(f"Total {label}: {total}")
         print(
-            f"Tier 1 (Postgres + Redis):  {len(tiers['tier1'])} {label} ({len(tiers['tier1']) / total * 100:.1f}%)"
+            f"Tier 1 (Postgres + Redis):       {len(tiers['tier1'])} {label} ({len(tiers['tier1']) / total * 100:.1f}%)"
         )
         print(
-            f"Tier 2 (Full Snuba stack):  {len(tiers['tier2'])} {label} ({len(tiers['tier2']) / total * 100:.1f}%)"
+            f"Tier 2 (Snuba, no symbolicator): {len(tiers['tier2'])} {label} ({len(tiers['tier2']) / total * 100:.1f}%)"
+        )
+        print(
+            f"Tier 3 (Symbolicator):           {len(tiers['tier3'])} {label} ({len(tiers['tier3']) / total * 100:.1f}%)"
         )
 
         tests_data = classification.get("tests", {})
-        counts = {"tier1": 0, "tier2": 0}
+        counts = {"tier1": 0, "tier2": 0, "tier3": 0}
         for test_id in tests_data:
             scope = _scope_key(test_id, args.granularity)
             for tier_name, tier_scopes in tiers.items():
@@ -269,6 +285,7 @@ def main() -> int:
                     break
         print(f"\nTier 1 tests: {counts['tier1']}")
         print(f"Tier 2 tests: {counts['tier2']}")
+        print(f"Tier 3 tests: {counts['tier3']}")
         return 0
 
     if not args.tier:
