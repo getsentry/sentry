@@ -4,6 +4,7 @@ from unittest import mock
 
 import orjson
 import pytest
+import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message, Partition, Topic
@@ -109,65 +110,69 @@ def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
         topic = Topic("test")
         messages: list[KafkaPayload] = []
 
-        fac = ProcessSpansStrategyFactory(
-            max_batch_size=1,
-            max_batch_time=10,
-            num_processes=1,
-            input_block_size=None,
-            output_block_size=None,
-            produce_to_pipe=messages.append,
-        )
+    fac = ProcessSpansStrategyFactory(
+        max_batch_size=1,
+        max_batch_time=10,
+        num_processes=1,
+        input_block_size=None,
+        output_block_size=None,
+        produce_to_pipe=messages.append,
+    )
 
-        commits = []
+    commits = []
 
-        def add_commit(offsets, force=False):
-            commits.append(offsets)
+    def add_commit(offsets, force=False):
+        commits.append(offsets)
 
-        step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
-        try:
-            with pytest.raises(InvalidMessage):
-                span_data = {
-                    "organization_id": 1,
-                    "project_id": 12,
-                    "span_id": "a" * 16,
-                    "trace_id": "b" * 32,
-                    "start_timestamp": 1699999999.0,
-                    "end_timestamp": 1700000000.0,
-                    "retention_days": 90,
-                    "received": 1699999999.0,
-                    "name": "test-span",
-                    "status": "ok",
-                    "is_segment": False,
-                }
-                # Set the field to None
-                span_data[field_to_set_none] = None
+    step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
+    try:
+        with pytest.raises(InvalidMessage):
+            span_data = {
+                "organization_id": 1,
+                "project_id": 12,
+                "span_id": "a" * 16,
+                "trace_id": "b" * 32,
+                "start_timestamp": 1699999999.0,
+                "end_timestamp": 1700000000.0,
+                "retention_days": 90,
+                "received": 1699999999.0,
+                "name": "test-span",
+                "status": "ok",
+                "is_segment": False,
+            }
+            # Set the field to None
+            span_data[field_to_set_none] = None
 
-                step.submit(
-                    Message(
-                        BrokerValue(
-                            partition=Partition(topic, 0),
-                            offset=1,
-                            payload=KafkaPayload(
-                                None,
-                                orjson.dumps(span_data),
-                                [],
-                            ),
-                            timestamp=datetime.now(),
-                        )
+            step.submit(
+                Message(
+                    BrokerValue(
+                        partition=Partition(topic, 0),
+                        offset=1,
+                        payload=KafkaPayload(
+                            None,
+                            orjson.dumps(span_data),
+                            [],
+                        ),
+                        timestamp=datetime.now(),
                     )
                 )
+            )
 
+            step.poll()
+            fac._flusher.current_drift.value = 9000
+
+            for _ in range(20):
                 step.poll()
-                fac._flusher.current_drift.value = 9000
+                real_sleep(0.01)
 
-                for _ in range(20):
-                    step.poll()
-                    real_sleep(0.01)
-
-            # The span should be rejected by schema validator, so no messages produced
-            assert len(messages) == 0
-        finally:
-            fac._flusher.join()
+        # The span should be rejected by schema validator, so no messages produced
+        assert len(messages) == 0
+    finally:
+        fac._flusher.join()
+        # The flusher thread sets scope.level = "warning" on the isolation scope.
+        # In tests, the flusher runs as a thread (not subprocess), so this
+        # modification leaks into subsequent tests.
+        sentry_sdk.get_isolation_scope().level = None
 
 
 @override_options(
@@ -179,63 +184,64 @@ def test_schema_validator_rejects_string_timestamps() -> None:
         topic = Topic("test")
         messages: list[KafkaPayload] = []
 
-        fac = ProcessSpansStrategyFactory(
-            max_batch_size=1,
-            max_batch_time=10,
-            num_processes=1,
-            input_block_size=None,
-            output_block_size=None,
-            produce_to_pipe=messages.append,
-        )
+    fac = ProcessSpansStrategyFactory(
+        max_batch_size=1,
+        max_batch_time=10,
+        num_processes=1,
+        input_block_size=None,
+        output_block_size=None,
+        produce_to_pipe=messages.append,
+    )
 
-        commits = []
+    commits = []
 
-        def add_commit(offsets, force=False):
-            commits.append(offsets)
+    def add_commit(offsets, force=False):
+        commits.append(offsets)
 
-        step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
-        try:
-            with pytest.raises(InvalidMessage):
-                span_data = {
-                    "organization_id": 1,
-                    "project_id": 12,
-                    "span_id": "a" * 16,
-                    "trace_id": "b" * 32,
-                    "start_timestamp": 1699999999.0,
-                    "end_timestamp": "1700000000.0",
-                    "retention_days": 90,
-                    "received": 1699999999.0,
-                    "name": "test-span",
-                    "status": "ok",
-                    "is_segment": False,
-                }
+    step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
+    try:
+        with pytest.raises(InvalidMessage):
+            span_data = {
+                "organization_id": 1,
+                "project_id": 12,
+                "span_id": "a" * 16,
+                "trace_id": "b" * 32,
+                "start_timestamp": 1699999999.0,
+                "end_timestamp": "1700000000.0",
+                "retention_days": 90,
+                "received": 1699999999.0,
+                "name": "test-span",
+                "status": "ok",
+                "is_segment": False,
+            }
 
-                step.submit(
-                    Message(
-                        BrokerValue(
-                            partition=Partition(topic, 0),
-                            offset=1,
-                            payload=KafkaPayload(
-                                None,
-                                orjson.dumps(span_data),
-                                [],
-                            ),
-                            timestamp=datetime.now(),
-                        )
+            step.submit(
+                Message(
+                    BrokerValue(
+                        partition=Partition(topic, 0),
+                        offset=1,
+                        payload=KafkaPayload(
+                            None,
+                            orjson.dumps(span_data),
+                            [],
+                        ),
+                        timestamp=datetime.now(),
                     )
                 )
+            )
 
+            step.poll()
+            fac._flusher.current_drift.value = 9000
+
+            for _ in range(20):
                 step.poll()
-                fac._flusher.current_drift.value = 9000
+                real_sleep(0.01)
 
-                for _ in range(20):
-                    step.poll()
-                    real_sleep(0.01)
-
-            # The span should be rejected by schema validator, so no messages produced
-            assert len(messages) == 0
-        finally:
-            fac._flusher.join()
+        # The span should be rejected by schema validator, so no messages produced
+        assert len(messages) == 0
+    finally:
+        fac._flusher.join()
+        sentry_sdk.get_isolation_scope().level = None
 
 
 @override_options(
