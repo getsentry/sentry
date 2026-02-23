@@ -40,17 +40,16 @@ class ClientError(Exception):
 
 def convert_enum_keys_to_strings(obj: Any) -> Any:
     """
-    Recursively convert enum keys and datetime values to JSON-serializable formats.
+    Recursively convert enum keys in dictionaries to their string values.
 
     This is needed because Pydantic v1 converts string keys to enum members when parsing,
-    but JSON serialization requires string keys. Enum values and datetime objects are
-    also converted to strings for Celery serialization compatibility.
+    but JSON serialization requires string keys. Enum values are also converted to strings.
 
     Args:
-        obj: The object to process (can be dict, list, enum, datetime, or primitive)
+        obj: The object to process (can be dict, list, enum, or primitive)
 
     Returns:
-        A copy of the object with all enum keys/values and datetimes converted to strings
+        A copy of the object with all enum keys and values converted to strings
     """
     if isinstance(obj, dict):
         return {
@@ -61,8 +60,6 @@ def convert_enum_keys_to_strings(obj: Any) -> Any:
         return [convert_enum_keys_to_strings(item) for item in obj]
     elif isinstance(obj, Enum):
         return obj.value
-    elif isinstance(obj, datetime):
-        return obj.isoformat()
     else:
         return obj
 
