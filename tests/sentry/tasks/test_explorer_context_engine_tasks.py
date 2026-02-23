@@ -5,6 +5,7 @@ import pytest
 import responses
 from django.conf import settings
 
+from sentry.seer.explorer.context_engine_utils import ProjectEventCounts
 from sentry.tasks.explorer_context_engine_tasks import index_org_project_knowledge
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -48,7 +49,9 @@ class TestIndexOrgProjectKnowledge(TestCase):
             status=200,
         )
 
-        event_counts = {self.project.id: (5000, 2000)}
+        event_counts = {
+            self.project.id: ProjectEventCounts(error_count=5000, transaction_count=2000)
+        }
 
         with mock.patch(
             "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
@@ -99,7 +102,9 @@ class TestIndexOrgProjectKnowledge(TestCase):
 
         with mock.patch(
             "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
-            return_value={self.project.id: (5000, 2000)},
+            return_value={
+                self.project.id: ProjectEventCounts(error_count=5000, transaction_count=2000)
+            },
         ):
             with mock.patch(
                 "sentry.tasks.explorer_context_engine_tasks.get_top_transactions_for_org_projects",

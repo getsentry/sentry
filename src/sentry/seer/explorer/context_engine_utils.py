@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
 from datetime import datetime
 
@@ -25,6 +26,16 @@ from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
+
+
+@dataclasses.dataclass
+class ProjectEventCounts:
+    error_count: int = 0
+    transaction_count: int = 0
+
+    def total(self) -> int:
+        return self.error_count + self.transaction_count
+
 
 TOP_TRANSACTIONS_LIMIT = 10
 TOP_SPAN_OPS_LIMIT = 15
@@ -96,7 +107,7 @@ def get_top_span_ops_for_org_projects(
         project_id = row.get("project.id")
         category = row.get("span.category") or row.get("span.op") or ""
         description = row.get("sentry.normalized_description") or ""
-        if project_id is not None:
+        if project_id is not None and (category or description):
             ops_by_project.setdefault(project_id, [])
             if len(ops_by_project[project_id]) < TOP_SPAN_OPS_LIMIT:
                 ops_by_project[project_id].append((category, description))
@@ -186,7 +197,7 @@ def get_sdk_names_for_org_projects(
             ],
             orderby=["-count()"],
             offset=0,
-            limit=len(projects),
+            limit=3 * len(projects),
             referrer=Referrer.SEER_EXPLORER_INDEX,
             config=config,
             sampling_mode="NORMAL",
@@ -213,7 +224,7 @@ def get_event_counts_for_org_projects(
     project_ids: list[int],
     start: datetime,
     end: datetime,
-) -> dict[int, tuple[int, int]]:
+) -> dict[int, ProjectEventCounts]:
     """Query outcomes for accepted error/transaction counts; returns only high-volume projects."""
     query = Query(
         match=Entity("outcomes"),
@@ -246,27 +257,26 @@ def get_event_counts_for_org_projects(
     )
 
     error_categories = set(DataCategory.error_categories())
-    all_counts: dict[int, tuple[int, int]] = {}
+    all_counts: dict[int, ProjectEventCounts] = {}
     try:
         data = raw_snql_query(request, referrer=Referrer.SEER_EXPLORER_INDEX.value)["data"]
         for row in data:
             project_id = row["project_id"]
             category = row["category"]
             total = row.get("total", 0)
-            error_count, transaction_count = all_counts.get(project_id, (0, 0))
+            counts = all_counts.setdefault(project_id, ProjectEventCounts())
             if category == DataCategory.TRANSACTION:
-                all_counts[project_id] = (error_count, transaction_count + total)
+                counts.transaction_count += total
             elif category in error_categories:
-                all_counts[project_id] = (error_count + total, transaction_count)
+                counts.error_count += total
     except Exception:
         logger.exception(
             "Failed to fetch event counts for org projects",
             extra={"org_id": org_id},
         )
 
-    # Only return high-volume projects to avoid indexing low-signal projects
     return {
         project_id: counts
         for project_id, counts in all_counts.items()
-        if sum(counts) >= HIGH_VOLUME_THRESHOLD
+        if counts.total() >= HIGH_VOLUME_THRESHOLD
     }

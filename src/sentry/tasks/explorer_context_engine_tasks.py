@@ -12,6 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.explorer.context_engine_utils import (
     EVENT_COUNT_LOOKBACK_DAYS,
+    ProjectEventCounts,
     get_event_counts_for_org_projects,
     get_instrumentation_types,
     get_sdk_names_for_org_projects,
@@ -67,14 +68,14 @@ def index_org_project_knowledge(org_id: int) -> None:
 
     project_data = []
     for project in high_volume_projects:
-        error_count, transaction_count = event_counts.get(project.id, (0, 0))
+        counts = event_counts.get(project.id, ProjectEventCounts())
         project_data.append(
             {
                 "project_id": project.id,
                 "slug": project.slug,
                 "sdk_name": sdk_names_by_project.get(project.id, ""),
-                "error_count": error_count,
-                "transaction_count": transaction_count,
+                "error_count": counts.error_count,
+                "transaction_count": counts.transaction_count,
                 "instrumentation": get_instrumentation_types(project),
                 "top_transactions": transactions_by_project.get(project.id, []),
                 "top_span_operations": span_ops_by_project.get(project.id, []),
