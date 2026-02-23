@@ -1,51 +1,76 @@
+import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';
 import {InstallDetailsContent} from 'sentry/views/preprod/components/installDetailsContent';
+import {useResolveProjectFromArtifact} from 'sentry/views/preprod/hooks/useResolveProjectFromArtifact';
 import {BuildInstallHeader} from 'sentry/views/preprod/install/buildInstallHeader';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 export default function InstallPage() {
   const {artifactId} = useParams<{artifactId: string}>();
-  const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
-  // TODO(EME-735): Remove this once refactoring is complete and we don't need to extract projects from the URL.
-  if (projectIds.length !== 1) {
-    throw new Error(
-      `Expected exactly one project in query string but got ${projectIds.length}`
-    );
-  }
-  const projectId = projectIds[0]!;
   const organization = useOrganization();
 
   const buildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
     [
       getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+        '/organizations/$organizationIdOrSlug/preprodartifacts/$artifactId/build-details/',
         {
           path: {
             organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectId,
-            headArtifactId: artifactId,
+            artifactId,
           },
         }
       ),
     ],
     {
       staleTime: 0,
-      enabled: !!projectId && !!artifactId,
+      enabled: !!artifactId,
     }
   );
+
+  const projectId = useResolveProjectFromArtifact(buildDetailsQuery.data);
+
+  if (buildDetailsQuery.isLoading) {
+    return (
+      <SentryDocumentTitle title="Install">
+        <Layout.Page>
+          <Layout.Body>
+            <Layout.Main>
+              <LoadingIndicator />
+            </Layout.Main>
+          </Layout.Body>
+        </Layout.Page>
+      </SentryDocumentTitle>
+    );
+  }
+
+  if (buildDetailsQuery.isError || !projectId) {
+    return (
+      <SentryDocumentTitle title="Install">
+        <Layout.Page>
+          <Layout.Body>
+            <Layout.Main>
+              <Alert variant="danger">
+                {buildDetailsQuery.error?.message || t('Failed to load build details')}
+              </Alert>
+            </Layout.Main>
+          </Layout.Body>
+        </Layout.Page>
+      </SentryDocumentTitle>
+    );
+  }
+
   return (
     <SentryDocumentTitle title="Install">
       <Layout.Page>
@@ -75,10 +100,7 @@ export default function InstallPage() {
                   </Container>
                 </Container>
                 {buildDetailsQuery.data && (
-                  <BuildVcsInfo
-                    buildDetailsData={buildDetailsQuery.data}
-                    projectId={projectId}
-                  />
+                  <BuildVcsInfo buildDetailsData={buildDetailsQuery.data} />
                 )}
               </Flex>
             </Layout.Main>

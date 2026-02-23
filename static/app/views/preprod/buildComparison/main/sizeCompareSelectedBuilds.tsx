@@ -9,8 +9,6 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
@@ -40,7 +38,6 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
   const buildUrl =
     getSizeBuildPath({
       organizationSlug: organization.slug,
-      projectId: String(projectId),
       baseArtifactId: buildId,
     }) ?? '';
   const platform = buildDetails.app_info?.platform ?? null;
@@ -182,6 +179,7 @@ interface SizeCompareSelectedBuildsProps {
   headBuildDetails: BuildDetailsApiResponse;
   isComparing: boolean;
   onClearBaseBuild: () => void;
+  projectId: string;
   baseBuildDetails?: BuildDetailsApiResponse;
   onTriggerComparison?: () => void;
 }
@@ -192,9 +190,9 @@ export function SizeCompareSelectedBuilds({
   isComparing,
   onClearBaseBuild,
   onTriggerComparison,
+  projectId,
 }: SizeCompareSelectedBuildsProps) {
   const organization = useOrganization();
-  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
   const platform = headBuildDetails.app_info?.platform ?? null;
   const project = ProjectsStore.getById(projectId);
 

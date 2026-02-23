@@ -11,7 +11,7 @@ import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermis
 
 interface UseBuildDetailsActionsProps {
   artifactId: string;
-  projectId: string;
+  projectId?: string;
 }
 
 export function useBuildDetailsActions({
@@ -26,6 +26,9 @@ export function useBuildDetailsActions({
     RequestError
   >({
     mutationFn: () => {
+      if (!projectId) {
+        throw new Error('projectId is required to delete an artifact');
+      }
       return fetchMutation({
         url: `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/delete/`,
         method: 'DELETE',
@@ -37,7 +40,6 @@ export function useBuildDetailsActions({
       navigate(
         getListBuildPath({
           organizationSlug: organization.slug,
-          projectId,
         })
       );
     },
@@ -77,6 +79,10 @@ export function useBuildDetailsActions({
   };
 
   const handleDownloadAction = async () => {
+    if (!projectId) {
+      addErrorMessage(t('Project ID is required to download build'));
+      return;
+    }
     await downloadPreprodArtifact({
       organizationSlug: organization.slug,
       projectSlug: projectId,
@@ -90,6 +96,9 @@ export function useBuildDetailsActions({
     RequestError
   >({
     mutationFn: () => {
+      if (!projectId) {
+        throw new Error('projectId is required to rerun status checks');
+      }
       return fetchMutation({
         url: `/projects/${organization.slug}/${projectId}/preprod-artifact/rerun-status-checks/${artifactId}/`,
         method: 'POST',

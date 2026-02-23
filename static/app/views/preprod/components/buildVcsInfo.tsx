@@ -23,10 +23,9 @@ import {
 
 interface BuildVcsInfoProps {
   buildDetailsData: BuildDetailsApiResponse;
-  projectId: string | null;
 }
 
-export function BuildVcsInfo({buildDetailsData, projectId}: BuildVcsInfoProps) {
+export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
   const organization = useOrganization();
   const vcsInfo = buildDetailsData.vcs_info;
   const hasVcsInfo = [
@@ -84,17 +83,15 @@ export function BuildVcsInfo({buildDetailsData, projectId}: BuildVcsInfoProps) {
                   buildDetailsData.base_build_info.version,
                   buildDetailsData.base_build_info.build_number
                 );
-                const baseBuildUrl =
-                  buildDetailsData.base_artifact_id && projectId
-                    ? getBaseBuildPath(
-                        {
-                          baseArtifactId: buildDetailsData.base_artifact_id,
-                          organizationSlug: organization.slug,
-                          projectId,
-                        },
-                        'size'
-                      )
-                    : null;
+                const baseBuildUrl = buildDetailsData.base_artifact_id
+                  ? getBaseBuildPath(
+                      {
+                        baseArtifactId: buildDetailsData.base_artifact_id,
+                        organizationSlug: organization.slug,
+                      },
+                      'size'
+                    )
+                  : null;
                 if (!baseBuildUrl || !buildName) {
                   return '-';
                 }

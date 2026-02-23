@@ -54,6 +54,7 @@ import {SizeCompareSelectedBuilds} from './sizeCompareSelectedBuilds';
 
 interface SizeCompareSelectionContentProps {
   headBuildDetails: BuildDetailsApiResponse;
+  projectId: string;
   baseBuildDetails?: BuildDetailsApiResponse;
   onBaseBuildClear?: () => void;
   onBaseBuildSelect?: () => void;
@@ -61,14 +62,14 @@ interface SizeCompareSelectionContentProps {
 
 export function SizeCompareSelectionContent({
   headBuildDetails,
+  projectId,
   baseBuildDetails,
 }: SizeCompareSelectionContentProps) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {project: projectId, cursor} = useLocationQuery({
+  const {cursor} = useLocationQuery({
     fields: {
-      project: decodeScalar,
       cursor: decodeScalar,
     },
   });
@@ -86,7 +87,7 @@ export function SizeCompareSelectionContent({
     build_configuration: headBuildDetails.app_info?.build_configuration,
     ...(cursor && {cursor}),
     ...(searchQuery && {query: searchQuery}),
-    ...(projectId && {project: projectId}),
+    ...(headBuildDetails.project_id && {project: headBuildDetails.project_id}),
   };
 
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
@@ -129,7 +130,6 @@ export function SizeCompareSelectionContent({
       navigate(
         getCompareBuildPath({
           organizationSlug: organization.slug,
-          projectId,
           headArtifactId: headBuildDetails.id,
           baseArtifactId: selectedBaseBuild?.id,
         })
@@ -151,6 +151,7 @@ export function SizeCompareSelectionContent({
         isComparing={isComparing}
         headBuildDetails={headBuildDetails}
         baseBuildDetails={selectedBaseBuild}
+        projectId={projectId}
         onClearBaseBuild={() => setSelectedBaseBuild(undefined)}
         onTriggerComparison={() => {
           if (!selectedBaseBuild) {
@@ -179,7 +180,6 @@ export function SizeCompareSelectionContent({
               navigate(
                 getCompareBuildPath({
                   organizationSlug: organization.slug,
-                  projectId,
                   headArtifactId: headBuildDetails.id,
                 }),
                 {replace: true}

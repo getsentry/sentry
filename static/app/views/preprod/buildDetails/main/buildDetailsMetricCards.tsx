@@ -43,7 +43,6 @@ interface BuildDetailsMetricCardsProps {
   artifactId?: string;
   baseArtifactId?: string | null;
   platform?: Platform | null;
-  projectId?: string;
   projectType?: string | null;
 }
 
@@ -80,7 +79,6 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
     baseArtifactId,
     platform: platformProp,
     projectType,
-    projectId,
     onOpenInsightsSidebar,
   } = props;
 
@@ -119,10 +117,9 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
 
   // Build comparison URL using route params
   const comparisonUrl =
-    baseArtifactId && projectId && artifactId
+    baseArtifactId && artifactId
       ? getCompareBuildPath({
           organizationSlug: organization.slug,
-          projectId,
           headArtifactId: artifactId,
           baseArtifactId,
         })

@@ -43,7 +43,6 @@ interface BuildDetailsMainContentProps {
   onRerunAnalysis: () => void;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
-  projectId?: string;
   projectType?: string | null;
 }
 
@@ -55,7 +54,6 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     buildDetailsData,
     isBuildDetailsPending = false,
     projectType,
-    projectId,
   } = props;
   const {
     data: appSizeData,
@@ -380,7 +378,6 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         baseArtifactId={buildDetailsData?.base_artifact_id ?? null}
         platform={buildDetailsData?.app_info?.platform ?? null}
         projectType={projectType ?? null}
-        projectId={projectId}
         onOpenInsightsSidebar={openInsightsSidebar}
       />
 

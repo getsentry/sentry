@@ -16,9 +16,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseApiError from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -52,7 +50,11 @@ function getMainComparison(
   );
 }
 
-export function SizeCompareMainContent() {
+interface SizeCompareMainContentProps {
+  projectId: string;
+}
+
+export function SizeCompareMainContent({projectId}: SizeCompareMainContentProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -65,14 +67,6 @@ export function SizeCompareMainContent() {
   const params = useParams();
   const headArtifactId = params.headArtifactId;
   const baseArtifactId = params.baseArtifactId;
-  const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
-  // TODO(EME-735): Remove this once refactoring is complete and we don't need to extract projects from the URL.
-  if (projectIds.length !== 1) {
-    throw new Error(
-      `Expected exactly one project in query string but got ${projectIds.length}`
-    );
-  }
-  const projectId = projectIds[0]!;
 
   // These parameters are part of the route and must always be present
   if (headArtifactId === undefined) {
@@ -138,7 +132,6 @@ export function SizeCompareMainContent() {
       navigate(
         getCompareBuildPath({
           organizationSlug: organization.slug,
-          projectId,
           headArtifactId,
           baseArtifactId,
         })
@@ -291,11 +284,11 @@ export function SizeCompareMainContent() {
         headBuildDetails={sizeComparisonQuery.data.head_build_details}
         baseBuildDetails={sizeComparisonQuery.data.base_build_details}
         isComparing={false}
+        projectId={projectId}
         onClearBaseBuild={() => {
           navigate(
             getCompareBuildPath({
               organizationSlug: organization.slug,
-              projectId,
               headArtifactId,
             })
           );
