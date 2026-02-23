@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 TOP_TRANSACTIONS_LIMIT = 10
 TOP_SPAN_OPS_LIMIT = 15
+MAX_BATCH_QUERY_LIMIT = 1000
 EVENT_COUNT_LOOKBACK_DAYS = 7
 HIGH_VOLUME_THRESHOLD = 1000
 
@@ -78,7 +79,7 @@ def get_top_span_ops_for_org_projects(
             ],
             orderby=["-sum(span.self_time)"],
             offset=0,
-            limit=TOP_SPAN_OPS_LIMIT * len(projects),
+            limit=min(TOP_SPAN_OPS_LIMIT * len(projects), MAX_BATCH_QUERY_LIMIT),
             referrer=Referrer.SEER_EXPLORER_INDEX,
             config=config,
             sampling_mode="NORMAL",
@@ -132,7 +133,7 @@ def get_top_transactions_for_org_projects(
             ],
             orderby=["-sum(span.duration)"],
             offset=0,
-            limit=TOP_TRANSACTIONS_LIMIT * len(projects),
+            limit=min(TOP_TRANSACTIONS_LIMIT * len(projects), MAX_BATCH_QUERY_LIMIT),
             referrer=Referrer.SEER_EXPLORER_INDEX,
             config=config,
             sampling_mode="NORMAL",
