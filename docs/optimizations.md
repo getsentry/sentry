@@ -1254,6 +1254,14 @@ def pytest_collection_modifyitems(items):
 
 ---
 
+## Bug Fix: Redis ConnectionError in pytest_runtest_teardown
+
+`pytest_runtest_teardown` unconditionally calls `client.flushdb()` on the default Redis cluster after every test (including skipped ones). When the Redis container crashes or becomes unresponsive near the end of a long run, the flushdb raises `redis.exceptions.ConnectionError`, and pytest reports the test as ERROR rather than passed/skipped.
+
+**Fix:** Wrap the flushdb call in `except RedisConnectionError: pass`. It's pure cleanup — stale Redis state from a crashed run is irrelevant since the runner is discarded after the job anyway.
+
+---
+
 ## Experiment: Worker-Simulated LPT with `--dist=loadscope` + Class-Level Sharding
 
 ### Background
