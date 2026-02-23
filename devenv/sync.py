@@ -218,8 +218,30 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
-    fs.ensure_symlink("../../config/hooks/post-checkout", f"{reporoot}/.git/hooks/post-checkout")
+    # In a worktree, .git is a file; hooks live in the shared git dir. Resolve it so
+    # devenv sync works from both main clone and worktrees.
+    try:
+        out = subprocess.run(
+            ("git", "rev-parse", "--git-common-dir"),
+            cwd=reporoot,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        git_common_dir = os.path.normpath(os.path.join(reporoot, out.stdout.strip()))
+    except subprocess.CalledProcessError:
+        git_common_dir = os.path.join(reporoot, ".git")
+    hooks_dir = os.path.join(git_common_dir, "hooks")
+    hooks_src = os.path.join(reporoot, "config", "hooks")
+    if os.path.isdir(git_common_dir):
+        fs.ensure_symlink(
+            os.path.join(hooks_src, "post-merge"),
+            os.path.join(hooks_dir, "post-merge"),
+        )
+        fs.ensure_symlink(
+            os.path.join(hooks_src, "post-checkout"),
+            os.path.join(hooks_dir, "post-checkout"),
+        )
 
     sentry_conf = os.environ.get("SENTRY_CONF", f"{constants.home}/.sentry")
 
