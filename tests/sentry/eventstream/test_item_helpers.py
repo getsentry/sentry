@@ -182,6 +182,7 @@ class ItemHelpersTest(TestCase):
 
         assert len(result) == 1
         assert "tag_keys" in result
+        assert result["tag_keys"] == AnyValue(array_value=ArrayValue(values=[]))
 
     def test_encode_attributes_with_complex_types(self) -> None:
         event_data = {

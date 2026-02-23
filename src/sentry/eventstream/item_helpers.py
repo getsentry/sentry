@@ -43,19 +43,13 @@ def serialize_event_data_as_item(
 def encode_attributes(
     event: Event | GroupEvent, event_data: Mapping[str, Any], ignore_fields: set[str] | None = None
 ) -> Mapping[str, AnyValue]:
-    tags_dict: dict[str, str] = {}
-    raw_tags = event_data.get("tags")
-    if raw_tags is not None:
-        for tag in raw_tags:
-            if tag is None:
-                continue
-            key, value = tag
-            if value is None:
-                continue
-            tags_dict[key] = value
+    raw_tags = event_data.get("tags") or []
+    tags_dict = {kv[0]: kv[1] for kv in raw_tags if kv is not None and kv[1] is not None}
 
-    all_ignore = (ignore_fields or set()) | {"tags"}
-    attributes = build_occurrence_attributes(event_data, tags=tags_dict, ignore_fields=all_ignore)
+    all_ignore_fields = (ignore_fields or set()) | {"tags"}
+    attributes = build_occurrence_attributes(
+        event_data, tags=tags_dict, ignore_fields=all_ignore_fields
+    )
 
     if event.group_id:
         attributes["group_id"] = AnyValue(int_value=event.group_id)
@@ -68,23 +62,14 @@ def build_occurrence_attributes(
     tags: Mapping[str, str] | None = None,
     ignore_fields: set[str] | None = None,
 ) -> dict[str, AnyValue]:
-    attributes: dict[str, AnyValue] = {}
-    ignore = ignore_fields or set()
+    ignore_fields = ignore_fields or set()
+    attributes: dict[str, AnyValue] = {
+        k: _encode_value(v) for k, v in data.items() if k not in ignore_fields and v is not None
+    }
 
-    for key, value in data.items():
-        if key in ignore:
-            continue
-        if value is None:
-            continue
-        attributes[key] = _encode_value(value)
-
-    tag_keys: list[str] = []
-    if tags:
-        for key, value in tags.items():
-            formatted_key = f"tags[{key}]"
-            attributes[formatted_key] = _encode_value(value)
-            tag_keys.append(formatted_key)
-    attributes["tag_keys"] = _encode_value(sorted(tag_keys))
+    tag_attrs = {f"tags[{k}]": _encode_value(v) for k, v in (tags or {}).items()}
+    attributes.update(tag_attrs)
+    attributes["tag_keys"] = _encode_value(sorted(tag_attrs.keys()))
 
     return attributes
 

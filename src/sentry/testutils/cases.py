@@ -1172,7 +1172,7 @@ class SnubaTestCase(BaseTestCase):
         )
         assert response.status_code == 200
 
-    def store_occurrences(self, occurrences):
+    def store_occurrences(self, occurrences: Sequence[TraceItem]):
         files = {
             f"occurrence_{i}": occurrence.SerializeToString()
             for i, occurrence in enumerate(occurrences)
