@@ -202,12 +202,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert integration.name == self.vsts_account_name
 
         metadata = integration.metadata
-        assert metadata["scopes"] == [
-            "vso.code",
-            "vso.graph",
-            "vso.serviceendpoint_manage",
-            "vso.work_write",
-        ]
+        assert set(metadata["scopes"]) == set(VstsIntegrationProvider.NEW_SCOPES)
         assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
         assert metadata["domain_name"] == self.vsts_base_url
 
@@ -261,7 +256,10 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         assert_halt_metric(mock_record, "no_accounts")
 
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_webhook_subscription_created_once(self, mock_get_scopes: MagicMock) -> None:
         self.assert_installation()
 
@@ -291,7 +289,10 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             == data["metadata"]["subscription"]
         )
 
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_fix_subscription(self, mock_get_scopes: MagicMock) -> None:
         external_id = self.vsts_account_id
         self.create_provider_integration(metadata={}, provider="vsts", external_id=external_id)
@@ -400,7 +401,10 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
 @control_silo_test
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_success(self, mock_get_scopes: MagicMock) -> None:
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
@@ -427,9 +431,14 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         assert integration_dict["user_identity"]["type"] == "vsts"
         assert integration_dict["user_identity"]["external_id"] == self.vsts_account_id
-        assert integration_dict["user_identity"]["scopes"] == FULL_SCOPES
+        assert set(integration_dict["user_identity"]["scopes"]) == set(
+            VstsIntegrationProvider.NEW_SCOPES
+        )
 
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_create_subscription_forbidden(self, mock_get_scopes: MagicMock) -> None:
         responses.replace(
             responses.POST,
@@ -464,7 +473,10 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
             integration.build_integration(state)
         assert "Azure DevOps organization" in str(err) and "Please ensu" in str(err)
 
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_create_subscription_unauthorized(self, mock_get_scopes: MagicMock) -> None:
         responses.replace(
             responses.POST,

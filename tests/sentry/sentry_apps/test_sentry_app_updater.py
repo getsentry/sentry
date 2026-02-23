@@ -149,7 +149,8 @@ class TestUpdater(TestCase):
                 "issue",
             ],
         )
-        updater.run(self.user)
+        with outbox_runner():
+            updater.run(self.user)
         assert sentry_app.events == expand_events(["issue"])
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.filter(application_id=sentry_app.application_id)[0]
@@ -164,7 +165,8 @@ class TestUpdater(TestCase):
         )
         self.create_sentry_app_installation(slug="sentry")
         updater = SentryAppUpdater(sentry_app=sentry_app, webhook_url="http://example.com/hooks")
-        updater.run(self.user)
+        with outbox_runner():
+            updater.run(self.user)
         assert sentry_app.webhook_url == "http://example.com/hooks"
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=sentry_app.application_id)
@@ -245,7 +247,8 @@ class TestUpdater(TestCase):
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = "https://sentry.io/hook"
         updater.events = ["issue"]
-        updater.run(self.user)
+        with outbox_runner():
+            updater.run(self.user)
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=internal_app.application_id)
         assert service_hook.url == "https://sentry.io/hook"
@@ -271,7 +274,8 @@ class TestUpdater(TestCase):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 1
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = ""
-        updater.run(self.user)
+        with outbox_runner():
+            updater.run(self.user)
         with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
 

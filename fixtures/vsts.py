@@ -223,10 +223,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         redirect = urlparse(resp["Location"])
 
         assert resp.status_code == 302
-        if new:
-            self.assert_vsts_new_oauth_redirect(redirect)
-        else:
-            self.assert_vsts_oauth_redirect(redirect)
+        self.assert_vsts_new_oauth_redirect(redirect)
 
         query = parse_qs(redirect.query)
 

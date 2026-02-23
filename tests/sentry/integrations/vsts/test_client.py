@@ -62,12 +62,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         )
 
         identity = Identity.objects.get(id=identity.id)
-        assert identity.scopes == [
-            "vso.code",
-            "vso.graph",
-            "vso.serviceendpoint_manage",
-            "vso.work_write",
-        ]
+        assert set(identity.scopes) == set(VstsIntegrationProvider.NEW_SCOPES)
         assert identity.data["access_token"] == "new-access-token"
         assert identity.data["refresh_token"] == "new-refresh-token"
         assert identity.data["expires"] > int(time())
