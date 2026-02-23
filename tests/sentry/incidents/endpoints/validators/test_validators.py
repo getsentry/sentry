@@ -131,10 +131,14 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         self.environment = Environment.objects.create(
             organization_id=self.project.organization_id, name="production"
         )
+        request = self.make_request()
+        access = mock.MagicMock()
+        access.has_project_access.return_value = True
+        request.access = access
         self.context = {
             "organization": self.project.organization,
             "project": self.project,
-            "request": self.make_request(),
+            "request": request,
         }
         self.valid_data = {
             "name": "Test Detector",
