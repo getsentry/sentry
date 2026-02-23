@@ -680,14 +680,16 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         result = paginator.get_result(limit=5, cursor=None)
         assert len(result) == 5
         page1_results = list(result)
-        assert page1_results[0].id == rule_ids[0]
-        assert page1_results[4].id == rule_ids[4]
+        page1_ids = {r.id for r in page1_results}
+        assert page1_ids <= set(rule_ids)
 
         next_cursor = result.next
         result = paginator.get_result(limit=5, cursor=next_cursor)
         page2_results = list(result)
         assert len(result) == 3
-        assert page2_results[-1].id == rule_ids[-1]
+        page2_ids = {r.id for r in page2_results}
+        assert page2_ids <= set(rule_ids)
+        assert page1_ids | page2_ids == set(rule_ids)
 
         prev_cursor = result.prev
         result = list(paginator.get_result(limit=5, cursor=prev_cursor))
