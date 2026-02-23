@@ -3,7 +3,11 @@ import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  type SelectKey,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -125,8 +129,10 @@ export function MetricsVisualize() {
   );
 
   const handleOperationChange = useCallback(
-    (option: {value: string}) => {
-      updateFormAggregate(makeMetricsAggregate({aggregate: option.value, traceMetric}));
+    (option: SelectOption<SelectKey>) => {
+      updateFormAggregate(
+        makeMetricsAggregate({aggregate: String(option.value), traceMetric})
+      );
     },
     [updateFormAggregate, traceMetric]
   );
@@ -188,7 +194,7 @@ export function MetricsVisualize() {
             loading={isFetching}
             onSearch={debouncedSetSearch}
             menuTitle={t('Metrics')}
-            onChange={option => {
+            onChange={(option: SelectOption<SelectKey>) => {
               if ('metricType' in option) {
                 handleMetricChange(option as MetricSelectOption);
               }
