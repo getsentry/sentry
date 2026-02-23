@@ -1,4 +1,5 @@
-from typing import Any, cast
+from datetime import datetime
+from typing import Any, Callable, cast
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.scm.errors import SCMProviderException
@@ -595,72 +596,56 @@ def map_author(raw_user: dict[str, Any] | None) -> Author | None:
     return Author(id=str(raw_user["id"]), username=raw_user["login"])
 
 
-def map_comment(raw: dict[str, Any]) -> ActionResult[Comment]:
-    return ActionResult(
-        data=Comment(
-            id=str(raw["id"]),
-            body=raw["body"],
-            author=map_author(raw.get("user")),
-        ),
-        type="github",
-        raw=raw,
+def map_comment(raw: dict[str, Any]) -> Comment:
+    return Comment(
+        id=str(raw["id"]),
+        body=raw["body"],
+        author=map_author(raw.get("user")),
     )
 
 
-def map_reaction(raw: dict[str, Any]) -> ActionResult[ReactionResult]:
-    return ActionResult(
-        data=ReactionResult(
-            id=str(raw["id"]),
-            content=raw["content"],
-            author=map_author(raw.get("user")),
-        ),
-        type="github",
-        raw=raw,
+def map_reaction(raw: dict[str, Any]) -> ReactionResult:
+    return ReactionResult(
+        id=str(raw["id"]),
+        content=raw["content"],
+        author=map_author(raw.get("user")),
     )
 
 
-def map_git_ref(raw: dict[str, Any]) -> ActionResult[GitRef]:
+def map_git_ref(raw: dict[str, Any]) -> GitRef:
     obj = raw.get("object", raw)
     ref_str = raw.get("ref", "")
-    return ActionResult(
-        data=GitRef(
-            ref=ref_str,
-            sha=obj.get("sha", raw.get("commit", {}).get("sha", "")),
-        ),
-        type="github",
-        raw=raw,
+    return GitRef(
+        ref=ref_str,
+        sha=obj.get("sha", raw.get("commit", {}).get("sha", "")),
     )
 
 
-def map_git_blob(raw: dict[str, Any]) -> ActionResult[GitBlob]:
-    return ActionResult(
-        data=GitBlob(sha=raw["sha"]),
-        type="github",
-        raw=raw,
-    )
+def map_git_blob(raw: dict[str, Any]) -> GitBlob:
+    return GitBlob(sha=raw["sha"])
 
 
-def map_file_content(raw: dict[str, Any]) -> ActionResult[FileContent]:
-    return ActionResult(
-        data=FileContent(
-            path=raw["path"],
-            sha=raw["sha"],
-            content=raw.get("content", ""),
-            encoding=raw.get("encoding", ""),
-            size=raw["size"],
-        ),
-        type="github",
-        raw=raw,
+def map_file_content(raw: dict[str, Any]) -> FileContent:
+    return FileContent(
+        path=raw["path"],
+        sha=raw["sha"],
+        content=raw.get("content", ""),
+        encoding=raw.get("encoding", ""),
+        size=raw["size"],
     )
 
 
 def map_commit_author(raw_author: dict[str, Any] | None) -> CommitAuthor | None:
     if raw_author is None:
         return None
+
+    raw_date = raw_author.get("date")
+    date = datetime.fromisoformat(raw_date) if raw_date else None
+
     return CommitAuthor(
         name=raw_author.get("name", ""),
         email=raw_author.get("email", ""),
-        date=raw_author.get("date", ""),
+        date=date,
     )
 
 
@@ -685,114 +670,85 @@ def map_commit_file(raw_file: dict[str, Any]) -> CommitFile:
     )
 
 
-def map_commit(raw: dict[str, Any]) -> ActionResult[Commit]:
-    commit_data = raw.get("commit", {})
-    return ActionResult(
-        data=Commit(
-            sha=raw["sha"],
-            message=commit_data.get("message", ""),
-            author=map_commit_author(commit_data.get("author")),
-            files=[map_commit_file(f) for f in raw.get("files", [])],
-        ),
-        type="github",
-        raw=raw,
+def _map_commit(commit: dict[str, Any]) -> Commit:
+    return Commit(
+        id=commit["tree"]["sha"],
+        message=commit["message"],
+        author=map_commit_author(commit["author"]),
+        files=[map_commit_file(f) for f in commit.get("files", [])],
     )
 
 
-def map_commit_comparison(raw: dict[str, Any]) -> ActionResult[CommitComparison]:
-    return ActionResult(
-        data=CommitComparison(
-            ahead_by=raw.get("ahead_by", 0),
-            behind_by=raw.get("behind_by", 0),
-        ),
-        type="github",
-        raw=raw,
+def map_commit(raw: dict[str, Any]) -> Commit:
+    commit = raw.get("commit", {})
+    return Commit(
+        id=raw["sha"],
+        message=commit.get("message", ""),
+        author=map_commit_author(commit.get("author")),
+        files=[map_commit_file(f) for f in raw.get("files", [])],
+    )
+
+
+def map_commit_comparison(raw: dict[str, Any]) -> CommitComparison:
+    return CommitComparison(
+        ahead_by=raw["ahead_by"],
+        behind_by=raw["behind_by"],
+        commits=[map_commit(commit) for commit in raw["commits"]],
     )
 
 
 def map_tree_entry(raw_entry: dict[str, Any]) -> TreeEntry:
     return TreeEntry(
         path=raw_entry["path"],
-        mode=raw_entry.get("mode", ""),
+        mode=raw_entry["mode"],
         type=raw_entry["type"],
         sha=raw_entry["sha"],
         size=raw_entry.get("size"),
     )
 
 
-def map_git_tree_from_list(raw_entries: list[dict[str, Any]]) -> ActionResult[GitTree]:
-    """Transform the list returned by client.get_tree() (truncated flag unavailable)."""
-    return ActionResult(
-        data=GitTree(
-            tree=[map_tree_entry(e) for e in raw_entries],
-            truncated=False,
-        ),
-        type="github",
-        raw={"tree": raw_entries},
-    )
-
-
-def map_git_tree(raw: dict[str, Any]) -> ActionResult[GitTree]:
+def map_git_tree(raw: dict[str, Any]) -> GitTree:
     """Transform a full git tree API response (from create_git_tree)."""
-    return ActionResult(
-        data=GitTree(
-            tree=[map_tree_entry(e) for e in raw.get("tree", [])],
-            truncated=raw.get("truncated", False),
-        ),
-        type="github",
-        raw=raw,
+    return GitTree(
+        sha=raw["sha"],
+        tree=[map_tree_entry(e) for e in raw["tree"]],
+        truncated=raw["truncated"],
     )
 
 
-def map_git_commit_object(raw: dict[str, Any]) -> ActionResult[GitCommitObject]:
-    return ActionResult(
-        data=GitCommitObject(
-            sha=raw["sha"],
-            tree=GitCommitTree(sha=raw["tree"]["sha"]),
-            message=raw.get("message", ""),
-        ),
-        type="github",
-        raw=raw,
+def map_git_commit_object(raw: dict[str, Any]) -> GitCommitObject:
+    return GitCommitObject(
+        sha=raw["sha"],
+        tree=GitCommitTree(sha=raw["tree"]["sha"]),
+        message=raw.get("message", ""),
     )
 
 
-def map_review_comment(raw: dict[str, Any]) -> ActionResult[ReviewComment]:
-    return ActionResult(
-        data=ReviewComment(
-            id=str(raw["id"]),
-            html_url=raw.get("html_url", ""),
-            path=raw.get("path", ""),
-            body=raw.get("body", ""),
-        ),
-        type="github",
-        raw=raw,
+def map_review_comment(raw: dict[str, Any]) -> ReviewComment:
+    return ReviewComment(
+        id=str(raw["id"]),
+        html_url=raw["html_url"],
+        path=raw["path"],
+        body=raw["body"],
     )
 
 
-def map_review(raw: dict[str, Any]) -> ActionResult[Review]:
-    return ActionResult(
-        data=Review(
-            id=str(raw["id"]),
-            html_url=raw.get("html_url", ""),
-        ),
-        type="github",
-        raw=raw,
+def map_review(raw: dict[str, Any]) -> Review:
+    return Review(
+        id=str(raw["id"]),
+        html_url=raw["html_url"],
     )
 
 
-def map_check_run(raw: dict[str, Any]) -> ActionResult[CheckRun]:
+def map_check_run(raw: dict[str, Any]) -> CheckRun:
     raw_status = raw.get("status", "")
     raw_conclusion = raw.get("conclusion")
-    return ActionResult(
-        data=CheckRun(
-            id=str(raw["id"]),
-            name=raw.get("name", ""),
-            status=GITHUB_STATUS_MAP.get(raw_status, "pending"),
-            conclusion=GITHUB_CONCLUSION_MAP.get(raw_conclusion) if raw_conclusion else None,
-            html_url=raw.get("html_url", ""),
-        ),
-        type="github",
-        raw=raw,
+    return CheckRun(
+        id=str(raw["id"]),
+        name=raw.get("name", ""),
+        status=GITHUB_STATUS_MAP.get(raw_status, "pending"),
+        conclusion=GITHUB_CONCLUSION_MAP.get(raw_conclusion) if raw_conclusion else None,
+        html_url=raw.get("html_url", ""),
     )
 
 
@@ -805,22 +761,15 @@ def map_graphql_author(raw_author: dict[str, Any] | None) -> Author | None:
     )
 
 
-def map_graphql_comment(
-    raw: dict[str, Any], comment_type: str = "issue_comment"
-) -> ActionResult[Comment]:
-    enriched_raw = {**raw, "comment_type": comment_type}
-    return ActionResult(
-        data=Comment(
-            id=raw["id"],
-            body=raw.get("body", ""),
-            author=map_graphql_author(raw.get("author")),
-        ),
-        type="github",
-        raw=enriched_raw,
+def map_graphql_comment(raw: dict[str, Any]) -> Comment:
+    return Comment(
+        id=raw["id"],
+        body=raw.get("body", ""),
+        author=map_graphql_author(raw.get("author")),
     )
 
 
-def map_graphql_pr_comments(raw: dict[str, Any]) -> list[ActionResult[Comment]]:
+def map_graphql_pr_comments(raw: dict[str, Any]) -> list[Comment]:
     """Flatten GraphQL issue comments and review thread comments into a single list.
 
     Review thread comments have their ``raw`` dict enriched with thread-level
@@ -828,21 +777,20 @@ def map_graphql_pr_comments(raw: dict[str, Any]) -> list[ActionResult[Comment]]:
     so callers can access it without a separate query.
     """
     pr_data = raw.get("repository", {}).get("pullRequest", {})
-    results: list[ActionResult[Comment]] = []
+    results: list[Comment] = []
 
     for node in pr_data.get("comments", {}).get("nodes", []):
         results.append(map_graphql_comment(node, comment_type="issue_comment"))
 
     for thread in pr_data.get("reviewThreads", {}).get("nodes", []):
-        thread_meta = {
-            "thread_id": thread.get("id"),
-            "isResolved": thread.get("isResolved", False),
-            "isOutdated": thread.get("isOutdated", False),
-            "isCollapsed": thread.get("isCollapsed", False),
-        }
+        # thread_meta = {
+        #     "thread_id": thread.get("id"),
+        #     "isResolved": thread.get("isResolved", False),
+        #     "isOutdated": thread.get("isOutdated", False),
+        #     "isCollapsed": thread.get("isCollapsed", False),
+        # }
         for node in thread.get("comments", {}).get("nodes", []):
             result = map_graphql_comment(node, comment_type="pull_request_review_comment")
-            result["raw"].update(thread_meta)
             results.append(result)
 
     return results
@@ -870,20 +818,24 @@ def map_pull_request_commit(raw: dict[str, Any]) -> PullRequestCommit:
     )
 
 
-def map_pull_request(raw: dict[str, Any]) -> ActionResult[PullRequest]:
-    return ActionResult(
-        data=PullRequest(
-            id=str(raw["id"]),
-            number=raw["number"],
-            title=raw["title"],
-            body=raw.get("body"),
-            state=raw["state"],
-            merged=raw.get("merged", False),
-            url=raw.get("url", ""),
-            html_url=raw.get("html_url", ""),
-            head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
-            base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
-        ),
-        type="github",
-        raw=raw,
+def map_pull_request(raw: dict[str, Any]) -> PullRequest:
+    return PullRequest(
+        id=str(raw["id"]),
+        number=raw["number"],
+        title=raw["title"],
+        body=raw.get("body"),
+        state=raw["state"],
+        merged=raw.get("merged", False),
+        url=raw.get("url", ""),
+        html_url=raw.get("html_url", ""),
+        head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
+        base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
     )
+
+
+def map_action[T](raw: dict[str, Any], fn: Callable[[dict[str, Any]], T]) -> ActionResult[T]:
+    return {
+        "data": fn(raw),
+        "type": "github",
+        "raw": raw,
+    }

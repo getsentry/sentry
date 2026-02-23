@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Literal, Protocol, Required, TypedDict
 
 type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
@@ -185,7 +186,7 @@ class FileContent(TypedDict):
 class CommitAuthor(TypedDict):
     name: str
     email: str
-    date: str
+    date: datetime | None
 
 
 class CommitFile(TypedDict):
@@ -195,7 +196,7 @@ class CommitFile(TypedDict):
 
 
 class Commit(TypedDict):
-    sha: str
+    id: str
     message: str
     author: CommitAuthor | None
     files: list[CommitFile]
@@ -204,6 +205,7 @@ class Commit(TypedDict):
 class CommitComparison(TypedDict):
     ahead_by: int
     behind_by: int
+    commits: list[Commit]
 
 
 class TreeEntry(TypedDict):
@@ -222,6 +224,7 @@ class InputTreeEntry(TypedDict):
 
 
 class GitTree(TypedDict):
+    sha: str
     tree: list[TreeEntry]
     truncated: bool
 
