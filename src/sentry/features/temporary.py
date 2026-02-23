@@ -463,16 +463,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:uptime-response-capture", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=True)
     # Enable runtime assertions for uptime monitors
     manager.add("organizations:uptime-runtime-assertions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable endpoint and frontend for AI-powered UF summaries
-    manager.add("organizations:user-feedback-ai-summaries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable org-level caching for user feedback summaries and categorization
-    manager.add("organizations:user-feedback-ai-summaries-cache", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Enable label generation at ingest time for user feedbacks
-    manager.add("organizations:user-feedback-ai-categorization", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable the backend endpoint and frontend for categorizing user feedbacks
-    manager.add("organizations:user-feedback-ai-categorization-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable AI-powered title generation for user feedback
-    manager.add("organizations:user-feedback-ai-titles", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable auto spam classification at User Feedback ingest time
     manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable view hierarchies options
