@@ -138,8 +138,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "preprod.snapshot.transaction_duration",
                 sample_rate=1.0,
                 tags={
-                    "has_vcs": str(bool(head_sha and provider and head_repo_name and head_ref)),
-                    "organization_id_value": str(project.organization_id),
+                    "has_vcs": bool(head_sha and provider and head_repo_name and head_ref),
+                    "organization_id_value": project.organization_id,
                 },
             ),
             transaction.atomic(router.db_for_write(PreprodArtifact)),
