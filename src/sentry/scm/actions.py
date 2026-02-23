@@ -120,7 +120,7 @@ class SourceCodeManager:
             provider_fn=provider_fn,
         )
 
-    def get_issue_comments(self, issue_id: str) -> list[ActionResult[Comment]]:
+    def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]:
         """Get comments on an issue."""
         return self._exec(lambda p: p.get_issue_comments(issue_id))
 
@@ -136,7 +136,7 @@ class SourceCodeManager:
         """Get a pull request."""
         return self._exec(lambda p: p.get_pull_request(pull_request_id))
 
-    def get_pull_request_comments(self, pull_request_id: str) -> list[ActionResult[Comment]]:
+    def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]:
         """Get comments on a pull request."""
         return self._exec(lambda p: p.get_pull_request_comments(pull_request_id))
 
@@ -148,7 +148,7 @@ class SourceCodeManager:
         """Delete a comment on a pull request."""
         return self._exec(lambda p: p.delete_pull_request_comment(comment_id))
 
-    def get_issue_comment_reactions(self, comment_id: str) -> list[ActionResult[ReactionResult]]:
+    def get_issue_comment_reactions(self, comment_id: str) -> ActionResult[list[ReactionResult]]:
         """Get reactions on an issue comment."""
         return self._exec(lambda p: p.get_issue_comment_reactions(comment_id))
 
@@ -164,7 +164,7 @@ class SourceCodeManager:
 
     def get_pull_request_comment_reactions(
         self, comment_id: str
-    ) -> list[ActionResult[ReactionResult]]:
+    ) -> ActionResult[list[ReactionResult]]:
         """Get reactions on a pull request comment."""
         return self._exec(lambda p: p.get_pull_request_comment_reactions(comment_id))
 
@@ -178,7 +178,7 @@ class SourceCodeManager:
         """Delete a reaction on a pull request comment."""
         return self._exec(lambda p: p.delete_pull_request_comment_reaction(comment_id, reaction_id))
 
-    def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]:
+    def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
         """Get reactions on an issue."""
         return self._exec(lambda p: p.get_issue_reactions(issue_id))
 
@@ -194,7 +194,7 @@ class SourceCodeManager:
 
     def get_pull_request_reactions(
         self, pull_request_id: str
-    ) -> list[ActionResult[ReactionResult]]:
+    ) -> ActionResult[list[ReactionResult]]:
         """Get reactions on a pull request."""
         return self._exec(lambda p: p.get_pull_request_reactions(pull_request_id))
 
@@ -234,7 +234,7 @@ class SourceCodeManager:
         self,
         sha: str | None = None,
         path: str | None = None,
-    ) -> list[ActionResult[Commit]]:
+    ) -> ActionResult[list[Commit]]:
         return self._exec(lambda p: p.get_commits(sha=sha, path=path))
 
     def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]:
@@ -258,12 +258,12 @@ class SourceCodeManager:
     ) -> ActionResult[GitCommitObject]:
         return self._exec(lambda p: p.create_git_commit(message, tree_sha, parent_shas))
 
-    def get_pull_request_files(self, pull_request_id: str) -> list[ActionResult[PullRequestFile]]:
+    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
         return self._exec(lambda p: p.get_pull_request_files(pull_request_id))
 
     def get_pull_request_commits(
         self, pull_request_id: str
-    ) -> list[ActionResult[PullRequestCommit]]:
+    ) -> ActionResult[list[PullRequestCommit]]:
         return self._exec(lambda p: p.get_pull_request_commits(pull_request_id))
 
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
@@ -273,7 +273,7 @@ class SourceCodeManager:
         self,
         state: str = "open",
         head: str | None = None,
-    ) -> list[ActionResult[PullRequest]]:
+    ) -> ActionResult[list[PullRequest]]:
         return self._exec(lambda p: p.get_pull_requests(state, head))
 
     def create_pull_request(

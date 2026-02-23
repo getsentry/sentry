@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Literal, Protocol, Required, TypedDict
 
 type Action = Literal["check_run", "comment", "pull_request"]
@@ -190,7 +191,7 @@ class FileContent(TypedDict):
 class CommitAuthor(TypedDict):
     name: str
     email: str
-    date: str
+    date: datetime | None
 
 
 class CommitFile(TypedDict):
@@ -200,7 +201,7 @@ class CommitFile(TypedDict):
 
 
 class Commit(TypedDict):
-    sha: str
+    id: str
     message: str
     author: CommitAuthor | None
     files: list[CommitFile]
@@ -209,6 +210,7 @@ class Commit(TypedDict):
 class CommitComparison(TypedDict):
     ahead_by: int
     behind_by: int
+    commits: list[Commit]
 
 
 class TreeEntry(TypedDict):
@@ -227,6 +229,7 @@ class InputTreeEntry(TypedDict):
 
 
 class GitTree(TypedDict):
+    sha: str
     tree: list[TreeEntry]
     truncated: bool
 
@@ -318,13 +321,13 @@ class Provider(Protocol):
 
     def get_pull_request(self, pull_request_id: str) -> ActionResult[PullRequest]: ...
 
-    def get_issue_comments(self, issue_id: str) -> list[ActionResult[Comment]]: ...
+    def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]: ...
 
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]: ...
 
     def delete_issue_comment(self, comment_id: str) -> None: ...
 
-    def get_pull_request_comments(self, pull_request_id: str) -> list[ActionResult[Comment]]: ...
+    def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]: ...
 
     def create_pull_request_comment(
         self, pull_request_id: str, body: str
@@ -334,7 +337,7 @@ class Provider(Protocol):
 
     def get_issue_comment_reactions(
         self, comment_id: str
-    ) -> list[ActionResult[ReactionResult]]: ...
+    ) -> ActionResult[list[ReactionResult]]: ...
 
     def create_issue_comment_reaction(
         self, comment_id: str, reaction: Reaction
@@ -344,7 +347,7 @@ class Provider(Protocol):
 
     def get_pull_request_comment_reactions(
         self, comment_id: str
-    ) -> list[ActionResult[ReactionResult]]: ...
+    ) -> ActionResult[list[ReactionResult]]: ...
 
     def create_pull_request_comment_reaction(
         self, comment_id: str, reaction: Reaction
@@ -352,7 +355,7 @@ class Provider(Protocol):
 
     def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None: ...
 
-    def get_issue_reactions(self, issue_id: str) -> list[ActionResult[ReactionResult]]: ...
+    def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]: ...
 
     def create_issue_reaction(
         self, issue_id: str, reaction: Reaction
@@ -362,7 +365,7 @@ class Provider(Protocol):
 
     def get_pull_request_reactions(
         self, pull_request_id: str
-    ) -> list[ActionResult[ReactionResult]]: ...
+    ) -> ActionResult[list[ReactionResult]]: ...
 
     def create_pull_request_reaction(
         self, pull_request_id: str, reaction: Reaction
@@ -384,7 +387,7 @@ class Provider(Protocol):
 
     def get_commits(
         self, sha: str | None = None, path: str | None = None
-    ) -> list[ActionResult[Commit]]: ...
+    ) -> ActionResult[list[Commit]]: ...
 
     def compare_commits(self, start_sha: str, end_sha: str) -> ActionResult[CommitComparison]: ...
 
@@ -402,17 +405,17 @@ class Provider(Protocol):
 
     def get_pull_request_files(
         self, pull_request_id: str
-    ) -> list[ActionResult[PullRequestFile]]: ...
+    ) -> ActionResult[list[PullRequestFile]]: ...
 
     def get_pull_request_commits(
         self, pull_request_id: str
-    ) -> list[ActionResult[PullRequestCommit]]: ...
+    ) -> ActionResult[list[PullRequestCommit]]: ...
 
     def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]: ...
 
     def get_pull_requests(
         self, state: str = "open", head: str | None = None
-    ) -> list[ActionResult[PullRequest]]: ...
+    ) -> ActionResult[list[PullRequest]]: ...
 
     def create_pull_request(
         self,

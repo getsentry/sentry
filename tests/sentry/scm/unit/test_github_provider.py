@@ -459,39 +459,31 @@ _ISSUE_REACTIONS_DATA = [
 
 
 def _check_issue_comments(result: Any) -> None:
-    assert len(result) == 2
-    assert result[0]["data"]["id"] == "101"
-    assert result[0]["data"]["body"] == "First comment"
-    assert result[0]["data"]["author"] is not None
-    assert result[0]["data"]["author"]["id"] == "1"
-    assert result[0]["data"]["author"]["username"] == "user1"
-    assert result[1]["data"]["id"] == "102"
+    assert len(result["data"]) == 2
+    assert result["data"][0]["id"] == "101"
+    assert result["data"][0]["body"] == "First comment"
+    assert result["data"][0]["author"] is not None
+    assert result["data"][0]["author"]["id"] == "1"
+    assert result["data"][0]["author"]["username"] == "user1"
+    assert result["data"][1]["id"] == "102"
 
 
 def _check_graphql_pr_comments(result: Any) -> None:
     # Default factory produces 1 issue comment + 1 review thread with 1 comment = 2 total
-    assert len(result) == 2
+    assert len(result["data"]) == 2
+    assert result["type"] == "github"
     # First: issue comment
-    assert result[0]["data"]["id"] == "IC_abc123"
-    assert result[0]["data"]["body"] == "Test issue comment"
-    assert result[0]["data"]["author"] is not None
-    assert result[0]["data"]["author"]["id"] == "123"
-    assert result[0]["data"]["author"]["username"] == "testuser"
-    assert result[0]["type"] == "github"
-    assert result[0]["raw"]["comment_type"] == "issue_comment"
+    assert result["data"][0]["id"] == "IC_abc123"
+    assert result["data"][0]["body"] == "Test issue comment"
+    assert result["data"][0]["author"] is not None
+    assert result["data"][0]["author"]["id"] == "123"
+    assert result["data"][0]["author"]["username"] == "testuser"
     # Second: review thread comment
-    assert result[1]["data"]["id"] == "PRRC_abc123"
-    assert result[1]["data"]["body"] == "Review thread comment"
-    assert result[1]["data"]["author"] is not None
-    assert result[1]["data"]["author"]["id"] == "456"
-    assert result[1]["data"]["author"]["username"] == "reviewer"
-    assert result[1]["type"] == "github"
-    assert result[1]["raw"]["comment_type"] == "pull_request_review_comment"
-    # Thread metadata injected into raw
-    assert result[1]["raw"]["thread_id"] == "PRT_abc123"
-    assert result[1]["raw"]["isResolved"] is False
-    assert result[1]["raw"]["isOutdated"] is False
-    assert result[1]["raw"]["isCollapsed"] is False
+    assert result["data"][1]["id"] == "PRRC_abc123"
+    assert result["data"][1]["body"] == "Review thread comment"
+    assert result["data"][1]["author"] is not None
+    assert result["data"][1]["author"]["id"] == "456"
+    assert result["data"][1]["author"]["username"] == "reviewer"
 
 
 def _check_pull_request(result: Any) -> None:
@@ -512,13 +504,13 @@ def _check_pull_request(result: Any) -> None:
 
 
 def _check_comment_reactions(result: Any) -> None:
-    assert len(result) == 2
-    assert result[0]["data"]["id"] == "1"
-    assert result[0]["data"]["content"] == "+1"
-    assert result[0]["data"]["author"] is not None
-    assert result[0]["data"]["author"]["id"] == "123"
-    assert result[1]["data"]["id"] == "2"
-    assert result[1]["data"]["content"] == "eyes"
+    assert len(result["data"]) == 2
+    assert result["data"][0]["id"] == "1"
+    assert result["data"][0]["content"] == "+1"
+    assert result["data"][0]["author"] is not None
+    assert result["data"][0]["author"]["id"] == "123"
+    assert result["data"][1]["id"] == "2"
+    assert result["data"][1]["content"] == "eyes"
 
 
 def _check_get_branch(result: Any) -> None:
@@ -534,14 +526,14 @@ def _check_create_branch(result: Any) -> None:
 
 
 def _check_issue_reactions(result: Any) -> None:
-    assert len(result) == 2
-    assert result[0]["data"]["id"] == "1"
-    assert result[0]["data"]["content"] == "heart"
-    assert result[0]["data"]["author"] is not None
-    assert result[0]["data"]["author"]["id"] == "123"
-    assert result[0]["data"]["author"]["username"] == "testuser"
-    assert result[1]["data"]["id"] == "2"
-    assert result[1]["data"]["content"] == "+1"
+    assert len(result["data"]) == 2
+    assert result["data"][0]["id"] == "1"
+    assert result["data"][0]["content"] == "heart"
+    assert result["data"][0]["author"] is not None
+    assert result["data"][0]["author"]["id"] == "123"
+    assert result["data"][0]["author"]["username"] == "testuser"
+    assert result["data"][1]["id"] == "2"
+    assert result["data"][1]["content"] == "+1"
 
 
 def _check_create_git_blob(result: Any) -> None:
@@ -561,7 +553,7 @@ def _check_file_content(result: Any) -> None:
 
 def _check_get_commit(result: Any) -> None:
     c = result["data"]
-    assert c["sha"] == "abc123"
+    assert c["id"] == "abc123"
     assert c["message"] == "Fix bug"
     assert c["author"] is not None
     assert c["author"]["name"] == "Test User"
@@ -572,9 +564,9 @@ def _check_get_commit(result: Any) -> None:
 
 
 def _check_get_commits(result: Any) -> None:
-    assert len(result) == 1
-    assert result[0]["data"]["sha"] == "abc123"
-    assert result[0]["type"] == "github"
+    assert len(result["data"]) == 1
+    assert result["data"][0]["id"] == "abc123"
+    assert result["type"] == "github"
 
 
 def _check_compare_commits(result: Any) -> None:
@@ -616,26 +608,26 @@ def _check_create_git_commit(result: Any) -> None:
 
 
 def _check_pr_files(result: Any) -> None:
-    assert len(result) == 1
-    f = result[0]["data"]
+    assert len(result["data"]) == 1
+    f = result["data"][0]
     assert f["filename"] == "src/main.py"
     assert f["status"] == "modified"
     assert f["patch"] is not None
     assert f["changes"] == 1
     assert f["sha"] == "file123"
     assert f["previous_filename"] is None
-    assert result[0]["type"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_pr_commits(result: Any) -> None:
-    assert len(result) == 1
-    c = result[0]["data"]
+    assert len(result["data"]) == 1
+    c = result["data"][0]
     assert c["sha"] == "commit123"
     assert c["message"] == "Fix bug"
     assert c["author"] is not None
     assert c["author"]["name"] == "Test User"
     assert c["author"]["email"] == "test@example.com"
-    assert result[0]["type"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_pr_diff(result: Any) -> None:
@@ -644,11 +636,11 @@ def _check_pr_diff(result: Any) -> None:
 
 
 def _check_list_pull_requests(result: Any) -> None:
-    assert len(result) == 1
-    pr = result[0]["data"]
+    assert len(result["data"]) == 1
+    pr = result["data"][0]
     assert pr["number"] == 1
     assert pr["title"] == "Test PR"
-    assert result[0]["type"] == "github"
+    assert result["type"] == "github"
 
 
 def _check_create_pull_request(result: Any) -> None:
@@ -913,10 +905,10 @@ class TestGetIssueCommentsEdgeCases:
 
         comments = provider.get_issue_comments("42")
 
-        assert len(comments) == 1
-        assert comments[0]["data"]["id"] == "1"
-        assert comments[0]["data"]["body"] == "ghost comment"
-        assert comments[0]["data"]["author"] is None
+        assert len(comments["data"]) == 1
+        assert comments["data"][0]["id"] == "1"
+        assert comments["data"][0]["body"] == "ghost comment"
+        assert comments["data"][0]["author"] is None
 
     def test_returns_none_body_when_body_is_none(self):
         repository = make_repository()
@@ -927,11 +919,11 @@ class TestGetIssueCommentsEdgeCases:
 
         comments = provider.get_issue_comments("42")
 
-        assert len(comments) == 1
-        assert comments[0]["data"]["id"] == "1"
-        assert comments[0]["data"]["body"] is None
-        assert comments[0]["data"]["author"] is not None
-        assert comments[0]["data"]["author"]["username"] == "testuser"
+        assert len(comments["data"]) == 1
+        assert comments["data"][0]["id"] == "1"
+        assert comments["data"][0]["body"] is None
+        assert comments["data"][0]["author"] is not None
+        assert comments["data"][0]["author"]["username"] == "testuser"
 
 
 class TestGetPullRequestEdgeCases:
@@ -952,10 +944,10 @@ class TestGetIssueReactionsEdgeCases:
 
         reactions = provider.get_issue_reactions("42")
 
-        assert len(reactions) == 1
-        assert reactions[0]["data"]["id"] == "1"
-        assert reactions[0]["data"]["content"] == "eyes"
-        assert reactions[0]["data"]["author"] is None
+        assert len(reactions["data"]) == 1
+        assert reactions["data"][0]["id"] == "1"
+        assert reactions["data"][0]["content"] == "eyes"
+        assert reactions["data"][0]["author"] is None
 
     def test_raises_key_error_on_malformed_response(self):
         repository = make_repository()
@@ -1057,7 +1049,7 @@ class TestListPullRequestsEdgeCases:
 
         result = provider.get_pull_requests()
 
-        assert result == []
+        assert result["data"] == []
 
 
 class TestCreatePullRequestEdgeCases:
@@ -1116,8 +1108,8 @@ class TestPullRequestCommitEdgeCases:
 
         result = provider.get_pull_request_commits("42")
 
-        assert len(result) == 1
-        assert result[0]["data"]["author"] is None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["author"] is None
 
 
 class TestCreateReviewCommentEdgeCases:
@@ -1281,7 +1273,7 @@ class TestGetPullRequestCommentsEdgeCases:
 
         result = provider.get_pull_request_comments("42")
 
-        assert result == []
+        assert result["data"] == []
 
     def test_review_thread_comment_with_null_author(self):
         repository = make_repository()
@@ -1294,8 +1286,8 @@ class TestGetPullRequestCommentsEdgeCases:
 
         result = provider.get_pull_request_comments("42")
 
-        assert len(result) == 1
-        assert result[0]["data"]["author"] is None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["author"] is None
 
     def test_review_thread_comment_with_reactions(self):
         repository = make_repository()
@@ -1310,12 +1302,7 @@ class TestGetPullRequestCommentsEdgeCases:
 
         result = provider.get_pull_request_comments("42")
 
-        assert len(result) == 1
-        # Reactions are preserved in the raw dict
-        assert len(result[0]["raw"]["reactions"]["nodes"]) == 2
-        assert result[0]["raw"]["reactions"]["nodes"][0]["content"] == "THUMBS_UP"
-        assert result[0]["raw"]["reactions"]["nodes"][1]["content"] == "HEART"
-        assert result[0]["raw"]["reactions"]["totalCount"] == 2
+        assert len(result["data"]) == 1
 
     def test_issue_comment_with_null_author(self):
         repository = make_repository()
@@ -1327,8 +1314,8 @@ class TestGetPullRequestCommentsEdgeCases:
 
         result = provider.get_pull_request_comments("42")
 
-        assert len(result) == 1
-        assert result[0]["data"]["author"] is None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["author"] is None
 
     def test_graphql_author_without_database_id(self):
         """Author without databaseId should have empty string id."""
@@ -1341,8 +1328,8 @@ class TestGetPullRequestCommentsEdgeCases:
 
         result = provider.get_pull_request_comments("42")
 
-        assert len(result) == 1
-        author = result[0]["data"]["author"]
+        assert len(result["data"]) == 1
+        author = result["data"][0]["author"]
         assert author is not None
         assert author["id"] == ""
         assert author["username"] == "testuser"
@@ -1357,8 +1344,8 @@ class TestGetPullRequestCommentsEdgeCases:
 
         result = provider.get_pull_request_comments("42")
 
-        assert len(result) == 1
-        author = result[0]["data"]["author"]
+        assert len(result["data"]) == 1
+        author = result["data"][0]["author"]
         assert author is not None
         assert author["id"] == "999"
         assert author["username"] == "testuser"
@@ -1378,15 +1365,13 @@ class TestGetPullRequestCommentsEdgeCases:
 
         result = provider.get_pull_request_comments("42")
 
-        assert len(result) == 2
-        assert result[0]["data"]["id"] == "IC_1"
-        assert result[0]["data"]["body"] == "issue comment"
-        assert result[0]["raw"]["comment_type"] == "issue_comment"
-        assert result[1]["data"]["id"] == "PRRC_1"
-        assert result[1]["data"]["body"] == "thread comment"
-        assert result[1]["raw"]["comment_type"] == "pull_request_review_comment"
+        assert len(result["data"]) == 2
+        assert result["data"][0]["id"] == "IC_1"
+        assert result["data"][0]["body"] == "issue comment"
+        assert result["data"][1]["id"] == "PRRC_1"
+        assert result["data"][1]["body"] == "thread comment"
 
-    def test_thread_metadata_injected_into_raw(self):
+    def test_thread_metadata_in_raw_response(self):
         repository = make_repository()
         comment = make_github_graphql_review_thread_comment(node_id="PRRC_1")
         thread = make_github_graphql_review_thread(
@@ -1402,11 +1387,13 @@ class TestGetPullRequestCommentsEdgeCases:
 
         result = provider.get_pull_request_comments("42")
 
-        assert len(result) == 1
-        assert result[0]["raw"]["thread_id"] == "PRT_resolved"
-        assert result[0]["raw"]["isResolved"] is True
-        assert result[0]["raw"]["isOutdated"] is True
-        assert result[0]["raw"]["isCollapsed"] is True
+        assert len(result["data"]) == 1
+        # The raw field contains the full GraphQL response
+        threads = result["raw"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
+        assert threads[0]["id"] == "PRT_resolved"
+        assert threads[0]["isResolved"] is True
+        assert threads[0]["isOutdated"] is True
+        assert threads[0]["isCollapsed"] is True
 
     def test_splits_owner_repo_correctly(self):
         repository = make_repository()
