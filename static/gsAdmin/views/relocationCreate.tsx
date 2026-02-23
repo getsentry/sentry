@@ -110,7 +110,7 @@ function RelocationForm() {
           <li>This API has a ratelimit of 1 request per org per day</li>
           <li>Owner must be a single username</li>
           <li>Orgs can be entered as a comma separated list of slugs</li>
-          <li>Uploaded files have a maximum size of 200 MB</li>
+          <li>Uploaded files have a maximum size of 100 MB</li>
           <li>Files must be tar archives (.tar) </li>
         </ul>
         <CompactSelect

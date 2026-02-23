@@ -85,6 +85,7 @@ class DetectedIssue(BaseModel):
     category: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     verification_reason: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    group_for_fingerprint: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     # context field, not LLM generated
     trace_id: str
 
@@ -137,8 +138,11 @@ def create_issue_occurrence_from_detection(
     detection_time = datetime.now(UTC)
     trace_id = detected_issue.trace_id
     transaction_name = normalize_description(detected_issue.transaction_name)
-    title = detected_issue.title.lower().replace(" ", "-")
-    fingerprint = [f"llm-detected-{title}-{transaction_name}"]
+    group_for_fingerprint = detected_issue.group_for_fingerprint
+
+    fingerprint = [
+        f"llm-detected-{group_for_fingerprint.strip().lower().replace(' ', '-')}-{transaction_name.lower().replace(' ', '-')}"
+    ]
 
     evidence_data = {
         "trace_id": trace_id,

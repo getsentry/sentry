@@ -326,7 +326,7 @@ function ResolveActions({
           handleCommitResolution(statusDetails)
         }
         orgSlug={organization.slug}
-        projectSlug={projectSlug}
+        projectSlug={projectSlug!}
       />
     ));
   }

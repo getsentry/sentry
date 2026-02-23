@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import TypedDict
 
 import sentry_sdk
-from snuba_sdk import Column, Condition, Function, Identifier, Op, OrderBy
+from snuba_sdk import Column, Condition, Direction, Function, Identifier, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
@@ -1566,5 +1566,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         )
 
     @property
-    def orderby_converter(self) -> Mapping[str, OrderBy]:
-        return {}
+    def orderby_converter(self) -> Mapping[str, Callable[[Direction], OrderBy]]:
+        return {
+            constants.DEVICE_CLASS_ALIAS: self._device_class_orderby_converter,
+        }
+
+    def _device_class_orderby_converter(self, direction: Direction) -> OrderBy:
+        return OrderBy(self.builder.column("device.class"), direction)

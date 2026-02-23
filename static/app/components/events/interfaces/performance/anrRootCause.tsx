@@ -1,6 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+
 import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import NoStackTraceMessage from 'sentry/components/events/interfaces/noStackTraceMessage';
@@ -10,9 +12,9 @@ import {
   getThreadById,
   inferPlatform,
 } from 'sentry/components/events/interfaces/utils';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -20,6 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -39,6 +42,7 @@ interface Props {
 
 export function AnrRootCause({event, organization}: Props) {
   const traceSlug = event.contexts.trace?.trace_id ?? '';
+  const location = useLocation();
 
   const trace = useTrace({
     timestamp: getEventTimestampInSeconds(event),
@@ -153,6 +157,7 @@ export function AnrRootCause({event, organization}: Props) {
                   pathname: `/organizations/${organization.id}/issues/${occurence.issue_id}/${
                     occurence.event_id ? `events/${occurence.event_id}/` : ''
                   }`,
+                  query: extractSelectionParameters(location.query),
                 }}
               >
                 {title}
@@ -197,7 +202,7 @@ const Subtitle = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const TitleWithLink = styled(GlobalSelectionLink)`
+const TitleWithLink = styled(Link)`
   display: flex;
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

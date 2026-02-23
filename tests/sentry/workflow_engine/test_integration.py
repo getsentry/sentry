@@ -399,8 +399,8 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
         now = timezone.now()
 
-        batch_client = DelayedWorkflowClient()
         with freeze_time(now):
+            batch_client = DelayedWorkflowClient()
             event_1 = self.create_error_event(environment="production", tags=[["hello", "world"]])
             self.post_process_error(event_1)
             assert not mock_trigger.called
@@ -415,8 +415,9 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
 
             project_ids = batch_client.get_project_ids(
                 min=0,
-                max=timezone.now().timestamp(),
+                max=now.timestamp() + 1,
             )
+            assert project_ids, "Expected data to be buffered for delayed processing"
 
             process_delayed_workflows(list(project_ids.keys())[0])
             assert not mock_trigger.called
@@ -429,8 +430,9 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
 
             project_ids = batch_client.get_project_ids(
                 min=0,
-                max=timezone.now().timestamp(),
+                max=(now + timedelta(minutes=1)).timestamp() + 1,
             )
+            assert project_ids, "Expected data to be buffered for delayed processing"
 
             process_delayed_workflows(list(project_ids.keys())[0])
             mock_trigger.assert_called_once()

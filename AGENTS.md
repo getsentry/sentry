@@ -182,3 +182,46 @@ For backend testing patterns and best practices, see `tests/AGENTS.md`.
 ## Frontend
 
 For frontend development patterns, design system guidelines, and React testing best practices, see `static/AGENTS.md`.
+
+## Feature Flags (FlagPole)
+
+New features should be gated behind a feature flag.
+
+1. **Register** the flag in `src/sentry/features/temporary.py`:
+
+   ```python
+   manager.add("organizations:my-feature", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+   ```
+
+   Use `api_expose=True` if the frontend needs to check the flag. Use `ProjectFeature` and a `projects:` prefix for project-scoped flags.
+
+2. **Python check**:
+
+   ```python
+   if features.has("organizations:my-feature", organization, actor=user):
+   ```
+
+3. **Frontend check** (requires `api_expose=True`):
+
+   ```typescript
+   organization.features.includes('my-feature');
+   ```
+
+4. **Tests**:
+
+   ```python
+   with self.feature("organizations:my-feature"):
+       ...
+   ```
+
+5. **Rollout**: FlagPole YAML config lives in the `sentry-options-automator` repo, not here.
+
+See https://develop.sentry.dev/feature-flags/ for full docs.
+
+## Pull Requests
+
+Frontend (`static/`) and backend (`src/`, `tests/`) are **not atomically deployed**. A CI check enforces this.
+
+- If your changes touch both frontend and backend, split them into **separate PRs**.
+- Land the backend PR first when the frontend depends on new API changes.
+- Pure test additions alongside `src/` changes are fine in one PR.

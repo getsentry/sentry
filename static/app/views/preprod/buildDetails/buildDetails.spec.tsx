@@ -4,7 +4,7 @@ import {
   PreprodVcsInfoFullFixture,
 } from 'sentry-fixture/preprod';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -188,6 +188,8 @@ describe('BuildDetails', () => {
   });
 
   it('refetches size analysis when size_info state transitions from processing to completed', async () => {
+    jest.useFakeTimers();
+
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -238,21 +240,18 @@ describe('BuildDetails', () => {
     // Size analysis should only be called once initially
     expect(appSizeMock).toHaveBeenCalledTimes(1);
 
-    await waitFor(
-      () => {
-        expect(buildDetailsMock).toHaveBeenCalledTimes(2);
-      },
-      {timeout: 12000}
-    );
+    // Advance past the 10s refetchInterval to trigger the polling refetch
+    act(() => {
+      jest.advanceTimersByTime(10_000);
+    });
+
+    await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(2));
 
     // After the state transition, size analysis should be refetched
-    await waitFor(
-      () => {
-        expect(appSizeMock).toHaveBeenCalledTimes(2);
-      },
-      {timeout: 5000}
-    );
-  }, 20000);
+    await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(2));
+
+    jest.useRealTimers();
+  });
 
   it('does not refetch size analysis when size_info remains in completed state', async () => {
     MockApiClient.clearMockResponses();
@@ -300,6 +299,8 @@ describe('BuildDetails', () => {
   });
 
   it('does not refetch size analysis when size_info transitions from pending to processing', async () => {
+    jest.useFakeTimers();
+
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -340,19 +341,21 @@ describe('BuildDetails', () => {
     // First call returns PENDING state - shows queued message
     expect(await screen.findByText('Queued for analysis')).toBeInTheDocument();
 
-    await waitFor(
-      () => {
-        expect(buildDetailsMock).toHaveBeenCalledTimes(2);
-      },
-      {timeout: 12000}
-    );
+    // Advance past the 10s refetchInterval to trigger the polling refetch
+    act(() => {
+      jest.advanceTimersByTime(10_000);
+    });
+
+    await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(2));
 
     // Second call returns PROCESSING state - shows processing message
     expect(screen.getByText('Running size analysis')).toBeInTheDocument();
 
     // Size analysis should not be refetched since we're still processing
     expect(appSizeMock).toHaveBeenCalledTimes(1);
-  }, 20000);
+
+    jest.useRealTimers();
+  });
 
   describe('quota warning banner', () => {
     it('does not show warning banner when quotas are available', async () => {
