@@ -365,7 +365,8 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         # Use actual granted scopes from Slack's OAuth response
         granted_scopes_str = data.get("scope")  # "channels:read,links:write,..."
-        scopes = granted_scopes_str.split(",") if granted_scopes_str else self._get_oauth_scopes()
+        # If we did not get scopes from data, be conservative and use only the old permissions without extensions
+        scopes = granted_scopes_str.split(",") if granted_scopes_str else self.identity_oauth_scopes
         team_data = self._get_team_info(access_token)
 
         metadata = {
