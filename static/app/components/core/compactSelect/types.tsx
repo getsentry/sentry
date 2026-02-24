@@ -38,6 +38,44 @@ export type SelectOptionOrSection<Value extends SelectKey> =
   | SelectOption<Value>
   | SelectSection<Value>;
 
+/**
+ * The result of a custom `searchMatcher` function. Returning this (instead of a plain
+ * boolean) allows callers to influence how matching options are sorted: options with a
+ * higher `score` are shown first. To hide an option, return `{score: 0}.
+ */
+export interface SearchMatchResult {
+  /**
+   * Match quality score. Higher values cause the option to appear earlier in the list.
+   * Options that match but return no score maintain their original order relative to
+   * each other.
+   */
+  score: number;
+}
+
+/**
+ * Configuration for CompactSelect's search/filter behavior. Providing this prop
+ * implicitly enables the search input.
+ */
+export interface SearchConfig<Value extends SelectKey> {
+  /**
+   * Controls client-side option filtering:
+   * - Omitted: default case-insensitive substring filter
+   * - Function: custom matcher (receives option + search string, returns SearchMatchResult)
+   * - `false`: disables client-side filtering entirely (use with `onChange` for server-side search)
+   */
+  filter?:
+    | ((option: SelectOptionWithKey<Value>, search: string) => SearchMatchResult)
+    | false;
+  /**
+   * Called when the search input value changes.
+   */
+  onChange?: (value: string) => void;
+  /**
+   * Placeholder text for the search input. Defaults to 'Search…'.
+   */
+  placeholder?: string;
+}
+
 export interface SelectOptionWithKey<
   Value extends SelectKey,
 > extends SelectOption<Value> {

@@ -196,15 +196,21 @@ export enum IssueType {
   WEB_VITALS = 'web_vitals',
 
   LLM_DETECTED_EXPERIMENTAL = 'llm_detected_experimental',
+  LLM_DETECTED_EXPERIMENTAL_V2 = 'llm_detected_experimental_v2',
 
   // Preprod
   PREPROD_STATIC = 'preprod_static',
   PREPROD_DELTA = 'preprod_delta',
+  PREPROD_SIZE_ANALYSIS = 'preprod_size_analysis',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
 export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
-  type => ![IssueType.LLM_DETECTED_EXPERIMENTAL].includes(type)
+  type =>
+    ![
+      IssueType.LLM_DETECTED_EXPERIMENTAL,
+      IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
+    ].includes(type)
 );
 
 export enum IssueTitle {
@@ -251,9 +257,11 @@ export enum IssueTitle {
   WEB_VITALS = 'Web Vitals',
 
   LLM_DETECTED_EXPERIMENTAL = 'LLM Detected Issue',
+  LLM_DETECTED_EXPERIMENTAL_V2 = 'LLM Detected Issue V2',
 
   PREPROD_STATIC = 'Static Analysis',
   PREPROD_DELTA = 'Static Analysis Delta',
+  PREPROD_SIZE_ANALYSIS = 'Size Analysis',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -293,9 +301,11 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   web_vitals: IssueTitle.WEB_VITALS,
 
   llm_detected_experimental: IssueTitle.LLM_DETECTED_EXPERIMENTAL,
+  llm_detected_experimental_v2: IssueTitle.LLM_DETECTED_EXPERIMENTAL_V2,
 
   preprod_static: IssueTitle.PREPROD_STATIC,
   preprod_delta: IssueTitle.PREPROD_DELTA,
+  preprod_size_analysis: IssueTitle.PREPROD_SIZE_ANALYSIS,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -329,9 +339,11 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2008: IssueType.PROFILE_FRAME_DROP,
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
   3501: IssueType.LLM_DETECTED_EXPERIMENTAL,
+  3502: IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
   10001: IssueType.WEB_VITALS,
   11001: IssueType.PREPROD_STATIC,
   11002: IssueType.PREPROD_DELTA,
+  11003: IssueType.PREPROD_SIZE_ANALYSIS,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);

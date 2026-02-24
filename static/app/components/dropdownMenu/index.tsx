@@ -99,6 +99,10 @@ export interface DropdownMenuProps
    */
   isDisabled?: boolean;
   /**
+   * Maximum menu width
+   */
+  maxMenuHeight?: number;
+  /**
    * Title for the current menu.
    */
   menuTitle?: React.ReactNode;
@@ -179,6 +183,7 @@ function DropdownMenu({
   flipOptions,
   portalContainerRef,
   shouldApplyMinWidth,
+  maxMenuHeight,
   minMenuWidth,
   // This prop is from popperJS and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
   strategy,
@@ -263,6 +268,7 @@ function DropdownMenu({
           style: {
             ...overlayProps.style,
             minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
+            maxHeight: maxMenuHeight ?? overlayProps.style?.maxHeight,
           },
         }}
         overlayState={overlayState}

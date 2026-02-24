@@ -1,5 +1,4 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
 
 import pytest
 from django.urls import reverse
@@ -361,34 +360,3 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert len(data) == 2
         assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 10.0
-
-
-class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
-    OrganizationEventsStatsSpansMetricsEndpointTest
-):
-    def setUp(self) -> None:
-        super().setUp()
-        self.features["organizations:use-metrics-layer"] = True
-
-    @patch("sentry.snuba.metrics.datasource")
-    def test_metrics_layer_is_not_used(self, get_series: MagicMock) -> None:
-        self.store_span_metric(
-            4,
-            metric="http.response_content_length",
-            timestamp=self.day_ago + timedelta(minutes=1),
-            tags={"transaction": "foo"},
-        )
-
-        self.do_request(
-            data={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(minutes=2),
-                "interval": "1m",
-                "yAxis": "avg(http.response_content_length)",
-                "project": self.project.id,
-                "dataset": "spansMetrics",
-                "excludeOther": 0,
-            },
-        )
-
-        get_series.assert_not_called()

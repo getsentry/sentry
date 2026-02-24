@@ -899,10 +899,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def _expected_trees(self, repo_info_list=None):
         result = {}
-        # bar and baz are defined to fail, thus, do not show up in the default case
+        # bar (409 empty repo) returns an empty RepoTree since we cache the result
+        # baz (404) still fails and is excluded
         list = repo_info_list or [
             ("xyz", "master", ["src/xyz.py"]),
             ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+            ("bar", "main", []),
         ]
         for repo, branch, files in list:
             result[f"{self.gh_org}/{repo}"] = RepoTree(
@@ -983,6 +985,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     ("xyz", "master", ["src/xyz.py"]),
                     # Now that the rate limit is reset we should get files for foo
                     ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                    ("bar", "main", []),
                 ]
             )
 
@@ -1007,12 +1010,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # This time the rate limit will not fail, thus, it will fetch the trees
+        # bar (409 empty repo) now returns an empty RepoTree since we cache the empty result
         self.set_rate_limit()
         trees = installation.get_trees_for_org()
         assert trees == self._expected_trees(
             [
                 ("xyz", "master", ["src/xyz.py"]),
                 ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                ("bar", "main", []),
             ]
         )
 
@@ -1059,8 +1064,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     # xyz is missing because its request errors
                     # foo has data because its API request is made in spite of xyz's error
                     ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
-                    # bar and baz are missing because their API requests throw errors for
-                    # other reasons in the default mock responses
+                    # bar (409 empty repo) is present with empty files since we cache the result
+                    # baz (404) is missing because its API request throws an error
+                    ("bar", "main", []),
                 ]
             )
 
