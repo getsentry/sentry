@@ -108,12 +108,13 @@ jobs:
           fi
 
           mkdir -p /tmp/tier1-shards
-          python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
+          python3 -u $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier1 --shards $T1_SHARDS --output-dir /tmp/tier1-shards \
+            --swap-rounds 0 \
             $DURATIONS_FLAG
 
           mkdir -p /tmp/tier2-shards
-          python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
+          python3 -u $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards \
             --swap-rounds 0 \
             $DURATIONS_FLAG
