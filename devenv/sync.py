@@ -235,13 +235,13 @@ def main(context: dict[str, str]) -> int:
     # devenv sync works from both main clone and worktrees.
     try:
         out = subprocess.run(
-            ("git", "rev-parse", "--git-common-dir"),
+            ("git", "rev-parse", "--path-format=absolute", "--git-common-dir"),
             cwd=reporoot,
             capture_output=True,
             text=True,
             check=True,
         )
-        git_common_dir = os.path.normpath(os.path.join(reporoot, out.stdout.strip()))
+        git_common_dir = os.path.normpath(out.stdout.strip())
     except (subprocess.CalledProcessError, FileNotFoundError):
         git_common_dir = os.path.join(reporoot, ".git")
     hooks_dir = os.path.join(git_common_dir, "hooks")
