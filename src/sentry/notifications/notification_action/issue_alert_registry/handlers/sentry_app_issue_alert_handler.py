@@ -1,9 +1,12 @@
 from dataclasses import asdict
 from typing import Any
 
+from rest_framework import serializers
+
 from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseIssueAlertHandler
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
@@ -11,6 +14,8 @@ from sentry.workflow_engine.typings.notification_action import (
     SentryAppDataBlob,
     SentryAppFormConfigDataBlob,
 )
+
+ValidationError = serializers.ValidationError
 
 
 @issue_alert_handler_registry.register(Action.Type.SENTRY_APP)
@@ -83,7 +88,9 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
             filter=dict(uuids=[sentry_app_installation_uuid], organization_id=organization_id)
         )
         if not installations:
-            return ""
+            raise SentryAppError(
+                f"Sentry App installation with UUID {sentry_app_installation_uuid} not found."
+            )
 
         sentry_app = installations[0].sentry_app
         alert_rule_component = None
@@ -93,7 +100,9 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
                 break
 
         if not alert_rule_component:
-            return ""
+            raise ValidationError(
+                f"Alert Actions are not enabled for the {sentry_app.name} integration."
+            )
 
         schema_title = alert_rule_component.app_schema.get("title")
         return schema_title if schema_title is not None else sentry_app.name
