@@ -8,7 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import features
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.models.organization import Organization
-from sentry.seer.models import SummarizeTraceResponse
+from sentry.seer.models import SeerApiError, SummarizeTraceResponse
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_summarization_default_connection_pool,
@@ -86,6 +86,6 @@ def _call_seer(
         body,
     )
     if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
+        raise SeerApiError("Seer request failed", response.status)
 
     return SummarizeTraceResponse.validate(response.json())

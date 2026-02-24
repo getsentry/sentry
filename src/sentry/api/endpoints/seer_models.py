@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
@@ -93,7 +94,7 @@ class SeerModelsEndpoint(Endpoint):
                 method="GET",
             )
             if response.status >= 400:
-                raise Exception(f"Seer request failed with status {response.status}")
+                raise SeerApiError("Seer request failed", response.status)
 
             data = response.json()
             cache.set(SEER_MODELS_CACHE_KEY, data, SEER_MODELS_CACHE_TIMEOUT)

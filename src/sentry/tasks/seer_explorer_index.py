@@ -12,6 +12,7 @@ from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
+from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
@@ -235,7 +236,7 @@ def run_explorer_index_for_projects(
             timeout=30,
         )
         if response.status >= 400:
-            raise Exception(f"Seer request failed with status {response.status}")
+            raise SeerApiError("Seer request failed", response.status)
     except Exception as e:
         logger.exception(
             "Failed to schedule explorer index tasks in seer",

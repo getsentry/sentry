@@ -4,6 +4,7 @@ import logging
 
 import orjson
 
+from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
@@ -47,7 +48,7 @@ def cleanup_seer_repository_preferences(
             body,
         )
         if response.status >= 400:
-            raise Exception(f"Seer request failed with status {response.status}")
+            raise SeerApiError("Seer request failed", response.status)
         logger.info(
             "cleanup_seer_repository_preferences.success",
             extra={
