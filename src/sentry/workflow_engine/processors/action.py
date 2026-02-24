@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import NamedTuple
 
-from django.db import IntegrityError, connection, models, router, transaction
+from django.db import IntegrityError, connections, models, router, transaction
 from django.db.models import Case, Value, When
 from django.utils import timezone
 
@@ -161,7 +161,7 @@ def _bulk_insert_workflow_action_group_statuses(
         RETURNING workflow_id, action_id
     """
 
-    with connection.cursor() as cursor:
+    with connections[router.db_for_write(WorkflowActionGroupStatus)].cursor() as cursor:
         cursor.execute(sql, values_data)
         return set(cursor.fetchall())
 
