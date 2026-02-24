@@ -2,13 +2,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
+from sentry.notifications.platform.provider import (
+    NotificationProvider,
+    NotificationProviderError,
+    SendResult,
+)
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
     PreparedIntegrationNotificationTarget,
 )
+from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
@@ -128,7 +133,13 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
         return False
 
     @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: MSTeamsRenderable) -> None:
+    def send(
+        cls,
+        *,
+        target: NotificationTarget,
+        renderable: MSTeamsRenderable,
+        thread_context: ThreadContext | None = None,
+    ) -> SendResult:
         from sentry.integrations.msteams.integration import MsTeamsIntegration
 
         if not isinstance(target, cls.target_class):
@@ -140,3 +151,4 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
             target=target, installation_cls=MsTeamsIntegration
         )
         msteams_target.integration_installation.send_notification(target=target, payload=renderable)
+        return SendResult()
