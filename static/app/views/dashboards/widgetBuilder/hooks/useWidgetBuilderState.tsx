@@ -24,7 +24,10 @@ import {
   WidgetType,
   type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {
+  doesDisplayTypeSupportThresholds,
+  usesTimeSeriesData,
+} from 'sentry/views/dashboards/utils';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
@@ -436,6 +439,9 @@ function useWidgetBuilderState(): {
                 options
               );
             }
+          }
+          if (!doesDisplayTypeSupportThresholds(action.payload)) {
+            setThresholds(undefined, options);
           }
           setSelectedAggregate(undefined, options);
           setLinkedDashboards([], options);
