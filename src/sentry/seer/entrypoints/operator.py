@@ -54,13 +54,13 @@ PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
 AUTOFIX_FALLBACK_CAUSE_ID = 0
 
 
-class SeerOperator[CachePayloadT]:
+class SeerOperator[AutofixCachePayloadT, ExplorerCachePayloadT]:
     """
     A class that connects to entrypoint implementations and runs operations for Seer with them.
     It does this to ensure all entrypoints have consistent behavior and responses.
     """
 
-    def __init__(self, entrypoint: SeerEntrypoint[CachePayloadT]):
+    def __init__(self, entrypoint: SeerEntrypoint[AutofixCachePayloadT, ExplorerCachePayloadT]):
         self.entrypoint = entrypoint
 
     @classmethod

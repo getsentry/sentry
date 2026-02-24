@@ -47,7 +47,7 @@ class SlackEntrypointCachePayload(TypedDict):
 
 
 @entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
-class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
+class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload, SlackEntrypointCachePayload]):
     key = SeerEntrypointKey.SLACK
     autofix_stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
 
