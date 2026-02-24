@@ -3,12 +3,10 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import Access from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
-import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -73,51 +71,45 @@ export default function ProjectToolbarSettings() {
           </LinkButton>
         }
       />
-      <Feature
-        features="sentry-toolbar-ui"
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <TextBlock>
-          {t(
-            `Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.`
-          )}
-        </TextBlock>
-        <ProjectPermissionAlert project={project} />
-        {domain && (
-          <Alert.Container>
-            <Alert variant="info">
-              {tct(
-                'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
-                {domain: <strong>{domain}</strong>}
-              )}
-              <CopyToClipboardButton
-                priority="transparent"
-                size="zero"
-                text={domain}
-                aria-label={t('Copy domain to clipboard')}
-              />
-            </Alert>
-          </Alert.Container>
+      <TextBlock>
+        {t(
+          `Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.`
         )}
-
-        <Form
-          apiMethod="PUT"
-          apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-          initialData={project.options}
-          saveOnBlur
-        >
-          <Access access={['project:write']} project={project}>
-            {({hasAccess}) => (
-              <JsonForm
-                disabled={!hasAccess}
-                features={new Set(organization.features)}
-                forms={formGroups}
-              />
+      </TextBlock>
+      <ProjectPermissionAlert project={project} />
+      {domain && (
+        <Alert.Container>
+          <Alert variant="info">
+            {tct(
+              'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
+              {domain: <strong>{domain}</strong>}
             )}
-          </Access>
-        </Form>
-      </Feature>
+            <CopyToClipboardButton
+              priority="transparent"
+              size="zero"
+              text={domain}
+              aria-label={t('Copy domain to clipboard')}
+            />
+          </Alert>
+        </Alert.Container>
+      )}
+
+      <Form
+        apiMethod="PUT"
+        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
+        initialData={project.options}
+        saveOnBlur
+      >
+        <Access access={['project:write']} project={project}>
+          {({hasAccess}) => (
+            <JsonForm
+              disabled={!hasAccess}
+              features={new Set(organization.features)}
+              forms={formGroups}
+            />
+          )}
+        </Access>
+      </Form>
     </SentryDocumentTitle>
   );
 }
