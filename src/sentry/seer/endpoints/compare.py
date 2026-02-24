@@ -10,6 +10,7 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_anomaly_detection_default_connection_pool,
 )
+from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -43,4 +44,8 @@ def compare_distributions(
     )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
-    return response.json()
+    try:
+        return response.json()
+    except JSONDecodeError:
+        logger.exception("Failed to parse Seer compare_distributions response")
+        raise SeerApiError("Seer returned invalid JSON response", response.status)

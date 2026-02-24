@@ -120,6 +120,24 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
             # Return the session data directly from Seer
             return Response(data)
 
+        except SeerApiError as e:
+            if e.status == 404:
+                logger.warning(
+                    "search_agent.state_not_found",
+                    extra={"run_id": run_id_int},
+                )
+                return Response(
+                    {"session": None},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            logger.exception(
+                "search_agent.state_error",
+                extra={"run_id": run_id_int, "status_code": e.status},
+            )
+            return Response(
+                {"detail": "Failed to fetch run state"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         except Exception:
             logger.exception(
                 "search_agent.state_error",
