@@ -27,7 +27,6 @@ import {
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
@@ -78,14 +77,13 @@ function TraceMetricsSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
 
   const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.TRACEMETRICS,
-    enabled: hasTraceMetricsDashboards,
+    enabled: true,
     query: createTraceMetricFilter(traceMetric),
   };
 
@@ -134,14 +132,13 @@ function useTraceMetricsSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
-  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
 
   const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.TRACEMETRICS,
-    enabled: hasTraceMetricsDashboards,
+    enabled: true,
     query: createTraceMetricFilter(traceMetric),
   };
 

@@ -2,14 +2,16 @@ import {useState} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {
-  AndOp,
-  GroupOp,
-  HeaderCheckOp,
-  JsonPathOp,
-  NotOp,
-  OrOp,
-  StatusCodeOp,
+import {
+  ComparisonType,
+  OpType,
+  type AndOp,
+  type GroupOp,
+  type HeaderCheckOp,
+  type JsonPathOp,
+  type NotOp,
+  type OrOp,
+  type StatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionOpGroup} from './opGroup';
@@ -59,7 +61,7 @@ describe('AssertionOpGroup', () => {
     it('renders root group without border controls', async () => {
       const value: AndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: OpType.AND,
         children: [],
       };
 
@@ -78,14 +80,14 @@ describe('AssertionOpGroup', () => {
     it('renders children in root mode', async () => {
       const statusCodeOp: StatusCodeOp = {
         id: 'test-id-1',
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: OpType.STATUS_CODE_CHECK,
+        operator: {cmp: ComparisonType.EQUALS},
         value: 200,
       };
 
       const value: AndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: OpType.AND,
         children: [statusCodeOp],
       };
 
@@ -97,7 +99,7 @@ describe('AssertionOpGroup', () => {
     it('adds operation in root mode', async () => {
       const value: AndOp = {
         id: 'test-id-root',
-        op: 'and',
+        op: OpType.AND,
         children: [],
       };
 
@@ -109,12 +111,12 @@ describe('AssertionOpGroup', () => {
 
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-root',
-        op: 'and',
+        op: OpType.AND,
         children: [
           {
             id: expect.any(String),
-            op: 'status_code_check',
-            operator: {cmp: 'equals'},
+            op: OpType.STATUS_CODE_CHECK,
+            operator: {cmp: ComparisonType.EQUALS},
             value: 200,
           },
         ],
@@ -126,15 +128,15 @@ describe('AssertionOpGroup', () => {
     it('cycles through all group types by clicking', async () => {
       const statusCodeOp: StatusCodeOp = {
         id: 'test-id-1',
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: OpType.STATUS_CODE_CHECK,
+        operator: {cmp: ComparisonType.EQUALS},
         value: 200,
       };
 
       // Start with "and" group
       const initialValue: AndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: OpType.AND,
         children: [statusCodeOp],
       };
 
@@ -173,7 +175,7 @@ describe('AssertionOpGroup', () => {
     it('shows empty state message when no children', async () => {
       const value: AndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: OpType.AND,
         children: [],
       };
 
@@ -184,7 +186,7 @@ describe('AssertionOpGroup', () => {
     it('calls onRemove when remove button is clicked', async () => {
       const value: AndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: OpType.AND,
         children: [],
       };
 
@@ -196,7 +198,7 @@ describe('AssertionOpGroup', () => {
     it('does not show remove button when onRemove is not provided', async () => {
       const value: AndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: OpType.AND,
         children: [],
       };
 
@@ -213,7 +215,7 @@ describe('AssertionOpGroup', () => {
     it('cycles through adding and removing different operation types', async () => {
       const initialValue: AndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: OpType.AND,
         children: [],
       };
 
@@ -273,14 +275,14 @@ describe('AssertionOpGroup', () => {
     it('renders status code child', async () => {
       const statusCodeOp: StatusCodeOp = {
         id: 'test-id-1',
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: OpType.STATUS_CODE_CHECK,
+        operator: {cmp: ComparisonType.EQUALS},
         value: 200,
       };
 
       const value: AndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: OpType.AND,
         children: [statusCodeOp],
       };
 
@@ -294,15 +296,15 @@ describe('AssertionOpGroup', () => {
     it('updates json path child', async () => {
       const jsonPathOp: JsonPathOp = {
         id: 'test-id-1',
-        op: 'json_path',
+        op: OpType.JSON_PATH,
         value: '',
-        operator: {cmp: 'equals'},
+        operator: {cmp: ComparisonType.EQUALS},
         operand: {jsonpath_op: 'literal', value: ''},
       };
 
       const value: AndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: OpType.AND,
         children: [jsonPathOp],
       };
 
@@ -315,13 +317,13 @@ describe('AssertionOpGroup', () => {
       // Verify onChange was called with the updated value
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-2',
-        op: 'and',
+        op: OpType.AND,
         children: [
           {
             id: 'test-id-1',
-            op: 'json_path',
+            op: OpType.JSON_PATH,
             value: 'x',
-            operator: {cmp: 'equals'},
+            operator: {cmp: ComparisonType.EQUALS},
             operand: {jsonpath_op: 'literal', value: ''},
           },
         ],
@@ -331,16 +333,16 @@ describe('AssertionOpGroup', () => {
     it('updates header child', async () => {
       const headerOp: HeaderCheckOp = {
         id: 'test-id-1',
-        op: 'header_check',
-        key_op: {cmp: 'equals'},
+        op: OpType.HEADER_CHECK,
+        key_op: {cmp: ComparisonType.EQUALS},
         key_operand: {header_op: 'literal', value: ''},
-        value_op: {cmp: 'equals'},
+        value_op: {cmp: ComparisonType.EQUALS},
         value_operand: {header_op: 'literal', value: ''},
       };
 
       const value: AndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: OpType.AND,
         children: [headerOp],
       };
 
@@ -353,14 +355,14 @@ describe('AssertionOpGroup', () => {
       // Verify onChange was called with the updated value
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-2',
-        op: 'and',
+        op: OpType.AND,
         children: [
           {
             id: 'test-id-1',
-            op: 'header_check',
-            key_op: {cmp: 'equals'},
+            op: OpType.HEADER_CHECK,
+            key_op: {cmp: ComparisonType.EQUALS},
             key_operand: {header_op: 'literal', value: 'x'},
-            value_op: {cmp: 'equals'},
+            value_op: {cmp: ComparisonType.EQUALS},
             value_operand: {header_op: 'literal', value: ''},
           },
         ],
@@ -372,37 +374,37 @@ describe('AssertionOpGroup', () => {
     it('renders all different child types together', async () => {
       const statusCodeOp: StatusCodeOp = {
         id: 'test-id-1',
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: OpType.STATUS_CODE_CHECK,
+        operator: {cmp: ComparisonType.EQUALS},
         value: 200,
       };
 
       const jsonPathOp: JsonPathOp = {
         id: 'test-id-2',
-        op: 'json_path',
+        op: OpType.JSON_PATH,
         value: '$.status',
-        operator: {cmp: 'equals'},
+        operator: {cmp: ComparisonType.EQUALS},
         operand: {jsonpath_op: 'literal', value: ''},
       };
 
       const headerOp: HeaderCheckOp = {
         id: 'test-id-3',
-        op: 'header_check',
-        key_op: {cmp: 'equals'},
+        op: OpType.HEADER_CHECK,
+        key_op: {cmp: ComparisonType.EQUALS},
         key_operand: {header_op: 'literal', value: 'X-Custom'},
-        value_op: {cmp: 'equals'},
+        value_op: {cmp: ComparisonType.EQUALS},
         value_operand: {header_op: 'literal', value: 'test'},
       };
 
       const nestedGroup: OrOp = {
         id: 'test-id-4',
-        op: 'or',
+        op: OpType.OR,
         children: [],
       };
 
       const value: AndOp = {
         id: 'test-id-5',
-        op: 'and',
+        op: OpType.AND,
         children: [statusCodeOp, jsonPathOp, headerOp, nestedGroup],
       };
 
@@ -423,20 +425,20 @@ describe('AssertionOpGroup', () => {
     it('updates nested group child', async () => {
       const statusCodeOp: StatusCodeOp = {
         id: 'test-id-1',
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: OpType.STATUS_CODE_CHECK,
+        operator: {cmp: ComparisonType.EQUALS},
         value: 200,
       };
 
       const nestedGroup: AndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: OpType.AND,
         children: [statusCodeOp],
       };
 
       const value: AndOp = {
         id: 'test-id-3',
-        op: 'and',
+        op: OpType.AND,
         children: [nestedGroup],
       };
 
@@ -456,11 +458,11 @@ describe('AssertionOpGroup', () => {
 
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-3',
-        op: 'and',
+        op: OpType.AND,
         children: [
           {
             id: 'test-id-2',
-            op: 'or',
+            op: OpType.OR,
             children: [statusCodeOp],
           },
         ],
@@ -470,13 +472,13 @@ describe('AssertionOpGroup', () => {
     it('removes nested group', async () => {
       const nestedGroup: AndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: OpType.AND,
         children: [],
       };
 
       const value: AndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: OpType.AND,
         children: [nestedGroup],
       };
 
@@ -496,7 +498,7 @@ describe('AssertionOpGroup', () => {
 
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-2',
-        op: 'and',
+        op: OpType.AND,
         children: [],
       });
     });

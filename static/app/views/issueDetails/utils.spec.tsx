@@ -33,40 +33,6 @@ describe('useHasStreamlinedUI', () => {
     expect(userPrefersLegacy.current).toBe(false);
   });
 
-  it('ignores preferences if enforce flag is set and user has not opted out', () => {
-    const enforceOrg = OrganizationFixture({
-      features: ['issue-details-streamline-enforce'],
-      streamlineOnly: null,
-    });
-
-    ConfigStore.init();
-    const user = UserFixture();
-    user.options.prefersIssueDetailsStreamlinedUI = null;
-    act(() => ConfigStore.set('user', user));
-
-    const {result} = renderHook(useHasStreamlinedUI, {
-      wrapper: contextWrapper(enforceOrg),
-    });
-    expect(result.current).toBe(true);
-  });
-
-  it('respects preferences if enforce flag is set and user has opted out', () => {
-    const enforceOrg = OrganizationFixture({
-      features: ['issue-details-streamline-enforce'],
-      streamlineOnly: null,
-    });
-
-    ConfigStore.init();
-    const user = UserFixture();
-    user.options.prefersIssueDetailsStreamlinedUI = false;
-    act(() => ConfigStore.set('user', user));
-
-    const {result} = renderHook(useHasStreamlinedUI, {
-      wrapper: contextWrapper(enforceOrg),
-    });
-    expect(result.current).toBe(false);
-  });
-
   it('ignores preferences if organization option is set to true', () => {
     const streamlineOrg = OrganizationFixture({streamlineOnly: true});
 
@@ -89,6 +55,18 @@ describe('useHasStreamlinedUI', () => {
       wrapper: contextWrapper(legacyOrg),
     });
     expect(legacyResult.current).toBe(true);
+  });
+
+  it('defaults to streamlined UI when user has no preference', () => {
+    ConfigStore.init();
+    const user = UserFixture();
+    user.options.prefersIssueDetailsStreamlinedUI = null;
+    act(() => ConfigStore.set('user', user));
+
+    const {result} = renderHook(useHasStreamlinedUI, {
+      wrapper: contextWrapper(OrganizationFixture({streamlineOnly: null})),
+    });
+    expect(result.current).toBe(true);
   });
 
   it('ignores the option if unset', () => {

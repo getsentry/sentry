@@ -15,7 +15,7 @@ import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import {fzf} from 'sentry/utils/search/fzf';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';

@@ -36,7 +36,6 @@ def query(
     transform_alias_to_input_format=False,
     sample=None,
     has_metrics=False,
-    use_metrics_layer=False,
     skip_tag_resolution=False,
     extra_columns=None,
     on_demand_metrics_enabled=False,
@@ -64,7 +63,6 @@ def query(
             functions_acl=functions_acl,
             equation_config={"auto_add": include_equation_fields},
             has_metrics=has_metrics,
-            use_metrics_layer=use_metrics_layer,
             transform_alias_to_input_format=transform_alias_to_input_format,
             skip_tag_resolution=skip_tag_resolution,
         ),
@@ -88,7 +86,6 @@ def timeseries_query(
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
-    use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
@@ -114,7 +111,6 @@ def timeseries_query(
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
             allow_metric_aggregates=allow_metric_aggregates,
-            use_metrics_layer=use_metrics_layer,
             transform_alias_to_input_format=transform_alias_to_input_format,
         ),
     )

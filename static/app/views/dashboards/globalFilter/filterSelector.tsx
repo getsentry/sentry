@@ -4,14 +4,17 @@ import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   HybridFilter,
-  HybridFilterComponents,
   useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
@@ -214,7 +217,6 @@ function FilterSelector({
       if (canSelectMultipleValues) {
         option.leadingItems = ({isSelected}: {isSelected: boolean}) => (
           <Checkbox
-            size="sm"
             checked={isSelected}
             onChange={() => hybridFilterRef.current?.toggleOption?.(value)}
             aria-label={t('Select %s', value)}
@@ -384,11 +386,12 @@ function FilterSelector({
     <HybridFilter
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
-      searchable
+      search={{
+        placeholder: t('Search or enter a custom value...'),
+        onChange: setSearchQuery,
+      }}
       disabled={false}
       options={translatedOptions}
-      searchPlaceholder={t('Search or enter a custom value...')}
-      onSearch={setSearchQuery}
       sizeLimit={30}
       onClose={() => {
         setSearchQuery('');
@@ -402,10 +405,10 @@ function FilterSelector({
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton
+            <MenuComponents.CancelButton
               onClick={() => stagedSelect.removeStagedChanges()}
             />
-            <HybridFilterComponents.ApplyButton
+            <MenuComponents.ApplyButton
               onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
             />
           </Flex>

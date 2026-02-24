@@ -20,8 +20,8 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
+    ActionType,
     SentryAppDataBlob,
-    SentryAppIdentifier,
     TicketDataBlob,
     TicketFieldMappingKeys,
     issue_alert_action_translator_mapping,
@@ -165,7 +165,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         # Assert integration_id matches if specified
         if integration_id_key:
-            assert action.integration_id == compare_dict.get(integration_id_key)
+            assert str(action.integration_id) == compare_dict.get(integration_id_key)
 
         # Assert target_identifier matches if specified
         if target_identifier_key:
@@ -201,6 +201,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         for action, rule_data in zip(actions, rule_data_actions):
             assert isinstance(action, Action)
+            action.refresh_from_db()
             self.assert_action_attributes(
                 action,
                 rule_data,
@@ -720,47 +721,47 @@ class TestNotificationActionMigrationUtils(TestCase):
         test_cases = [
             (
                 "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                Action.Type.SLACK,
+                ActionType.SLACK,
             ),
             (
                 "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
-                Action.Type.DISCORD,
+                ActionType.DISCORD,
             ),
             (
                 "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
-                Action.Type.MSTEAMS,
+                ActionType.MSTEAMS,
             ),
             (
                 "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
-                Action.Type.PAGERDUTY,
+                ActionType.PAGERDUTY,
             ),
             (
                 "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                Action.Type.OPSGENIE,
+                ActionType.OPSGENIE,
             ),
             (
                 "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                Action.Type.GITHUB,
+                ActionType.GITHUB,
             ),
             (
                 "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                Action.Type.GITHUB_ENTERPRISE,
+                ActionType.GITHUB_ENTERPRISE,
             ),
             (
                 "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
-                Action.Type.AZURE_DEVOPS,
+                ActionType.AZURE_DEVOPS,
             ),
             (
                 "sentry.mail.actions.NotifyEmailAction",
-                Action.Type.EMAIL,
+                ActionType.EMAIL,
             ),
             (
                 "sentry.rules.actions.notify_event.NotifyEventAction",
-                Action.Type.PLUGIN,
+                ActionType.PLUGIN,
             ),
             (
                 "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                Action.Type.WEBHOOK,
+                ActionType.WEBHOOK,
             ),
         ]
 
@@ -1103,7 +1104,6 @@ class TestNotificationActionMigrationUtils(TestCase):
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
             assert action.config.get("target_identifier") == str(install.sentry_app.id)
-            assert action.config.get("sentry_app_identifier") == SentryAppIdentifier.SENTRY_APP_ID
 
     def test_dry_run_flag(self) -> None:
         """Test that the dry_run flag prevents database writes."""

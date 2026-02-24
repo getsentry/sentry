@@ -95,15 +95,15 @@ def handle_pull_request_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
+    tags: Mapping[str, Any],
     integration: RpcIntegration | None = None,
     org_code_review_settings: CodeReviewSettings | None = None,
-    extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
     """Handle pull_request webhook events by validating and forwarding to Seer."""
     pull_request = event.get("pull_request")
     if not pull_request:
-        logger.warning(Log.MISSING_PULL_REQUEST.value, extra=extra)
+        logger.warning(Log.MISSING_PULL_REQUEST.value)
         record_webhook_handler_error(
             github_event, "unknown", CodeReviewErrorType.MISSING_PULL_REQUEST
         )
@@ -111,7 +111,7 @@ def handle_pull_request_event(
 
     action_value = event.get("action")
     if not action_value or not isinstance(action_value, str):
-        logger.warning(Log.MISSING_ACTION.value, extra=extra)
+        logger.warning(Log.MISSING_ACTION.value)
         record_webhook_handler_error(github_event, "unknown", CodeReviewErrorType.MISSING_ACTION)
         return
 
@@ -120,14 +120,14 @@ def handle_pull_request_event(
     try:
         action = PullRequestAction(action_value)
     except ValueError:
-        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
+        logger.warning(Log.UNSUPPORTED_ACTION.value)
         record_webhook_filtered(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
 
     if action not in ALLOWED_ACTIONS:
-        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
+        logger.warning(Log.UNSUPPORTED_ACTION.value)
         record_webhook_filtered(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
@@ -182,7 +182,6 @@ def handle_pull_request_event(
             comment_id=None,
             reactions_to_delete=reactions_to_delete,
             reaction_to_add=GitHubReaction.EYES,
-            extra=extra,
         )
 
     from .task import schedule_task
@@ -195,4 +194,5 @@ def handle_pull_request_event(
         repo=repo,
         target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
         event_record=event_record,
+        tags=tags,
     )

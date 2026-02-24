@@ -18,6 +18,8 @@ from pydantic import BaseModel, ValidationError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.code_review_event import CodeReviewEventStatus
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 
 from ..event_recorder import create_event_record, update_event_status
 from ..metrics import (
@@ -72,18 +74,29 @@ def handle_check_run_event(
     github_event: GithubWebhookType,
     github_delivery_id: str | None = None,
     event: Mapping[str, Any],
-    extra: Mapping[str, str | None],
-    organization: Any | None = None,
-    repo: Any | None = None,
+    organization: Organization | None = None,
+    repo: Repository | None = None,
+    tags: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
+    """
+    This is called when a check_run event is received from GitHub.
+    When a user clicks "Re-run" on a check run in GitHub UI, we enqueue
+    a task to forward the original run ID to Seer so it can rerun the PR review.
+
+    Args:
+        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run")
+        event: The webhook event payload
+        organization: The Sentry organization that the webhook event belongs to
+        **kwargs: Additional keyword arguments
+    """
     if github_event != GithubWebhookType.CHECK_RUN:
         return
 
     action = event.get("action")
 
     if action is None:
-        logger.error(Log.MISSING_ACTION.value, extra=extra)
+        logger.error(Log.MISSING_ACTION.value)
         record_webhook_handler_error(
             github_event,
             action or "",
@@ -100,8 +113,8 @@ def handle_check_run_event(
     try:
         validated_event = _validate_github_check_run_event(event)
     except (ValidationError, ValueError):
-        # Log but don't raise to prevent sending a 500 to GitHub, which would trigger a retry
-        logger.exception(Log.INVALID_PAYLOAD.value, extra=extra)
+        # Prevent sending a 500 error to GitHub which would trigger a retry
+        logger.exception(Log.INVALID_PAYLOAD.value)
         record_webhook_handler_error(
             github_event,
             action,
@@ -135,6 +148,9 @@ def handle_check_run_event(
         html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         trigger_id=github_delivery_id,
+        organization_id=organization.id if organization else None,
+        repository_id=repo.id if repo else None,
+        tags=tags,
     )
     record_webhook_enqueued(github_event, action)
     update_event_status(event_record, CodeReviewEventStatus.TASK_ENQUEUED)

@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Literal
 from django.utils import timezone
 from pydantic import BaseModel
 
-from sentry import features
 from sentry.seer.autofix.artifact_schemas import (
     ImpactAssessmentArtifact,
     RootCauseArtifact,
@@ -45,6 +44,25 @@ class AutofixStep(StrEnum):
     CODE_CHANGES = "code_changes"
     IMPACT_ASSESSMENT = "impact_assessment"
     TRIAGE = "triage"
+
+    @staticmethod
+    def from_autofix_stopping_point(
+        autofix_stopping_point: AutofixStoppingPoint,
+    ) -> AutofixStep:
+        match autofix_stopping_point:
+            case AutofixStoppingPoint.ROOT_CAUSE:
+                return AutofixStep.ROOT_CAUSE
+            case AutofixStoppingPoint.SOLUTION:
+                return AutofixStep.SOLUTION
+            case AutofixStoppingPoint.CODE_CHANGES:
+                return AutofixStep.CODE_CHANGES
+            case AutofixStoppingPoint.OPEN_PR:
+                # This depends on the last step being
+                # code changes and we should look for
+                # the PR elsewhere in the explorer results
+                return AutofixStep.CODE_CHANGES
+            case _:
+                raise ValueError(f"Unsupported AutofixStoppingPoint: {autofix_stopping_point}")
 
 
 class StepConfig:
@@ -220,26 +238,25 @@ def trigger_autofix_explorer(
             extra={"event_type": event_type},
         )
 
-    if features.has("organizations:seer-webhooks", group.organization):
-        # Send "started" webhook after we have the run_id
-        try:
-            broadcast_webhooks_for_organization.delay(
-                resource_name="seer",
-                event_name=event_name,
-                organization_id=group.organization.id,
-                payload=payload,
-            )
-        except Exception:
-            logger.exception(
-                "autofix.trigger.webhook_failed",
-                extra={
-                    "organization_id": group.organization.id,
-                    "webhook_event": event_name,
-                    "step": step.value,
-                    "run_id": run_id,
-                    "group_id": group.id,
-                },
-            )
+    # Send "started" webhook after we have the run_id
+    try:
+        broadcast_webhooks_for_organization.delay(
+            resource_name="seer",
+            event_name=event_name,
+            organization_id=group.organization.id,
+            payload=payload,
+        )
+    except Exception:
+        logger.exception(
+            "autofix.trigger.webhook_failed",
+            extra={
+                "organization_id": group.organization.id,
+                "webhook_event": event_name,
+                "step": step.value,
+                "run_id": run_id,
+                "group_id": group.id,
+            },
+        )
 
     return run_id
 

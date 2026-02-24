@@ -34,6 +34,7 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.utils import snuba
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -3219,11 +3220,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert list(results) == []
             assert results.hits == 2
 
-    def test_perf_issue_search_message_term_queries_postgres(self) -> None:
-        from django.db.models import Q
-
-        from sentry.utils import snuba
-
+    def test_perf_issue_search_message_term_queries_snuba(self) -> None:
         transaction_name = "im a little tea pot"
 
         with (
@@ -3256,11 +3253,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert "tea" in tx.search_message
             created_group = mock_eventstream.call_args[0][2].group
 
-        find_group = Group.objects.filter(
-            Q(type=PerformanceRenderBlockingAssetSpanGroupType.type_id, message__icontains="tea")
-        ).first()
-
-        assert created_group == find_group
         with self.feature(created_group.issue_type.build_visible_feature_name()):
             result = snuba.raw_query(
                 dataset=Dataset.IssuePlatform,
@@ -3717,3 +3709,134 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             )
             assert group_info is not None
             assert list(results) == [group_info.group]
+
+    def test_generic_long_message_search(self) -> None:
+        long_message = "A" * 260 + " uniquekeyword123"
+
+        event_id = uuid.uuid4().hex
+        _, group_info = self.process_occurrence(
+            event_id=event_id,
+            project_id=self.project.id,
+            fingerprint=["long-message-group"],
+            issue_title=long_message,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        assert group_info is not None
+
+        # Verify the Postgres Group.message is truncated to 255 chars
+        group = Group.objects.get(id=group_info.group.id)
+        assert "uniquekeyword123" not in group.message
+
+        # Search should still find it via Snuba
+        results = self.make_query(search_filter_query="uniquekeyword123")
+        assert list(results) == [group_info.group]
+
+    def test_feedback_long_message_search(self) -> None:
+        long_message = "This is user feedback. " * 15 + "specificword789"
+
+        with self.feature(
+            [
+                *FeedbackGroup.build_visible_feature_name(),
+                FeedbackGroup.build_ingest_feature_name(),
+            ]
+        ):
+            event_id = uuid.uuid4().hex
+            _, group_info = self.process_occurrence(
+                **{
+                    "project_id": self.project.id,
+                    "event_id": event_id,
+                    "fingerprint": ["feedback-long-msg"],
+                    "issue_title": long_message,
+                    "type": FeedbackGroup.type_id,
+                    "detection_time": datetime.now().timestamp(),
+                    "level": "info",
+                },
+                event_data={
+                    "platform": "python",
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "received": before_now(minutes=1).isoformat(),
+                },
+            )
+            assert group_info is not None
+
+            # Verify the Postgres Group.message is truncated to 255 chars
+            group = Group.objects.get(id=group_info.group.id)
+            assert "specificword789" not in group.message
+
+            results = self.make_query(
+                search_filter_query="issue.category:feedback specificword789",
+                date_from=self.base_datetime,
+                date_to=self.base_datetime + timedelta(days=10),
+            )
+            assert list(results) == [group_info.group]
+
+    def test_perf_issue_long_message_search(self) -> None:
+        group_type = PerformanceNPlusOneGroupType
+        long_title = "P" * 260 + " perfkeyword456"
+
+        with mock.patch.object(
+            PerformanceNPlusOneGroupType,
+            "noise_config",
+            new=NoiseConfig(0, timedelta(minutes=1)),
+        ):
+            event_id = uuid.uuid4().hex
+            with self.feature(group_type.build_ingest_feature_name()):
+                _, group_info = self.process_occurrence(
+                    event_id=event_id,
+                    project_id=self.project.id,
+                    type=group_type.type_id,
+                    fingerprint=["perf-long-msg"],
+                    issue_title=long_title,
+                    event_data={
+                        "title": "some problem",
+                        "platform": "python",
+                        "tags": {"my_tag": "1"},
+                        "timestamp": before_now(minutes=1).isoformat(),
+                        "received": before_now(minutes=1).isoformat(),
+                    },
+                )
+                assert group_info is not None
+
+            # Verify the Postgres Group.message is truncated to 255 chars
+            group = Group.objects.get(id=group_info.group.id)
+            assert "perfkeyword456" not in group.message
+
+            with self.feature(
+                [
+                    *group_type.build_visible_feature_name(),
+                    "organizations:performance-issues-search",
+                ]
+            ):
+                results = self.make_query(
+                    search_filter_query="issue.category:performance perfkeyword456"
+                )
+                assert list(results) == [group_info.group]
+
+    def test_negated_long_message_search(self) -> None:
+        long_message = "B" * 260 + " excludethis999"
+
+        event_id = uuid.uuid4().hex
+        _, group_info = self.process_occurrence(
+            event_id=event_id,
+            project_id=self.project.id,
+            fingerprint=["negation-test-group"],
+            issue_title=long_message,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        assert group_info is not None
+
+        # Negated search for the keyword should NOT return this group
+        results = self.make_query(search_filter_query="!message:excludethis999")
+        assert group_info.group not in set(results)

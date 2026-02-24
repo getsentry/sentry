@@ -23,6 +23,32 @@ interface ExtractedField {
   route?: string;
 }
 
+/**
+ * Determines whether a TypeScript expression resolves to a plain string value.
+ * Only string literals and t() calls with a string literal argument are considered
+ * string-typed; anything else (variables, conditionals, JSX elements, other calls)
+ * causes the caller to bail out.
+ */
+function isStringTypeExpression(expr: ts.Expression): boolean {
+  // 'Name' or "Name"
+  if (ts.isStringLiteral(expr)) {
+    return true;
+  }
+
+  // t('Name') — the i18n translation helper
+  if (
+    ts.isCallExpression(expr) &&
+    ts.isIdentifier(expr.expression) &&
+    expr.expression.text === 't' &&
+    expr.arguments.length > 0 &&
+    ts.isStringLiteral(expr.arguments[0]!)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 class FormFieldExtractor {
   private program: ts.Program;
 
@@ -163,6 +189,11 @@ class FormFieldExtractor {
     // Extract metadata from render prop children
     const fieldMetadata = this.extractFieldMetadata(node, sourceFile);
 
+    // Omit the entire entry if we cannot extract a string label
+    if (!fieldMetadata.label) {
+      return null;
+    }
+
     return {
       name: nameAttr,
       formId,
@@ -205,8 +236,11 @@ class FormFieldExtractor {
         const label = this.getJsxAttributeExpression(node, 'label', sourceFile);
         if (label && !metadata.label) metadata.label = label;
 
-        const hintText = this.getJsxAttributeExpression(node, 'hintText', sourceFile);
-        if (hintText && !metadata.hintText) metadata.hintText = hintText;
+        if (this.hasJsxAttribute(node, 'hintText') && !metadata.hintText) {
+          const hintText = this.getJsxAttributeExpression(node, 'hintText', sourceFile);
+          // Attribute present but non-string → serialize as empty string
+          metadata.hintText = hintText ?? "''";
+        }
 
         // Extract label from Meta.Label (text is in children)
         if (tagName?.endsWith('.Label') || tagName === 'Meta.Label') {
@@ -216,8 +250,11 @@ class FormFieldExtractor {
 
         // Extract hintText from Meta.HintText (text is in children)
         if (tagName?.endsWith('.HintText') || tagName === 'Meta.HintText') {
-          const text = this.getJsxTextContent(node, sourceFile);
-          if (text && !metadata.hintText) metadata.hintText = text;
+          if (!metadata.hintText) {
+            const text = this.getJsxTextContent(node, sourceFile);
+            // Tag present but non-string content → serialize as empty string
+            metadata.hintText = text ?? "''";
+          }
         }
       }
 
@@ -251,7 +288,11 @@ class FormFieldExtractor {
       }
       // Expression: <Meta.Label>{t('Name')}</Meta.Label> -> t('Name')
       if (ts.isJsxExpression(child) && child.expression) {
-        return child.expression.getText(sourceFile);
+        const expr = child.expression;
+        if (!isStringTypeExpression(expr)) {
+          return null;
+        }
+        return expr.getText(sourceFile);
       }
     }
 
@@ -274,6 +315,23 @@ class FormFieldExtractor {
     }
 
     return null;
+  }
+
+  /** Returns true if the JSX element has an attribute with the given name, regardless of its value. */
+  private hasJsxAttribute(
+    node: ts.JsxElement | ts.JsxSelfClosingElement,
+    attributeName: string
+  ): boolean {
+    const attributes = ts.isJsxElement(node)
+      ? node.openingElement.attributes
+      : node.attributes;
+
+    return attributes.properties.some(
+      attr =>
+        ts.isJsxAttribute(attr) &&
+        ts.isIdentifier(attr.name) &&
+        attr.name.text === attributeName
+    );
   }
 
   /**
@@ -352,7 +410,11 @@ class FormFieldExtractor {
           }
           // JSX expression: label={t('Name')} -> t('Name')
           if (ts.isJsxExpression(attr.initializer) && attr.initializer.expression) {
-            return attr.initializer.expression.getText(sourceFile);
+            const expr = attr.initializer.expression;
+            if (!isStringTypeExpression(expr)) {
+              return null;
+            }
+            return expr.getText(sourceFile);
           }
         }
       }

@@ -7,9 +7,8 @@ from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.seer.autofix.autofix import trigger_autofix as _trigger_autofix
-from sentry.seer.autofix.autofix import update_autofix
-from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.autofix import trigger_autofix, update_autofix
+from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
     AutofixSelectRootCausePayload,
@@ -27,6 +26,7 @@ from sentry.seer.entrypoints.metrics import (
 )
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
+from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -81,7 +81,9 @@ class SeerOperator[CachePayloadT]:
         # The explorer autofix pipeline and history is entirely separate, so the runs we trigger
         # at the moment, won't be visible in-app to users with this flag.
         # This check can only be removed once this feature migrates to explorer-based autofix.
-        if features.has("organizations:autofix-on-explorer", organization):
+        if features.has("organizations:autofix-on-explorer", organization) and not features.has(
+            "organizations:seer-slack-workflows-explorer", organization
+        ):
             return False
 
         if entrypoint_key:
@@ -110,7 +112,6 @@ class SeerOperator[CachePayloadT]:
         """
         from sentry import quotas
         from sentry.seer.autofix.utils import is_issue_category_eligible
-        from sentry.seer.seer_setup import has_seer_access
 
         return (
             has_seer_access(group.organization)
@@ -122,6 +123,144 @@ class SeerOperator[CachePayloadT]:
         )
 
     def trigger_autofix(
+        self,
+        *,
+        group: Group,
+        user: User | RpcUser,
+        stopping_point: AutofixStoppingPoint,
+        instruction: str | None = None,
+        run_id: int | None = None,
+    ) -> None:
+        if features.has("organizations:autofix-on-explorer", group.organization):
+            self.trigger_autofix_explorer(
+                group=group,
+                user=user,
+                stopping_point=stopping_point,
+                instruction=instruction,
+                run_id=run_id,
+            )
+        else:
+            self.trigger_autofix_legacy(
+                group=group,
+                user=user,
+                stopping_point=stopping_point,
+                instruction=instruction,
+                run_id=run_id,
+            )
+
+    def trigger_autofix_explorer(
+        self,
+        *,
+        group: Group,
+        user: User | RpcUser,
+        stopping_point: AutofixStoppingPoint,
+        instruction: str | None = None,
+        run_id: int | None = None,
+    ) -> None:
+        from sentry.seer.autofix.autofix_agent import (
+            AutofixStep,
+            get_autofix_explorer_state,
+            trigger_autofix_explorer,
+        )
+
+        event_lifecyle = SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_AUTOFIX,
+            entrypoint_key=self.entrypoint.key,
+        )
+
+        with event_lifecyle.capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "group_id": str(group.id),
+                    "user_id": str(user.id),
+                    "stopping_point": str(stopping_point),
+                }
+            )
+
+            try:
+                existing_state = get_autofix_explorer_state(group.organization, group.id)
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(
+                        error="Encountered an error while talking to Seer"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return
+            if existing_state:
+                has_complete_stage = get_autofix_explorer_status(stopping_point, existing_state)
+                lifecycle.add_extras(
+                    {
+                        "existing_run_id": str(existing_state.run_id),
+                        "existing_run_status": str(existing_state.status),
+                    }
+                )
+
+                # For now, we don't support re-runs over slack -- it causes a confusing UX without
+                # reliably being able to edit messages.
+                if has_complete_stage is not None:
+                    with SeerOperatorEventLifecycleMetric(
+                        interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
+                        entrypoint_key=self.entrypoint.key,
+                    ).capture():
+                        self.entrypoint.on_trigger_autofix_already_exists(
+                            run_id=existing_state.run_id,
+                            has_complete_stage=has_complete_stage,
+                        )
+                    return
+
+            if not run_id:
+                run_id = trigger_autofix_explorer(
+                    group=group,
+                    step=AutofixStep.ROOT_CAUSE,
+                    run_id=None,
+                )
+            elif stopping_point == AutofixStoppingPoint.OPEN_PR:
+                pass  # TODO: OPENING PRs is a little more complicated so putting it off for now
+            else:
+                # NOTE: Stopping point here is really just what
+                # step to run next. Not the same as the stopping_point
+                # argument supported by `trigger_autofix_explorer` which allows one
+                # to run multiple steps at once
+                run_id = trigger_autofix_explorer(
+                    group=group,
+                    step=AutofixStep.from_autofix_stopping_point(stopping_point),
+                    run_id=run_id,
+                )
+
+            lifecycle.add_extra("run_id", str(run_id))
+
+            # Let the entrypoint signal to the external service that the run started
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_SUCCESS,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                self.entrypoint.on_trigger_autofix_success(run_id=run_id)
+
+            # Create a cache payload that will be picked up for subsequent updates
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_CREATE_AUTOFIX_CACHE_PAYLOAD,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                cache_payload = self.entrypoint.create_autofix_cache_payload()
+
+            if not cache_payload:
+                return
+            cache_result = SeerOperatorAutofixCache.populate_post_autofix_cache(
+                entrypoint_key=str(self.entrypoint.key),
+                cache_payload=cache_payload,
+                run_id=run_id,
+            )
+            lifecycle.add_extras(
+                {
+                    "cache_key": cache_result["key"],
+                    "cache_source": cache_result["source"],
+                }
+            )
+
+    def trigger_autofix_legacy(
         self,
         *,
         group: Group,
@@ -173,13 +312,20 @@ class SeerOperator[CachePayloadT]:
                         interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
                         entrypoint_key=self.entrypoint.key,
                     ).capture():
+                        has_complete_stage = (
+                            False
+                            if stopping_point_step.get("key")
+                            in {"root_cause_analysis_processing", "solution_processing"}
+                            else stopping_point_step.get("status") == AutofixStatus.COMPLETED
+                        )
                         self.entrypoint.on_trigger_autofix_already_exists(
-                            state=existing_state, step_state=stopping_point_step
+                            run_id=existing_state.run_id,
+                            has_complete_stage=has_complete_stage,
                         )
                     return
 
             if not run_id:
-                raw_response = _trigger_autofix(
+                raw_response = trigger_autofix(
                     group=group,
                     user=user,
                     referrer=AutofixReferrer.SLACK,
@@ -310,17 +456,36 @@ def process_autofix_updates(
             return
 
         try:
-            Group.objects.get(id=group_id, project__organization_id=organization_id)
+            group = Group.objects.get(id=group_id, project__organization_id=organization_id)
         except Group.DoesNotExist:
             lifecycle.record_failure(failure_reason="group_not_found")
             return
 
+        organization = group.project.organization
+
+        if not SeerOperator.has_access(organization=organization):
+            lifecycle.record_halt(halt_reason="no_operator_access")
+            return
+
         for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
+            logging_ctx = {
+                "organization_id": organization.id,
+                "group_id": group_id,
+                "run_id": run_id,
+                "entrypoint_key": str(entrypoint_key),
+            }
+
+            if not entrypoint_cls.has_access(organization=organization):
+                logger.warning("seer.operator.no_access_entrypoint_key", extra=logging_ctx)
+                continue
+
             cache_result = SeerOperatorAutofixCache.get(
                 entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
             )
             if not cache_result:
+                logger.warning("seer.operator.no_cache", extra=logging_ctx)
                 continue
+
             with SeerOperatorEventLifecycleMetric(
                 interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AUTOFIX_UPDATE,
                 entrypoint_key=entrypoint_key,
@@ -372,6 +537,59 @@ def get_stopping_point_status(
                 None,
             )
     return step
+
+
+def get_autofix_explorer_status(
+    stopping_point: AutofixStoppingPoint, autofix_state: SeerRunState
+) -> bool | None:
+    from sentry.seer.autofix.autofix_agent import AutofixStep
+
+    expected_step = AutofixStep.from_autofix_stopping_point(stopping_point)
+
+    is_last = True
+    for block in reversed(autofix_state.blocks):
+        metadata = block.message.metadata
+        if metadata is None:
+            continue
+
+        step_str = metadata.get("step")
+        if step_str is None:
+            continue
+
+        try:
+            step = AutofixStep(step_str)
+        except ValueError:
+            continue
+
+        if step == expected_step:
+            # If the expected step is not the last step
+            # then we can assume it is already completed
+            # so return True to indicate that
+            if not is_last:
+                return True
+
+            # If the expected step is the last step, then
+            # we check the run state to see if it's processing
+            #
+            # Everything except the processing status
+            # is considered as some form of completed
+            completed = autofix_state.status != "processing"
+
+            # OPEN_PR step gets special treatment to also
+            # check on the status of the pr creation
+            if stopping_point == AutofixStoppingPoint.OPEN_PR and completed:
+                return all(
+                    pr_state.pr_creation_status != "creating"
+                    for pr_state in autofix_state.repo_pr_states.values()
+                )
+
+            return completed
+
+        is_last = False
+
+    # no block matching the stopping point found, so return None
+    # to indicate the step has not run before
+    return None
 
 
 def get_latest_cause_id(autofix_state: AutofixState | None) -> int:

@@ -115,6 +115,10 @@ export type WidgetQueryParams = {
    * Skip adding parentheses around widget conditions when applying dashboard filters.
    */
   skipDashboardFilterParens?: boolean;
+  /**
+   * Optional user-selected interval override for timeseries queries.
+   */
+  widgetInterval?: string;
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {

@@ -143,14 +143,15 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
       options={options}
       emptyMessage={t('No agents found')}
       loading={isPending}
-      searchable
+      search={{
+        onChange: newValue => {
+          if (!wasSearchSpaceExhausted) {
+            debouncedSetSearch(newValue);
+          }
+        },
+      }}
       menuTitle={t('Agent')}
       data-test-id="agent-selector"
-      onSearch={newValue => {
-        if (!wasSearchSpaceExhausted) {
-          debouncedSetSearch(newValue);
-        }
-      }}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix={t('Agent')} />
       )}
