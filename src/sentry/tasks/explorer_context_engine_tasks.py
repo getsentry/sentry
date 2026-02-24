@@ -12,6 +12,7 @@ from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.events.types import SnubaParams
 from sentry.seer.explorer.context_engine_utils import (
     EVENT_COUNT_LOOKBACK_DAYS,
     ProjectEventCounts,
@@ -20,6 +21,11 @@ from sentry.seer.explorer.context_engine_utils import (
     get_sdk_names_for_org_projects,
     get_top_span_ops_for_org_projects,
     get_top_transactions_for_org_projects,
+)
+from sentry.seer.explorer.explorer_service_map_utils import (
+    _build_nodes,
+    _query_service_dependencies,
+    _send_to_seer,
 )
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
@@ -134,12 +140,6 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     Args:
         organization_id: Organization ID to build map for
     """
-    from sentry.tasks.explorer_service_map import (
-        _build_nodes,
-        _query_service_dependencies,
-        _send_to_seer,
-    )
-
     logger.info(
         "Starting service map build",
         extra={"org_id": organization_id},
@@ -161,8 +161,6 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
 
         end = datetime.now(timezone.utc)
         start = end - timedelta(hours=24)
-
-        from sentry.search.events.types import SnubaParams
 
         snuba_params = SnubaParams(
             start=start,
@@ -219,11 +217,19 @@ def schedule_context_engine_indexing_tasks() -> None:
 
     # TODO: as the list of allowed organizations grows, we should batch the tasks to avoid overwhelming the system
     # Also possibly consider spreading the tasks out across a day or week.
+    dispatched = 0
     for org_id in allowed_org_ids:
-        index_org_project_knowledge.apply_async(args=[org_id])
-        build_service_map.apply_async(args=[org_id])
+        try:
+            index_org_project_knowledge.apply_async(args=[org_id])
+            build_service_map.apply_async(args=[org_id])
+            dispatched += 1
+        except Exception:
+            logger.exception(
+                "Failed to dispatch context engine tasks for org",
+                extra={"org_id": org_id},
+            )
 
     logger.info(
         "Scheduled context engine indexing tasks",
-        extra={"org_count": len(allowed_org_ids)},
+        extra={"total org count": len(allowed_org_ids), "dispatched": dispatched},
     )

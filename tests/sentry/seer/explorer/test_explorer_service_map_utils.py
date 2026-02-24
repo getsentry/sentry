@@ -12,12 +12,12 @@ from uuid import uuid4
 import pytest
 
 from sentry.search.events.types import SnubaParams
-from sentry.tasks.explorer_context_engine_tasks import build_service_map
-from sentry.tasks.explorer_service_map import (
+from sentry.seer.explorer.explorer_service_map_utils import (
     _build_nodes,
     _query_service_dependencies,
     _send_to_seer,
 )
+from sentry.tasks.explorer_context_engine_tasks import build_service_map
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -53,7 +53,9 @@ class TestSendToSeer(TestCase):
             },
         ]
 
-        with mock.patch("sentry.tasks.explorer_service_map.orjson.dumps") as mock_dumps:
+        with mock.patch(
+            "sentry.seer.explorer.explorer_service_map_utils.orjson.dumps"
+        ) as mock_dumps:
             mock_dumps.return_value = b"{}"
             _send_to_seer(org.id, nodes)
 
@@ -70,14 +72,14 @@ class TestBuildServiceMap(TestCase):
 
         with override_options({"explorer.service_map.enable": False}):
             with mock.patch(
-                "sentry.tasks.explorer_service_map._query_service_dependencies"
+                "sentry.seer.explorer.explorer_service_map_utils._query_service_dependencies"
             ) as mock_query:
                 build_service_map(org.id)
 
         mock_query.assert_not_called()
 
-    @mock.patch("sentry.tasks.explorer_service_map._send_to_seer")
-    @mock.patch("sentry.tasks.explorer_service_map._query_service_dependencies")
+    @mock.patch("sentry.seer.explorer.explorer_service_map_utils._send_to_seer")
+    @mock.patch("sentry.seer.explorer.explorer_service_map_utils._query_service_dependencies")
     def test_complete_workflow(self, mock_dependencies, mock_send):
         org = self.create_organization()
         project1 = self.create_project(organization=org)
@@ -95,19 +97,21 @@ class TestBuildServiceMap(TestCase):
         assert isinstance(snuba_params, SnubaParams)
         mock_send.assert_called_once()
 
-    @mock.patch("sentry.tasks.explorer_service_map._query_service_dependencies")
+    @mock.patch("sentry.seer.explorer.explorer_service_map_utils._query_service_dependencies")
     def test_handles_no_edges(self, mock_dependencies):
         org = self.create_organization()
 
         mock_dependencies.return_value = []
 
         with override_options({"explorer.service_map.enable": True}):
-            with mock.patch("sentry.tasks.explorer_service_map._send_to_seer") as mock_send:
+            with mock.patch(
+                "sentry.seer.explorer.explorer_service_map_utils._send_to_seer"
+            ) as mock_send:
                 build_service_map(org.id)
 
         mock_send.assert_not_called()
 
-    @mock.patch("sentry.tasks.explorer_service_map._query_service_dependencies")
+    @mock.patch("sentry.seer.explorer.explorer_service_map_utils._query_service_dependencies")
     def test_handles_exception(self, mock_dependencies):
         org = self.create_organization()
 
@@ -121,7 +125,7 @@ class TestBuildServiceMap(TestCase):
 class TestQueryServiceDependenciesPhase2(TestCase):
     """Unit tests for Phase 2 fallback scan for uncovered projects"""
 
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
+    @mock.patch("sentry.seer.explorer.explorer_service_map_utils.Spans.run_table_query")
     def test_phase2_triggered_for_uncovered_projects(self, mock_query):
         org = self.create_organization()
         project_covered = self.create_project(organization=org)
@@ -161,7 +165,7 @@ class TestQueryServiceDependenciesPhase2(TestCase):
         # Phase 2 must NOT use has:parent_span
         assert "has:parent_span" not in phase2_call_kwargs["query_string"]
 
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
+    @mock.patch("sentry.seer.explorer.explorer_service_map_utils.Spans.run_table_query")
     def test_phase2_not_triggered_when_all_projects_covered(self, mock_query):
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -193,7 +197,7 @@ class TestQueryServiceDependenciesPhase2(TestCase):
         phase3_call_kwargs = mock_query.call_args_list[1][1]
         assert "is_transaction" not in phase3_call_kwargs["query_string"]
 
-    @mock.patch("sentry.tasks.explorer_service_map.Spans.run_table_query")
+    @mock.patch("sentry.seer.explorer.explorer_service_map_utils.Spans.run_table_query")
     def test_phase1_uses_has_parent_span_filter(self, mock_query):
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -1076,7 +1080,9 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        with mock.patch("sentry.tasks.explorer_service_map._send_to_seer") as mock_send:
+        with mock.patch(
+            "sentry.seer.explorer.explorer_service_map_utils._send_to_seer"
+        ) as mock_send:
             with override_options(
                 {
                     "explorer.service_map.enable": True,

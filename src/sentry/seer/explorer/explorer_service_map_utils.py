@@ -22,7 +22,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
-logger = logging.getLogger("sentry.tasks.explorer_service_map")
+logger = logging.getLogger("sentry.seer.explorer.explorer_service_map_utils")
 
 # Seer endpoint path
 SEER_SERVICE_MAP_PATH = "/v1/explorer/service-map/update"
