@@ -231,5 +231,5 @@ def schedule_context_engine_indexing_tasks() -> None:
 
     logger.info(
         "Scheduled context engine indexing tasks",
-        extra={"total org count": len(allowed_org_ids), "dispatched": dispatched},
+        extra={"total_org_count": len(allowed_org_ids), "dispatched": dispatched},
     )
