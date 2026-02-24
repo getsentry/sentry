@@ -61,7 +61,7 @@ export const MEASUREMENT_OPTIONS: Array<{label: string; value: MeasurementType}>
   }));
 
 const ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
-  all_artifacts: 'All Artifact Types',
+  all_artifacts: 'Any Artifact Type',
   main_artifact: 'Main App',
   watch_artifact: 'Watch App',
   android_dynamic_feature_artifact: 'Android Dynamic Feature',
