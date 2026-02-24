@@ -65,3 +65,4 @@ yarn.lock
 .claude/settings.local.json
 .claude/plans
 .warden/
+agents.lock
