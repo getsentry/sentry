@@ -7,17 +7,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import styled from '@emotion/styled';
 import {isAppleDevice, isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
 import type {DistributedOmit} from 'type-fest';
 
-import {
-  Button,
-  LinkButton,
-  type ButtonProps,
-  type LinkButtonProps,
-} from '@sentry/scraps/button';
+import {type AlertProps} from '@sentry/scraps/alert';
+import {type ButtonProps, type LinkButtonProps} from '@sentry/scraps/button';
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
 import type {
   MultipleSelectProps,
@@ -26,7 +21,11 @@ import type {
   SelectOptionOrSection,
   SelectSection,
 } from '@sentry/scraps/compactSelect';
-import {CompactSelect, ControlContext} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  ControlContext,
+  MenuComponents,
+} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -480,36 +479,54 @@ export function HybridFilter<Value extends SelectKey>({
 }
 
 export const HybridFilterComponents = {
-  LinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
-    return <LinkButton size="xs" {...props} />;
+  CTALinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
+    return <MenuComponents.CTALinkButton {...props} />;
+  },
+
+  CTAButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
+    return <MenuComponents.CTAButton {...props} />;
   },
 
   ResetButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
     const controlContext = useContext(ControlContext);
 
     return (
-      <ResetButton
+      <MenuComponents.HeaderButton
         {...props}
-        priority="transparent"
-        size="zero"
         onClick={e => {
           props.onClick?.(e);
           controlContext.overlayState?.close();
         }}
       >
         {t('Reset')}
-      </ResetButton>
+      </MenuComponents.HeaderButton>
     );
   },
 
-  ApplyButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
+  ClearButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
     const controlContext = useContext(ControlContext);
 
     return (
-      <Button
+      <MenuComponents.HeaderButton
         {...props}
-        size="xs"
-        priority="primary"
+        onClick={e => {
+          props.onClick?.(e);
+          controlContext.overlayState?.close();
+        }}
+      >
+        {t('Clear')}
+      </MenuComponents.HeaderButton>
+    );
+  },
+
+  ApplyButton(
+    props: DistributedOmit<Exclude<ButtonProps, 'children'>, 'priority' | 'size'>
+  ) {
+    const controlContext = useContext(ControlContext);
+
+    return (
+      <MenuComponents.ApplyButton
+        {...props}
         disabled={props.disabled}
         onClick={e => {
           props.onClick?.(e);
@@ -517,37 +534,33 @@ export const HybridFilterComponents = {
         }}
       >
         {t('Apply')}
-      </Button>
+      </MenuComponents.ApplyButton>
     );
   },
 
-  CancelButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
+  CancelButton(
+    props: DistributedOmit<Exclude<ButtonProps, 'children'>, 'priority' | 'size'>
+  ) {
     const controlContext = useContext(ControlContext);
 
     return (
-      <Button
+      <MenuComponents.CancelButton
         {...props}
-        size="xs"
-        priority="transparent"
         onClick={e => {
           props.onClick?.(e);
           controlContext.overlayState?.close();
         }}
       >
         {t('Cancel')}
-      </Button>
+      </MenuComponents.CancelButton>
     );
   },
 
   Checkbox(props: CheckboxProps) {
     return <Checkbox {...props} />;
   },
-};
 
-const ResetButton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${p => p.theme.space.xs};
-  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
-`;
+  Alert(props: DistributedOmit<AlertProps, 'system' | 'showIcon'>) {
+    return <MenuComponents.Alert {...props} />;
+  },
+};
