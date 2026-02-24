@@ -17,6 +17,7 @@ from sentry.integrations.github.webhook import (
 from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER, GithubWebhookType
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
@@ -40,14 +41,43 @@ class GithubRequestParser(BaseRequestParser):
         GitHub webhook payloads include repository.id for most event types.
         Installation events are routed to control silo and don't reach this path.
         """
-        if not options.get("github.webhook.mailbox-bucketing.enabled"):
-            return None
         repository = data.get("repository")
         if isinstance(repository, dict):
             repo_id = repository.get("id")
             if isinstance(repo_id, int):
                 return repo_id
         return None
+
+    def get_mailbox_identifier(
+        self, integration: RpcIntegration | Integration, data: dict[str, Any]
+    ) -> str:
+        """Override to gate bucketing on an options flag for safe rollout and revert.
+
+        When disabled (default), all webhooks route to a single mailbox per integration.
+        When enabled, webhooks are distributed across sub-mailboxes by repository ID,
+        bypassing the rate-limit auto-switch used by the base class.
+        """
+        if not options.get("github.webhook.mailbox-bucketing.enabled"):
+            metrics.incr(
+                "hybridcloud.webhookpayload.mailbox_routing",
+                tags={"provider": self.provider, "bucketed": "false"},
+            )
+            return str(integration.id)
+
+        mailbox_bucket_id = self.mailbox_bucket_id(data)
+        if mailbox_bucket_id is None:
+            metrics.incr(
+                "hybridcloud.webhookpayload.mailbox_routing",
+                tags={"provider": self.provider, "bucketed": "false"},
+            )
+            return str(integration.id)
+
+        bucket_number = mailbox_bucket_id % 100
+        metrics.incr(
+            "hybridcloud.webhookpayload.mailbox_routing",
+            tags={"provider": self.provider, "bucketed": "true"},
+        )
+        return f"{integration.id}:{bucket_number}"
 
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest

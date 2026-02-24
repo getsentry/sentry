@@ -319,19 +319,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
             headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
-            assert parser.mailbox_bucket_id({"repository": {"id": 35129377}}) == 35129377
-
-    def test_mailbox_bucket_id_returns_none_when_option_disabled(self) -> None:
-        request = self.factory.post(
-            self.path,
-            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
-            content_type="application/json",
-            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        # Default is disabled; should always return None regardless of payload
-        assert parser.mailbox_bucket_id({"repository": {"id": 35129377}}) is None
+        assert parser.mailbox_bucket_id({"repository": {"id": 35129377}}) == 35129377
 
     def test_mailbox_bucket_id_returns_none_without_repository(self) -> None:
         request = self.factory.post(
@@ -341,8 +329,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
             headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
-            assert parser.mailbox_bucket_id({"installation": {"id": "1"}}) is None
+        assert parser.mailbox_bucket_id({"installation": {"id": "1"}}) is None
 
     def test_mailbox_bucket_id_handles_malformed_payload(self) -> None:
         request = self.factory.post(
@@ -352,11 +339,10 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
-        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
-            assert parser.mailbox_bucket_id({"repository": "not-a-dict"}) is None
-            assert parser.mailbox_bucket_id({"repository": {"id": "not-an-int"}}) is None
-            assert parser.mailbox_bucket_id({"repository": {}}) is None
-            assert parser.mailbox_bucket_id({}) is None
+        assert parser.mailbox_bucket_id({"repository": "not-a-dict"}) is None
+        assert parser.mailbox_bucket_id({"repository": {"id": "not-an-int"}}) is None
+        assert parser.mailbox_bucket_id({"repository": {}}) is None
+        assert parser.mailbox_bucket_id({}) is None
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
@@ -369,13 +355,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
             headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
         )
 
-        with (
-            override_options({"github.webhook.mailbox-bucketing.enabled": True}),
-            mock.patch(
-                "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited",
-                return_value=True,
-            ),
-        ):
+        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
             parser = GithubRequestParser(request=request, response_handler=self.get_response)
             response = parser.get_response()
 
