@@ -120,20 +120,13 @@ class WorkflowRuleSerializerTest(TestCase):
         rule_filters = serialized_rule.pop("filters")
         workflow_filters = serialized_workflow_rule.pop("filters")
 
-        assert len(rule_conditions) == len(workflow_conditions)
-        for condition in rule_conditions:
-            assert condition in workflow_conditions
-
-        assert len(rule_filters) == len(workflow_filters)
-        for filter in rule_filters:
-            assert filter in workflow_filters
+        assert sorted(rule_conditions, key=str) == sorted(workflow_conditions, key=str)
+        assert sorted(rule_filters, key=str) == sorted(workflow_filters, key=str)
 
         rule_actions = serialized_rule.pop("actions")
         workflow_actions = serialized_workflow_rule.pop("actions")
 
-        assert len(rule_actions) == len(workflow_actions)
-        for action in rule_actions:
-            assert action in workflow_actions
+        assert sorted(rule_actions, key=str) == sorted(workflow_actions, key=str)
 
         assert serialized_rule == serialized_workflow_rule
 
@@ -260,12 +253,8 @@ class WorkflowRuleSerializerTest(TestCase):
         conditions, filters = WorkflowEngineRuleSerializer()._generate_rule_conditions_filters(
             workflow, self.project, workflow_dcg
         )
-        assert len(conditions) == len(serialized_rule["conditions"])
-        for condition in conditions:
-            assert condition in serialized_rule["conditions"]
-        assert len(filters) == len(serialized_rule["filters"])
-        for f in filters:
-            assert f in serialized_rule["filters"]
+        assert sorted(conditions, key=str) == sorted(serialized_rule["conditions"], key=str)
+        assert sorted(filters, key=str) == sorted(serialized_rule["filters"], key=str)
 
     def test_fetch_workflow_last_triggered(self) -> None:
         workflow = self.create_workflow()
