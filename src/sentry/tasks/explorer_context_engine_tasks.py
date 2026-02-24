@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.explorer_context_engine_tasks.index_org_project_knowledge",
     namespace=seer_tasks,
-    processing_deadline_duration=30 * 60,
+    processing_deadline_duration=10 * 60,
 )
 def index_org_project_knowledge(org_id: int) -> None:
     """
@@ -200,7 +200,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
 @instrumented_task(
     name="sentry.tasks.explorer_context_engine_tasks.schedule_context_engine_indexing_tasks",
     namespace=seer_tasks,
-    processing_deadline_duration=10 * 60,
+    processing_deadline_duration=30 * 60,
 )
 def schedule_context_engine_indexing_tasks() -> None:
     """
