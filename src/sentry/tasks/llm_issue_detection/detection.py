@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
+from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
@@ -168,7 +168,7 @@ def create_issue_occurrence_from_detection(
         resource_id=None,
         evidence_data=evidence_data,
         evidence_display=evidence_display,
-        type=LLMDetectedExperimentalGroupType,
+        type=LLMDetectedExperimentalGroupTypeV2,
         detection_time=detection_time,
         culprit=transaction_name,
         level="warning",

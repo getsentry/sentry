@@ -9,6 +9,7 @@ from typing import Any, Literal
 
 from django.db import router, transaction
 
+from sentry import analytics as sentry_analytics
 from sentry.api.event_search import SearchConfig, SearchFilter, parse_search_query
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
@@ -28,6 +29,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.preprod.analytics import PreprodStatusCheckTriggeredRulePostedEvent
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
@@ -351,6 +353,16 @@ def create_preprod_status_check_task(
     _update_posted_status_check(
         preprod_artifact, check_type="size", success=True, check_id=check_id
     )
+
+    if triggered_rules:
+        sentry_analytics.record(
+            PreprodStatusCheckTriggeredRulePostedEvent(
+                organization_id=preprod_artifact.project.organization_id,
+                project_id=preprod_artifact.project_id,
+                artifact_id=preprod_artifact.id,
+                product="size",
+            )
+        )
 
     logger.info(
         "preprod.status_checks.create.success",
