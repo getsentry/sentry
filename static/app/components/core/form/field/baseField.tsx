@@ -1,4 +1,4 @@
-import {useEffect, useRef, useSyncExternalStore, type Ref} from 'react';
+import {useCallback, useEffect, useRef, useSyncExternalStore, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
@@ -53,13 +53,13 @@ export const useHintTextId = () => {
   return `${fieldId}-hint`;
 };
 
-// Subscribe only to hash changes, not full location
 function useHash() {
+  const onHashChange = useCallback((callback: () => void) => {
+    window.addEventListener('hashchange', callback);
+    return () => window.removeEventListener('hashchange', callback);
+  }, []);
   return useSyncExternalStore(
-    callback => {
-      window.addEventListener('hashchange', callback);
-      return () => window.removeEventListener('hashchange', callback);
-    },
+    onHashChange,
     () => {
       try {
         return decodeURIComponent(window.location.hash.slice(1));
