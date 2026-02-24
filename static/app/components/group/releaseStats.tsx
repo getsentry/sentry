@@ -15,7 +15,8 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {CurrentRelease} from 'sentry/types/release';
-import {useIssueFirstLastRelease} from 'sentry/views/issueDetails/useIssueFirstLastRelease';
+import {useQuery} from 'sentry/utils/queryClient';
+import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
 
 type Props = {
   environments: string[];
@@ -44,7 +45,12 @@ function GroupReleaseStats({
         ? environments[0]
         : undefined;
 
-  const {data: groupReleaseData} = useIssueFirstLastRelease({group});
+  const {data: groupReleaseData} = useQuery(
+    issueFirstLastReleaseQueryOptions({
+      groupId: group?.id,
+      organizationSlug: organization.slug,
+    })
+  );
 
   const firstRelease = groupReleaseData?.firstRelease;
   const lastRelease = groupReleaseData?.lastRelease;

@@ -11,10 +11,11 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
-import {useIssueFirstLastRelease} from 'sentry/views/issueDetails/useIssueFirstLastRelease';
+import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export default function FirstLastSeenSection({group}: {group: Group}) {
@@ -25,10 +26,13 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
   const environments = useEnvironmentsFromUrl();
 
   const {data: allEnvsGroupData} = useFetchAllEnvsGroupData(organization, group);
-  const {data: groupReleaseData} = useIssueFirstLastRelease({
-    group,
-    query: environments.length > 0 ? {environment: environments} : undefined,
-  });
+  const {data: groupReleaseData} = useQuery(
+    issueFirstLastReleaseQueryOptions({
+      groupId: group.id,
+      organizationSlug: organization.slug,
+      query: environments.length > 0 ? {environment: environments} : undefined,
+    })
+  );
   const {data: openPeriods} = useOpenPeriods(
     {groupId: group.id},
     {enabled: issueTypeConfig.useOpenPeriodChecks}
