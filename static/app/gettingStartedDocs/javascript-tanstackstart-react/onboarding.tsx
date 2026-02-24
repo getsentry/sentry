@@ -325,7 +325,9 @@ export const startInstance = createStart(() => {
           ],
         },
         {
-          type: 'text',
+          type: 'alert',
+          alertType: 'info',
+          showIcon: false,
           text: t(
             'The Sentry middleware should be the first middleware in the arrays to ensure all errors are captured. SSR rendering exceptions are not captured by the middleware. Use captureException to manually capture those errors.'
           ),
