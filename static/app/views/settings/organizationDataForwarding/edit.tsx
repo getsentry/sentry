@@ -189,7 +189,7 @@ function DataForwarderEditForm({
     defaultValues: {
       is_enabled: dataForwarder.isEnabled,
       enroll_new_projects: dataForwarder.enrollNewProjects,
-      project_ids: dataForwarder.enrolledProjects.map(p => p.id),
+      project_ids: dataForwarder.enrolledProjects.map(p => String(p.id)),
       queue_url: '',
       region: '',
       access_key: '',
