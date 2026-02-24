@@ -164,7 +164,7 @@ class TestEAPQueryErrorCounts(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_counts_match_with_group(self) -> None:
-        events = self.store_occurrences_with_dual_write(
+        events = self.store_events_to_snuba_and_eap(
             "flags-group-a", count=5, timestamp=self.FROZEN_TIME.timestamp()
         )
         group_id = events[0].group_id
@@ -175,10 +175,10 @@ class TestEAPQueryErrorCounts(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_counts_match_without_group(self) -> None:
-        self.store_occurrences_with_dual_write(
+        self.store_events_to_snuba_and_eap(
             "flags-no-group-a", count=3, timestamp=self.FROZEN_TIME.timestamp()
         )
-        self.store_occurrences_with_dual_write(
+        self.store_events_to_snuba_and_eap(
             "flags-no-group-b", count=4, timestamp=self.FROZEN_TIME.timestamp()
         )
 
@@ -188,10 +188,10 @@ class TestEAPQueryErrorCounts(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_counts_isolate_groups(self) -> None:
-        group_a = self.store_occurrences_with_dual_write(
+        group_a = self.store_events_to_snuba_and_eap(
             "flags-isolate-a", count=2, timestamp=self.FROZEN_TIME.timestamp()
         )[0].group_id
-        group_b = self.store_occurrences_with_dual_write(
+        group_b = self.store_events_to_snuba_and_eap(
             "flags-isolate-b", count=6, timestamp=self.FROZEN_TIME.timestamp()
         )[0].group_id
 

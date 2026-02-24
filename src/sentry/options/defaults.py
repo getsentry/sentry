@@ -1143,9 +1143,9 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Explorer service map options
+# Explorer context engine indexing options
 register(
-    "explorer.service_map.enable",
+    "explorer.context_engine_indexing.enable",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3201,6 +3201,16 @@ register(
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
     "spans.buffer.compression.level",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Threshold in bytes for out-of-band storage of large compressed span payloads.
+# Payloads larger than this are stored in separate Redis string keys instead of
+# inline in sets, avoiding expensive SUNIONSTORE memcpy. Set to 0 to disable.
+# Only applies when compression is enabled (compression.level >= 0).
+register(
+    "spans.buffer.oob-threshold-bytes",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

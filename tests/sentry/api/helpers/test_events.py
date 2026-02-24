@@ -47,7 +47,7 @@ class TestEAPRunGroupEventsQuery(TestCase, SnubaTestCase):
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_return_same_events(self) -> None:
         ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
-        events = self.store_occurrences_with_dual_write("my-group", count=3, timestamp=ts)
+        events = self.store_events_to_snuba_and_eap("my-group", count=3, timestamp=ts)
         group_id = events[0].group_id
         assert group_id is not None
 
@@ -62,8 +62,8 @@ class TestEAPRunGroupEventsQuery(TestCase, SnubaTestCase):
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_isolate_groups(self) -> None:
         ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
-        events_a = self.store_occurrences_with_dual_write("group-a", count=2, timestamp=ts)
-        events_b = self.store_occurrences_with_dual_write("group-b", count=1, timestamp=ts)
+        events_a = self.store_events_to_snuba_and_eap("group-a", count=2, timestamp=ts)
+        events_b = self.store_events_to_snuba_and_eap("group-b", count=1, timestamp=ts)
         group_id_a = events_a[0].group_id
         group_id_b = events_b[0].group_id
         assert group_id_a is not None

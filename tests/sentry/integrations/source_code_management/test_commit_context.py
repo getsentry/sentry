@@ -236,15 +236,9 @@ class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_return_same_top_issues(self) -> None:
         ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
-        group_a = self.store_occurrences_with_dual_write("group-a", count=5, timestamp=ts)[
-            0
-        ].group_id
-        group_b = self.store_occurrences_with_dual_write("group-b", count=3, timestamp=ts)[
-            0
-        ].group_id
-        group_c = self.store_occurrences_with_dual_write("group-c", count=1, timestamp=ts)[
-            0
-        ].group_id
+        group_a = self.store_events_to_snuba_and_eap("group-a", count=5, timestamp=ts)[0].group_id
+        group_b = self.store_events_to_snuba_and_eap("group-b", count=3, timestamp=ts)[0].group_id
+        group_c = self.store_events_to_snuba_and_eap("group-c", count=1, timestamp=ts)[0].group_id
         assert group_a is not None
         assert group_b is not None
         assert group_c is not None
@@ -260,11 +254,9 @@ class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_isolate_groups(self) -> None:
         ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
-        group_a = self.store_occurrences_with_dual_write("group-a", count=3, timestamp=ts)[
-            0
-        ].group_id
+        group_a = self.store_events_to_snuba_and_eap("group-a", count=3, timestamp=ts)[0].group_id
         assert group_a is not None
-        self.store_occurrences_with_dual_write("group-b", count=2, timestamp=ts)
+        self.store_events_to_snuba_and_eap("group-b", count=2, timestamp=ts)
 
         snuba_result, eap_result = self._query_both([group_a])
 

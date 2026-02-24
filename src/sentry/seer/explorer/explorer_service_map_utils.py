@@ -11,24 +11,18 @@ from __future__ import annotations
 import dataclasses
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
 from typing import cast
 
 import orjson
 from django.utils import timezone as django_timezone
 
 from sentry import options
-from sentry.constants import ObjectStatus
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import seer_tasks
 
-logger = logging.getLogger("sentry.tasks.explorer_service_map")
+logger = logging.getLogger("sentry.seer.explorer.explorer_service_map_utils")
 
 # Seer endpoint path
 SEER_SERVICE_MAP_PATH = "/v1/explorer/service-map/update"
@@ -310,131 +304,3 @@ def _send_to_seer(org_id: int, nodes: list[dict]) -> None:
     )
 
     # TODO: Add endpoint in seer before making the actual request
-
-
-@instrumented_task(
-    name="sentry.tasks.explorer_service_map.build_service_map",
-    namespace=seer_tasks,
-    processing_deadline_duration=10 * 60,  # 10 minutes
-)
-def build_service_map(organization_id: int, *args, **kwargs) -> None:
-    """
-    Build service map for a single organization and send to Seer.
-
-    This task:
-    1. Checks feature flags
-    2. Queries Snuba for service dependencies
-    3. Classifies service roles using graph analysis
-    4. Sends data to Seer
-
-    Args:
-        organization_id: Organization ID to build map for
-    """
-    logger.info(
-        "Starting service map build",
-        extra={"org_id": organization_id},
-    )
-
-    if not options.get("explorer.service_map.enable"):
-        logger.info("explorer.service_map.enable flag is disabled")
-        return
-
-    try:
-        organization = Organization.objects.get(id=organization_id)
-        projects = list(
-            Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
-        )
-
-        if not projects:
-            logger.info("No projects found for organization", extra={"org_id": organization_id})
-            return
-
-        end = datetime.now(timezone.utc)
-        start = end - timedelta(hours=24)
-
-        snuba_params = SnubaParams(
-            start=start,
-            end=end,
-            projects=projects,
-            organization=organization,
-        )
-
-        edges = _query_service_dependencies(snuba_params)
-
-        if not edges:
-            logger.info("No service dependencies found", extra={"org_id": organization_id})
-            return
-
-        nodes = _build_nodes(edges)
-
-        _send_to_seer(organization_id, nodes)
-
-        logger.info(
-            "Successfully completed service map build",
-            extra={
-                "org_id": organization_id,
-                "edge_count": len(edges),
-                "node_count": len(nodes),
-            },
-        )
-
-    except Organization.DoesNotExist:
-        logger.error("Organization not found", extra={"org_id": organization_id})
-    except Exception:
-        logger.exception(
-            "Failed to build service map",
-            extra={"org_id": organization_id},
-        )
-
-
-@instrumented_task(
-    name="sentry.tasks.explorer_service_map.schedule_service_map_builds",
-    namespace=seer_tasks,
-    processing_deadline_duration=15 * 60,  # 15 minutes
-)
-def schedule_service_map_builds() -> None:
-    """
-    Main periodic task that runs daily to schedule service map builds
-    for eligible organizations.
-
-    This scheduler:
-    1. Checks if service map building is enabled
-    2. Gets list of eligible organizations from allowlist
-    3. Dispatches worker tasks for each organization
-    """
-    logger.info("Started schedule_service_map_builds task")
-
-    if not options.get("explorer.service_map.enable"):
-        logger.info("explorer.service_map.enable flag is disabled")
-        return
-
-    # Get eligible organizations
-    allowed_org_ids = options.get("explorer.service_map.allowed_organizations")
-
-    if not allowed_org_ids:
-        logger.info("No eligible organizations found for service map building")
-        return
-
-    logger.info(
-        "Found eligible organizations for service map building",
-        extra={"org_count": len(allowed_org_ids)},
-    )
-
-    # Dispatch tasks for each organization
-    for org_id in allowed_org_ids:
-        try:
-            build_service_map.apply_async(
-                args=[org_id],
-                countdown=0,
-            )
-            logger.info("Dispatched service map build", extra={"org_id": org_id})
-        except Exception:
-            logger.exception(
-                "Failed to dispatch service map build",
-                extra={"org_id": org_id},
-            )
-
-    logger.info(
-        "Successfully scheduled service map builds",
-        extra={"total_orgs": len(allowed_org_ids)},
-    )

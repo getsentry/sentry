@@ -1183,7 +1183,7 @@ class SnubaTestCase(BaseTestCase):
         )
         assert response.status_code == 200
 
-    def store_occurrences_with_dual_write(
+    def store_events_to_snuba_and_eap(
         self,
         fingerprint: str,
         count: int = 1,

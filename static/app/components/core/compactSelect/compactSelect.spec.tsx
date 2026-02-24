@@ -425,8 +425,7 @@ describe('CompactSelect', () => {
     it('can search', async () => {
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -451,8 +450,7 @@ describe('CompactSelect', () => {
     it('restores full list when search query is cleared', async () => {
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -479,8 +477,7 @@ describe('CompactSelect', () => {
     it('resets search query and shows all options when menu is closed and reopened', async () => {
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -516,11 +513,12 @@ describe('CompactSelect', () => {
     it('uses custom searchMatcher when provided', async () => {
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
-          searchMatcher={(option, search) => ({
-            score: String(option.value).endsWith(search) ? 1 : 0,
-          })}
+          search={{
+            placeholder: 'Search here…',
+            filter: (option, search) => ({
+              score: String(option.value).endsWith(search) ? 1 : 0,
+            }),
+          }}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -544,12 +542,13 @@ describe('CompactSelect', () => {
       // called during the initial render (before the user types anything).
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
-          searchMatcher={(option, search) => ({
-            // Return 0 for empty search — real-world matchers may do this
-            score: search === '' ? 0 : String(option.value).includes(search) ? 1 : 0,
-          })}
+          search={{
+            placeholder: 'Search here…',
+            filter: (option, search) => ({
+              // Return 0 for empty search — real-world matchers may do this
+              score: search === '' ? 0 : String(option.value).includes(search) ? 1 : 0,
+            }),
+          }}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -569,8 +568,7 @@ describe('CompactSelect', () => {
     it('uses string.includes for default search matching', async () => {
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -595,9 +593,10 @@ describe('CompactSelect', () => {
 
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
-          searchMatcher={option => ({score: scores[String(option.value)] ?? 0})}
+          search={{
+            placeholder: 'Search here…',
+            filter: option => ({score: scores[String(option.value)] ?? 0}),
+          }}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -623,9 +622,10 @@ describe('CompactSelect', () => {
       // and should keep their original relative order (One before Three)
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
-          searchMatcher={option => ({score: option.value === 'opt_two' ? 10 : 1})}
+          search={{
+            placeholder: 'Search here…',
+            filter: option => ({score: option.value === 'opt_two' ? 10 : 1}),
+          }}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -654,10 +654,11 @@ describe('CompactSelect', () => {
 
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
+          search={{
+            placeholder: 'Search here…',
+            filter: option => ({score: scores[String(option.value)] ?? 0}),
+          }}
           sizeLimit={2}
-          searchMatcher={option => ({score: scores[String(option.value)] ?? 0})}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -684,9 +685,7 @@ describe('CompactSelect', () => {
 
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
-          searchMatcher={searchMatcher}
+          search={{placeholder: 'Search here…', filter: searchMatcher}}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -711,8 +710,7 @@ describe('CompactSelect', () => {
         <CompactSelect
           value={undefined}
           onChange={jest.fn()}
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {
               key: 'section-1',
@@ -754,11 +752,12 @@ describe('CompactSelect', () => {
         <CompactSelect
           value={undefined}
           onChange={jest.fn()}
-          searchable
-          searchPlaceholder="Search here…"
-          searchMatcher={(option, search) => ({
-            score: String(option.value).endsWith(search) ? 1 : 0,
-          })}
+          search={{
+            placeholder: 'Search here…',
+            filter: (option, search) => ({
+              score: String(option.value).endsWith(search) ? 1 : 0,
+            }),
+          }}
           options={[
             {
               key: 'section-1',
@@ -798,7 +797,7 @@ describe('CompactSelect', () => {
           onChange={jest.fn()}
           sizeLimit={2}
           sizeLimitMessage="Use search for more options…"
-          searchable
+          search
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -1116,8 +1115,7 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           grid
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -1143,8 +1141,7 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           grid
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -1172,8 +1169,7 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           grid
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -1208,11 +1204,12 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           grid
-          searchable
-          searchPlaceholder="Search here…"
-          searchMatcher={(option, search) => ({
-            score: String(option.value).endsWith(search) ? 1 : 0,
-          })}
+          search={{
+            placeholder: 'Search here…',
+            filter: (option, search) => ({
+              score: String(option.value).endsWith(search) ? 1 : 0,
+            }),
+          }}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -1237,7 +1234,7 @@ describe('CompactSelect', () => {
           grid
           sizeLimit={2}
           sizeLimitMessage="Use search for more options…"
-          searchable
+          search
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
