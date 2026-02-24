@@ -23,6 +23,7 @@ interface ExplorerMenuProps {
     onMaxSize: () => void;
     onMedSize: () => void;
     onNew: () => void;
+    onSentryTrace: () => void;
   };
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
@@ -347,12 +348,14 @@ function useSlashCommands({
   onNew,
   onFeedback,
   onLangfuse,
+  onSentryTrace,
 }: {
   onFeedback: (() => void) | undefined;
   onLangfuse: () => void;
   onMaxSize: () => void;
   onMedSize: () => void;
   onNew: () => void;
+  onSentryTrace: () => void;
 }): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
 
@@ -400,10 +403,16 @@ function useSlashCommands({
               description: 'Open Langfuse to view session details',
               handler: onLangfuse,
             },
+            {
+              title: '/sentry-conversation',
+              key: '/sentry-conversation',
+              description: 'Open Sentry AI trace (conversation view)',
+              handler: onSentryTrace,
+            },
           ]
         : []),
     ],
-    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse, isSentryEmployee]
+    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse, onSentryTrace, isSentryEmployee]
   );
 }
 

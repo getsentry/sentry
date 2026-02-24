@@ -40,7 +40,7 @@ class RecordingTestCase(TransactionTestCase):
         assert result is not None, "Expecting non-None result here"
         return unpack(zlib.decompress(result))[1]
 
-    def get_video_data(self, segment_id: int) -> None | tuple[None | memoryview, memoryview]:
+    def get_video_data(self, segment_id: int) -> memoryview | None:
         result = storage_kv.get(
             _make_recording_filename(
                 project_id=self.project.id,
@@ -150,7 +150,9 @@ class RecordingTestCase(TransactionTestCase):
 
         dat = self.get_recording_data(segment_id)
         assert json.loads(bytes(dat).decode("utf-8")) == data
-        assert self.get_video_data(segment_id) == b"hello, world!"
+        video_data = self.get_video_data(segment_id)
+        assert video_data is not None
+        assert bytes(video_data) == b"hello, world!"
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays
@@ -241,7 +243,9 @@ class RecordingTestCase(TransactionTestCase):
 
             dat = self.get_recording_data(segment_id)
             assert json.loads(bytes(dat).decode("utf-8")) == data
-            assert self.get_video_data(segment_id) == b"hello, world!"
+            video_data = self.get_video_data(segment_id)
+            assert video_data is not None
+            assert bytes(video_data) == b"hello, world!"
 
             self.project.refresh_from_db()
             assert bool(self.project.flags.has_replays) is True

@@ -19,6 +19,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
+    log_alerting_quota_hit,
     remove_items_by_api_input,
     validate_json_schema,
 )
@@ -261,6 +262,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             max_workflows = options.get("workflow_engine.max_workflows_per_org")
 
         if workflow_count >= max_workflows:
+            request = self.context["request"]
+            log_alerting_quota_hit(
+                object_type="workflow",
+                organization=org,
+                actor=request.user if request.user.is_authenticated else None,
+            )
             raise serializers.ValidationError(
                 f"You may not exceed {max_workflows} workflows per organization."
             )

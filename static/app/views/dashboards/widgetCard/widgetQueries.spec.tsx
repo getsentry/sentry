@@ -737,7 +737,7 @@ describe('Dashboards > WidgetQueries', () => {
       {
         organization: {
           ...organization,
-          features: [...organization.features, 'dashboards-mep'],
+          features: [...organization.features],
         },
       }
     );
@@ -781,7 +781,7 @@ describe('Dashboards > WidgetQueries', () => {
       {
         organization: {
           ...organization,
-          features: [...organization.features, 'dashboards-mep'],
+          features: [...organization.features],
         },
       }
     );
