@@ -24,7 +24,7 @@ jobs:
   split-tiers:
     name: split tests into tiers
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     permissions:
       contents: read
       id-token: write
@@ -111,6 +111,7 @@ jobs:
           mkdir -p /tmp/tier2-shards
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards \
+            --swap-rounds 10 \
             $DURATIONS_FLAG
 
           echo "tier1-count=$(find /tmp/tier1-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
