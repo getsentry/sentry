@@ -53,6 +53,7 @@ jobs:
           # flaky — merge-durations succeeds independently of shard failures.
           RUNS=$(gh run list \
             --workflow=backend-xdist-split-poc.yml \
+            --branch mchen/worker-lpt \
             --status=completed --limit=5 \
             --json databaseId --jq '.[].databaseId')
           for RUN_ID in $RUNS; do
