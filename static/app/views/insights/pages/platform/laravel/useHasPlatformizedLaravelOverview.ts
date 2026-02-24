@@ -7,6 +7,6 @@ export default function useHasPlatformizedLaravelOverview() {
   return hasPlatformizedLaravelOverviewWidget(organization);
 }
 
-export function hasPlatformizedLaravelOverviewWidget(organization: Organization) {
+function hasPlatformizedLaravelOverviewWidget(organization: Organization) {
   return organization.features.includes('insights-laravel-overview-dashboard-migration');
 }

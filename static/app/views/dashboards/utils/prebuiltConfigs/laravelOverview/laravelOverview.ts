@@ -117,8 +117,8 @@ const JOBS_TABLE: Widget = {
       name: '',
       conditions: `${SpanFields.SPAN_OP}:queue.process`,
       fields: [
-        SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
         SpanFields.TRANSACTION,
+        SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
         'count()',
         'failure_rate()',
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
