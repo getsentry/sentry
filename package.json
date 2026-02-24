@@ -291,6 +291,7 @@
     "build-js-loader": "node --experimental-transform-types scripts/build-js-loader.ts",
     "build-js-po": "node --experimental-transform-types build-utils/ts-extract-gettext.ts",
     "build-profile": "NODE_OPTIONS='--experimental-transform-types' NO_TS_FORK=1 rspack --profile --json > stats.json",
+    "extract-form-fields": "node --experimental-transform-types scripts/extractFormFields.ts",
     "validate-api-examples": "pnpm run --dir api-docs openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install",
     "https-proxy": "caddy run --config - <<< '{\"apps\":{\"http\":{\"servers\":{\"srv0\":{\"listen\":[\":8003\"],\"routes\":[{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"localhost:8000\"}]}]}],\"tls_connection_policies\":[{\"certificate_selection\":{\"any_tag\":[\"cert0\"]}}]}}},\"tls\":{\"certificates\":{\"load_files\":[{\"certificate\":\"./config/localhost.pem\",\"key\":\"./config/localhost-key.pem\",\"tags\":[\"cert0\"]}]}}}}'",
