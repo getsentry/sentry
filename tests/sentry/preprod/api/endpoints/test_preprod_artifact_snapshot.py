@@ -35,7 +35,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "abc123def456": {
-                    "file_name": "test.png",
+                    "display_name": "Test Screen",
+                    "image_file_name": "test.png",
                     "width": 375,
                     "height": 812,
                     "dark_mode": True,
@@ -72,7 +73,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "pr_number": 123,
             "images": {
                 "img1": {
-                    "file_name": "screen1.png",
+                    "display_name": "Screen 1",
+                    "image_file_name": "screen1.png",
                     "width": 100,
                     "height": 200,
                     "device": "iPhone 14",
@@ -101,7 +103,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "hash1": {
-                    "file_name": "screen1.png",
+                    "display_name": "Screen 1",
+                    "image_file_name": "screen1.png",
                     "width": 100,
                     "height": 200,
                 },
@@ -172,7 +175,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "hash1": {
-                    "file_name": "test.png",
+                    "display_name": "Test Screen",
+                    "image_file_name": "test.png",
                     "width": -100,
                     "height": 812,
                 },
@@ -269,13 +273,13 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
             images = {
                 "img1": {
                     "display_name": "Screen1",
-                    "file_name": "Screen1",
+                    "image_file_name": "Screen1",
                     "width": 375,
                     "height": 812,
                 },
                 "img2": {
                     "display_name": "Screen2",
-                    "file_name": "Screen2",
+                    "image_file_name": "Screen2",
                     "width": 1080,
                     "height": 1920,
                 },
@@ -321,7 +325,9 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert len(response.data["images"]) == 2
         # Images should be sorted by key
         assert response.data["images"][0]["key"] == "img1"
-        assert response.data["images"][0]["file_name"] == "Screen1"
+        assert (
+            response.data["images"][0]["image_file_name"] == "Screen1"
+        )  # response field is still "file_name"
         assert response.data["images"][1]["key"] == "img2"
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
@@ -358,7 +364,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         images = {
             f"img{i:03d}": {
                 "display_name": f"Image {i}",
-                "file_name": f"image{i}.png",
+                "image_file_name": f"image{i}.png",
                 "width": 100,
                 "height": 200,
             }
