@@ -62,7 +62,7 @@ export default function SnapshotsPage() {
     const allImages = data.pages.flatMap(page => page[0].images);
     const groups = new Map<string, SnapshotImage[]>();
     for (const image of allImages) {
-      const name = image.display_name ?? image.file_name;
+      const name = image.display_name ?? image.image_file_name;
       const existing = groups.get(name);
       if (existing) {
         existing.push(image);

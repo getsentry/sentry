@@ -8,11 +8,12 @@ import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {AssertionSuggestionsDrawerContent} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsDrawerContent';
-import type {
-  AndOp,
-  Assertion,
-  AssertionSuggestion,
-  Op,
+import {
+  OpType,
+  type AndOp,
+  type Assertion,
+  type AssertionSuggestion,
+  type Op,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 /**
@@ -21,10 +22,10 @@ import type {
 function addIdToOp(op: Op): Op {
   const id = uniqueId();
   switch (op.op) {
-    case 'and':
-    case 'or':
+    case OpType.AND:
+    case OpType.OR:
       return {...op, id, children: op.children.map(addIdToOp)};
-    case 'not':
+    case OpType.NOT:
       return {...op, id, operand: addIdToOp(op.operand)};
     default:
       return {...op, id};
@@ -81,7 +82,7 @@ export function AssertionSuggestionsButton({
             children: [...current.root.children, newOp],
           }
         : {
-            op: 'and',
+            op: OpType.AND,
             id: uniqueId(),
             children: [newOp],
           };
