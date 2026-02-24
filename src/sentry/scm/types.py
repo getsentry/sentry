@@ -5,6 +5,10 @@ type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"
 """The SCM provider that owns an integration or repository."""
 
 type ExternalId = str
+"""
+Identifier whose origin is an external, source-code-management provider. Refers specifically to
+the unique identifier of a repository.
+"""
 
 type ResourceId = str
 """An opaque provider-assigned identifier for a resource (pull request, review, check run, etc.).
