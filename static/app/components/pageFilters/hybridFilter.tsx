@@ -1,24 +1,14 @@
 import {
   useCallback,
-  useContext,
   useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import styled from '@emotion/styled';
 import {isAppleDevice, isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
-import type {DistributedOmit} from 'type-fest';
 
-import {
-  Button,
-  LinkButton,
-  type ButtonProps,
-  type LinkButtonProps,
-} from '@sentry/scraps/button';
-import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
 import type {
   MultipleSelectProps,
   SelectKey,
@@ -26,10 +16,9 @@ import type {
   SelectOptionOrSection,
   SelectSection,
 } from '@sentry/scraps/compactSelect';
-import {CompactSelect, ControlContext} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
-import {t} from 'sentry/locale';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 
 export interface HybridFilterRef<Value extends SelectKey> {
@@ -478,76 +467,3 @@ export function HybridFilter<Value extends SelectKey>({
     />
   );
 }
-
-export const HybridFilterComponents = {
-  LinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
-    return <LinkButton size="xs" {...props} />;
-  },
-
-  ResetButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
-    const controlContext = useContext(ControlContext);
-
-    return (
-      <ResetButton
-        {...props}
-        priority="transparent"
-        size="zero"
-        onClick={e => {
-          props.onClick?.(e);
-          controlContext.overlayState?.close();
-        }}
-      >
-        {t('Reset')}
-      </ResetButton>
-    );
-  },
-
-  ApplyButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
-    const controlContext = useContext(ControlContext);
-
-    return (
-      <Button
-        {...props}
-        size="xs"
-        priority="primary"
-        disabled={props.disabled}
-        onClick={e => {
-          props.onClick?.(e);
-          controlContext.overlayState?.close();
-        }}
-      >
-        {t('Apply')}
-      </Button>
-    );
-  },
-
-  CancelButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
-    const controlContext = useContext(ControlContext);
-
-    return (
-      <Button
-        {...props}
-        size="xs"
-        priority="transparent"
-        onClick={e => {
-          props.onClick?.(e);
-          controlContext.overlayState?.close();
-        }}
-      >
-        {t('Cancel')}
-      </Button>
-    );
-  },
-
-  Checkbox(props: CheckboxProps) {
-    return <Checkbox {...props} />;
-  },
-};
-
-const ResetButton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${p => p.theme.space.xs};
-  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
-`;

@@ -3,6 +3,7 @@ import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
+import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -16,7 +17,6 @@ import {
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
-  HybridFilterComponents,
   useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
@@ -187,7 +187,7 @@ export function EnvironmentPageFilter({
         value: env,
         label: env,
         leadingItems: ({isSelected}: {isSelected: boolean}) => (
-          <HybridFilterComponents.Checkbox
+          <MenuComponents.Checkbox
             checked={isSelected}
             onChange={() => hybridFilterRef.current?.toggleOption(env)}
             aria-label={t('Select %s', env)}
@@ -255,19 +255,17 @@ export function EnvironmentPageFilter({
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
-          />
+          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
         ) : null
       }
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton
+            <MenuComponents.CancelButton
               disabled={!stagedSelect.hasStagedChanges}
               onClick={() => stagedSelect.removeStagedChanges()}
             />
-            <HybridFilterComponents.ApplyButton
+            <MenuComponents.ApplyButton
               onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
             />
           </Flex>
