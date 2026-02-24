@@ -135,7 +135,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
             : t('Select Filter Dataset')}
         </MenuTitleWrapper>
       }
-      menuFooter={({resetSearch, closeOverlay}) => {
+      menuFooter={({resetSearch}) => {
         if (!isSelectingFilterKey) return null;
 
         return (
@@ -176,7 +176,6 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
                 };
                 onAddFilter(newFilter);
                 setIsSelectingFilterKey(false);
-                closeOverlay();
               }}
             />
           </Flex>
