@@ -41,6 +41,7 @@ import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesW
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
@@ -69,6 +70,7 @@ interface VisualizationWidgetProps {
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
+  widgetInterval?: string;
 }
 
 export function VisualizationWidget({
@@ -78,6 +80,7 @@ export function VisualizationWidget({
   onDataFetched,
   onDataFetchStart,
   tableItemLimit,
+  widgetInterval,
   renderErrorMessage,
   showReleaseAs = 'bubble',
 }: VisualizationWidgetProps) {
@@ -99,6 +102,7 @@ export function VisualizationWidget({
       onDataFetched={onDataFetched}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
+      widgetInterval={widgetInterval}
     >
       {({
         timeseriesResults,
@@ -350,7 +354,21 @@ function VisualizationWidgetContent({
     paddingBottom: 'lg',
   };
 
-  const plottables = timeSeriesWithPlottable.map(([, plottable]) => plottable);
+  const plottables: Plottable[] = timeSeriesWithPlottable.map(
+    ([, plottable]) => plottable
+  );
+
+  if (
+    defined(widget.thresholds?.max_values.max1) ||
+    defined(widget.thresholds?.max_values.max2)
+  ) {
+    plottables.push(
+      new Thresholds({
+        thresholds: widget.thresholds,
+        dataType: timeSeriesWithPlottable[0]?.[0]?.meta?.valueType,
+      })
+    );
+  }
 
   // Check for empty plottables before rendering the visualization
   // This prevents TimeSeriesWidgetVisualization from throwing an error

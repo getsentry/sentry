@@ -78,10 +78,6 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
 }
 
