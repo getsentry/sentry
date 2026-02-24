@@ -447,7 +447,7 @@ export function TimeRangeSelector({
           }
           menuFooter={
             menuFooter || menuFooterMessage || showAbsoluteSelector
-              ? ({closeOverlay}) => (
+              ? () => (
                   <Fragment>
                     {menuFooterMessage && (
                       <FooterMessage>{menuFooterMessage}</FooterMessage>
@@ -468,10 +468,7 @@ export function TimeRangeSelector({
                           )}
                           <MenuComponents.ApplyButton
                             disabled={!hasChanges || hasDateRangeErrors}
-                            onClick={() => {
-                              commitChanges();
-                              closeOverlay();
-                            }}
+                            onClick={commitChanges}
                           />
                         </Flex>
                       )}
