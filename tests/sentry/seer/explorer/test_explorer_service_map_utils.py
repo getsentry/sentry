@@ -72,14 +72,14 @@ class TestBuildServiceMap(TestCase):
 
         with override_options({"explorer.service_map.enable": False}):
             with mock.patch(
-                "sentry.seer.explorer.explorer_service_map_utils._query_service_dependencies"
+                "sentry.tasks.explorer_context_engine_tasks._query_service_dependencies"
             ) as mock_query:
                 build_service_map(org.id)
 
         mock_query.assert_not_called()
 
-    @mock.patch("sentry.seer.explorer.explorer_service_map_utils._send_to_seer")
-    @mock.patch("sentry.seer.explorer.explorer_service_map_utils._query_service_dependencies")
+    @mock.patch("sentry.tasks.explorer_context_engine_tasks._send_to_seer")
+    @mock.patch("sentry.tasks.explorer_context_engine_tasks._query_service_dependencies")
     def test_complete_workflow(self, mock_dependencies, mock_send):
         org = self.create_organization()
         project1 = self.create_project(organization=org)
@@ -97,7 +97,7 @@ class TestBuildServiceMap(TestCase):
         assert isinstance(snuba_params, SnubaParams)
         mock_send.assert_called_once()
 
-    @mock.patch("sentry.seer.explorer.explorer_service_map_utils._query_service_dependencies")
+    @mock.patch("sentry.tasks.explorer_context_engine_tasks._query_service_dependencies")
     def test_handles_no_edges(self, mock_dependencies):
         org = self.create_organization()
 
@@ -105,13 +105,13 @@ class TestBuildServiceMap(TestCase):
 
         with override_options({"explorer.service_map.enable": True}):
             with mock.patch(
-                "sentry.seer.explorer.explorer_service_map_utils._send_to_seer"
+                "sentry.tasks.explorer_context_engine_tasks._send_to_seer"
             ) as mock_send:
                 build_service_map(org.id)
 
         mock_send.assert_not_called()
 
-    @mock.patch("sentry.seer.explorer.explorer_service_map_utils._query_service_dependencies")
+    @mock.patch("sentry.tasks.explorer_context_engine_tasks._query_service_dependencies")
     def test_handles_exception(self, mock_dependencies):
         org = self.create_organization()
 
@@ -1080,9 +1080,7 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        with mock.patch(
-            "sentry.seer.explorer.explorer_service_map_utils._send_to_seer"
-        ) as mock_send:
+        with mock.patch("sentry.tasks.explorer_context_engine_tasks._send_to_seer") as mock_send:
             with override_options(
                 {
                     "explorer.service_map.enable": True,
