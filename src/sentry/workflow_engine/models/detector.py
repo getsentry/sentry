@@ -115,6 +115,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return f"detector:by_proj_type:{project_id}:{detector_type}"
 
     @classmethod
+    def invalidate_project_cache(cls, project_id: int, detector_type: str) -> None:
+        cache_key = cls._get_detector_project_type_cache_key(project_id, detector_type)
+        cache.delete(cache_key)
+
+    @classmethod
     def get_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:
         cache_key = cls._get_detector_project_type_cache_key(project_id, detector_type)
         detector = cache.get(cache_key)

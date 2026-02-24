@@ -220,6 +220,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
 
             if "project_id" in validated_data:
                 instance.project_id = validated_data["project_id"]
+                # invalidate cache of old project
+                Detector.invalidate_project_cache(instance.project_id, instance.type)
 
             instance.save()
 
