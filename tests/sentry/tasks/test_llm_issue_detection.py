@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
+from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
 from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
@@ -82,7 +82,7 @@ class LLMIssueDetectionTest(TestCase):
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
     def test_create_issue_occurrence_from_detection(self, mock_produce_occurrence):
         detected_issue = DetectedIssue(
-            title="Database Connection Pool Exhaustion",
+            title="Slow Database Query",
             explanation="Your application is running out of database connections",
             impact="High - may cause request failures",
             evidence="Connection pool at 95% capacity",
@@ -93,7 +93,7 @@ class LLMIssueDetectionTest(TestCase):
             subcategory="Connection Pool Exhaustion",
             category="Database",
             verification_reason="Problem is correctly identified",
-            group_for_fingerprint="",
+            group_for_fingerprint="Slow Database Query",
         )
 
         create_issue_occurrence_from_detection(
@@ -107,14 +107,14 @@ class LLMIssueDetectionTest(TestCase):
         assert call_kwargs["payload_type"].value == "occurrence"
 
         occurrence = call_kwargs["occurrence"]
-        assert occurrence.type == LLMDetectedExperimentalGroupType
-        assert occurrence.issue_title == "Database Connection Pool Exhaustion"
+        assert occurrence.type == LLMDetectedExperimentalGroupTypeV2
+        assert occurrence.issue_title == "Slow Database Query"
         assert occurrence.subtitle == "Your application is running out of database connections"
         assert occurrence.project_id == self.project.id
         assert occurrence.culprit == "test_transaction"
         assert occurrence.level == "warning"
 
-        assert occurrence.fingerprint == ["llm-detected--test_transaction"]
+        assert occurrence.fingerprint == ["llm-detected-slow-database-query"]
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
         assert occurrence.evidence_data["transaction"] == "test_transaction"
@@ -149,7 +149,7 @@ class LLMIssueDetectionTest(TestCase):
         self, mock_produce_occurrence
     ):
         detected_issue = DetectedIssue(
-            title="N+1 Queries",
+            title="N+1 Database Queries",
             explanation="Multiple queries in loop",
             impact="Medium",
             evidence="5 queries",
@@ -160,14 +160,14 @@ class LLMIssueDetectionTest(TestCase):
             subcategory="N+1",
             category="Performance",
             verification_reason="Verified",
-            group_for_fingerprint="seer-group-key-123",
+            group_for_fingerprint="N+1 Database Queries",
         )
         create_issue_occurrence_from_detection(
             detected_issue=detected_issue,
             project=self.project,
         )
         occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
-        assert occurrence.fingerprint == ["llm-detected-seer-group-key-123-get-/api"]
+        assert occurrence.fingerprint == ["llm-detected-n+1-database-queries"]
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")

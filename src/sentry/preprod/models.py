@@ -149,6 +149,21 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.ARTIFACT_PROCESSING_ERROR, "artifact_processing_error"),
             )
 
+    class InstallableAppErrorCode(IntEnum):
+        UNKNOWN = 0
+        NO_QUOTA = 1
+        """No quota available for distribution."""
+        SKIPPED = 2
+        """Distribution was not requested on this build."""
+
+        @classmethod
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
+            return (
+                (cls.UNKNOWN, "unknown"),
+                (cls.NO_QUOTA, "no_quota"),
+                (cls.SKIPPED, "skipped"),
+            )
+
     __relocation_scope__ = RelocationScope.Excluded
     objects: ClassVar[PreprodArtifactModelManager] = PreprodArtifactModelManager()
 
@@ -200,6 +215,11 @@ class PreprodArtifact(DefaultFieldsModel):
 
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
+
+    installable_app_error_code = BoundedPositiveIntegerField(
+        choices=InstallableAppErrorCode.as_choices(), null=True
+    )
+    installable_app_error_message = models.TextField(null=True)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
@@ -522,6 +542,8 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """An embedded watch artifact."""
         ANDROID_DYNAMIC_FEATURE = 2
         """An embedded Android dynamic feature artifact."""
+        APP_CLIP_ARTIFACT = 3
+        """An embedded App Clip artifact."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -529,6 +551,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.MAIN_ARTIFACT, "main_artifact"),
                 (cls.WATCH_ARTIFACT, "watch_artifact"),
                 (cls.ANDROID_DYNAMIC_FEATURE, "android_dynamic_feature_artifact"),
+                (cls.APP_CLIP_ARTIFACT, "app_clip_artifact"),
             )
 
     class SizeAnalysisState(IntEnum):

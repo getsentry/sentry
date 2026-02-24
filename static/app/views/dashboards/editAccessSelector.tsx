@@ -347,7 +347,10 @@ function EditAccessSelector({
         onSelectOptions(newSelectedOptions);
       }}
       multiple
-      searchable
+      search={{
+        placeholder: t('Search Teams'),
+        onChange: debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION),
+      }}
       options={allDropdownOptions}
       value={selectedOptions}
       trigger={triggerProps => (
@@ -364,7 +367,6 @@ function EditAccessSelector({
               ]}
         </OverlayTrigger.Button>
       )}
-      searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={newOpenState => {
         if (newOpenState === true) {
@@ -375,7 +377,6 @@ function EditAccessSelector({
         setMenuOpen(!isMenuOpen);
       }}
       menuFooter={dropdownFooterButtons}
-      onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
       strategy="fixed"
       preventOverflowOptions={{mainAxis: false}}
       disabled={disabled}

@@ -1,18 +1,20 @@
 import {uniqueId} from 'sentry/utils/guid';
-import type {
-  AndOp,
-  HeaderCheckOp,
-  JsonPathOp,
-  NotOp,
-  OrOp,
-  StatusCodeOp,
+import {
+  ComparisonType,
+  OpType,
+  type AndOp,
+  type HeaderCheckOp,
+  type JsonPathOp,
+  type NotOp,
+  type OrOp,
+  type StatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 export function makeAndOp(overrides: Omit<Partial<AndOp>, 'op'> = {}): AndOp {
   const {children, ...rest} = overrides;
   return {
     id: uniqueId(),
-    op: 'and',
+    op: OpType.AND,
     children: children ?? [],
     ...rest,
   };
@@ -22,7 +24,7 @@ export function makeOrOp(overrides: Omit<Partial<OrOp>, 'op'> = {}): OrOp {
   const {children, ...rest} = overrides;
   return {
     id: uniqueId(),
-    op: 'or',
+    op: OpType.OR,
     children: children ?? [],
     ...rest,
   };
@@ -32,7 +34,7 @@ export function makeNotOp(overrides: Omit<Partial<NotOp>, 'op'> = {}): NotOp {
   const {operand, ...rest} = overrides;
   return {
     id: uniqueId(),
-    op: 'not',
+    op: OpType.NOT,
     operand: operand ?? makeAndOp({children: [makeStatusCodeOp()]}),
     ...rest,
   };
@@ -43,8 +45,8 @@ export function makeStatusCodeOp(
 ): StatusCodeOp {
   return {
     id: uniqueId(),
-    op: 'status_code_check',
-    operator: {cmp: 'equals'},
+    op: OpType.STATUS_CODE_CHECK,
+    operator: {cmp: ComparisonType.EQUALS},
     value: 200,
     ...overrides,
   };
@@ -55,9 +57,9 @@ export function makeJsonPathOp(
 ): JsonPathOp {
   return {
     id: uniqueId(),
-    op: 'json_path',
+    op: OpType.JSON_PATH,
     value: '$.status',
-    operator: {cmp: 'equals'},
+    operator: {cmp: ComparisonType.EQUALS},
     operand: {jsonpath_op: 'literal', value: 'ok'},
     ...overrides,
   };
@@ -68,10 +70,10 @@ export function makeHeaderCheckOp(
 ): HeaderCheckOp {
   return {
     id: uniqueId(),
-    op: 'header_check',
-    key_op: {cmp: 'equals'},
+    op: OpType.HEADER_CHECK,
+    key_op: {cmp: ComparisonType.EQUALS},
     key_operand: {header_op: 'literal', value: 'content-type'},
-    value_op: {cmp: 'equals'},
+    value_op: {cmp: ComparisonType.EQUALS},
     value_operand: {header_op: 'literal', value: 'application/json'},
     ...overrides,
   };

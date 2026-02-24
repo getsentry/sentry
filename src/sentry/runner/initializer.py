@@ -442,7 +442,7 @@ def validate_regions(settings: Any) -> None:
     if not settings.SENTRY_REGION_CONFIG:
         return
 
-    load_from_config(settings.SENTRY_REGION_CONFIG).validate_all()
+    load_from_config(settings.SENTRY_REGION_CONFIG, settings.SENTRY_LOCALITIES).validate_all()
 
 
 def monkeypatch_django_migrations() -> None:
