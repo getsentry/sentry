@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import orjson
 import requests
 import sentry_sdk
 from django.conf import settings
 
+from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.events.types import SnubaParams
 from sentry.seer.explorer.context_engine_utils import (
     EVENT_COUNT_LOOKBACK_DAYS,
     ProjectEventCounts,
@@ -18,6 +21,11 @@ from sentry.seer.explorer.context_engine_utils import (
     get_sdk_names_for_org_projects,
     get_top_span_ops_for_org_projects,
     get_top_transactions_for_org_projects,
+)
+from sentry.seer.explorer.explorer_service_map_utils import (
+    _build_nodes,
+    _query_service_dependencies,
+    _send_to_seer,
 )
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
@@ -29,7 +37,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.explorer_context_engine_tasks.index_org_project_knowledge",
     namespace=seer_tasks,
-    processing_deadline_duration=30 * 60,
+    processing_deadline_duration=10 * 60,
 )
 def index_org_project_knowledge(org_id: int) -> None:
     """
@@ -111,4 +119,117 @@ def index_org_project_knowledge(org_id: int) -> None:
     logger.info(
         "Successfully called Seer org-project-knowledge endpoint",
         extra={"org_id": org_id, "num_projects": len(project_data)},
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.explorer_context_engine_tasks.build_service_map",
+    namespace=seer_tasks,
+    processing_deadline_duration=10 * 60,  # 10 minutes
+)
+def build_service_map(organization_id: int, *args, **kwargs) -> None:
+    """
+    Build service map for a single organization and send to Seer.
+
+    This task:
+    1. Checks feature flags
+    2. Queries Snuba for service dependencies
+    3. Classifies service roles using graph analysis
+    4. Sends data to Seer
+
+    Args:
+        organization_id: Organization ID to build map for
+    """
+    logger.info(
+        "Starting service map build",
+        extra={"org_id": organization_id},
+    )
+
+    if not options.get("explorer.service_map.enable"):
+        logger.info("explorer.service_map.enable flag is disabled")
+        return
+
+    try:
+        organization = Organization.objects.get(id=organization_id)
+        projects = list(
+            Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
+        )
+
+        if not projects:
+            logger.info("No projects found for organization", extra={"org_id": organization_id})
+            return
+
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(hours=24)
+
+        snuba_params = SnubaParams(
+            start=start,
+            end=end,
+            projects=projects,
+            organization=organization,
+        )
+
+        edges = _query_service_dependencies(snuba_params)
+
+        if not edges:
+            logger.info("No service dependencies found", extra={"org_id": organization_id})
+            return
+
+        nodes = _build_nodes(edges)
+
+        _send_to_seer(organization_id, nodes)
+
+        logger.info(
+            "Successfully completed service map build",
+            extra={
+                "org_id": organization_id,
+                "edge_count": len(edges),
+                "node_count": len(nodes),
+            },
+        )
+
+    except Organization.DoesNotExist:
+        logger.error("Organization not found", extra={"org_id": organization_id})
+    except Exception:
+        logger.exception(
+            "Failed to build service map",
+            extra={"org_id": organization_id},
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.explorer_context_engine_tasks.schedule_context_engine_indexing_tasks",
+    namespace=seer_tasks,
+    processing_deadline_duration=30 * 60,
+)
+def schedule_context_engine_indexing_tasks() -> None:
+    """
+    Schedule context engine indexing tasks for all allowed organizations.
+
+    Reads the org allowlist from the explorer.service_map.allowed_organizations
+    option and dispatches index_org_project_knowledge and build_service_map
+    for each org.
+    """
+    allowed_org_ids = options.get("explorer.service_map.allowed_organizations")
+    if not allowed_org_ids:
+        logger.info("No allowed organizations for context engine indexing")
+        return
+
+    # TODO: as the list of allowed organizations grows, we should batch the tasks to avoid overwhelming the system
+    # Also possibly consider spreading the tasks out across a day or week.
+    dispatched = 0
+    for org_id in allowed_org_ids:
+        try:
+            index_org_project_knowledge.apply_async(args=[org_id])
+            build_service_map.apply_async(args=[org_id])
+            dispatched += 1
+        except Exception:
+            logger.exception(
+                "Failed to dispatch context engine tasks for org",
+                extra={"org_id": org_id},
+            )
+
+    logger.info(
+        "Scheduled context engine indexing tasks",
+        extra={"total_org_count": len(allowed_org_ids), "dispatched": dispatched},
     )

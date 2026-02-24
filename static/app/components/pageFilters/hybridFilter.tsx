@@ -383,7 +383,7 @@ export function HybridFilter<Value extends SelectKey>({
   ref,
   options,
   stagedSelect,
-  onSearch: onSearchProp,
+  search: searchProp,
   onOpenChange: onOpenChangeProp,
   ...selectProps
 }: HybridFilterProps<Value>) {
@@ -391,9 +391,13 @@ export function HybridFilter<Value extends SelectKey>({
     stagedSelect.toggleOption,
   ]);
 
-  const handleSearch = (value: string) => {
-    stagedSelect.handleSearch(value);
-    onSearchProp?.(value);
+  const searchConfig = typeof searchProp === 'object' ? searchProp : undefined;
+  const search = {
+    ...searchConfig,
+    onChange: (value: string) => {
+      stagedSelect.handleSearch(value);
+      searchConfig?.onChange?.(value);
+    },
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -462,7 +466,7 @@ export function HybridFilter<Value extends SelectKey>({
       options={mappedOptions}
       {...stagedSelect.compactSelectProps}
       {...selectProps}
-      onSearch={handleSearch}
+      search={search}
       onOpenChange={handleOpenChange}
     />
   );

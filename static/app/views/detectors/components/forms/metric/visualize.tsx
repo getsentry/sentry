@@ -396,7 +396,7 @@ export function Visualize() {
             </Tooltip>
           </div>
           <StyledAggregateSelect
-            searchable
+            search
             trigger={triggerProps => (
               <OverlayTrigger.Button {...triggerProps}>
                 {aggregate || t('Select aggregate')}
@@ -415,7 +415,7 @@ export function Visualize() {
             <Stack flex="1" gap="xs" maxWidth="425px" key={index}>
               {param.kind === 'column' ? (
                 <StyledVisualizeSelect
-                  searchable
+                  search
                   trigger={triggerProps => (
                     <OverlayTrigger.Button {...triggerProps}>
                       {lockedOption
@@ -436,7 +436,7 @@ export function Visualize() {
                 />
               ) : param.kind === 'dropdown' && param.options ? (
                 <StyledVisualizeSelect
-                  searchable
+                  search
                   trigger={triggerProps => (
                     <OverlayTrigger.Button {...triggerProps}>
                       {parameters[index] || param.defaultValue || t('Select value')}

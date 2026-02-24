@@ -42,7 +42,6 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
-    ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
@@ -266,12 +265,6 @@ ORG_OPTIONS = (
         DEFAULT_CODE_REVIEW_TRIGGERS,
     ),
     (
-        "allowBackgroundAgentDelegation",
-        "sentry:allow_background_agent_delegation",
-        bool,
-        ALLOW_BACKGROUND_AGENT_DELEGATION,
-    ),
-    (
         "ingestThroughTrustedRelaysOnly",
         "sentry:ingest-through-trusted-relays-only",
         str,
@@ -372,7 +365,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         allow_empty=True,
         help_text="The default code review triggers for new repositories.",
     )
-    allowBackgroundAgentDelegation = serializers.BooleanField(required=False)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
@@ -865,7 +857,6 @@ def create_console_platform_audit_log(
         "autoOpenPrs",
         "autoEnableCodeReview",
         "defaultCodeReviewTriggers",
-        "allowBackgroundAgentDelegation",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
         "consoleSdkInviteQuota",

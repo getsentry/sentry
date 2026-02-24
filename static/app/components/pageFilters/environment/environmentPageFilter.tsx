@@ -32,7 +32,7 @@ import useRouter from 'sentry/utils/useRouter';
 export interface EnvironmentPageFilterProps extends Partial<
   Omit<
     HybridFilterProps<string>,
-    | 'searchable'
+    | 'search'
     | 'multiple'
     | 'options'
     | 'value'
@@ -231,7 +231,7 @@ export function EnvironmentPageFilter({
       {...selectProps}
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
-      searchable
+      search
       options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
