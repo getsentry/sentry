@@ -14,16 +14,13 @@ describe('buildDetectorZoomQuery', () => {
     });
 
     expect('statsPeriod' in zoomRange).toBe(false);
-    if ('statsPeriod' in zoomRange) {
-      throw new Error('expected absolute zoom range');
-    }
 
     const query = buildDetectorZoomQuery({project: '1', statsPeriod: '14d'}, zoomRange);
 
     expect(query).toEqual({
       project: '1',
-      start: getUtcDateString(zoomRange.start),
-      end: getUtcDateString(zoomRange.end),
+      start: getUtcDateString(Date.parse('2024-12-31T23:50:00Z')), // start -10 * 60 seconds
+      end: getUtcDateString(Date.parse('2025-01-01T01:10:00Z')), // end + 10 * 60 seconds
       statsPeriod: undefined,
     });
   });
