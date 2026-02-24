@@ -111,6 +111,7 @@ export type FiltersBarProps = {
   onSave?: () => Promise<void>;
   prebuiltDashboardId?: PrebuiltDashboardId;
   shouldBusySaveButton?: boolean;
+  storageNamespace?: string;
 };
 
 export default function FiltersBar({
@@ -127,6 +128,7 @@ export default function FiltersBar({
   onSave,
   shouldBusySaveButton,
   prebuiltDashboardId,
+  storageNamespace,
 }: FiltersBarProps) {
   const organization = useOrganization();
   const currentUser = useUser();
@@ -207,6 +209,7 @@ export default function FiltersBar({
         <PageFilterBar condensed>
           <ProjectPageFilter
             disabled={isEditingDashboard}
+            storageNamespace={storageNamespace}
             onChange={() => {
               trackAnalytics('dashboards2.filter.change', {
                 organization,
@@ -216,6 +219,7 @@ export default function FiltersBar({
           />
           <EnvironmentPageFilter
             disabled={isEditingDashboard}
+            storageNamespace={storageNamespace}
             onChange={() => {
               trackAnalytics('dashboards2.filter.change', {
                 organization,
