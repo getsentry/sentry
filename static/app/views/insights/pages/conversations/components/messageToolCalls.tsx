@@ -32,7 +32,8 @@ function CollapsibleTagList({items, failedCount = 0}: CollapsibleTagListProps) {
           {t('+%s more', hiddenCount)}
           {failedCount > 0 && (
             <Text as="span" variant="danger">
-              {'\u00A0'}({failedCount} {t('failed')})
+              {'\u00A0'}
+              {t('(%s failed)', failedCount)}
             </Text>
           )}
         </Button>
