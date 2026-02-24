@@ -35,7 +35,7 @@ export function CopyMarkdownButton({
       title={t(
         'Copies all steps and code examples as Markdown, optimized for use with an LLM.'
       )}
-      position="right"
+      position="auto"
     >
       <Button
         priority={borderless ? 'transparent' : undefined}
