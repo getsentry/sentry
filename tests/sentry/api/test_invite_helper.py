@@ -1,10 +1,12 @@
 import pytest
 from django.http import HttpRequest
 
+from sentry import audit_log
 from sentry.api.invite_helper import ApiInviteHelper
-from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -125,3 +127,29 @@ class ApiInviteHelperTest(TestCase):
         self.create_auth_identity(auth_provider=ap, user=self.user)
 
         self.test_invite_already_accepted_without_SSO()
+
+    def test_handle_invite_not_approved_creates_audit_log(self) -> None:
+        unapproved_member = self.create_member(
+            user=None,
+            email="unapproved@example.com",
+            organization=self.org,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+
+        invite_context = organization_service.get_invite_by_id(
+            organization_member_id=unapproved_member.id,
+            organization_id=self.org.id,
+        )
+        assert invite_context is not None
+
+        helper = ApiInviteHelper(self.request, invite_context, None)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            helper.handle_invite_not_approved()
+
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(id=unapproved_member.id)
+
+        assert_org_audit_log_exists(
+            organization=self.org,
+            event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
+        )

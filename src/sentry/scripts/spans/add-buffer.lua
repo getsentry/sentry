@@ -127,14 +127,27 @@ table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_arg
 -- Used outside the if statement
 local spop_end_time_ms = -1
 if #sunionstore_args > 0 then
-    local start_output_size = redis.call("scard", set_key)
-    local output_size = redis.call("sunionstore", set_key, set_key, unpack(sunionstore_args))
-    redis.call("unlink", unpack(sunionstore_args))
+    if (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes then
+        table.insert(metrics_table, {"parent_span_set_already_oversized", 1})
+    else
+        table.insert(metrics_table, {"parent_span_set_already_oversized", 0})
+    end
 
+    local start_output_size = redis.call("scard", set_key)
+    local scard_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"scard_step_latency_ms", scard_end_time_ms - sunionstore_args_end_time_ms})
+
+    local output_size = redis.call("sunionstore", set_key, set_key, unpack(sunionstore_args))
     local sunionstore_end_time_ms = get_time_ms()
-    table.insert(latency_table, {"sunionstore_step_latency_ms", sunionstore_end_time_ms - sunionstore_args_end_time_ms})
+    table.insert(latency_table, {"sunionstore_step_latency_ms", sunionstore_end_time_ms - scard_end_time_ms})
+
+    redis.call("unlink", unpack(sunionstore_args))
+    local unlink_end_time_ms = get_time_ms()
+    table.insert(latency_table, {"unlink_step_latency_ms", unlink_end_time_ms - sunionstore_end_time_ms})
+
     table.insert(metrics_table, {"parent_span_set_before_size", start_output_size})
     table.insert(metrics_table, {"parent_span_set_after_size", output_size})
+    table.insert(metrics_table, {"elements_added", output_size - start_output_size})
 
     -- Merge ingested count keys for merged spans
     local ingested_count_key = string.format("span-buf:ic:%s", set_key)
@@ -156,7 +169,7 @@ if #sunionstore_args > 0 then
     end
 
     local arg_cleanup_end_time_ms = get_time_ms()
-    table.insert(latency_table, {"arg_cleanup_step_latency_ms", arg_cleanup_end_time_ms - sunionstore_end_time_ms})
+    table.insert(latency_table, {"arg_cleanup_step_latency_ms", arg_cleanup_end_time_ms - unlink_end_time_ms})
 
     local spopcalls = 0
     while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do

@@ -1,4 +1,4 @@
-import {ThemeProvider} from '@emotion/react';
+import {css, ThemeProvider} from '@emotion/react';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
@@ -6,7 +6,7 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 import type {BreakpointSize} from 'sentry/utils/theme';
 
 // eslint-disable-next-line boundaries/entry-point
-import {useActiveBreakpoint, useResponsivePropValue, type Responsive} from './styles';
+import {rc, useActiveBreakpoint, useResponsivePropValue, type Responsive} from './styles';
 
 const theme = ThemeFixture();
 
@@ -56,6 +56,49 @@ const setupMediaQueries = (
     window.matchMedia = originalMatchMedia;
   };
 };
+
+describe('rc', () => {
+  // Emotion appends ';' after each interpolated string value in a css template literal.
+  // So css`${output}`.styles === output + ';'.
+
+  it('returns a simple CSS declaration for a plain string value', () => {
+    const output = rc('color', 'red', theme);
+    expect(css`
+      ${output}
+    `.styles).toBe(output + ';');
+  });
+
+  it('returns undefined when value is undefined', () => {
+    expect(rc('color', undefined, theme)).toBeUndefined();
+  });
+
+  it('applies a resolver to a plain value', () => {
+    const output = rc('color', 'primary', theme, value => `resolved-${value}`);
+    expect(css`
+      ${output}
+    `.styles).toBe(output + ';');
+  });
+
+  it('returns undefined when resolver returns undefined for a plain value', () => {
+    expect(rc('color', 'red', theme, () => undefined)).toBeUndefined();
+  });
+
+  it('generates media queries for responsive values', () => {
+    // First defined breakpoint gets both min-width and max-width; subsequent get min-width only.
+    const output = rc('color', {xs: 'blue', md: 'green'}, theme);
+    expect(css`
+      ${output}
+    `.styles).toBe(output + ';');
+  });
+
+  it('skips undefined intermediate breakpoints', () => {
+    // xs and md are defined; 2xs, sm, lg, xl, 2xl are absent from the output.
+    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme);
+    expect(css`
+      ${output}
+    `.styles).toBe(output + ';');
+  });
+});
 
 describe('useResponsivePropValue', () => {
   it('returns identity for non-responsive values', () => {

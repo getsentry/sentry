@@ -4,9 +4,11 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from pytest import fixture
 
+from sentry import audit_log
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.interfaces.stacktrace import StacktraceOrder
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
@@ -876,6 +878,14 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
             assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
             assert DeletedOrganization.objects.count() == 1
 
+        member_remove_entries = AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("MEMBER_REMOVE"),
+            target_user_id=self.user.id,
+        )
+        removed_org_ids = {e.organization_id for e in member_remove_entries}
+        assert org_with_other_owner.id in removed_org_ids
+        assert org_as_other_owner.id in removed_org_ids
+
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
@@ -948,3 +958,23 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
 
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
+
+    @override_options({"staff.ga-rollout": True})
+    def test_deactivation_deletes_auth_identities(self) -> None:
+        from sentry.models.authidentity import AuthIdentity
+        from sentry.models.authprovider import AuthProvider
+
+        auth_provider = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
+        auth_identity = AuthIdentity.objects.create(
+            user=self.user,
+            auth_provider=auth_provider,
+            ident="test-ident",
+        )
+
+        self.get_success_response(self.user.id, organizations=[], status_code=204)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
+        assert not AuthIdentity.objects.filter(id=auth_identity.id).exists()

@@ -29,6 +29,7 @@ from sentry.users.api.serializers.user import (
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
 from sentry.users.services.user import (
     RpcAvatar,
     RpcUser,
@@ -298,6 +299,24 @@ class DatabaseBackedUserService(UserService):
             return None
 
         return serialize_user_avatar(avatar=possible_avatar)
+
+    def add_permission(self, *, user_id: int, permission: str) -> bool:
+        """Add a permission to a user. Returns True if added, False if already existed."""
+        with transaction.atomic(using=router.db_for_write(UserPermission)):
+            _, created = UserPermission.objects.get_or_create(
+                user_id=user_id,
+                permission=permission,
+            )
+            return created
+
+    def remove_permission(self, *, user_id: int, permission: str) -> bool:
+        """Remove a permission from a user. Returns True if removed, False if didn't exist."""
+        with transaction.atomic(using=router.db_for_write(UserPermission)):
+            deleted_count, _ = UserPermission.objects.filter(
+                user_id=user_id,
+                permission=permission,
+            ).delete()
+            return deleted_count > 0
 
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],

@@ -41,7 +41,7 @@ function renderMockRequests({
   act(() => SubscriptionStore.set(organization.slug, subscription));
 
   MockApiClient.addMockResponse({
-    url: `/subscriptions/${organization.slug}/`,
+    url: `/customers/${organization.slug}/`,
     body: {
       planTier,
     },

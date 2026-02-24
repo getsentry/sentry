@@ -26,8 +26,13 @@ from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import InvalidQuery
-from sentry.snuba.outcomes import COLUMN_MAP, QueryDefinition, run_outcomes_query_totals
-from sentry.snuba.sessions_v2 import InvalidField, massage_sessions_result_summary
+from sentry.snuba.outcomes import (
+    COLUMN_MAP,
+    QueryDefinition,
+    massage_sessions_result_summary,
+    run_outcomes_query_totals,
+)
+from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.outcomes import Outcome
 
 

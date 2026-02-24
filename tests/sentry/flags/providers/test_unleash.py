@@ -21,7 +21,7 @@ def test_handle_update_no_email() -> None:
     assert len(items) == 1
     assert items[0]["action"] == 2
     assert items[0]["created_at"] == datetime(2024, 12, 30, 0, 0, tzinfo=timezone.utc)
-    assert items[0]["created_by"] == 1
+    assert items[0]["created_by"] == "1"
     assert items[0]["created_by_type"] == 1
     assert items[0]["flag"] == "test-flag"
     assert items[0]["organization_id"] == 123

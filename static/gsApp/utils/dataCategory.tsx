@@ -3,7 +3,6 @@ import upperFirst from 'lodash/upperFirst';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -236,39 +235,6 @@ export function sortCategoriesWithKeys(
   return Object.entries(categories || {}).sort((a, b) =>
     a[1].order > b[1].order ? 1 : -1
   );
-}
-
-/**
- * Whether the subscription plan includes a data category.
- */
-function hasCategory(subscription: Subscription, category: DataCategory) {
-  return hasPlanCategory(subscription.planDetails, category);
-}
-
-function hasPlanCategory(plan: Plan, category: DataCategory) {
-  return plan.categories.includes(category);
-}
-
-/**
- * Whether an organization has access to a data category.
- *
- * NOTE: Includes accounts that have free access to a data category through
- * custom feature handlers and plan trial. Used for usage UI.
- */
-export function hasCategoryFeature(
-  category: DataCategory,
-  subscription: Subscription,
-  organization: Organization
-) {
-  if (hasCategory(subscription, category)) {
-    return true;
-  }
-
-  const feature = getCategoryInfoFromPlural(category)?.feature;
-  if (!feature) {
-    return false;
-  }
-  return feature ? organization.features.includes(feature) : true;
 }
 
 export function isContinuousProfiling(category: DataCategory | string) {

@@ -509,6 +509,8 @@ SPANS_METRICS_FUNCTIONS = {
     "http_response_rate",
 }
 
+# Functions that are defined as SnQLFunction and need special parsing in incidents/logic.py.
+# These are not supported in the older resolve_field logic.
 METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS = {
     "performance_score",
     "weighted_performance_score",

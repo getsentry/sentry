@@ -1,19 +1,47 @@
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {
+  Container,
+  Flex,
+  Stack,
+  type FlexProps,
+  type StackProps,
+} from '@sentry/scraps/layout';
 
 interface LayoutProps {
   children: React.ReactNode;
-  label: string;
-  hintText?: string;
+  label: React.ReactNode;
+  hintText?: React.ReactNode;
   required?: boolean;
+  variant?: 'compact';
 }
 
-function RowLayout(props: LayoutProps) {
+interface RowLayoutProps extends LayoutProps {
+  padding?: FlexProps<'div'>['padding'];
+}
+
+function RowLayout(props: RowLayoutProps) {
+  const isCompact = props.variant === 'compact';
+  const field = useFieldContext();
+
   return (
-    <Flex gap="sm" align="center" justify="between">
+    <Flex
+      id={field.name}
+      gap="sm"
+      align="center"
+      justify="between"
+      padding={props.padding}
+    >
       <Stack width="50%" gap="xs">
-        <FieldMeta.Label required={props.required}>{props.label}</FieldMeta.Label>
-        {props.hintText ? (
+        <Flex gap="xs" align="center">
+          <FieldMeta.Label
+            required={props.required}
+            description={isCompact ? props.hintText : undefined}
+          >
+            {props.label}
+          </FieldMeta.Label>
+        </Flex>
+        {props.hintText && !isCompact ? (
           <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
         ) : null}
       </Stack>
@@ -23,12 +51,28 @@ function RowLayout(props: LayoutProps) {
   );
 }
 
-function StackLayout(props: LayoutProps) {
+interface StackLayoutProps extends LayoutProps {
+  padding?: StackProps<'div'>['padding'];
+}
+
+function StackLayout(props: StackLayoutProps) {
+  const isCompact = props.variant === 'compact';
+  const field = useFieldContext();
+
   return (
-    <Stack gap="md">
-      <FieldMeta.Label required={props.required}>{props.label}</FieldMeta.Label>
+    <Stack id={field.name} gap="md" padding={props.padding}>
+      <Flex gap="xs" align="center">
+        <FieldMeta.Label
+          required={props.required}
+          description={isCompact ? props.hintText : undefined}
+        >
+          {props.label}
+        </FieldMeta.Label>
+      </Flex>
       {props.children}
-      {props.hintText ? <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText> : null}
+      {props.hintText && !isCompact ? (
+        <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
+      ) : null}
     </Stack>
   );
 }

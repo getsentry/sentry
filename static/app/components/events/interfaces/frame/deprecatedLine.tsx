@@ -225,7 +225,7 @@ function DeprecatedLine({
           </DefaultLineTitleWrapper>
           <FrameActions>
             <RepeatsIndicator timesRepeated={timesRepeated} />
-            {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
+            {anrCulprit ? (
               <Tag variant="warning" onClick={scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>

@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
+from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
@@ -85,6 +85,7 @@ class DetectedIssue(BaseModel):
     category: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     verification_reason: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    group_for_fingerprint: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     # context field, not LLM generated
     trace_id: str
 
@@ -137,8 +138,9 @@ def create_issue_occurrence_from_detection(
     detection_time = datetime.now(UTC)
     trace_id = detected_issue.trace_id
     transaction_name = normalize_description(detected_issue.transaction_name)
-    title = detected_issue.title.lower().replace(" ", "-")
-    fingerprint = [f"llm-detected-{title}-{transaction_name}"]
+    group_for_fingerprint = detected_issue.group_for_fingerprint
+
+    fingerprint = [f"llm-detected-{group_for_fingerprint.strip().lower().replace(' ', '-')}"]
 
     evidence_data = {
         "trace_id": trace_id,
@@ -166,7 +168,7 @@ def create_issue_occurrence_from_detection(
         resource_id=None,
         evidence_data=evidence_data,
         evidence_display=evidence_display,
-        type=LLMDetectedExperimentalGroupType,
+        type=LLMDetectedExperimentalGroupTypeV2,
         detection_time=detection_time,
         culprit=transaction_name,
         level="warning",

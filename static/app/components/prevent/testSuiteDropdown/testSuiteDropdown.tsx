@@ -5,11 +5,13 @@ import sortBy from 'lodash/sortBy';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Container} from '@sentry/scraps/layout';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   HybridFilter,
+  useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
@@ -57,9 +59,8 @@ export function TestSuiteDropdown() {
       isSelected: selectedSet.has(suite.toLowerCase()),
       leadingItems: ({isSelected}: {isSelected: boolean}) => (
         <Checkbox
-          size="sm"
           checked={isSelected}
-          onChange={() => hybridFilterRef.current?.toggleOption?.(suite)}
+          onChange={() => hybridFilterRef.current?.toggleOption(suite)}
           aria-label={t('Select %s', suite)}
           tabIndex={-1}
         />
@@ -93,18 +94,40 @@ export function TestSuiteDropdown() {
     return urlTestSuites.filter(suite => testSuites?.includes(suite));
   }, [urlSearchParams, testSuites]);
 
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    defaultValue: [],
+    options,
+    onChange: handleChange,
+    multiple: true,
+  });
+
   return (
     <HybridFilter
       ref={hybridFilterRef}
+      stagedSelect={stagedSelect}
       searchable
-      multiple
       options={options}
-      value={value}
-      defaultValue={[]}
-      onChange={handleChange}
       onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
+      menuHeaderTrailingItems={
+        stagedSelect.shouldShowReset ? (
+          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+        ) : null
+      }
+      menuFooter={
+        stagedSelect.hasStagedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <MenuComponents.CancelButton
+              onClick={() => stagedSelect.removeStagedChanges()}
+            />
+            <MenuComponents.ApplyButton
+              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            />
+          </Flex>
+        ) : null
+      }
       trigger={triggerProps => {
         const areAllSuitesSelected =
           value.length === 0 || testSuites?.every(suite => value.includes(suite));

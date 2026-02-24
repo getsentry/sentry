@@ -2,14 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
@@ -76,11 +69,11 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
     // Deselect project-1 & project-2 by clicking on their checkboxes
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
 
     // Select project-3 by clicking on its checkbox
-    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
 
     // Click "Apply"
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -202,5 +195,158 @@ describe('ProjectPageFilter', () => {
     // <ProjectPageFilter /> is updated
 
     expect(await screen.findByRole('button', {name: 'project-2'})).toBeInTheDocument();
+  });
+
+  it('sorts projects with bookmarked appearing before non-bookmarked', async () => {
+    // Set up projects with different bookmark states
+    const projectsWithBookmarks = [
+      ProjectFixture({id: '1', slug: 'selected-project', isMember: true}),
+      ProjectFixture({
+        id: '2',
+        slug: 'bookmarked-project',
+        isMember: true,
+        isBookmarked: true,
+      }),
+      ProjectFixture({id: '3', slug: 'regular-project-a', isMember: true}),
+      ProjectFixture({id: '4', slug: 'regular-project-b', isMember: true}),
+    ];
+
+    ProjectsStore.loadInitialData(projectsWithBookmarks);
+
+    // Set project-1 as selected
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
+      },
+    });
+
+    // Open menu
+    await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
+
+    // Get all project rows (they're in a flat list when all are member projects)
+    const projectRows = screen.getAllByRole('row');
+
+    // Verify sort order:
+    // 1. Selected project (selected-project)
+    // 2. Bookmarked project (bookmarked-project)
+    // 3. Regular projects (alphabetically)
+    expect(projectRows).toHaveLength(4);
+    expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
+    expect(within(projectRows[1]!).getByText('bookmarked-project')).toBeInTheDocument();
+    expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
+    expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
+  });
+
+  it('maintains stable sort when bookmarking, then applies new sort on menu reopen', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      method: 'PUT',
+      url: `/projects/${organization.slug}/regular-project-a/`,
+    });
+
+    // Set up projects with one bookmarked project
+    const projectsWithBookmarks = [
+      ProjectFixture({id: '1', slug: 'selected-project', isMember: true}),
+      ProjectFixture({
+        id: '2',
+        slug: 'already-bookmarked',
+        isMember: true,
+        isBookmarked: true,
+      }),
+      ProjectFixture({id: '3', slug: 'regular-project-a', isMember: true}),
+      ProjectFixture({id: '4', slug: 'regular-project-b', isMember: true}),
+    ];
+
+    ProjectsStore.loadInitialData(projectsWithBookmarks);
+
+    // Set project-1 as selected
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
+      },
+    });
+
+    // Open menu
+    await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
+
+    // Verify initial sort order
+    let projectRows = screen.getAllByRole('row');
+    expect(projectRows).toHaveLength(4);
+    expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
+    expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
+    expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
+    expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
+
+    // Bookmark regular-project-a while menu is open
+    const regularProjectARow = screen.getByRole('row', {name: 'regular-project-a'});
+    await userEvent.hover(regularProjectARow);
+    const bookmarkButton = within(regularProjectARow).getByRole('button', {
+      name: 'Bookmark',
+    });
+    await userEvent.click(bookmarkButton);
+
+    // Verify the API was called
+    expect(mockApi).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/regular-project-a/`,
+      expect.objectContaining({
+        data: {isBookmarked: true},
+      })
+    );
+
+    // Verify sort order DOES NOT change while menu is still open (stable sorting)
+    projectRows = screen.getAllByRole('row');
+
+    expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
+    expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
+    expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
+    expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
+
+    // Close menu by clicking outside
+    await userEvent.click(document.body);
+
+    // Update the project store to reflect the bookmark change
+    act(() => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: '1', slug: 'selected-project', isMember: true}),
+        ProjectFixture({
+          id: '2',
+          slug: 'already-bookmarked',
+          isMember: true,
+          isBookmarked: true,
+        }),
+        ProjectFixture({
+          id: '3',
+          slug: 'regular-project-a',
+          isMember: true,
+          isBookmarked: true,
+        }),
+        ProjectFixture({id: '4', slug: 'regular-project-b', isMember: true}),
+      ]);
+    });
+
+    // Reopen menu
+    await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
+
+    // Verify new sort order with bookmarked projects grouped together
+    projectRows = screen.getAllByRole('row');
+    expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
+    expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
+    expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
+    expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
+
+    MockApiClient.clearMockResponses();
   });
 });

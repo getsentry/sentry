@@ -7,7 +7,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from urllib3 import Retry
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -117,11 +116,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         :auth: required
         """
 
-        if not features.has(
-            "organizations:user-feedback-ai-categorization-features",
-            organization,
-            actor=request.user,
-        ) or not has_seer_access(organization, actor=request.user):
+        if not has_seer_access(organization, actor=request.user):
             return Response(
                 {"detail": "AI categorization is not available for this organization."}, status=403
             )
@@ -149,20 +144,15 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             # Day granularity date range. Date range is long enough that the categories won't change much (as long as the same day is selected)
             categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}:{hashed_project_ids}"
 
-        has_cache = features.has(
-            "organizations:user-feedback-ai-summaries-cache", organization, actor=request.user
-        )
-
-        if has_cache:
-            cache_entry = cache.get(categorization_cache_key)
-            if cache_entry:
-                return Response(
-                    {
-                        "categories": cache_entry["categories"],
-                        "success": True,
-                        "numFeedbacksContext": cache_entry["numFeedbacksContext"],
-                    }
-                )
+        cache_entry = cache.get(categorization_cache_key)
+        if cache_entry:
+            return Response(
+                {
+                    "categories": cache_entry["categories"],
+                    "success": True,
+                    "numFeedbacksContext": cache_entry["numFeedbacksContext"],
+                }
+            )
 
         recent_feedbacks = query_recent_feedbacks_with_ai_labels(
             organization_id=organization.id,
@@ -327,12 +317,11 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         categories.sort(key=lambda x: x["feedbackCount"], reverse=True)
         categories = categories[:MAX_RETURN_CATEGORIES]
 
-        if has_cache:
-            cache.set(
-                categorization_cache_key,
-                {"categories": categories, "numFeedbacksContext": len(context_feedbacks)},
-                timeout=CATEGORIES_CACHE_TIMEOUT,
-            )
+        cache.set(
+            categorization_cache_key,
+            {"categories": categories, "numFeedbacksContext": len(context_feedbacks)},
+            timeout=CATEGORIES_CACHE_TIMEOUT,
+        )
 
         return Response(
             {

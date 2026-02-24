@@ -931,7 +931,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:mep-rollout-flag",
                     "organizations:dynamic-sampling",
                 ]
             ),
@@ -987,7 +986,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:mep-rollout-flag",
                     "organizations:dynamic-sampling",
                 ]
             ),
@@ -1720,7 +1718,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
             ]
         ):
@@ -1754,7 +1751,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
             ]
         ):
@@ -1863,6 +1859,18 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             status_code=400,
             **data,
         )
+
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    @patch("sentry.quotas.backend.get_metric_detector_limit")
+    @patch("sentry.incidents.endpoints.organization_alert_rule_index.log_alerting_quota_hit")
+    def test_metric_alert_limit_calls_log(
+        self, mock_log: MagicMock, mock_get_limit: MagicMock
+    ) -> None:
+        mock_get_limit.return_value = 0
+        data = deepcopy(self.alert_rule_dict)
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+        mock_log.assert_called_once()
 
     @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
