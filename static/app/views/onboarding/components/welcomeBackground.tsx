@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import BugAImage from 'sentry-images/spot/broken-code-light.svg';
 import BugBImage from 'sentry-images/spot/seer-config-bug-1.svg';
-import BugAImage from 'sentry-images/spot/seer-config-bug-2.svg';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -88,7 +88,7 @@ const Illustration = styled(motion.div)`
 const BugA = styled(Illustration)`
   left: 0;
   top: 0;
-  width: 10rem;
+  width: 13rem;
 `;
 
 const BugB = styled(Illustration)`
