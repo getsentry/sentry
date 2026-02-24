@@ -80,15 +80,16 @@ export function ReleasesSelectControl({
     <StyledCompactSelect
       multiple
       clearable
-      searchable
+      search={{
+        onChange: debounce(val => {
+          setSearchTerm(val);
+        }, DEFAULT_DEBOUNCE_DURATION),
+      }}
       id={id}
       disabled={isDisabled}
       loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
       className={className}
-      onSearch={debounce(val => {
-        setSearchTerm(val);
-      }, DEFAULT_DEBOUNCE_DURATION)}
       options={[
         {
           value: '_releases',

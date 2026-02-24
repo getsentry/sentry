@@ -158,7 +158,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
   return (
     <CompactSelect
       options={isSelectingFilterKey ? filterKeyOptions : datasetOptions}
-      searchable={isSelectingFilterKey}
+      search={isSelectingFilterKey}
       sizeLimit={50}
       closeOnSelect={false}
       onClose={() => {

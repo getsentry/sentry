@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
+import orjson
 import pytest
-from django.conf import settings
 
 from sentry import ratelimits
 from sentry.seer.autofix.constants import AutofixStatus
@@ -20,7 +20,6 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.utils import json
 
 
 class TestGetRepoFromCodeMappings(TestCase):
@@ -50,11 +49,10 @@ class TestGetRepoFromCodeMappings(TestCase):
 
 
 class TestGetAutofixStateFromPrId(TestCase):
-    @patch("requests.post")
-    def test_get_autofix_state_from_pr_id_success(self, mock_post: MagicMock) -> None:
-        # Setup mock response
-        mock_response = mock_post.return_value
-        mock_response.raise_for_status = lambda: None
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_state_from_pr_id_success(self, mock_request: MagicMock) -> None:
+        mock_response = Mock()
+        mock_response.status = 200
         mock_response.json.return_value = {
             "state": {
                 "run_id": 123,
@@ -68,11 +66,10 @@ class TestGetAutofixStateFromPrId(TestCase):
                 "status": "PROCESSING",
             }
         }
+        mock_request.return_value = mock_response
 
-        # Call the function
         result = get_autofix_state_from_pr_id("github", 1)
 
-        # Assertions
         assert result is not None
         assert result.run_id == 123
         assert result.request == {
@@ -84,45 +81,38 @@ class TestGetAutofixStateFromPrId(TestCase):
         assert result.updated_at == datetime(2023, 7, 18, 12, 0, tzinfo=timezone.utc)
         assert result.status == AutofixStatus.PROCESSING
 
-        mock_post.assert_called_once_with(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state/pr",
-            data=json.dumps({"provider": "github", "pr_id": 1}).encode("utf-8"),
-            headers={"content-type": "application/json;charset=utf-8"},
-        )
+        mock_request.assert_called_once()
+        path = mock_request.call_args[0][1]
+        assert path == "/v1/automation/autofix/state/pr"
+        body = orjson.loads(mock_request.call_args[0][2])
+        assert body == {"provider": "github", "pr_id": 1}
 
-    @patch("requests.post")
-    def test_get_autofix_state_from_pr_id_no_state(self, mock_post: MagicMock) -> None:
-        # Setup mock response
-        mock_response = mock_post.return_value
-        mock_response.raise_for_status = lambda: None
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_state_from_pr_id_no_state(self, mock_request: MagicMock) -> None:
+        mock_response = Mock()
+        mock_response.status = 200
         mock_response.json.return_value = {}
+        mock_request.return_value = mock_response
 
-        # Call the function
         result = get_autofix_state_from_pr_id("github", 1)
 
-        # Assertions
         assert result is None
 
-    @patch("requests.post")
-    def test_get_autofix_state_from_pr_id_http_error(self, mock_post: MagicMock) -> None:
-        # Setup mock response to raise HTTP error
-        mock_response = mock_post.return_value
-        mock_response.raise_for_status.side_effect = Exception("HTTP Error")
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_state_from_pr_id_http_error(self, mock_request: MagicMock) -> None:
+        mock_response = Mock()
+        mock_response.status = 500
+        mock_request.return_value = mock_response
 
-        # Call the function and expect an exception
-        with pytest.raises(Exception) as context:
+        with pytest.raises(Exception, match="Seer request failed with status 500"):
             get_autofix_state_from_pr_id("github", 1)
-
-        # Assertions
-        assert "HTTP Error" in str(context.value)
 
 
 class TestGetAutofixState(TestCase):
-    @patch("requests.post")
-    def test_get_autofix_state_success_with_group_id(self, mock_post: MagicMock) -> None:
-        # Setup mock response
-        mock_response = mock_post.return_value
-        mock_response.raise_for_status = lambda: None
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_state_success_with_group_id(self, mock_request: MagicMock) -> None:
+        mock_response = Mock()
+        mock_response.status = 200
         mock_response.json.return_value = {
             "group_id": 123,
             "state": {
@@ -137,11 +127,10 @@ class TestGetAutofixState(TestCase):
                 "status": "PROCESSING",
             },
         }
+        mock_request.return_value = mock_response
 
-        # Call the function
         result = get_autofix_state(group_id=123, organization_id=999)
 
-        # Assertions
         assert isinstance(result, AutofixState)
         assert result.run_id == 456
         assert result.request == {
@@ -153,17 +142,21 @@ class TestGetAutofixState(TestCase):
         assert result.updated_at == datetime(2023, 7, 18, 12, 0, tzinfo=timezone.utc)
         assert result.status == AutofixStatus.PROCESSING
 
-        mock_post.assert_called_once_with(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state",
-            data=b'{"group_id":123,"run_id":null,"check_repo_access":false,"is_user_fetching":false}',
-            headers={"content-type": "application/json;charset=utf-8"},
-        )
+        mock_request.assert_called_once()
+        path = mock_request.call_args[0][1]
+        assert path == "/v1/automation/autofix/state"
+        body = orjson.loads(mock_request.call_args[0][2])
+        assert body == {
+            "group_id": 123,
+            "run_id": None,
+            "check_repo_access": False,
+            "is_user_fetching": False,
+        }
 
-    @patch("requests.post")
-    def test_get_autofix_state_success_with_run_id(self, mock_post: MagicMock) -> None:
-        # Setup mock response
-        mock_response = mock_post.return_value
-        mock_response.raise_for_status = lambda: None
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_state_success_with_run_id(self, mock_request: MagicMock) -> None:
+        mock_response = Mock()
+        mock_response.status = 200
         mock_response.json.return_value = {
             "run_id": 456,
             "state": {
@@ -178,11 +171,10 @@ class TestGetAutofixState(TestCase):
                 "status": "COMPLETED",
             },
         }
+        mock_request.return_value = mock_response
 
-        # Call the function
         result = get_autofix_state(run_id=456, organization_id=999)
 
-        # Assertions
         assert isinstance(result, AutofixState)
         assert result.run_id == 456
         assert result.request == {
@@ -194,43 +186,41 @@ class TestGetAutofixState(TestCase):
         assert result.updated_at == datetime(2023, 7, 18, 12, 0, tzinfo=timezone.utc)
         assert result.status == AutofixStatus.COMPLETED
 
-        mock_post.assert_called_once_with(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state",
-            data=b'{"group_id":null,"run_id":456,"check_repo_access":false,"is_user_fetching":false}',
-            headers={"content-type": "application/json;charset=utf-8"},
-        )
+        mock_request.assert_called_once()
+        path = mock_request.call_args[0][1]
+        assert path == "/v1/automation/autofix/state"
+        body = orjson.loads(mock_request.call_args[0][2])
+        assert body == {
+            "group_id": None,
+            "run_id": 456,
+            "check_repo_access": False,
+            "is_user_fetching": False,
+        }
 
-    @patch("requests.post")
-    def test_get_autofix_state_no_result(self, mock_post: MagicMock) -> None:
-        # Setup mock response
-        mock_response = mock_post.return_value
-        mock_response.raise_for_status = lambda: None
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_state_no_result(self, mock_request: MagicMock) -> None:
+        mock_response = Mock()
+        mock_response.status = 200
         mock_response.json.return_value = {}
+        mock_request.return_value = mock_response
 
-        # Call the function
         result = get_autofix_state(group_id=123, organization_id=999)
 
-        # Assertions
         assert result is None
 
-    @patch("requests.post")
-    def test_get_autofix_state_http_error(self, mock_post: MagicMock) -> None:
-        # Setup mock response to raise HTTP error
-        mock_response = mock_post.return_value
-        mock_response.raise_for_status.side_effect = Exception("HTTP Error")
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_state_http_error(self, mock_request: MagicMock) -> None:
+        mock_response = Mock()
+        mock_response.status = 500
+        mock_request.return_value = mock_response
 
-        # Call the function and expect an exception
-        with pytest.raises(Exception) as context:
+        with pytest.raises(Exception, match="Seer request failed with status 500"):
             get_autofix_state(group_id=123, organization_id=999)
 
-        # Assertions
-        assert "HTTP Error" in str(context.value)
-
-    @patch("requests.post")
-    def test_get_autofix_state_raises_on_org_id_mismatch(self, mock_post: MagicMock) -> None:
-        # Setup mock response where returned state has a different organization_id
-        mock_response = mock_post.return_value
-        mock_response.raise_for_status = lambda: None
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_state_raises_on_org_id_mismatch(self, mock_request: MagicMock) -> None:
+        mock_response = Mock()
+        mock_response.status = 200
         mock_response.json.return_value = {
             "group_id": 123,
             "state": {
@@ -245,8 +235,8 @@ class TestGetAutofixState(TestCase):
                 "status": "PROCESSING",
             },
         }
+        mock_request.return_value = mock_response
 
-        # Expect SeerPermissionError due to org id mismatch
         with pytest.raises(SeerPermissionError):
             get_autofix_state(group_id=123, organization_id=999)
 

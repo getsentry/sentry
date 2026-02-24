@@ -117,7 +117,7 @@ function TeamKeyTransaction({
         value={value}
         onChange={handleChange}
         options={options}
-        searchable={options.length > 8}
+        search={options.length > 8}
         {...props}
       />
     </Wrapper>

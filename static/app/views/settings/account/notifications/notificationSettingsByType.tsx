@@ -1,15 +1,11 @@
-import {Fragment, useEffect, useState} from 'react';
-import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {Observer} from 'mobx-react-lite';
+import {Fragment, useEffect} from 'react';
+import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import FormModel from 'sentry/components/forms/model';
-import type {Field} from 'sentry/components/forms/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -31,8 +27,12 @@ import type {
   SupportedProviders,
 } from './constants';
 import {SUPPORTED_PROVIDERS} from './constants';
-import {ACCOUNT_NOTIFICATION_FIELDS} from './fields';
-import {NOTIFICATION_SETTING_FIELDS, QUOTA_FIELDS, SPEND_FIELDS} from './fields2';
+import {
+  ACCOUNT_NOTIFICATION_FIELDS,
+  NOTIFICATION_SETTING_FIELDS,
+  QUOTA_FIELDS,
+  SPEND_FIELDS,
+} from './fields';
 import NotificationSettingsByEntity from './notificationSettingsByEntity';
 import type {Identity} from './types';
 import UnlinkedAlert from './unlinkedAlert';
@@ -60,6 +60,15 @@ const notificationOptionsQueryKey = (notificationType: string) =>
     getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
     {query: getQueryParams(notificationType)},
   ] as const;
+
+/**
+ * Converts legacy tuple choices `[value, label]` to options `{value, label}` for Select.
+ */
+function choicesToOptions(
+  choices: ReadonlyArray<readonly [string, string]>
+): Array<{label: string; value: string}> {
+  return choices.map(([value, label]) => ({value, label}));
+}
 
 export function NotificationSettingsByType({notificationType}: Props) {
   const {organizations} = useLegacyStore(OrganizationsStore);
@@ -96,7 +105,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
     useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
       staleTime: 30_000,
     });
-  const [providerModel] = useState(() => new FormModel());
 
   useEffect(() => {
     trackAnalytics('notification_settings.tuning_page_viewed', {
@@ -198,7 +206,14 @@ export function NotificationSettingsByType({notificationType}: Props) {
     });
   };
 
-  const filterCategoryFields = (fields: Field[]) => {
+  const filterCategoryFields = (
+    fields: Array<{
+      choices: ReadonlyArray<readonly [string, string]>;
+      name: string;
+      help?: React.ReactNode;
+      label?: React.ReactNode;
+    }>
+  ) => {
     // at least one org exists with am3 tiered plan
     const hasOrgWithAm3 = organizations.some(organization =>
       organization.features?.includes('am3-tier')
@@ -270,100 +285,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
       }
       return true;
     });
-  };
-
-  const getFields = (): Field[] => {
-    const help = isGroupedByProject(notificationType)
-      ? t('This is the default for all projects.')
-      : t('This is the default for all organizations.');
-
-    const fields: Field[] = [];
-
-    // if a quota notification is not disabled, add in our dependent fields
-    // but do not show the top level controller
-    if (notificationType === 'quota') {
-      if (
-        organizations.some(organization =>
-          organization.features?.includes('spend-visibility-notifications')
-        )
-      ) {
-        fields.push(
-          ...filterCategoryFields(
-            SPEND_FIELDS.map(field => ({
-              ...field,
-              type: 'select' as const,
-              getData: (data: Record<PropertyKey, unknown>) => {
-                return {
-                  type: field.name,
-                  scopeType: 'user',
-                  scopeIdentifier: ConfigStore.get('user').id,
-                  value: data[field.name],
-                };
-              },
-            }))
-          )
-        );
-      } else {
-        fields.push(
-          ...filterCategoryFields(
-            QUOTA_FIELDS.map(field => ({
-              ...field,
-              type: 'select' as const,
-              getData: (data: Record<PropertyKey, unknown>) => {
-                return {
-                  type: field.name,
-                  scopeType: 'user',
-                  scopeIdentifier: ConfigStore.get('user').id,
-                  value: data[field.name],
-                };
-              },
-            }))
-          )
-        );
-      }
-    } else {
-      const defaultField: Field = Object.assign(
-        {},
-        NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType],
-        {
-          help,
-          defaultValue: 'always',
-          getData: (data: Record<PropertyKey, unknown>) => {
-            return {
-              type: notificationType,
-              scopeType: 'user',
-              scopeIdentifier: ConfigStore.get('user').id,
-              value: data[notificationType],
-            };
-          },
-        }
-      );
-      fields.push(defaultField);
-    }
-
-    return fields;
-  };
-
-  const getProviderFields = (): Field[] => {
-    // get the choices but only the ones that are available to the user
-    const choices = (
-      NOTIFICATION_SETTING_FIELDS.provider.choices as Array<[SupportedProviders, string]>
-    ).filter(([providerSlug]) => isProviderSupported(providerSlug));
-
-    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {
-      choices,
-      getData: (data: Record<PropertyKey, unknown>) => {
-        return {
-          type: notificationType,
-          scopeType: 'user',
-          scopeIdentifier: ConfigStore.get('user').id,
-          providers: data.provider,
-          value: data[notificationType],
-        };
-      },
-    });
-    const fields: Field[] = [defaultField];
-    return fields;
   };
 
   const removeNotificationMutation = useMutation({
@@ -456,46 +377,152 @@ export function NotificationSettingsByType({notificationType}: Props) {
     return <LoadingIndicator />;
   }
 
+  const initialTopOptionData = getInitialTopOptionData();
+  const initialProviders = getProviders();
+
+  const optionMutationOptions = (fieldName: string) =>
+    mutationOptions({
+      mutationFn: (data: Record<string, string>) =>
+        fetchMutation({
+          method: 'PUT',
+          url: '/users/me/notification-options/',
+          data: {
+            type: fieldName,
+            scopeType: 'user',
+            scopeIdentifier: ConfigStore.get('user').id,
+            value: data[fieldName],
+          },
+        }),
+      onSuccess: () => trackTuningUpdated('general'),
+    });
+
+  const providerChoices = (
+    NOTIFICATION_SETTING_FIELDS.provider.choices as Array<[SupportedProviders, string]>
+  )
+    .filter(([providerSlug]) => isProviderSupported(providerSlug))
+    .map(([value, label]) => ({value, label}));
+
+  const providerSchema = z.object({provider: z.array(z.string()).min(1)});
+
+  const providerMutationOptions = mutationOptions({
+    mutationFn: (data: {provider: string[]}) =>
+      fetchMutation({
+        method: 'PUT',
+        url: '/users/me/notification-providers/',
+        data: {
+          type: notificationType,
+          scopeType: 'user',
+          scopeIdentifier: ConfigStore.get('user').id,
+          providers: data.provider,
+        },
+      }),
+  });
+
+  const renderQuotaFields = () => {
+    const hasSpendVisibility = organizations.some(organization =>
+      organization.features?.includes('spend-visibility-notifications')
+    );
+    const sourceFields = hasSpendVisibility ? SPEND_FIELDS : QUOTA_FIELDS;
+    const filteredFields = filterCategoryFields(sourceFields);
+
+    return filteredFields.map(field => {
+      const schema = z.object({[field.name]: z.string()});
+      return (
+        <AutoSaveField
+          key={field.name}
+          name={field.name}
+          schema={schema}
+          initialValue={initialTopOptionData[field.name] ?? 'always'}
+          mutationOptions={optionMutationOptions(field.name)}
+        >
+          {fieldApi => (
+            <fieldApi.Layout.Row label={field.label} hintText={field.help}>
+              <fieldApi.Select
+                value={fieldApi.state.value}
+                onChange={fieldApi.handleChange}
+                options={choicesToOptions(field.choices)}
+              />
+            </fieldApi.Layout.Row>
+          )}
+        </AutoSaveField>
+      );
+    });
+  };
+
+  const renderDefaultField = () => {
+    const fieldDef =
+      NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType];
+    if (!fieldDef?.choices) {
+      return null;
+    }
+    const help = isGroupedByProject(notificationType)
+      ? t('This is the default for all projects.')
+      : t('This is the default for all organizations.');
+
+    const schema = z.object({[notificationType]: z.string()});
+    return (
+      <AutoSaveField
+        name={notificationType}
+        schema={schema}
+        initialValue={initialTopOptionData[notificationType] ?? 'always'}
+        mutationOptions={optionMutationOptions(notificationType)}
+      >
+        {field => (
+          <field.Layout.Row label={fieldDef.label} hintText={help}>
+            <field.Select
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={choicesToOptions(fieldDef.choices)}
+            />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    );
+  };
+
   return (
     <Fragment>
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       {description && <TextBlock>{description}</TextBlock>}
-      <Observer>
-        {() => {
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          return providerModel.getValue('provider')?.toString().includes('slack') &&
-            unlinkedSlackOrgs.length > 0 ? (
-            <UnlinkedAlert organizations={unlinkedSlackOrgs} />
-          ) : null;
-        }}
-      </Observer>
-      <Form
-        saveOnBlur
-        apiMethod="PUT"
-        apiEndpoint="/users/me/notification-options/"
-        initialData={getInitialTopOptionData()}
-        onSubmitSuccess={() => trackTuningUpdated('general')}
+      <FieldGroup
+        title={
+          isGroupedByProject(notificationType)
+            ? t('All Projects')
+            : t('All Organizations')
+        }
       >
-        <TopJsonForm
-          title={
-            isGroupedByProject(notificationType)
-              ? t('All Projects')
-              : t('All Organizations')
-          }
-          fields={getFields()}
-        />
-      </Form>
+        {notificationType === 'quota' ? renderQuotaFields() : renderDefaultField()}
+      </FieldGroup>
       {notificationType !== 'reports' && notificationType !== 'brokenMonitors' ? (
-        <Form
-          saveOnBlur
-          apiMethod="PUT"
-          apiEndpoint="/users/me/notification-providers/"
-          initialData={{provider: getProviders()}}
-          model={providerModel}
-        >
-          <BottomJsonForm fields={getProviderFields()} />
-        </Form>
+        <FieldGroup title={t('Delivery Method')}>
+          <AutoSaveField
+            name="provider"
+            schema={providerSchema}
+            initialValue={initialProviders}
+            mutationOptions={providerMutationOptions}
+          >
+            {field => (
+              <Fragment>
+                {(field.state.value ?? initialProviders).includes('slack') &&
+                unlinkedSlackOrgs.length > 0 ? (
+                  <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+                ) : null}
+                <field.Layout.Row
+                  label={t('Delivery Method')}
+                  hintText={t('Where personal notifications will be sent.')}
+                >
+                  <field.Select
+                    multiple
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={providerChoices}
+                  />
+                </field.Layout.Row>
+              </Fragment>
+            )}
+          </AutoSaveField>
+        </FieldGroup>
       ) : null}
       <NotificationSettingsByEntity
         notificationType={notificationType}
@@ -509,19 +536,3 @@ export function NotificationSettingsByType({notificationType}: Props) {
     </Fragment>
   );
 }
-
-const TopJsonForm = styled(JsonForm)`
-  ${Panel} {
-    border-bottom: 0;
-    margin-bottom: 0;
-    border-bottom-right-radius: 0;
-    border-bottom-left-radius: 0;
-  }
-`;
-
-const BottomJsonForm = styled(JsonForm)`
-  ${Panel} {
-    border-top-right-radius: 0;
-    border-top-left-radius: 0;
-  }
-`;

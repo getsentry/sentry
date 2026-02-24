@@ -130,10 +130,11 @@ export function BranchSelector() {
 
   return (
     <CompactSelect
-      searchable
-      onSearch={handleOnSearch}
-      disableSearchFilter
-      searchPlaceholder={t('search by branch name')}
+      search={{
+        placeholder: t('search by branch name'),
+        filter: false,
+        onChange: handleOnSearch,
+      }}
       menuTitle={t('Filter to branch')}
       options={options}
       value={branch ?? ALL_BRANCHES}

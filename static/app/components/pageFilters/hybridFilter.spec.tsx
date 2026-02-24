@@ -3,11 +3,11 @@ import {useRef, useState} from 'react';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
 
 import type {HybridFilterRef} from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
-  HybridFilterComponents,
   useStagedCompactSelect,
 } from 'sentry/components/pageFilters/hybridFilter';
 
@@ -70,25 +70,23 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
             ) : null
           }
           menuFooter={
             stagedSelect.hasStagedChanges ? (
               <div>
-                <HybridFilterComponents.CancelButton
+                <MenuComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
                   onClick={() => stagedSelect.removeStagedChanges()}
                 />
-                <HybridFilterComponents.ApplyButton
+                <MenuComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 />
               </div>
@@ -124,25 +122,23 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
             ) : null
           }
           menuFooter={
             stagedSelect.hasStagedChanges ? (
               <div>
-                <HybridFilterComponents.CancelButton
+                <MenuComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
                   onClick={() => stagedSelect.removeStagedChanges()}
                 />
-                <HybridFilterComponents.ApplyButton
+                <MenuComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 />
               </div>
@@ -188,25 +184,23 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
             ) : null
           }
           menuFooter={
             stagedSelect.hasStagedChanges ? (
               <div>
-                <HybridFilterComponents.CancelButton
+                <MenuComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
                   onClick={() => stagedSelect.removeStagedChanges()}
                 />
-                <HybridFilterComponents.ApplyButton
+                <MenuComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 />
               </div>
@@ -261,25 +255,23 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
             ) : null
           }
           menuFooter={
             stagedSelect.hasStagedChanges ? (
               <div>
-                <HybridFilterComponents.CancelButton
+                <MenuComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
                   onClick={() => stagedSelect.removeStagedChanges()}
                 />
-                <HybridFilterComponents.ApplyButton
+                <MenuComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 />
               </div>
@@ -327,25 +319,23 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
             ) : null
           }
           menuFooter={
             stagedSelect.hasStagedChanges ? (
               <div>
-                <HybridFilterComponents.CancelButton
+                <MenuComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
                   onClick={() => stagedSelect.removeStagedChanges()}
                 />
-                <HybridFilterComponents.ApplyButton
+                <MenuComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 />
               </div>
@@ -393,25 +383,23 @@ describe('HybridFilter', () => {
 
       return (
         <HybridFilter
-          searchable
+          search
           ref={hybridFilterRef}
           options={options}
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
             ) : null
           }
           menuFooter={
             stagedSelect.hasStagedChanges ? (
               <div>
-                <HybridFilterComponents.CancelButton
+                <MenuComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
                   onClick={() => stagedSelect.removeStagedChanges()}
                 />
-                <HybridFilterComponents.ApplyButton
+                <MenuComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 />
               </div>
@@ -471,17 +459,17 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
               stagedSelect.hasStagedChanges ? (
                 <div>
-                  <HybridFilterComponents.CancelButton
+                  <MenuComponents.CancelButton
                     onClick={() => stagedSelect.removeStagedChanges()}
                   />
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </div>
@@ -533,14 +521,14 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
               stagedSelect.hasStagedChanges ? (
                 <div>
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </div>
@@ -592,14 +580,14 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
               stagedSelect.hasStagedChanges ? (
                 <div>
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </div>
@@ -646,14 +634,14 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
               stagedSelect.hasStagedChanges ? (
                 <div>
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </div>
@@ -700,14 +688,14 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
               stagedSelect.hasStagedChanges ? (
                 <div>
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </div>
@@ -758,14 +746,14 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
               stagedSelect.hasStagedChanges ? (
                 <div>
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </div>
@@ -817,14 +805,14 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
               stagedSelect.hasStagedChanges ? (
                 <div>
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </div>
@@ -876,14 +864,14 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
               stagedSelect.hasStagedChanges ? (
                 <div>
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </div>
@@ -937,14 +925,14 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
               stagedSelect.hasStagedChanges ? (
                 <div>
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </div>
@@ -1000,14 +988,14 @@ describe('HybridFilter', () => {
 
         return (
           <HybridFilter
-            searchable
+            search
             ref={hybridFilterRef}
             options={options}
             stagedSelect={stagedSelect}
             menuFooter={
               stagedSelect.hasStagedChanges ? (
                 <div>
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />
                 </div>

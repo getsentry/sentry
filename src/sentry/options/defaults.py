@@ -1143,6 +1143,32 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Explorer service map options
+register(
+    "explorer.service_map.enable",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explorer.service_map.allowed_organizations",
+    default=[],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explorer.service_map.max_edges",
+    default=5000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explorer.service_map.max_segments",
+    default=500,
+    type=Int,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    ttl=60 * 5,
+)
 register(
     "seer.similarity.global-rate-limit",
     type=Dict,
@@ -3175,6 +3201,16 @@ register(
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
     "spans.buffer.compression.level",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Threshold in bytes for out-of-band storage of large compressed span payloads.
+# Payloads larger than this are stored in separate Redis string keys instead of
+# inline in sets, avoiding expensive SUNIONSTORE memcpy. Set to 0 to disable.
+# Only applies when compression is enabled (compression.level >= 0).
+register(
+    "spans.buffer.oob-threshold-bytes",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

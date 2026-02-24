@@ -1,6 +1,12 @@
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Stack,
+  type FlexProps,
+  type StackProps,
+} from '@sentry/scraps/layout';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,12 +16,22 @@ interface LayoutProps {
   variant?: 'compact';
 }
 
-function RowLayout(props: LayoutProps) {
+interface RowLayoutProps extends LayoutProps {
+  padding?: FlexProps<'div'>['padding'];
+}
+
+function RowLayout(props: RowLayoutProps) {
   const isCompact = props.variant === 'compact';
   const field = useFieldContext();
 
   return (
-    <Flex id={field.name} gap="sm" align="center" justify="between">
+    <Flex
+      id={field.name}
+      gap="sm"
+      align="center"
+      justify="between"
+      padding={props.padding}
+    >
       <Stack width="50%" gap="xs">
         <Flex gap="xs" align="center">
           <FieldMeta.Label
@@ -35,12 +51,16 @@ function RowLayout(props: LayoutProps) {
   );
 }
 
-function StackLayout(props: LayoutProps) {
+interface StackLayoutProps extends LayoutProps {
+  padding?: StackProps<'div'>['padding'];
+}
+
+function StackLayout(props: StackLayoutProps) {
   const isCompact = props.variant === 'compact';
   const field = useFieldContext();
 
   return (
-    <Stack id={field.name} gap="md">
+    <Stack id={field.name} gap="md" padding={props.padding}>
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}
