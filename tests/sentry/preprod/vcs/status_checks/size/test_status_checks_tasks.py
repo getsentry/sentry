@@ -297,11 +297,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
                 if expected_status == StatusCheckStatus.SUCCESS:
                     # SUCCESS only when processed AND has completed size metrics
-                    assert "1 app" in call_kwargs["subtitle"]
+                    assert "1 component" in call_kwargs["subtitle"]
                 elif expected_status == StatusCheckStatus.IN_PROGRESS:
-                    assert "1 app processing" in call_kwargs["subtitle"]
+                    assert "1 component processing" in call_kwargs["subtitle"]
                 elif expected_status == StatusCheckStatus.FAILURE:
-                    assert "1 app errored" in call_kwargs["subtitle"]
+                    assert "1 component errored" in call_kwargs["subtitle"]
 
                 assert call_kwargs["summary"]  # Just check it exists
                 assert call_kwargs["external_id"] == str(preprod_artifact.id)
@@ -417,7 +417,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         call_kwargs = mock_provider.create_status_check.call_args.kwargs
 
         assert call_kwargs["title"] == "Size Analysis"
-        assert call_kwargs["subtitle"] == "3 apps analyzed"  # All processed with completed metrics
+        assert (
+            call_kwargs["subtitle"] == "3 components analyzed"
+        )  # All processed with completed metrics
 
         summary = call_kwargs["summary"]
         assert "com.example.app0" in summary
@@ -483,7 +485,10 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         call_kwargs = mock_provider.create_status_check.call_args.kwargs
 
         assert call_kwargs["title"] == "Size Analysis"
-        assert call_kwargs["subtitle"] == "1 app analyzed, 1 app processing, 1 app errored"
+        assert (
+            call_kwargs["subtitle"]
+            == "1 component analyzed, 1 component processing, 1 component errored"
+        )
         # With no rules configured, status is always NEUTRAL.
         assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
 

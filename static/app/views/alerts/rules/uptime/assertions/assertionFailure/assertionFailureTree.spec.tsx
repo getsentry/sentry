@@ -7,7 +7,7 @@ import {
   makeOrOp,
   makeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/assertions/testUtils';
-import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
+import {ComparisonType, type Assertion} from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionFailureTree} from './assertionFailureTree';
 
@@ -15,7 +15,9 @@ describe('AssertionFailureTree', () => {
   it('renders rows in order for a simple assertion', () => {
     const assertion: Assertion = {
       root: makeAndOp({
-        children: [makeStatusCodeOp({operator: {cmp: 'equals'}, value: 500})],
+        children: [
+          makeStatusCodeOp({operator: {cmp: ComparisonType.EQUALS}, value: 500}),
+        ],
       }),
     };
 
@@ -40,7 +42,7 @@ describe('AssertionFailureTree', () => {
             children: [
               makeJsonPathOp({
                 value: '$.status',
-                operator: {cmp: 'equals'},
+                operator: {cmp: ComparisonType.EQUALS},
                 operand: {jsonpath_op: 'literal', value: 'ok'},
               }),
               makeHeaderCheckOp({

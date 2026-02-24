@@ -42,6 +42,17 @@ function ThresholdsSection({
       />
       <Thresholds
         thresholdsConfig={state.thresholds ?? null}
+        preferredPolarity={state.thresholds?.preferredPolarity ?? '-'}
+        onPolarityChange={polarity => {
+          dispatch({
+            type: BuilderStateAction.SET_THRESHOLDS,
+            payload: {
+              max_values: state.thresholds?.max_values ?? {},
+              unit: state.thresholds?.unit ?? null,
+              preferredPolarity: polarity,
+            },
+          });
+        }}
         onThresholdChange={(maxKey, value) => {
           let newThresholds = cloneDeep(state.thresholds);
 
@@ -80,6 +91,7 @@ function ThresholdsSection({
             payload: {
               max_values: state.thresholds?.max_values ?? {},
               unit,
+              preferredPolarity: state.thresholds?.preferredPolarity,
             },
           });
         }}

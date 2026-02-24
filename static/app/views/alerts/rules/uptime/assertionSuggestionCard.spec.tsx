@@ -4,23 +4,28 @@ import {
   AssertionSuggestionCard,
   AssertionSuggestionCardPlaceholder,
 } from 'sentry/views/alerts/rules/uptime/assertionSuggestionCard';
-import type {AssertionSuggestion} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  AssertionType,
+  ComparisonType,
+  OpType,
+  type AssertionSuggestion,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 function makeSuggestion(
   overrides: Partial<AssertionSuggestion> = {}
 ): AssertionSuggestion {
   return {
-    assertion_type: 'status_code',
-    comparison: 'equals',
+    assertion_type: AssertionType.STATUS_CODE,
+    comparison: ComparisonType.EQUALS,
     expected_value: '200',
     confidence: 0.9,
     explanation: 'Checks for a healthy response',
     json_path: null,
     header_name: null,
     assertion_json: {
-      op: 'status_code_check' as const,
+      op: OpType.STATUS_CODE_CHECK,
       id: 'test-1',
-      operator: {cmp: 'equals' as const},
+      operator: {cmp: ComparisonType.EQUALS},
       value: 200,
     },
     ...overrides,
@@ -30,8 +35,8 @@ function makeSuggestion(
 describe('AssertionSuggestionCard', () => {
   it('renders status_code assertion label', () => {
     const suggestion = makeSuggestion({
-      assertion_type: 'status_code',
-      comparison: 'equals',
+      assertion_type: AssertionType.STATUS_CODE,
+      comparison: ComparisonType.EQUALS,
       expected_value: '200',
     });
 
@@ -43,8 +48,8 @@ describe('AssertionSuggestionCard', () => {
 
   it('renders json_path assertion label', () => {
     const suggestion = makeSuggestion({
-      assertion_type: 'json_path',
-      comparison: 'equals',
+      assertion_type: AssertionType.JSON_PATH,
+      comparison: ComparisonType.EQUALS,
       expected_value: 'active',
       json_path: '$.status',
     });
@@ -57,8 +62,8 @@ describe('AssertionSuggestionCard', () => {
 
   it('renders json_path with always comparison as exists', () => {
     const suggestion = makeSuggestion({
-      assertion_type: 'json_path',
-      comparison: 'always',
+      assertion_type: AssertionType.JSON_PATH,
+      comparison: ComparisonType.ALWAYS,
       json_path: '$.data',
     });
 
@@ -70,8 +75,8 @@ describe('AssertionSuggestionCard', () => {
 
   it('renders header assertion label', () => {
     const suggestion = makeSuggestion({
-      assertion_type: 'header',
-      comparison: 'equals',
+      assertion_type: AssertionType.HEADER,
+      comparison: ComparisonType.EQUALS,
       expected_value: 'application/json',
       header_name: 'Content-Type',
     });
@@ -84,8 +89,8 @@ describe('AssertionSuggestionCard', () => {
 
   it('renders header with always comparison as exists', () => {
     const suggestion = makeSuggestion({
-      assertion_type: 'header',
-      comparison: 'always',
+      assertion_type: AssertionType.HEADER,
+      comparison: ComparisonType.ALWAYS,
       header_name: 'X-Request-Id',
     });
 

@@ -27,10 +27,15 @@ ACTION_TO_EVENTS: dict[AnalyticAction, type[AiAutofixPrEvent]] = {
 def handle_github_pr_webhook_for_autofix(
     org: Organization, action: str, pull_request: dict[str, Any], github_user: dict[str, Any]
 ) -> None:
+    allowed_user_ids = set()
     if (
-        not hasattr(settings, "SEER_AUTOFIX_GITHUB_APP_USER_ID")
-        or github_user["id"] != settings.SEER_AUTOFIX_GITHUB_APP_USER_ID
+        hasattr(settings, "SEER_AUTOFIX_GITHUB_APP_USER_ID")
+        and settings.SEER_AUTOFIX_GITHUB_APP_USER_ID
     ):
+        allowed_user_ids.add(settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
+    if hasattr(settings, "SENTRY_GITHUB_APP_USER_ID") and settings.SENTRY_GITHUB_APP_USER_ID:
+        allowed_user_ids.add(settings.SENTRY_GITHUB_APP_USER_ID)
+    if github_user["id"] not in allowed_user_ids:
         return None
 
     if action not in ["opened", "closed"]:

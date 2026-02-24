@@ -243,6 +243,7 @@ def emit_observability_metrics(
     gauge_metrics_dict: dict[
         str, tuple[float, float, float, float]
     ] = {}  # metric, min, max, sum, count
+    oversized_count = 0
 
     for evalsha_latency_metrics, evalsha_gauge_metrics in zip(latency_metrics, gauge_metrics):
         for raw_key, value in evalsha_latency_metrics:
@@ -267,6 +268,8 @@ def emit_observability_metrics(
                     gauge_metrics_dict[key][2] + value,
                     gauge_metrics_dict[key][3] + 1.0,
                 )
+            if raw_key == b"parent_span_set_already_oversized":
+                oversized_count += int(value)
 
     for metric, (min_value, max_value, sum_value, count) in latency_metrics_dict.items():
         tags = {"stage": metric}
@@ -294,4 +297,10 @@ def emit_observability_metrics(
             "spans.buffer.process_spans.longest_evalsha.gauge_metric",
             value,
             tags={"stage": key},
+        )
+
+    if oversized_count > 0:
+        metrics.incr(
+            "spans.buffer.process_spans.parent_span_set_already_oversized.count",
+            amount=oversized_count,
         )
