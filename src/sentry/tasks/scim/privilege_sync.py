@@ -69,7 +69,7 @@ def update_privilege(
 @instrumented_task(
     name="sentry.tasks.scim.privilege_sync.sync_scim_team_privileges",
     namespace=auth_control_tasks,
-    retry=Retry(times=3, delay=60),
+    retry=Retry(times=3, on=(Exception,)),
     silo_mode=SiloMode.CONTROL,
 )
 def sync_scim_team_privileges(
