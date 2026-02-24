@@ -213,13 +213,12 @@ export function updateDashboard(
 
 export function deleteDashboard(
   api: Client,
-  orgId: string,
   dashboardId: string,
   queryClient: QueryClient,
   organization: Organization
 ): Promise<undefined> {
   const promise: Promise<undefined> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/`,
+    `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
     {
       method: 'DELETE',
     }

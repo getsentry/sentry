@@ -20,13 +20,7 @@ export function useDeleteDashboard({onSuccess}: UseDeleteDashboardProps) {
 
   const deleteDashboard = useCallback(
     (dashboard: DashboardListItem, viewType: 'table' | 'grid') => {
-      deleteDashboardAction(
-        api,
-        organization.slug,
-        dashboard.id,
-        queryClient,
-        organization
-      )
+      deleteDashboardAction(api, dashboard.id, queryClient, organization)
         .then(() => {
           trackAnalytics('dashboards_manage.delete', {
             organization,

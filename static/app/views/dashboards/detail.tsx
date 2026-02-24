@@ -458,7 +458,7 @@ class DashboardDetail extends Component<Props, State> {
     const previousDashboardState = this.state.dashboardState;
 
     this.setState({dashboardState: DashboardState.PENDING_DELETE}, () => {
-      deleteDashboard(api, organization.slug, dashboard.id, queryClient, organization)
+      deleteDashboard(api, dashboard.id, queryClient, organization)
         .then(() => {
           addSuccessMessage(t('Dashboard deleted'));
           trackAnalytics('dashboards2.delete', {organization});
