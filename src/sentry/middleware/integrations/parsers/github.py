@@ -40,6 +40,8 @@ class GithubRequestParser(BaseRequestParser):
         GitHub webhook payloads include repository.id for most event types.
         Installation events are routed to control silo and don't reach this path.
         """
+        if not options.get("github.webhook.mailbox-bucketing.enabled"):
+            return None
         repository = data.get("repository")
         if isinstance(repository, dict):
             repo_id = repository.get("id")
