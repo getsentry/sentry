@@ -18,7 +18,7 @@ interface RelativeZoomRangeMs {
   statsPeriod: string;
 }
 
-export type ZoomRangeMs = AbsoluteZoomRangeMs | RelativeZoomRangeMs;
+type ZoomRangeMs = AbsoluteZoomRangeMs | RelativeZoomRangeMs;
 
 function toStatsPeriod(durationMs: number): string {
   const hourMs = 60 * 60 * 1000;
