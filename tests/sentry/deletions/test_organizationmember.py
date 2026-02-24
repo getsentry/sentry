@@ -18,7 +18,9 @@ class DeleteOrganizationMemberTest(APITestCase, TransactionTestCase, HybridCloud
 
         assert not OrganizationMember.objects.filter(id=member.id).exists()
 
-    def _create_org_member_with_external_actor(self, org: Organization) -> OrganizationMember:
+    def _create_org_member_with_external_actor(
+        self, org: Organization
+    ) -> tuple[OrganizationMember, ExternalActor]:
         user = self.create_user()
         member = self.create_member(organization=org, user=user)
         external_actor = self.create_external_user(user=user, organization=org)

@@ -7,7 +7,7 @@ class OrganizationMemberDeletionTask(ModelDeletionTask[OrganizationMember]):
     def get_child_relations(self, instance: OrganizationMember) -> list[BaseRelation]:
         relations: list[BaseRelation] = []
 
-        if instance.user_id:
+        if instance.user_id is not None:
             # We need to clean up external actors (user mappings for integrations),
             #  but only if the org member is not an invite.
             # This prevents us from accidentally cleaning up team mappings.
