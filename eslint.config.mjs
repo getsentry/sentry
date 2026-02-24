@@ -456,6 +456,26 @@ export default typescript.config([
     name: 'plugin/@sentry/scraps',
     plugins: {'@sentry/scraps': sentryScrapsPlugin},
     rules: {
+      '@sentry/scraps/restrict-jsx-slot-children': [
+        'warn',
+        {
+          propNames: ['menuHeaderTrailingItems', 'menuFooter'],
+          allowed: [
+            {
+              type: 'member',
+              source: '@sentry/scraps/compactSelect',
+              objectName: 'MenuComponents',
+              role: 'leaf',
+            },
+            {
+              type: 'named',
+              source: '@sentry/scraps/layout',
+              names: ['Flex', 'Stack', 'Grid', 'Container'],
+              role: 'wrapper',
+            },
+          ],
+        },
+      ],
       '@sentry/scraps/no-core-import': 'error',
       '@sentry/scraps/no-token-import': 'error',
       '@sentry/scraps/use-semantic-token': [
