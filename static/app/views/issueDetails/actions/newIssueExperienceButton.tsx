@@ -19,6 +19,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   useIssueDetailsTour,
@@ -123,6 +124,7 @@ function useIssueDetailsPromoModal() {
 
 export function NewIssueExperienceButton() {
   const organization = useOrganization();
+  const user = useUser();
   const isSuperUser = isActiveSuperuser();
   const {
     startTour,
@@ -161,9 +163,14 @@ export function NewIssueExperienceButton() {
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
       organization,
-      enforced_streamline_ui: false,
+      enforced_streamline_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
     });
-  }, [mutateUserOptions, organization, hasStreamlinedUI]);
+  }, [
+    mutateUserOptions,
+    organization,
+    hasStreamlinedUI,
+    user?.options?.prefersIssueDetailsStreamlinedUI,
+  ]);
 
   if (!hasStreamlinedUI) {
     return (
