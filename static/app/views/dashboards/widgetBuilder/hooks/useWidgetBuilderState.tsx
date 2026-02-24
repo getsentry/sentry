@@ -437,7 +437,6 @@ function useWidgetBuilderState(): {
               );
             }
           }
-          setThresholds(undefined, options);
           setSelectedAggregate(undefined, options);
           setLinkedDashboards([], options);
           break;

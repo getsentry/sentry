@@ -597,7 +597,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.selectedAggregate).toBeUndefined();
     });
 
-    it('resets thresholds when the display type is switched', () => {
+    it('preserves thresholds when the display type is switched', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
           query: {
@@ -624,7 +624,10 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      expect(result.current.state.thresholds).toBeUndefined();
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: 'milliseconds',
+      });
     });
 
     it('sets sort to first available sortable field when switching to release table', () => {
