@@ -323,7 +323,7 @@ def get_and_update_group_fixability_score(
     summary = None
     cache_key = get_issue_summary_cache_key(group.id)
     cached = cache.get(cache_key)
-    if cached:
+    if cached:  # If it's not in the cache, we fallback to reading from Seer DB
         required_fields = ["headline", "whats_wrong", "trace", "possible_cause"]
         if all(cached.get(k) is not None for k in required_fields):
             summary = {
