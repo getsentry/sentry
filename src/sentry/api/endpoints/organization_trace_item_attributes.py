@@ -107,6 +107,24 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.DATA_BROWSING
+    feature_flags = [
+        "organizations:ourlogs-enabled",
+        "organizations:visibility-explore-view",
+        "organizations:tracemetrics-enabled",
+    ]
+
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        batch_features = features.batch_has(
+            self.feature_flags, organization=organization, actor=request.user
+        )
+
+        if batch_features is None:
+            return False
+
+        key = f"organization:{organization.id}"
+        org_features = batch_features.get(key, {})
+
+        return any(org_features.get(feature) for feature in self.feature_flags)
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
@@ -214,6 +232,9 @@ def as_attribute_key(
 @region_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -398,6 +419,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 @region_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
