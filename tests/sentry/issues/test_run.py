@@ -465,7 +465,9 @@ class TestBatchedOccurrenceConsumer(
         strategy = OccurrenceStrategyFactory(
             mode="batched-parallel",
             max_batch_size=6,
-            max_batch_time=sys.maxsize,
+            # Use a large batch timeout to prevent time-based flushes during the test,
+            # ensuring all events are processed in a single batch.
+            max_batch_time=300,
         ).create_with_partitions(
             commit=mock_commit,
             partitions={},
