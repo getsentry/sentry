@@ -44,6 +44,10 @@ def index_org_project_knowledge(org_id: int) -> None:
     For a given org, list active projects, assemble project metadata and call
     the Seer endpoint to generate LLM summaries and embeddings.
     """
+    if not options.get("explorer.context_engine_indexing.enable"):
+        logger.info("explorer.context_engine_indexing.enable flag is disabled")
+        return
+
     projects = list(
         Project.objects.filter(organization_id=org_id, status=ObjectStatus.ACTIVE).select_related(
             "organization"
@@ -140,6 +144,10 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     Args:
         organization_id: Organization ID to build map for
     """
+    if not options.get("explorer.context_engine_indexing.enable"):
+        logger.info("explorer.context_engine_indexing.enable flag is disabled")
+        return
+
     logger.info(
         "Starting service map build",
         extra={"org_id": organization_id},

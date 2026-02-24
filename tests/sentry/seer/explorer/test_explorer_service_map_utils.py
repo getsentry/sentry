@@ -70,10 +70,11 @@ class TestBuildServiceMap(TestCase):
     def test_handles_no_projects(self):
         org = self.create_organization()
 
-        with mock.patch(
-            "sentry.tasks.explorer_context_engine_tasks._query_service_dependencies"
-        ) as mock_query:
-            build_service_map(org.id)
+        with override_options({"explorer.context_engine_indexing.enable": True}):
+            with mock.patch(
+                "sentry.tasks.explorer_context_engine_tasks._query_service_dependencies"
+            ) as mock_query:
+                build_service_map(org.id)
 
         mock_query.assert_not_called()
 
@@ -88,7 +89,8 @@ class TestBuildServiceMap(TestCase):
             {"source_project_id": project1.id, "target_project_id": project2.id, "count": 10}
         ]
 
-        build_service_map(org.id)
+        with override_options({"explorer.context_engine_indexing.enable": True}):
+            build_service_map(org.id)
 
         mock_dependencies.assert_called_once()
         snuba_params = mock_dependencies.call_args[0][0]
@@ -101,8 +103,11 @@ class TestBuildServiceMap(TestCase):
 
         mock_dependencies.return_value = []
 
-        with mock.patch("sentry.tasks.explorer_context_engine_tasks._send_to_seer") as mock_send:
-            build_service_map(org.id)
+        with override_options({"explorer.context_engine_indexing.enable": True}):
+            with mock.patch(
+                "sentry.tasks.explorer_context_engine_tasks._send_to_seer"
+            ) as mock_send:
+                build_service_map(org.id)
 
         mock_send.assert_not_called()
 
@@ -112,7 +117,8 @@ class TestBuildServiceMap(TestCase):
 
         mock_dependencies.side_effect = Exception("Test error")
 
-        build_service_map(org.id)
+        with override_options({"explorer.context_engine_indexing.enable": True}):
+            build_service_map(org.id)
 
 
 @django_db_all
@@ -1076,6 +1082,7 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
         with mock.patch("sentry.tasks.explorer_context_engine_tasks._send_to_seer") as mock_send:
             with override_options(
                 {
+                    "explorer.context_engine_indexing.enable": True,
                     "explorer.service_map.max_edges": 5000,
                 }
             ):
