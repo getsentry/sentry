@@ -148,6 +148,27 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload, SlackEntrypoin
             slack_user_id=self.slack_request.user_id if include_user else None,
         )
 
+    # TODO(ISWF-2025): Implement Explorer entrypoint methods
+    def on_trigger_explorer_error(self, *, error: str) -> None:
+        return None
+
+    def on_trigger_explorer_success(self, *, run_id: int) -> None:
+        return None
+
+    def create_explorer_cache_payload(self) -> SlackEntrypointCachePayload:
+        return SlackEntrypointCachePayload(
+            threads=[self.thread],
+            organization_id=self.organization_id,
+            integration_id=self.install.model.id,
+            project_id=self.group.project_id,
+            group_id=self.group.id,
+            group_link=self.get_group_link(self.group),
+        )
+
+    @staticmethod
+    def on_explorer_update(cache_payload: SlackEntrypointCachePayload) -> None:
+        return None
+
     def on_trigger_autofix_error(self, *, error: str) -> None:
         send_thread_update(
             install=self.install,

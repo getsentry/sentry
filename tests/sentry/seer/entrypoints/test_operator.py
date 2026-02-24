@@ -28,7 +28,7 @@ class MockCachePayload(TypedDict):
     thread_id: str
 
 
-class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
+class MockEntrypoint(SeerEntrypoint[MockCachePayload, MockCachePayload]):
     """Mock entrypoint implementation for testing. Stores function calls similar to a mock."""
 
     key = cast(SeerEntrypointKey, "MOCK")
@@ -52,6 +52,20 @@ class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         self.autofix_run_ids.append(run_id)
+
+    # TODO(ISWF-2025): Implement Explorer entrypoint methods
+    def on_trigger_explorer_error(self, *, error: str) -> None:
+        return None
+
+    def on_trigger_explorer_success(self, *, run_id: int) -> None:
+        return None
+
+    def create_explorer_cache_payload(self) -> MockCachePayload:
+        return {"thread_id": self.thread_id}
+
+    @staticmethod
+    def on_explorer_update(cache_payload: MockCachePayload) -> None:
+        return None
 
     def create_autofix_cache_payload(self) -> MockCachePayload:
         return {"thread_id": self.thread_id}
