@@ -193,7 +193,11 @@ describe('OrganizationGeneralSettings', () => {
     ];
 
     for (const formElement of formElements) {
-      expect(formElement).toBeDisabled();
+      // New form system uses aria-disabled + readOnly instead of native disabled attribute
+      const isDisabled =
+        formElement.hasAttribute('disabled') ||
+        formElement.getAttribute('aria-disabled') === 'true';
+      expect(isDisabled).toBe(true);
     }
 
     expect(

@@ -624,6 +624,11 @@ describe('DetectorEdit', () => {
         body: mockDetector,
       });
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/anomaly-data/`,
+        body: [],
+      });
+
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig,
@@ -673,6 +678,11 @@ describe('DetectorEdit', () => {
         body: dynamicDetector,
       });
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${dynamicDetector.id}/anomaly-data/`,
+        body: [],
+      });
+
       render(<DetectorEdit />, {
         organization,
         initialRouterConfig: {
@@ -697,6 +707,11 @@ describe('DetectorEdit', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
         body: mockDetector,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/anomaly-data/`,
+        body: [],
       });
 
       // Current data for chart

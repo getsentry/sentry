@@ -27,22 +27,24 @@ class TestIndexOrgProjectKnowledge(TestCase):
 
     def test_returns_early_when_no_projects_found(self):
         org_without_projects = self.create_organization()
-        with mock.patch(
-            "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects"
-        ) as mock_counts:
-            index_org_project_knowledge(org_without_projects.id)
-            mock_counts.assert_not_called()
+        with override_options({"explorer.context_engine_indexing.enable": True}):
+            with mock.patch(
+                "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects"
+            ) as mock_counts:
+                index_org_project_knowledge(org_without_projects.id)
+                mock_counts.assert_not_called()
 
     def test_returns_early_when_no_high_volume_projects(self):
-        with mock.patch(
-            "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
-            return_value={},
-        ):
+        with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
-                "sentry.tasks.explorer_context_engine_tasks.requests.post"
-            ) as mock_post:
-                index_org_project_knowledge(self.org.id)
-                mock_post.assert_not_called()
+                "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
+                return_value={},
+            ):
+                with mock.patch(
+                    "sentry.tasks.explorer_context_engine_tasks.requests.post"
+                ) as mock_post:
+                    index_org_project_knowledge(self.org.id)
+                    mock_post.assert_not_called()
 
     @responses.activate
     def test_calls_seer_endpoint_with_correct_payload(self):
@@ -57,27 +59,28 @@ class TestIndexOrgProjectKnowledge(TestCase):
             self.project.id: ProjectEventCounts(error_count=5000, transaction_count=2000)
         }
 
-        with mock.patch(
-            "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
-            return_value=event_counts,
-        ):
+        with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
-                "sentry.tasks.explorer_context_engine_tasks.get_top_transactions_for_org_projects",
-                return_value={self.project.id: ["GET /api/0/projects/"]},
+                "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
+                return_value=event_counts,
             ):
                 with mock.patch(
-                    "sentry.tasks.explorer_context_engine_tasks.get_top_span_ops_for_org_projects",
-                    return_value={self.project.id: [("db", "SELECT * FROM table")]},
+                    "sentry.tasks.explorer_context_engine_tasks.get_top_transactions_for_org_projects",
+                    return_value={self.project.id: ["GET /api/0/projects/"]},
                 ):
                     with mock.patch(
-                        "sentry.tasks.explorer_context_engine_tasks.get_sdk_names_for_org_projects",
-                        return_value={self.project.id: "sentry.python"},
+                        "sentry.tasks.explorer_context_engine_tasks.get_top_span_ops_for_org_projects",
+                        return_value={self.project.id: [("db", "SELECT * FROM table")]},
                     ):
                         with mock.patch(
-                            "sentry.tasks.explorer_context_engine_tasks.sign_with_seer_secret",
-                            return_value={},
+                            "sentry.tasks.explorer_context_engine_tasks.get_sdk_names_for_org_projects",
+                            return_value={self.project.id: "sentry.python"},
                         ):
-                            index_org_project_knowledge(self.org.id)
+                            with mock.patch(
+                                "sentry.tasks.explorer_context_engine_tasks.sign_with_seer_secret",
+                                return_value={},
+                            ):
+                                index_org_project_knowledge(self.org.id)
 
         assert len(responses.calls) == 1
         body = orjson.loads(responses.calls[0].request.body)
@@ -104,30 +107,31 @@ class TestIndexOrgProjectKnowledge(TestCase):
             status=500,
         )
 
-        with mock.patch(
-            "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
-            return_value={
-                self.project.id: ProjectEventCounts(error_count=5000, transaction_count=2000)
-            },
-        ):
+        with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
-                "sentry.tasks.explorer_context_engine_tasks.get_top_transactions_for_org_projects",
-                return_value={},
+                "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
+                return_value={
+                    self.project.id: ProjectEventCounts(error_count=5000, transaction_count=2000)
+                },
             ):
                 with mock.patch(
-                    "sentry.tasks.explorer_context_engine_tasks.get_top_span_ops_for_org_projects",
+                    "sentry.tasks.explorer_context_engine_tasks.get_top_transactions_for_org_projects",
                     return_value={},
                 ):
                     with mock.patch(
-                        "sentry.tasks.explorer_context_engine_tasks.get_sdk_names_for_org_projects",
+                        "sentry.tasks.explorer_context_engine_tasks.get_top_span_ops_for_org_projects",
                         return_value={},
                     ):
                         with mock.patch(
-                            "sentry.tasks.explorer_context_engine_tasks.sign_with_seer_secret",
+                            "sentry.tasks.explorer_context_engine_tasks.get_sdk_names_for_org_projects",
                             return_value={},
                         ):
-                            with pytest.raises(Exception):
-                                index_org_project_knowledge(self.org.id)
+                            with mock.patch(
+                                "sentry.tasks.explorer_context_engine_tasks.sign_with_seer_secret",
+                                return_value={},
+                            ):
+                                with pytest.raises(Exception):
+                                    index_org_project_knowledge(self.org.id)
 
 
 @django_db_all
@@ -140,7 +144,12 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
         org1 = self.create_organization()
         org2 = self.create_organization()
 
-        with override_options({"explorer.service_map.allowed_organizations": [org1.id, org2.id]}):
+        with override_options(
+            {
+                "explorer.context_engine_indexing.enable": True,
+                "explorer.service_map.allowed_organizations": [org1.id, org2.id],
+            }
+        ):
             schedule_context_engine_indexing_tasks()
 
         assert mock_index.call_count == 2
@@ -153,7 +162,12 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
         "sentry.tasks.explorer_context_engine_tasks.index_org_project_knowledge.apply_async"
     )
     def test_noop_when_no_allowed_orgs(self, mock_index, mock_build):
-        with override_options({"explorer.service_map.allowed_organizations": []}):
+        with override_options(
+            {
+                "explorer.context_engine_indexing.enable": True,
+                "explorer.service_map.allowed_organizations": [],
+            }
+        ):
             schedule_context_engine_indexing_tasks()
 
         mock_index.assert_not_called()
