@@ -140,7 +140,12 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
         org1 = self.create_organization()
         org2 = self.create_organization()
 
-        with override_options({"explorer.service_map.allowed_organizations": [org1.id, org2.id]}):
+        with override_options(
+            {
+                "explorer.context_engine_indexing.enable": True,
+                "explorer.service_map.allowed_organizations": [org1.id, org2.id],
+            }
+        ):
             schedule_context_engine_indexing_tasks()
 
         assert mock_index.call_count == 2
@@ -153,7 +158,12 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
         "sentry.tasks.explorer_context_engine_tasks.index_org_project_knowledge.apply_async"
     )
     def test_noop_when_no_allowed_orgs(self, mock_index, mock_build):
-        with override_options({"explorer.service_map.allowed_organizations": []}):
+        with override_options(
+            {
+                "explorer.context_engine_indexing.enable": True,
+                "explorer.service_map.allowed_organizations": [],
+            }
+        ):
             schedule_context_engine_indexing_tasks()
 
         mock_index.assert_not_called()

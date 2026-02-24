@@ -145,10 +145,6 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
         extra={"org_id": organization_id},
     )
 
-    if not options.get("explorer.service_map.enable"):
-        logger.info("explorer.service_map.enable flag is disabled")
-        return
-
     try:
         organization = Organization.objects.get(id=organization_id)
         projects = list(
@@ -210,6 +206,10 @@ def schedule_context_engine_indexing_tasks() -> None:
     option and dispatches index_org_project_knowledge and build_service_map
     for each org.
     """
+    if not options.get("explorer.context_engine_indexing.enable"):
+        logger.info("explorer.context_engine_indexing.enable flag is disabled")
+        return
+
     allowed_org_ids = options.get("explorer.service_map.allowed_organizations")
     if not allowed_org_ids:
         logger.info("No allowed organizations for context engine indexing")
