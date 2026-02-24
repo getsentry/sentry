@@ -81,6 +81,14 @@ describe('conversationMessages utilities', () => {
       expect(extractTextFromMessage(msg)).toBe('Array message');
     });
 
+    it('joins multiple array content elements with newlines', () => {
+      const msg = {
+        role: 'user',
+        content: [{text: 'First part'}, {text: 'Second part'}],
+      };
+      expect(extractTextFromMessage(msg)).toBe('First part\nSecond part');
+    });
+
     it('extracts text from parts format with content field', () => {
       const msg = {
         role: 'user',
