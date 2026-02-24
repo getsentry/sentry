@@ -29,7 +29,7 @@ declare global {
   }
 }
 
-const scrollToFieldRef = (node: HTMLLabelElement | null) => {
+const scrollToFieldRef = (node: HTMLLabelElement | HTMLLegendElement | null) => {
   if (!node) {
     return;
   }
@@ -42,7 +42,9 @@ const scrollToFieldRef = (node: HTMLLabelElement | null) => {
   if (hash === node.dataset.field) {
     requestAnimationFrame(() => {
       node.scrollIntoView({block: 'center', behavior: 'smooth'});
-      node.control?.focus({focusVisible: true});
+      if ('control' in node) {
+        node.control?.focus({focusVisible: true});
+      }
     });
   }
 };
