@@ -378,20 +378,18 @@ class CursorAgentClientTest(TestCase):
     @patch.object(CursorAgentClient, "get")
     @patch.object(CursorAgentClient, "post")
     def test_launch_retry_all_models_exhausted(self, mock_post: Mock, mock_get: Mock) -> None:
-        """All retries fail, last error is raised."""
+        """Retry fails, retry error is raised."""
         mock_post.side_effect = [
             ApiError("Internal Server Error", code=500),
             ApiError("Bad Gateway", code=502),
-            ApiError("Service Unavailable", code=503),
-            ApiError("Gateway Timeout", code=504),
         ]
         mock_get.return_value = self._make_models_response(["model-a", "model-b", "model-c"])
 
-        with pytest.raises(ApiError, match="Gateway Timeout"):
+        with pytest.raises(ApiError, match="Bad Gateway"):
             self.cursor_client.launch(webhook_url=self.webhook_url, request=self.launch_request)
 
-        # 1 initial + 3 retries
-        assert mock_post.call_count == 4
+        # 1 initial + 1 retry
+        assert mock_post.call_count == 2
 
     @patch.object(CursorAgentClient, "get")
     @patch.object(CursorAgentClient, "post")
@@ -418,30 +416,6 @@ class CursorAgentClientTest(TestCase):
             self.cursor_client.launch(webhook_url=self.webhook_url, request=self.launch_request)
 
         assert mock_post.call_count == 1
-
-    @patch.object(CursorAgentClient, "get")
-    @patch.object(CursorAgentClient, "post")
-    def test_launch_retry_caps_at_max(self, mock_post: Mock, mock_get: Mock) -> None:
-        """Only tries first MAX_MODEL_RETRIES (3) models from a longer list."""
-        mock_post.side_effect = [
-            ApiError("Error", code=500),
-            ApiError("Error", code=500),
-            ApiError("Error", code=500),
-            ApiError("Last Error", code=500),
-        ]
-        mock_get.return_value = self._make_models_response(
-            ["model-1", "model-2", "model-3", "model-4", "model-5"]
-        )
-
-        with pytest.raises(ApiError, match="Last Error"):
-            self.cursor_client.launch(webhook_url=self.webhook_url, request=self.launch_request)
-
-        # 1 initial + 3 retries (not 5)
-        assert mock_post.call_count == 4
-
-        # Verify only the first 3 models were tried
-        retry_models = [mock_post.call_args_list[i][1]["data"]["model"] for i in range(1, 4)]
-        assert retry_models == ["model-1", "model-2", "model-3"]
 
     @patch.object(CursorAgentClient, "get")
     def test_get_available_models(self, mock_get: Mock) -> None:
@@ -479,34 +453,6 @@ class CursorAgentClientTest(TestCase):
         # Should retry with gpt-family model first, not claude or composer
         retry_model = mock_post.call_args_list[1][1]["data"]["model"]
         assert retry_model == "gpt-5.3-codex-high"
-
-    @patch.object(CursorAgentClient, "get")
-    @patch.object(CursorAgentClient, "post")
-    def test_launch_deprecated_model_same_family_fails_falls_through(
-        self, mock_post: Mock, mock_get: Mock
-    ) -> None:
-        """Same-family model also fails, falls through to other families."""
-        deprecated_error = ApiError("Bad Request", code=400)
-        deprecated_error.json = {"error": "Model 'gpt-4' is not available or invalid."}
-
-        mock_post.side_effect = [
-            deprecated_error,
-            ApiError("Also bad", code=400),
-            self._make_success_response(),
-        ]
-        mock_get.return_value = self._make_models_response(
-            ["claude-4.6-opus", "gpt-5.3-codex-high", "composer-1.5"]
-        )
-
-        result = self.cursor_client.launch(
-            webhook_url=self.webhook_url, request=self.launch_request
-        )
-
-        assert result.id == "agent_123"
-        assert mock_post.call_count == 3
-        # First retry: gpt-family (prioritized), second retry: claude (next in order)
-        assert mock_post.call_args_list[1][1]["data"]["model"] == "gpt-5.3-codex-high"
-        assert mock_post.call_args_list[2][1]["data"]["model"] == "claude-4.6-opus"
 
     @patch.object(CursorAgentClient, "get")
     @patch.object(CursorAgentClient, "post")

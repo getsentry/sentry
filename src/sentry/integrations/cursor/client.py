@@ -26,7 +26,6 @@ from sentry.shared_integrations.exceptions import (
 logger = logging.getLogger(__name__)
 
 NON_RETRYABLE_ERRORS = (ApiUnauthorized, ApiForbiddenError, ApiRateLimitedError)
-MAX_MODEL_RETRIES = 3
 
 _MODEL_NAME_PATTERN = re.compile(r"Model '([^']+)'")
 _MODEL_FAMILY_PATTERN = re.compile(r"^([a-zA-Z]+(?:-[a-zA-Z]+)*)-?\d")
@@ -39,7 +38,10 @@ def _extract_failed_model_from_error(error: ApiError) -> str | None:
         if error_json is None:
             return None
         message = error_json["error"]
-    except (AttributeError, KeyError, TypeError):
+    except (AttributeError, KeyError, TypeError) as e:
+        logger.warning(
+            "coding_agent.cursor.extract_model_from_error_failed", extra={"error": str(e)}
+        )
         return None
     match = _MODEL_NAME_PATTERN.search(message)
     return match.group(1) if match else None
@@ -143,7 +145,7 @@ class CursorAgentClient(CodingAgentClient):
         """Launch coding agent with webhook callback.
 
         Attempts launch with auto model selection first. On retryable failure,
-        fetches available models and retries with each model up to MAX_MODEL_RETRIES.
+        fetches available models and retries once with the first prioritized model.
         """
         payload = CursorAgentLaunchRequestBody(
             prompt=CursorAgentLaunchRequestPrompt(
@@ -205,27 +207,7 @@ class CursorAgentClient(CodingAgentClient):
 
         models = _prioritize_models_by_family(models, failed_model)
 
-        # Retry with each model up to MAX_MODEL_RETRIES
-        last_error: ApiError = initial_error
-        for model in models[:MAX_MODEL_RETRIES]:
-            try:
-                logger.info(
-                    "coding_agent.cursor.retry_with_model",
-                    extra={"model": model},
-                )
-                payload.model = model
-                return self._post_launch(payload, request)
-            except NON_RETRYABLE_ERRORS:
-                raise
-            except ApiError as e:
-                last_error = e
-                logger.warning(
-                    "coding_agent.cursor.retry_failed",
-                    extra={
-                        "model": model,
-                        "error": str(e),
-                        "status_code": e.code,
-                    },
-                )
-
-        raise last_error
+        model = models[0]
+        logger.info("coding_agent.cursor.retry_with_model", extra={"model": model})
+        payload.model = model
+        return self._post_launch(payload, request)
