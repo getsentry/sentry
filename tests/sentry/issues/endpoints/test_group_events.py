@@ -1,8 +1,9 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 from rest_framework.response import Response
+from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
@@ -597,9 +598,9 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         )
 
     @patch("sentry.issues.endpoints.group_events.run_group_events_query")
-    def test_snuba_read_timeout_returns_504(self, mock_query) -> None:
+    def test_snuba_read_timeout_returns_504(self, mock_query: MagicMock) -> None:
         mock_query.side_effect = SnubaError(
-            ReadTimeoutError(pool=None, url="", message="Read timed out")
+            ReadTimeoutError(ConnectionPool("dummy"), "/events/snql", "Read timed out")
         )
         self.login_as(user=self.user)
         event = self.store_event(
