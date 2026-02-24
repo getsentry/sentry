@@ -63,7 +63,7 @@ function EditAccessSelector({
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [stagedOptions, setStagedOptions] = useState<string[]>([]);
-  const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
+
   const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] =
     useState<boolean>(false);
   const {teams: selectedTeam} = useTeamsById({
@@ -91,7 +91,7 @@ function EditAccessSelector({
             ) ?? []),
           ];
     setSelectedOptions(selectedOptionsFromDashboard);
-  }, [dashboard, teamsToRender, isMenuOpen]); // isMenuOpen dependency ensures perms are 'refreshed'
+  }, [dashboard, teamsToRender]);
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = (newSelectedOptions: any) => {
@@ -285,105 +285,95 @@ function EditAccessSelector({
     [userCanEditDashboardPermissions, teamsToRender, makeCreatorOption, listSort]
   );
 
-  const dropdownMenu = (
-    <StyledCompactSelect
-      data-test-id="edit-access-dropdown"
-      size="sm"
-      onChange={newSelectedOptions => {
-        onSelectOptions(newSelectedOptions);
-      }}
-      multiple
-      search={{
-        placeholder: t('Search Teams'),
-        onChange: debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION),
-      }}
-      options={allDropdownOptions}
-      value={selectedOptions}
-      trigger={triggerProps => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          priority={listOnly ? 'transparent' : undefined}
-          style={listOnly ? {padding: 2} : {}}
-        >
-          {listOnly
-            ? [triggerAvatars]
-            : [
-                <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
-                triggerAvatars,
-              ]}
-        </OverlayTrigger.Button>
-      )}
-      isOpen={isMenuOpen}
-      onOpenChange={newOpenState => {
-        if (newOpenState === true) {
-          trackAnalytics('dashboards2.edit_access.start', {organization});
-        }
-
-        setStagedOptions(selectedOptions);
-        setMenuOpen(!isMenuOpen);
-      }}
-      menuFooter={
-        <Flex gap="md" align="center" justify="end">
-          <MenuComponents.CancelButton
-            onClick={() => setMenuOpen(false)}
-            disabled={!userCanEditDashboardPermissions}
-          />
-          <MenuComponents.ApplyButton
-            onClick={() => {
-              const isDefaultState =
-                !defined(dashboard.permissions) && selectedOptions.includes('_allUsers');
-              const newDashboardPermissions = getDashboardPermissions();
-              if (
-                !isDefaultState &&
-                !isEqual(newDashboardPermissions, dashboard.permissions)
-              ) {
-                trackAnalytics('dashboards2.edit_access.save', {
-                  organization,
-                  editable_by: newDashboardPermissions.isEditableByEveryone
-                    ? 'all'
-                    : newDashboardPermissions.teamsWithEditAccess.length > 0
-                      ? 'team_selection'
-                      : 'owner_only',
-                  team_count:
-                    newDashboardPermissions.teamsWithEditAccess.length || undefined,
-                });
-
-                onChangeEditAccess?.(newDashboardPermissions);
-              }
-              setMenuOpen(!isMenuOpen);
-            }}
-            disabled={
-              disabled ||
-              !userCanEditDashboardPermissions ||
-              isEqual(getDashboardPermissions(), {
-                ...dashboard.permissions,
-                teamsWithEditAccess: dashboard.permissions?.teamsWithEditAccess?.sort(
-                  (a, b) => a - b
-                ),
-              })
-            }
-          />
-        </Flex>
-      }
-      strategy="fixed"
-      preventOverflowOptions={{mainAxis: false}}
-      disabled={disabled}
-    />
-  );
-
-  const tooltipTitle = disabled
-    ? t('Prebuilt dashboards cannot be edited')
-    : t('Only the creator of this dashboard can manage editor access');
-
   return (
     <Tooltip
-      title={tooltipTitle}
+      title={
+        disabled
+          ? t('Prebuilt dashboards cannot be edited')
+          : t('Only the creator of this dashboard can manage editor access')
+      }
       disabled={
-        !disabled &&
-        (userCanEditDashboardPermissions || isMenuOpen || isCollapsedAvatarTooltipOpen)
+        !disabled && (userCanEditDashboardPermissions || isCollapsedAvatarTooltipOpen)
       }
     >
-      {dropdownMenu}
+      <StyledCompactSelect
+        data-test-id="edit-access-dropdown"
+        size="sm"
+        onChange={newSelectedOptions => {
+          onSelectOptions(newSelectedOptions);
+        }}
+        multiple
+        search={{
+          placeholder: t('Search Teams'),
+          onChange: debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION),
+        }}
+        options={allDropdownOptions}
+        value={selectedOptions}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            priority={listOnly ? 'transparent' : undefined}
+            style={listOnly ? {padding: 2} : {}}
+          >
+            {listOnly
+              ? [triggerAvatars]
+              : [
+                  <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
+                  triggerAvatars,
+                ]}
+          </OverlayTrigger.Button>
+        )}
+        onOpenChange={newOpenState => {
+          if (newOpenState === true) {
+            trackAnalytics('dashboards2.edit_access.start', {organization});
+          }
+
+          setStagedOptions(selectedOptions);
+        }}
+        menuFooter={
+          <Flex gap="md" align="center" justify="end">
+            <MenuComponents.CancelButton disabled={!userCanEditDashboardPermissions} />
+            <MenuComponents.ApplyButton
+              onClick={() => {
+                const isDefaultState =
+                  !defined(dashboard.permissions) &&
+                  selectedOptions.includes('_allUsers');
+                const newDashboardPermissions = getDashboardPermissions();
+                if (
+                  !isDefaultState &&
+                  !isEqual(newDashboardPermissions, dashboard.permissions)
+                ) {
+                  trackAnalytics('dashboards2.edit_access.save', {
+                    organization,
+                    editable_by: newDashboardPermissions.isEditableByEveryone
+                      ? 'all'
+                      : newDashboardPermissions.teamsWithEditAccess.length > 0
+                        ? 'team_selection'
+                        : 'owner_only',
+                    team_count:
+                      newDashboardPermissions.teamsWithEditAccess.length || undefined,
+                  });
+
+                  onChangeEditAccess?.(newDashboardPermissions);
+                }
+              }}
+              disabled={
+                disabled ||
+                !userCanEditDashboardPermissions ||
+                isEqual(getDashboardPermissions(), {
+                  ...dashboard.permissions,
+                  teamsWithEditAccess: dashboard.permissions?.teamsWithEditAccess?.sort(
+                    (a, b) => a - b
+                  ),
+                })
+              }
+            />
+          </Flex>
+        }
+        strategy="fixed"
+        preventOverflowOptions={{mainAxis: false}}
+        disabled={disabled}
+      />
     </Tooltip>
   );
 }
