@@ -27,7 +27,7 @@ export function getCreateTooltip(params: {
  * strings (initialized to '' when unused). Per-provider required-field validation is
  * enforced via superRefine in the consuming component.
  */
-export const dataForwarderFormSchema = z.object({
+const dataForwarderFormSchema = z.object({
   is_enabled: z.boolean(),
   enroll_new_projects: z.boolean(),
   project_ids: z.array(z.string()),
