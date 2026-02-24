@@ -70,7 +70,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 
   return (
     <PanelContainer direction="column">
-      <Stack gap="md">
+      <Stack gap="md" width="100%">
         {messages.map((message, index) => {
           const isSelected = message.id === effectiveSelectedMessageId;
           const isAssistant = message.role === 'assistant';
@@ -106,7 +106,10 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                 collapsible
               >
                 <Container padding="md">
-                  <MessageText size="sm">
+                  <MessageText
+                    size="sm"
+                    align={message.role === 'user' ? 'right' : 'left'}
+                  >
                     <MarkedText
                       as={TraceDrawerComponents.MarkdownContainer}
                       text={message.content}
@@ -133,6 +136,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 const PanelContainer = styled(Flex)`
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.md};
   background-color: ${p => p.theme.tokens.background.secondary};
+  min-height: 100%;
 `;
 
 const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
@@ -140,7 +144,6 @@ const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
   align-items: center;
   gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.xs};
   justify-content: ${p => (p.justify === 'end' ? 'flex-end' : 'flex-start')};
 
   &::after {
