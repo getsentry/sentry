@@ -1,14 +1,14 @@
-import {useMemo, useRef, useState} from 'react';
-import type {GridCellProps} from 'react-virtualized';
-import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useJumpButtons from 'sentry/components/replays/useJumpButtons';
+import useJumpButtons, {
+  type VisibleRange,
+} from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -22,15 +22,19 @@ import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilte
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
+import {VirtualTable} from 'sentry/views/replays/detail/virtualizedTableLayout';
+import {
+  getTimelineRowClassName,
+  getVisibleRangeFromVirtualRows,
+} from 'sentry/views/replays/detail/virtualizedTableUtils';
 
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 25;
-
-const cellMeasurer = {
-  defaultHeight: BODY_HEIGHT,
-  defaultWidth: 100,
-  fixedHeight: true,
-};
+const DEFAULT_COLUMN_WIDTH = 100;
+const DYNAMIC_COLUMN_INDEX = 1;
+const MIN_DYNAMIC_COLUMN_WIDTH = 200;
+const OVERSCAN = 20;
+const STATIC_COLUMN_WIDTHS = [100, 0, 140, 96, 116];
 
 export default function ErrorList() {
   const replay = useReplayReader();
@@ -41,133 +45,151 @@ export default function ErrorList() {
   const errorFrames = replay?.getErrorFrames();
   const startTimestampMs = replay?.getReplay().started_at.getTime() ?? 0;
 
-  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
-
   const filterProps = useErrorFilters({errorFrames: errorFrames || []});
-  const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
+  const {items: filteredItems, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {handleSort, items, sortConfig} = useSortErrors({items: filteredItems});
 
-  const gridRef = useRef<MultiGrid>(null);
-  const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
-  const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
-    useVirtualizedGrid({
-      cellMeasurer,
-      gridRef,
-      columnCount: COLUMN_COUNT,
-      dynamicColumnIndex: 1,
-      deps,
+  const {
+    gridTemplateColumns,
+    scrollContainerRef,
+    totalColumnWidth,
+    virtualRows,
+    virtualizer,
+    wrapperRef,
+  } = useVirtualizedGrid({
+    defaultColumnWidth: DEFAULT_COLUMN_WIDTH,
+    dynamicColumnIndex: DYNAMIC_COLUMN_INDEX,
+    minDynamicColumnWidth: MIN_DYNAMIC_COLUMN_WIDTH,
+    overscan: OVERSCAN,
+    rowCount: items.length,
+    rowHeight: BODY_HEIGHT,
+    staticColumnWidths: STATIC_COLUMN_WIDTHS,
+  });
+
+  const handleScrollToTableRow = useCallback(
+    (row: number) => {
+      virtualizer.scrollToIndex(row - 1, {align: 'center', behavior: 'smooth'});
+    },
+    [virtualizer]
+  );
+
+  const visibleRange = useMemo<VisibleRange>(() => {
+    return getVisibleRangeFromVirtualRows({
+      indexOffset: 1,
+      scrollOffset: virtualizer.scrollOffset ?? 0,
+      viewportHeight: virtualizer.scrollRect?.height ?? 0,
+      virtualRows,
     });
+  }, [virtualRows, virtualizer.scrollOffset, virtualizer.scrollRect?.height]);
 
   const {
     handleClick: onClickToJump,
-    onSectionRendered,
     showJumpDownButton,
     showJumpUpButton,
   } = useJumpButtons({
     currentTime,
     frames: filteredItems,
     isTable: true,
-    setScrollToRow,
+    setScrollToRow: handleScrollToTableRow,
+    visibleRange,
   });
-
-  const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const error = items[rowIndex - 1]!;
-
-    return (
-      <CellMeasurer
-        cache={cache}
-        columnIndex={columnIndex}
-        key={key}
-        parent={parent}
-        rowIndex={rowIndex}
-      >
-        {({
-          measure: _,
-          registerChild,
-        }: {
-          measure: () => void;
-          registerChild?: (element?: Element) => void;
-        }) =>
-          rowIndex === 0 ? (
-            <ErrorHeaderCell
-              ref={e => {
-                if (e && registerChild) {
-                  registerChild(e);
-                }
-              }}
-              handleSort={handleSort}
-              index={columnIndex}
-              sortConfig={sortConfig}
-              style={{...style, height: HEADER_HEIGHT}}
-            />
-          ) : (
-            <ErrorTableCell
-              columnIndex={columnIndex}
-              currentHoverTime={currentHoverTime}
-              currentTime={currentTime}
-              frame={error}
-              onMouseEnter={onMouseEnter}
-              onMouseLeave={onMouseLeave}
-              onClickTimestamp={onClickTimestamp}
-              ref={e => {
-                if (e && registerChild) {
-                  registerChild(e);
-                }
-              }}
-              rowIndex={rowIndex}
-              sortConfig={sortConfig}
-              startTimestampMs={startTimestampMs}
-              style={{...style, height: BODY_HEIGHT}}
-            />
-          )
-        }
-      </CellMeasurer>
-    );
-  };
 
   return (
     <Flex direction="column" wrap="nowrap">
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
       <ErrorTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
-          <Grid height="100%" overflow="hidden" position="relative">
-            <AutoSizer onResize={onWrapperResize}>
-              {({height, width}) => (
-                <MultiGrid
-                  ref={gridRef}
-                  cellRenderer={cellRenderer}
-                  columnCount={COLUMN_COUNT}
-                  columnWidth={getColumnWidth(width)}
-                  deferredMeasurementCache={cache}
-                  estimatedColumnSize={100}
-                  estimatedRowSize={BODY_HEIGHT}
-                  fixedRowCount={1}
-                  height={height}
-                  noContentRenderer={() => (
-                    <NoRowRenderer
-                      unfilteredItems={errorFrames}
-                      clearSearchTerm={clearSearchTerm}
-                    >
-                      {t('No errors! Go make some.')}
-                    </NoRowRenderer>
-                  )}
-                  onScrollbarPresenceChange={onScrollbarPresenceChange}
-                  onScroll={() => {
-                    if (scrollToRow !== undefined) {
-                      setScrollToRow(undefined);
-                    }
+          <VirtualTable ref={wrapperRef}>
+            <VirtualTable.BodyScrollContainer ref={scrollContainerRef}>
+              <VirtualTable.HeaderViewport style={{width: totalColumnWidth}}>
+                <VirtualTable.HeaderRow
+                  style={{
+                    gridTemplateColumns,
                   }}
-                  onSectionRendered={onSectionRendered}
-                  overscanColumnCount={COLUMN_COUNT}
-                  overscanRowCount={5}
-                  rowCount={items.length + 1}
-                  rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
-                  scrollToRow={scrollToRow}
-                  width={width}
-                />
+                >
+                  {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
+                    <ErrorHeaderCell
+                      key={columnIndex}
+                      handleSort={handleSort}
+                      index={columnIndex}
+                      sortConfig={sortConfig}
+                      style={{height: HEADER_HEIGHT}}
+                    />
+                  ))}
+                </VirtualTable.HeaderRow>
+              </VirtualTable.HeaderViewport>
+              {items.length === 0 ? (
+                <VirtualTable.NoRowsContainer>
+                  <NoRowRenderer
+                    unfilteredItems={errorFrames}
+                    clearSearchTerm={clearSearchTerm}
+                  >
+                    {t('No errors! Go make some.')}
+                  </NoRowRenderer>
+                </VirtualTable.NoRowsContainer>
+              ) : (
+                <VirtualTable.Content
+                  style={{
+                    height: virtualizer.getTotalSize(),
+                    width: totalColumnWidth,
+                  }}
+                >
+                  <VirtualTable.Offset
+                    offset={virtualRows[0]?.start ?? 0}
+                    style={{width: totalColumnWidth}}
+                  >
+                    {virtualRows.map(virtualRow => {
+                      const error = items[virtualRow.index];
+                      if (!error) {
+                        return null;
+                      }
+
+                      const isByTimestamp = sortConfig.by === 'timestamp';
+                      const hasOccurred = currentTime >= error.offsetMs;
+                      const isBeforeHover =
+                        currentHoverTime === undefined ||
+                        currentHoverTime >= error.offsetMs;
+                      const isAsc = isByTimestamp ? sortConfig.asc : false;
+
+                      const rowClassName = getTimelineRowClassName({
+                        hasHoverTime: currentHoverTime !== undefined,
+                        hasOccurred,
+                        isAsc,
+                        isBeforeHover,
+                        isByTimestamp,
+                        isLastDataRow: virtualRow.index === items.length - 1,
+                      });
+
+                      return (
+                        <VirtualTable.BodyRow
+                          key={virtualRow.key}
+                          className={rowClassName}
+                          data-index={virtualRow.index}
+                          style={{
+                            gridTemplateColumns,
+                            height: BODY_HEIGHT,
+                          }}
+                        >
+                          {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
+                            <ErrorTableCell
+                              key={`${virtualRow.key}-${columnIndex}`}
+                              columnIndex={columnIndex}
+                              frame={error}
+                              onMouseEnter={onMouseEnter}
+                              onMouseLeave={onMouseLeave}
+                              onClickTimestamp={onClickTimestamp}
+                              startTimestampMs={startTimestampMs}
+                              style={{height: BODY_HEIGHT}}
+                            />
+                          ))}
+                        </VirtualTable.BodyRow>
+                      );
+                    })}
+                  </VirtualTable.Offset>
+                </VirtualTable.Content>
               )}
-            </AutoSizer>
+            </VirtualTable.BodyScrollContainer>
             {sortConfig.by === 'timestamp' && items.length ? (
               <JumpButtons
                 jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
@@ -175,7 +197,7 @@ export default function ErrorList() {
                 tableHeaderHeight={HEADER_HEIGHT}
               />
             ) : null}
-          </Grid>
+          </VirtualTable>
         ) : (
           <Placeholder height="100%" />
         )}
@@ -194,40 +216,4 @@ const ErrorTable = styled('div')`
 
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-
-  .beforeHoverTime + .afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 999999999%;
-  }
-
-  .beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.moderate};
-    content: '';
-    right: 0;
-    position: absolute;
-    bottom: 0;
-    width: 999999999%;
-  }
-
-  .beforeCurrentTime + .afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 999999999%;
-  }
-
-  .beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
-    content: '';
-    right: 0;
-    position: absolute;
-    bottom: 0;
-    width: 999999999%;
-  }
 `;
