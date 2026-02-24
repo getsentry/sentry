@@ -5,4 +5,4 @@ from sentry.workflow_engine.models import Action
 
 @issue_alert_handler_registry.register(Action.Type.AZURE_DEVOPS)
 class AzureDevopsIssueAlertHandler(TicketingIssueAlertHandler):
-    label = "Create an Azure DevOps work item in {integration} with these "
+    label_template = "Create an Azure DevOps work item in {integration} with these "

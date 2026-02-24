@@ -340,7 +340,9 @@ class BaseIssueAlertHandler(ABC):
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
-    label = "Create a ticket in {integration}"
+    # XXX: this label template is used by the WorkflowEngineRuleSerializer to return the same label as the old APIs
+    # once we remove those, we can remove this and all the render_label methods on the IssueAlertHanders
+    label_template = "Create a ticket in {integration}"
 
     @classmethod
     def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
@@ -350,7 +352,7 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
             status=ObjectStatus.ACTIVE,
         )
         integration_name = integration.name if integration else "[removed]"
-        return cls.label.format(integration=integration_name)
+        return cls.label_template.format(integration=integration_name)
 
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
