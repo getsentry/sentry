@@ -800,7 +800,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_error_handled_alias(self) -> None:
         project = self.create_project(organization=self.organization)
-        event_time = before_now(minutes=10)
+        event_time = before_now(hours=4)
         data = load_data("android-ndk", timestamp=event_time)
         events = (
             ("a" * 32, "not handled", False),
