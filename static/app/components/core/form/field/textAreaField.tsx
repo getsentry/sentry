@@ -1,3 +1,6 @@
+import type {Ref} from 'react';
+import {mergeRefs} from '@react-aria/utils';
+
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {type TextAreaProps} from '@sentry/scraps/textarea';
@@ -28,6 +31,7 @@ export function TextAreaField({
             <InputGroup.TextArea
               {...fieldProps}
               {...props}
+              ref={mergeRefs(fieldProps.ref as Ref<HTMLTextAreaElement>, props.ref)}
               aria-disabled={isDisabled}
               readOnly={isDisabled}
               onChange={e => onChange(e.target.value)}
