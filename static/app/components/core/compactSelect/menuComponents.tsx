@@ -27,7 +27,7 @@ export const MenuComponents = {
    * instead. For prominent footer actions use `CTAButton`.
    */
   HeaderButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
-    return <HeaderButton size="zero" priority="transparent" {...props} />;
+    return <StyledHeaderButton size="zero" priority="transparent" {...props} />;
   },
 
   /**
@@ -46,7 +46,7 @@ export const MenuComponents = {
     const controlContext = useContext(ControlContext);
 
     return (
-      <HeaderButton
+      <StyledHeaderButton
         size="zero"
         priority="transparent"
         {...props}
@@ -56,7 +56,7 @@ export const MenuComponents = {
         }}
       >
         {t('Reset')}
-      </HeaderButton>
+      </StyledHeaderButton>
     );
   },
 
@@ -64,7 +64,7 @@ export const MenuComponents = {
     const controlContext = useContext(ControlContext);
 
     return (
-      <HeaderButton
+      <StyledHeaderButton
         size="zero"
         priority="transparent"
         {...props}
@@ -74,7 +74,7 @@ export const MenuComponents = {
         }}
       >
         {t('Clear')}
-      </HeaderButton>
+      </StyledHeaderButton>
     );
   },
 
@@ -186,7 +186,7 @@ const StyledAlert = styled(Alert)`
   text-wrap: balance;
 `;
 
-const HeaderButton = styled(Button)`
+const StyledHeaderButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
