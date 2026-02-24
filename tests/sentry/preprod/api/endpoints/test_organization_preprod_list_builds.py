@@ -28,7 +28,7 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         commit_comparison = self.create_commit_comparison(
             organization=self.org,
             head_sha="abcdefabcdefabcdefabcdefabcdefabcdefabcd",
-            base_sha="fedcbafedcbafedcbafedcbafedcbafedcbafedcb",
+            base_sha="fedcbafedcbafedcbafedcbafedcbafedcbafedc",
             provider="github",
             head_repo_name="owner/repo",
             base_repo_name="owner/repo",
