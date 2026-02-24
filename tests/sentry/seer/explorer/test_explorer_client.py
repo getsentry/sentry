@@ -13,7 +13,7 @@ from sentry.seer.explorer.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
 
@@ -122,7 +122,7 @@ class TestSeerExplorerClient(TestCase):
         mock_post.return_value.status = 500
 
         client = SeerExplorerClient(self.organization, self.user)
-        with pytest.raises(Exception):
+        with pytest.raises(SeerApiError):
             client.start_run("Test query")
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
@@ -245,7 +245,7 @@ class TestSeerExplorerClient(TestCase):
         mock_post.return_value.status = 500
 
         client = SeerExplorerClient(self.organization, self.user)
-        with pytest.raises(Exception):
+        with pytest.raises(SeerApiError):
             client.continue_run(123, "Test query")
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
@@ -293,10 +293,10 @@ class TestSeerExplorerClient(TestCase):
     def test_get_run_http_error(self, mock_fetch, mock_access):
         """Test that HTTP errors are propagated"""
         mock_access.return_value = (True, None)
-        mock_fetch.side_effect = Exception("API Error")
+        mock_fetch.side_effect = SeerApiError("API Error", 500)
 
         client = SeerExplorerClient(self.organization, self.user)
-        with pytest.raises(Exception):
+        with pytest.raises(SeerApiError):
             client.get_run(123)
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")

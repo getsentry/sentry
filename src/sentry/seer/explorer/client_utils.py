@@ -23,6 +23,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.users.models.user import User as SentryUser
@@ -142,7 +143,7 @@ def fetch_run_status(run_id: int, organization: Organization) -> SeerRunState:
     )
 
     if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
+        raise SeerApiError("Seer request failed", response.status)
     data = response.json()
 
     session = data.get("session")
