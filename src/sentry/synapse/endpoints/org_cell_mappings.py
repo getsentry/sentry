@@ -11,6 +11,7 @@ from sentry.synapse.endpoints.authentication import (
     SynapseAuthPermission,
     SynapseSignatureAuthentication,
 )
+from sentry.types.region import get_global_directory
 
 
 @control_silo_endpoint
@@ -33,9 +34,18 @@ class OrgCellMappingsEndpoint(Endpoint):
         """
         Retrieve organization-to-cell mappings.
         """
+        directory = get_global_directory()
+
         query = OrganizationMapping.objects.all()
-        if request.GET.get("locale"):
-            query = query.filter(region_name=request.GET.get("locale"))
+        localities = request.GET.getlist("locality")
+        if localities:
+            cell_names = [
+                r.name
+                for locality in localities
+                for r in directory.get_cells_for_locality(locality)
+            ]
+            query = query.filter(region_name__in=cell_names)
+
         try:
             per_page = self.get_per_page(request, max_per_page=self.MAX_LIMIT)
             cursor = self.get_cursor_from_request(request)
@@ -54,15 +64,18 @@ class OrgCellMappingsEndpoint(Endpoint):
             mappings[item.slug] = item.region_name
             mappings[str(item.organization_id)] = item.region_name
 
+        cell_to_locality = {
+            cell.name: loc.name
+            for cell in directory.regions
+            if (loc := directory.get_locality_for_cell(cell.name)) is not None
+        }
+
         response_data = {
             "data": mappings,
             "metadata": {
                 "cursor": str(pagination_result.next),
                 "has_more": pagination_result.next.has_results,
-                "cell_to_locality": {
-                    # TODO(cells) need to build this out with region/cell config data.
-                    "us1": "us"
-                },
+                "cell_to_locality": cell_to_locality,
             },
         }
         return Response(response_data, status=200)

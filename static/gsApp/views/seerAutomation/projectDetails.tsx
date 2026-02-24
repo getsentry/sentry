@@ -4,7 +4,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
@@ -38,19 +37,6 @@ function SeerProjectDetails() {
   const {codeMappingRepos, isPending, preference} = useProjectSeerPreferences(project);
 
   const canWrite = hasEveryAccess(['project:write'], {organization, project});
-
-  if (!organization.features.includes('autofix-seer-preferences')) {
-    return (
-      <AnalyticsArea name="project-details">
-        <FeatureDisabled
-          featureName={t('Autofix')}
-          features={['autofix-seer-preferences']}
-          hideHelpToggle
-          message={t('Autofix is not enabled for this organization.')}
-        />
-      </AnalyticsArea>
-    );
-  }
 
   return (
     <AnalyticsArea name="project-details">

@@ -123,8 +123,7 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
   return (
     <CompactSelect
       data-test-id="thread-selector"
-      searchable
-      searchPlaceholder={t('Filter threads')}
+      search={{placeholder: t('Filter threads')}}
       onOpenChange={() => {
         trackAnalytics('stack_trace.threads.thread_selector_opened', {
           organization,

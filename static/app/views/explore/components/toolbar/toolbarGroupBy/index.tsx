@@ -93,14 +93,13 @@ export function ToolbarGroupByDropdown({
         options={options}
         value={column.column ?? ''}
         onChange={handleColumnChange}
-        searchable
+        search={{onChange: onSearch}}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
             {label}
           </OverlayTrigger.Button>
         )}
         menuTitle="Group By"
-        onSearch={onSearch}
         onClose={onClose}
         loading={loading}
       />

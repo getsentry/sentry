@@ -51,7 +51,6 @@ export interface Organization extends OrganizationSummary {
   access: Scope[];
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
-  allowBackgroundAgentDelegation: boolean;
   allowJoinRequests: boolean;
   allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
