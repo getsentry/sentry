@@ -1,13 +1,17 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -62,6 +66,9 @@ export function OnboardingLayout({
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
+  const copyEnabled = useCopySetupInstructionsEnabled(
+    'onboarding-copy-setup-instructions-project-creation'
+  );
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
@@ -176,7 +183,15 @@ export function OnboardingLayout({
               />
             ) : null}
           </Stack>
-          <Divider withBottomMargin />
+          <Divider withBottomMargin={!copyEnabled} />
+          {copyEnabled && (
+            <Flex justify="end" margin="0 0 md">
+              <OnboardingCopyMarkdownButton
+                steps={steps}
+                source={newOrg ? 'first_time_setup' : 'project_getting_started'}
+              />
+            </Flex>
+          )}
           <div>
             {steps.map((step, index) => (
               <StyledStep key={step.title ?? step.type} stepIndex={index} {...step} />
