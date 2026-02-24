@@ -51,7 +51,7 @@ export function GroupBySection({query, index}: Props) {
         options={enabledOptions}
         value={query.groupBys}
         clearable
-        searchable
+        search
         onChange={options =>
           updateGroupBys({groupBys: options.map(value => value.value.toString())})
         }

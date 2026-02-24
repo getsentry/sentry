@@ -32,7 +32,7 @@ TABLE_QUERY.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
 TABLE_QUERY.addOp(')');
 TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
-const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'requests-widget',
@@ -108,7 +108,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   0
 );
 
-const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'jobs-chart',
@@ -295,5 +295,9 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
-  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  widgets: [
+    ...BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
+    ...BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
+    TRANSACTIONS_TABLE,
+  ],
 };

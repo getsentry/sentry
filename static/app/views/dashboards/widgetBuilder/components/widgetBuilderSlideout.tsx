@@ -35,7 +35,10 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {
+  doesDisplayTypeSupportThresholds,
+  usesTimeSeriesData,
+} from 'sentry/views/dashboards/utils';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -429,8 +432,7 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
-                    {(state.displayType === DisplayType.BIG_NUMBER ||
-                      usesTimeSeriesData(state.displayType)) && (
+                    {doesDisplayTypeSupportThresholds(state.displayType) && (
                       <Section>
                         <ThresholdsSection
                           dataType={thresholdMetaState?.dataType}

@@ -90,11 +90,9 @@ export function DropdownAddTeam({
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps}>{t('Add Team')}</OverlayTrigger.Button>
       )}
-      searchPlaceholder={t('Search Teams')}
+      search={{placeholder: t('Search Teams'), onChange: onSearch}}
       emptyMessage={t('No Teams')}
       loading={isLoadingTeams}
-      searchable
-      onSearch={onSearch}
       menuHeaderTrailingItems={({closeOverlay}) => {
         return (
           <Button

@@ -216,3 +216,55 @@ class SafeRolloutComparator:
 
         # Part 2: determine what to return
         return experimental_data if use_experimental else control_data
+
+    @classmethod
+    def check_and_choose_with_timings(
+        cls,
+        control_thunk: Callable[[], TData],
+        experimental_thunk: Callable[[], TData],
+        callsite: str,
+        null_result_determiner: Callable[[TData], bool] | None = None,
+        reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
+    ) -> TData:
+        """
+        This method is essentially the same as check_and_choose, but captures timing
+        information around the control/experimental branches.
+
+        This information is captured with Sentry spans, not in Datadog.
+        """
+        if not cls.should_check_experiment(callsite):
+            # Don't bother collecting data in the case where we're only evaluating the
+            # control branch.
+            return control_thunk()
+
+        with metrics.timer(
+            "SafeRolloutComparator.check_and_choose_with_timings",
+            tags={
+                "rollout_name": cls.ROLLOUT_NAME,
+                "callsite": callsite,
+                "branch": "control",
+            },
+        ):
+            control_data = control_thunk()
+
+        with metrics.timer(
+            "SafeRolloutComparator.check_and_choose_with_timings",
+            tags={
+                "rollout_name": cls.ROLLOUT_NAME,
+                "callsite": callsite,
+                "branch": "experimental",
+            },
+        ):
+            experimental_data = experimental_thunk()
+
+        is_experimental_data_a_null_result = None
+        if null_result_determiner is not None:
+            is_experimental_data_a_null_result = null_result_determiner(experimental_data)
+
+        return cls.check_and_choose(
+            control_data,
+            experimental_data,
+            callsite,
+            is_experimental_data_a_null_result,
+            reasonable_match_comparator,
+        )
