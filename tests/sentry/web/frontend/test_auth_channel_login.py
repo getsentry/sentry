@@ -28,12 +28,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
         ]
 
     def test_redirect_for_logged_in_user_with_different_active_org(self) -> None:
-        self.login_as(self.user)  # log in to "test org"
-        # Explicitly set the active org in the session so the view sees a
-        # different org than the one being accessed via the channel URL.
-        session = self.client.session
-        session["activeorg"] = self.organization.slug
-        session.save()
+        self.login_as(self.user, organization_id=self.organization.id)
         another_org = self.create_organization(name="another org", owner=self.user)
         self.create_auth_provider("another-fly-org", another_org.id)
         path = reverse("sentry-auth-channel", args=["fly", "another-fly-org"])

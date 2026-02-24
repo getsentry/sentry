@@ -342,6 +342,16 @@ class BaseTestCase(Fixtures):
                 sso_session = SsoSession.create(o)
                 self.session[sso_session.session_key] = sso_session.to_dict()
 
+        # Set the active organization in the session when an organization_id
+        # is provided, so views that check activeorg see the correct value.
+        if organization_id:
+            with assume_test_silo_mode(SiloMode.REGION):
+                try:
+                    org = Organization.objects.get(id=organization_id)
+                    self.session["activeorg"] = org.slug
+                except Organization.DoesNotExist:
+                    pass
+
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing
         # superuser-only code
