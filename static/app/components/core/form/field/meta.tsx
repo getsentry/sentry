@@ -71,7 +71,7 @@ function Label(props: {
             {...containerProps}
             as={isGroup ? 'legend' : 'label'}
             data-field={fieldName}
-            htmlFor={fieldId}
+            htmlFor={isGroup ? undefined : fieldId}
             bold={false}
             ref={scrollToFieldRef}
             style={isGroup ? legendStyles : undefined}
