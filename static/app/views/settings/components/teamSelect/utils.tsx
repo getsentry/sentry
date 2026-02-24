@@ -96,7 +96,7 @@ export function DropdownAddTeam({
       search={{placeholder: t('Search Teams'), onChange: onSearch}}
       emptyMessage={t('No Teams')}
       loading={isLoadingTeams}
-      menuHeaderTrailingItems={({closeOverlay}) => {
+      menuFooter={({closeOverlay}) => {
         return (
           <MenuComponents.CTAButton
             tooltipProps={{
