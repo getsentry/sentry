@@ -19,6 +19,7 @@ from sentry.models.project import Project
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.rules.actions.services import PluginService
+from sentry.utils import metrics
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -169,11 +170,15 @@ def update_workflow_action_group_statuses(
 
 def get_unique_active_actions(
     actions_queryset: BaseQuerySet[Action],  # decorated with the workflow_ids
+    group: Group,
 ) -> BaseQuerySet[Action]:
     """
     Returns a queryset of unique active actions based on their handler's dedup_key method.
+    Group is used for logging only.
     """
     dedup_key_to_action_id: dict[str, int] = {}
+
+    dropped = defaultdict[str, set[int]](set)
 
     for action in actions_queryset:
         # We only want to fire active actions
@@ -183,7 +188,26 @@ def get_unique_active_actions(
         # workflow_id is annotated in the queryset
         workflow_id = getattr(action, "workflow_id")
         dedup_key = action.get_dedup_key(workflow_id)
+        previous_action_id = dedup_key_to_action_id.get(dedup_key)
+        if previous_action_id is not None:
+            dropped[dedup_key].add(previous_action_id)
         dedup_key_to_action_id[dedup_key] = action.id
+
+    for dedup_key, action_ids in dropped.items():
+        group_type = group.issue_type.slug
+        logger.info(
+            "workflow_engine.action.dedup.dropped",
+            extra={
+                "dedup_key": dedup_key,
+                "dropped_action_ids": sorted(action_ids),
+                "replacement_action_id": dedup_key_to_action_id[dedup_key],
+                "group_id": group.id,
+                "group_type": group_type,
+            },
+        )
+        metrics.incr(
+            "workflow_engine.action.dedup.dropped", len(action_ids), tags={"group_type": group_type}
+        )
 
     return actions_queryset.filter(id__in=dedup_key_to_action_id.values())
 
@@ -194,7 +218,7 @@ def fire_actions(
     event_data: WorkflowEventData,
     workflow_uuid_map: dict[int, str],
 ) -> None:
-    deduped_actions = get_unique_active_actions(actions)
+    deduped_actions = get_unique_active_actions(actions, event_data.group)
 
     for action in deduped_actions:
         task_params = build_trigger_action_task_params(action, event_data, workflow_uuid_map)

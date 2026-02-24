@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
+from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
 from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
@@ -107,7 +107,7 @@ class LLMIssueDetectionTest(TestCase):
         assert call_kwargs["payload_type"].value == "occurrence"
 
         occurrence = call_kwargs["occurrence"]
-        assert occurrence.type == LLMDetectedExperimentalGroupType
+        assert occurrence.type == LLMDetectedExperimentalGroupTypeV2
         assert occurrence.issue_title == "Slow Database Query"
         assert occurrence.subtitle == "Your application is running out of database connections"
         assert occurrence.project_id == self.project.id
