@@ -1,7 +1,7 @@
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Checkmark, Spinner, Warning} from '@sentry/scraps/form/icons';
-import {DisabledTip} from '@sentry/scraps/info/infoTip';
+import {DisabledTip} from '@sentry/scraps/info';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 export type BaseFieldProps = Record<never, unknown>;
