@@ -2,6 +2,7 @@ import {mutationOptions, useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {
   AutoSaveField,
   defaultFormOptions,
@@ -463,38 +464,36 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
               </field.Layout.Row>
             )}
           </scrubbingConfiguration.AppField>
-          <scrubbingConfiguration.Subscribe
-            selector={state =>
-              state.values.sensitiveFields !== initialSensitiveFields ||
-              state.values.safeFields !== initialSafeFields
-            }
-          >
-            {hasChanged =>
-              hasChanged ? (
-                <Alert
-                  variant="info"
-                  system
-                  trailingItems={
-                    <Flex gap="sm">
-                      <Alert.Button onClick={() => scrubbingConfiguration.reset()}>
-                        {t('Cancel')}
-                      </Alert.Button>
-                      <Alert.Button
-                        priority="primary"
-                        onClick={() => scrubbingConfiguration.handleSubmit()}
-                      >
-                        {t('Save')}
-                      </Alert.Button>
-                    </Flex>
-                  }
+          <Flex gap="md" align="center">
+            <scrubbingConfiguration.Subscribe
+              selector={state =>
+                state.values.sensitiveFields !== initialSensitiveFields ||
+                state.values.safeFields !== initialSafeFields
+              }
+            >
+              {hasChanged => (
+                <Flex
+                  flex="1"
+                  minWidth={0}
+                  style={{visibility: hasChanged ? 'visible' : 'hidden'}}
                 >
-                  {t(
-                    'Changes to your scrubbing configuration will apply to all new events.'
-                  )}
-                </Alert>
-              ) : null
-            }
-          </scrubbingConfiguration.Subscribe>
+                  <Alert variant="info">
+                    {t(
+                      'Changes to your scrubbing configuration will apply to all new events.'
+                    )}
+                  </Alert>
+                </Flex>
+              )}
+            </scrubbingConfiguration.Subscribe>
+            <Flex gap="sm" flexShrink={0}>
+              <Button onClick={() => scrubbingConfiguration.reset()}>
+                {t('Cancel')}
+              </Button>
+              <scrubbingConfiguration.SubmitButton>
+                {t('Save')}
+              </scrubbingConfiguration.SubmitButton>
+            </Flex>
+          </Flex>
         </FieldGroup>
       </scrubbingConfiguration.FormWrapper>
     </scrubbingConfiguration.AppForm>

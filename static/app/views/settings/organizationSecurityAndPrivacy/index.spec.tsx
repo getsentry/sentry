@@ -1,7 +1,13 @@
 import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
@@ -103,8 +109,9 @@ describe('OrganizationSecurityAndPrivacy', () => {
       })
     );
 
-    // Cancel
-    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    // Cancel via the confirm modal
+    const dialog = screen.getByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Cancel'}));
 
     expect(
       screen.getByRole('checkbox', {
