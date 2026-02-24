@@ -308,7 +308,7 @@ def transform_preprod_artifact_to_build_details(
 
     error_code_str = None
     if artifact.installable_app_error_code is not None:
-        error_code_map = {v: k for k, v in PreprodArtifact.InstallableAppErrorCode.as_choices()}
+        error_code_map = dict(PreprodArtifact.InstallableAppErrorCode.as_choices())
         error_code_str = error_code_map.get(artifact.installable_app_error_code)
 
     distribution_info = DistributionInfo(
