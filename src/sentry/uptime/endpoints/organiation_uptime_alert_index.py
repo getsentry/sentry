@@ -137,6 +137,7 @@ class OrganizationUptimeAlertIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
+            order_by="name",
             on_results=lambda x: serialize(x, request.user, UptimeDetectorSerializer()),
             paginator_cls=OffsetPaginator,
         )
