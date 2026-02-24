@@ -55,7 +55,7 @@ export function MetricsVisualize() {
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
   const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
 
-  const {aggregation, traceMetric} = parseMetricAggregate(aggregateFunction);
+  const {aggregation, traceMetric} = parseMetricAggregate(aggregateFunction ?? '');
 
   const [search, setSearch] = useState('');
   const {
@@ -107,11 +107,15 @@ export function MetricsVisualize() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSetSearch = useCallback(
-    debounce(newSearch => {
+    debounce((newSearch: string) => {
       setSearch(newSearch);
     }, DEFAULT_DEBOUNCE_DURATION),
     [setSearch]
   );
+
+  useEffect(() => {
+    return () => debouncedSetSearch.cancel();
+  }, [debouncedSetSearch]);
 
   const operationOptions = useMemo(() => {
     const metricType = traceMetric.type?.toLowerCase() ?? '';

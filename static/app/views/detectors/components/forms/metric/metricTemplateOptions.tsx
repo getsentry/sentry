@@ -64,7 +64,7 @@ export const METRIC_TEMPLATE_OPTIONS: TemplateOption[] = [
     key: 'trace_item_metrics',
     label: t('Custom Metrics'),
     detectorDataset: DetectorDataset.METRICS,
-    aggregate: 'sum(value)',
+    aggregate: 'sum(value,,,-)',
   },
   {
     key: 'crash_free_sessions',
