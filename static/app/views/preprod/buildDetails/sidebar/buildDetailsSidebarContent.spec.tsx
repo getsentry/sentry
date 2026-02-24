@@ -250,7 +250,7 @@ describe('BuildDetailsSidebarContent', () => {
       expect(baseBuildLink).not.toHaveAttribute('target', '_blank');
     });
 
-    it('renders Base Build row with dash when projectId is null', async () => {
+    it('renders Base Build row with link even when projectId is null', async () => {
       const buildDetailsData: BuildDetailsApiResponse = {
         ...mockBuildDetailsData,
         vcs_info: {
@@ -279,17 +279,17 @@ describe('BuildDetailsSidebarContent', () => {
         expect(screen.getByText('Build Metadata')).toBeInTheDocument();
       });
 
-      // Base Build row should be present with label
       const baseBuildLabel = screen.getByText('Base Build');
       expect(baseBuildLabel).toBeInTheDocument();
 
-      // Get the parent ContentWrapper and verify the build name is within it
       const contentWrapper = baseBuildLabel.parentElement!;
-      expect(contentWrapper).toBeInTheDocument();
-      expect(contentWrapper).toHaveTextContent('-');
+      expect(contentWrapper).toHaveTextContent('v1.0 (2)');
 
-      // Should NOT have a link (no projectId to build URL)
-      expect(screen.queryByRole('link', {name: 'v1.0 (2)'})).not.toBeInTheDocument();
+      const baseBuildLink = screen.getByRole('link', {name: 'v1.0 (2)'});
+      expect(baseBuildLink).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/preprod/size/base-artifact-id/`
+      );
     });
   });
 });
