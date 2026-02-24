@@ -19,7 +19,6 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
   TIER_GRANULARITY: class
-  SEED_RUN: "true"  # remove after first seed run collects T1+T2 duration data
 
 jobs:
   # ─── Split tests into tiers using classification data ──────────────
