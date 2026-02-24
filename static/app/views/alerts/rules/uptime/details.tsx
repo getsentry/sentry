@@ -19,7 +19,6 @@ import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -219,5 +218,5 @@ export default function UptimeAlertDetails() {
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
