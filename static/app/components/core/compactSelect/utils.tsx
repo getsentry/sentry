@@ -121,10 +121,10 @@ export function getDisabledOptions<Value extends SelectKey>(
 }
 
 function defaultSearchMatcher<Value extends SelectKey>(
-  opt: SelectOptionWithKey<Value>,
+  option: SelectOptionWithKey<Value>,
   search: string
 ): SearchMatchResult {
-  const text = opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
+  const text = option.textValue ?? (typeof option.label === 'string' ? option.label : '');
   if (!text) {
     return {score: 0};
   }
