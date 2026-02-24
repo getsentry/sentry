@@ -800,6 +800,11 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_error_handled_alias(self) -> None:
         project = self.create_project(organization=self.organization)
+        # Use a dedicated project and a timestamp far in the past (hours=4) to
+        # isolate this test from Snuba data written by concurrent tests. Most
+        # other tests store events with before_now(minutes=N), so placing our
+        # events 4 hours back—combined with a tight query window around that
+        # timestamp—prevents data leakage from other tests polluting results.
         event_time = before_now(hours=4)
         data = load_data("android-ndk", timestamp=event_time)
         events = (
