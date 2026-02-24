@@ -148,7 +148,7 @@ class SnubaTest(TestCase, SnubaTestCase):
 
 
 class TestEAPQueryErrorCounts(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime.datetime(2026, 2, 12, 6, 0, 0)
+    FROZEN_TIME = datetime.datetime(2026, 2, 12, 6, 0, 0, tzinfo=datetime.UTC)
 
     def _query_both(self, group_id: int | None = None) -> tuple[int, int]:
         start = self.FROZEN_TIME - datetime.timedelta(hours=1)

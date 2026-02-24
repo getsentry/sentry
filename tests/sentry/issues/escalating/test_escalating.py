@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
@@ -365,7 +365,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
 
 class TestEAPIsEscalating(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime(2026, 2, 11, 6, 30, 0)
+    FROZEN_TIME = datetime(2026, 2, 11, 6, 30, 0, tzinfo=timezone.utc)
 
     def _event_timestamp(self, hours_ago: int = 0) -> float:
         return (
