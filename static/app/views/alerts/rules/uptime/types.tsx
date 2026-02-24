@@ -94,13 +94,25 @@ export interface Assertion {
   root: AndOp;
 }
 
-export type Comparison =
-  | {cmp: 'always'}
-  | {cmp: 'never'}
-  | {cmp: 'less_than'}
-  | {cmp: 'greater_than'}
-  | {cmp: 'equals'}
-  | {cmp: 'not_equal'};
+export enum OpType {
+  AND = 'and',
+  OR = 'or',
+  NOT = 'not',
+  STATUS_CODE_CHECK = 'status_code_check',
+  JSON_PATH = 'json_path',
+  HEADER_CHECK = 'header_check',
+}
+
+export enum ComparisonType {
+  EQUALS = 'equals',
+  NOT_EQUAL = 'not_equal',
+  LESS_THAN = 'less_than',
+  GREATER_THAN = 'greater_than',
+  ALWAYS = 'always',
+  NEVER = 'never',
+}
+
+export type Comparison = {cmp: ComparisonType};
 
 export type HeaderOperand =
   | {header_op: 'none'}
@@ -115,31 +127,31 @@ export type JsonPathOperand =
 export interface AndOp {
   children: Op[];
   id: string;
-  op: 'and';
+  op: OpType.AND;
 }
 
 export interface OrOp {
   children: Op[];
   id: string;
-  op: 'or';
+  op: OpType.OR;
 }
 
 export interface NotOp {
   id: string;
-  op: 'not';
+  op: OpType.NOT;
   operand: Op;
 }
 
 export interface StatusCodeOp {
   id: string;
-  op: 'status_code_check';
+  op: OpType.STATUS_CODE_CHECK;
   operator: Comparison;
   value: number;
 }
 
 export interface JsonPathOp {
   id: string;
-  op: 'json_path';
+  op: OpType.JSON_PATH;
   operand: JsonPathOperand;
   operator: Comparison;
   value: string;
@@ -149,7 +161,7 @@ export interface HeaderCheckOp {
   id: string;
   key_op: Comparison;
   key_operand: HeaderOperand;
-  op: 'header_check';
+  op: OpType.HEADER_CHECK;
   value_op: Comparison;
   value_operand: HeaderOperand;
 }
@@ -202,6 +214,10 @@ export interface PreviewCheckResponse {
       http_status_code: number | null;
       request_type: string;
       url: string;
+      /** Base64-encoded response body, captured when always_capture_response is enabled */
+      response_body?: string | null;
+      /** Response headers as [key, value] tuples, captured when always_capture_response is enabled */
+      response_headers?: Array<[string, string]> | null;
     } | null;
   };
 }
@@ -213,4 +229,29 @@ export interface PreviewCheckPayload {
   body?: string | null;
   headers?: Array<[string, string]>;
   method?: string;
+}
+
+// Assertion Suggestions Types (from Seer-powered endpoint)
+
+export enum AssertionType {
+  STATUS_CODE = 'status_code',
+  JSON_PATH = 'json_path',
+  HEADER = 'header',
+}
+
+export interface AssertionSuggestion {
+  assertion_json: Op;
+  assertion_type: AssertionType;
+  comparison: Exclude<ComparisonType, ComparisonType.NEVER>;
+  confidence: number;
+  expected_value: string;
+  explanation: string;
+  header_name: string | null;
+  json_path: string | null;
+}
+
+export interface AssertionSuggestionsResponse {
+  preview_result: PreviewCheckResponse;
+  suggested_assertion: Assertion | null;
+  suggestions: AssertionSuggestion[] | null;
 }

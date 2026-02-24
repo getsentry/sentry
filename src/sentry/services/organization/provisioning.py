@@ -21,10 +21,6 @@ from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 
 
-class OrganizationSlugCollisionException(Exception):
-    pass
-
-
 class OrganizationProvisioningException(Exception):
     pass
 
@@ -39,9 +35,9 @@ class OrganizationProvisioningService:
         elif silo_mode != SiloMode.CONTROL:
             local_region = get_local_region()
 
-            assert (
-                not region_name or region_name == local_region.name
-            ), "Cannot provision an organization in another region"
+            assert not region_name or region_name == local_region.name, (
+                "Cannot provision an organization in another region"
+            )
 
             region_name = local_region.name
 

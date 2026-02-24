@@ -7,7 +7,6 @@ from collections import defaultdict
 from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import DefaultDict
 
 import sentry_sdk
 
@@ -271,7 +270,7 @@ class RegressionDetector(ABC):
         if ratelimit is None:
             ratelimit = options.get("statistical_detectors.ratelimit.ema")
 
-        regressions_by_project: DefaultDict[int, list[tuple[float, TrendBundle]]] = defaultdict(
+        regressions_by_project: defaultdict[int, list[tuple[float, TrendBundle]]] = defaultdict(
             list
         )
 

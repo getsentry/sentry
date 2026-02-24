@@ -19,9 +19,20 @@ CI = os.environ.get("CI") is not None
 DARWIN = sys.platform == "darwin"
 
 if DARWIN:
-    RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+    _DOCKER_SOCKET_PATHS = [
+        os.path.expanduser("~/.colima/default/docker.sock"),
+        os.path.expanduser("~/.orbstack/run/docker.sock"),
+        "/var/run/docker.sock",
+    ]
 else:
-    RAW_SOCKET_PATH = "/var/run/docker.sock"
+    _DOCKER_SOCKET_PATHS = ["/var/run/docker.sock"]
+
+
+def _find_docker_socket() -> str:
+    for path in _DOCKER_SOCKET_PATHS:
+        if os.path.exists(path):
+            return path
+    return _DOCKER_SOCKET_PATHS[0]
 
 
 # NOTE: we can delete the docker python client dependency if we port all usage of this
@@ -30,8 +41,10 @@ else:
 def get_docker_client() -> Generator[docker.DockerClient]:
     import docker
 
+    socket_path = _find_docker_socket()
+
     def _client() -> ContextManager[docker.DockerClient]:
-        return contextlib.closing(docker.DockerClient(base_url=f"unix://{RAW_SOCKET_PATH}"))
+        return contextlib.closing(docker.DockerClient(base_url=f"unix://{socket_path}"))
 
     with contextlib.ExitStack() as ctx:
         try:
@@ -39,7 +52,7 @@ def get_docker_client() -> Generator[docker.DockerClient]:
         except docker.errors.DockerException:
             if DARWIN:
                 raise click.ClickException(
-                    "Make sure colima is running. Run `devenv colima start`."
+                    "Make sure your Docker runtime is running (colima, OrbStack, or Docker Desktop)."
                 )
             else:
                 raise click.ClickException("Make sure docker is running.")

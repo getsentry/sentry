@@ -7,7 +7,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 import {useStoryParams} from 'sentry/stories/view';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import {fzf} from 'sentry/utils/search/fzf';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -188,7 +188,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   overlays: {
     label: 'Overlays',
-    components: ['slideoverpanel', 'tooltip'],
+    components: ['slideoverpanel', 'tooltip', 'infotext', 'infotip'],
   },
   utilities: {
     label: 'Utilities',

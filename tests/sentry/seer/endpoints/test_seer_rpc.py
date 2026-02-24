@@ -13,12 +13,14 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
     check_repository_integrations_status,
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    has_repo_code_mappings,
     validate_repo,
 )
 from sentry.seer.explorer.tools import get_trace_item_attributes
@@ -391,32 +393,10 @@ class TestSeerRpcMethods(APITestCase):
             "error": "Organization not found or not active",
         }
 
-    @patch("sentry.features.has")
-    def test_send_seer_webhook_feature_disabled(self, mock_features_has) -> None:
-        """Test that send_seer_webhook returns error when feature is disabled"""
-        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        mock_features_has.return_value = False
-
-        result = send_seer_webhook(
-            event_name="root_cause_started",
-            organization_id=self.organization.id,
-            payload={"test": "data"},
-        )
-
-        assert result == {
-            "success": False,
-            "error": "Seer webhooks are not enabled for this organization",
-        }
-        mock_features_has.assert_called_with("organizations:seer-webhooks", self.organization)
-
-    @patch("sentry.features.has")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_success(self, mock_delay, mock_features_has) -> None:
+    def test_send_seer_webhook_success(self, mock_delay) -> None:
         """Test that send_seer_webhook successfully enqueues webhook when all conditions are met"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        mock_features_has.return_value = True
 
         result = send_seer_webhook(
             event_name="root_cause_started",
@@ -425,7 +405,6 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"success": True}
-        mock_features_has.assert_called_with("organizations:seer-webhooks", self.organization)
         mock_delay.assert_called_once_with(
             resource_name="seer",
             event_name="root_cause_started",
@@ -433,14 +412,11 @@ class TestSeerRpcMethods(APITestCase):
             payload={"test": "data"},
         )
 
-    @patch("sentry.features.has")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_all_valid_event_names(self, mock_delay, mock_features_has) -> None:
+    def test_send_seer_webhook_all_valid_event_names(self, mock_delay) -> None:
         """Test that send_seer_webhook works with all valid seer event names"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
         from sentry.sentry_apps.metrics import SentryAppEventType
-
-        mock_features_has.return_value = True
 
         # Get all seer event types
         seer_events = [
@@ -468,10 +444,7 @@ class TestSeerRpcMethods(APITestCase):
         """Slack workflows flag should not affect broadcasting the webhooks."""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
-        with (
-            self.feature("organizations:seer-webhooks"),
-            patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True),
-        ):
+        with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
             result = send_seer_webhook(
                 event_name="root_cause_completed",
                 organization_id=self.organization.id,
@@ -492,7 +465,6 @@ class TestSeerRpcMethods(APITestCase):
         event_name = "root_cause_completed"
 
         with (
-            self.feature("organizations:seer-webhooks"),
             self.feature("organizations:seer-slack-workflows"),
             patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True),
         ):
@@ -1020,6 +992,72 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"integration_ids": [integration.id]}
+
+    def test_has_repo_code_mappings_repo_not_found(self) -> None:
+        """Test when repository does not exist"""
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="nonexistent",
+            owner="nonexistent",
+            name="nonexistent",
+        )
+        assert result == {"has_code_mappings": False}
+
+    def test_has_repo_code_mappings_no_mappings(self) -> None:
+        """Test when repository exists but has no code mappings"""
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            owner="test",
+            name="repo",
+        )
+        assert result == {"has_code_mappings": False}
+
+    def test_has_repo_code_mappings_with_mappings(self) -> None:
+        """Test when repository exists and has code mappings"""
+        project = self.create_project(organization=self.organization)
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        org_integration = integration.organizationintegration_set.first()
+        assert org_integration is not None
+
+        repo = Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="456",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        RepositoryProjectPathConfig.objects.create(
+            repository=repo,
+            project=project,
+            organization_integration_id=org_integration.id,
+            integration_id=org_integration.integration_id,
+            organization_id=self.organization.id,
+            stack_root="/",
+            source_root="/",
+        )
+
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="456",
+            owner="test",
+            name="repo",
+        )
+        assert result == {"has_code_mappings": True}
 
     def test_validate_repo_valid(self) -> None:
         """Test when repository exists and matches all fields"""

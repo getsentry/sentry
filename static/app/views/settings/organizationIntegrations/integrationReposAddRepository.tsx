@@ -112,9 +112,11 @@ export function IntegrationReposAddRepository({
     return (
       <DropdownButton
         disabled
-        title={t(
-          'You must be an organization owner, manager or admin to add repositories'
-        )}
+        tooltipProps={{
+          title: t(
+            'You must be an organization owner, manager or admin to add repositories'
+          ),
+        }}
         isOpen={false}
         size="xs"
       >
@@ -141,16 +143,13 @@ export function IntegrationReposAddRepository({
               )
             : t('Please enter a repository name')
       }
-      searchPlaceholder={t('Search Repositories')}
+      search={{placeholder: t('Search Repositories'), filter: false, onChange: setSearch}}
       loading={query.isFetching}
-      searchable
-      onSearch={setSearch}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} busy={adding}>
           {t('Add Repository')}
         </OverlayTrigger.Button>
       )}
-      disableSearchFilter
     />
   );
 }

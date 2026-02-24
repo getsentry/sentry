@@ -728,8 +728,6 @@ DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
     "on_ready_for_review",
     "on_new_commit",
 ]
-# Org level setting to allow/disallow Projects to delegate Seer scanner automation to other LLMS
-ALLOW_BACKGROUND_AGENT_DELEGATION = True
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False

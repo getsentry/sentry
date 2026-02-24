@@ -126,7 +126,6 @@ class ExploreSavedQuery(DefaultFieldsModel):
 
 
 class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
-
     def get_last_position(self, organization: Organization, user_id: int) -> int:
         """
         Returns the last position of a user's starred queries in an organization.

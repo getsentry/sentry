@@ -15,10 +15,11 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
   DashboardWidgetSource,
@@ -32,7 +33,6 @@ import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVis
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {
   useQueryParamsAggregateFields,
@@ -281,7 +281,7 @@ function ContextMenu({
         organization,
         dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
         interval,
-        eventTypes: 'trace_item_log',
+        eventTypes: [EventTypes.TRACE_ITEM_LOG],
       }),
       onAction: () => {
         trackAnalytics('logs.save_as', {

@@ -190,7 +190,6 @@ def test_health_check_is_debounced() -> None:
 
 @django_db_all
 def test_get_task_ok() -> None:
-
     def get_task_response(request: GetTaskRequest) -> GetTaskResponse:
         assert request.application == "sentry"
         assert request.namespace == ""
@@ -418,7 +417,6 @@ def test_update_task_ok_with_next() -> None:
 
 @django_db_all
 def test_update_task_ok_with_next_namespace() -> None:
-
     def update_task_response(request: SetTaskStatusRequest) -> SetTaskStatusResponse:
         assert request.fetch_next_task
         assert request.fetch_next_task.application == "sentry"
@@ -823,7 +821,9 @@ def test_client_single_host_unavailable() -> None:
         ),
     )
 
-    with (patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel,):
+    with (
+        patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel,
+    ):
         mock_channel.return_value = channel
         client = TaskworkerClient(
             hosts=["localhost-0:50051"],

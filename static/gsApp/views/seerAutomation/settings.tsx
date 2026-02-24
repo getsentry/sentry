@@ -28,8 +28,6 @@ export default function SeerAutomationSettings() {
           // Project<->Repo settings:
           defaultAutofixAutomationTuning: organization.defaultAutofixAutomationTuning,
           autoOpenPrs: organization.autoOpenPrs ?? false,
-          allowBackgroundAgentDelegation:
-            organization.allowBackgroundAgentDelegation ?? false,
 
           // Second section
           autoEnableCodeReview: organization.autoEnableCodeReview ?? true,
@@ -109,20 +107,6 @@ export default function SeerAutomationSettings() {
                   disabled: !canWrite || organization.enableSeerCoding === false,
                   setValue: (value: boolean): boolean =>
                     organization.enableSeerCoding === false ? false : value,
-                },
-                {
-                  visible: false, // TODO(ryan953): Disabled until the backend is fully ready
-                  name: 'allowBackgroundAgentDelegation',
-                  label: t('Allow Delegation to External Coding Agents'),
-                  help: tct(
-                    'Enable this to allow projects to use coding agents other than Seer for automation tasks. [docs:Read the docs] to learn more.',
-                    {
-                      docs: (
-                        <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
-                      ),
-                    }
-                  ),
-                  type: 'boolean',
                 },
               ],
             },

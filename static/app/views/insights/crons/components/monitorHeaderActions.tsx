@@ -1,5 +1,5 @@
 import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
@@ -63,12 +63,12 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
-  const disableProps: Pick<ButtonProps, 'disabled' | 'title'> = {
+  const disableProps: Pick<ButtonProps, 'disabled' | 'tooltipProps'> = {
     disabled: !canEdit,
   };
 
   if (!canEdit) {
-    disableProps.title = permissionTooltipText;
+    disableProps.tooltipProps = {title: permissionTooltipText};
   }
 
   const hasEnvironments = monitor.environments.length > 0;
@@ -76,13 +76,13 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
 
   if (!hasEnvironments) {
     muteDisableProps.disabled = true;
-    muteDisableProps.title = t(
-      'Muting is only available when there are monitor environments'
-    );
+    muteDisableProps.tooltipProps = {
+      title: t('Muting is only available when there are monitor environments'),
+    };
   }
 
   return (
-    <Grid flow="column" align="center" gap="md">
+    <Flex direction="row" align="center" gap="md" wrap="wrap">
       <FeedbackButton />
       <Button
         size="sm"
@@ -107,7 +107,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
           size="sm"
           icon={<IconDelete size="xs" />}
           aria-label={t('Delete')}
-          title={canEdit ? undefined : permissionTooltipText}
+          tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
         />
       </Confirm>
       <LinkButton
@@ -131,7 +131,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
       >
         {t('Edit Monitor')}
       </LinkButton>
-    </Grid>
+    </Flex>
   );
 }
 

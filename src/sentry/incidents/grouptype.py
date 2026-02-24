@@ -170,7 +170,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         data_packet: DataPacket[MetricUpdate],
         priority: DetectorPriorityLevel,
     ) -> dict[str, Any]:
-
         try:
             alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
             return {"alert_id": alert_rule_detector.alert_rule_id}

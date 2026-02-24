@@ -6,7 +6,6 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
@@ -101,20 +100,18 @@ function DrawerNavigator({
       <ButtonWrapper>
         <AutofixFeedback iconOnly />
 
-        <Feature features={['organizations:autofix-seer-preferences']}>
-          <LinkButton
-            external
-            href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-            size="xs"
-            title={t('Configure Seer settings for this project')}
-            aria-label={t('Configure Seer settings for this project')}
-            icon={<IconSettings />}
-          />
-        </Feature>
+        <LinkButton
+          external
+          href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+          size="xs"
+          tooltipProps={{title: t('Configure Seer settings for this project')}}
+          aria-label={t('Configure Seer settings for this project')}
+          icon={<IconSettings />}
+        />
         <Button
           size="xs"
           onClick={onCopyMarkdown}
-          title={t('Copy analysis as Markdown / LLM prompt')}
+          tooltipProps={{title: t('Copy analysis as Markdown / LLM prompt')}}
           aria-label={t('Copy analysis as Markdown')}
           icon={<IconCopy />}
           disabled={copyButtonDisabled}
@@ -124,7 +121,7 @@ function DrawerNavigator({
           onClick={onReset}
           icon={<IconAdd />}
           aria-label={t('Start a new analysis from scratch')}
-          title={t('Start a new analysis from scratch')}
+          tooltipProps={{title: t('Start a new analysis from scratch')}}
           disabled={!onReset}
         />
       </ButtonWrapper>

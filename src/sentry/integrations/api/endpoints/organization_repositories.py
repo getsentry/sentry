@@ -103,6 +103,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             order_by="name",
             on_results=lambda x: serialize(x, request.user, RepositorySerializer(expand=expand)),
             paginator_cls=OffsetPaginator,
+            count_hits=True,
         )
 
     def post(self, request: Request, organization) -> Response:

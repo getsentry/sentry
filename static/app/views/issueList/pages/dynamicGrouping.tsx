@@ -49,6 +49,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -657,7 +658,11 @@ function DynamicGrouping() {
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
-    [`/organizations/${organization.slug}/top-issues/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/top-issues/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: 60000,
       enabled: customClusterData === null, // Only fetch if no custom data

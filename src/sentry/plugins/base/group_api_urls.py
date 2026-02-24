@@ -21,9 +21,7 @@ def load_plugin_urls(plugins):
             for u in urls:
                 if not isinstance(u, (URLResolver, URLPattern)):
                     raise TypeError(
-                        "url must be URLResolver or URLPattern, not {!r}: {!r}".format(
-                            type(u).__name__, u
-                        )
+                        f"url must be URLResolver or URLPattern, not {type(u).__name__!r}: {u!r}"
                     )
         except Exception:
             logger.exception("routes.failed", extra={"plugin": type(plugin).__name__})

@@ -5,12 +5,14 @@ import {
 } from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
-import type {
-  AndOp,
-  HeaderCheckOp,
-  JsonPathOp,
-  Op,
-  StatusCodeOp,
+import {
+  ComparisonType,
+  OpType,
+  type AndOp,
+  type HeaderCheckOp,
+  type JsonPathOp,
+  type Op,
+  type StatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 interface AddOpButtonProps extends Omit<DropdownMenuProps, 'items'> {
@@ -29,8 +31,8 @@ export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
       onAction: () => {
         const statusCodeOp: StatusCodeOp = {
           id: uniqueId(),
-          op: 'status_code_check',
-          operator: {cmp: 'equals'},
+          op: OpType.STATUS_CODE_CHECK,
+          operator: {cmp: ComparisonType.EQUALS},
           value: 200,
         };
         onAddOp(statusCodeOp);
@@ -43,9 +45,9 @@ export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
       onAction: () => {
         const jsonPathOp: JsonPathOp = {
           id: uniqueId(),
-          op: 'json_path',
+          op: OpType.JSON_PATH,
           value: '',
-          operator: {cmp: 'equals'},
+          operator: {cmp: ComparisonType.EQUALS},
           operand: {jsonpath_op: 'literal', value: ''},
         };
         onAddOp(jsonPathOp);
@@ -58,10 +60,10 @@ export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
       onAction: () => {
         const headerOp: HeaderCheckOp = {
           id: uniqueId(),
-          op: 'header_check',
-          key_op: {cmp: 'equals'},
+          op: OpType.HEADER_CHECK,
+          key_op: {cmp: ComparisonType.EQUALS},
           key_operand: {header_op: 'literal', value: ''},
-          value_op: {cmp: 'equals'},
+          value_op: {cmp: ComparisonType.EQUALS},
           value_operand: {header_op: 'literal', value: ''},
         };
         onAddOp(headerOp);
@@ -74,7 +76,7 @@ export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
       onAction: () => {
         const andOp: AndOp = {
           id: uniqueId(),
-          op: 'and',
+          op: OpType.AND,
           children: [],
         };
         onAddOp(andOp);

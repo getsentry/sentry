@@ -103,7 +103,7 @@ function FlamegraphOptionsMenu({
           size="xs"
           icon={<IconChevron direction="left" />}
           aria-label={t('View Previous 30 Minutes')}
-          title={t('View Previous 30 Minutes')}
+          tooltipProps={{title: t('View Previous 30 Minutes')}}
         />
       ) : null}
       {continuousLocationDescriptor ? (
@@ -120,7 +120,7 @@ function FlamegraphOptionsMenu({
           size="xs"
           icon={<IconChevron direction="right" />}
           aria-label={t('View Next 30 Minutes')}
-          title={t('View Next 30 Minutes')}
+          tooltipProps={{title: t('View Next 30 Minutes')}}
         />
       ) : null}
     </Fragment>

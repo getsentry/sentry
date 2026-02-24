@@ -18,6 +18,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
@@ -55,10 +56,18 @@ function ChangePlanAction({
     data: configs,
     isPending,
     isError,
-  } = useApiQuery<BillingConfig>([`/customers/${orgId}/billing-config/?tier=all`], {
-    // TODO(isabella): pass billing config from customerDetails
-    staleTime: Infinity,
-  });
+  } = useApiQuery<BillingConfig>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+        path: {organizationIdOrSlug: orgId},
+      }),
+      {query: {tier: 'all'}},
+    ],
+    {
+      // TODO(isabella): pass billing config from customerDetails
+      staleTime: Infinity,
+    }
+  );
 
   const planList = useMemo(
     () =>

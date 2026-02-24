@@ -285,3 +285,78 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         # The valueUnit should be null since we used "-" for unit
         assert timeseries["meta"]["valueType"] == "number"
         assert timeseries["meta"]["valueUnit"] is None
+
+    def test_timeseries_with_per_second_formula_returns_unit_in_meta(self) -> None:
+        """Test that when a per_second formula is used, valueUnit is populated in the timeseries meta."""
+        metric_values = [6, 0, 6, 3, 0, 3]
+
+        trace_metrics = []
+        for hour, value in enumerate(metric_values):
+            trace_metrics.append(
+                self.create_trace_metric(
+                    "request_count",
+                    value,
+                    "counter",
+                    timestamp=self.start + timedelta(hours=hour),
+                )
+            )
+        self.store_trace_metrics(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "per_second(value,request_count,counter,-)",
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+
+        assert timeseries["yAxis"] == "per_second(value,request_count,counter,-)"
+
+        # The valueUnit should be '1/second' since per_second formula implies per second rate
+        assert timeseries["meta"]["valueType"] == "rate"
+        assert timeseries["meta"]["valueUnit"] == "1/second"
+
+    def test_timeseries_with_per_minute_formula_returns_unit_in_meta(self) -> None:
+        """Test that when a per_minute formula is used, valueUnit is populated in the timeseries meta."""
+        metric_values = [6, 0, 6, 3, 0, 3]
+
+        trace_metrics = []
+        for hour, value in enumerate(metric_values):
+            trace_metrics.append(
+                self.create_trace_metric(
+                    "request_count",
+                    value,
+                    "counter",
+                    "millisecond",
+                    timestamp=self.start + timedelta(hours=hour),
+                )
+            )
+        self.store_trace_metrics(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "per_minute(value,request_count,counter,millisecond)",
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+
+        assert timeseries["yAxis"] == "per_minute(value,request_count,counter,millisecond)"
+
+        # The valueUnit should be '1/minute' since per_minute formula implies per minute rate
+        assert timeseries["meta"]["valueType"] == "rate"
+        assert timeseries["meta"]["valueUnit"] == "1/minute"

@@ -12,8 +12,7 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
-import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -45,59 +44,32 @@ export function useVisualizeFields({
   const unknownField = parsedFunction?.arguments[0];
 
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
+    const seen = new Set<string>();
     const unknownOptions = [unknownField]
       .filter(defined)
       .filter(option => !tags.hasOwnProperty(option));
 
-    const options = [
+    return [
       ...unknownOptions.map(option => {
         const label = prettifyTagKey(option);
-        return {
-          label,
-          value: option,
-          textValue: option,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={option}
-              label={label}
-              traceItemType={traceItemType}
-            />
-          ),
-        };
+        return optionFromTag({key: option, name: label}, traceItemType);
       }),
       ...Object.values(tags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-          trailingItems: <TypeBadge kind={tag.kind} />,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={tag.key}
-              kind={tag.kind}
-              label={tag.name}
-              traceItemType={traceItemType}
-            />
-          ),
-        };
+        return optionFromTag(tag, traceItemType);
       }),
-    ];
-
-    options.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
-
-      if (a.label > b.label) {
-        return 1;
-      }
-
-      return 0;
-    });
-
-    return options;
+    ]
+      .filter(option => {
+        // Filtering by value here, so it's based off of explicit tags i.e. `key`
+        // or `tags[<key>, <boolean | number | string>]
+        if (seen.has(option.value)) return false;
+        seen.add(option.value);
+        return true;
+      })
+      .toSorted((a, b) => {
+        const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
+        const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
+        return aLabel.localeCompare(bLabel);
+      });
   }, [tags, unknownField, traceItemType]);
 
   return fieldOptions;

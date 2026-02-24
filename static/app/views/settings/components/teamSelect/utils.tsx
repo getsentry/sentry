@@ -90,19 +90,17 @@ export function DropdownAddTeam({
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps}>{t('Add Team')}</OverlayTrigger.Button>
       )}
-      searchPlaceholder={t('Search Teams')}
+      search={{placeholder: t('Search Teams'), onChange: onSearch}}
       emptyMessage={t('No Teams')}
       loading={isLoadingTeams}
-      searchable
-      onSearch={onSearch}
       menuHeaderTrailingItems={({closeOverlay}) => {
         return (
           <Button
-            title={
-              canCreateTeam
+            tooltipProps={{
+              title: canCreateTeam
                 ? undefined
-                : t('You must be a Org Owner/Manager to create teams')
-            }
+                : t('You must be a Org Owner/Manager to create teams'),
+            }}
             priority="link"
             size="xs"
             disabled={!canCreateTeam}

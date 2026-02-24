@@ -38,4 +38,25 @@ describe('MetricTimePeriodSelect', () => {
     expect(router.location.query.start).toBeUndefined();
     expect(router.location.query.end).toBeUndefined();
   });
+
+  it('displays custom statsPeriod values from the URL', async () => {
+    const {router} = render(
+      <MetricTimePeriodSelect dataset={DetectorDataset.ERRORS} interval={300} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {
+              statsPeriod: '4h',
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: /custom time:\s*last 4 hours/i})
+    ).toBeInTheDocument();
+    expect(router.location.query.statsPeriod).toBe('4h');
+  });
 });

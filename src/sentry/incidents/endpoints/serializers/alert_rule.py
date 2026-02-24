@@ -232,9 +232,9 @@ class AlertRuleSerializer(Serializer):
                 type=AlertRuleActivityType.SNAPSHOT.value,
             )
             for activity in snapshot_activities:
-                result[alert_rules[activity.alert_rule_id]][
-                    "originalAlertRuleId"
-                ] = activity.previous_alert_rule_id
+                result[alert_rules[activity.alert_rule_id]]["originalAlertRuleId"] = (
+                    activity.previous_alert_rule_id
+                )
 
         if "latestIncident" in self.expand:
             incident_map = {}
@@ -458,8 +458,7 @@ class CombinedRuleSerializer(Serializer):
                 results[item] = serialized_uptime_detector_map_by_id[item_id]
             elif (
                 # XXX(epurkhiser): Monitors use their GUID as their IDs
-                isinstance(item, Monitor)
-                and str(item.guid) in serialized_cron_monitor_map_by_guid
+                isinstance(item, Monitor) and str(item.guid) in serialized_cron_monitor_map_by_guid
             ):
                 # This is a cron monitor
                 results[item] = serialized_cron_monitor_map_by_guid[str(item.guid)]

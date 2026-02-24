@@ -6,7 +6,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -109,21 +108,21 @@ export function GroupTagsTab() {
                   <UnstyledUnorderedList>
                     {tag.topValues.map((tagValue, tagValueIdx) => {
                       const tagName = tagValue.name === '' ? t('(empty)') : tagValue.name;
-                      const query = tagValue.query
-                        ? {
-                            ...location.query,
-                            query: tagValue.query,
-                          }
+                      const baseQuery = tagValue.query
+                        ? {query: tagValue.query}
                         : generateQueryWithTag(location.query, {
                             key: tag.key,
                             value: tagValue.value,
                           });
                       return (
                         <li key={tagValueIdx} data-test-id={tag.key}>
-                          <TagBarGlobalSelectionLink
+                          <TagBarLink
                             to={{
                               pathname: `${baseUrl}events/`,
-                              query,
+                              query: {
+                                ...extractSelectionParameters(location.query),
+                                ...baseQuery,
+                              },
                             }}
                           >
                             <TagBarBackground
@@ -141,7 +140,7 @@ export function GroupTagsTab() {
                             <TagBarCount>
                               <Count value={tagValue.count} />
                             </TagBarCount>
-                          </TagBarGlobalSelectionLink>
+                          </TagBarLink>
                         </li>
                       );
                     })}
@@ -206,7 +205,7 @@ const TagBarBackground = styled('div')<{widthPercent: string}>`
   width: ${p => p.widthPercent};
 `;
 
-const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
+const TagBarLink = styled(Link)`
   position: relative;
   display: flex;
   line-height: 2.2;

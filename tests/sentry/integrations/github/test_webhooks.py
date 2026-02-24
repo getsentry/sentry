@@ -472,7 +472,6 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0] == repo
 
     def test_anonymous_lookup(self) -> None:
-
         repo = Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -849,7 +848,6 @@ class PullRequestEventWebhookTest(APITestCase):
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics: MagicMock) -> None:
-
         self._create_integration_and_send_pull_request_opened_event()
 
         repos = Repository.objects.all()
@@ -861,7 +859,6 @@ class PullRequestEventWebhookTest(APITestCase):
         mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
     def test_ignores_hidden_repo(self) -> None:
-
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -919,7 +916,6 @@ class PullRequestEventWebhookTest(APITestCase):
         mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
     def test_multiple_orgs_ignores_hidden_repo(self) -> None:
-
         org2 = self.create_organization()
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -1189,7 +1185,6 @@ class IssuesEventWebhookTest(APITestCase):
     @patch("sentry.integrations.github.webhook.sync_group_assignee_inbound_by_external_actor")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_assigned_issue(self, mock_record: MagicMock, mock_sync: MagicMock) -> None:
-
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1223,7 +1218,6 @@ class IssuesEventWebhookTest(APITestCase):
     @patch("sentry.integrations.github.webhook.sync_group_assignee_inbound_by_external_actor")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_unassigned_issue(self, mock_record: MagicMock, mock_sync: MagicMock) -> None:
-
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1257,7 +1251,6 @@ class IssuesEventWebhookTest(APITestCase):
         assert_success_metric(mock_record)
 
     def test_missing_assignee_data(self) -> None:
-
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1283,7 +1276,6 @@ class IssuesEventWebhookTest(APITestCase):
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo_for_issues(self, mock_metrics: MagicMock) -> None:
-
         response = self.client.post(
             path=self.url,
             data=ISSUES_ASSIGNED_EVENT_EXAMPLE,
