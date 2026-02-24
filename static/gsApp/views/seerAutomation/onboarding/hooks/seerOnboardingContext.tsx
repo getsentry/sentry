@@ -120,7 +120,6 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     fetchNextPageRepositories,
     hasNextPageRepositories,
     isRepositoriesError,
-
     isFetchingNextPageRepositories,
   ]);
 
