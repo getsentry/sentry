@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {Badge} from '@sentry/scraps/badge';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   HybridFilter,
-  HybridFilterComponents,
   useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
@@ -57,7 +58,7 @@ export function TestSuiteDropdown() {
       value: suite,
       isSelected: selectedSet.has(suite.toLowerCase()),
       leadingItems: ({isSelected}: {isSelected: boolean}) => (
-        <HybridFilterComponents.Checkbox
+        <Checkbox
           checked={isSelected}
           onChange={() => hybridFilterRef.current?.toggleOption(suite)}
           aria-label={t('Select %s', suite)}
@@ -105,25 +106,22 @@ export function TestSuiteDropdown() {
     <HybridFilter
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
-      searchable
+      search={{onChange: handleOnSearch}}
       options={options}
-      onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
-          />
+          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
         ) : null
       }
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton
+            <MenuComponents.CancelButton
               onClick={() => stagedSelect.removeStagedChanges()}
             />
-            <HybridFilterComponents.ApplyButton
+            <MenuComponents.ApplyButton
               onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
             />
           </Flex>

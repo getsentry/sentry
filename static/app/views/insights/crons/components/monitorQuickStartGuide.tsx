@@ -281,7 +281,7 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps} prefix={t('Guide')} />
         )}
-        searchable
+        search
         options={exampleOptions}
         value={selectedGuide}
         onChange={({value}) => setSelectedGuide(value)}
