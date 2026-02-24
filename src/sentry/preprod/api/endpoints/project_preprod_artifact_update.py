@@ -460,7 +460,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                         "quota": PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
                     }
                     head_artifact.installable_app_error_code = skip_reason_to_error_code.get(
-                        distro_skip_reason,
+                        distro_skip_reason or "",
                         PreprodArtifact.InstallableAppErrorCode.SKIPPED,
                     )
                     head_artifact.installable_app_error_message = distro_skip_reason
