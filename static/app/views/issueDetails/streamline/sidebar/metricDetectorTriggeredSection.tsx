@@ -138,6 +138,83 @@ function getFormattedEvaluatedValue({
 }
 
 /**
+ * Once the open period loads, this hook will set the time range to visibly center the open period.
+ * If the URL already has a time period, this hook will do nothing
+ */
+function useZoomTimeRangeToOpenPeriod({
+  eventId,
+  intervalSeconds,
+  openPeriodStart,
+  openPeriodEnd,
+}: {
+  eventId: string;
+  intervalSeconds: number | undefined;
+  openPeriodEnd: string | null;
+  openPeriodStart: string | null;
+}) {
+  const organization = useOrganization();
+  const params = useParams<{groupId: string; eventId?: string}>();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const zoomTimeRangeToOpenPeriod = useEffectEvent(() => {
+    const hasTimePeriod =
+      defined(location.query.statsPeriod) ||
+      defined(location.query.start) ||
+      defined(location.query.end);
+
+    if (hasTimePeriod) {
+      return;
+    }
+
+    if (openPeriodStart) {
+      const zoomRange = computeZoomRangeMs({
+        startMs: new Date(openPeriodStart).getTime(),
+        endMs: openPeriodEnd ? new Date(openPeriodEnd).getTime() : Date.now(),
+        intervalSeconds,
+      });
+
+      const query = buildDetectorZoomQuery(location.query, zoomRange);
+
+      navigate(
+        {
+          pathname: normalizeUrl(
+            `/organizations/${organization.slug}/issues/${params.groupId}/events/${eventId}/`
+          ),
+          query,
+        },
+        {replace: true}
+      );
+    }
+  });
+
+  useEffect(() => {
+    zoomTimeRangeToOpenPeriod();
+  }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
+}
+
+function ZoomToOpenPeriod({
+  eventId,
+  intervalSeconds,
+  openPeriodStart,
+  openPeriodEnd,
+}: {
+  eventId: string;
+  intervalSeconds: number | undefined;
+  openPeriodEnd: string;
+  openPeriodStart: string;
+}) {
+  useZoomTimeRangeToOpenPeriod({
+    eventId,
+    openPeriodStart,
+    openPeriodEnd,
+    intervalSeconds,
+  });
+
+  return null;
+}
+
+/**
  * Issues list does not support AND/OR in the query, but Discover does.
  */
 function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
@@ -280,27 +357,6 @@ function OpenInDestinationButton({
       {destination.buttonText}
     </LinkButton>
   );
-}
-
-function ZoomToOpenPeriod({
-  eventId,
-  intervalSeconds,
-  openPeriodStart,
-  openPeriodEnd,
-}: {
-  eventId: string;
-  intervalSeconds: number | undefined;
-  openPeriodEnd: string;
-  openPeriodStart: string;
-}) {
-  useApplyMetricDetectorDefaults({
-    eventId,
-    openPeriodStart,
-    openPeriodEnd,
-    intervalSeconds,
-  });
-
-  return null;
 }
 
 function TriggeredConditionDetails({
@@ -447,62 +503,6 @@ function TriggeredConditionDetails({
 const GroupListWrapper = styled('div')`
   margin-top: ${space(1)};
 `;
-
-function useApplyMetricDetectorDefaults({
-  eventId,
-  intervalSeconds,
-  openPeriodStart,
-  openPeriodEnd,
-}: {
-  eventId: string;
-  intervalSeconds: number | undefined;
-  openPeriodEnd: string | null;
-  openPeriodStart: string | null;
-}) {
-  const organization = useOrganization();
-  const params = useParams<{groupId: string; eventId?: string}>();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const applyDefaults = useEffectEvent(() => {
-    const hasTimePeriod =
-      defined(location.query.statsPeriod) ||
-      defined(location.query.start) ||
-      defined(location.query.end);
-
-    if (hasTimePeriod) {
-      return;
-    }
-
-    if (openPeriodStart) {
-      const zoomRange = computeZoomRangeMs({
-        startMs: new Date(openPeriodStart).getTime(),
-        endMs: openPeriodEnd ? new Date(openPeriodEnd).getTime() : Date.now(),
-        intervalSeconds,
-      });
-
-      const query = buildDetectorZoomQuery(
-        location.query,
-        zoomRange.start,
-        zoomRange.end
-      );
-
-      navigate(
-        {
-          pathname: normalizeUrl(
-            `/organizations/${organization.slug}/issues/${params.groupId}/events/${eventId}/`
-          ),
-          query,
-        },
-        {replace: true}
-      );
-    }
-  });
-
-  useEffect(() => {
-    applyDefaults();
-  }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
-}
 
 export function MetricDetectorTriggeredSection({
   group,

@@ -333,32 +333,40 @@ describe('MetricDetectorTriggeredSection', () => {
             pathname: `/organizations/org-slug/issues/${defaultGroup.id}/`,
             query: {},
           },
-          route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+          routes: [
+            '/organizations/:orgId/issues/:groupId/',
+            '/organizations/:orgId/issues/:groupId/events/:eventId/',
+          ],
         },
       });
 
       await screen.findByRole('region', {name: 'Triggered Condition'});
 
-      expect(router.location.pathname).toMatch(`/events/${defaultEvent.id}`);
-      expect(router.location.query.start).toBeDefined();
-      expect(router.location.query.end).toBeDefined();
-      expect(router.location.query.statsPeriod).toBeUndefined();
+      expect(router.location.pathname).toMatch(
+        `/organizations/org-slug/issues/${defaultGroup.id}/events/${defaultEvent.id}/`
+      );
+      expect(router.location.query.statsPeriod).toBeDefined();
     });
 
     it('does not apply detector zoom range when URL already has a time period', async () => {
       const {router} = render(<MetricDetectorTriggeredSection {...defaultProps} />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/org-slug/issues/123/events/${defaultEvent.id}/`,
+            pathname: `/organizations/org-slug/issues/${defaultGroup.id}/`,
             query: {statsPeriod: '24h'},
           },
-          route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+          routes: [
+            '/organizations/:orgId/issues/:groupId/',
+            '/organizations/:orgId/issues/:groupId/events/:eventId/',
+          ],
         },
       });
 
       await screen.findByRole('region', {name: 'Triggered Condition'});
 
-      expect(router.location.pathname).toMatch(`/events/${defaultEvent.id}/`);
+      expect(router.location.pathname).toMatch(
+        `/organizations/org-slug/issues/${defaultGroup.id}/`
+      );
       expect(router.location.query.statsPeriod).toBe('24h');
       expect(router.location.query.start).toBeUndefined();
       expect(router.location.query.end).toBeUndefined();
