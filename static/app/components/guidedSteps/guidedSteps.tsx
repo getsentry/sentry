@@ -179,7 +179,14 @@ function Step(props: StepProps) {
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
       {props.trailingItems ? (
-        <Flex align="center" justify="between" style={{gridArea: 'heading'}}>
+        <Flex
+          direction={{xs: 'column', md: 'row'}}
+          align={{xs: 'start', md: 'center'}}
+          paddingLeft={{xs: 'lg', md: '0'}}
+          justify="between"
+          gap="sm"
+          style={{gridArea: 'heading'}}
+        >
           {headingContent}
           <Flex align="center" onClick={e => e.stopPropagation()}>
             {props.trailingItems}

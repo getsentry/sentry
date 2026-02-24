@@ -235,6 +235,7 @@ sentry-cli releases finalize "$VERSION"`;
 
         <Flex justify="between" align="center">
           <CompactSelect
+            style={{minWidth: 0}}
             size="sm"
             options={apps.map(makeAppOption)}
             value={selectedApp?.slug}
