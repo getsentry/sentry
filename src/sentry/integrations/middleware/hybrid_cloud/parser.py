@@ -19,6 +19,7 @@ from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPay
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.hybridcloud.tasks.deliver_webhooks import maybe_trigger_drain
 from sentry.integrations.middleware.metrics import (
     MiddlewareHaltReason,
     MiddlewareOperationEvent,
@@ -176,8 +177,9 @@ class BaseRequestParser(ABC):
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         shard_identifier = identifier or self.webhook_identifier.value
+        seen_mailboxes: set[str] = set()
         for region in regions:
-            WebhookPayload.create_from_request(
+            payload = WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_REGION,
                 region=region.name,
                 provider=self.provider,
@@ -185,6 +187,9 @@ class BaseRequestParser(ABC):
                 integration_id=integration_id,
                 request=self.request,
             )
+            if payload.mailbox_name not in seen_mailboxes:
+                seen_mailboxes.add(payload.mailbox_name)
+                maybe_trigger_drain(payload.mailbox_name, payload.id)
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 

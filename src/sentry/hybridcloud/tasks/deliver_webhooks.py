@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import orjson
 import requests
 import sentry_sdk
+from django.core.cache import cache
 from django.db.models import Case, CharField, Min, Subquery, Value, When
 from django.utils import timezone
 from requests import Response
@@ -96,6 +97,38 @@ class DeliveryFailed(Exception):
     pass
 
 
+def maybe_trigger_drain(mailbox_name: str, payload_id: int) -> None:
+    """Trigger an immediate drain if one isn't already in-flight for this mailbox.
+
+    Uses Redis SETNX with a 15-second TTL for deduplication. Only the first
+    webhook to an idle mailbox triggers a drain; subsequent webhooks within the
+    TTL window are picked up by the already-enqueued drain task.
+
+    Falls back gracefully if Redis is unavailable — the scheduler handles delivery.
+    """
+    if not options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+        return
+
+    lock_key = f"wh:drain_active:{mailbox_name}"
+    try:
+        if cache.add(lock_key, 1, timeout=15):
+            # Drain from the head of the mailbox, not from the new payload's ID.
+            # The caller provides the just-created payload's ID, but older undelivered
+            # payloads in the same mailbox must be processed first to preserve ordering.
+            head_id = (
+                WebhookPayload.objects.filter(mailbox_name=mailbox_name)
+                .order_by("id")
+                .values_list("id", flat=True)
+                .first()
+            )
+            drain_mailbox.delay(head_id if head_id is not None else payload_id)
+            metrics.incr("hybridcloud.deliver_webhooks.push_trigger")
+        else:
+            metrics.incr("hybridcloud.deliver_webhooks.push_trigger_skipped")
+    except Exception:
+        metrics.incr("hybridcloud.deliver_webhooks.push_trigger_error")
+
+
 @instrumented_task(
     name="sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
     namespace=hybridcloud_control_tasks,
@@ -153,6 +186,13 @@ def schedule_webhook_delivery() -> None:
     )
 
     for record in scheduled_mailboxes[:BATCH_SIZE]:
+        if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            lock_key = f"wh:drain_active:{record['mailbox_name']}"
+            try:
+                if cache.get(lock_key):
+                    continue
+            except Exception:
+                pass
         # Reschedule the records that we will attempt to deliver next.
         # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
         mailbox_batch = (
@@ -199,6 +239,11 @@ def drain_mailbox(payload_id: int) -> None:
     delivered = 0
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     while True:
+        if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            try:
+                cache.set(f"wh:drain_active:{payload.mailbox_name}", 1, timeout=15)
+            except Exception:
+                pass
         # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
         # task.
         if timezone.now() >= deadline:
@@ -398,6 +443,11 @@ def drain_mailbox_parallel(payload_id: int) -> None:
     delivered = 0
     extra = {**payload.as_dict(), "delivered": delivered}
     while True:
+        if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            try:
+                cache.set(f"wh:drain_active:{payload.mailbox_name}", 1, timeout=15)
+            except Exception:
+                pass
         if timezone.now() >= deadline:
             logger.info("deliver_webhook_parallel.delivery_deadline", extra=extra)
             metrics.incr(
