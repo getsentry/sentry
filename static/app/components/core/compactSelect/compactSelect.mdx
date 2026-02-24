@@ -14,6 +14,8 @@ resources:
 
 import {useState} from 'react';
 
+import {t} from 'sentry/locale';
+
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -157,6 +159,8 @@ export function SectionsDemo() {
   <Storybook.Grid>
     <CompactSelect
       size="md"
+      menuTitle={t('Size')}
+      searchable
       trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
       options={[
         {value: '1', label: 'Medium (default)'},
@@ -165,6 +169,8 @@ export function SectionsDemo() {
     />
     <CompactSelect
       size="sm"
+      menuTitle={t('Size')}
+      searchable
       trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
       options={[
         {value: '1', label: 'Small'},
@@ -173,6 +179,8 @@ export function SectionsDemo() {
     />
     <CompactSelect
       size="xs"
+      menuTitle={t('Size')}
+      searchable
       trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
       options={[
         {value: '1', label: 'Extra Small'},

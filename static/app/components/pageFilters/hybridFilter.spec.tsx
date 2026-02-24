@@ -76,9 +76,7 @@ describe('HybridFilter', () => {
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <HybridFilterComponents.ResetButton onClick={stagedSelect.handleReset} />
             ) : null
           }
           menuFooter={
@@ -86,7 +84,7 @@ describe('HybridFilter', () => {
               <div>
                 <HybridFilterComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  onClick={stagedSelect.removeStagedChanges}
                 />
                 <HybridFilterComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
@@ -130,9 +128,7 @@ describe('HybridFilter', () => {
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <HybridFilterComponents.ResetButton onClick={stagedSelect.handleReset} />
             ) : null
           }
           menuFooter={
@@ -140,7 +136,7 @@ describe('HybridFilter', () => {
               <div>
                 <HybridFilterComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  onClick={stagedSelect.removeStagedChanges}
                 />
                 <HybridFilterComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
@@ -194,9 +190,7 @@ describe('HybridFilter', () => {
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <HybridFilterComponents.ResetButton onClick={stagedSelect.handleReset} />
             ) : null
           }
           menuFooter={
@@ -204,7 +198,7 @@ describe('HybridFilter', () => {
               <div>
                 <HybridFilterComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  onClick={stagedSelect.removeStagedChanges}
                 />
                 <HybridFilterComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
@@ -267,9 +261,7 @@ describe('HybridFilter', () => {
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <HybridFilterComponents.ResetButton onClick={stagedSelect.handleReset} />
             ) : null
           }
           menuFooter={
@@ -277,7 +269,7 @@ describe('HybridFilter', () => {
               <div>
                 <HybridFilterComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  onClick={stagedSelect.removeStagedChanges}
                 />
                 <HybridFilterComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
@@ -333,9 +325,7 @@ describe('HybridFilter', () => {
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <HybridFilterComponents.ResetButton onClick={stagedSelect.handleReset} />
             ) : null
           }
           menuFooter={
@@ -343,7 +333,7 @@ describe('HybridFilter', () => {
               <div>
                 <HybridFilterComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  onClick={stagedSelect.removeStagedChanges}
                 />
                 <HybridFilterComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
@@ -399,9 +389,7 @@ describe('HybridFilter', () => {
           stagedSelect={stagedSelect}
           menuHeaderTrailingItems={
             stagedSelect.shouldShowReset ? (
-              <HybridFilterComponents.ResetButton
-                onClick={() => stagedSelect.handleReset()}
-              />
+              <HybridFilterComponents.ResetButton onClick={stagedSelect.handleReset} />
             ) : null
           }
           menuFooter={
@@ -409,7 +397,7 @@ describe('HybridFilter', () => {
               <div>
                 <HybridFilterComponents.CancelButton
                   disabled={!stagedSelect.hasStagedChanges}
-                  onClick={() => stagedSelect.removeStagedChanges()}
+                  onClick={stagedSelect.removeStagedChanges}
                 />
                 <HybridFilterComponents.ApplyButton
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
@@ -479,7 +467,7 @@ describe('HybridFilter', () => {
               stagedSelect.hasStagedChanges ? (
                 <div>
                   <HybridFilterComponents.CancelButton
-                    onClick={() => stagedSelect.removeStagedChanges()}
+                    onClick={stagedSelect.removeStagedChanges}
                   />
                   <HybridFilterComponents.ApplyButton
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}

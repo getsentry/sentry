@@ -255,9 +255,7 @@ export function EnvironmentPageFilter({
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
-          />
+          <HybridFilterComponents.ResetButton onClick={stagedSelect.handleReset} />
         ) : null
       }
       menuFooter={
@@ -265,7 +263,7 @@ export function EnvironmentPageFilter({
           <Flex gap="md" align="center" justify="end">
             <HybridFilterComponents.CancelButton
               disabled={!stagedSelect.hasStagedChanges}
-              onClick={() => stagedSelect.removeStagedChanges()}
+              onClick={stagedSelect.removeStagedChanges}
             />
             <HybridFilterComponents.ApplyButton
               onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}

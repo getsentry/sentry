@@ -112,9 +112,7 @@ export function TestSuiteDropdown() {
       menuTitle={t('Filter Test Suites')}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
-          />
+          <HybridFilterComponents.ResetButton onClick={stagedSelect.handleReset} />
         ) : null
       }
       menuFooter={
