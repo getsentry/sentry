@@ -135,7 +135,7 @@ function TableHeader() {
 
   return (
     <Flex gap="xl">
-      <ProjectPageFilter size="md" />
+      <ProjectPageFilter />
       <div style={{flexGrow: 1}}>
         <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
       </div>

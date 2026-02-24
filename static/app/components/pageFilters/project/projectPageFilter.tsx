@@ -45,24 +45,8 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-export interface ProjectPageFilterProps extends Partial<
-  Omit<
-    HybridFilterProps<number>,
-    | 'searchable'
-    | 'multiple'
-    | 'options'
-    | 'value'
-    | 'defaultValue'
-    | 'onReplace'
-    | 'onReset'
-    | 'onToggle'
-    | 'menuBody'
-    | 'menuFooter'
-    | 'shouldCloseOnInteractOutside'
-    | 'sizeLimitMessage'
-    | 'stagedSelect'
-  >
-> {
+export interface ProjectPageFilterProps {
+  disabled?: HybridFilterProps<number>['disabled'];
   /**
    * Called when the selection changes
    */
@@ -104,12 +88,6 @@ const SELECTION_COUNT_LIMIT = 50;
 export function ProjectPageFilter({
   onChange,
   onReset,
-  disabled,
-  sizeLimit,
-  emptyMessage,
-  menuTitle,
-  menuWidth,
-  trigger,
   resetParamsOnChange,
   storageNamespace,
   ...selectProps
@@ -452,30 +430,28 @@ export function ProjectPageFilter({
       ref={hybridFilterRef}
       searchMatcher={projectSearchMatcher}
       {...selectProps}
+      disabled={selectProps.disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       stagedSelect={stagedSelect}
       searchable
       options={options}
-      disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
-      sizeLimit={sizeLimit ?? 25}
-      emptyMessage={emptyMessage ?? t('No projects found')}
+      sizeLimit={25}
+      emptyMessage={t('No projects found')}
       menuTitle={
-        menuTitle ?? (
-          <Flex gap="xs" align="center">
-            <Text>{t('Filter Projects')}</Text>
-            <InfoTip
-              size="xs"
-              title={tct(
-                '[rangeModifier] + click to select a range of projects or [multiModifier] + click to select multiple projects at once.',
-                {
-                  rangeModifier: t('Shift'),
-                  multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
-                }
-              )}
-            />
-          </Flex>
-        )
+        <Flex gap="xs" align="center">
+          <Text>{t('Filter Projects')}</Text>
+          <InfoTip
+            size="xs"
+            title={tct(
+              '[rangeModifier] + click to select a range of projects or [multiModifier] + click to select multiple projects at once.',
+              {
+                rangeModifier: t('Shift'),
+                multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
+              }
+            )}
+          />
+        </Flex>
       }
-      menuWidth={menuWidth ?? defaultMenuWidth}
+      menuWidth={defaultMenuWidth}
       onOpenChange={() => {
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
       }}
@@ -527,18 +503,15 @@ export function ProjectPageFilter({
           </Stack>
         ) : null
       }
-      trigger={
-        trigger ??
-        (triggerProps => (
-          <ProjectPageFilterTrigger
-            {...triggerProps}
-            value={value}
-            memberProjects={memberProjects}
-            nonMemberProjects={nonMemberProjects}
-            ready={projectsLoaded && pageFilterIsReady}
-          />
-        ))
-      }
+      trigger={triggerProps => (
+        <ProjectPageFilterTrigger
+          {...triggerProps}
+          value={value}
+          memberProjects={memberProjects}
+          nonMemberProjects={nonMemberProjects}
+          ready={projectsLoaded && pageFilterIsReady}
+        />
+      )}
       shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
     />
   );
