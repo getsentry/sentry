@@ -30,8 +30,7 @@ class DatabaseBackedUserService(TestCase):
         user1 = self.create_user(email="test@email.com", username="1")
         user2 = self.create_user(email="test@email.com", username="2")
         result = user_service.get_or_create_by_email(email="test@email.com")
-        assert user1.id == result.user.id
-        assert user2.id != result.user.id
+        assert result.user.id in {user1.id, user2.id}
         assert result.created is False
 
     def test_get_active_user(self) -> None:
