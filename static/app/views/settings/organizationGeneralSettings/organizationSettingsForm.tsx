@@ -55,6 +55,10 @@ interface Props {
   onSave: (previous: Organization, updated: Organization) => void;
 }
 
+const slugSchema = z.object({
+  slug: z.string().min(1, t('Organization slug is required')),
+});
+
 const generalSchema = z.object({
   name: z.string().min(1, t('Display name is required')),
   organizationId: z.string(),
@@ -66,6 +70,7 @@ const generalSchema = z.object({
 });
 
 type GeneralSchema = z.infer<typeof generalSchema>;
+type SlugSchema = z.infer<typeof slugSchema>;
 
 function OrganizationSettingsForm({initialData, onSave}: Props) {
   const location = useLocation();
@@ -91,7 +96,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
 
   // Shared mutation options for most general fields
   const orgMutationOptions = mutationOptions({
-    mutationFn: (data: Partial<GeneralSchema>) =>
+    mutationFn: (data: Partial<GeneralSchema> | Partial<SlugSchema>) =>
       fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
     onSuccess: updated => {
       onSave(initialData, updated);
@@ -105,7 +110,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
   const slugForm = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {slug: initialData.slug},
-    validators: {onDynamic: generalSchema},
+    validators: {onDynamic: slugSchema},
     onSubmit: ({value}) => updateSlug({slug: value.slug}).catch(() => {}),
   });
 
