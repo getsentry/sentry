@@ -21,7 +21,7 @@ monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0003_notification_thread_models
+notifications: 0004_notificationmessage_group_action_date_added_idx
 
 preprod: 0026_add_initial_snapshot_models
 
