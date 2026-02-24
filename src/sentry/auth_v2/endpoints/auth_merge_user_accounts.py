@@ -65,7 +65,11 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
         verification_code = UserMergeVerificationCode.objects.filter(
             user_id=primary_user.id
         ).first()
-        if verification_code is None or verification_code.token != result["verification_code"]:
+        if (
+            verification_code is None
+            or verification_code.token != result["verification_code"]
+            or not verification_code.is_valid()
+        ):
             return Response(
                 status=403,
                 data={"error": "Incorrect verification code"},

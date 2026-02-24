@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from django.test import override_settings
+from django.utils import timezone
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -138,3 +141,15 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
         assert response.data == {
             "error": "The set of IDs to merge and the set of IDs to delete must be disjoint"
         }
+
+    def test_expired_verification_code(self) -> None:
+        self.verification_code.expires_at = timezone.now() - timedelta(minutes=1)
+        self.verification_code.save()
+        data = {
+            "ids_to_merge": [self.user2.id],
+            "ids_to_delete": [self.user3.id],
+            "verification_code": self.verification_code.token,
+        }
+        response = self.get_error_response(**data)
+        assert response.status_code == 403
+        assert response.data == {"error": "Incorrect verification code"}
