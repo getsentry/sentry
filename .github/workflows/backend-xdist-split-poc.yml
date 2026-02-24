@@ -9,6 +9,7 @@ on:
       - mchen/tiered-class
       - mchen/tiered-test
       - mchen/worker-lpt
+      - mchen/worker-dist-load
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -53,7 +54,7 @@ jobs:
           # flaky — merge-durations succeeds independently of shard failures.
           RUNS=$(gh run list \
             --workflow=backend-xdist-split-poc.yml \
-            --branch mchen/worker-lpt \
+            --branch mchen/worker-dist-load \
             --status=completed --limit=5 \
             --json databaseId --jq '.[].databaseId')
           for RUN_ID in $RUNS; do
@@ -352,7 +353,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadscope \
+            --dist=load \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
