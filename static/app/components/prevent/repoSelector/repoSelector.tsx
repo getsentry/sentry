@@ -123,12 +123,13 @@ export function RepoSelector() {
 
   return (
     <CompactSelect
-      searchable
       menuTitle={t('Select a Repository')}
       loading={isLoading || isSyncing}
-      onSearch={handleOnSearch}
-      disableSearchFilter
-      searchPlaceholder={t('search by repository name')}
+      search={{
+        placeholder: t('search by repository name'),
+        filter: false,
+        onChange: handleOnSearch,
+      }}
       options={options}
       value={repository ?? ''}
       onChange={handleChange}

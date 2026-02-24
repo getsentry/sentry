@@ -291,7 +291,7 @@ export function WizardProjectSelection({
       <label>{t('Platform')}</label>
       <StyledCompactSelect
         value={newProjectPlatform as string}
-        searchable
+        search
         options={platformOptions}
         trigger={triggerProps => (
           <OverlayTrigger.Button
@@ -334,7 +334,7 @@ export function WizardProjectSelection({
           <StyledCompactSelect
             autoFocus
             value={selectedOrgId as string}
-            searchable
+            search
             options={orgOptions}
             trigger={triggerProps => (
               <OverlayTrigger.Button
@@ -372,11 +372,10 @@ export function WizardProjectSelection({
             <StyledCompactSelect
               // Remount the component when the org changes to reset the component state
               key={selectedOrgId}
-              onSearch={setSearch}
+              search={{onChange: setSearch}}
               onClose={() => setSearch('')}
               disabled={!selectedOrgId}
               value={selectedProjectId as string}
-              searchable
               options={sortedProjectOptions}
               trigger={triggerProps => (
                 <OverlayTrigger.Button

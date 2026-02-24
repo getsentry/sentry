@@ -536,7 +536,7 @@ export default function AssigneeSelectorDropdown({
   return (
     <AssigneeWrapper>
       <CompactSelect
-        searchable
+        search={{placeholder: 'Search users or teams...'}}
         clearable
         className={className}
         menuWidth={275}
@@ -548,7 +548,6 @@ export default function AssigneeSelectorDropdown({
             : ''
         }
         menuTitle={t('Assignee')}
-        searchPlaceholder="Search users or teams..."
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
