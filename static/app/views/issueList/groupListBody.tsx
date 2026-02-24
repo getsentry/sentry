@@ -147,14 +147,18 @@ function GroupList({
         const hasGuideAnchor = id === topIssue;
         const group = GroupStore.get(id) as Group | undefined;
 
+        if (!group) {
+          return null;
+        }
+
         return (
           <StreamGroup
             key={id}
-            id={id}
+            group={group}
             statsPeriod={groupStatsPeriod}
             query={query}
             hasGuideAnchor={hasGuideAnchor}
-            memberList={group?.project ? memberList[group.project.slug] : undefined}
+            memberList={group.project ? memberList[group.project.slug] : undefined}
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
             canSelect={!selectDisabled}

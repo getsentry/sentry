@@ -204,7 +204,7 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
     }
     return extractTextFromMessage(userMessage);
   } catch {
-    return requestMessages;
+    return null;
   }
 }
 
@@ -260,7 +260,8 @@ export function extractTextFromMessage(msg: RequestMessage): string | null {
   }
 
   if (Array.isArray(msg.content)) {
-    return msg.content[0]?.text ?? null;
+    const texts = msg.content.map(p => p?.text).filter(Boolean);
+    return texts.length > 0 ? texts.join('\n') : null;
   }
 
   return null;

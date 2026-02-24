@@ -243,6 +243,7 @@ def emit_observability_metrics(
     gauge_metrics_dict: dict[
         str, tuple[float, float, float, float]
     ] = {}  # metric, min, max, sum, count
+    oversized_count = 0
 
     size_buckets = {
         "<1000": 0,
@@ -291,6 +292,8 @@ def emit_observability_metrics(
                     gauge_metrics_dict[key][2] + value,
                     gauge_metrics_dict[key][3] + 1.0,
                 )
+            if raw_key == b"parent_span_set_already_oversized":
+                oversized_count += int(value)
 
     # Temporary metrics for potential limits being added
     for size, scount in size_buckets.items():
@@ -325,4 +328,10 @@ def emit_observability_metrics(
             "spans.buffer.process_spans.longest_evalsha.gauge_metric",
             value,
             tags={"stage": key},
+        )
+
+    if oversized_count > 0:
+        metrics.incr(
+            "spans.buffer.process_spans.parent_span_set_already_oversized.count",
+            amount=oversized_count,
         )

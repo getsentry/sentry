@@ -161,22 +161,20 @@ export function PrimaryNavigationItems() {
           </NavTourElement>
         </Feature>
 
-        <Feature features={['prevent-ai']}>
-          {showPreventNav(organization) ? (
-            <Container position="relative" height="100%">
-              <SidebarLink
-                to={`/${prefix}/prevent/tests/`}
-                activeTo={`/${prefix}/prevent/`}
-                analyticsKey="prevent"
-                group={PrimaryNavGroup.PREVENT}
-                {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
-              >
-                <IconPrevent />
-              </SidebarLink>
-              <BetaBadge type="beta" />
-            </Container>
-          ) : null}
-        </Feature>
+        {showPreventNav(organization) ? (
+          <Container position="relative" height="100%">
+            <SidebarLink
+              to={`/${prefix}/prevent/tests/`}
+              activeTo={`/${prefix}/prevent/`}
+              analyticsKey="prevent"
+              group={PrimaryNavGroup.PREVENT}
+              {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+            >
+              <IconPrevent />
+            </SidebarLink>
+            <BetaBadge type="beta" />
+          </Container>
+        ) : null}
 
         <SeparatorItem />
 

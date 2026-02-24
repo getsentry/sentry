@@ -47,10 +47,10 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
 
         options = ObjectstoreUploadOptions(
             url=url,
-            scopes={
-                "org": str(organization.id),
-                "project": str(project.id),
-            },
+            scopes=[
+                ("org", str(organization.id)),
+                ("project", str(project.id)),
+            ],
             expirationPolicy=format_expiration(
                 TimeToLive(timedelta(days=396))
             ),  # Hardcoded for now

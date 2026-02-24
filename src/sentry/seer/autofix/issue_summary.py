@@ -430,7 +430,7 @@ def is_group_triggering_automation(group: Group) -> bool:
     if not has_budget:
         return False
 
-    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
+    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project)
     if is_rate_limited:
         return False
 

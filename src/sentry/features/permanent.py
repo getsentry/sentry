@@ -81,8 +81,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         # Enable usage of external relays, for use with Relay. See
         # https://github.com/getsentry/relay.
         "organizations:relay": True,
-        # Enable core remote-config backend APIs
-        "organizations:remote-config": False,
         # Enable core Session Replay backend APIs
         "organizations:session-replay": False,
         # Measure usage by spans instead of transactions

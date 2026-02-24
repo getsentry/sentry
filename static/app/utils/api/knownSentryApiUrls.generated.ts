@@ -236,7 +236,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/discover/saved/$queryId/'
   | '/organizations/$organizationIdOrSlug/discover/saved/$queryId/visit/'
   | '/organizations/$organizationIdOrSlug/dsn-lookup/'
-  | '/organizations/$organizationIdOrSlug/dynamic-sampling/custom-rules/'
   | '/organizations/$organizationIdOrSlug/environments/'
   | '/organizations/$organizationIdOrSlug/eventids/$eventId/'
   | '/organizations/$organizationIdOrSlug/events-facets-performance-histogram/'

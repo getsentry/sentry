@@ -81,7 +81,7 @@ function CustomCommitsResolutionModal({
                           staleTime: 30_000,
                         }
                       ),
-                      select: ([commits]) =>
+                      select: ({json: commits}) =>
                         commits.map(c => ({
                           value: c,
                           textValue: c.id,

@@ -430,9 +430,6 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
     Returns:
         bool: Whether the seer scanner is rate limited.
     """
-    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-        return False
-
     limit = options.get("seer.max_num_scanner_autotriggered_per_ten_seconds", 15)
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
         project=project,
@@ -561,16 +558,11 @@ def _get_autofix_rate_limit_config(project: Project) -> AutoTriggerRateLimitConf
     return AutoTriggerRateLimitConfig(limit=limit, key="autofix.auto_triggered", window=60 * 60)
 
 
-def is_seer_autotriggered_autofix_rate_limited(
-    project: Project, organization: Organization
-) -> bool:
+def is_seer_autotriggered_autofix_rate_limited(project: Project) -> bool:
     """
     Read-only check of whether the autofix rate limit has been reached.
     Does NOT increment the counter. Safe to call from non-triggering code paths.
     """
-    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-        return False
-
     config = _get_autofix_rate_limit_config(project)
     current = ratelimits.backend.current_value(
         key=config["key"],
@@ -595,9 +587,6 @@ def is_seer_autotriggered_autofix_rate_limited_and_increment(
     Returns:
         bool: Whether Autofix is rate limited.
     """
-    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-        return False
-
     config = _get_autofix_rate_limit_config(project)
 
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(

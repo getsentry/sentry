@@ -51,6 +51,7 @@ import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -142,6 +143,7 @@ type Props = {
   children?: React.ReactNode;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   useTimeseriesVisualization?: boolean;
+  widgetInterval?: string;
 };
 
 type State = {
@@ -1311,6 +1313,7 @@ class DashboardDetail extends Component<Props, State> {
                                       useTimeseriesVisualization={
                                         useTimeseriesVisualization
                                       }
+                                      widgetInterval={this.props.widgetInterval}
                                     />
                                   </WidgetQueryQueueProvider>
 
@@ -1395,6 +1398,14 @@ export default function DashboardDetailWithInjectedProps(
   const location = useLocation();
   const params = useParams<RouteParams>();
   const router = useRouter();
+  const [chartInterval] = useChartInterval();
+
+  // Always use the validated chart interval so the UI dropdown and widget
+  // requests stay in sync. chartInterval is validated against the current page
+  // filter period (e.g. won't return 1m for a 30d range) and always has a value.
+  const widgetInterval = organization.features.includes('dashboards-interval-selection')
+    ? chartInterval
+    : undefined;
 
   return (
     <DashboardDetail
@@ -1407,6 +1418,7 @@ export default function DashboardDetailWithInjectedProps(
       location={location}
       params={params}
       router={router}
+      widgetInterval={widgetInterval}
     />
   );
 }
