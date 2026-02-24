@@ -377,6 +377,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         group = self.store_occurrences_with_dual_write(
             "hourly-count-match", count=6, timestamp=self._event_timestamp()
         )[0].group
+        assert group is not None
 
         snuba_count = get_group_hourly_count_snuba(group)
         eap_count = get_group_hourly_count_eap(group)
@@ -391,6 +392,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         group = self.store_occurrences_with_dual_write(
             "time-window-test", count=1, timestamp=self._event_timestamp()
         )[0].group
+        assert group is not None
 
         snuba_count = get_group_hourly_count_snuba(group)
         eap_count = get_group_hourly_count_eap(group)
@@ -402,6 +404,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         group = self.store_occurrences_with_dual_write(
             "past-counts-single", count=3, timestamp=self._event_timestamp()
         )[0].group
+        assert group is not None
 
         snuba_results = _query_groups_past_counts_snuba([group])
         eap_results = _query_groups_past_counts_eap([group])
@@ -422,6 +425,9 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         group_c = self.store_occurrences_with_dual_write(
             "past-counts-c", count=6, timestamp=self._event_timestamp()
         )[0].group
+        assert group_a is not None
+        assert group_b is not None
+        assert group_c is not None
 
         snuba_results = _query_groups_past_counts_snuba([group_a, group_b, group_c])
         eap_results = _query_groups_past_counts_eap([group_a, group_b, group_c])
@@ -439,6 +445,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         group = self.store_occurrences_with_dual_write(
             "zero-filter-test", count=2, timestamp=self._event_timestamp()
         )[0].group
+        assert group is not None
 
         snuba_results = _query_groups_past_counts_snuba([group])
         eap_results = _query_groups_past_counts_eap([group])

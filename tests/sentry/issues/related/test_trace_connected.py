@@ -45,6 +45,9 @@ class TestEAPTraceConnectedIssues(TestCase, SnubaTestCase):
         group_c = self.store_occurrences_with_dual_write(
             "group-c", trace_id=trace_id, timestamp=ts
         )[0].group_id
+        assert group_a is not None
+        assert group_b is not None
+        assert group_c is not None
 
         snuba_result, eap_result = self._query_both(trace_id, exclude_group_id=group_a)
 
@@ -58,6 +61,7 @@ class TestEAPTraceConnectedIssues(TestCase, SnubaTestCase):
         group_id = self.store_occurrences_with_dual_write(
             "only-group", count=3, trace_id=trace_id, timestamp=ts
         )[0].group_id
+        assert group_id is not None
 
         snuba_result, eap_result = self._query_both(trace_id, exclude_group_id=group_id)
 
@@ -78,6 +82,9 @@ class TestEAPTraceConnectedIssues(TestCase, SnubaTestCase):
         group_c = self.store_occurrences_with_dual_write("group-c", trace_id=trace_b, timestamp=ts)[
             0
         ].group_id
+        assert group_a is not None
+        assert group_b is not None
+        assert group_c is not None
 
         snuba_result, eap_result = self._query_both(trace_a, exclude_group_id=group_a)
 

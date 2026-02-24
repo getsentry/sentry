@@ -245,6 +245,9 @@ class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
         group_c = self.store_occurrences_with_dual_write("group-c", count=1, timestamp=ts)[
             0
         ].group_id
+        assert group_a is not None
+        assert group_b is not None
+        assert group_c is not None
 
         snuba_result, eap_result = self._query_both([group_a, group_b, group_c])
 
@@ -260,6 +263,7 @@ class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
         group_a = self.store_occurrences_with_dual_write("group-a", count=3, timestamp=ts)[
             0
         ].group_id
+        assert group_a is not None
         self.store_occurrences_with_dual_write("group-b", count=2, timestamp=ts)
 
         snuba_result, eap_result = self._query_both([group_a])

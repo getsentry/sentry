@@ -49,6 +49,7 @@ class TestEAPRunGroupEventsQuery(TestCase, SnubaTestCase):
         ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
         events = self.store_occurrences_with_dual_write("my-group", count=3, timestamp=ts)
         group_id = events[0].group_id
+        assert group_id is not None
 
         snuba_data, eap_data = self._query_both(group_id)
 
@@ -63,9 +64,13 @@ class TestEAPRunGroupEventsQuery(TestCase, SnubaTestCase):
         ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
         events_a = self.store_occurrences_with_dual_write("group-a", count=2, timestamp=ts)
         events_b = self.store_occurrences_with_dual_write("group-b", count=1, timestamp=ts)
+        group_id_a = events_a[0].group_id
+        group_id_b = events_b[0].group_id
+        assert group_id_a is not None
+        assert group_id_b is not None
 
-        snuba_data_a, eap_data_a = self._query_both(events_a[0].group_id)
-        snuba_data_b, eap_data_b = self._query_both(events_b[0].group_id)
+        snuba_data_a, eap_data_a = self._query_both(group_id_a)
+        snuba_data_b, eap_data_b = self._query_both(group_id_b)
 
         snuba_ids_a = {row["id"] for row in snuba_data_a}
         eap_ids_a = {row["id"] for row in eap_data_a}
