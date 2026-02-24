@@ -60,7 +60,7 @@ export default function SeerRepoTable() {
         'id'
       )
         .filter(repository => isSupportedAutofixProvider(repository.provider))
-        .toSorted((a, b) => {
+        .sort((a, b) => {
           if (sort.field === 'name') {
             return sort.kind === 'asc'
               ? a.name.localeCompare(b.name)
@@ -82,10 +82,10 @@ export default function SeerRepoTable() {
 
   // Auto-fetch each page, one at a time
   useEffect(() => {
-    if (!isFetchingNextPage && hasNextPage) {
+    if (!isError && !isFetchingNextPage && hasNextPage) {
       fetchNextPage();
     }
-  }, [hasNextPage, fetchNextPage, isFetchingNextPage]);
+  }, [hasNextPage, fetchNextPage, isError, isFetchingNextPage]);
 
   const [mutationData, setMutations] = useState<Record<string, RepositoryWithSettings>>(
     {}
@@ -223,7 +223,6 @@ function RepoTable({
           </InputGroup.LeadingItems>
           <InputGroup.Input
             size="md"
-            disabled={!hasData}
             placeholder={t('Search')}
             value={searchTerm ?? ''}
             onChange={e =>
