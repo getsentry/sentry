@@ -76,6 +76,7 @@ Makefile                                                 @getsentry/owners-sentr
 .envrc                                                   @getsentry/owners-sentry-dev @getsentry/dev-infra
 .pre-commit-config.yaml                                  @getsentry/owners-sentry-dev @getsentry/dev-infra
 .git-blame-ignore-revs                                   @getsentry/owners-sentry-dev
+/AGENTS.md                                               @getsentry/dev-infra
 
 /fixtures/stubs-for-mypy/                                @getsentry/python-typing
 /src/sentry/conf/types/                                  @getsentry/python-typing

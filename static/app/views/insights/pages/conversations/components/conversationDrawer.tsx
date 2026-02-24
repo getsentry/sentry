@@ -22,6 +22,7 @@ import {useConversationDetail} from 'sentry/views/insights/pages/conversations/h
 import type {ConversationListMode} from 'sentry/views/insights/pages/conversations/hooks/useConversationList';
 import {useFocusedToolSpan} from 'sentry/views/insights/pages/conversations/hooks/useFocusedToolSpan';
 import {useUrlConversationDrawer} from 'sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer';
+import {extractMessagesFromNodes} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -82,7 +83,11 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
     [setConversationDrawerQueryState, organization]
   );
 
-  const defaultNodeId = useMemo(() => getDefaultSelectedNode(nodes)?.id, [nodes]);
+  const defaultNodeId = useMemo(() => {
+    const messages = extractMessagesFromNodes(nodes);
+    const firstAssistant = messages.find(m => m.role === 'assistant');
+    return firstAssistant?.nodeId ?? getDefaultSelectedNode(nodes)?.id;
+  }, [nodes]);
 
   const selectedNode = useMemo(() => {
     return (

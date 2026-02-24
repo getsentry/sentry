@@ -382,7 +382,6 @@ module = [
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",
-    "sentry.search.events.datasets.metrics_layer",
     "sentry.search.events.filter",
     "sentry.search.snuba.executors",
     "sentry.services.eventstore.models",
@@ -781,6 +780,7 @@ module = [
     "tests.sentry.demo_mode.*",
     "tests.sentry.digests.*",
     "tests.sentry.discover.translation.*",
+    "tests.sentry.event_manager.interfaces.*",
     "tests.sentry.event_manager.test_event_manager",
     "tests.sentry.eventstream.*",
     "tests.sentry.eventtypes.*",
@@ -913,4 +913,5 @@ module = [
 ]
 disallow_any_generics = true
 disallow_untyped_defs = true
+strict_equality = true
 # end: stronger typing

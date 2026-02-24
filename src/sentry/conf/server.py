@@ -927,6 +927,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.explorer_service_map",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
@@ -963,6 +964,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer_explorer_index",
+    "sentry.tasks.explorer_context_engine_tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1394,13 +1396,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
-    "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:device-classification": "Enable device.class as a selectable column",
-    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
-    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
-    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
 }
 
@@ -2893,6 +2890,7 @@ SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
 )
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
+SENTRY_GITHUB_APP_USER_ID = 39604003
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 

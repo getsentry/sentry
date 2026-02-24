@@ -443,7 +443,11 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
     filters.addFilterValue('transaction.op', data[SpanFields.SPAN_OP]);
   }
   if (data[SpanFields.REQUEST_METHOD]) {
-    filters.addFilterValue('http.method', data[SpanFields.REQUEST_METHOD]);
+    const isEap = organization.features.includes('performance-transaction-summary-eap');
+    filters.addFilterValue(
+      isEap ? 'request.method' : 'http.method',
+      data[SpanFields.REQUEST_METHOD]
+    );
   }
 
   const target = transactionSummaryRouteWithQuery({
