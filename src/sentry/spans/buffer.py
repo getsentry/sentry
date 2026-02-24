@@ -631,16 +631,16 @@ class SpansBuffer:
                 scan_results = p.execute()
 
             for key, (cursor, scan_values) in zip(current_keys, scan_results):
-                dropped = False
+                size_exceeded = False
                 for scan_value in scan_values:
                     if scan_value.startswith(b"span-buf:p:"):
                         oob_refs.append((key, scan_value))
                         oob_keys_by_segment[key].append(scan_value)
                     elif key in payloads:
                         if not _add_spans(key, scan_value):
-                            dropped = True
+                            size_exceeded = True
 
-                if dropped:
+                if size_exceeded:
                     cursors.pop(key, None)
                 elif cursor == 0:
                     del cursors[key]
