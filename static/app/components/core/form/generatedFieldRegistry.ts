@@ -176,6 +176,15 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects'
     ),
   },
+  'organization-security-and-privacy.scrubIPAddresses': {
+    name: 'scrubIPAddresses',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Prevent Storing of IP Addresses'),
+    hintText: t(
+      'Preventing IP addresses from being stored for new events on all projects'
+    ),
+  },
   'organization-security-and-privacy.sensitiveFields': {
     name: 'sensitiveFields',
     formId: 'organization-security-and-privacy',
@@ -192,15 +201,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Global Safe Fields'),
     hintText: t(
       'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
-    ),
-  },
-  'organization-security-and-privacy.scrubIPAddresses': {
-    name: 'scrubIPAddresses',
-    formId: 'organization-security-and-privacy',
-    route: '/settings/:orgId/security-and-privacy/',
-    label: t('Prevent Storing of IP Addresses'),
-    hintText: t(
-      'Preventing IP addresses from being stored for new events on all projects'
     ),
   },
 };
