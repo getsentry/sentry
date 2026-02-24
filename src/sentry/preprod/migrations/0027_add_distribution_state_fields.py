@@ -16,12 +16,12 @@ class Migration(CheckedMigration):
     operations = [
         migrations.AddField(
             model_name="preprodartifact",
-            name="distribution_state",
+            name="installable_app_error_code",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True),
         ),
         migrations.AddField(
             model_name="preprodartifact",
-            name="distribution_skip_reason",
-            field=models.CharField(max_length=32, null=True),
+            name="installable_app_error_message",
+            field=models.TextField(null=True),
         ),
     ]

@@ -149,20 +149,19 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.ARTIFACT_PROCESSING_ERROR, "artifact_processing_error"),
             )
 
-    class DistributionState(IntEnum):
-        PENDING = 0
-        """Distribution requested, not yet complete."""
-        COMPLETED = 1
-        """Installable file generated."""
-        NOT_RAN = 2
-        """Distribution skipped."""
+    class InstallableAppErrorCode(IntEnum):
+        UNKNOWN = 0
+        NO_QUOTA = 1
+        """No quota available for distribution."""
+        SKIPPED = 2
+        """Distribution was not requested on this build."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
             return (
-                (cls.PENDING, "pending"),
-                (cls.COMPLETED, "completed"),
-                (cls.NOT_RAN, "not_ran"),
+                (cls.UNKNOWN, "unknown"),
+                (cls.NO_QUOTA, "no_quota"),
+                (cls.SKIPPED, "skipped"),
             )
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -217,10 +216,10 @@ class PreprodArtifact(DefaultFieldsModel):
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
-    distribution_state = BoundedPositiveIntegerField(
-        choices=DistributionState.as_choices(), null=True
+    installable_app_error_code = BoundedPositiveIntegerField(
+        choices=InstallableAppErrorCode.as_choices(), null=True
     )
-    distribution_skip_reason = models.CharField(max_length=32, null=True)
+    installable_app_error_message = models.TextField(null=True)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
