@@ -194,13 +194,11 @@ def build_comparison_data(
     for match in matched:
         if not match.base_metric:
             comparisons.append(
-                {
-                    "metrics_artifact_type": match.head_metric.metrics_artifact_type,
-                    "identifier": match.head_metric.identifier,
-                    "state": PreprodArtifactSizeComparison.State.FAILED,
-                    "error_code": "NO_BASE_METRIC",
-                    "error_message": "No matching base artifact size metric found.",
-                }
+                _build_failed_comparison(
+                    match.head_metric,
+                    "NO_BASE_METRIC",
+                    "No matching base artifact size metric found.",
+                )
             )
             continue
 
@@ -213,6 +211,20 @@ def build_comparison_data(
     return comparisons if comparisons else None
 
 
+def _build_failed_comparison(
+    head_metric: PreprodArtifactSizeMetrics,
+    error_code: str | None,
+    error_message: str | None,
+) -> ComparisonResponseDict:
+    return {
+        "metrics_artifact_type": head_metric.metrics_artifact_type,
+        "identifier": head_metric.identifier,
+        "state": PreprodArtifactSizeComparison.State.FAILED,
+        "error_code": error_code,
+        "error_message": error_message,
+    }
+
+
 def _build_comparison_result(
     head_metric: PreprodArtifactSizeMetrics,
     comparison_obj: PreprodArtifactSizeComparison,
@@ -221,15 +233,13 @@ def _build_comparison_result(
     if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
         return _build_success_comparison(head_metric, comparison_obj)
     elif comparison_obj.state == PreprodArtifactSizeComparison.State.FAILED:
-        return {
-            "metrics_artifact_type": head_metric.metrics_artifact_type,
-            "identifier": head_metric.identifier,
-            "state": PreprodArtifactSizeComparison.State.FAILED,
-            "error_code": (
-                str(comparison_obj.error_code) if comparison_obj.error_code is not None else None
-            ),
-            "error_message": comparison_obj.error_message,
-        }
+        return _build_failed_comparison(
+            head_metric,
+            error_code=str(comparison_obj.error_code)
+            if comparison_obj.error_code is not None
+            else None,
+            error_message=comparison_obj.error_message,
+        )
     else:
         return {
             "metrics_artifact_type": head_metric.metrics_artifact_type,
@@ -243,11 +253,6 @@ def _build_success_comparison(
     comparison_obj: PreprodArtifactSizeComparison,
 ) -> ComparisonResponseDict:
     """Build a comparison result with inlined diff data for SUCCESS state."""
-    comparison_result: ComparisonResponseDict = {
-        "metrics_artifact_type": head_metric.metrics_artifact_type,
-        "identifier": head_metric.identifier,
-        "state": PreprodArtifactSizeComparison.State.SUCCESS,
-    }
 
     if comparison_obj.file_id is None:
         sentry_sdk.capture_message(
@@ -255,7 +260,7 @@ def _build_success_comparison(
             level="warning",
             extras={"comparison_id": comparison_obj.id},
         )
-        return comparison_result
+        return _build_failed_comparison(head_metric, "FILE_ERROR", "Comparison file missing")
 
     try:
         file_obj = File.objects.get(id=comparison_obj.file_id)
@@ -265,9 +270,14 @@ def _build_success_comparison(
         comparison_results = ComparisonResults(**comparison_data)
 
         comparison_dict = comparison_results.dict()
-        comparison_result["diff_items"] = comparison_dict["diff_items"]
-        comparison_result["insight_diff_items"] = comparison_dict["insight_diff_items"]
-        comparison_result["size_metric_diff"] = comparison_dict["size_metric_diff_item"]
+        return {
+            "metrics_artifact_type": head_metric.metrics_artifact_type,
+            "identifier": head_metric.identifier,
+            "state": PreprodArtifactSizeComparison.State.SUCCESS,
+            "diff_items": comparison_dict["diff_items"],
+            "insight_diff_items": comparison_dict["insight_diff_items"],
+            "size_metric_diff": comparison_dict["size_metric_diff_item"],
+        }
 
     except File.DoesNotExist:
         sentry_sdk.capture_message(
@@ -275,10 +285,12 @@ def _build_success_comparison(
             level="warning",
             extras={"comparison_id": comparison_obj.id, "file_id": comparison_obj.file_id},
         )
+        return _build_failed_comparison(head_metric, "FILE_ERROR", "Comparison file not found")
     except Exception:
         logger.exception(
             "preprod.public_api.compare.parse_error",
             extra={"comparison_id": comparison_obj.id, "file_id": comparison_obj.file_id},
         )
-
-    return comparison_result
+        return _build_failed_comparison(
+            head_metric, "PARSE_ERROR", "Failed to parse comparison data"
+        )
