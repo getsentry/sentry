@@ -308,7 +308,7 @@ describe('SelectField disabled', () => {
     expect(screen.getByRole('textbox')).toBeDisabled();
 
     // Lock icon should be visible
-    const lockIcon = screen.getByTestId('icon-lock');
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
     expect(lockIcon).toBeInTheDocument();
 
     // Hover on the lock icon to trigger tooltip
@@ -619,7 +619,7 @@ describe('SelectField multiple', () => {
     expect(screen.getByRole('textbox')).toBeDisabled();
 
     // Lock icon should be visible
-    const lockIcon = screen.getByTestId('icon-lock');
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
     expect(lockIcon).toBeInTheDocument();
 
     // Hover on the lock icon to trigger tooltip

@@ -93,7 +93,7 @@ describe('PasswordField disabled', () => {
     expect(screen.getByLabelText('Password')).toBeDisabled();
 
     // Lock icon should be visible
-    const lockIcon = screen.getByTestId('icon-lock');
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
     expect(lockIcon).toBeInTheDocument();
 
     // Hover on the lock icon to trigger tooltip

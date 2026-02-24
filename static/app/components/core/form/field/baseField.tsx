@@ -1,9 +1,8 @@
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Checkmark, Spinner, Warning} from '@sentry/scraps/form/icons';
+import {DisabledTip} from '@sentry/scraps/info/infoTip';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {IconLock} from 'sentry/icons/iconLock';
 
 export type BaseFieldProps = Record<never, unknown>;
 
@@ -47,11 +46,7 @@ export function FieldStatus({disabled}: {disabled?: boolean | string}) {
   const disabledReason = typeof disabled === 'string' ? disabled : undefined;
 
   if (disabledReason) {
-    return (
-      <Tooltip position="bottom" offset={8} title={disabledReason} skipWrapper>
-        <IconLock locked size="sm" data-test-id="icon-lock" />
-      </Tooltip>
-    );
+    return <DisabledTip title={disabledReason} size="sm" />;
   }
 
   return null;
