@@ -1,4 +1,7 @@
-from typing import TypedDict
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, TypedDict
 
 from slack_sdk.models.blocks import (
     ActionsBlock,
@@ -12,13 +15,19 @@ from slack_sdk.models.blocks import (
     SectionBlock,
 )
 
-from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
+from sentry.notifications.platform.provider import (
+    NotificationProvider,
+    NotificationProviderError,
+    ProviderThreadingContext,
+    SendResult,
+)
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
     PreparedIntegrationNotificationTarget,
 )
+from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
@@ -32,6 +41,17 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import IntegrationError
+
+if TYPE_CHECKING:
+    from sentry.integrations.slack.integration import SlackIntegration
+
+
+@dataclass(frozen=True)
+class SlackProviderThreadingContext(ProviderThreadingContext):
+    """Slack-specific threading context passed to the Slack integration client."""
+
+    thread_ts: str | None = None
 
 
 class SlackRenderable(TypedDict):
@@ -120,7 +140,13 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         return cls.default_renderer
 
     @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: SlackRenderable) -> None:
+    def send(
+        cls,
+        *,
+        target: NotificationTarget,
+        renderable: SlackRenderable,
+        thread_context: ThreadContext | None = None,
+    ) -> SendResult:
         from sentry.integrations.slack.integration import SlackIntegration
 
         if not isinstance(target, cls.target_class):
@@ -131,4 +157,36 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         slack_target = PreparedIntegrationNotificationTarget[SlackIntegration](
             target=target, installation_cls=SlackIntegration
         )
+
+        if thread_context is not None:
+            return cls._send_with_threading(
+                slack_target=slack_target, renderable=renderable, thread_context=thread_context
+            )
+
         slack_target.integration_installation.send_notification(target=target, payload=renderable)
+        return SendResult()
+
+    @classmethod
+    def _send_with_threading(
+        cls,
+        slack_target: PreparedIntegrationNotificationTarget[SlackIntegration],
+        renderable: SlackRenderable,
+        thread_context: ThreadContext,
+    ) -> SendResult:
+        provider_threading_ctx = SlackProviderThreadingContext(
+            thread_ts=(thread_context.thread.thread_identifier if thread_context.thread else None),
+            reply_broadcast=thread_context.reply_broadcast,
+        )
+
+        try:
+            response = slack_target.integration_installation.send_notification_with_threading(
+                target=slack_target.target,
+                payload=renderable,
+                threading_context=provider_threading_ctx,
+            )
+            return SendResult(provider_message_id=response.get("ts"))
+        except IntegrationError as e:
+            return SendResult(
+                error_code=e.error_code,
+                error_details={"msg": e.message},
+            )

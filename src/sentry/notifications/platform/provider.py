@@ -1,7 +1,11 @@
-from typing import Protocol
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Protocol
 
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationData,
@@ -16,10 +20,41 @@ class NotificationProviderError(Exception):
     pass
 
 
+@dataclass(frozen=True)
+class ProviderThreadingContext:
+    """
+    Base class for provider-specific threading context passed to integration clients.
+    Each provider subclasses this with its own fields (e.g., Slack adds thread_ts).
+    """
+
+    reply_broadcast: bool = False
+
+
+@dataclass(frozen=True)
+class SendResult:
+    """Structured return type from provider.send() that captures both success and failure outcomes."""
+
+    provider_message_id: str | None = None
+    """Provider-specific message identifier (e.g., Slack's `ts`). None on failure."""
+
+    error_code: int | None = None
+    """HTTP status code or provider error code on failure."""
+
+    error_details: dict[str, Any] | None = None
+    """Additional error context (message, response data, URL, etc.)."""
+
+
 class IntegrationNotificationClient[RenderableT](Protocol):
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: RenderableT
     ) -> None: ...
+
+    def send_notification_with_threading(
+        self,
+        target: IntegrationNotificationTarget,
+        payload: RenderableT,
+        threading_context: ProviderThreadingContext,
+    ) -> dict[str, Any]: ...
 
 
 class NotificationProvider[RenderableT](Protocol):
@@ -79,8 +114,18 @@ class NotificationProvider[RenderableT](Protocol):
         ...
 
     @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: RenderableT) -> None:
+    def send(
+        cls,
+        *,
+        target: NotificationTarget,
+        renderable: RenderableT,
+        thread_context: ThreadContext | None = None,
+    ) -> SendResult:
         """
         Using the renderable format for the provider, send a notification to the target.
+
+        If thread_context is provided, delegates to _send_with_threading.
+        Returns a SendResult with the provider-specific message identifier on success,
+        or error details on failure.
         """
         ...

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any, TypedDict
 
 from django.db import router, transaction
@@ -14,6 +16,45 @@ from sentry.utils import json
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
+
+
+class ThreadKeyType(StrEnum):
+    """Identifies the sender/notification type for threading key computation."""
+
+    METRIC_ALERT = "metric_alert"
+    NOA = "noa"
+
+
+@dataclass(frozen=True)
+class ThreadKey:
+    """Identifies a specific thread — the sender type and the associations to look up."""
+
+    key_type: ThreadKeyType
+    """The sender type. Determines which fields are expected in key_data."""
+
+    key_data: dict[str, Any]
+    """
+    The associations to look up for this thread.
+    e.g. for key_type=NOA: {"action_id": ..., "group_id": ..., "open_period_start": ...}
+    e.g. for key_type=METRIC_ALERT: {"alert_rule_id": ..., "incident_id": ..., "trigger_action_id": ...}
+    """
+
+
+@dataclass(frozen=True)
+class ThreadContext:
+    """
+    Resolved threading context passed from the service layer to the provider.
+    Wraps the ThreadKey with the resolved NotificationThread (if one exists).
+    """
+
+    thread_key: ThreadKey
+    """The key identifying this thread."""
+
+    thread: NotificationThread | None = None
+    """The resolved thread to reply in. None for the first message in a thread."""
+
+    reply_broadcast: bool = False
+    """If True, the threaded reply is also posted to the channel."""
 
 
 # Info needed to lookup a thread
