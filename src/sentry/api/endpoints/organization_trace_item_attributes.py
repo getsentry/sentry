@@ -108,9 +108,6 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
     }
     owner = ApiOwner.DATA_BROWSING
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return True
-
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
     itemType = serializers.ChoiceField(
@@ -217,9 +214,6 @@ def as_attribute_key(
 @region_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -404,9 +398,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 @region_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
