@@ -239,11 +239,7 @@ const TraceListItem = memo(function TraceListItem({
       onClick={onClick}
       indent={indent}
     >
-      <Flex
-        align="center"
-        position="relative"
-        style={{color, background: 'var(--row-bg)'}}
-      >
+      <Flex align="center" position="relative" style={{color}}>
         {icon}
         {hasErrors && (
           <Tooltip delay={300} title={t('This span encountered an error')} skipWrapper>
