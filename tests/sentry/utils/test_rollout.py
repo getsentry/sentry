@@ -10,10 +10,6 @@ class TestRolloutComparator(SafeRolloutComparator):
     ROLLOUT_NAME = "test_rollout"
 
 
-LOG_OPTION = TestRolloutComparator._mismatch_log_callsite_allowlist_option_name()
-ALLOWLIST_OPTION = TestRolloutComparator._callsite_allowlist_option_name()
-
-
 class SafeRolloutComparatorTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -44,8 +40,8 @@ class SafeRolloutComparatorTestCase(TestCase):
 
         with override_options(
             {
-                ALLOWLIST_OPTION: ["test_allowed"],
-                LOG_OPTION: [],
+                TestRolloutComparator._callsite_allowlist_option_name(): ["test_allowed"],
+                TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): [],
             }
         ):
             assert TestRolloutComparator.check_and_choose("ctl", "exp", "test_3") == "ctl"
@@ -95,14 +91,20 @@ class SafeRolloutComparatorTestCase(TestCase):
             assert TestRolloutComparator.should_check_experiment("test_disabled") is False
 
     def test_should_log_mismatch_allowlist(self) -> None:
-        with override_options({LOG_OPTION: []}):
+        with override_options(
+            {TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): []}
+        ):
             assert TestRolloutComparator.should_log_mismatch("callsite") is False
 
-        with override_options({LOG_OPTION: ["callsite"]}):
+        with override_options(
+            {TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): ["callsite"]}
+        ):
             assert TestRolloutComparator.should_log_mismatch("callsite") is True
             assert TestRolloutComparator.should_log_mismatch("other") is False
 
-        with override_options({LOG_OPTION: ["*"]}):
+        with override_options(
+            {TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): ["*"]}
+        ):
             assert TestRolloutComparator.should_log_mismatch("callsite") is True
             assert TestRolloutComparator.should_log_mismatch("other") is True
 
