@@ -133,6 +133,10 @@ export const restrictJsxSlotChildren = {
             items: {
               type: 'object',
               properties: {
+                componentNames: {
+                  type: 'array',
+                  items: {type: 'string'},
+                },
                 propNames: {
                   type: 'array',
                   minItems: 1,
@@ -194,6 +198,7 @@ export const restrictJsxSlotChildren = {
         memberAllowed: new Map(),
         namedAllowed: new Set(),
         hint: buildAllowedHint(allowed),
+        componentNames: new Set(slot.componentNames ?? []),
       };
       for (const propName of slot.propNames) {
         slotState.set(propName, state);
@@ -321,6 +326,19 @@ export const restrictJsxSlotChildren = {
 
         const state = slotState.get(propName);
         if (!state) return;
+
+        if (state.componentNames.size > 0) {
+          const nameNode = node.parent.name; // JSXAttribute → JSXOpeningElement
+          let elementName = null;
+          if (nameNode.type === 'JSXIdentifier') {
+            elementName = nameNode.name;
+          } else if (nameNode.type === 'JSXMemberExpression') {
+            elementName = `${nameNode.object.name}.${nameNode.property.name}`;
+          }
+          if (!elementName || !state.componentNames.has(elementName)) {
+            return;
+          }
+        }
 
         if (!node.value || node.value.type !== 'JSXExpressionContainer') {
           return;

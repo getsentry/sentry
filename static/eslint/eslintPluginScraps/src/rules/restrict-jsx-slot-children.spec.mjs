@@ -25,6 +25,7 @@ const COMPACT_SELECT_OPTIONS = [
   {
     slots: [
       {
+        componentNames: ['CompactSelect'],
         propNames: ['menuHeaderTrailingItems', 'menuFooter'],
         allowed: [
           {
@@ -202,6 +203,18 @@ import {Flex as FlexLayout} from '@sentry/scraps/layout';
     {
       options: COMPACT_SELECT_OPTIONS,
       code: `${IMPORTS}<Foo someOtherSlot={<Button/>} />`,
+      filename: '/static/app/foo.tsx',
+    },
+
+    // ── Component not in configured componentNames is not checked ─────────────
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<SomeOtherComponent menuFooter={<Button/>} />`,
+      filename: '/static/app/foo.tsx',
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<SomeOtherComponent menuHeaderTrailingItems={<Button/>} />`,
       filename: '/static/app/foo.tsx',
     },
   ],
