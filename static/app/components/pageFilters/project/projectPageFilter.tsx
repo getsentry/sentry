@@ -7,7 +7,6 @@ import sortBy from 'lodash/sortBy';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import type {
   SelectKey,
@@ -297,7 +296,7 @@ export function ProjectPageFilter({
         value: parseInt(project.id, 10),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
-          <Checkbox
+          <MenuComponents.Checkbox
             checked={isSelected}
             onChange={() =>
               hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))

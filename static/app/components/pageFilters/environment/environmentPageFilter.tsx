@@ -3,7 +3,6 @@ import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -188,7 +187,7 @@ export function EnvironmentPageFilter({
         value: env,
         label: env,
         leadingItems: ({isSelected}: {isSelected: boolean}) => (
-          <Checkbox
+          <MenuComponents.Checkbox
             checked={isSelected}
             onChange={() => hybridFilterRef.current?.toggleOption(env)}
             aria-label={t('Select %s', env)}

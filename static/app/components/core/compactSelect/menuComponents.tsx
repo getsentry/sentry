@@ -9,6 +9,7 @@ import {
   type ButtonProps,
   type LinkButtonProps,
 } from '@sentry/scraps/button';
+import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
 
 import {t} from 'sentry/locale';
 
@@ -158,6 +159,10 @@ export const MenuComponents = {
    */
   Alert(props: DistributedOmit<AlertProps, 'system' | 'showIcon'>) {
     return <StyledAlert {...props} system={false} showIcon={false} />;
+  },
+
+  Checkbox(props: DistributedOmit<CheckboxProps, 'size'>) {
+    return <Checkbox size="xs" {...props} />;
   },
 };
 
