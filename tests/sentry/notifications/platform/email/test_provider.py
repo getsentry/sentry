@@ -171,7 +171,7 @@ class EmailNotificationProviderTest(TestCase):
             thread_key=ThreadKey(key_type=ThreadKeyType.NOA, key_data={"test": "data"}),
         )
 
-        with pytest.raises(NotImplementedError, match="Threading is not yet supported for email"):
+        with pytest.raises(NotImplementedError, match="Threading is not supported for email"):
             EmailNotificationProvider.send(
                 target=self.target, renderable=email, thread_context=thread_context
             )
