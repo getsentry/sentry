@@ -97,9 +97,14 @@ const FEATURE_FLAG = 'onboarding-copy-setup-instructions';
  * `onboarding-copy-setup-instructions` flag is enabled. Includes spacing
  * so callsites don't render an empty Container when the flag is off.
  */
-export function CopySetupInstructionsGate({children}: {children: React.ReactNode}) {
+export function useCopySetupInstructionsEnabled(): boolean {
   const organization = useOrganization();
-  if (!organization.features.includes(FEATURE_FLAG)) {
+  return organization.features.includes(FEATURE_FLAG);
+}
+
+export function CopySetupInstructionsGate({children}: {children: React.ReactNode}) {
+  const enabled = useCopySetupInstructionsEnabled();
+  if (!enabled) {
     return null;
   }
   return children;

@@ -5,8 +5,8 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -39,6 +39,7 @@ export function ReplayOnboardingLayout({
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -151,14 +152,12 @@ export function ReplayOnboardingLayout({
                 stepIndex={index}
                 {...step}
                 trailingItems={
-                  index === 0 ? (
-                    <CopySetupInstructionsGate>
-                      <OnboardingCopyMarkdownButton
-                        borderless
-                        steps={transformedSteps}
-                        source="replay_onboarding"
-                      />
-                    </CopySetupInstructionsGate>
+                  index === 0 && copyEnabled ? (
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={transformedSteps}
+                      source="replay_onboarding"
+                    />
                   ) : undefined
                 }
               />

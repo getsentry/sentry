@@ -11,8 +11,8 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -95,6 +95,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     useSourcePackageRegistries(organization);
 
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(
@@ -209,14 +210,12 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                       stepKey={title}
                       title={title}
                       trailingItems={
-                        index === 0 ? (
-                          <CopySetupInstructionsGate>
-                            <OnboardingCopyMarkdownButton
-                              borderless
-                              steps={steps}
-                              source="issues_onboarding"
-                            />
-                          </CopySetupInstructionsGate>
+                        index === 0 && copyEnabled ? (
+                          <OnboardingCopyMarkdownButton
+                            borderless
+                            steps={steps}
+                            source="issues_onboarding"
+                          />
                         ) : undefined
                       }
                     >

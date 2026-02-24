@@ -29,8 +29,8 @@ import FeatureTourModal, {
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -418,6 +418,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const [received, setReceived] = useState<boolean>(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
@@ -607,14 +608,12 @@ export function Onboarding({organization, project}: OnboardingProps) {
               stepKey={title}
               title={title}
               trailingItems={
-                index === 0 ? (
-                  <CopySetupInstructionsGate>
-                    <OnboardingCopyMarkdownButton
-                      borderless
-                      steps={steps}
-                      source="performance_onboarding"
-                    />
-                  </CopySetupInstructionsGate>
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="performance_onboarding"
+                  />
                 ) : undefined
               }
             >

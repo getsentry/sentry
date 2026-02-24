@@ -6,8 +6,8 @@ import {Stack} from '@sentry/scraps/layout';
 import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -41,6 +41,7 @@ export function FeedbackOnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
@@ -160,14 +161,12 @@ export function FeedbackOnboardingLayout({
                 stepIndex={index}
                 {...step}
                 trailingItems={
-                  index === 0 ? (
-                    <CopySetupInstructionsGate>
-                      <OnboardingCopyMarkdownButton
-                        borderless
-                        steps={transformedSteps}
-                        source="feedback_onboarding"
-                      />
-                    </CopySetupInstructionsGate>
+                  index === 0 && copyEnabled ? (
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={transformedSteps}
+                      source="feedback_onboarding"
+                    />
                   ) : undefined
                 }
               />

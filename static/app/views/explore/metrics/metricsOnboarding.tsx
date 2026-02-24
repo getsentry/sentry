@@ -11,8 +11,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -117,6 +117,7 @@ function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
     : undefined;
@@ -271,14 +272,12 @@ function Onboarding({organization, project}: OnboardingProps) {
               stepKey={title}
               title={title}
               trailingItems={
-                index === 0 ? (
-                  <CopySetupInstructionsGate>
-                    <OnboardingCopyMarkdownButton
-                      borderless
-                      steps={steps}
-                      source="metrics_onboarding"
-                    />
-                  </CopySetupInstructionsGate>
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="metrics_onboarding"
+                  />
                 ) : undefined
               }
             >

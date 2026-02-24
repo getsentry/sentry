@@ -12,8 +12,8 @@ import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -233,6 +233,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const [received, setReceived] = useState<boolean>(false);
 
   const previousProject = usePrevious(currentProject);
@@ -350,14 +351,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               stepIndex={index}
               {...step}
               trailingItems={
-                index === 0 ? (
-                  <CopySetupInstructionsGate>
-                    <OnboardingCopyMarkdownButton
-                      borderless
-                      steps={steps}
-                      source="performance_sidebar_onboarding"
-                    />
-                  </CopySetupInstructionsGate>
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="performance_sidebar_onboarding"
+                  />
                 ) : undefined
               }
             />
