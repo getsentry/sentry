@@ -320,7 +320,25 @@ function EditAccessSelector({
         }}
         menuFooter={
           <Flex gap="md" align="center" justify="end">
-            <MenuComponents.CancelButton disabled={!userCanEditDashboardPermissions} />
+            <MenuComponents.CancelButton
+              disabled={!userCanEditDashboardPermissions}
+              onClick={() => {
+                const teamIdsList: string[] = Object.values(teamsToRender).map(
+                  team => team.id
+                );
+                const selectedOptionsFromDashboard =
+                  !defined(dashboard.permissions) ||
+                  dashboard.permissions.isEditableByEveryone
+                    ? ['_creator', '_allUsers', ...teamIdsList]
+                    : [
+                        '_creator',
+                        ...(dashboard.permissions.teamsWithEditAccess?.map(teamId =>
+                          String(teamId)
+                        ) ?? []),
+                      ];
+                setSelectedOptions(selectedOptionsFromDashboard);
+              }}
+            />
             <MenuComponents.ApplyButton
               onClick={() => {
                 const isDefaultState =
