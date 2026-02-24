@@ -237,6 +237,10 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
             recovery_threshold=2,
         )
 
+        # Use a relative timestamp instead of a hardcoded date. The original
+        # hardcoded date (2025-10-29) gradually drifted past the 90-day EAP
+        # data retention window, causing ClickHouse to silently drop the test
+        # data and return empty results.
         base_time = MOCK_DATETIME - timedelta(hours=1)
 
         test_scenarios = [
