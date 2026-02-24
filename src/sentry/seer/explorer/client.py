@@ -11,10 +11,10 @@ from rest_framework.request import Request
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.autofix.utils import autofix_connection_pool
 from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
 from sentry.seer.explorer.client_utils import (
     collect_user_org_context,
+    explorer_connection_pool,
     fetch_run_status,
     poll_until_done,
 )
@@ -300,7 +300,7 @@ class SeerExplorerClient:
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
         response = make_signed_seer_api_request(
-            autofix_connection_pool,
+            explorer_connection_pool,
             path,
             body,
         )
@@ -377,7 +377,7 @@ class SeerExplorerClient:
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
         response = make_signed_seer_api_request(
-            autofix_connection_pool,
+            explorer_connection_pool,
             path,
             body,
         )
@@ -463,7 +463,7 @@ class SeerExplorerClient:
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
         response = make_signed_seer_api_request(
-            autofix_connection_pool,
+            explorer_connection_pool,
             path,
             body,
         )
@@ -513,7 +513,7 @@ class SeerExplorerClient:
         }
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
         response = make_signed_seer_api_request(
-            autofix_connection_pool,
+            explorer_connection_pool,
             path,
             body,
         )
