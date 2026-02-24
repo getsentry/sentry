@@ -242,7 +242,7 @@ class SeerExplorerClient:
             int: The run ID that can be used to fetch results or continue the conversation
 
         Raises:
-            requests.HTTPError: If the Seer API request fails
+            SeerApiError: If the Seer API request fails
             ValueError: If artifact_schema is provided without artifact_key
         """
         if bool(artifact_schema) != bool(artifact_key):
@@ -339,7 +339,7 @@ class SeerExplorerClient:
             int: The run ID (same as input)
 
         Raises:
-            requests.HTTPError: If the Seer API request fails
+            SeerApiError: If the Seer API request fails
             ValueError: If artifact_schema is provided without artifact_key
         """
         if bool(artifact_schema) != bool(artifact_key):
@@ -407,7 +407,7 @@ class SeerExplorerClient:
             SeerRunState: State object with blocks, status, and reconstructed artifacts.
 
         Raises:
-            requests.HTTPError: If the Seer API request fails
+            SeerApiError: If the Seer API request fails
             TimeoutError: If polling exceeds poll_timeout when blocking=True
         """
         if blocking:
@@ -440,7 +440,7 @@ class SeerExplorerClient:
             list[ExplorerRun]: List of runs matching the filters, sorted by most recent first
 
         Raises:
-            requests.HTTPError: If the Seer API request fails
+            SeerApiError: If the Seer API request fails
         """
         path = "/v1/automation/explorer/runs"
 
@@ -499,7 +499,7 @@ class SeerExplorerClient:
 
         Raises:
             TimeoutError: If polling exceeds timeout
-            requests.HTTPError: If the Seer API request fails
+            SeerApiError: If the Seer API request fails
         """
         # Trigger PR creation
         path = "/v1/automation/explorer/update"
