@@ -260,7 +260,7 @@ export function extractTextFromMessage(msg: RequestMessage): string | null {
   }
 
   if (Array.isArray(msg.content)) {
-    const texts = msg.content.map(p => p.text).filter(Boolean);
+    const texts = msg.content.map(p => p?.text).filter(Boolean);
     return texts.length > 0 ? texts.join('\n') : null;
   }
 
