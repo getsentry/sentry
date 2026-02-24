@@ -103,7 +103,7 @@ const TOOLS_TABLE = {
   ],
   layout: {
     x: 0,
-    y: 2,
+    y: 3,
     w: 6,
     h: 4,
     minH: 2,

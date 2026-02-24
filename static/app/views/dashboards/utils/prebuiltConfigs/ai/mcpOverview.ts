@@ -176,7 +176,7 @@ const OVERVIEW_TABLE = {
   ],
   layout: {
     x: 0,
-    y: 4,
+    y: 5,
     w: 6,
     h: 4,
     minH: 2,
