@@ -88,6 +88,12 @@ export const HeaderActions = styled('div')`
     width: max-content;
     margin-bottom: ${space(2)};
   }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
 `;
 
 /**
