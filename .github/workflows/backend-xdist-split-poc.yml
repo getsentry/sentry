@@ -100,7 +100,7 @@ jobs:
           # SEED_RUN skips durations so hash-based sharding is used instead.
           DURATIONS_FLAG=""
           if [ -z "${SEED_RUN:-}" ] && [ -f /tmp/durations/test-durations.json ]; then
-            DURATIONS_FLAG="--durations-file /tmp/durations/test-durations.json --n-workers 3"
+            DURATIONS_FLAG="--durations-file /tmp/durations/test-durations.json --n-workers 4"
           fi
 
           mkdir -p /tmp/tier1-shards
@@ -209,7 +209,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n 4 \
-            --dist=loadfile \
+            --dist=load \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
