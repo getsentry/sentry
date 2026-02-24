@@ -75,6 +75,8 @@ resolved_path = ".agents/skills/iterate-pr"
 source = "getsentry/skills"
 resolved_url = "https://github.com/getsentry/skills.git"
 resolved_path = ".agents/skills/security-review"
+commit = "187c0022b3b676f72227a04f1cfc8921a58a5020"
+integrity = "sha256-/PngFJkQcji7nYQjh1yerMnxIBaEJNiClJJ8FuCGgAo="
 
 [skills.skill-creator]
 source = "getsentry/skills"
@@ -95,3 +97,19 @@ resolved_path = ".agents/skills/sred-project-organizer"
 source = "getsentry/skills"
 resolved_url = "https://github.com/getsentry/skills.git"
 resolved_path = ".agents/skills/sred-work-summary"
+commit = "187c0022b3b676f72227a04f1cfc8921a58a5020"
+integrity = "sha256-pnc14+tLxKiEz1MSbO8Y+uM5+XOYLNF4XaDdtCsXtXQ="
+
+[skills.warden]
+source = "getsentry/warden"
+resolved_url = "https://github.com/getsentry/warden.git"
+resolved_path = "skills/warden"
+commit = "a06b8e184d7662e0e86b8fc23fe46c5be20c5fc6"
+integrity = "sha256-8RK1HNFGZ9yTe0GGVaATUPkBlksOWCvRzwrnVDyJKhU="
+
+[skills.warden-sweep]
+source = "getsentry/warden"
+resolved_url = "https://github.com/getsentry/warden.git"
+resolved_path = "skills/warden-sweep"
+commit = "a06b8e184d7662e0e86b8fc23fe46c5be20c5fc6"
+integrity = "sha256-wcCX6b5D8PADzcR5Teg77s3+nh1GUlVf7gKronVb0ko="
