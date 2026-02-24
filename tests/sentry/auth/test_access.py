@@ -906,6 +906,38 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_scope("team:write") is True
         assert result.has_scope("team:admin") is False
 
+    def test_no_access_due_to_pending_installation(self) -> None:
+        from sentry.constants import SentryAppInstallationStatus
+
+        pending_app = self.create_sentry_app(name="PendingApp", organization=self.org)
+        self.create_sentry_app_installation(
+            organization=self.org,
+            slug=pending_app.slug,
+            user=self.user,
+            status=SentryAppInstallationStatus.PENDING,
+        )
+        request = self.make_request(user=pending_app.proxy_user)
+        result = self.from_request(request, self.org)
+        assert not result.has_global_access
+        assert not result.has_team_access(self.team)
+        assert not result.has_project_access(self.project)
+
+    def test_no_access_due_to_pending_deletion_installation(self) -> None:
+        from sentry.constants import SentryAppInstallationStatus
+
+        pending_del_app = self.create_sentry_app(name="PendingDelApp", organization=self.org)
+        self.create_sentry_app_installation(
+            organization=self.org,
+            slug=pending_del_app.slug,
+            user=self.user,
+            status=SentryAppInstallationStatus.PENDING_DELETION,
+        )
+        request = self.make_request(user=pending_del_app.proxy_user)
+        result = self.from_request(request, self.org)
+        assert not result.has_global_access
+        assert not result.has_team_access(self.team)
+        assert not result.has_project_access(self.project)
+
 
 @no_silo_test
 class DefaultAccessTest(TestCase):

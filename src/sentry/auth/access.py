@@ -1062,7 +1062,14 @@ def _from_sentry_app(user: User, organization: Organization | None = None) -> Ac
 
     sentry_app = sentry_app_query.get()
 
-    if not sentry_app.is_installed_on(organization):
+    from sentry.constants import SentryAppInstallationStatus
+    from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+
+    if not SentryAppInstallation.objects.filter(
+        organization_id=organization.id,
+        sentry_app=sentry_app,
+        status=SentryAppInstallationStatus.INSTALLED,
+    ).exists():
         return NoAccess()
 
     return OrganizationGlobalMembership(organization, sentry_app.scope_list, sso_is_valid=True)
