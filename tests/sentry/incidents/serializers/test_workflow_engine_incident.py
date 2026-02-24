@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
@@ -41,7 +43,7 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         }
 
     @staticmethod
-    def _sort_triggers(incident: dict) -> dict:
+    def _sort_triggers(incident: dict[str, Any]) -> dict[str, Any]:
         """Sort triggers by label for order-independent comparison."""
         incident = dict(incident)
         incident["alertRule"] = dict(incident["alertRule"])
