@@ -96,3 +96,35 @@ class HomeTest(TestCase):
                 ("http://testserver/organizations/new/", 302),
             ]
             assert "activeorg" in self.client.session
+
+    def test_customer_domain_inactive_superuser_redirects_to_auth(self) -> None:
+        """An inactive superuser session should not bypass the SSO auth flow."""
+        org = self.create_organization(slug="test-org")
+        superuser = self.create_user(is_superuser=True)
+
+        # Log in as superuser but without an active superuser session
+        self.login_as(superuser, superuser=False)
+
+        with self.feature({"system:multi-region": True, "organizations:create": True}):
+            response = self.client.get(
+                "/",
+                HTTP_HOST=f"{org.slug}.testserver",
+            )
+            assert response.status_code == 302
+            assert response["Location"] == f"http://{org.slug}.testserver/auth/login/{org.slug}/"
+
+    def test_customer_domain_active_superuser_redirects_to_org(self) -> None:
+        """An active superuser session should redirect to the org landing page."""
+        org = self.create_organization(slug="test-org")
+        superuser = self.create_user(is_superuser=True)
+
+        # Log in as superuser with an active superuser session
+        self.login_as(superuser, superuser=True)
+
+        with self.feature({"system:multi-region": True, "organizations:create": True}):
+            response = self.client.get(
+                "/",
+                HTTP_HOST=f"{org.slug}.testserver",
+            )
+            assert response.status_code == 302
+            assert response["Location"] == f"http://{org.slug}.testserver/issues/"

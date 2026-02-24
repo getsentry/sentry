@@ -340,7 +340,7 @@ class OrganizationMixin:
                         return HttpResponseRedirect(absolute_uri(url, url_prefix=url_prefix))
                     else:
                         # If the user is a superuser, redirect them to the org's landing page (e.g. issues page)
-                        if request.user.is_superuser:
+                        if is_active_superuser(request):
                             url = Organization.get_url(requesting_org_slug)
                         else:
                             url = reverse("sentry-auth-organization", args=[requesting_org_slug])
