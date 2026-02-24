@@ -43,6 +43,11 @@ import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/fiel
 import {mapAssertionFormErrors} from './assertionFormErrors';
 import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
 import {HTTPSnippet} from './httpSnippet';
+import {
+  extractCompilationError,
+  PreviewCheckResultsProvider,
+  usePreviewCheckResults,
+} from './previewCheckContext';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
 import {useUptimeAssertionFeatures} from './useUptimeAssertionFeatures';
@@ -98,12 +103,21 @@ function getFormDataFromRule(rule: UptimeRule) {
 }
 
 export function UptimeAlertForm({handleDelete, rule}: Props) {
+  return (
+    <PreviewCheckResultsProvider>
+      <UptimeAlertFormContent handleDelete={handleDelete} rule={rule} />
+    </PreviewCheckResultsProvider>
+  );
+}
+
+function UptimeAlertFormContent({handleDelete, rule}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
+  const {setData, setError} = usePreviewCheckResults();
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -208,7 +222,10 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
-      mapFormErrors={mapAssertionFormErrors}
+      mapFormErrors={responseJson => {
+        setError(extractCompilationError(responseJson));
+        return mapAssertionFormErrors(responseJson);
+      }}
       onFieldChange={onFieldChange}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
@@ -274,7 +291,11 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
                   assertion: data.assertion ?? null,
                 };
               }}
+              onSuccess={response => {
+                setData(response);
+              }}
               onValidationError={responseJson => {
+                setError(extractCompilationError(responseJson));
                 const mapped = mapAssertionFormErrors(responseJson);
                 formModel.handleErrorResponse({responseJSON: mapped});
               }}

@@ -6,7 +6,11 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {ComparisonType, type StatusCodeOp} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  ComparisonType,
+  type Op,
+  type StatusCodeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer} from './opCommon';
 
@@ -14,12 +18,14 @@ interface AssertionOpStatusCodeProps {
   onChange: (op: StatusCodeOp) => void;
   onRemove: () => void;
   value: StatusCodeOp;
+  erroredOp?: Op | null;
 }
 
 export function AssertionOpStatusCode({
   value,
   onChange,
   onRemove,
+  erroredOp,
 }: AssertionOpStatusCodeProps) {
   const inputId = useId();
 
@@ -63,6 +69,7 @@ export function AssertionOpStatusCode({
       onRemove={onRemove}
       inputId={inputId}
       op={value}
+      erroredOp={erroredOp}
     >
       <InputGroup>
         <InputGroup.LeadingItems>

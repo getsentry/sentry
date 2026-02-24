@@ -11,6 +11,8 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ComparisonType, type Op} from 'sentry/views/alerts/rules/uptime/types';
+import {AssertionFormError} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
+import {usePreviewCheckResults} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 
 interface AnimatedOpProps
   extends MotionProps, Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
@@ -54,6 +56,7 @@ interface OpContainerProps {
   label: React.ReactNode;
   onRemove: () => void;
   op: Op;
+  erroredOp?: Op | null;
   inputId?: string;
   tooltip?: React.ReactNode;
 }
@@ -64,12 +67,15 @@ export function OpContainer({
   onRemove,
   inputId,
   op,
+  erroredOp,
 }: OpContainerProps) {
   const {attributes, setNodeRef, setActivatorNodeRef, listeners, isDragging} =
     useDraggable({
       id: op.id,
       data: op,
     });
+
+  const {data, error} = usePreviewCheckResults();
 
   return (
     <Flex direction="column" gap="sm">
@@ -91,7 +97,7 @@ export function OpContainer({
             />
             {tooltip && <QuestionTooltip size="xs" title={tooltip} isHoverable />}
           </Flex>
-          <Grid columns="1fr max-content" align="center" gap="sm">
+          <Grid columns="1fr max-content max-content" align="center" gap="sm">
             {children}
             <Button
               size="sm"
@@ -100,6 +106,7 @@ export function OpContainer({
               aria-label={t('Remove assertion')}
               onClick={onRemove}
             />
+            <AssertionFormError op={op} erroredOp={erroredOp ?? null} state={{data, error}} />
           </Grid>
         </AnimatedOp>
       )}

@@ -11,6 +11,7 @@ import {
   ComparisonType,
   type HeaderCheckOp,
   type HeaderOperand,
+  type Op,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer, STRING_OPERAND_OPTIONS} from './opCommon';
@@ -25,9 +26,15 @@ interface AssertionOpHeaderProps {
   onChange: (op: HeaderCheckOp) => void;
   onRemove: () => void;
   value: HeaderCheckOp;
+  erroredOp?: Op | null;
 }
 
-export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeaderProps) {
+export function AssertionOpHeader({
+  value,
+  onChange,
+  onRemove,
+  erroredOp,
+}: AssertionOpHeaderProps) {
   const inputId = useId();
 
   const headerKeyComparisonOptions = COMPARISON_OPTIONS.filter(
@@ -192,7 +199,13 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
   );
 
   return (
-    <OpContainer label={t('Header')} onRemove={onRemove} inputId={inputId} op={value}>
+    <OpContainer
+      label={t('Header')}
+      onRemove={onRemove}
+      inputId={inputId}
+      op={value}
+      erroredOp={erroredOp}
+    >
       <Flex gap="sm" align="center" width="100%">
         {keyInput}
         {showValueInput && valueInput}

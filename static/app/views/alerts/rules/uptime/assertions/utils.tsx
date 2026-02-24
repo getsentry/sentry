@@ -354,6 +354,43 @@ export function getJsonPathCombinedLabelAndTooltip(op: JsonPathOp): {
   return {combinedLabel, combinedTooltip};
 }
 
+export const isLeafOp = (op: Op) =>
+  op.op === OpType.STATUS_CODE_CHECK ||
+  op.op === OpType.JSON_PATH ||
+  op.op === OpType.HEADER_CHECK;
+
+/**
+ * Compares two leaf ops by value, ignoring `id`. Used to find which sibling in
+ * rootOp corresponds to the single failing child in assertion_failure_data.
+ * Returns false for non-leaf ops (they are matched structurally by op type).
+ */
+export function leafOpsMatch(a: Op, b: Op): boolean {
+  if (a.op !== b.op) return false;
+
+  if (a.op === OpType.STATUS_CODE_CHECK && b.op === OpType.STATUS_CODE_CHECK) {
+    return a.operator.cmp === b.operator.cmp && a.value === b.value;
+  }
+
+  if (a.op === OpType.JSON_PATH && b.op === OpType.JSON_PATH) {
+    return (
+      a.value === b.value &&
+      a.operator.cmp === b.operator.cmp &&
+      JSON.stringify(a.operand) === JSON.stringify(b.operand)
+    );
+  }
+
+  if (a.op === OpType.HEADER_CHECK && b.op === OpType.HEADER_CHECK) {
+    return (
+      a.key_op.cmp === b.key_op.cmp &&
+      JSON.stringify(a.key_operand) === JSON.stringify(b.key_operand) &&
+      a.value_op.cmp === b.value_op.cmp &&
+      JSON.stringify(a.value_operand) === JSON.stringify(b.value_operand)
+    );
+  }
+
+  return false;
+}
+
 export function getGroupOpLabel(op: GroupOp, isNegated: boolean): string {
   if (op.op === OpType.AND) {
     // By De Morgan's Laws, NOT (A AND B) is equivalent to (NOT A OR NOT B),

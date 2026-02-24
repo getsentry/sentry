@@ -13,6 +13,7 @@ import {
   ComparisonType,
   type JsonPathOp,
   type JsonPathOperand,
+  type Op,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer, STRING_OPERAND_OPTIONS} from './opCommon';
@@ -26,12 +27,14 @@ interface AssertionOpJsonPathProps {
   onChange: (op: JsonPathOp) => void;
   onRemove: () => void;
   value: JsonPathOp;
+  erroredOp?: Op | null;
 }
 
 export function AssertionOpJsonPath({
   value,
   onChange,
   onRemove,
+  erroredOp,
 }: AssertionOpJsonPathProps) {
   const inputId = useId();
 
@@ -176,6 +179,7 @@ export function AssertionOpJsonPath({
       label={t('JSON Path')}
       onRemove={onRemove}
       inputId={inputId}
+      erroredOp={erroredOp}
       tooltip={tct(
         'The assertion evaluates to true if the JSON path matches. See the [link:JSON Path RFC] for more information.',
         {

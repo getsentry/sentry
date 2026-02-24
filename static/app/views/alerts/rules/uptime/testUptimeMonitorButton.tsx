@@ -32,6 +32,11 @@ interface TestUptimeMonitorButtonProps {
    */
   label?: string;
   /**
+   * Called when the preview check completes successfully. Receives the full
+   * response so callers can store the result in context.
+   */
+  onSuccess?: (response: PreviewCheckResponse) => void;
+  /**
    * Called when the preview check returns a validation error (e.g. assertion
    * compilation errors). Receives the parsed response JSON so callers can
    * surface the errors on form fields.
@@ -46,6 +51,7 @@ interface TestUptimeMonitorButtonProps {
 export function TestUptimeMonitorButton({
   getFormData,
   label,
+  onSuccess,
   onValidationError,
   size,
 }: TestUptimeMonitorButtonProps) {
@@ -63,6 +69,7 @@ export function TestUptimeMonitorButton({
         data: {...payload},
       }),
     onSuccess: response => {
+      onSuccess?.(response);
       if (response.check_result?.status === PreviewCheckStatus.SUCCESS) {
         addSuccessMessage(t('Uptime check passed successfully'));
       } else {

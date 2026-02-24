@@ -180,7 +180,7 @@ export enum PreviewCheckStatus {
   DISALLOWED_BY_ROBOTS = 'disallowed_by_robots',
 }
 
-enum PreviewCheckStatusReasonType {
+export enum PreviewCheckStatusReasonType {
   TIMEOUT = 'timeout',
   DNS_ERROR = 'dns_error',
   TLS_ERROR = 'tls_error',
