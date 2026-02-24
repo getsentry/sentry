@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -67,14 +67,11 @@ export default function RepositoryRow({
           'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
         )}
       >
-        <StyledButton
-          size="xs"
-          priority="danger"
-          icon={<IconDelete />}
-          disabled={!hasAccess}
-        >
-          {t('Delete')}
-        </StyledButton>
+        <Container paddingLeft="md">
+          <Button size="xs" priority="danger" icon={<IconDelete />} disabled={!hasAccess}>
+            {t('Delete')}
+          </Button>
+        </Container>
       </Confirm>
     </Tooltip>
   );
@@ -88,14 +85,16 @@ export default function RepositoryRow({
               <strong>{repository.name}</strong>
               {!isActive && <small> &mdash; {getRepoStatusLabel(repository)}</small>}
               {repository.status === RepositoryStatus.PENDING_DELETION && (
-                <StyledButton
-                  size="xs"
-                  onClick={cancelDelete}
-                  disabled={!hasAccess}
-                  data-test-id="repo-cancel"
-                >
-                  {t('Cancel')}
-                </StyledButton>
+                <Container paddingLeft="md">
+                  <Button
+                    size="xs"
+                    onClick={cancelDelete}
+                    disabled={!hasAccess}
+                    data-test-id="repo-cancel"
+                  >
+                    {t('Cancel')}
+                  </Button>
+                </Container>
               )}
             </RepositoryTitle>
             <div>
@@ -150,10 +149,6 @@ const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
   &:last-child {
     border-bottom: none;
   }
-`;
-
-const StyledButton = styled(Button)`
-  margin-left: ${space(1)};
 `;
 
 const RepositoryTitle = styled('div')`
