@@ -194,10 +194,12 @@ def run_group_events_query(
                 "limit": limit,
                 "offset": offset,
                 "orderby": orderby,
-                "start": snuba_params.start.isoformat(),
-                "end": snuba_params.end.isoformat(),
+                "start": snuba_params.start.isoformat() if snuba_params.start else None,
+                "end": snuba_params.end.isoformat() if snuba_params.end else None,
                 "project_ids": [project.id for project in snuba_params.projects],
-                "organization_id": snuba_params.organization.id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization is not None else None
+                ),
             },
         )
 

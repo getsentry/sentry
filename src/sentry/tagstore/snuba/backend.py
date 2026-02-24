@@ -388,7 +388,7 @@ class SnubaTagStorage(TagStorage):
                     return True
 
                 def serialize_group_tag_key(item: GroupTagKey) -> dict[str, Any]:
-                    top_values = item.top_values or []
+                    top_values: list[GroupTagValue] = list(item.top_values or [])
                     return {
                         "group_id": item.group_id,
                         "key": item.key,
