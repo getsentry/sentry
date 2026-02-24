@@ -1,4 +1,4 @@
-import {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import uniqBy from 'lodash/uniqBy';
@@ -35,20 +35,18 @@ const estimateSize = () => 60;
 export default function SeerRepoTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const parentRef = useRef<HTMLDivElement>(null);
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
   const [scrollBodyHeight, setScrollBodyHeight] = useState<string | undefined>(undefined);
 
-  useLayoutEffect(() => {
-    const update = () => {
-      if (parentRef.current) {
-        const top = parentRef.current.getBoundingClientRect().top;
-        setScrollBodyHeight(`minmax(0, calc(100vh - ${top + BOTTOM_PADDING}px))`);
-      }
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(document.body);
-    return () => observer.disconnect();
+  const setScrollBodyRef = useCallback((el: HTMLDivElement | null) => {
+    scrollBodyRef.current = el;
+    if (el) {
+      const measure = () => {
+        const top = el.getBoundingClientRect().top;
+        setScrollBodyHeight(`calc(100vh - ${Math.round(top + BOTTOM_PADDING)}px)`);
+      };
+      requestAnimationFrame(measure);
+    }
   }, []);
 
   const [searchTerm, setSearchTerm] = useQueryState(
@@ -130,16 +128,15 @@ export default function SeerRepoTable() {
     },
   });
 
-  const virtualizer = useVirtualizer({
-    count: repositories?.length ?? 0,
-    getScrollElement: () => parentRef.current,
-    estimateSize,
-  });
+  const knownIds = useMemo(
+    () => repositories?.map(repository => repository.id) ?? [],
+    [repositories]
+  );
 
   return (
     <ListItemCheckboxProvider
       hits={repositories?.length ?? 0}
-      knownIds={repositories?.map(repository => repository.id) ?? []}
+      knownIds={knownIds}
       queryKey={queryOptions.queryKey}
     >
       <Stack gap="lg">
@@ -206,22 +203,16 @@ export default function SeerRepoTable() {
               </Text>
             </Flex>
           ) : (
-            <ScrollableBody ref={parentRef} style={{height: scrollBodyHeight}}>
-              <VirtualInner style={{height: virtualizer.getTotalSize()}}>
-                {virtualizer.getVirtualItems().map(virtualItem => {
-                  const repository = repositories[virtualItem.index]!;
-                  return (
-                    <SeerRepoTableRow
-                      key={repository.id}
-                      gridColumns={GRID_COLUMNS}
-                      style={{transform: `translateY(${virtualItem.start}px)`}}
-                      mutateRepositorySettings={mutateRepositorySettings}
-                      mutationData={mutationData}
-                      repository={repository}
-                    />
-                  );
-                })}
-              </VirtualInner>
+            <ScrollableBody
+              ref={setScrollBodyRef}
+              style={{minHeight: 0, maxHeight: scrollBodyHeight}}
+            >
+              <VirtualizedRepoTable
+                repositories={repositories}
+                scrollBodyRef={scrollBodyRef}
+                mutateRepositorySettings={mutateRepositorySettings}
+                mutationData={mutationData}
+              />
               {hasNextPage || isFetchingNextPage ? (
                 <StickyLoadingRow
                   align="center"
@@ -237,6 +228,44 @@ export default function SeerRepoTable() {
         </TablePanel>
       </Stack>
     </ListItemCheckboxProvider>
+  );
+}
+
+function VirtualizedRepoTable({
+  repositories,
+  scrollBodyRef,
+  mutateRepositorySettings,
+  mutationData,
+}: {
+  mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
+  mutationData: Record<string, RepositoryWithSettings>;
+  repositories: RepositoryWithSettings[];
+  scrollBodyRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const virtualizer = useVirtualizer({
+    count: repositories?.length ?? 0,
+    getScrollElement: () => scrollBodyRef.current,
+    estimateSize,
+  });
+  return (
+    <VirtualInner style={{height: virtualizer.getTotalSize()}}>
+      {virtualizer.getVirtualItems().map(virtualItem => {
+        const repository = repositories[virtualItem.index];
+        if (!repository) {
+          return null;
+        }
+        return (
+          <SeerRepoTableRow
+            key={repository.id}
+            gridColumns={GRID_COLUMNS}
+            style={{transform: `translateY(${virtualItem.start}px)`}}
+            mutateRepositorySettings={mutateRepositorySettings}
+            mutationData={mutationData}
+            repository={repository}
+          />
+        );
+      })}
+    </VirtualInner>
   );
 }
 
