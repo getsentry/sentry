@@ -931,7 +931,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:mep-rollout-flag",
                     "organizations:dynamic-sampling",
                 ]
             ),
@@ -987,7 +986,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:mep-rollout-flag",
                     "organizations:dynamic-sampling",
                 ]
             ),
@@ -1720,7 +1718,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
             ]
         ):
@@ -1754,7 +1751,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
             ]
         ):

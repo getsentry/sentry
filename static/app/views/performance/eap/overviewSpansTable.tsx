@@ -90,7 +90,6 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
       field: 'span.duration',
       kind: 'desc',
     },
-    transactionName,
     p95,
     limit: LIMIT,
   });

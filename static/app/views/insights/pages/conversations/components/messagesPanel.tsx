@@ -1,17 +1,17 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {IconFire, IconUser} from 'sentry/icons';
+import {IconUser} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {MessageToolCalls} from 'sentry/views/insights/pages/conversations/components/messageToolCalls';
 import type {ConversationMessage} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {extractMessagesFromNodes} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
@@ -108,42 +108,14 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   </MessageText>
                 </Container>
               </StyledClippedBox>
-              {message.role === 'assistant' &&
-                message.toolCalls &&
-                message.toolCalls.length > 0 && (
-                  <ToolCallsFooter
-                    direction="row"
-                    align="center"
-                    gap="xs"
-                    wrap="wrap"
-                    padding="xs sm"
-                  >
-                    <Text size="xs" style={{opacity: 0.7}}>
-                      {t('Tools called:')}
-                    </Text>
-                    {message.toolCalls.map(tool => {
-                      const toolNode = nodeMap.get(tool.nodeId);
-                      const isToolSelected = tool.nodeId === selectedNodeId;
-                      return (
-                        <ClickableTag
-                          key={tool.nodeId}
-                          variant={tool.hasError ? 'danger' : 'info'}
-                          icon={tool.hasError ? <IconFire /> : undefined}
-                          hasError={tool.hasError}
-                          isSelected={isToolSelected}
-                          onClick={e => {
-                            e.stopPropagation();
-                            if (toolNode) {
-                              onSelectNode(toolNode);
-                            }
-                          }}
-                        >
-                          {tool.name}
-                        </ClickableTag>
-                      );
-                    })}
-                  </ToolCallsFooter>
-                )}
+              {isAssistant && message.toolCalls && message.toolCalls.length > 0 && (
+                <MessageToolCalls
+                  toolCalls={message.toolCalls}
+                  selectedNodeId={selectedNodeId}
+                  nodeMap={nodeMap}
+                  onSelectNode={onSelectNode}
+                />
+              )}
             </MessageBubble>
           );
         })}
@@ -224,21 +196,4 @@ const MessageBubble = styled('div')<{
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
-`;
-
-const ToolCallsFooter = styled(Flex)`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const ClickableTag = styled(Tag)<{hasError?: boolean; isSelected?: boolean}>`
-  cursor: pointer;
-  &:hover {
-    opacity: 0.8;
-  }
-  ${p =>
-    p.isSelected &&
-    `
-    outline: 2px solid ${p.hasError ? p.theme.tokens.content.danger : p.theme.tokens.focus.default};
-    outline-offset: -2px;
-  `}
 `;
