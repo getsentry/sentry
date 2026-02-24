@@ -8,6 +8,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -93,7 +94,7 @@ export function RelayWrapper() {
             }
             mutationOptions={{
               mutationFn: data =>
-                fetchMutation({
+                fetchMutation<Organization>({
                   url: `/organizations/${organization.slug}/`,
                   method: 'PUT',
                   data: {
@@ -102,6 +103,9 @@ export function RelayWrapper() {
                       : 'disabled',
                   },
                 }),
+              onSuccess: updatedOrg => {
+                OrganizationStore.onUpdate(updatedOrg);
+              },
             }}
           >
             {field => (

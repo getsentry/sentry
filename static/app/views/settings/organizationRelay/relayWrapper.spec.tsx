@@ -183,7 +183,7 @@ describe('RelayWrapper', () => {
         })
       );
 
-      jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
@@ -192,6 +192,8 @@ describe('RelayWrapper', () => {
           name: 'Enable to require events to be ingested only through trusted relays',
         })
       ).not.toBeChecked();
+
+      consoleErrorSpy.mockRestore();
     });
 
     it('toggle is disabled when user lacks org:write permission', async () => {
