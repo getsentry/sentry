@@ -576,7 +576,6 @@ class VstsIntegrationProvider(IntegrationProvider):
         # Assertion error happens when org_integration does not exist
         # KeyError happens when subscription is not found
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
-
             logger.warning(
                 "vsts.build_integration.error",
                 extra={
@@ -604,9 +603,9 @@ class VstsIntegrationProvider(IntegrationProvider):
         if features.has(
             "organizations:migrate-azure-devops-integration", self.pipeline.organization
         ):
-            integration["metadata"][
-                "integration_migration_version"
-            ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+            integration["metadata"]["integration_migration_version"] = (
+                VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+            )
 
         return integration
 

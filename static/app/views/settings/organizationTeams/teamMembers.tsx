@@ -179,15 +179,16 @@ function AddMemberDropdown({
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps}>{t('Add Member')}</OverlayTrigger.Button>
       )}
-      searchPlaceholder={t('Search Members')}
+      search={{
+        placeholder: t('Search Members'),
+        filter: false,
+        /**
+         * We perform an API request to support orgs with > 100 members (since that's the max API returns)
+         */
+        onChange: setMemberQuery,
+      }}
       emptyMessage={t('No members')}
       loading={isOrgMembersFetching}
-      searchable
-      disableSearchFilter
-      /**
-       * We perform an API request to support orgs with > 100 members (since that's the max API returns)
-       */
-      onSearch={setMemberQuery}
     />
   );
 }

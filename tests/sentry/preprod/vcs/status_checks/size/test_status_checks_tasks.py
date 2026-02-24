@@ -297,11 +297,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
                 if expected_status == StatusCheckStatus.SUCCESS:
                     # SUCCESS only when processed AND has completed size metrics
-                    assert "1 app" in call_kwargs["subtitle"]
+                    assert "1 component" in call_kwargs["subtitle"]
                 elif expected_status == StatusCheckStatus.IN_PROGRESS:
-                    assert "1 app processing" in call_kwargs["subtitle"]
+                    assert "1 component processing" in call_kwargs["subtitle"]
                 elif expected_status == StatusCheckStatus.FAILURE:
-                    assert "1 app errored" in call_kwargs["subtitle"]
+                    assert "1 component errored" in call_kwargs["subtitle"]
 
                 assert call_kwargs["summary"]  # Just check it exists
                 assert call_kwargs["external_id"] == str(preprod_artifact.id)
@@ -417,7 +417,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         call_kwargs = mock_provider.create_status_check.call_args.kwargs
 
         assert call_kwargs["title"] == "Size Analysis"
-        assert call_kwargs["subtitle"] == "3 apps analyzed"  # All processed with completed metrics
+        assert (
+            call_kwargs["subtitle"] == "3 components analyzed"
+        )  # All processed with completed metrics
 
         summary = call_kwargs["summary"]
         assert "com.example.app0" in summary
@@ -483,7 +485,10 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         call_kwargs = mock_provider.create_status_check.call_args.kwargs
 
         assert call_kwargs["title"] == "Size Analysis"
-        assert call_kwargs["subtitle"] == "1 app analyzed, 1 app processing, 1 app errored"
+        assert (
+            call_kwargs["subtitle"]
+            == "1 component analyzed, 1 component processing, 1 component errored"
+        )
         # With no rules configured, status is always NEUTRAL.
         assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
 
@@ -937,23 +942,23 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         )
 
         sibling_ids_from_ios_new = {s.id for s in siblings_from_ios_new}
-        assert (
-            ios_new.id in sibling_ids_from_ios_new
-        ), "Triggering artifact (ios_new) should be included in its own app_id group"
-        assert (
-            android_old.id in sibling_ids_from_ios_new
-        ), "For other app_ids, should use earliest artifact (android_old, not android_new)"
+        assert ios_new.id in sibling_ids_from_ios_new, (
+            "Triggering artifact (ios_new) should be included in its own app_id group"
+        )
+        assert android_old.id in sibling_ids_from_ios_new, (
+            "For other app_ids, should use earliest artifact (android_old, not android_new)"
+        )
 
         siblings_from_android_new = list(android_new.get_sibling_artifacts_for_commit())
         assert len(siblings_from_android_new) == 2
 
         sibling_ids_from_android_new = {s.id for s in siblings_from_android_new}
-        assert (
-            android_new.id in sibling_ids_from_android_new
-        ), "Triggering artifact (android_new) should be included in its own app_id group"
-        assert (
-            ios_old.id in sibling_ids_from_android_new
-        ), "For other app_ids, should use earliest artifact (ios_old, not ios_new)"
+        assert android_new.id in sibling_ids_from_android_new, (
+            "Triggering artifact (android_new) should be included in its own app_id group"
+        )
+        assert ios_old.id in sibling_ids_from_android_new, (
+            "For other app_ids, should use earliest artifact (ios_old, not ios_new)"
+        )
 
         siblings_from_ios_old = list(ios_old.get_sibling_artifacts_for_commit())
         assert len(siblings_from_ios_old) == 2
@@ -1030,12 +1035,12 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         )
 
         sibling_ids_from_ios = {s.id for s in siblings_from_ios}
-        assert (
-            ios_artifact.id in sibling_ids_from_ios
-        ), "iOS artifact should be included in siblings"
-        assert (
-            android_artifact.id in sibling_ids_from_ios
-        ), "Android artifact should be included even with same app_id (different platform)"
+        assert ios_artifact.id in sibling_ids_from_ios, (
+            "iOS artifact should be included in siblings"
+        )
+        assert android_artifact.id in sibling_ids_from_ios, (
+            "Android artifact should be included even with same app_id (different platform)"
+        )
 
         siblings_from_android = list(android_artifact.get_sibling_artifacts_for_commit())
         assert len(siblings_from_android) == 2
@@ -1074,15 +1079,15 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         )
 
         sibling_ids_from_ios_new = {s.id for s in siblings_from_ios_new}
-        assert (
-            ios_artifact_new.id in sibling_ids_from_ios_new
-        ), "New iOS artifact should be included (triggering artifact)"
-        assert (
-            android_artifact.id in sibling_ids_from_ios_new
-        ), "Original Android should still be included"
-        assert (
-            ios_artifact.id not in sibling_ids_from_ios_new
-        ), "Old iOS artifact should be deduplicated (not the triggering artifact)"
+        assert ios_artifact_new.id in sibling_ids_from_ios_new, (
+            "New iOS artifact should be included (triggering artifact)"
+        )
+        assert android_artifact.id in sibling_ids_from_ios_new, (
+            "Original Android should still be included"
+        )
+        assert ios_artifact.id not in sibling_ids_from_ios_new, (
+            "Old iOS artifact should be deduplicated (not the triggering artifact)"
+        )
 
     def test_posted_status_check_success(self):
         """Test that successful status check posts are recorded in artifact extras."""

@@ -325,7 +325,6 @@ class TagStorage(Service):
         tenant_ids=None,
         **kwargs,
     ):
-
         # only the snuba backend supports multi env, and that overrides this method
         if environment_ids and len(environment_ids) > 1:
             environment_ids = environment_ids[:1]

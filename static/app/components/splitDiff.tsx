@@ -149,6 +149,7 @@ const SplitBody = styled('tbody')`
 
 const Cell = styled('td')<{isAdded?: Change; isRemoved?: Change}>`
   vertical-align: top;
+  overflow: hidden;
   ${p => p.isRemoved && `background-color: ${DIFF_COLORS.removedRow}`};
   ${p => p.isAdded && `background-color: ${DIFF_COLORS.addedRow}`};
 `;

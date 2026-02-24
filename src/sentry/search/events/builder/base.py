@@ -894,7 +894,8 @@ class BaseQueryBuilder:
                 ):
                     if bare_orderby in self.orderby_converter:
                         validated.append(self.orderby_converter[bare_orderby](direction))
-                    validated.append(OrderBy(selected_column, direction))
+                    else:
+                        validated.append(OrderBy(selected_column, direction))
                     break
 
         if len(validated) == len(orderby_columns):
@@ -1078,10 +1079,7 @@ class BaseQueryBuilder:
                 lhs = condition.lhs
                 if isinstance(lhs, CurriedFunction) and lhs not in self.columns:
                     raise InvalidSearchQuery(
-                        "Aggregate {} used in a condition but is not a selected column{}.".format(
-                            lhs.alias,
-                            error_extra,
-                        )
+                        f"Aggregate {lhs.alias} used in a condition but is not a selected column{error_extra}."
                     )
 
     def validate_aggregate_arguments(self) -> None:

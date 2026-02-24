@@ -51,7 +51,6 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "type": Condition.GREATER,
             "comparison": 100,
             "conditionResult": DetectorPriorityLevel.HIGH,
-            "conditionGroupId": self.data_condition_group.id,
         }
 
     def test(self) -> None:
@@ -61,7 +60,6 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "comparison": 100.0,
             "condition_result": DetectorPriorityLevel.HIGH,
             "type": Condition.GREATER,
-            "condition_group_id": self.data_condition_group.id,
         }
 
     def test_invalid_condition(self) -> None:
@@ -285,7 +283,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
 
 class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator):
-
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(
@@ -528,6 +525,19 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             validator.save()
 
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.log_alerting_quota_hit")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_enforce_quota_calls_log(
+        self, mock_log: mock.MagicMock, mock_get_limit: mock.MagicMock
+    ) -> None:
+        mock_get_limit.return_value = 0
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        validator.is_valid()
+        with pytest.raises(ValidationError):
+            validator.save()
+        mock_log.assert_called_once()
+
     @with_feature("organizations:discover-saved-queries-deprecation")
     def test_transaction_dataset_deprecation_transactions(self) -> None:
         data = {
@@ -553,7 +563,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             validator.save()
 
     @with_feature("organizations:discover-saved-queries-deprecation")
-    @with_feature("organizations:mep-rollout-flag")
     def test_transaction_dataset_deprecation_generic_metrics(self) -> None:
         data = {
             **self.valid_data,
@@ -1397,7 +1406,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         updated_detector = update_validator.save()
         assert updated_detector.name == "Updated Detector Name"
 
-    @with_feature("organizations:mep-rollout-flag")
     def test_transaction_dataset_deprecation_generic_metrics_update(self) -> None:
         data = {
             **self.valid_data,
@@ -1443,7 +1451,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             update_validator.save()
 
-    @with_feature("organizations:mep-rollout-flag")
     def test_transaction_dataset_deprecation_update_to_transactions(self) -> None:
         data = {
             **self.valid_data,

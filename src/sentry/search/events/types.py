@@ -250,7 +250,6 @@ class QueryBuilderConfig:
     parser_config_overrides: Mapping[str, Any] = field(default_factory=dict)
     has_metrics: bool = False
     transform_alias_to_input_format: bool = False
-    use_metrics_layer: bool = False
     # This skips converting tags back to their non-prefixed versions when processing the results
     # Currently this is only used for avoiding conflicting values when doing the first query
     # of a top events request
@@ -259,7 +258,6 @@ class QueryBuilderConfig:
     on_demand_metrics_type: Any | None = None
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: bool | None = False
-    insights_metrics_override_metric_layer: bool = False
     # Allow the errors query builder to use the entity prefix for fields
     use_entity_prefix_for_fields: bool = False
 

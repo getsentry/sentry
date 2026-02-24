@@ -37,12 +37,8 @@ from sentry.utils.math import ExponentialMovingAverage, nice_int
 )
 def test_nice_int(start: int, stop: int, expected: int) -> None:
     for x in range(start, stop):
-        assert nice_int(x) == expected, "{} was rounded to {}, not {}".format(
-            x, nice_int(x), expected
-        )
-        assert nice_int(-x) == -expected, "{} was rounded to {}, not {}".format(
-            -x, nice_int(-x), -expected
-        )
+        assert nice_int(x) == expected, f"{x} was rounded to {nice_int(x)}, not {expected}"
+        assert nice_int(-x) == -expected, f"{-x} was rounded to {nice_int(-x)}, not {-expected}"
 
 
 @pytest.mark.parametrize(

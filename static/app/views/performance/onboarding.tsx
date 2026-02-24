@@ -28,6 +28,14 @@ import FeatureTourModal, {
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
@@ -349,48 +357,50 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Query for Traces, Get Answers')}</Title>
-                <SubTitle>
-                  {t(
-                    'You can query and aggregate spans to create metrics that help you debug busted API calls, slow image loads, or any other metrics you’d like to track.'
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Query for Traces, Get Answers')}</Title>
+                  <SubTitle>
                     {t(
-                      'Find traces tied to a user complaint and pinpoint exactly what broke'
+                      'You can query and aggregate spans to create metrics that help you debug busted API calls, slow image loads, or any other metrics you’d like to track.'
                     )}
-                  </li>
-                  <li>
-                    {t(
-                      'Debug persistent issues by investigating API payloads, cache sizes, user tokens, and more'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Track any span attribute as a metric to catch slowdowns before they escalate'
-                    )}
-                  </li>
-                </BulletList>
-              </HeaderText>
-              <Image src={emptyTraceImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body>
-              <Setup>{children}</Setup>
-              <Preview>
-                <BodyTitle>{t('Preview a Sentry Trace')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/BPVB65UiYCxixEw8bnmj?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+                  </SubTitle>
+                  <BulletList>
+                    <li>
+                      {t(
+                        'Find traces tied to a user complaint and pinpoint exactly what broke'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Debug persistent issues by investigating API payloads, cache sizes, user tokens, and more'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Track any span attribute as a metric to catch slowdowns before they escalate'
+                      )}
+                    </li>
+                  </BulletList>
+                </HeaderText>
+                <Image src={emptyTraceImg} />
+              </HeaderWrapper>
+              <Divider />
+              <Body>
+                <Setup>{children}</Setup>
+                <Preview>
+                  <BodyTitle>{t('Preview a Sentry Trace')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/BPVB65UiYCxixEw8bnmj?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>
@@ -408,6 +418,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const [received, setReceived] = useState<boolean>(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
@@ -592,8 +603,23 @@ export function Onboarding({organization, project}: OnboardingProps) {
         {steps.map((step, index) => {
           const title = step.title ?? STEP_TITLES[step.type];
           return (
-            <GuidedSteps.Step key={title} stepKey={title} title={title}>
-              <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+            <GuidedSteps.Step
+              key={title}
+              stepKey={title}
+              title={title}
+              trailingItems={
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="performance_onboarding"
+                  />
+                ) : undefined
+              }
+            >
+              <StepIndexProvider index={index}>
+                <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+              </StepIndexProvider>
               {index === steps.length - 1 ? (
                 <Fragment>
                   {eventWaitingIndicator}

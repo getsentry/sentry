@@ -56,7 +56,7 @@ describe('UpsellProvider', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${org.slug}/`,
+      url: `/customers/${org.slug}/`,
       body: sub,
     });
 

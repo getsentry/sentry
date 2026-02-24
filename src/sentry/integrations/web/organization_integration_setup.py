@@ -29,9 +29,9 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
         )
 
         is_feature_enabled = {}
-        assert isinstance(
-            pipeline.provider, IntegrationProvider
-        ), "Pipeline must be an integration provider to get features"
+        assert isinstance(pipeline.provider, IntegrationProvider), (
+            "Pipeline must be an integration provider to get features"
+        )
         for feature in pipeline.provider.features:
             feature_flag_name = "organizations:integrations-%s" % feature.value
             try:

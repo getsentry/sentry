@@ -66,7 +66,7 @@ from sentry.tasks.post_process import (
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import mock_redis_buffer
@@ -1416,6 +1416,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             not in mock_incr.call_args_list
         )
 
+    @freeze_time()
     @patch("sentry.utils.metrics.incr")
     def test_issue_owners_should_ratelimit(self, mock_incr: MagicMock) -> None:
         cache.set(
@@ -1857,6 +1858,23 @@ class SnoozeTestMixin(BasePostProcessGroupMixin):
                 event=event_2,
             )
             assert not GroupSnooze.objects.filter(id=snooze.id).exists()
+
+            mock_process_workflows_event.apply_async.assert_called_with(
+                kwargs=ProcessWorkflowsKwargsMatcher(
+                    event=event_2,
+                    group=group,
+                    has_reappeared=True,
+                    has_escalated=True,
+                    is_new=False,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                ),
+                headers=ANY,
+            )
+
+            group.refresh_from_db()
+            assert group.status == GroupStatus.UNRESOLVED
+            assert group.substatus == GroupSubStatus.ESCALATING
 
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     def test_maintains_valid_snooze(self, mock_process_workflows_event: MagicMock) -> None:

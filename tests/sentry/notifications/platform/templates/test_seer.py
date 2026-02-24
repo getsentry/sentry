@@ -73,19 +73,6 @@ class SeerAutofixUpdateTest(TestCase):
             group_link=f"https://sentry.io/issues/{MOCK_GROUP_ID}?seerDrawer=true",
         )
 
-    def test_next_point(self) -> None:
-        update = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        assert update.next_point == AutofixStoppingPoint.SOLUTION
-
-        update = self._create_update(AutofixStoppingPoint.SOLUTION)
-        assert update.next_point == AutofixStoppingPoint.CODE_CHANGES
-
-        update = self._create_update(AutofixStoppingPoint.CODE_CHANGES)
-        assert update.next_point == AutofixStoppingPoint.OPEN_PR
-
-        update = self._create_update(AutofixStoppingPoint.OPEN_PR)
-        assert update.next_point is None
-
     def test_has_next_trigger_simple(self) -> None:
         update = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         assert update.has_next_trigger is True

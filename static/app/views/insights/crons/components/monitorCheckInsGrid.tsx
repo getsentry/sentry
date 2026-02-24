@@ -1,5 +1,5 @@
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import GridEditable from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CheckIn, CheckInCellKey} from 'sentry/views/insights/crons/types';
@@ -22,16 +22,17 @@ export function MonitorCheckInsGrid({checkIns, isLoading, project, hasMultiEnv}:
     <GridEditable<CheckIn, GridColumnOrder<CheckInCellKey>>
       isLoading={isLoading}
       emptyMessage={t('No check-ins have been recorded for this time period.')}
+      fit="max-content"
       data={checkIns}
       columnOrder={[
         {key: 'status', width: 120, name: t('Status')},
-        {key: 'checkInId', width: 135, name: t('Check-In ID')},
-        {key: 'started', width: 200, name: t('Started')},
-        {key: 'completed', width: 240, name: t('Completed')},
-        {key: 'duration', width: 150, name: t('Duration')},
-        {key: 'issues', width: 160, name: t('Issues')},
+        {key: 'checkInId', width: COL_WIDTH_UNDEFINED, name: t('Check-In ID')},
+        {key: 'started', width: COL_WIDTH_UNDEFINED, name: t('Started')},
+        {key: 'completed', width: COL_WIDTH_UNDEFINED, name: t('Completed')},
+        {key: 'duration', width: COL_WIDTH_UNDEFINED, name: t('Duration')},
+        {key: 'issues', width: COL_WIDTH_UNDEFINED, name: t('Issues')},
         ...envColumn,
-        {key: 'expectedAt', width: 240, name: t('Expected At')},
+        {key: 'expectedAt', width: COL_WIDTH_UNDEFINED, name: t('Expected At')},
       ]}
       columnSortBy={[]}
       grid={{

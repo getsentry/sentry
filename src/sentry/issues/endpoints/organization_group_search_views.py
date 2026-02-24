@@ -30,7 +30,6 @@ class MemberPermission(OrganizationPermission):
     }
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
-
         if isinstance(obj, Organization):
             return super().has_object_permission(request, view, obj)
 

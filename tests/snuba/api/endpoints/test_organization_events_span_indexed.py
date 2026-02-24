@@ -332,11 +332,47 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         data = response.data["data"]
         assert len(data) == 3
+        assert data[0]["device.class"] == "low"
+        assert data[0]["count()"] == 1
+        assert data[1]["device.class"] == "medium"
+        assert data[1]["count()"] == 1
+        assert data[2]["device.class"] == "high"
+        assert data[2]["count()"] == 1
+
+    def test_device_class_sort_descending(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"device.class": "3"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "2"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "1"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": "",
+                "orderby": "-device.class",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        assert len(data) == 3
         assert data[0]["device.class"] == "high"
         assert data[0]["count()"] == 1
-        assert data[1]["device.class"] == "low"
+        assert data[1]["device.class"] == "medium"
         assert data[1]["count()"] == 1
-        assert data[2]["device.class"] == "medium"
+        assert data[2]["device.class"] == "low"
         assert data[2]["count()"] == 1
 
     @pytest.mark.xfail(
@@ -998,9 +1034,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             assert result["span.description"] == source["description"], "description"
             ts = datetime.fromisoformat(result["timestamp"])
             assert ts.tzinfo == timezone.utc
-            assert ts.timestamp() == pytest.approx(
-                source["end_timestamp_precise"], abs=5
-            ), "timestamp"
+            assert ts.timestamp() == pytest.approx(source["end_timestamp_precise"], abs=5), (
+                "timestamp"
+            )
             assert result["transaction.span_id"] == source["segment_id"], "transaction.span_id"
             assert result["project"] == result["project.name"] == self.project.slug, "project"
         assert meta["dataset"] == "spans"
@@ -3574,7 +3610,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["dataset"] == "spans"
 
     def test_performance_score_zero(self) -> None:
-
         response = self.do_request(
             {
                 "field": [

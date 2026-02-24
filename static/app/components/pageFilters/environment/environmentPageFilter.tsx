@@ -1,18 +1,27 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
+import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
+import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {DesyncedFilterMessage} from 'sentry/components/pageFilters/desyncedFilter';
 import {
   EnvironmentPageFilterTrigger,
   type EnvironmentPageFilterTriggerProps,
 } from 'sentry/components/pageFilters/environment/environmentPageFilterTrigger';
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
-import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {
+  HybridFilter,
+  useStagedCompactSelect,
+  type HybridFilterRef,
+} from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -23,30 +32,37 @@ import useRouter from 'sentry/utils/useRouter';
 export interface EnvironmentPageFilterProps extends Partial<
   Omit<
     HybridFilterProps<string>,
-    | 'searchable'
+    | 'search'
     | 'multiple'
     | 'options'
     | 'value'
     | 'defaultValue'
     | 'onReplace'
+    | 'onReset'
     | 'onToggle'
     | 'menuTitle'
     | 'menuBody'
-    | 'menuFooter'
-    | 'menuFooterMessage'
-    | 'checkboxWrapper'
     | 'shouldCloseOnInteractOutside'
     | 'triggerProps'
+    | 'stagedSelect'
   >
 > {
   /**
-   * Message to show in the menu footer
+   * Called when the selection changes
    */
-  footerMessage?: React.ReactNode;
+  onChange?: (selected: string[]) => void;
+  /**
+   * Called when the reset button is clicked
+   */
+  onReset?: () => void;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  /**
+   * Optional prefix for the storage key
+   */
+  storageNamespace?: string;
   triggerProps?: Partial<EnvironmentPageFilterTriggerProps>;
 }
 
@@ -60,20 +76,19 @@ export function EnvironmentPageFilter({
   menuWidth,
   trigger,
   resetParamsOnChange,
-  footerMessage,
   triggerProps = {},
   storageNamespace,
   ...selectProps
 }: EnvironmentPageFilterProps) {
   const router = useRouter();
   const organization = useOrganization();
+  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const {
     selection: {projects: projectPageFilterValue, environments: envPageFilterValue},
     isReady: pageFilterIsReady,
-    desyncedFilters,
   } = usePageFilters();
 
   const environments = useMemo<string[]>(() => {
@@ -171,11 +186,18 @@ export function EnvironmentPageFilter({
       environments.map(env => ({
         value: env,
         label: env,
+        leadingItems: ({isSelected}: {isSelected: boolean}) => (
+          <MenuComponents.Checkbox
+            checked={isSelected}
+            onChange={() => hybridFilterRef.current?.toggleOption(env)}
+            aria-label={t('Select %s', env)}
+            tabIndex={-1}
+          />
+        ),
       })),
     [environments]
   );
 
-  const desynced = desyncedFilters.has('environments');
   const defaultMenuWidth = useMemo(() => {
     // EnvironmentPageFilter will try to expand to accommodate the longest env slug
     const longestSlugLength = options
@@ -185,35 +207,70 @@ export function EnvironmentPageFilter({
         0
       );
 
-    // Calculate an appropriate width for the menu. It should be between 16 (22 if
-    // there's a desynced message) and 24em. Within that range, the width is a function
-    // of the length of the longest slug. The environment slugs take up to
-    // (longestSlugLength * 0.6)em of horizontal space (each character occupies roughly
-    // 0.6em). We also need to add 6em to account for the checkbox and menu paddings.
-    return `${Math.max(desynced ? 22 : 16, Math.min(24, longestSlugLength * 0.6 + 6))}em`;
-  }, [options, desynced]);
+    // Calculate an appropriate width for the menu. It should be between 16 and 24em.
+    // Within that range, the width is a function of the length of the longest slug.
+    // The environment slugs take up to (longestSlugLength * 0.6)em of horizontal space
+    // (each character occupies roughly 0.6em). We also need to add 6em to account for
+    // the checkbox and menu paddings.
+    return `${Math.max(16, Math.min(24, longestSlugLength * 0.6 + 6))}em`;
+  }, [options]);
+
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    defaultValue: [],
+    options,
+    onChange: handleChange,
+    onToggle,
+    onReplace,
+    onReset,
+    multiple: true,
+  });
 
   return (
     <HybridFilter
       {...selectProps}
-      checkboxPosition="leading"
-      searchable
-      multiple
+      ref={hybridFilterRef}
+      stagedSelect={stagedSelect}
+      search
       options={options}
-      value={value}
-      defaultValue={[]}
-      onChange={handleChange}
-      onReset={onReset}
-      onReplace={onReplace}
-      onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
       emptyMessage={emptyMessage ?? t('No environments found')}
-      menuTitle={t('Filter Environments')}
+      menuTitle={
+        <Flex gap="xs" align="center">
+          <Text>{t('Filter Environments')}</Text>
+          <InfoTip
+            size="xs"
+            title={tct(
+              '[rangeModifier] + click to select a range of environments or [multiModifier] + click to select multiple environments at once.',
+              {
+                rangeModifier: t('Shift'),
+                multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
+              }
+            )}
+          />
+        </Flex>
+      }
       menuWidth={menuWidth ?? defaultMenuWidth}
-      menuBody={desynced && <DesyncedFilterMessage />}
-      menuFooterMessage={footerMessage}
+      menuHeaderTrailingItems={
+        stagedSelect.shouldShowReset ? (
+          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
+        ) : null
+      }
+      menuFooter={
+        stagedSelect.hasStagedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <MenuComponents.CancelButton
+              disabled={!stagedSelect.hasStagedChanges}
+              onClick={() => stagedSelect.removeStagedChanges()}
+            />
+            <MenuComponents.ApplyButton
+              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            />
+          </Flex>
+        ) : null
+      }
       trigger={
         trigger ??
         (tp => (
@@ -223,7 +280,6 @@ export function EnvironmentPageFilter({
             value={value}
             environments={environments}
             ready={projectsLoaded && pageFilterIsReady}
-            desynced={desynced}
           />
         ))
       }

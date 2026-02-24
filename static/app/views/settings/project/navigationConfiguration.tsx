@@ -70,7 +70,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/toolbar/`,
           title: t('Dev Toolbar'),
-          show: () => !!organization?.features?.includes('sentry-toolbar-ui'),
           badge: () => 'beta',
         },
       ],

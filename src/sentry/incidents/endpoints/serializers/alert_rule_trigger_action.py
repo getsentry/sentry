@@ -75,7 +75,6 @@ def get_input_channel_id(action_type, target_identifier=None):
 
 @register(AlertRuleTriggerAction)
 class AlertRuleTriggerActionSerializer(Serializer):
-
     def serialize(self, obj, attrs, user, **kwargs):
         # Mark that we're using legacy AlertRuleTriggerAction models
         report_used_legacy_models()

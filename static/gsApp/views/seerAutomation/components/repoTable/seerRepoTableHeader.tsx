@@ -19,6 +19,7 @@ import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCa
 import type {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 interface Props {
+  disabled: boolean;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   onSortClick: (key: Sort) => void;
   repositories: RepositoryWithSettings[];
@@ -46,16 +47,17 @@ const COLUMNS = [
 ];
 
 export default function SeerRepoTableHeader({
+  disabled,
+  mutateRepositorySettings,
   onSortClick,
   repositories,
   sort,
-  mutateRepositorySettings,
 }: Props) {
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
     listItemCheckboxState;
-  const queryOptions = parseQueryKey(queryKey).options;
+  const queryOptions = queryKey ? parseQueryKey(queryKey).options : undefined;
   const queryString = queryOptions?.query?.query;
 
   const handleBulkCodeReview = (enabledCodeReview: boolean) => {
@@ -96,6 +98,7 @@ export default function SeerRepoTableHeader({
           <SelectAllCheckbox
             listItemCheckboxState={listItemCheckboxState}
             repositories={repositories}
+            disabled={disabled}
           />
         </SimpleTable.HeaderCell>
         {COLUMNS.map(({title, key, sortKey}) => (
@@ -128,6 +131,7 @@ export default function SeerRepoTableHeader({
             <SelectAllCheckbox
               listItemCheckboxState={listItemCheckboxState}
               repositories={repositories}
+              disabled={disabled}
             />
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
@@ -195,7 +199,9 @@ export default function SeerRepoTableHeader({
 function SelectAllCheckbox({
   listItemCheckboxState: {deselectAll, isAllSelected, selectedIds, selectAll},
   repositories,
+  disabled,
 }: {
+  disabled: boolean;
   listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
   repositories: RepositoryWithSettings[];
 }) {
@@ -203,7 +209,7 @@ function SelectAllCheckbox({
     <Checkbox
       id="repository-table-select-all"
       checked={isAllSelected}
-      disabled={repositories.length === 0}
+      disabled={repositories.length === 0 || disabled}
       onChange={() => {
         if (isAllSelected === true || selectedIds.length === repositories.length) {
           deselectAll();

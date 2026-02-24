@@ -142,30 +142,26 @@ export function WebVitalDescription({score, value, webVital}: Props) {
           webVital: webVital.toUpperCase(),
         })}
       </Stack>
-      <SupportedBrowsers>
-        {Object.values(Browser).map(browser => (
-          <Flex align="center" gap="md" key={browser}>
-            {vitalSupportedBrowsers[
-              WebVital[webVital.toUpperCase() as Uppercase<typeof webVital>]
-            ]?.includes(browser) ? (
-              <IconCheckmark variant="success" size="sm" />
-            ) : (
-              <IconClose variant="danger" size="sm" />
-            )}
-            {browser}
-          </Flex>
-        ))}
-      </SupportedBrowsers>
-      <ReferenceLink>{link}</ReferenceLink>
+      <Stack gap="xl">
+        <Flex display="inline-flex" wrap="wrap" gap="xl">
+          {Object.values(Browser).map(browser => (
+            <Flex align="center" gap="md" key={browser}>
+              {vitalSupportedBrowsers[
+                WebVital[webVital.toUpperCase() as Uppercase<typeof webVital>]
+              ]?.includes(browser) ? (
+                <IconCheckmark variant="success" size="sm" />
+              ) : (
+                <IconClose variant="danger" size="sm" />
+              )}
+              {browser}
+            </Flex>
+          ))}
+        </Flex>
+        <ReferenceLink>{link}</ReferenceLink>
+      </Stack>
     </div>
   );
 }
-
-const SupportedBrowsers = styled('div')`
-  display: inline-flex;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
-`;
 
 const ReferenceLink = styled('div')`
   margin-bottom: ${space(2)};

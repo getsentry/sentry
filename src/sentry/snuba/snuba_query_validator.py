@@ -296,19 +296,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 % sorted(dataset.name.lower() for dataset in valid_datasets)
             )
 
-        if (
-            not features.has(
-                "organizations:mep-rollout-flag",
-                self.context["organization"],
-                actor=self.context.get("user", None),
-            )
-            and dataset == Dataset.PerformanceMetrics
-            and query_type == SnubaQuery.Type.PERFORMANCE
-        ):
-            raise serializers.ValidationError(
-                "This project does not have access to the `generic_metrics` dataset"
-            )
-
         projects = data.get("projects")
         if not projects:
             # We just need a valid project id from the org so that we can verify
@@ -377,7 +364,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         except Exception:
             logger.exception("Error while validating snuba alert rule query")
             raise serializers.ValidationError(
-                "Invalid Query or Metric: An error occurred while attempting " "to run the query"
+                "Invalid Query or Metric: An error occurred while attempting to run the query"
             )
 
     def _validate_time_window(self, value: int, dataset: Dataset):
@@ -403,10 +390,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         has_dynamic_sampling = features.has(
             "organizations:dynamic-sampling", self.context["organization"]
         )
-        has_performance_metrics_flag = features.has(
-            "organizations:mep-rollout-flag", self.context["organization"]
-        )
-        has_performance_metrics = has_dynamic_sampling and has_performance_metrics_flag
+        has_performance_metrics = has_dynamic_sampling
 
         has_on_demand_metrics = features.has(
             "organizations:on-demand-metrics-extraction",

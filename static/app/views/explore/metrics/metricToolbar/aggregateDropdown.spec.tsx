@@ -102,7 +102,7 @@ describe('AggregateDropdown', () => {
 
   it('renders multi-select dropdown with grouped options when feature enabled', async () => {
     const organization = OrganizationFixture({
-      features: ['tracemetrics-overlay-charts-ui'],
+      features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
     });
 
     const queryParams = new ReadableQueryParams({
@@ -149,7 +149,7 @@ describe('AggregateDropdown', () => {
 
   it('updates multiple visualizes on selection change', async () => {
     const organization = OrganizationFixture({
-      features: ['tracemetrics-overlay-charts-ui'],
+      features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
     });
 
     const setQueryParams = jest.fn();
@@ -194,7 +194,7 @@ describe('AggregateDropdown', () => {
 
   it('defaults to the type yAxis when all selections are cleared', async () => {
     const organization = OrganizationFixture({
-      features: ['tracemetrics-overlay-charts-ui'],
+      features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
     });
 
     const setQueryParams = jest.fn();
@@ -247,7 +247,7 @@ describe('AggregateDropdown', () => {
 
   it('shows correct options for counter metric type', async () => {
     const organization = OrganizationFixture({
-      features: ['tracemetrics-overlay-charts-ui'],
+      features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
     });
 
     const queryParams = new ReadableQueryParams({
@@ -283,7 +283,7 @@ describe('AggregateDropdown', () => {
 
   it('deselects incompatible aggregates when selecting from a different group', async () => {
     const organization = OrganizationFixture({
-      features: ['tracemetrics-overlay-charts-ui'],
+      features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
     });
 
     const setQueryParams = jest.fn();
@@ -339,7 +339,7 @@ describe('AggregateDropdown', () => {
 
   it('allows multiple selections within the same group', async () => {
     const organization = OrganizationFixture({
-      features: ['tracemetrics-overlay-charts-ui'],
+      features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
     });
 
     const setQueryParams = jest.fn();
@@ -387,7 +387,7 @@ describe('AggregateDropdown', () => {
 
   it('switches groups correctly when going from math to rate', async () => {
     const organization = OrganizationFixture({
-      features: ['tracemetrics-overlay-charts-ui'],
+      features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
     });
 
     const setQueryParams = jest.fn();

@@ -641,6 +641,13 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
   ].includes(displayType);
 };
 
+export function doesDisplayTypeSupportThresholds(displayType?: DisplayType): boolean {
+  if (!displayType) {
+    return false;
+  }
+  return displayType === DisplayType.BIG_NUMBER || usesTimeSeriesData(displayType);
+}
+
 // Custom widgets that fetch their own data (and don't use genericWidgetQueries)
 // handle error state and loading state on their own
 export const widgetFetchesOwnData = (widgetType: DisplayType) => {
@@ -651,16 +658,12 @@ export const widgetFetchesOwnData = (widgetType: DisplayType) => {
   return widgetTypesThatFetchOwnData.includes(widgetType);
 };
 
-// Custom widgets for prebuilt dashboards that do not have menu options
-export const widgetHasMenuOptions = (widgetType: DisplayType) => {
+// Custom widgets from the widget library that are not editable but still have menu options
+export const isWidgetEditable = (widgetType: DisplayType) => {
   const nonEditableWidgetTypes = [
     DisplayType.SERVER_TREE,
     DisplayType.RAGE_AND_DEAD_CLICKS,
+    DisplayType.WHEEL,
   ];
   return !nonEditableWidgetTypes.includes(widgetType);
-};
-
-// Custom widgets from the widget library that are not editable but still have menu options
-export const isWidgetEditable = (widgetType: DisplayType) => {
-  return widgetType !== DisplayType.WHEEL;
 };
