@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useContext,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -9,11 +8,7 @@ import {
 } from 'react';
 import {isAppleDevice, isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
-import type {DistributedOmit} from 'type-fest';
 
-import {type AlertProps} from '@sentry/scraps/alert';
-import {type ButtonProps, type LinkButtonProps} from '@sentry/scraps/button';
-import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
 import type {
   MultipleSelectProps,
   SelectKey,
@@ -21,14 +16,9 @@ import type {
   SelectOptionOrSection,
   SelectSection,
 } from '@sentry/scraps/compactSelect';
-import {
-  CompactSelect,
-  ControlContext,
-  MenuComponents,
-} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
-import {t} from 'sentry/locale';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 
 export interface HybridFilterRef<Value extends SelectKey> {
@@ -477,90 +467,3 @@ export function HybridFilter<Value extends SelectKey>({
     />
   );
 }
-
-export const HybridFilterComponents = {
-  CTALinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
-    return <MenuComponents.CTALinkButton {...props} />;
-  },
-
-  CTAButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
-    return <MenuComponents.CTAButton {...props} />;
-  },
-
-  ResetButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
-    const controlContext = useContext(ControlContext);
-
-    return (
-      <MenuComponents.HeaderButton
-        {...props}
-        onClick={e => {
-          props.onClick?.(e);
-          controlContext.overlayState?.close();
-        }}
-      >
-        {t('Reset')}
-      </MenuComponents.HeaderButton>
-    );
-  },
-
-  ClearButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
-    const controlContext = useContext(ControlContext);
-
-    return (
-      <MenuComponents.HeaderButton
-        {...props}
-        onClick={e => {
-          props.onClick?.(e);
-          controlContext.overlayState?.close();
-        }}
-      >
-        {t('Clear')}
-      </MenuComponents.HeaderButton>
-    );
-  },
-
-  ApplyButton(
-    props: DistributedOmit<Exclude<ButtonProps, 'children'>, 'priority' | 'size'>
-  ) {
-    const controlContext = useContext(ControlContext);
-
-    return (
-      <MenuComponents.ApplyButton
-        {...props}
-        disabled={props.disabled}
-        onClick={e => {
-          props.onClick?.(e);
-          controlContext.overlayState?.close();
-        }}
-      >
-        {t('Apply')}
-      </MenuComponents.ApplyButton>
-    );
-  },
-
-  CancelButton(
-    props: DistributedOmit<Exclude<ButtonProps, 'children'>, 'priority' | 'size'>
-  ) {
-    const controlContext = useContext(ControlContext);
-
-    return (
-      <MenuComponents.CancelButton
-        {...props}
-        onClick={e => {
-          props.onClick?.(e);
-          controlContext.overlayState?.close();
-        }}
-      >
-        {t('Cancel')}
-      </MenuComponents.CancelButton>
-    );
-  },
-
-  Checkbox(props: CheckboxProps) {
-    return <Checkbox {...props} />;
-  },
-
-  Alert(props: DistributedOmit<AlertProps, 'system' | 'showIcon'>) {
-    return <MenuComponents.Alert {...props} />;
-  },
-};

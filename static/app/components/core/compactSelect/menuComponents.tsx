@@ -16,21 +16,6 @@ import {ControlContext} from './control';
 
 export const MenuComponents = {
   /**
-   * A link button sized and styled to sit in `menuHeaderTrailingItems`. Inherits
-   * the header's font size and renders in secondary text color so it blends with
-   * the title rather than competing with it.
-   *
-   * Use this for navigation actions in the header — e.g. a "View all" link that
-   * opens a related page. For non-navigation actions (no `to`/`href`) use
-   * `HeaderButton` instead.
-   *
-   * `priority` and `size` are locked to keep the header visually consistent.
-   */
-  LinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
-    return <HeaderLinkButton size="zero" priority="transparent" {...props} />;
-  },
-
-  /**
    * A button sized and styled to sit in `menuHeaderTrailingItems`. Inherits the
    * header's font size and renders in secondary text color so it blends with the
    * title rather than competing with it.
@@ -42,22 +27,40 @@ export const MenuComponents = {
    *
    * `priority` and `size` are locked to keep the header visually consistent.
    */
-  HeaderButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
-    return <HeaderButton size="zero" priority="transparent" {...props} />;
+  ResetButton(props: DistributedOmit<ButtonProps, 'priority' | 'size' | 'children'>) {
+    const controlContext = useContext(ControlContext);
+
+    return (
+      <HeaderButton
+        size="zero"
+        priority="transparent"
+        {...props}
+        onClick={e => {
+          props.onClick?.(e);
+          controlContext.overlayState?.close();
+        }}
+      >
+        {t('Reset')}
+      </HeaderButton>
+    );
   },
 
-  /**
-   * A link button sized for `menuFooter` call-to-action slots. Larger and more
-   * visually prominent than `LinkButton`, making it suitable for primary footer
-   * actions that navigate to another page — e.g. "Create Project" or "Add Team".
-   *
-   * Use this in `menuFooter` when the action navigates somewhere (`to`/`href`).
-   * For in-place footer actions without navigation use `CTAButton` instead.
-   *
-   * `priority` and `size` are locked to keep footer actions visually consistent.
-   */
-  CTALinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
-    return <LinkButton size="xs" {...props} />;
+  ClearButton(props: DistributedOmit<ButtonProps, 'priority' | 'size' | 'children'>) {
+    const controlContext = useContext(ControlContext);
+
+    return (
+      <HeaderButton
+        size="zero"
+        priority="transparent"
+        {...props}
+        onClick={e => {
+          props.onClick?.(e);
+          controlContext.overlayState?.close();
+        }}
+      >
+        {t('Clear')}
+      </HeaderButton>
+    );
   },
 
   /**
@@ -74,6 +77,9 @@ export const MenuComponents = {
    */
   CTAButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
     return <Button size="xs" {...props} />;
+  },
+  CTALinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
+    return <LinkButton size="xs" {...props} />;
   },
 
   /**
@@ -161,13 +167,6 @@ const StyledAlert = styled(Alert)`
 `;
 
 const HeaderButton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${p => p.theme.space.xs};
-`;
-
-const HeaderLinkButton = styled(LinkButton)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
