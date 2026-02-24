@@ -165,6 +165,7 @@ const SupportedBrowsers = styled('div')`
   display: inline-flex;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
+  flex-wrap: wrap;
 `;
 
 const ReferenceLink = styled('div')`
