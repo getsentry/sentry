@@ -57,9 +57,12 @@ export default function SeerRepoTable() {
     select: ({pages}) =>
       uniqBy(
         pages.flatMap(page => page.json),
-        'id'
+        'externalId'
       )
-        .filter(repository => isSupportedAutofixProvider(repository.provider))
+        .filter(
+          repository =>
+            repository.externalId && isSupportedAutofixProvider(repository.provider)
+        )
         .sort((a, b) => {
           if (sort.field === 'name') {
             return sort.kind === 'asc'

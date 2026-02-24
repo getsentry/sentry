@@ -91,6 +91,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
 
   const {
     data: repositories,
+    isError: isRepositoriesError,
     isFetching: isRepositoriesFetching,
     hasNextPage: hasNextPageRepositories,
     fetchNextPage: fetchNextPageRepositories,
@@ -103,17 +104,22 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     select: ({pages}) =>
       uniqBy(
         pages.flatMap(page => page.json),
-        'id'
-      ),
+        'externalId'
+      ).filter(repository => repository.externalId !== null),
   });
   // Auto-fetch each page, one at a time
   useEffect(() => {
-    if (!isFetchingNextPageRepositories && hasNextPageRepositories) {
+    if (
+      !isRepositoriesError &&
+      !isFetchingNextPageRepositories &&
+      hasNextPageRepositories
+    ) {
       fetchNextPageRepositories();
     }
   }, [
-    hasNextPageRepositories,
     fetchNextPageRepositories,
+    hasNextPageRepositories,
+    isRepositoriesError,
     isFetchingNextPageRepositories,
   ]);
 
