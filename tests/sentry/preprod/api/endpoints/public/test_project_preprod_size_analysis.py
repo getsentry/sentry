@@ -1,5 +1,4 @@
 from io import BytesIO
-from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -48,6 +47,25 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             self.endpoint,
             args=[self.organization.slug, artifact_id],
         )
+
+    def _create_analysis_file(self, data):
+        f = self.create_file(name="analysis.json", type="application/json")
+        f.putfile(BytesIO(json.dumps(data).encode()))
+        return f
+
+    def _make_analysis_data(self, **overrides):
+        defaults = {
+            "analysis_duration": 1.5,
+            "download_size": 512000,
+            "install_size": 1024000,
+            "analysis_version": "1.0.0",
+            "treemap": None,
+            "insights": None,
+            "file_analysis": None,
+            "app_components": None,
+        }
+        defaults.update(overrides)
+        return defaults
 
     def test_feature_flag_disabled(self):
         with self.feature({"organizations:preprod-frontend-routes": False}):
@@ -114,65 +132,9 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["error_message"] == "Analysis failed"
 
     def test_completed_state(self):
-        analysis_file = self.create_file(name="analysis.json", type="application/json")
-        analysis_data = {
-            "analysis_duration": 1.5,
-            "download_size": 512000,
-            "install_size": 1024000,
-            "analysis_version": "1.0.0",
-            "treemap": None,
-            "insights": None,
-            "file_analysis": None,
-            "app_components": None,
-        }
-        with patch.object(analysis_file, "getfile") as mock_getfile:
-            mock_file = MagicMock()
-            mock_file.read.return_value = json.dumps(analysis_data).encode()
-            mock_getfile.return_value = mock_file
-
-            self.create_preprod_artifact_size_metrics(
-                self.preprod_artifact,
-                analysis_file_id=analysis_file.id,
-                metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-                max_install_size=1024000,
-                max_download_size=512000,
-            )
-
-            # Re-mock since we need to mock File.objects.get
-            with patch(
-                "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
-            ) as MockFile:
-                mock_file_obj = MagicMock()
-                mock_fp = BytesIO(json.dumps(analysis_data).encode())
-                mock_file_obj.getfile.return_value = mock_fp
-                MockFile.objects.get.return_value = mock_file_obj
-
-                response = self.client.get(self._get_url())
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["state"] == "COMPLETED"
-        assert data["download_size"] == 512000
-        assert data["install_size"] == 1024000
-        assert data["analysis_duration"] == 1.5
-        assert data["analysis_version"] == "1.0.0"
-
-    def test_completed_with_insights(self):
-        analysis_data = {
-            "analysis_duration": 1.5,
-            "download_size": 512000,
-            "install_size": 1024000,
-            "analysis_version": "1.0.0",
-            "treemap": {
-                "root": {"name": "root", "size": 100, "is_dir": True, "children": []},
-                "file_count": 1,
-                "category_breakdown": {},
-                "platform": "android",
-            },
-            "insights": {"platform": "android", "duplicate_files": None},
-            "file_analysis": {"items": []},
-            "app_components": [
+        analysis_data = self._make_analysis_data(
+            insights={"platform": "android", "duplicate_files": None},
+            app_components=[
                 {
                     "component_type": PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
                     "name": "Watch App",
@@ -182,77 +144,41 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
                     "install_size": 200000,
                 }
             ],
-        }
-
-        self.create_preprod_artifact_size_metrics(
-            self.preprod_artifact,
-            analysis_file_id=1,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            max_install_size=1024000,
-            max_download_size=512000,
-        )
-
-        with patch(
-            "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
-        ) as MockFile:
-            mock_file_obj = MagicMock()
-            mock_fp = BytesIO(json.dumps(analysis_data).encode())
-            mock_file_obj.getfile.return_value = mock_fp
-            MockFile.objects.get.return_value = mock_file_obj
-
-            response = self.client.get(self._get_url())
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["insights"] is not None
-        assert data["insights"]["platform"] == "android"
-        assert data["app_components"] is not None
-        assert len(data["app_components"]) == 1
-        assert data["app_components"][0]["name"] == "Watch App"
-
-    def test_excludes_treemap_and_file_analysis(self):
-        analysis_data = {
-            "analysis_duration": 1.5,
-            "download_size": 512000,
-            "install_size": 1024000,
-            "analysis_version": "1.0.0",
-            "treemap": {
+            treemap={
                 "root": {"name": "root", "size": 100, "is_dir": True, "children": []},
                 "file_count": 1,
                 "category_breakdown": {},
                 "platform": "android",
             },
-            "insights": None,
-            "file_analysis": {"items": [{"path": "/test", "hash": "abc123", "children": []}]},
-            "app_components": None,
-        }
+            file_analysis={"items": [{"path": "/test", "hash": "abc123", "children": []}]},
+        )
+        analysis_file = self._create_analysis_file(analysis_data)
 
         self.create_preprod_artifact_size_metrics(
             self.preprod_artifact,
-            analysis_file_id=1,
+            analysis_file_id=analysis_file.id,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             max_install_size=1024000,
             max_download_size=512000,
         )
 
-        with patch(
-            "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
-        ) as MockFile:
-            mock_file_obj = MagicMock()
-            mock_fp = BytesIO(json.dumps(analysis_data).encode())
-            mock_file_obj.getfile.return_value = mock_fp
-            MockFile.objects.get.return_value = mock_file_obj
-
-            response = self.client.get(self._get_url())
+        response = self.client.get(self._get_url())
 
         assert response.status_code == 200
         data = response.json()
+        assert data["state"] == "COMPLETED"
+        assert data["download_size"] == 512000
+        assert data["install_size"] == 1024000
+        assert data["analysis_duration"] == 1.5
+        assert data["analysis_version"] == "1.0.0"
+        assert data["insights"]["platform"] == "android"
+        assert len(data["app_components"]) == 1
+        assert data["app_components"][0]["name"] == "Watch App"
         assert "treemap" not in data
         assert "file_analysis" not in data
 
-    def test_with_base_artifact_comparison(self):
+    def test_completed_state_with_base_build(self):
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
             head_sha="1234567890098765432112345678900987654321",
@@ -280,10 +206,10 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             build_number=41,
         )
 
-        head_analysis_file = self.create_file(name="head_analysis.json", type="application/json")
+        analysis_file = self._create_analysis_file(self._make_analysis_data())
         head_size_metric = self.create_preprod_artifact_size_metrics(
             self.preprod_artifact,
-            analysis_file_id=head_analysis_file.id,
+            analysis_file_id=analysis_file.id,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             max_install_size=1024000,
@@ -300,25 +226,6 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             max_download_size=450000,
         )
 
-        comparison_file = self.create_file(name="comparison.json", type="application/json")
-        self.create_preprod_artifact_size_comparison(
-            head_size_analysis=head_size_metric,
-            base_size_analysis=base_size_metric,
-            organization=self.organization,
-            state=PreprodArtifactSizeComparison.State.SUCCESS,
-            file_id=comparison_file.id,
-        )
-
-        analysis_data = {
-            "analysis_duration": 1.5,
-            "download_size": 512000,
-            "install_size": 1024000,
-            "analysis_version": "1.0.0",
-            "treemap": None,
-            "insights": None,
-            "file_analysis": None,
-            "app_components": None,
-        }
         comparison_data = {
             "diff_items": [{"size_diff": 100, "path": "/test", "type": "added"}],
             "insight_diff_items": [],
@@ -332,27 +239,16 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             },
             "skipped_diff_item_comparison": False,
         }
+        comparison_file = self._create_analysis_file(comparison_data)
+        self.create_preprod_artifact_size_comparison(
+            head_size_analysis=head_size_metric,
+            base_size_analysis=base_size_metric,
+            organization=self.organization,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+            file_id=comparison_file.id,
+        )
 
-        def get_file_side_effect(id):
-            mock_file = MagicMock()
-            if id == head_analysis_file.id:
-                mock_file.getfile.return_value = BytesIO(json.dumps(analysis_data).encode())
-            elif id == comparison_file.id:
-                mock_file.getfile.return_value = BytesIO(json.dumps(comparison_data).encode())
-            return mock_file
-
-        with (
-            patch(
-                "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
-            ) as MockFile,
-            patch("sentry.preprod.api.models.public_api_models.File") as MockModelsFile,
-        ):
-            MockFile.objects.get.side_effect = get_file_side_effect
-            MockFile.DoesNotExist = Exception
-            MockModelsFile.objects.get.side_effect = get_file_side_effect
-            MockModelsFile.DoesNotExist = Exception
-
-            response = self.client.get(self._get_url())
+        response = self.client.get(self._get_url())
 
         assert response.status_code == 200
         data = response.json()
@@ -365,7 +261,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert comparison["diff_items"] is not None
         assert comparison["size_metric_diff"] is not None
 
-    def test_with_explicit_base_id(self):
+    def test_completed_state_with_explicit_base_id(self):
         base_file = self.create_file(name="base_artifact.apk", type="application/octet-stream")
         base_artifact = self.create_preprod_artifact(
             project=self.project,
@@ -379,10 +275,10 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             build_number=41,
         )
 
-        head_analysis_file = self.create_file(name="head_analysis.json", type="application/json")
+        analysis_file = self._create_analysis_file(self._make_analysis_data())
         head_size_metric = self.create_preprod_artifact_size_metrics(
             self.preprod_artifact,
-            analysis_file_id=head_analysis_file.id,
+            analysis_file_id=analysis_file.id,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             max_install_size=1024000,
@@ -399,25 +295,6 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             max_download_size=450000,
         )
 
-        comparison_file = self.create_file(name="comparison.json", type="application/json")
-        self.create_preprod_artifact_size_comparison(
-            head_size_analysis=head_size_metric,
-            base_size_analysis=base_size_metric,
-            organization=self.organization,
-            state=PreprodArtifactSizeComparison.State.SUCCESS,
-            file_id=comparison_file.id,
-        )
-
-        analysis_data = {
-            "analysis_duration": 1.5,
-            "download_size": 512000,
-            "install_size": 1024000,
-            "analysis_version": "1.0.0",
-            "treemap": None,
-            "insights": None,
-            "file_analysis": None,
-            "app_components": None,
-        }
         comparison_data = {
             "diff_items": [],
             "insight_diff_items": [],
@@ -431,27 +308,16 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             },
             "skipped_diff_item_comparison": False,
         }
+        comparison_file = self._create_analysis_file(comparison_data)
+        self.create_preprod_artifact_size_comparison(
+            head_size_analysis=head_size_metric,
+            base_size_analysis=base_size_metric,
+            organization=self.organization,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+            file_id=comparison_file.id,
+        )
 
-        def get_file_side_effect(id):
-            mock_file = MagicMock()
-            if id == head_analysis_file.id:
-                mock_file.getfile.return_value = BytesIO(json.dumps(analysis_data).encode())
-            elif id == comparison_file.id:
-                mock_file.getfile.return_value = BytesIO(json.dumps(comparison_data).encode())
-            return mock_file
-
-        with (
-            patch(
-                "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
-            ) as MockFile,
-            patch("sentry.preprod.api.models.public_api_models.File") as MockModelsFile,
-        ):
-            MockFile.objects.get.side_effect = get_file_side_effect
-            MockFile.DoesNotExist = Exception
-            MockModelsFile.objects.get.side_effect = get_file_side_effect
-            MockModelsFile.DoesNotExist = Exception
-
-            response = self.client.get(self._get_url() + f"?base_artifact_id={base_artifact.id}")
+        response = self.client.get(self._get_url() + f"?base_artifact_id={base_artifact.id}")
 
         assert response.status_code == 200
         data = response.json()
@@ -459,35 +325,18 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["comparisons"] is not None
 
     def test_invalid_base_id(self):
+        analysis_file = self._create_analysis_file(self._make_analysis_data())
+
         self.create_preprod_artifact_size_metrics(
             self.preprod_artifact,
-            analysis_file_id=1,
+            analysis_file_id=analysis_file.id,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             max_install_size=1024000,
             max_download_size=512000,
         )
 
-        analysis_data = {
-            "analysis_duration": 1.5,
-            "download_size": 512000,
-            "install_size": 1024000,
-            "analysis_version": "1.0.0",
-            "treemap": None,
-            "insights": None,
-            "file_analysis": None,
-            "app_components": None,
-        }
-
-        with patch(
-            "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
-        ) as MockFile:
-            mock_file_obj = MagicMock()
-            mock_fp = BytesIO(json.dumps(analysis_data).encode())
-            mock_file_obj.getfile.return_value = mock_fp
-            MockFile.objects.get.return_value = mock_file_obj
-
-            response = self.client.get(self._get_url() + "?base_artifact_id=999999")
+        response = self.client.get(self._get_url() + "?base_artifact_id=999999")
 
         assert response.status_code == 404
         assert "base preprod artifact does not exist" in response.json()["detail"]
@@ -518,35 +367,18 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             app_id="com.other.app",
         )
 
+        analysis_file = self._create_analysis_file(self._make_analysis_data())
+
         self.create_preprod_artifact_size_metrics(
             self.preprod_artifact,
-            analysis_file_id=1,
+            analysis_file_id=analysis_file.id,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             max_install_size=1024000,
             max_download_size=512000,
         )
 
-        analysis_data = {
-            "analysis_duration": 1.5,
-            "download_size": 512000,
-            "install_size": 1024000,
-            "analysis_version": "1.0.0",
-            "treemap": None,
-            "insights": None,
-            "file_analysis": None,
-            "app_components": None,
-        }
-
-        with patch(
-            "sentry.preprod.api.endpoints.public.project_preprod_size_analysis.File"
-        ) as MockFile:
-            mock_file_obj = MagicMock()
-            mock_fp = BytesIO(json.dumps(analysis_data).encode())
-            mock_file_obj.getfile.return_value = mock_fp
-            MockFile.objects.get.return_value = mock_file_obj
-
-            response = self.client.get(self._get_url() + f"?base_artifact_id={other_artifact.id}")
+        response = self.client.get(self._get_url() + f"?base_artifact_id={other_artifact.id}")
 
         assert response.status_code == 404
         assert "base preprod artifact does not exist" in response.json()["detail"]
