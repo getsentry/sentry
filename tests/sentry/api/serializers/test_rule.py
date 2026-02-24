@@ -624,6 +624,15 @@ class WorkflowRuleSerializerTest(TestCase):
         action_data["integration"] = integration.id
         action_data.pop("uuid")
 
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
     def test_sentry_app_render_label(self) -> None:
         schema = {"elements": [self.create_alert_rule_action_schema()]}
         sentry_app = self.create_sentry_app(
