@@ -27,7 +27,6 @@ const CardContainer = styled(Container)<{seer?: boolean}>`
     p.seer &&
     `
     @media (min-width: ${p.theme.breakpoints.md}) {
-      padding-right: 4rem;
       grid-column: span 2;
     }
   `}
@@ -73,7 +72,13 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
         </Flex>
         <Stack area="cell4" gap="xl">
           <Container>
-            <Text variant="muted" size="md" density="comfortable">
+            <Text
+              as="p"
+              variant="muted"
+              size="md"
+              density="comfortable"
+              textWrap="pretty"
+            >
               {description}
             </Text>
           </Container>
