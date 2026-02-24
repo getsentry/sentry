@@ -1,8 +1,8 @@
-import pytest
 from hashlib import sha1
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
