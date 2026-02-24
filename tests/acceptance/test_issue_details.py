@@ -24,7 +24,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
         UserOption.objects.set_value(
-            user=self.user, key="prefers_issue_details_streamlined_ui", value="0"
+            user=self.user, key="prefers_issue_details_streamlined_ui", value=False
         )
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()

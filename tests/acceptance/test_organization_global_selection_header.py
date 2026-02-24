@@ -45,7 +45,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
         self.login_as(self.user)
         UserOption.objects.set_value(
-            user=self.user, key="prefers_issue_details_streamlined_ui", value="0"
+            user=self.user, key="prefers_issue_details_streamlined_ui", value=False
         )
         self.dismiss_assistant()
 
