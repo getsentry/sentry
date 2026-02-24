@@ -21,6 +21,7 @@ export interface ConversationMessage {
   nodeId: string;
   role: 'user' | 'assistant';
   timestamp: number;
+  duration?: number;
   toolCalls?: ToolCall[];
   userEmail?: string;
 }
@@ -35,6 +36,7 @@ interface ConversationTurn {
   assistantContent: string | null;
   generation: AITraceSpanNode;
   toolCalls: ToolCall[];
+  toolSpanNodes: AITraceSpanNode[];
   userContent: string | null;
   userEmail: string | undefined;
 }
@@ -92,11 +94,18 @@ export function buildConversationTurns(
     const timestamp = getNodeTimestamp(node);
     const prevTimestamp = i > 0 ? getNodeTimestamp(generationSpans[i - 1]!) : 0;
     const userEmail = getStringAttr(node, SpanFields.USER_EMAIL);
-    const toolCalls = findToolCallsBetween(toolSpans, prevTimestamp, timestamp);
+    const toolCallSpans = findToolSpansBetween(toolSpans, prevTimestamp, timestamp);
+    const toolCalls = toolCallSpans
+      .map(span => {
+        const name = getStringAttr(span, SpanFields.GEN_AI_TOOL_NAME);
+        return name ? {name, nodeId: span.id, hasError: hasError(span)} : null;
+      })
+      .filter((tc): tc is ToolCall => tc !== null);
 
     turns.push({
       generation: node,
       toolCalls,
+      toolSpanNodes: toolCallSpans,
       userContent: parseUserContent(node),
       assistantContent: parseAssistantContent(node),
       userEmail,
@@ -109,21 +118,26 @@ export function buildConversationTurns(
 export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
   const result: ConversationTurn[] = [];
   let pendingToolCalls: ToolCall[] = [];
+  let pendingToolSpanNodes: AITraceSpanNode[] = [];
 
   for (const turn of turns) {
     const allToolCalls = [...pendingToolCalls, ...turn.toolCalls];
+    const allToolSpanNodes = [...pendingToolSpanNodes, ...turn.toolSpanNodes];
 
     if (turn.assistantContent) {
-      result.push({...turn, toolCalls: allToolCalls});
+      result.push({...turn, toolCalls: allToolCalls, toolSpanNodes: allToolSpanNodes});
       pendingToolCalls = [];
+      pendingToolSpanNodes = [];
     } else if (turn.toolCalls.length > 0) {
       if (turn.userContent) {
-        result.push({...turn, toolCalls: []});
+        result.push({...turn, toolCalls: [], toolSpanNodes: []});
       }
       pendingToolCalls = allToolCalls;
+      pendingToolSpanNodes = allToolSpanNodes;
     } else if (turn.userContent) {
-      result.push({...turn, toolCalls: allToolCalls});
+      result.push({...turn, toolCalls: allToolCalls, toolSpanNodes: allToolSpanNodes});
       pendingToolCalls = [];
+      pendingToolSpanNodes = [];
     }
   }
 
@@ -152,6 +166,16 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
 
     if (turn.assistantContent && !seenAssistantContent.has(turn.assistantContent)) {
       seenAssistantContent.add(turn.assistantContent);
+
+      // Duration: from start of generation span to end of last span (generation or tool)
+      const genEnd = getNodeEndTimestamp(turn.generation);
+      const lastToolEnd =
+        turn.toolSpanNodes.length > 0
+          ? Math.max(...turn.toolSpanNodes.map(getNodeEndTimestamp))
+          : 0;
+      const endTs = Math.max(genEnd, lastToolEnd);
+      const duration = endTs > timestamp ? endTs - timestamp : undefined;
+
       messages.push({
         id: `assistant-${turn.generation.id}`,
         role: 'assistant',
@@ -159,12 +183,24 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         timestamp: timestamp + 1,
         nodeId: turn.generation.id,
         toolCalls: turn.toolCalls.length > 0 ? turn.toolCalls : undefined,
+        duration,
       });
     }
   }
 
   messages.sort((a, b) => a.timestamp - b.timestamp);
   return messages;
+}
+
+function findToolSpansBetween(
+  toolSpans: AITraceSpanNode[],
+  startTime: number,
+  endTime: number
+): AITraceSpanNode[] {
+  return toolSpans.filter(span => {
+    const ts = getNodeTimestamp(span);
+    return ts > startTime && ts < endTime;
+  });
 }
 
 export function findToolCallsBetween(
@@ -238,6 +274,16 @@ export function parseAssistantContent(node: AITraceSpanNode): string | null {
 
 export function getNodeTimestamp(node: AITraceSpanNode): number {
   return 'start_timestamp' in node.value ? node.value.start_timestamp : 0;
+}
+
+export function getNodeEndTimestamp(node: AITraceSpanNode): number {
+  if ('end_timestamp' in node.value && typeof node.value.end_timestamp === 'number') {
+    return node.value.end_timestamp;
+  }
+  if ('timestamp' in node.value && typeof node.value.timestamp === 'number') {
+    return node.value.timestamp;
+  }
+  return 0;
 }
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {

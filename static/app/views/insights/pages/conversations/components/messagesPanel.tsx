@@ -6,9 +6,8 @@ import {Text} from '@sentry/scraps/text';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {IconUser} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {MessageToolCalls} from 'sentry/views/insights/pages/conversations/components/messageToolCalls';
@@ -84,14 +83,21 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               onClick={isAssistant ? () => handleMessageClick(message) : undefined}
             >
               <MessageHeader justify={message.role === 'user' ? 'end' : 'start'}>
-                {message.role === 'user' ? <IconUser size="sm" /> : <IconBot size="sm" />}
-                <Text bold size="sm">
-                  {message.role === 'user' ? t('User') : t('Assistant')}
-                </Text>
-                {message.role === 'user' && message.userEmail && (
-                  <Text size="sm" style={{color: 'inherit', opacity: 0.7}}>
-                    {message.userEmail}
+                {message.role === 'user' ? (
+                  <Text bold size="sm">
+                    {message.userEmail || t('User')}
                   </Text>
+                ) : (
+                  <Flex align="baseline" gap="sm" flex={1}>
+                    <Text bold size="sm">
+                      {t('Assistant')}
+                    </Text>
+                    {message.duration !== null && message.duration > 0 && (
+                      <Text size="xs" variant="muted">
+                        {getDuration(message.duration, 1, true)}
+                      </Text>
+                    )}
+                  </Flex>
                 )}
               </MessageHeader>
               <StyledClippedBox
@@ -99,7 +105,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                 buttonProps={{priority: 'default', size: 'xs'}}
                 collapsible
               >
-                <Container padding="sm">
+                <Container padding="md">
                   <MessageText size="sm">
                     <MarkedText
                       as={TraceDrawerComponents.MarkdownContainer}
@@ -125,7 +131,8 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 }
 
 const PanelContainer = styled(Flex)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.md};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
@@ -133,9 +140,18 @@ const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
   align-items: center;
   gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xs};
   justify-content: ${p => (p.justify === 'end' ? 'flex-end' : 'flex-start')};
-  background-color: ${p => p.theme.tokens.background.secondary};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: ${p => p.theme.space.md};
+    right: ${p => p.theme.space.md};
+    bottom: 0;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+  position: relative;
 `;
 
 const MessageText = styled(Text)`
@@ -154,9 +170,9 @@ const MessageBubble = styled('div')<{
   width: 90%;
   align-self: ${p => (p.role === 'user' ? 'flex-end' : 'flex-start')};
   background-color: ${p =>
-    p.role === 'user'
-      ? p.theme.tokens.background.secondary
-      : p.theme.tokens.background.primary};
+    p.role === 'assistant'
+      ? p.theme.tokens.background.primary
+      : p.theme.tokens.background.secondary};
   &::after {
     content: '';
     position: absolute;
@@ -173,12 +189,7 @@ const MessageBubble = styled('div')<{
     cursor: pointer;
     &:hover::after {
       border-color: ${p.theme.tokens.border.accent.moderate};
-    }
-    &:hover {
-      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
-    }
-    &:active {
-      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      border-width: 2px;
     }
   `}
   ${p =>
