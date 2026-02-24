@@ -75,6 +75,7 @@ class InsightDiffItemResponseDict(TypedDict):
     group_diffs: list[DiffItemResponseDict]
 
 
+# Keep in sync with internal models in sentry.preprod.size_analysis.models
 class ComparisonResponseDict(TypedDict):
     metrics_artifact_type: int
     identifier: str | None
@@ -118,6 +119,7 @@ class SizeAnalysisNotRanResponseDict(TypedDict):
     error_message: str | None
 
 
+# Keep in sync with internal models in sentry.preprod.size_analysis.models
 class SizeAnalysisCompletedResponseDict(TypedDict):
     build_id: str
     state: Literal["COMPLETED"]
