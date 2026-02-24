@@ -24,7 +24,7 @@ from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
@@ -144,6 +144,19 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] is None
         assert response.data["conditions"][0]["name"]
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine_serializer_dual_written_rule(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["environment"] is None
+        assert response.data["conditions"][0]["name"]
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine_serializer_single_written_rule(self) -> None:
+        pass
 
     def test_non_existing_rule(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)

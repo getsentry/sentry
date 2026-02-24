@@ -9,7 +9,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, features
 from sentry.analytics.events.rule_disable_opt_out import (
     RuleDisableOptOutEdit,
     RuleDisableOptOutExplicit,
@@ -21,7 +21,7 @@ from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.rule import RuleSerializer
+from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.apidocs.constants import (
@@ -44,6 +44,7 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -135,13 +136,26 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
-        # Serialize Rule object
-        rule_serializer = RuleSerializer(
-            expand=request.GET.getlist("expand", []),
-            prepare_component_fields=True,
-            project_slug=project.slug,
-        )
-        serialized_rule = serialize(rule, request.user, rule_serializer)
+        if features.has("organizations:workflow-engine-rule-serializers", project.organization):
+            # TODO: replace with convert_args when fully switching over
+            # TODO: handle single written rules that won't be in ARW
+            arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+
+            workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
+                expand=request.GET.getlist("expand", []),
+                prepare_component_fields=True,
+                project_slug=project.slug,
+            )
+            serialized_rule = serialize(arw.workflow, request.user, workflow_engine_rule_serializer)
+        else:
+            # Serialize Rule object
+            rule_serializer = RuleSerializer(
+                expand=request.GET.getlist("expand", []),
+                prepare_component_fields=True,
+                project_slug=project.slug,
+            )
+            serialized_rule = serialize(rule, request.user, rule_serializer)
+
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
             # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of
