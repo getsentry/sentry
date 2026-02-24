@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {LinkButton} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -54,12 +53,12 @@ function FilterBar({
             )}
             menuFooter={
               <Grid flow="column" align="center" gap="md">
-                <LinkButton size="xs" icon={<IconOpen />} to="/insights/crons/">
+                <MenuComponents.CTALinkButton icon={<IconOpen />} to="/insights/crons/">
                   {t('Crons Overview')}
-                </LinkButton>
-                <LinkButton size="xs" icon={<IconOpen />} to="/insights/uptime/">
+                </MenuComponents.CTALinkButton>
+                <MenuComponents.CTALinkButton icon={<IconOpen />} to="/insights/uptime/">
                   {t('Uptime Overview')}
-                </LinkButton>
+                </MenuComponents.CTALinkButton>
               </Grid>
             }
             options={[

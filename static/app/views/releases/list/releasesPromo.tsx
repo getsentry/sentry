@@ -6,9 +6,13 @@ import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -247,7 +251,7 @@ sentry-cli releases finalize "$VERSION"`;
           searchable
           disabled={false}
           menuFooter={({closeOverlay}) => (
-            <Button
+            <MenuComponents.CTAButton
               tooltipProps={{
                 title: canMakeIntegration
                   ? undefined
@@ -255,8 +259,6 @@ sentry-cli releases finalize "$VERSION"`;
                       'You must be an organization owner, manager or admin to create an integration.'
                     ),
               }}
-              size="xs"
-              priority="transparent"
               disabled={!canMakeIntegration}
               onClick={() => {
                 closeOverlay();
@@ -274,7 +276,7 @@ sentry-cli releases finalize "$VERSION"`;
               }}
             >
               {t('Add New Integration')}
-            </Button>
+            </MenuComponents.CTAButton>
           )}
           trigger={triggerProps => (
             <OverlayTrigger.Button

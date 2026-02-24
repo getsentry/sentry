@@ -25,6 +25,20 @@ export const MenuComponents = {
    * "Clear", "Invite Member", or "Sync". These actions typically take effect
    * immediately and close the menu. For navigation actions use `LinkButton`
    * instead. For prominent footer actions use `CTAButton`.
+   */
+  HeaderButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
+    return <HeaderButton size="zero" priority="transparent" {...props} />;
+  },
+
+  /**
+   * A button sized and styled to sit in `menuHeaderTrailingItems`. Inherits the
+   * header's font size and renders in secondary text color so it blends with the
+   * title rather than competing with it.
+   *
+   * Use this for lightweight, immediate actions in the header — e.g. "Reset",
+   * "Clear", "Invite Member", or "Sync". These actions typically take effect
+   * immediately and close the menu. For navigation actions use `LinkButton`
+   * instead. For prominent footer actions use `CTAButton`.
    *
    * `priority` and `size` are locked to keep the header visually consistent.
    */

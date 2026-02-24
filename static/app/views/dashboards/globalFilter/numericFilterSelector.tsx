@@ -2,7 +2,11 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -294,18 +298,14 @@ function NumericFilterSelector({
         </MenuTitleWrapper>
       }
       menuHeaderTrailingItems={
-        disableRemoveFilter
-          ? undefined
-          : () => (
-              <StyledButton
-                aria-label={t('Remove Filter')}
-                size="xs"
-                priority="transparent"
-                onClick={() => onRemoveFilter(globalFilter)}
-              >
-                {t('Remove Filter')}
-              </StyledButton>
-            )
+        disableRemoveFilter ? undefined : (
+          <MenuComponents.HeaderButton
+            aria-label={t('Remove Filter')}
+            onClick={() => onRemoveFilter(globalFilter)}
+          >
+            {t('Remove Filter')}
+          </MenuComponents.HeaderButton>
+        )
       }
       menuBody={
         <MenuBodyWrap>
@@ -391,14 +391,6 @@ const FooterInnerWrap = styled('div')`
 const StyledOperatorButton = styled(Button)`
   width: 100%;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const StyledButton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${p => p.theme.space.xs};
-  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
 `;
 
 const StyledInput = styled(Input)`
