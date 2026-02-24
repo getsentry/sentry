@@ -19,7 +19,6 @@ from sentry.seer.signed_seer_api import (
     seer_autofix_default_connection_pool,
 )
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -103,6 +102,6 @@ class SeerModelsEndpoint(Endpoint):
         except TimeoutError:
             logger.warning("Timeout when fetching models from Seer")
             raise SeerTimeoutError()
-        except (Exception, json.JSONDecodeError):
+        except Exception:
             logger.exception("Error fetching models from Seer")
             raise SeerConnectionError()
