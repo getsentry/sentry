@@ -14,7 +14,6 @@ export interface ProductOption {
   id: OnboardingWelcomeProductId;
   title: string;
   badge?: ReactNode;
-  extra?: ReactNode;
   footer?: ReactNode;
 }
 
@@ -35,7 +34,7 @@ const CardContainer = styled(Container)<{seer?: boolean}>`
 const MotionCardContainer = motion.create(CardContainer);
 
 export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
-  const {icon, title, description, badge, footer, extra, id} = product;
+  const {icon, title, description, badge, footer, id} = product;
   const consideredSeerCard = id === OnboardingWelcomeProductId.SEER;
 
   return (
@@ -85,8 +84,6 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
           {footer}
         </Stack>
       </Grid>
-
-      {extra}
     </MotionCardContainer>
   );
 }
