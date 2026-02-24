@@ -462,6 +462,7 @@ export default typescript.config([
         'error',
         {enabledCategories: ['background', 'border', 'content']},
       ],
+      ...sentryScrapsPlugin.configs.compactSelect.rules,
     },
   },
   {
