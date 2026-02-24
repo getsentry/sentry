@@ -650,7 +650,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
     def test_push_changes_sends_correct_payload(self, mock_post, mock_fetch, mock_access):
         """Test that push_changes sends correct payload"""
         mock_access.return_value = (True, None)
-        mock_post.return_value = MagicMock()
+        mock_post.return_value = MagicMock(status=200)
         mock_fetch.return_value = SeerRunState(
             run_id=123,
             blocks=[],
@@ -683,7 +683,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
     ):
         """Test that push_changes polls until PR creation completes"""
         mock_access.return_value = (True, None)
-        mock_post.return_value = MagicMock()
+        mock_post.return_value = MagicMock(status=200)
 
         creating_state = SeerRunState(
             run_id=123,
@@ -720,7 +720,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
     def test_push_changes_timeout(self, mock_time, mock_sleep, mock_post, mock_fetch, mock_access):
         """Test that push_changes raises TimeoutError after timeout"""
         mock_access.return_value = (True, None)
-        mock_post.return_value = MagicMock()
+        mock_post.return_value = MagicMock(status=200)
         mock_fetch.return_value = SeerRunState(
             run_id=123,
             blocks=[],
