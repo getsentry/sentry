@@ -1617,6 +1617,8 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         url = settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity)
         data = json.dumps(buckets)
+        # Retry on transient Snuba connection errors. This benefits all callers
+        # of store_metric, which delegates to this method for HTTP delivery.
         for attempt in range(3):
             try:
                 assert requests.post(url, data=data).status_code == 200
