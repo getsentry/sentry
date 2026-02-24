@@ -52,17 +52,20 @@ jobs:
           # Scan recent completed runs for a test-durations artifact.
           # A run can have valid duration data even if some T2 shards were
           # flaky — merge-durations succeeds independently of shard failures.
-          RUNS=$(gh run list \
-            --workflow=backend-xdist-split-poc.yml \
-            --branch mchen/worker-dist-load \
-            --status=completed --limit=5 \
-            --json databaseId --jq '.[].databaseId')
-          for RUN_ID in $RUNS; do
-            if gh run download "$RUN_ID" --name test-durations \
-                --dir /tmp/durations 2>/dev/null; then
-              echo "Duration data from run $RUN_ID"
-              exit 0
-            fi
+          # Check own branch first, then fall back to worker-lpt for seed runs.
+          for BRANCH in mchen/worker-dist-load mchen/worker-lpt; do
+            RUNS=$(gh run list \
+              --workflow=backend-xdist-split-poc.yml \
+              --branch "$BRANCH" \
+              --status=completed --limit=5 \
+              --json databaseId --jq '.[].databaseId')
+            for RUN_ID in $RUNS; do
+              if gh run download "$RUN_ID" --name test-durations \
+                  --dir /tmp/durations 2>/dev/null; then
+                echo "Duration data from run $RUN_ID (branch: $BRANCH)"
+                exit 0
+              fi
+            done
           done
 
           # Fallback: if merge-durations itself failed, raw pytest JSON
