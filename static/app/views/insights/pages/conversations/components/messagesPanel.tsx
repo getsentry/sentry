@@ -92,7 +92,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                     <Text bold size="sm">
                       {t('Assistant')}
                     </Text>
-                    {message.duration !== null && message.duration > 0 && (
+                    {message.duration !== undefined && message.duration > 0 && (
                       <Text size="xs" variant="muted">
                         {getDuration(message.duration, 1, true)}
                       </Text>

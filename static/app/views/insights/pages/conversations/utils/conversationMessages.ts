@@ -36,9 +36,9 @@ interface ConversationTurn {
   assistantContent: string | null;
   generation: AITraceSpanNode;
   toolCalls: ToolCall[];
-  toolSpanNodes: AITraceSpanNode[];
   userContent: string | null;
   userEmail: string | undefined;
+  toolSpanNodes?: AITraceSpanNode[];
 }
 
 /**
@@ -122,7 +122,7 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
 
   for (const turn of turns) {
     const allToolCalls = [...pendingToolCalls, ...turn.toolCalls];
-    const allToolSpanNodes = [...pendingToolSpanNodes, ...turn.toolSpanNodes];
+    const allToolSpanNodes = [...pendingToolSpanNodes, ...(turn.toolSpanNodes ?? [])];
 
     if (turn.assistantContent) {
       result.push({...turn, toolCalls: allToolCalls, toolSpanNodes: allToolSpanNodes});
@@ -170,7 +170,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       // Duration: from start of generation span to end of last span (generation or tool)
       const genEnd = getNodeEndTimestamp(turn.generation);
       const lastToolEnd =
-        turn.toolSpanNodes.length > 0
+        turn.toolSpanNodes?.length > 0
           ? Math.max(...turn.toolSpanNodes.map(getNodeEndTimestamp))
           : 0;
       const endTs = Math.max(genEnd, lastToolEnd);
@@ -276,7 +276,7 @@ export function getNodeTimestamp(node: AITraceSpanNode): number {
   return 'start_timestamp' in node.value ? node.value.start_timestamp : 0;
 }
 
-export function getNodeEndTimestamp(node: AITraceSpanNode): number {
+function getNodeEndTimestamp(node: AITraceSpanNode): number {
   if ('end_timestamp' in node.value && typeof node.value.end_timestamp === 'number') {
     return node.value.end_timestamp;
   }
