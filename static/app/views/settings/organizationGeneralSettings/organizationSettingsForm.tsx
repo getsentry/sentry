@@ -61,9 +61,11 @@ const generalSchema = z.object({
   hideAiFeatures: z.boolean(),
   codecovAccess: z.boolean(),
   enablePrReviewTestGeneration: z.boolean(),
+  slug: z.string().min(1, t('Organization slug is required')),
 });
 
 type GeneralSchema = z.infer<typeof generalSchema>;
+type SlugSchema = z.infer<typeof slugSchema>;
 
 export const membershipSchema = z.object({
   defaultRole: z.string(),
@@ -429,7 +431,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
 
   // Shared mutation options for most general fields
   const orgMutationOptions = mutationOptions({
-    mutationFn: (data: Partial<GeneralSchema>) =>
+    mutationFn: (data: Partial<GeneralSchema> | Partial<SlugSchema>) =>
       fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
     onSuccess: updated => {
       onSave(initialData, updated);
@@ -437,23 +439,14 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     onError: () => addErrorMessage(t('Unable to save change')),
   });
 
-  const slugMutationOptions = mutationOptions({
-    mutationFn: (data: {slug: string}) =>
-      fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
-    onSuccess: updated => {
-      onSave(initialData, updated);
-    },
-    onError: () => addErrorMessage(t('Unable to save change')),
-  });
-
-  const {mutateAsync: updateSlug} = useMutation(slugMutationOptions);
+  const {mutateAsync: updateSlug} = useMutation(orgMutationOptions);
 
   // Slug form — uses explicit Save button instead of auto-save
   const slugForm = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {slug: initialData.slug},
     validators: {onDynamic: slugSchema},
-    onSubmit: ({value}) => updateSlug({slug: value.slug}),
+    onSubmit: ({value}) => updateSlug({slug: value.slug}).catch(() => {}),
   });
 
   return (
