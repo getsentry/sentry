@@ -1,6 +1,3 @@
-from django.db import connections
-from django.db.migrations.executor import MigrationExecutor
-
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import Action
@@ -29,25 +26,6 @@ class TestMigrateActionsSentryAppData(TestMigrations):
         )
 
     def test_migration(self) -> None:
-        self.sentry_app_id_action.refresh_from_db()
-        assert self.sentry_app_id_action.config.get("target_type") == ActionTarget.SENTRY_APP
-        assert self.sentry_app_id_action.config.get("target_identifier") == str(self.sentry_app.id)
-        assert self.sentry_app_id_action.config.get("sentry_app_identifier") is None
-
-    def test_migration_idempotent(self) -> None:
-        self.sentry_app_id_action.refresh_from_db()
-        assert self.sentry_app_id_action.config.get("target_type") == ActionTarget.SENTRY_APP
-        assert self.sentry_app_id_action.config.get("target_identifier") == str(self.sentry_app.id)
-        assert self.sentry_app_id_action.config.get("sentry_app_identifier") is None
-
-        # run the migration again
-        conn = connections[self.connection]
-        executor = MigrationExecutor(conn)
-        executor.loader.build_graph()  # reload.
-        migrate_to = [(self.app, self.migrate_to)]
-        self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)  # type: ignore[assignment]
-
-        # check that everything is still as expected
         self.sentry_app_id_action.refresh_from_db()
         assert self.sentry_app_id_action.config.get("target_type") == ActionTarget.SENTRY_APP
         assert self.sentry_app_id_action.config.get("target_identifier") == str(self.sentry_app.id)

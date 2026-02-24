@@ -41,10 +41,6 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name="action",
-            name="action_sentry_app_lookup",
-        ),
         migrations.AddIndex(
             model_name="action",
             index=models.Index(
@@ -53,6 +49,10 @@ class Migration(CheckedMigration):
                 condition=models.Q(("type", "sentry_app")),
                 name="action_sentry_app_lookup",
             ),
+        ),
+        migrations.RemoveIndex(
+            model_name="action",
+            name="action_sentry_app_lookup",
         ),
         migrations.RunPython(
             code=remove_action_sentry_app_identifier,
