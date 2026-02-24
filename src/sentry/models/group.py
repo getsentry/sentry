@@ -363,13 +363,17 @@ class GroupManager(BaseManager["Group"]):
             ],
         )
 
-        base_group_queryset = self.exclude(
-            status__in=[
-                GroupStatus.PENDING_DELETION,
-                GroupStatus.DELETION_IN_PROGRESS,
-                GroupStatus.PENDING_MERGE,
-            ]
-        ).filter(project__organization=organization_id)
+        base_group_queryset = (
+            self.exclude(
+                status__in=[
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                    GroupStatus.PENDING_MERGE,
+                ]
+            )
+            .filter(project__organization=organization_id)
+            .select_related("project")
+        )
 
         groups = list(base_group_queryset.filter(short_id_lookup))
         group_lookup: set[int] = {group.short_id for group in groups}
