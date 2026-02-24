@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Count from 'sentry/components/count';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
@@ -102,18 +101,12 @@ export function ConversationSummary({
   return (
     <Flex align="center" gap="lg" flex={1}>
       <Flex align="center" gap="sm" flexShrink={0}>
-        <Text size="lg" bold>
+        <Text size="sm" bold>
           {t('Conversation')}
         </Text>
-        <Text variant="muted" monospace>
+        <ConversationId size="sm" variant="muted" monospace>
           {conversationId.slice(0, 8)}
-        </Text>
-        <CopyToClipboardButton
-          aria-label={t('Copy conversation ID')}
-          priority="transparent"
-          size="zero"
-          text={conversationId}
-        />
+        </ConversationId>
       </Flex>
       <Divider />
       <Flex align="center" gap="sm" wrap="wrap">
@@ -165,7 +158,9 @@ function AggregateItem({
 
   const content = (
     <AggregateItemContainer align="center" gap="xs" isInteractive={isInteractive}>
-      <Text bold>{label}</Text>
+      <Text bold size="sm">
+        {label}
+      </Text>
       {isLoading ? (
         <Placeholder width="20px" height="16px" />
       ) : (
@@ -180,6 +175,11 @@ function AggregateItem({
 
   return content;
 }
+
+const ConversationId = styled(Text)`
+  position: relative;
+  top: -1px;
+`;
 
 const Divider = styled('div')`
   width: 1px;
