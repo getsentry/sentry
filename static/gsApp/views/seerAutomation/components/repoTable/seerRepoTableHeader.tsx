@@ -18,9 +18,10 @@ import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCa
 import type {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 interface Props {
-  disabled: boolean;
   gridColumns: string;
   hits: number;
+  isFetchingNextPage: boolean;
+  isPending: boolean;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   onSortClick: (key: Sort) => void;
   sort: Sort;
@@ -47,7 +48,8 @@ const COLUMNS = [
 ];
 
 export default function SeerRepoTableHeader({
-  disabled,
+  isPending,
+  isFetchingNextPage,
   gridColumns,
   mutateRepositorySettings,
   onSortClick,
@@ -103,7 +105,7 @@ export default function SeerRepoTableHeader({
       <TableHeader gridColumns={gridColumns}>
         <SimpleTable.HeaderCell>
           <SelectAllCheckbox
-            disabled={disabled}
+            disabled={isPending || isFetchingNextPage}
             hits={hits}
             listItemCheckboxState={listItemCheckboxState}
           />
@@ -136,7 +138,7 @@ export default function SeerRepoTableHeader({
         <TableHeader gridColumns={gridColumns}>
           <TableCellFirst>
             <SelectAllCheckbox
-              disabled={disabled}
+              disabled={isPending || isFetchingNextPage}
               hits={hits}
               listItemCheckboxState={listItemCheckboxState}
             />

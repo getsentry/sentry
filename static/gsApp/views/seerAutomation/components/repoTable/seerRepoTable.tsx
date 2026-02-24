@@ -7,6 +7,7 @@ import {debounce, parseAsString, useQueryState} from 'nuqs';
 import {LinkButton} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
@@ -41,7 +42,7 @@ export default function SeerRepoTable() {
     const update = () => {
       if (parentRef.current) {
         const top = parentRef.current.getBoundingClientRect().top;
-        setScrollBodyHeight(`calc(100vh - ${top + BOTTOM_PADDING}px)`);
+        setScrollBodyHeight(`minmax(0, calc(100vh - ${top + BOTTOM_PADDING}px))`);
       }
     };
     update();
@@ -135,9 +136,6 @@ export default function SeerRepoTable() {
     estimateSize,
   });
 
-  const hits = repositories?.length ?? 0;
-  const hasData = hits > 0;
-
   return (
     <ListItemCheckboxProvider
       hits={repositories?.length ?? 0}
@@ -148,7 +146,7 @@ export default function SeerRepoTable() {
         <Grid
           minWidth="0"
           gap="md"
-          columns={hasData ? '1fr max-content' : '1fr max-content max-content'}
+          columns={isFetchingNextPage ? '1fr max-content max-content' : '1fr max-content'}
         >
           <InputGroup>
             <InputGroup.LeadingItems disablePointerEvents>
@@ -156,7 +154,6 @@ export default function SeerRepoTable() {
             </InputGroup.LeadingItems>
             <InputGroup.Input
               size="md"
-              disabled={!hasData}
               placeholder={t('Search')}
               value={searchTerm ?? ''}
               onChange={e =>
@@ -165,7 +162,7 @@ export default function SeerRepoTable() {
             />
           </InputGroup>
 
-          {hits > 0 ? null : <LoadingIndicator mini />}
+          {isFetchingNextPage ? <LoadingIndicator mini /> : null}
 
           <LinkButton
             priority="primary"
@@ -185,26 +182,29 @@ export default function SeerRepoTable() {
             gridColumns={GRID_COLUMNS}
             mutateRepositorySettings={mutateRepositorySettings}
             onSortClick={setSort}
-            disabled={isPending || isFetchingNextPage}
-            hits={hits}
+            isPending={isPending}
+            isFetchingNextPage={isFetchingNextPage}
+            hits={repositories?.length ?? 0}
             sort={sort}
           />
           {isPending ? (
-            <EmptyMessage>
+            <Flex justify="center" align="center" padding="xl" style={{minHeight: 200}}>
               <LoadingIndicator />
-            </EmptyMessage>
+            </Flex>
           ) : isError ? (
-            <EmptyMessage>
+            <Flex justify="center" align="center" padding="xl" style={{minHeight: 200}}>
               <LoadingError />
-            </EmptyMessage>
+            </Flex>
           ) : repositories.length === 0 ? (
-            <EmptyMessage>
-              {searchTerm
-                ? tct('No repositories found matching [searchTerm]', {
-                    searchTerm: <code>{searchTerm}</code>,
-                  })
-                : t('No repositories found')}
-            </EmptyMessage>
+            <Flex justify="center" align="center" padding="xl" style={{minHeight: 200}}>
+              <Text variant="muted" size="md">
+                {searchTerm
+                  ? tct('No repositories found matching [searchTerm]', {
+                      searchTerm: <code>{searchTerm}</code>,
+                    })
+                  : t('No repositories found')}
+              </Text>
+            </Flex>
           ) : (
             <ScrollableBody ref={parentRef} style={{height: scrollBodyHeight}}>
               <VirtualInner style={{height: virtualizer.getTotalSize()}}>
@@ -254,16 +254,6 @@ const ScrollableBody = styled('div')`
 const VirtualInner = styled('div')`
   position: relative;
   width: 100%;
-`;
-
-const EmptyMessage = styled('div')`
-  min-height: 200px;
-  padding: ${p => p.theme.space.xl};
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StickyLoadingRow = styled(Flex)`
