@@ -62,7 +62,6 @@ function EditAccessSelector({
   const teamIds: string[] = Object.values(teamsToRender).map(team => team.id);
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [stagedOptions, setStagedOptions] = useState<string[]>([]);
 
   const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] =
     useState<boolean>(false);
@@ -252,15 +251,6 @@ function EditAccessSelector({
       />
     );
 
-  // Sorting function for team options
-  const listSort = useCallback(
-    (team: Team) => [
-      !stagedOptions.includes(team.id), // selected teams are shown first
-      team.slug, // sort rest alphabetically
-    ],
-    [stagedOptions]
-  );
-
   const allDropdownOptions = useMemo(
     () => [
       makeCreatorOption(),
@@ -277,12 +267,12 @@ function EditAccessSelector({
       },
       {
         value: '_teams',
-        options: sortBy(teamsToRender, listSort).map(makeTeamOption),
+        options: sortBy(teamsToRender, (team: Team) => team.slug).map(makeTeamOption),
         showToggleAllButton: userCanEditDashboardPermissions,
         disabled: !userCanEditDashboardPermissions,
       },
     ],
-    [userCanEditDashboardPermissions, teamsToRender, makeCreatorOption, listSort]
+    [userCanEditDashboardPermissions, teamsToRender, makeCreatorOption]
   );
 
   return (
@@ -327,8 +317,6 @@ function EditAccessSelector({
           if (newOpenState === true) {
             trackAnalytics('dashboards2.edit_access.start', {organization});
           }
-
-          setStagedOptions(selectedOptions);
         }}
         menuFooter={
           <Flex gap="md" align="center" justify="end">
@@ -355,6 +343,7 @@ function EditAccessSelector({
                   });
 
                   onChangeEditAccess?.(newDashboardPermissions);
+                  setSelectedOptions(selectedOptions);
                 }
               }}
               disabled={
