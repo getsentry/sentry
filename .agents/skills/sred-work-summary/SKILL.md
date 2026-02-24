@@ -138,4 +138,3 @@ Ensure:
 ## Resources
 
 This is an example Working Summary document for the year 2025: https://www.notion.so/sentry/Work-Summary-Feb-2025-Jan-2026-3068b10e4b5d81d3a40cfa6ad3fe1078?source=copy_link
-
