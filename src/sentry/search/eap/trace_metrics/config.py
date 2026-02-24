@@ -5,7 +5,10 @@ from rest_framework.request import Request
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import ResolvedTraceMetricAggregate, ResolvedTraceMetricFormula
+from sentry.search.eap.columns import (
+    ResolvedTraceMetricAggregate,
+    ResolvedTraceMetricFormula,
+)
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import or_trace_item_filters
 from sentry.search.eap.trace_metrics.types import TraceMetric, TraceMetricType
@@ -64,9 +67,6 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
                     continue
 
                 selected_metrics.add(resolved_function.trace_metric)
-
-        if equations:
-            raise InvalidSearchQuery("Cannot support equations on trace metrics yet")
 
         # no selected metrics, no filter needed
         if not selected_metrics:

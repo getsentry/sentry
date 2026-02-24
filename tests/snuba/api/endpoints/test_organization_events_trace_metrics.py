@@ -6,7 +6,9 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils.snuba_rpc import table_rpc
-from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
+from tests.snuba.api.endpoints.test_organization_events import (
+    OrganizationEventsEndpointTestBase,
+)
 
 
 class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
@@ -283,7 +285,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             "per_second(value, cpu_usage, gauge, -)": pytest.approx(2 / 600, abs=0.001)
         }
 
-    def test_per_second_formula_with_gauge_metric_type_without_top_level_metric_type(self) -> None:
+    def test_per_second_formula_with_gauge_metric_type_without_top_level_metric_type(
+        self,
+    ) -> None:
         gauge_metrics = [
             self.create_trace_metric("cpu_usage", 75.0, "gauge"),
             self.create_trace_metric("cpu_usage", 80.0, "gauge"),
@@ -646,3 +650,29 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         # When unit is "-", the units value should be null
         assert "units" in meta, "meta should contain 'units' key"
         assert meta["units"]["sum(value,request_count,counter,-)"] is None
+
+    def test_equations(
+        self,
+    ) -> None:
+        gauge_metrics = [
+            self.create_trace_metric("cpu_usage", 75.0, "gauge"),
+            self.create_trace_metric("cpu_usage", 80.0, "gauge"),
+        ]
+        self.store_trace_metrics(gauge_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "equation|per_second(value, cpu_usage, gauge, -) + 1"
+                ],  # Trying space in the formula here to make sure it works.
+                "query": "metric.name:cpu_usage",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data[0] == {
+            "per_second(value, cpu_usage, gauge, -)": pytest.approx(2 / 600, abs=0.001)
+        }

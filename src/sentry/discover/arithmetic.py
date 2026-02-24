@@ -9,7 +9,10 @@ from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.constants import TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS
+from sentry.search.events.constants import (
+    TOTAL_COUNT_ALIAS,
+    TOTAL_TRANSACTION_DURATION_ALIAS,
+)
 
 # prefix on fields so we know they're equations
 EQUATION_PREFIX = "equation|"
@@ -208,6 +211,7 @@ class ArithmeticVisitor(NodeVisitor):
         "avg_if",
         "division_if",
         "failure_rate_if",
+        "per_second",
     }
 
     def __init__(self, max_operators: int | None, custom_measurements: set[str] | None):
