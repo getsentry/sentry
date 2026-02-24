@@ -11,7 +11,7 @@ import {
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -90,7 +90,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
   const initialSensitiveFields = convertMultilineFieldValue(organization.sensitiveFields);
   const initialSafeFields = convertMultilineFieldValue(organization.safeFields);
 
-  const multilineForm = useScrapsForm({
+  const scrubbingConfiguration = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
       sensitiveFields: initialSensitiveFields,
@@ -102,6 +102,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
         .mutateAsync({
           sensitiveFields: extractMultilineFields(value.sensitiveFields),
           safeFields: extractMultilineFields(value.safeFields),
+        })
+        .then(() => {
+          addSuccessMessage(t('Scrubbing configuration updated'));
         })
         .catch(() => {
           addErrorMessage(t('Unable to save change'));
@@ -300,71 +303,105 @@ export default function OrganizationSecurityAndPrivacyContent() {
         )}
       </FieldGroup>
 
-      <multilineForm.AppForm>
-        <FieldGroup title={t('Data Scrubbing')}>
-          <AutoSaveField
-            name="dataScrubber"
-            schema={dataScrubBooleanSchema}
-            initialValue={organization.dataScrubber}
-            mutationOptions={orgMutationOptions}
-            confirm={value =>
-              value
-                ? undefined
-                : t(
-                    'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
-                  )
-            }
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Require Data Scrubber')}
-                hintText={t(
-                  'Require server-side data scrubbing be enabled for all projects'
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={!hasOrgWrite}
-                  aria-label={t('Enable server-side data scrubbing')}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveField>
+      <FieldGroup title={t('Data Scrubbing')}>
+        <AutoSaveField
+          name="dataScrubber"
+          schema={dataScrubBooleanSchema}
+          initialValue={organization.dataScrubber}
+          mutationOptions={orgMutationOptions}
+          confirm={value =>
+            value
+              ? undefined
+              : t(
+                  'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
+                )
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Require Data Scrubber')}
+              hintText={t(
+                'Require server-side data scrubbing be enabled for all projects'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgWrite}
+                aria-label={t('Enable server-side data scrubbing')}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveField>
 
-          <AutoSaveField
-            name="dataScrubberDefaults"
-            schema={dataScrubBooleanSchema}
-            initialValue={organization.dataScrubberDefaults}
-            mutationOptions={orgMutationOptions}
-            confirm={value =>
-              value
-                ? undefined
-                : t(
-                    'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
-                  )
-            }
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Require Using Default Scrubbers')}
-                hintText={t(
-                  'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects'
+        <AutoSaveField
+          name="dataScrubberDefaults"
+          schema={dataScrubBooleanSchema}
+          initialValue={organization.dataScrubberDefaults}
+          mutationOptions={orgMutationOptions}
+          confirm={value =>
+            value
+              ? undefined
+              : t(
+                  'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
+                )
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Require Using Default Scrubbers')}
+              hintText={t(
+                'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgWrite}
+                aria-label={t(
+                  'Enable to apply default scrubbers to prevent things like passwords and credit cards from being stored'
                 )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={!hasOrgWrite}
-                  aria-label={t(
-                    'Enable to apply default scrubbers to prevent things like passwords and credit cards from being stored'
-                  )}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveField>
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveField>
 
-          <multilineForm.AppField name="sensitiveFields">
+        <AutoSaveField
+          name="scrubIPAddresses"
+          schema={dataScrubBooleanSchema}
+          initialValue={organization.scrubIPAddresses}
+          mutationOptions={orgMutationOptions}
+          confirm={value =>
+            value
+              ? undefined
+              : t(
+                  'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
+                )
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Prevent Storing of IP Addresses')}
+              hintText={t(
+                'Preventing IP addresses from being stored for new events on all projects'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgWrite}
+                aria-label={t(
+                  'Enable to prevent IP addresses from being stored for new events'
+                )}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveField>
+      </FieldGroup>
+
+      <scrubbingConfiguration.AppForm>
+        <FieldGroup title={t('Scrubbing Configuration')}>
+          <scrubbingConfiguration.AppField name="sensitiveFields">
             {field => (
               <field.Layout.Row
                 label={t('Global Sensitive Fields')}
@@ -381,9 +418,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
                 />
               </field.Layout.Row>
             )}
-          </multilineForm.AppField>
+          </scrubbingConfiguration.AppField>
 
-          <multilineForm.AppField name="safeFields">
+          <scrubbingConfiguration.AppField name="safeFields">
             {field => (
               <field.Layout.Row
                 label={t('Global Safe Fields')}
@@ -400,41 +437,8 @@ export default function OrganizationSecurityAndPrivacyContent() {
                 />
               </field.Layout.Row>
             )}
-          </multilineForm.AppField>
-
-          <AutoSaveField
-            name="scrubIPAddresses"
-            schema={dataScrubBooleanSchema}
-            initialValue={organization.scrubIPAddresses}
-            mutationOptions={orgMutationOptions}
-            confirm={value =>
-              value
-                ? undefined
-                : t(
-                    'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
-                  )
-            }
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Prevent Storing of IP Addresses')}
-                hintText={t(
-                  'Preventing IP addresses from being stored for new events on all projects'
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={!hasOrgWrite}
-                  aria-label={t(
-                    'Enable to prevent IP addresses from being stored for new events'
-                  )}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveField>
-
-          <multilineForm.Subscribe
+          </scrubbingConfiguration.AppField>
+          <scrubbingConfiguration.Subscribe
             selector={state =>
               state.values.sensitiveFields !== initialSensitiveFields ||
               state.values.safeFields !== initialSafeFields
@@ -444,14 +448,15 @@ export default function OrganizationSecurityAndPrivacyContent() {
               hasChanged ? (
                 <Alert
                   variant="info"
+                  system
                   trailingItems={
                     <Flex gap="sm">
-                      <Alert.Button onClick={() => multilineForm.reset()}>
+                      <Alert.Button onClick={() => scrubbingConfiguration.reset()}>
                         {t('Cancel')}
                       </Alert.Button>
                       <Alert.Button
                         priority="primary"
-                        onClick={() => multilineForm.handleSubmit()}
+                        onClick={() => scrubbingConfiguration.handleSubmit()}
                       >
                         {t('Save')}
                       </Alert.Button>
@@ -464,9 +469,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
                 </Alert>
               ) : null
             }
-          </multilineForm.Subscribe>
+          </scrubbingConfiguration.Subscribe>
         </FieldGroup>
-      </multilineForm.AppForm>
+      </scrubbingConfiguration.AppForm>
 
       {showDataSecrecySettings && <DataSecrecy />}
 
