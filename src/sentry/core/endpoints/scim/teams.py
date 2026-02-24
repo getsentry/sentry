@@ -459,32 +459,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
         user_ids_to_revoke: list[int] = []
 
-        for operation in operations:
-            op = operation["op"].lower()
-
-            if op == TeamPatchOps.REMOVE and "members" in operation["path"]:
-                try:
-                    member_id = self._get_member_id_for_remove_op(operation)
-                    member = OrganizationMember.objects.get(
-                        organization=team.organization, id=member_id
-                    )
-                    if member.user_id:
-                        user_ids_to_revoke.append(member.user_id)
-                except OrganizationMember.DoesNotExist:
-                    pass
-
-            elif op == TeamPatchOps.REPLACE:
-                path = operation.get("path")
-                if path == "members":
-                    existing = OrganizationMemberTeam.objects.filter(
-                        team_id=team.id
-                    ).select_related("organizationmember")
-                    for omt in existing:
-                        if omt.organizationmember.user_id:
-                            user_ids_to_revoke.append(omt.organizationmember.user_id)
-
         members_to_grant_privileges: list[OrganizationMember] = []
-
         try:
             with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                 team.idp_provisioned = True
@@ -498,9 +473,13 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         members_to_grant_privileges.extend(added_members)
 
                     elif op == TeamPatchOps.REMOVE and "members" in operation["path"]:
-                        self._remove_member_operation(
-                            request, self._get_member_id_for_remove_op(operation), team
+                        member_id = self._get_member_id_for_remove_op(operation)
+                        member = OrganizationMember.objects.get(
+                            organization=team.organization, id=member_id
                         )
+                        if member.user_id:
+                            user_ids_to_revoke.append(member.user_id)
+                        self._remove_member_operation(request, member_id, team)
 
                     elif op == TeamPatchOps.REPLACE:
                         path = operation.get("path")
