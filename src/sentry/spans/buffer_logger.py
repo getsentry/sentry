@@ -293,10 +293,10 @@ def emit_observability_metrics(
                 )
 
     # Temporary metrics for potential limits being added
-    for size, count in size_buckets.items():
-        if count > 0:
+    for size, scount in size_buckets.items():
+        if scount > 0:
             metrics.incr(
-                "spans.buffer.parent_span_set_after_size_bucket", count, tags={"size": size}
+                "spans.buffer.parent_span_set_after_size_bucket", scount, tags={"size": size}
             )
 
     for metric, (min_value, max_value, sum_value, count) in latency_metrics_dict.items():
