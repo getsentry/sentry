@@ -22,10 +22,10 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     def setUp(self) -> None:
-        # create 10 orgs each with 10 transactions
+        # create 10 orgs each with 3 projects
         for i in range(10):
             org = self.create_organization(f"org-{i}")
-            for i in range(10):
+            for j in range(3):
                 project = self.create_project(organization=org)
                 self.store_performance_metric(
                     name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
@@ -53,8 +53,8 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
     def test_get_active_orgs_with_max_projects(self) -> None:
         total_orgs = 0
-        for orgs in GetActiveOrgs(3, 18):
-            # we ask for max 18 proj (that's 2 org per request since one org has 10 )
+        for orgs in GetActiveOrgs(3, 5):
+            # we ask for max 5 proj (that's 2 orgs per request since each org has 3 projects)
             num_orgs = len(orgs)
             total_orgs += num_orgs
             assert num_orgs == 2  # only 2 orgs since we limit the number of projects
