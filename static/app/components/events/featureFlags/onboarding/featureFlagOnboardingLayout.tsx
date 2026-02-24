@@ -2,13 +2,12 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 
 import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -42,6 +41,7 @@ export function FeatureFlagOnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -95,17 +95,22 @@ export function FeatureFlagOnboardingLayout({
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <TabSelectionScope>
         <Wrapper>
-          <CopySetupInstructionsGate>
-            <Container paddingBottom="md">
-              <OnboardingCopyMarkdownButton
-                steps={steps}
-                source="feature_flag_onboarding"
-              />
-            </Container>
-          </CopySetupInstructionsGate>
           <Steps>
             {steps.map((step, index) => (
-              <Step key={step.title ?? step.type} stepIndex={index} {...step} />
+              <Step
+                key={step.title ?? step.type}
+                stepIndex={index}
+                {...step}
+                trailingItems={
+                  index === 0 && copyEnabled ? (
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={steps}
+                      source="feature_flag_onboarding"
+                    />
+                  ) : undefined
+                }
+              />
             ))}
             <StyledLinkButton to="/issues/" priority="primary">
               {t('Take me to Issues')}

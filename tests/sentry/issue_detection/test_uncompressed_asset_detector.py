@@ -13,6 +13,7 @@ from sentry.issue_detection.performance_detection import (
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import PROJECT_ID, create_span, get_event
@@ -402,14 +403,20 @@ class UncompressedAssetsDetectorTest(TestCase):
                 type=PerformanceUncompressedAssetsGroupType,
                 parent_span_ids=[],
                 cause_span_ids=[],
-                offender_span_ids=["b66a5642da1edb52"],
+                offender_span_ids=["c77b6753eb2fec63"],
                 evidence_data={
                     "op": "resource.script",
                     "parent_span_ids": [],
                     "cause_span_ids": [],
-                    "offender_span_ids": ["b66a5642da1edb52"],
+                    "offender_span_ids": ["c77b6753eb2fec63"],
                 },
-                evidence_display=[],
+                evidence_display=[
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="resource.script - https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_components_charts_utils_tsx-app_utils_performance_quickTrace_utils_tsx-app_utils_withPage-3926ec.bc434924850c44d4057f.js",
+                        important=True,
+                    ),
+                ],
             ),
         ]
 

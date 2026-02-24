@@ -26,6 +26,7 @@ from sentry.seer.supergroups import trigger_supergroups_embedding
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.seer.explorer.client_models import SeerRunState
@@ -149,6 +150,10 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         try:
             sentry_app_event_type = SentryAppEventType(event_type)
             if SeerOperator.has_access(organization=organization):
+                metrics.incr(
+                    "autofix.on_completion_hook.process_autofix_updates",
+                    tags={"event_type": str(event_type)},
+                )
                 process_autofix_updates.apply_async(
                     kwargs={
                         "event_type": sentry_app_event_type,

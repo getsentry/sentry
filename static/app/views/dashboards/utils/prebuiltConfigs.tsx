@@ -4,6 +4,7 @@ import {AI_AGENTS_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/
 import {AI_AGENTS_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/aiAgentsTools';
 import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
 import {FRONTEND_ASSETS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssets';
+import {FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssetsSummary';
 import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/frontendOverview';
 import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
 import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
@@ -49,6 +50,7 @@ export enum PrebuiltDashboardId {
   MCP_PROMPTS = 22,
   LARAVEL_OVERVIEW = 23,
   FRONTEND_ASSETS = 24,
+  FRONTEND_ASSETS_SUMMARY = 25,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
@@ -84,4 +86,5 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.MCP_OVERVIEW]: MCP_OVERVIEW_PREBUILT_CONFIG,
   [PrebuiltDashboardId.LARAVEL_OVERVIEW]: LARAVEL_OVERVIEW_PREBUILT_CONFIG,
   [PrebuiltDashboardId.FRONTEND_ASSETS]: FRONTEND_ASSETS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY]: FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG,
 };

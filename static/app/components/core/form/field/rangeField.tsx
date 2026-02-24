@@ -1,3 +1,5 @@
+import type {Ref} from 'react';
+import {mergeRefs} from '@react-aria/utils';
 import type {DistributedOmit} from 'type-fest';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
@@ -31,6 +33,7 @@ export function RangeField({
             <Slider
               {...fieldProps}
               {...props}
+              ref={mergeRefs(fieldProps.ref as Ref<HTMLInputElement>, props.ref)}
               disabled={isDisabled}
               value={value}
               onChange={onChange}
