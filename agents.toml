@@ -1,6 +1,7 @@
 version = 1
-# Managed skills are gitignored; collaborators must run 'dotagents install'.
 gitignore = true
+# Keeps all the skills up to date
+pin = false
 agents = ["claude", "cursor"]
 
 [trust]
