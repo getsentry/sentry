@@ -374,7 +374,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_hourly_counts_match(self) -> None:
-        group = self.store_occurrences_with_dual_write(
+        group = self.store_events_to_snuba_and_eap(
             "hourly-count-match", count=6, timestamp=self._event_timestamp()
         )[0].group
         assert group is not None
@@ -386,10 +386,10 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_hourly_count_excludes_old_events(self) -> None:
-        self.store_occurrences_with_dual_write(
+        self.store_events_to_snuba_and_eap(
             "time-window-test", count=2, timestamp=self._event_timestamp(hours_ago=1)
         )
-        group = self.store_occurrences_with_dual_write(
+        group = self.store_events_to_snuba_and_eap(
             "time-window-test", count=1, timestamp=self._event_timestamp()
         )[0].group
         assert group is not None
@@ -401,7 +401,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_past_counts_match_single_group(self) -> None:
-        group = self.store_occurrences_with_dual_write(
+        group = self.store_events_to_snuba_and_eap(
             "past-counts-single", count=3, timestamp=self._event_timestamp()
         )[0].group
         assert group is not None
@@ -416,13 +416,13 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_past_counts_match_multiple_groups(self) -> None:
-        group_a = self.store_occurrences_with_dual_write(
+        group_a = self.store_events_to_snuba_and_eap(
             "past-counts-a", count=2, timestamp=self._event_timestamp()
         )[0].group
-        group_b = self.store_occurrences_with_dual_write(
+        group_b = self.store_events_to_snuba_and_eap(
             "past-counts-b", count=4, timestamp=self._event_timestamp()
         )[0].group
-        group_c = self.store_occurrences_with_dual_write(
+        group_c = self.store_events_to_snuba_and_eap(
             "past-counts-c", count=6, timestamp=self._event_timestamp()
         )[0].group
         assert group_a is not None
@@ -442,7 +442,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_past_counts_aggregate_same_hour(self) -> None:
-        group = self.store_occurrences_with_dual_write(
+        group = self.store_events_to_snuba_and_eap(
             "zero-filter-test", count=2, timestamp=self._event_timestamp()
         )[0].group
         assert group is not None

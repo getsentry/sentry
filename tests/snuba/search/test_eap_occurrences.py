@@ -137,7 +137,7 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert result["data"][0]["count()"] == 5
 
     def test_eap_forwarding_rate_dual_write(self) -> None:
-        events = self.store_occurrences_with_dual_write(
+        events = self.store_events_to_snuba_and_eap(
             "dual-write-group",
             timestamp=before_now(minutes=1).timestamp(),
             extra_event_data={"tags": {"browser": "chrome"}},

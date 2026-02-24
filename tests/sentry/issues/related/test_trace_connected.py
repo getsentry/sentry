@@ -36,15 +36,15 @@ class TestEAPTraceConnectedIssues(TestCase, SnubaTestCase):
     def test_eap_and_snuba_find_same_connected_issues(self) -> None:
         trace_id = uuid4().hex
         ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
-        group_a = self.store_occurrences_with_dual_write(
-            "group-a", trace_id=trace_id, timestamp=ts
-        )[0].group_id
-        group_b = self.store_occurrences_with_dual_write(
-            "group-b", trace_id=trace_id, timestamp=ts
-        )[0].group_id
-        group_c = self.store_occurrences_with_dual_write(
-            "group-c", trace_id=trace_id, timestamp=ts
-        )[0].group_id
+        group_a = self.store_events_to_snuba_and_eap("group-a", trace_id=trace_id, timestamp=ts)[
+            0
+        ].group_id
+        group_b = self.store_events_to_snuba_and_eap("group-b", trace_id=trace_id, timestamp=ts)[
+            0
+        ].group_id
+        group_c = self.store_events_to_snuba_and_eap("group-c", trace_id=trace_id, timestamp=ts)[
+            0
+        ].group_id
         assert group_a is not None
         assert group_b is not None
         assert group_c is not None
@@ -58,7 +58,7 @@ class TestEAPTraceConnectedIssues(TestCase, SnubaTestCase):
     def test_eap_and_snuba_return_empty_when_only_excluded_group(self) -> None:
         trace_id = uuid4().hex
         ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
-        group_id = self.store_occurrences_with_dual_write(
+        group_id = self.store_events_to_snuba_and_eap(
             "only-group", count=3, trace_id=trace_id, timestamp=ts
         )[0].group_id
         assert group_id is not None
@@ -73,13 +73,13 @@ class TestEAPTraceConnectedIssues(TestCase, SnubaTestCase):
         trace_a = uuid4().hex
         trace_b = uuid4().hex
         ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
-        group_a = self.store_occurrences_with_dual_write("group-a", trace_id=trace_a, timestamp=ts)[
+        group_a = self.store_events_to_snuba_and_eap("group-a", trace_id=trace_a, timestamp=ts)[
             0
         ].group_id
-        group_b = self.store_occurrences_with_dual_write("group-b", trace_id=trace_a, timestamp=ts)[
+        group_b = self.store_events_to_snuba_and_eap("group-b", trace_id=trace_a, timestamp=ts)[
             0
         ].group_id
-        group_c = self.store_occurrences_with_dual_write("group-c", trace_id=trace_b, timestamp=ts)[
+        group_c = self.store_events_to_snuba_and_eap("group-c", trace_id=trace_b, timestamp=ts)[
             0
         ].group_id
         assert group_a is not None
