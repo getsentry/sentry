@@ -69,6 +69,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -92,6 +93,7 @@ retry_decorator = retry(
         ApiTimeoutError,
         ConnectionError,
         HTTPError,
+        ProcessingDeadlineExceeded,
     ),
     ignore=(
         ClientError,

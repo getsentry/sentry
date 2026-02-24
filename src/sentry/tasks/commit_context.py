@@ -33,6 +33,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import NoRetriesRemainingError, Retry
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
@@ -50,7 +51,7 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.process_commit_context",
     namespace=issues_tasks,
     processing_deadline_duration=TASK_DURATION_S,
-    retry=Retry(times=5, delay=5),
+    retry=Retry(times=5, delay=5, on_silent=(ProcessingDeadlineExceeded,)),
     silo_mode=SiloMode.REGION,
 )
 def process_commit_context(

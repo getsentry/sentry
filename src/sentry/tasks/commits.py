@@ -25,6 +25,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -79,7 +80,7 @@ def handle_invalid_identity(identity, commit_failure=False):
     retry=Retry(times=5, delay=60 * 5),
     silo_mode=SiloMode.REGION,
 )
-@retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
+@retry(on_silent=(ProcessingDeadlineExceeded,), exclude=(Release.DoesNotExist, User.DoesNotExist))
 def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **kwargs):
     # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
     commit_list = []

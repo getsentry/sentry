@@ -133,6 +133,8 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             filepath = filepath.lstrip("/")
             try:
                 client = self.get_client()
+            except IntegrationConfigurationError:
+                return None
             except (Identity.DoesNotExist, IntegrationError):
                 sentry_sdk.capture_exception()
                 return None
