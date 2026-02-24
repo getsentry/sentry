@@ -344,8 +344,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
         self.user_two = self.create_user(email="superuser_user@example.com")
         self.member_two = self.create_member(user=self.user_two, organization=self.organization)
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_adding_to_staff_group_dispatches_task(self, mock_task_delay: MagicMock) -> None:
+    def test_adding_to_staff_group_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -356,6 +355,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
+            assert not self.user_one.is_staff
 
             self.base_data["Operations"] = [
                 {
@@ -370,19 +370,15 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, staff_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
 
-            mock_task_delay.assert_called_once_with(
-                team_slug="snty-staff",
-                organization_id=self.organization.id,
-                user_ids_to_grant=[self.user_one.id],
-                user_ids_to_revoke=[],
-            )
+            self.user_one.refresh_from_db()
+            assert self.user_one.is_staff
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_adding_to_superuser_group_dispatches_task(self, mock_task_delay: MagicMock) -> None:
+    def test_adding_to_superuser_group_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -393,6 +389,8 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             superuser_team = self.create_team(
                 organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
+
+            assert not self.user_two.is_superuser
 
             self.base_data["Operations"] = [
                 {
@@ -407,19 +405,15 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, superuser_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(
+                    self.organization.slug, superuser_team.id, **self.base_data, status_code=204
+                )
 
-            mock_task_delay.assert_called_once_with(
-                team_slug="snty-superuser-read",
-                organization_id=self.organization.id,
-                user_ids_to_grant=[self.user_two.id],
-                user_ids_to_revoke=[],
-            )
+            self.user_two.refresh_from_db()
+            assert self.user_two.is_superuser
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_removing_from_staff_group_dispatches_task(self, mock_task_delay: MagicMock) -> None:
+    def test_removing_from_staff_group_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -430,33 +424,35 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
-
-            OrganizationMemberTeam.objects.create(
-                team=staff_team, organizationmember=self.member_one
+            staff_user = self.create_user(
+                email="test_removing_from_staff_group_dispatches_task@example.com", is_staff=True
             )
+            staff_member = self.create_member(user=staff_user, organization=self.organization)
+
+            OrganizationMemberTeam.objects.create(team=staff_team, organizationmember=staff_member)
 
             self.base_data["Operations"] = [
                 {
                     "op": "remove",
-                    "path": f'members[value eq "{self.member_one.id}"]',
+                    "path": f'members[value eq "{staff_member.id}"]',
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, staff_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
 
-            mock_task_delay.assert_called_once_with(
-                team_slug="snty-staff",
-                organization_id=self.organization.id,
-                user_ids_to_grant=[],
-                user_ids_to_revoke=[self.user_one.id],
+            staff_user.refresh_from_db()
+            assert (
+                OrganizationMemberTeam.objects.filter(
+                    team=staff_team, organizationmember=staff_member
+                ).exists()
+                is False
             )
+            assert not staff_user.is_staff
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_removing_from_superuser_group_dispatches_task(
-        self, mock_task_delay: MagicMock
-    ) -> None:
+    def test_removing_from_superuser_group_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -468,32 +464,40 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
 
+            superuser_user = self.create_user(
+                email="test_removing_from_superuser_group_dispatches_task@example.com",
+                is_superuser=True,
+            )
+            superuser_member = self.create_member(
+                user=superuser_user, organization=self.organization
+            )
+
             OrganizationMemberTeam.objects.create(
-                team=superuser_team, organizationmember=self.member_one
+                team=superuser_team, organizationmember=superuser_member
             )
 
             self.base_data["Operations"] = [
                 {
                     "op": "remove",
-                    "path": f'members[value eq "{self.member_one.id}"]',
+                    "path": f'members[value eq "{superuser_member.id}"]',
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, superuser_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(
+                    self.organization.slug, superuser_team.id, **self.base_data, status_code=204
+                )
 
-            mock_task_delay.assert_called_once_with(
-                team_slug="snty-superuser-read",
-                organization_id=self.organization.id,
-                user_ids_to_grant=[],
-                user_ids_to_revoke=[self.user_one.id],
+            superuser_user.refresh_from_db()
+            assert (
+                OrganizationMemberTeam.objects.filter(
+                    team=superuser_team, organizationmember=superuser_member
+                ).exists()
+                is False
             )
+            assert not superuser_user.is_superuser
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_replace_members_dispatches_task_with_grant_and_revoke(
-        self, mock_task_delay: MagicMock
-    ) -> None:
+    def test_replace_members_dispatches_task_with_grant_and_revoke(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -522,21 +526,18 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, staff_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
 
-            mock_task_delay.assert_called_once_with(
-                team_slug="snty-staff",
-                organization_id=self.organization.id,
-                user_ids_to_grant=[self.user_two.id],
-                user_ids_to_revoke=[self.user_one.id],
-            )
+            # The new member gets granted staff
+            self.user_two.refresh_from_db()
+            assert self.user_two.is_staff
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_adding_to_superuser_write_group_dispatches_task(
-        self, mock_task_delay: MagicMock
-    ) -> None:
+    def test_adding_to_superuser_write_group_dispatches_task(self) -> None:
+        from sentry.users.models.userpermission import UserPermission
+
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -561,21 +562,24 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, superuser_write_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(
+                    self.organization.slug,
+                    superuser_write_team.id,
+                    **self.base_data,
+                    status_code=204,
+                )
 
-            mock_task_delay.assert_called_once_with(
-                team_slug="snty-superuser-write",
-                organization_id=self.organization.id,
-                user_ids_to_grant=[self.user_one.id],
-                user_ids_to_revoke=[],
-            )
+                self.user_one.refresh_from_db()
+                assert self.user_one.is_superuser
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_removing_from_superuser_write_group_dispatches_task(
-        self, mock_task_delay: MagicMock
-    ) -> None:
+                assert UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
+    def test_removing_from_superuser_write_group_dispatches_task(self) -> None:
+        from sentry.users.models.userpermission import UserPermission
+
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -587,30 +591,42 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
             )
 
+            su_write_user = self.create_user(email="remove_su_write@example.com", is_superuser=True)
+            su_write_member = self.create_member(user=su_write_user, organization=self.organization)
+
+            with assume_test_silo_mode(SiloMode.MONOLITH):
+                UserPermission.objects.create(
+                    user_id=su_write_user.id, permission="superuser.write"
+                )
+
             OrganizationMemberTeam.objects.create(
-                team=superuser_write_team, organizationmember=self.member_one
+                team=superuser_write_team, organizationmember=su_write_member
             )
 
             self.base_data["Operations"] = [
                 {
                     "op": "remove",
-                    "path": f'members[value eq "{self.member_one.id}"]',
+                    "path": f'members[value eq "{su_write_member.id}"]',
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, superuser_write_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(
+                    self.organization.slug,
+                    superuser_write_team.id,
+                    **self.base_data,
+                    status_code=204,
+                )
 
-            mock_task_delay.assert_called_once_with(
-                team_slug="snty-superuser-write",
-                organization_id=self.organization.id,
-                user_ids_to_grant=[],
-                user_ids_to_revoke=[self.user_one.id],
-            )
+            with assume_test_silo_mode(SiloMode.MONOLITH):
+                su_write_user.refresh_from_db()
+                assert not su_write_user.is_superuser
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_regular_team_does_not_dispatch_task(self, mock_task_delay: MagicMock) -> None:
+                assert not UserPermission.objects.filter(
+                    user_id=su_write_user.id, permission="superuser.write"
+                ).exists()
+
+    def test_regular_team_does_not_dispatch_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -635,14 +651,16 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, regular_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(
+                    self.organization.slug, regular_team.id, **self.base_data, status_code=204
+                )
 
-            mock_task_delay.assert_not_called()
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
+            assert not self.user_one.is_superuser
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_non_default_org_does_not_dispatch_task(self, mock_task_delay: MagicMock) -> None:
+    def test_non_default_org_does_not_dispatch_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -653,7 +671,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             other_org = self.create_organization(name="Other Org")
             other_member = self.create_member(user=self.user_one, organization=other_org)
 
-            with assume_test_silo_mode(SiloMode.CONTROL):
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
                 other_auth_provider = AuthProviderModel(
                     organization_id=other_org.id, provider="dummy"
                 )
@@ -663,33 +681,33 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                     token=other_auth_provider.get_scim_token()
                 ).user
 
-            self.login_as(user=other_scim_user)
+                self.login_as(user=other_scim_user)
 
-            staff_team = self.create_team(
-                organization=other_org, slug="snty-staff", idp_provisioned=True
-            )
+                staff_team = self.create_team(
+                    organization=other_org, slug="snty-staff", idp_provisioned=True
+                )
 
-            self.base_data["Operations"] = [
-                {
-                    "op": "add",
-                    "path": "members",
-                    "value": [
-                        {
-                            "value": other_member.id,
-                            "display": other_member.email,
-                        }
-                    ],
-                }
-            ]
+                self.base_data["Operations"] = [
+                    {
+                        "op": "add",
+                        "path": "members",
+                        "value": [
+                            {
+                                "value": other_member.id,
+                                "display": other_member.email,
+                            }
+                        ],
+                    }
+                ]
 
-            self.get_success_response(
-                other_org.slug, staff_team.id, **self.base_data, status_code=204
-            )
+                self.get_success_response(
+                    other_org.slug, staff_team.id, **self.base_data, status_code=204
+                )
 
-            mock_task_delay.assert_not_called()
+                self.user_one.refresh_from_db()
+                assert not self.user_one.is_staff
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_non_saas_mode_does_not_dispatch_task(self, mock_task_delay: MagicMock) -> None:
+    def test_non_saas_mode_does_not_dispatch_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SELF_HOSTED,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -714,11 +732,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, staff_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
 
-            mock_task_delay.assert_not_called()
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
 
 
 class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
@@ -734,8 +754,7 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
         self.user_two = self.create_user(email="superuser_user@example.com")
         self.member_two = self.create_member(user=self.user_two, organization=self.organization)
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_deleting_staff_team_dispatches_task(self, mock_task_delay: MagicMock) -> None:
+    def test_deleting_staff_team_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -747,26 +766,28 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
 
+            staff_user_a = self.create_user(email="delete_staff_a@example.com", is_staff=True)
+            staff_member_a = self.create_member(user=staff_user_a, organization=self.organization)
+            staff_user_b = self.create_user(email="delete_staff_b@example.com", is_staff=True)
+            staff_member_b = self.create_member(user=staff_user_b, organization=self.organization)
+
             OrganizationMemberTeam.objects.create(
-                team=staff_team, organizationmember=self.member_one
+                team=staff_team, organizationmember=staff_member_a
             )
             OrganizationMemberTeam.objects.create(
-                team=staff_team, organizationmember=self.member_two
+                team=staff_team, organizationmember=staff_member_b
             )
 
-            self.get_success_response(self.organization.slug, staff_team.id, status_code=204)
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(self.organization.slug, staff_team.id, status_code=204)
 
-            mock_task_delay.assert_called_once()
-            call_kwargs = mock_task_delay.call_args[1]
-            assert call_kwargs["team_slug"] == "snty-staff"
-            assert call_kwargs["organization_id"] == self.organization.id
-            assert call_kwargs["user_ids_to_grant"] == []
-            assert sorted(call_kwargs["user_ids_to_revoke"]) == sorted(
-                [self.user_one.id, self.user_two.id]
-            )
+            staff_user_a.refresh_from_db()
+            assert not staff_user_a.is_staff
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_deleting_superuser_team_dispatches_task(self, mock_task_delay: MagicMock) -> None:
+            staff_user_b.refresh_from_db()
+            assert not staff_user_b.is_staff
+
+    def test_deleting_superuser_team_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -778,21 +799,20 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
 
-            OrganizationMemberTeam.objects.create(
-                team=superuser_team, organizationmember=self.member_one
-            )
+            su_user = self.create_user(email="delete_superuser@example.com", is_superuser=True)
+            su_member = self.create_member(user=su_user, organization=self.organization)
 
-            self.get_success_response(self.organization.slug, superuser_team.id, status_code=204)
+            OrganizationMemberTeam.objects.create(team=superuser_team, organizationmember=su_member)
 
-            mock_task_delay.assert_called_once_with(
-                team_slug="snty-superuser-read",
-                organization_id=self.organization.id,
-                user_ids_to_grant=[],
-                user_ids_to_revoke=[self.user_one.id],
-            )
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(
+                    self.organization.slug, superuser_team.id, status_code=204
+                )
 
-    @patch("sentry.core.endpoints.scim.teams.sync_scim_team_privileges.delay")
-    def test_deleting_regular_team_does_not_dispatch_task(self, mock_task_delay: MagicMock) -> None:
+            su_user.refresh_from_db()
+            assert not su_user.is_superuser
+
+    def test_deleting_regular_team_does_not_dispatch_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -808,6 +828,9 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
                 team=regular_team, organizationmember=self.member_one
             )
 
-            self.get_success_response(self.organization.slug, regular_team.id, status_code=204)
+            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+                self.get_success_response(self.organization.slug, regular_team.id, status_code=204)
 
-            mock_task_delay.assert_not_called()
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
+            assert not self.user_one.is_superuser
