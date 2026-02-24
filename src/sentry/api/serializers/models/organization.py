@@ -30,7 +30,6 @@ from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
-    ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
@@ -399,10 +398,6 @@ class OrganizationSerializer(Serializer):
             feature_set.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_set.add("shared-issues")
-        if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:
-            feature_set.remove("mep-rollout-flag")
-        if options.get("performance.hide-metrics-ui") and "mep-rollout-flag" in feature_set:
-            feature_set.remove("mep-rollout-flag")
 
         return sorted(feature_set)
 
@@ -562,7 +557,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
-    allowBackgroundAgentDelegation: bool
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
@@ -768,12 +762,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ),
             "defaultCodeReviewTriggers": obj.get_option(
                 "sentry:default_code_review_triggers", DEFAULT_CODE_REVIEW_TRIGGERS
-            ),
-            "allowBackgroundAgentDelegation": bool(
-                obj.get_option(
-                    "sentry:allow_background_agent_delegation",
-                    ALLOW_BACKGROUND_AGENT_DELEGATION,
-                )
             ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [

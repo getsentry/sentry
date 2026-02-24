@@ -23,7 +23,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
 
 import type {NotificationOptionsObject, NotificationSettingsType} from './constants';
-import {NOTIFICATION_SETTING_FIELDS} from './fields2';
+import {NOTIFICATION_SETTING_FIELDS} from './fields';
 import {OrganizationSelectHeader} from './organizationSelectHeader';
 
 type Value = 'always' | 'never' | 'subscribe_only' | 'committed_only';

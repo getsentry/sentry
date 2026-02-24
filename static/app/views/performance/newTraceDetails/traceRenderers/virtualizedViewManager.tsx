@@ -1701,10 +1701,10 @@ function getIconTimestamps(
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
-  for (const occurence of node.occurrences) {
+  for (const occurrence of node.occurrences) {
     // Occurences render icons at the start timestamp
     const start_timestamp =
-      'start_timestamp' in occurence ? occurence.start_timestamp : occurence.start;
+      'start_timestamp' in occurrence ? occurrence.start_timestamp : occurrence.start;
     if (typeof start_timestamp === 'number') {
       min_icon_timestamp = Math.min(
         min_icon_timestamp,
