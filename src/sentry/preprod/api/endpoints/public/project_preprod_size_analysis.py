@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import assert_never
+from typing import assert_never, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -22,10 +22,10 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import (
     PreprodArtifactResourceDoesNotExist,
 )
 from sentry.preprod.api.models.public_api_models import (
+    AppComponentResponseDict,
     AppInfoResponseDict,
     GitInfoResponseDict,
     SizeAnalysisCompletedResponseDict,
-    SizeAnalysisResponseDict,
     build_comparison_data,
     create_app_info_dict,
     create_git_info_dict,
@@ -70,7 +70,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "SizeAnalysisResponse", SizeAnalysisResponseDict
+                "SizeAnalysisResponse", SizeAnalysisCompletedResponseDict
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
@@ -242,7 +242,9 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             "analysis_duration": analysis_results.analysis_duration,
             "analysis_version": analysis_results.analysis_version,
             "insights": analysis_results.insights.dict() if analysis_results.insights else None,
-            "app_components": [c.dict() for c in analysis_results.app_components]
+            "app_components": cast(
+                list[AppComponentResponseDict], [c.dict() for c in analysis_results.app_components]
+            )
             if analysis_results.app_components
             else None,
         }
