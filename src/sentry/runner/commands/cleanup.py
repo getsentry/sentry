@@ -301,10 +301,7 @@ def _cleanup(
     partition_total: int | None = None,
     partition_key: str = "id",
 ) -> None:
-    start_time = time.time()
-    _validate_and_setup_environment(concurrency, silent)
-
-    # Validate partition flags
+    # Validate partition flags before modifying environment
     parsed_partition: tuple[int, int, str] | None = None
     if partition_bucket is not None or partition_total is not None:
         if partition_bucket is None or partition_total is None:
@@ -324,6 +321,9 @@ def _cleanup(
                 f"Invalid --partition-bucket: {partition_bucket} must be less than --partition-total {partition_total}."
             )
         parsed_partition = (partition_bucket, partition_total, partition_key)
+
+    start_time = time.time()
+    _validate_and_setup_environment(concurrency, silent)
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
     pool, task_queue = _start_pool(concurrency)
