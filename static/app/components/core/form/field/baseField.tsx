@@ -37,7 +37,7 @@ export function FieldStatus({disabled}: {disabled?: boolean | string}) {
   if (!field.state.meta.isValid) {
     const errorMessage = field.state.meta.errors.map(e => e?.message).join(',');
     return (
-      <Tooltip position="bottom" offset={8} title={errorMessage} forceVisible skipWrapper>
+      <Tooltip position="bottom" title={errorMessage} forceVisible skipWrapper>
         <Warning variant="danger" size="sm" />
       </Tooltip>
     );
