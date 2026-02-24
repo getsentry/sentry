@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -8,13 +8,11 @@ from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issu
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.feedback import MockSeerResponse, mock_feedback_event
 
 
 @region_silo_test
-@freeze_time(before_now(hours=1).replace(minute=0, second=0, microsecond=0))
 class OrganizationFeedbackCategoriesTest(APITestCase):
     endpoint = "sentry-api-0-organization-user-feedback-categories"
 
@@ -60,6 +58,15 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
         self.mock_min_feedbacks_context_patcher.stop()
         super().tearDown()
 
+    def _time_window(self, offset_hours: int) -> tuple[datetime, dict[str, str]]:
+        """Return (base_time, time_params) for an isolated Snuba time window."""
+        base_time = datetime.now(UTC) - timedelta(hours=offset_hours)
+        time_params = {
+            "start": base_time.isoformat(),
+            "end": (base_time + timedelta(minutes=1)).isoformat(),
+        }
+        return base_time, time_params
+
     def _create_feedback(
         self,
         message: str,
@@ -87,10 +94,16 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
             assert response.status_code == 403
 
     def test_get_feedback_categories_basic(self) -> None:
-        self._create_feedback("a", ["User Interface", "Speed"], self.project1)
-        self._create_feedback("b", ["Performance", "Usability", "Loading"], self.project1)
-        self._create_feedback("c", ["Security", "Performance"], self.project2)
-        self._create_feedback("d", ["Performance", "User Interface", "Speed"], self.project2)
+        base_time, time_params = self._time_window(1)
+
+        self._create_feedback("a", ["User Interface", "Speed"], self.project1, dt=base_time)
+        self._create_feedback(
+            "b", ["Performance", "Usability", "Loading"], self.project1, dt=base_time
+        )
+        self._create_feedback("c", ["Security", "Performance"], self.project2, dt=base_time)
+        self._create_feedback(
+            "d", ["Performance", "User Interface", "Speed"], self.project2, dt=base_time
+        )
 
         self.mock_make_signed_seer_api_request.return_value = MockSeerResponse(
             200,
@@ -108,7 +121,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
         )
 
         with self.feature(self.features):
-            response = self.get_success_response(self.org.slug)
+            response = self.get_success_response(self.org.slug, **time_params)
 
         assert response.data["success"] is True
         assert response.data["numFeedbacksContext"] == 4
@@ -132,10 +145,14 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
                 assert category["feedbackCount"] == 0
 
     def test_get_feedback_categories_with_project_filter(self) -> None:
-        self._create_feedback("a", ["User Interface", "Performance"], self.project1)
-        self._create_feedback("b", ["Performance", "Loading"], self.project1)
-        self._create_feedback("c", ["Security", "Performance"], self.project2)
-        self._create_feedback("d", ["Performance", "User Interface", "Speed"], self.project2)
+        base_time, time_params = self._time_window(2)
+
+        self._create_feedback("a", ["User Interface", "Performance"], self.project1, dt=base_time)
+        self._create_feedback("b", ["Performance", "Loading"], self.project1, dt=base_time)
+        self._create_feedback("c", ["Security", "Performance"], self.project2, dt=base_time)
+        self._create_feedback(
+            "d", ["Performance", "User Interface", "Speed"], self.project2, dt=base_time
+        )
 
         self.mock_make_signed_seer_api_request.return_value = MockSeerResponse(
             200,
@@ -151,7 +168,9 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
         )
 
         with self.feature(self.features):
-            response = self.get_success_response(self.org.slug, project=[self.project1.id])
+            response = self.get_success_response(
+                self.org.slug, project=[self.project1.id], **time_params
+            )
 
         assert response.data["success"] is True
         assert response.data["numFeedbacksContext"] == 2
@@ -174,11 +193,12 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
     )
     def test_max_group_labels_limit(self) -> None:
         """Test that MAX_GROUP_LABELS constant is respected when processing label groups."""
-        self._create_feedback("a", ["User Interface"], self.project1)
-        self._create_feedback("b", ["User Interface", "Usability"], self.project1)
-        self._create_feedback("c", ["Accessibility"], self.project1)
+        base_time, time_params = self._time_window(3)
 
-        # Mock Seer to return a label group with more than MAX_GROUP_LABELS labels
+        self._create_feedback("a", ["User Interface"], self.project1, dt=base_time)
+        self._create_feedback("b", ["User Interface", "Usability"], self.project1, dt=base_time)
+        self._create_feedback("c", ["Accessibility"], self.project1, dt=base_time)
+
         self.mock_make_signed_seer_api_request.return_value = MockSeerResponse(
             200,
             json_data={
@@ -192,7 +212,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
         )
 
         with self.feature(self.features):
-            response = self.get_success_response(self.org.slug)
+            response = self.get_success_response(self.org.slug, **time_params)
 
         assert response.data["success"] is True
         categories = response.data["categories"]
@@ -204,12 +224,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
 
     def test_filter_invalid_associated_labels_by_count_ratio(self) -> None:
         """Test that associated labels with too many feedbacks (relative to primary label) are filtered out."""
-        # Create feedbacks where associated label feedbacks are >= primary label feedbacks.
-        # This should cause them to be filtered out from the label group.
-        self._create_feedback("a", ["User Interface", "Issues UI"], self.project1)
-        self._create_feedback("b", ["Usability", "Issues UI"], self.project1)
+        base_time, time_params = self._time_window(4)
 
-        # XXX: the endpoint checks for assoc >= 3/4 * primary, but this test is more lenient in case the ratio changes.
+        self._create_feedback("a", ["User Interface", "Issues UI"], self.project1, dt=base_time)
+        self._create_feedback("b", ["Usability", "Issues UI"], self.project1, dt=base_time)
 
         self.mock_make_signed_seer_api_request.return_value = MockSeerResponse(
             200,
@@ -224,7 +242,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
         )
 
         with self.feature(self.features):
-            response = self.get_success_response(self.org.slug)
+            response = self.get_success_response(self.org.slug, **time_params)
 
         assert response.data["success"] is True
         categories = response.data["categories"]
@@ -234,39 +252,44 @@ class OrganizationFeedbackCategoriesTest(APITestCase):
         assert categories[0]["feedbackCount"] == 1
 
     def test_seer_request_error(self) -> None:
-        self._create_feedback("a", ["User Interface", "Issues UI"], self.project1)
+        base_time, time_params = self._time_window(5)
+
+        self._create_feedback("a", ["User Interface", "Issues UI"], self.project1, dt=base_time)
         self.mock_make_signed_seer_api_request.side_effect = Exception("seer failed")
 
         with self.feature(self.features):
-            response = self.get_error_response(self.org.slug)
+            response = self.get_error_response(self.org.slug, **time_params)
 
         assert response.status_code == 500
         assert response.data["detail"] == "Failed to generate user feedback label groups"
 
     def test_seer_http_errors(self) -> None:
-        self._create_feedback("a", ["User Interface", "Issues UI"], self.project1)
-        for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
+        base_time, time_params = self._time_window(6)
+
+        self._create_feedback("a", ["User Interface", "Issues UI"], self.project1, dt=base_time)
+        for http_status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
             self.mock_make_signed_seer_api_request.return_value = MockSeerResponse(
-                status=status, json_data={"detail": "seer failed"}
+                status=http_status, json_data={"detail": "seer failed"}
             )
 
             with self.feature(self.features):
-                response = self.get_error_response(self.org.slug)
+                response = self.get_error_response(self.org.slug, **time_params)
 
             assert response.status_code == 500
             assert response.data["detail"] == "Failed to generate user feedback label groups"
 
     def test_fallback_to_primary_labels_when_below_threshold(self) -> None:
         """Test that when feedback count is below THRESHOLD_TO_GET_ASSOCIATED_LABELS, we fall back to primary labels only (no Seer request)."""
+        base_time, time_params = self._time_window(7)
 
         with patch(
             "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
             2,
         ):
-            self._create_feedback("a", ["User Interface", "Usability"], self.project1)
+            self._create_feedback("a", ["User Interface", "Usability"], self.project1, dt=base_time)
 
             with self.feature(self.features):
-                response = self.get_success_response(self.org.slug)
+                response = self.get_success_response(self.org.slug, **time_params)
 
             assert self.mock_make_signed_seer_api_request.call_count == 0
 
