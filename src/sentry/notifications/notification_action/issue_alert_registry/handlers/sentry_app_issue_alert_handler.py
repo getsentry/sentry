@@ -82,6 +82,12 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
 
     @classmethod
     def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        """
+        blob: {
+            'id': 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
+            'sentryAppInstallationUuid': 'str,
+        }
+        """
         sentry_app_installation_uuid = blob.get("sentryAppInstallationUuid")
 
         installations = app_service.get_many(
