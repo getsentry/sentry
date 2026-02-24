@@ -137,7 +137,9 @@ class OutputSpan(NamedTuple):
 class FlushedSegment(NamedTuple):
     queue_key: QueueKey
     spans: list[OutputSpan]
-    oob_keys: list[bytes] = []
+    # Since we have a shared mutable default here (for ergonomics), we're using
+    # Sequence to prevent people from mutating the list.
+    oob_keys: Sequence[bytes] = []
 
 
 class SpansBuffer:
