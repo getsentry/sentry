@@ -32,7 +32,6 @@ import {
 } from 'sentry/components/keyValueData';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -146,22 +145,22 @@ export const CardContainer = styled('div')<{numCols: number}>`
 
   div {
     border: none;
-    border-radius: ${space(0.5)};
+    border-radius: ${p => p.theme.space.xs};
   }
 
   > * {
     padding-left: 0px;
 
     &:first-child {
-      margin-left: -${space(1)};
+      margin-left: -${p => p.theme.space.md};
     }
     :not(:last-child) {
       border-right: 1.5px solid ${p => p.theme.tokens.border.secondary};
-      padding-right: ${space(2)};
+      padding-right: ${p => p.theme.space.xl};
     }
     :not(:first-child) {
       border-left: 1.5px solid ${p => p.theme.tokens.border.secondary};
-      padding-left: ${space(2)};
+      padding-left: ${p => p.theme.space.xl};
       padding-right: 0;
       margin-left: -1px;
     }

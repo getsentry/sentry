@@ -8,7 +8,6 @@ import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import ReplayViewers from 'sentry/components/replays/header/replayViewers';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -116,7 +115,7 @@ const KeyMetrics = styled('dl')`
   grid-template-columns: repeat(4, max-content);
   grid-auto-flow: column;
   height: 42px;
-  gap: 0 ${space(3)};
+  gap: 0 ${p => p.theme.space['2xl']};
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
@@ -135,7 +134,7 @@ const KeyMetricData = styled('dd')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
@@ -146,6 +145,6 @@ const Count = styled('span')`
 const ClickCount = styled(Count)`
   color: ${p => p.theme.tokens.content.secondary};
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: center;
 `;

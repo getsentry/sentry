@@ -10,7 +10,6 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -209,7 +208,7 @@ const ButtonContent = styled('div')`
   flex-direction: column;
   text-align: left;
   white-space: pre-line;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const ButtonTitle = styled('div')`

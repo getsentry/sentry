@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -72,5 +71,5 @@ export default function ReleaseDropdownFilter({version}: {version: string}) {
 }
 
 const TriggerButton = styled(Button)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 `;

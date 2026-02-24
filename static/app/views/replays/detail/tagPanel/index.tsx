@@ -9,7 +9,6 @@ import {KeyValueTable} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
@@ -98,5 +97,5 @@ export default function TagPanel() {
 }
 
 const PaddedPlaceholder = styled(Placeholder)`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
 `;

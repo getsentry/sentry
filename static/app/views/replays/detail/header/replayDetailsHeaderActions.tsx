@@ -5,7 +5,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ConfigureReplayCard from 'sentry/components/replays/header/configureReplayCard';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
-import {space} from 'sentry/styles/space';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import ReplayItemDropdown from 'sentry/views/replays/detail/header/replayItemDropdown';
 
@@ -56,7 +55,7 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   flex-direction: row;
   justify-content: flex-end;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     margin-bottom: 0;
   }

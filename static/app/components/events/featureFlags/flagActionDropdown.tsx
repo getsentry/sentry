@@ -6,7 +6,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
@@ -86,9 +85,9 @@ const StyledDropdownMenu = styled(DropdownMenu)`
     height: 15px;
     min-height: 15px;
     width: 25px;
-    margin-top: ${space(0.5)};
-    padding: 0 ${space(0.75)};
-    border-radius: ${space(0.5)};
+    margin-top: ${p => p.theme.space.xs};
+    padding: 0 ${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.space.xs};
     z-index: 0;
   }
 `;

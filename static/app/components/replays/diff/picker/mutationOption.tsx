@@ -5,7 +5,6 @@ import {Radio} from '@sentry/scraps/radio';
 
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import formatDuration from 'sentry/utils/duration/formatDuration';
 import {EventType, type RecordingFrame} from 'sentry/utils/replays/types';
 
@@ -57,7 +56,7 @@ export default function MutationOption({
 
 const Label = styled('label')`
   cursor: pointer;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   font-weight: normal;
   text-align: left;
 `;

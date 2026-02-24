@@ -10,7 +10,6 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -242,8 +241,8 @@ const ChapterIconWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${space(0.5)};
-  margin-right: ${space(1)};
+  padding: ${p => p.theme.space.xs};
+  margin-right: ${p => p.theme.space.md};
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: 50%;
   z-index: 2; /* needs to be above "ChapterWrapper summary::after" */
@@ -309,7 +308,7 @@ const ChapterWrapper = styled('details')`
 `;
 
 const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
 
   &::before {
     display: none;
@@ -331,7 +330,7 @@ const Chapter = styled('summary')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.font.size.lg};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space.sm};
   color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
@@ -374,12 +373,12 @@ const Chapter = styled('summary')`
 const ChapterTitle = styled('div')`
   display: grid;
   grid-template-columns: auto auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-areas: 'title timestamp';
   flex: 1;
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 
   .activeChapter & {
     font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -395,7 +394,7 @@ const ChapterTitle = styled('div')`
 
 const ReplayTimestamp = styled('span')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.regular};

@@ -4,7 +4,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   speed: number;
@@ -34,7 +33,7 @@ const Badge = styled('div')`
 const FastForwardTooltip = styled(Tooltip)`
   background: ${p => p.theme.colors.gray400};
   color: ${p => p.theme.colors.white};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   border-top-right-radius: ${p => p.theme.radius.md};
   z-index: ${p => p.theme.zIndex.initial};
 `;

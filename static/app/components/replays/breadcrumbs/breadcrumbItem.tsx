@@ -11,7 +11,6 @@ import {BreadcrumbIssueLink} from 'sentry/components/replays/breadcrumbs/breadcr
 import {BreadcrumbStructuredData} from 'sentry/components/replays/breadcrumbs/breadcrumbStructuredData';
 import {BreadcrumbWebVital} from 'sentry/components/replays/breadcrumbs/breadcrumbWebVital';
 import {Timeline} from 'sentry/components/timeline';
-import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
@@ -155,7 +154,7 @@ export default function BreadcrumbItem({
 const StyledTimelineItem = styled(Timeline.Item)`
   width: 100%;
   position: relative;
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   margin: 0;
   &:hover {
     background: ${p => p.theme.colors.surface200};

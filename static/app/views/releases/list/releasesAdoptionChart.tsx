@@ -37,7 +37,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
@@ -317,11 +316,11 @@ function ReleasesAdoptionChart({
 export default ReleasesAdoptionChart;
 
 const ChartHeader = styled(HeaderTitleLegend)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ChartFooter = styled(PanelFooter)`
   display: flex;
   align-items: center;
-  padding: ${space(1)} 20px;
+  padding: ${p => p.theme.space.md} 20px;
 `;

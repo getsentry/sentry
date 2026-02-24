@@ -14,7 +14,6 @@ import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useTimelineMouseTracking from 'sentry/components/replays/player/useTimelineMouseTracking';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
@@ -154,7 +153,7 @@ const TimeAndScrubberGridLayout = styled('div')<{isCompact: boolean}>`
   grid-template-areas:
     '. timeline timelineSize'
     'currentTime scrubber duration';
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   grid-template-columns: max-content auto max-content;
   align-items: center;
 

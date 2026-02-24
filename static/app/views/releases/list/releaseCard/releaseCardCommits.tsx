@@ -5,7 +5,6 @@ import {AvatarList} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
@@ -57,7 +56,7 @@ const ReleaseSummaryHeading = styled('div')`
   line-height: 1.2;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 export default ReleaseCardCommits;

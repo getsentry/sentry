@@ -18,7 +18,6 @@ import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOption
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -150,7 +149,7 @@ const Wrapper = styled('div')`
 
 const Divider = styled('div')`
   position: relative;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   &:before {
     display: block;
     position: absolute;

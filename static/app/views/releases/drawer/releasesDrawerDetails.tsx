@@ -19,7 +19,6 @@ import {
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -322,20 +321,20 @@ export function ReleasesDrawerDetails({
 const Details = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   align-items: start;
 `;
 
 const Title = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SelectableProjectBadges = styled('div')`
   display: flex;
   & > :not(:first-child) {
-    margin-left: -${space(0.5)};
+    margin-left: -${p => p.theme.space.xs};
   }
 `;
 

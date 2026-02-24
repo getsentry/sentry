@@ -21,7 +21,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
@@ -307,7 +306,7 @@ const StyledPanel = styled(Panel)<{reloading: number}>`
 `;
 
 const ReleaseInfo = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   flex-shrink: 1;
   display: flex;
   flex-direction: column;
@@ -347,7 +346,7 @@ const PackageName = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   max-width: 100%;
 `;
 
@@ -365,13 +364,13 @@ const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
 
 const ReleaseProjectsHeader = styled(PanelHeader)`
   border-top-left-radius: 0;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.sm};
 `;
 
@@ -388,8 +387,8 @@ const ExpandButtonWrapper = styled('div')`
     ${p => p.theme.tokens.background.primary}
   );
   background-repeat: repeat-x;
-  border-bottom: ${space(1)} solid ${p => p.theme.tokens.background.primary};
-  border-top: ${space(1)} solid transparent;
+  border-bottom: ${p => p.theme.space.md} solid ${p => p.theme.tokens.background.primary};
+  border-top: ${p => p.theme.space.md} solid transparent;
   border-bottom-right-radius: ${p => p.theme.radius.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     border-bottom-left-radius: ${p => p.theme.radius.md};
@@ -402,7 +401,7 @@ export const ReleaseProjectsLayout = styled('div')<{
   display: grid;
   grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   align-items: center;
   width: 100%;
 
@@ -492,7 +491,7 @@ const HiddenProjectsMessage = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.font.size.sm};
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
   height: 24px;

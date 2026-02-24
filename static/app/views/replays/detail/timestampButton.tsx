@@ -8,7 +8,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
 import {IconPlay} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -81,7 +80,7 @@ const StyledButton = styled('button')`
   display: flex;
   align-items: flex-start;
   align-self: baseline;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   padding: 0;
   height: 100%;
 `;

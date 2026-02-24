@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -151,7 +150,7 @@ const ColumnTooltipContent = styled(CountTooltipContent)`
 const StyledLink = styled(Link)`
   display: flex;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   & * {
     cursor: pointer !important;
@@ -172,6 +171,6 @@ const StackedProjectBadges = styled('div')`
   }
 
   & > :not(:first-child) {
-    margin-left: -${space(0.5)};
+    margin-left: -${p => p.theme.space.xs};
   }
 `;

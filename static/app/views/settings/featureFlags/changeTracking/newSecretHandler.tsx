@@ -11,7 +11,6 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function NewSecretHandler({
@@ -81,7 +80,7 @@ function NewSecretHandler({
 }
 
 const StyledFieldGroup = styled(FieldGroup)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const ButtonWrapper = styled('div')`
@@ -90,11 +89,11 @@ const ButtonWrapper = styled('div')`
   flex-direction: column;
   align-items: flex-end;
   font-size: ${p => p.theme.font.size.sm};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;
 
 export default NewSecretHandler;

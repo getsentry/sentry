@@ -4,7 +4,6 @@ import {AvatarList} from '@sentry/scraps/avatar';
 
 import {ListGroupItem} from 'sentry/components/listGroup';
 import TextOverflow from 'sentry/components/textOverflow';
-import {space} from 'sentry/styles/space';
 import type {CommitAuthor} from 'sentry/types/integrations';
 import type {AvatarUser} from 'sentry/types/user';
 
@@ -33,7 +32,7 @@ const FileItem = styled(ListGroupItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 
   border-radius: 0;
   border-left: none;
@@ -49,7 +48,7 @@ const Filename = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 

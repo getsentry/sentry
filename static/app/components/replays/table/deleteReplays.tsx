@@ -20,7 +20,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {useQueryClient, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
@@ -291,7 +290,7 @@ const SubText = styled('div')`
   text-overflow: ellipsis;
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   align-items: flex-start;
 `;
 

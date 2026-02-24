@@ -8,7 +8,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayView from 'sentry/components/replays/replayView';
-import {space} from 'sentry/styles/space';
 import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
@@ -148,7 +147,7 @@ const FluidContainer = styled('section')`
   display: grid;
   grid-template-rows: max-content 1fr;
   height: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const BodyGrid = styled('main')`
@@ -156,8 +155,8 @@ const BodyGrid = styled('main')`
 
   display: grid;
   grid-template-rows: 1fr auto;
-  gap: ${space(2)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
 
   /*
   Grid items have default \`min-height: auto\` to contain all content.
@@ -173,10 +172,10 @@ const VideoSection = styled('div')`
   flex-grow: 1;
 
   background: ${p => p.theme.tokens.background.primary};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   :fullscreen {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
   }
 `;
 

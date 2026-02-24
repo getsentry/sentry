@@ -6,7 +6,6 @@ import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/
 import ZoomTriangles from 'sentry/components/replays/player/zoomTrianges';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -140,12 +139,13 @@ export const TimelineScrubber = styled(Scrubber)`
    */
   ${PlaybackTimeValue},
   ${MouseTrackingValue} {
-    border-right: ${space(0.25)} solid ${p => p.theme.tokens.graphics.accent.vibrant};
+    border-right: ${p => p.theme.space['2xs']} solid
+      ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
 export const PlayerScrubber = styled(Scrubber)`
-  height: ${space(0.5)};
+  height: ${p => p.theme.space.xs};
 
   ${Meter} {
     border-radius: ${p => p.theme.radius.md};
@@ -196,8 +196,8 @@ export const PlayerScrubber = styled(Scrubber)`
 
   ${PlaybackTimeValue}:after,
   ${MouseTrackingValue}:after {
-    --size: ${space(2)};
-    --borderWidth: ${space(0.25)};
+    --size: ${p => p.theme.space.xl};
+    --borderWidth: ${p => p.theme.space['2xs']};
     content: '';
     display: block;
     width: var(--size);

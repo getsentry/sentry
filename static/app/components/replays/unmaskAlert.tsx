@@ -7,7 +7,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import useUserViewedReplays from 'sentry/components/replays/useUserViewedReplays';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 const LOCAL_STORAGE_KEY = 'replay-unmask-alert-dismissed';
@@ -51,5 +50,5 @@ export default UnmaskAlert;
 
 const UnmaskAlertContainer = styled('div')`
   position: absolute;
-  bottom: ${space(1)};
+  bottom: ${p => p.theme.space.md};
 `;

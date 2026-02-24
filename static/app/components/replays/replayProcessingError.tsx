@@ -6,7 +6,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 interface Props {
@@ -64,5 +63,5 @@ const StyledAlert = styled(Alert)`
 const Heading = styled('h1')`
   font-size: ${p => p.theme.font.size.lg};
   line-height: 1.4;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   className?: string;
@@ -30,10 +29,10 @@ const Overlay = styled('div')`
 const Message = styled('div')`
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   place-items: center;
 
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   background: ${p => p.theme.colors.gray400};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.colors.white};

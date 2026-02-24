@@ -4,7 +4,6 @@ import type {Location} from 'history';
 import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -52,11 +51,11 @@ function ReleaseCardStatsPeriod({location, selection}: Props) {
 const Wrapper = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-column-gap: ${space(0.75)};
+  grid-column-gap: ${p => p.theme.space.sm};
   flex: 1;
   justify-content: flex-end;
   text-align: right;
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 const Period = styled(Link)<{selected: boolean}>`
