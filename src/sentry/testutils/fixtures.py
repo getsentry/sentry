@@ -53,6 +53,7 @@ from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -1182,5 +1183,5 @@ class Fixtures:
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
 
     @pytest.fixture(autouse=True)
-    def _init_insta_snapshot(self, insta_snapshot):
+    def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:
         self.insta_snapshot = insta_snapshot

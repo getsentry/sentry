@@ -18,6 +18,7 @@ from sentry.dynamic_sampling import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
+from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
@@ -27,7 +28,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.safe import get_path
 
@@ -108,7 +109,7 @@ def test_get_project_config_non_visible(default_project) -> None:
 
 @django_db_all
 @region_silo_test
-def test_get_project_config(default_project, insta_snapshot) -> None:
+def test_get_project_config(default_project: Project, insta_snapshot: InstaSnapshotter) -> None:
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
     default_project.update_option("sentry:relay_pii_config", PII_CONFIG)
     default_project.organization.update_option("sentry:relay_pii_config", PII_CONFIG)
@@ -524,7 +525,7 @@ def test_project_config_with_trace_health_checks_enabled(
 @pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
 @region_silo_test
 def test_project_config_with_breakdown(
-    default_project, insta_snapshot, transaction_metrics
+    default_project: Project, insta_snapshot: InstaSnapshotter, transaction_metrics: str
 ) -> None:
     with Feature(
         {
@@ -569,11 +570,11 @@ def test_project_config_with_organizations_metrics_extraction(
 @pytest.mark.parametrize("has_project_transaction_threshold_overrides", (False, True))
 @region_silo_test
 def test_project_config_satisfaction_thresholds(
-    default_project,
-    insta_snapshot,
-    has_project_transaction_threshold_overrides,
-    has_project_transaction_threshold,
-):
+    default_project: Project,
+    insta_snapshot: InstaSnapshotter,
+    has_project_transaction_threshold_overrides: bool,
+    has_project_transaction_threshold: bool,
+) -> None:
     if has_project_transaction_threshold:
         default_project.projecttransactionthreshold_set.create(
             organization=default_project.organization,
@@ -1355,7 +1356,9 @@ def test_mobile_performance_calculate_score(default_project) -> None:
 @django_db_all
 @region_silo_test
 @pytest.mark.parametrize("passive", [False, True])
-def test_project_config_cardinality_limits(default_project, insta_snapshot, passive) -> None:
+def test_project_config_cardinality_limits(
+    default_project: Project, insta_snapshot: InstaSnapshotter, passive: bool
+) -> None:
     options: dict[Any, Any] = {
         "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [

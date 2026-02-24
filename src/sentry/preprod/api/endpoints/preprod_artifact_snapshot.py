@@ -31,6 +31,7 @@ from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +156,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             SnapshotImageResponse(
                 key=key,
                 display_name=metadata.display_name,
-                file_name=metadata.file_name,
+                image_file_name=metadata.image_file_name,
                 width=metadata.width,
                 height=metadata.height,
             )
@@ -203,7 +204,19 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         base_ref = data.get("base_ref")
         pr_number = data.get("pr_number")
 
-        with transaction.atomic(router.db_for_write(PreprodArtifact)):
+        # has_vcs tag differentiates transactions that include a CommitComparison
+        # lookup from those that skip it, so we can isolate their latency on dashboards.
+        with (
+            metrics.timer(
+                "preprod.snapshot.transaction_duration",
+                sample_rate=1.0,
+                tags={
+                    "has_vcs": bool(head_sha and provider and head_repo_name and head_ref),
+                    "organization_id_value": project.organization_id,
+                },
+            ),
+            transaction.atomic(router.db_for_write(PreprodArtifact)),
+        ):
             commit_comparison = None
             if head_sha and provider and head_repo_name and head_ref:
                 commit_comparison, _ = CommitComparison.objects.get_or_create(
