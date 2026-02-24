@@ -1,5 +1,4 @@
-import {Fragment} from 'react';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -7,6 +6,7 @@ import {
   AutoSaveField,
   defaultFormOptions,
   FieldGroup,
+  FormSearch,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
@@ -83,8 +83,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
     mutationFn: (data: Partial<Organization>) =>
       fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
     onSuccess: handleUpdateOrganization,
-    onError: () => addErrorMessage(t('Unable to save change')),
   });
+
+  const orgMutation = useMutation(orgMutationOptions);
 
   const initialSensitiveFields = convertMultilineFieldValue(organization.sensitiveFields);
   const initialSafeFields = convertMultilineFieldValue(organization.safeFields);
@@ -97,15 +98,11 @@ export default function OrganizationSecurityAndPrivacyContent() {
     },
     validators: {onDynamic: dataScrubMultilineSchema},
     onSubmit: ({value}) =>
-      fetchMutation<Organization>({
-        method: 'PUT',
-        url: orgEndpoint,
-        data: {
+      orgMutation
+        .mutateAsync({
           sensitiveFields: extractMultilineFields(value.sensitiveFields),
           safeFields: extractMultilineFields(value.safeFields),
-        },
-      })
-        .then(handleUpdateOrganization)
+        })
         .catch(() => {
           addErrorMessage(t('Unable to save change'));
         }),
@@ -116,7 +113,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
     organization.features.includes('data-secrecy') && !isSelfHosted;
 
   return (
-    <Fragment>
+    <FormSearch route="/settings/:orgId/security-and-privacy/">
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
       <SettingsPageHeader title={title} />
 
@@ -483,6 +480,6 @@ export default function OrganizationSecurityAndPrivacyContent() {
         disabled={!hasOrgWrite}
         onSubmitSuccess={data => handleUpdateOrganization({...organization, ...data})}
       />
-    </Fragment>
+    </FormSearch>
   );
 }

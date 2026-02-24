@@ -4,12 +4,15 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationSecurityAndPrivacy from 'sentry/views/settings/organizationSecurityAndPrivacy';
 
 describe('OrganizationSecurityAndPrivacy', () => {
   const {organization} = initializeOrg();
 
   beforeEach(() => {
+    OrganizationsStore.load([organization]);
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
@@ -60,7 +63,7 @@ describe('OrganizationSecurityAndPrivacy', () => {
     // Confirm but has API failure
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    // AutoSaveField calls onError but does not revert the switch.
+    // AutoSaveField calls onError and reverts the switch.
     // The checkbox should become enabled again after the mutation fails.
     await waitFor(() => {
       expect(
@@ -116,6 +119,7 @@ describe('OrganizationSecurityAndPrivacy', () => {
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
+      body: {...organization, require2FA: true},
     });
 
     render(
@@ -133,20 +137,22 @@ describe('OrganizationSecurityAndPrivacy', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            require2FA: true,
+          },
+        })
+      );
+    });
+
     expect(
       screen.getByRole('checkbox', {
         name: 'Enable to require and enforce two-factor authentication for all members',
       })
     ).toBeChecked();
-
-    expect(mock).toHaveBeenCalledWith(
-      '/organizations/org-slug/',
-      expect.objectContaining({
-        method: 'PUT',
-        data: {
-          require2FA: true,
-        },
-      })
-    );
   });
 });
