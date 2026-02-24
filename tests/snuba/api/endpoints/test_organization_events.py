@@ -2430,12 +2430,17 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data["transaction"] = "/aggregates/2"
         event2 = self.store_event(data, project_id=self.project.id)
 
+        # Derive start/end from the same base timestamp so the window is exactly
+        # 2 minutes, avoiding drift from separate before_now() calls in setUp.
+        start = (self.ten_mins_ago - timedelta(minutes=1)).isoformat()
+        end = (self.ten_mins_ago + timedelta(minutes=1)).isoformat()
+
         query = {
             "field": ["transaction", "epm()"],
             "query": "event.type:transaction",
             "orderby": ["transaction"],
-            "start": self.eleven_mins_ago_iso,
-            "end": self.nine_mins_ago,
+            "start": start,
+            "end": end,
         }
         response = self.do_request(query)
 
