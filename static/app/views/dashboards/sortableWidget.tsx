@@ -49,6 +49,7 @@ type Props = {
   newlyAddedWidget?: Widget;
   onNewWidgetScrollComplete?: () => void;
   useTimeseriesVisualization?: boolean;
+  widgetInterval?: string;
   windowWidth?: number;
 };
 
@@ -151,6 +152,7 @@ function SortableWidget(props: Props) {
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     useTimeseriesVisualization,
+    widgetInterval: props.widgetInterval,
   };
 
   return (

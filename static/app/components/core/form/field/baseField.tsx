@@ -15,7 +15,6 @@ type FieldChildrenProps = {
 
 export const useFieldStateIndicator = () => {
   const field = useFieldContext();
-  const hasValidationError = field.state.meta.isTouched && !field.state.meta.isValid;
   const status = useAutoSaveContext()?.status;
 
   if (status === 'pending') {
@@ -28,7 +27,7 @@ export const useFieldStateIndicator = () => {
     return <Checkmark variant="success" size="sm" />;
   }
 
-  if (hasValidationError) {
+  if (!field.state.meta.isValid) {
     const errorMessage = field.state.meta.errors.map(e => e?.message).join(',');
     return (
       <Tooltip position="bottom" offset={8} title={errorMessage} forceVisible skipWrapper>
@@ -57,12 +56,11 @@ export function BaseField(
   }
 ) {
   const field = useFieldContext();
-  const hasError = field.state.meta.isTouched && !field.state.meta.isValid;
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
 
   return props.children({
-    'aria-invalid': hasError,
+    'aria-invalid': !field.state.meta.isValid,
     'aria-describedby': hintTextId,
     onBlur: field.handleBlur,
     name: field.name,

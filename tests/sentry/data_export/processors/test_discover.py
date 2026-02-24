@@ -40,7 +40,6 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         assert processor.header_fields == ["count_id", "fake_field", "issue"]
         result_list = [{"issue": self.group.id, "issue.id": self.group.id}]
         new_result_list = processor.handle_fields(result_list)
-        assert new_result_list[0] != result_list
         assert new_result_list[0]["issue"] == self.group.qualified_short_id
 
     def test_handle_transaction_status_fields(self) -> None:
@@ -63,7 +62,6 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         assert processor.header_fields == ["count_id", "fake_field", "issue"]
         result_list = [{"issue": self.group.id, "issue.id": self.group.id}]
         new_result_list = processor.handle_fields(result_list)
-        assert new_result_list[0] != result_list
         assert new_result_list[0]["issue"] == self.group.qualified_short_id
 
     def test_handle_equations(self) -> None:
@@ -78,7 +76,6 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         ]
         result_list = [{"equation[0]": 5, "equation[1]": 8}]
         new_result_list = processor.handle_fields(result_list)
-        assert new_result_list[0] != result_list
         assert new_result_list[0]["count(id) / fake(field)"] == 5
         assert new_result_list[0]["count(id) / 2"] == 8
 

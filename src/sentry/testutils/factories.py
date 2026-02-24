@@ -633,8 +633,8 @@ class Factories:
                 },
                 {
                     "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                    "service": "mail",
-                    "name": "Send a notification via mail",
+                    "service": "webhooks",
+                    "name": "Send a notification via webhooks",
                 },
             ]
             actions = action_data

@@ -9,10 +9,12 @@ from typing import Any
 from django.db.models import F, Window
 from django.db.models.functions import RowNumber
 
+from sentry import analytics
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.vcs.status_checks.size.tasks import (
     APPROVE_SIZE_ACTION_IDENTIFIER,
@@ -173,6 +175,16 @@ def handle_preprod_check_run_event(
         Log.APPROVALS_CREATED,
         amount=approvals_created,
     )
+
+    if approvals_created > 0:
+        analytics.record(
+            PreprodStatusCheckApprovalCreatedEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                artifact_id=artifact.id,
+                product="size",
+            )
+        )
 
     create_preprod_status_check_task.apply_async(
         kwargs={

@@ -7,10 +7,12 @@ from sentry import features
 from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT
 from sentry.locks import locks
 from sentry.models.organization import Organization
-from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerAutofixUpdate
+from sentry.notifications.platform.templates.seer import (
+    SeerAutofixError,
+    SeerAutofixUpdate,
+)
 from sentry.notifications.utils.actions import BlockKitMessageAction
-from sentry.seer.autofix.constants import AutofixStatus
-from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.slack.messaging import (
@@ -157,15 +159,10 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         self._update_existing_message(run_id=run_id, has_complete_stage=False, include_user=True)
 
-    def on_trigger_autofix_already_exists(self, *, state: AutofixState, step_state: dict) -> None:
+    def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
         # We don't include the user since we don't know that they started the original run.
-        has_complete_stage = (
-            False
-            if step_state.get("key") in {"root_cause_analysis_processing", "solution_processing"}
-            else step_state.get("status") == AutofixStatus.COMPLETED
-        )
         self._update_existing_message(
-            run_id=state.run_id, has_complete_stage=has_complete_stage, include_user=False
+            run_id=run_id, has_complete_stage=has_complete_stage, include_user=False
         )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
@@ -229,7 +226,10 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                     for change in changes
                 ]
                 data_kwargs.update(
-                    {"current_point": AutofixStoppingPoint.CODE_CHANGES, "changes": changes_list}
+                    {
+                        "current_point": AutofixStoppingPoint.CODE_CHANGES,
+                        "changes": changes_list,
+                    }
                 )
             case SentryAppEventType.SEER_PR_CREATED:
                 pull_requests = [
