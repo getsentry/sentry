@@ -81,7 +81,7 @@ def validate_preprod_artifact_update_schema(
             },
             "dequeued_at": {"type": "string"},
             "app_icon_id": {"type": "string", "maxLength": 255},
-            "installable_app_error_code": {"type": "integer", "minimum": 0, "maximum": 3},
+            "installable_app_error_code": {"type": "integer", "minimum": 0},
             "installable_app_error_message": {"type": "string"},
         },
         "additionalProperties": True,
@@ -112,7 +112,7 @@ def validate_preprod_artifact_update_schema(
         "android_app_info.gradle_plugin_version": "The gradle_plugin_version field must be a string with a maximum length of 255 characters.",
         "dequeued_at": "The dequeued_at field must be a string.",
         "app_icon_id": "The app_icon_id field must be a string with a maximum length of 255 characters.",
-        "installable_app_error_code": "The installable_app_error_code field must be an integer between 0 and 3.",
+        "installable_app_error_code": "The installable_app_error_code field must be a non-negative integer.",
         "installable_app_error_message": "The installable_app_error_message field must be a string.",
     }
 
