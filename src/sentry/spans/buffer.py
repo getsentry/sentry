@@ -154,6 +154,7 @@ class SpansBuffer:
         self._zstd_decompressor = zstandard.ZstdDecompressor()
         self._buffer_logger = BufferLogger()
         self._flusher_logger = FlusherLogger()
+        self._debug_trace_logger: DebugTraceLogger | None = None
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
