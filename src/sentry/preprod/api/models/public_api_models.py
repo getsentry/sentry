@@ -55,7 +55,8 @@ class DiffItemResponseDict(TypedDict):
     path: str
     item_type: str | None
     type: str
-    diff_items: list[DiffItemResponseDict] | None
+    # Recursive type (list[DiffItemResponseDict]) breaks drf-spectacular schema generation
+    diff_items: list[Any] | None
 
 
 class SizeMetricDiffResponseDict(TypedDict):
