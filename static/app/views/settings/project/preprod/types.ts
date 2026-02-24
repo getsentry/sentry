@@ -17,7 +17,6 @@ export const ALL_ARTIFACT_TYPES = [
 export type ArtifactType = (typeof ALL_ARTIFACT_TYPES)[number];
 
 export const DEFAULT_ARTIFACT_TYPE: ArtifactType = 'main_artifact';
-export const ALL_ARTIFACTS_ARTIFACT_TYPE: ArtifactType = 'all_artifacts';
 
 export interface StatusCheckFilter {
   key: string;
