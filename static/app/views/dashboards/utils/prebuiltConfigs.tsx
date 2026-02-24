@@ -1,8 +1,15 @@
 import {type DashboardDetails} from 'sentry/views/dashboards/types';
+import {AI_AGENTS_MODELS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/aiAgentsModels';
+import {AI_AGENTS_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/aiAgentsOverview';
+import {AI_AGENTS_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/aiAgentsTools';
 import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
 import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/frontendOverview';
 import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
 import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
+import {MCP_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mcpOverview';
+import {MCP_PROMPTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mcpPrompts';
+import {MCP_RESOURCES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mcpResources';
+import {MCP_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mcpTools';
 import {MOBILE_SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileSessionHealth';
 import {MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/appStarts';
 import {MOBILE_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/mobileVitals';
@@ -31,6 +38,13 @@ export enum PrebuiltDashboardId {
   MOBILE_SESSION_HEALTH = 13,
   FRONTEND_OVERVIEW = 14,
   NEXTJS_FRONTEND_OVERVIEW = 15,
+  AI_AGENTS_OVERVIEW = 16,
+  AI_AGENTS_MODELS = 17,
+  AI_AGENTS_TOOLS = 18,
+  MCP_OVERVIEW = 19,
+  MCP_TOOLS = 20,
+  MCP_RESOURCES = 21,
+  MCP_PROMPTS = 22,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
@@ -57,4 +71,11 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.FRONTEND_OVERVIEW]: FRONTEND_OVERVIEW_PREBUILT_CONFIG,
   [PrebuiltDashboardId.NEXTJS_FRONTEND_OVERVIEW]:
     NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.AI_AGENTS_MODELS]: AI_AGENTS_MODELS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.AI_AGENTS_TOOLS]: AI_AGENTS_TOOLS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.MCP_TOOLS]: MCP_TOOLS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.MCP_RESOURCES]: MCP_RESOURCES_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.MCP_PROMPTS]: MCP_PROMPTS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.AI_AGENTS_OVERVIEW]: AI_AGENTS_OVERVIEW_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.MCP_OVERVIEW]: MCP_OVERVIEW_PREBUILT_CONFIG,
 };
