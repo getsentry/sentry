@@ -464,7 +464,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
               </field.Layout.Row>
             )}
           </scrubbingConfiguration.AppField>
-          <Flex gap="md" align="center">
+          <Flex gap="md" align="center" padding="sm">
             <scrubbingConfiguration.Subscribe
               selector={state =>
                 state.values.sensitiveFields !== initialSensitiveFields ||
