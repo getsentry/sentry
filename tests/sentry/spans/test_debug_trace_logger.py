@@ -25,6 +25,7 @@ class TestDebugTraceLogger:
             project_and_trace="123:trace456",
             parent_span_id="abc123",
             subsegment=subsegment,
+            debug_traces={"trace456"},
         )
 
         assert mock_logger.info.call_count == 1
@@ -65,6 +66,7 @@ class TestDebugTraceLogger:
             project_and_trace="456:trace789",
             parent_span_id="parent123",
             subsegment=subsegment,
+            debug_traces={"trace789"},
         )
 
         assert mock_logger.info.call_count == 1
@@ -99,6 +101,7 @@ class TestDebugTraceLogger:
             project_and_trace="111:trace222",
             parent_span_id="A",
             subsegment=subsegment,
+            debug_traces={"trace222"},
         )
 
         expected_key = b"span-buf:s:{111:trace222}:B"
@@ -107,3 +110,75 @@ class TestDebugTraceLogger:
         extra = mock_logger.info.call_args[1]["extra"]
         assert "span-buf:s:{111:trace222}:B" in extra["set_sizes"]
         assert extra["set_sizes"]["span-buf:s:{111:trace222}:B"] == 3
+
+    @mock.patch("sentry.spans.debug_trace_logger.logger")
+    def test_flush_info_with_root_span_flag(self, mock_logger):
+        """Test log_flush_info when HRS flag is set."""
+        mock_client = mock.MagicMock()
+        mock_client.exists.return_value = 1
+
+        debug_logger = DebugTraceLogger(mock_client)
+        segment_key = b"span-buf:s:{123:abcdef}:span1"
+
+        debug_logger.log_flush_info(
+            segment_key=segment_key,
+            segment_span_id="span1",
+            root_span_in_segment=True,
+            num_spans=5,
+            debug_traces={"abcdef"},
+        )
+
+        assert mock_logger.info.call_count == 1
+        call_args = mock_logger.info.call_args
+        assert call_args[0][0] == "spans.buffer.debug_flush"
+
+        extra = call_args[1]["extra"]
+        assert extra["project_and_trace"] == "123:abcdef"
+        assert extra["segment_span_id"] == "span1"
+        assert extra["has_root_span_flag"] is True
+        assert extra["root_span_in_segment"] is True
+        assert extra["num_spans"] == 5
+
+        mock_client.exists.assert_called_once_with(b"span-buf:hrs:" + segment_key)
+
+    @mock.patch("sentry.spans.debug_trace_logger.logger")
+    def test_flush_info_without_root_span_flag(self, mock_logger):
+        """Test log_flush_info when HRS flag is not set."""
+        mock_client = mock.MagicMock()
+        mock_client.exists.return_value = 0
+
+        debug_logger = DebugTraceLogger(mock_client)
+        segment_key = b"span-buf:s:{456:def789}:span2"
+
+        debug_logger.log_flush_info(
+            segment_key=segment_key,
+            segment_span_id="span2",
+            root_span_in_segment=False,
+            num_spans=3,
+            debug_traces={"def789"},
+        )
+
+        assert mock_logger.info.call_count == 1
+        extra = mock_logger.info.call_args[1]["extra"]
+        assert extra["has_root_span_flag"] is False
+        assert extra["root_span_in_segment"] is False
+        assert extra["num_spans"] == 3
+
+    @mock.patch("sentry.spans.debug_trace_logger.logger")
+    def test_flush_info_skips_when_trace_not_in_debug_traces(self, mock_logger):
+        """Test that log_flush_info returns early when trace is not in debug_traces."""
+        mock_client = mock.MagicMock()
+
+        debug_logger = DebugTraceLogger(mock_client)
+        segment_key = b"span-buf:s:{123:abcdef}:span1"
+
+        debug_logger.log_flush_info(
+            segment_key=segment_key,
+            segment_span_id="span1",
+            root_span_in_segment=True,
+            num_spans=5,
+            debug_traces={"other_trace"},
+        )
+
+        mock_logger.info.assert_not_called()
+        mock_client.exists.assert_not_called()

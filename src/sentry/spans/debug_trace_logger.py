@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from sentry.spans.segment_key import SegmentKey, parse_segment_key
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -29,7 +31,12 @@ class DebugTraceLogger:
         project_and_trace: str,
         parent_span_id: str,
         subsegment: Sequence[Any],
+        debug_traces: set[str],
     ) -> None:
+        _, _, trace_id = project_and_trace.partition(":")
+        if trace_id not in debug_traces:
+            return
+
         spans = []
         span_keys = []
         for span in subsegment:
@@ -68,5 +75,33 @@ class DebugTraceLogger:
                 "set_sizes": set_sizes,
                 "total_set_sizes": sum(set_sizes.values()),
                 "subsegment_spans": spans,
+            },
+        )
+
+    def log_flush_info(
+        self,
+        segment_key: SegmentKey,
+        segment_span_id: str,
+        root_span_in_segment: bool,
+        num_spans: int,
+        debug_traces: set[str],
+    ) -> None:
+        project_id, trace_id, _ = parse_segment_key(segment_key)
+        if trace_id.decode("ascii") not in debug_traces:
+            return
+
+        hrs_key = b"span-buf:hrs:" + segment_key
+        has_root_span_flag = bool(self._client.exists(hrs_key))
+
+        project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+
+        logger.info(
+            "spans.buffer.debug_flush",
+            extra={
+                "project_and_trace": project_and_trace,
+                "segment_span_id": segment_span_id,
+                "has_root_span_flag": has_root_span_flag,
+                "root_span_in_segment": root_span_in_segment,
+                "num_spans": num_spans,
             },
         )
