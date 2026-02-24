@@ -91,8 +91,19 @@ jobs:
 
       - name: install direnv
         run: |
-          curl -sfL -o direnv https://github.com/direnv/direnv/releases/download/v2.37.1/direnv.linux-amd64
-          echo "1f1b93dd6f38523fde26dfac96151ef9d31a374e3005cd3345fb93555ae0c9b5  direnv" | sha256sum -c -
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "x86_64" ]; then
+            DIRENV_ARCH="amd64"
+            DIRENV_SHA256="1f1b93dd6f38523fde26dfac96151ef9d31a374e3005cd3345fb93555ae0c9b5"
+          elif [ "$ARCH" = "aarch64" ]; then
+            DIRENV_ARCH="arm64"
+            DIRENV_SHA256="cee0e0fa0bf76c0ab8bd43ca6bd17cb4784cbbb75f2d5e87d8734c4d8df5f5d4"
+          else
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+          fi
+          curl -sfL -o direnv "https://github.com/direnv/direnv/releases/download/v2.37.1/direnv.linux-${DIRENV_ARCH}"
+          echo "${DIRENV_SHA256}  direnv" | sha256sum -c -
           chmod +x direnv
           mkdir -p "$HOME/.local/bin"
           mv direnv "$HOME/.local/bin/"
