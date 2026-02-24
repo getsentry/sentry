@@ -486,15 +486,13 @@ export function ProjectPageFilter({
           <Stack gap="md" direction="column">
             {selectionLimitExceeded && (
               <MenuComponents.Alert variant="warning">
-                <Text size="sm">
-                  {tct(
-                    `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
-                    {
-                      limit: SELECTION_COUNT_LIMIT,
-                      count: stagedValue.length,
-                    }
-                  )}
-                </Text>
+                {tct(
+                  `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
+                  {
+                    limit: SELECTION_COUNT_LIMIT,
+                    count: stagedValue.length,
+                  }
+                )}
               </MenuComponents.Alert>
             )}
             <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>

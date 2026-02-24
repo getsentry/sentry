@@ -10,6 +10,7 @@ import {
   type LinkButtonProps,
 } from '@sentry/scraps/button';
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
@@ -171,8 +172,12 @@ export const MenuComponents = {
    * breaking the menu's padding, and `showIcon` is locked to `false` to keep
    * the alert compact.
    */
-  Alert(props: DistributedOmit<AlertProps, 'system' | 'showIcon'>) {
-    return <StyledAlert {...props} system={false} showIcon={false} />;
+  Alert({children, ...props}: DistributedOmit<AlertProps, 'system' | 'showIcon'>) {
+    return (
+      <StyledAlert {...props} system={false} showIcon={false}>
+        <Text size="sm">{children}</Text>
+      </StyledAlert>
+    );
   },
 
   Checkbox(props: DistributedOmit<CheckboxProps, 'size'>) {
@@ -182,7 +187,6 @@ export const MenuComponents = {
 
 const StyledAlert = styled(Alert)`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
-  font-size: ${p => p.theme.font.size.sm};
   text-wrap: balance;
 `;
 
