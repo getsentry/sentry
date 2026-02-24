@@ -333,4 +333,4 @@ class Staff(ElevatedMode):
             )
         # otherwise if the session is invalid and there's a cookie set, clear it
         elif not self.is_valid and request.COOKIES.get(COOKIE_NAME):
-            response.delete_cookie(COOKIE_NAME)
+            response.delete_cookie(COOKIE_NAME, path=COOKIE_PATH, domain=COOKIE_DOMAIN)

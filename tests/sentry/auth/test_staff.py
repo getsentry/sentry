@@ -255,7 +255,9 @@ class StaffTestCase(TestCase):
 
         response = mock.Mock()
         middleware.process_response(request, response)
-        response.delete_cookie.assert_called_once_with(COOKIE_NAME)
+        response.delete_cookie.assert_called_once_with(
+            COOKIE_NAME, path=COOKIE_PATH, domain=COOKIE_DOMAIN
+        )
 
     def test_middleware_as_non_staff(self) -> None:
         user = self.create_user("foo@example.com", is_staff=False)
