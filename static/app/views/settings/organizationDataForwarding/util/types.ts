@@ -35,3 +35,12 @@ export interface DataForwarder {
   projectConfigs: DataForwarderProject[];
   provider: DataForwarderProviderSlug;
 }
+
+/** Snake-case request body sent to the API when creating or updating a DataForwarder. */
+export interface DataForwarderPayload {
+  config: Record<string, string | undefined>;
+  enroll_new_projects: boolean;
+  is_enabled: boolean;
+  project_ids: string[];
+  provider: DataForwarderProviderSlug;
+}

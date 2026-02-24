@@ -31,7 +31,7 @@ import {
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
   ProviderLabels,
-  type DataForwarder,
+  type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export default function OrganizationDataForwardingSetup() {
@@ -159,7 +159,7 @@ function DataForwarderSetupForm({
   onCreate,
 }: {
   disabled: boolean;
-  onCreate: (data: DataForwarder) => void;
+  onCreate: (data: DataForwarderPayload) => void;
   projects: Project[];
   provider: DataForwarderProviderSlug;
 }) {
@@ -192,7 +192,7 @@ function DataForwarderSetupForm({
         is_enabled,
         enroll_new_projects,
         project_ids,
-      } as unknown as DataForwarder);
+      } satisfies DataForwarderPayload);
     },
   });
 

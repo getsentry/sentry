@@ -37,6 +37,7 @@ import {
   DataForwarderProviderSlug,
   ProviderLabels,
   type DataForwarder,
+  type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export default function OrganizationDataForwardingEditWrapper() {
@@ -206,13 +207,12 @@ function DataForwarderEditForm({
     onSubmit: ({value}) => {
       const {is_enabled, enroll_new_projects, project_ids = [], ...allFields} = value;
       updateDataForwarder({
-        ...dataForwarder,
         provider,
         config: buildDataForwardingProviderConfig(provider, allFields),
         is_enabled,
         enroll_new_projects,
         project_ids,
-      } as unknown as DataForwarder);
+      } satisfies DataForwarderPayload);
     },
   });
 
