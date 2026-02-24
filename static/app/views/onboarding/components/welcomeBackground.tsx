@@ -5,6 +5,8 @@ import {motion} from 'framer-motion';
 import BugAImage from 'sentry-images/spot/broken-code-light.svg';
 import BugBImage from 'sentry-images/spot/seer-config-bug-1.svg';
 
+import {Image} from '@sentry/scraps/image';
+
 import testableTransition from 'sentry/utils/testableTransition';
 
 function WelcomeBackground() {
@@ -39,7 +41,7 @@ function WelcomeBackgroundImages() {
         }}
         transition={testableTransition({duration: 0.9})}
       >
-        <img src={BugAImage} alt="Bug A" />
+        <Image src={BugAImage} alt="A bug holding onto broken code" />
       </BugA>
       <BugB
         variants={{
@@ -58,7 +60,7 @@ function WelcomeBackgroundImages() {
           duration: 1.1,
         })}
       >
-        <img src={BugBImage} alt="Bug B" />
+        <Image src={BugBImage} alt="A bug inside a box" />
       </BugB>
     </Fragment>
   );
