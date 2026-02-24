@@ -597,7 +597,40 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.selectedAggregate).toBeUndefined();
     });
 
-    it('resets thresholds when the display type is switched', () => {
+    it('preserves thresholds when switching to a display type that supports thresholds', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: 'milliseconds',
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.LINE,
+        });
+      });
+
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: 'milliseconds',
+      });
+    });
+
+    it('resets thresholds when switching to a display type that does not support thresholds', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
           query: {

@@ -6,8 +6,12 @@ import responses
 from django.conf import settings
 
 from sentry.seer.explorer.context_engine_utils import ProjectEventCounts
-from sentry.tasks.explorer_context_engine_tasks import index_org_project_knowledge
+from sentry.tasks.explorer_context_engine_tasks import (
+    index_org_project_knowledge,
+    schedule_context_engine_indexing_tasks,
+)
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -124,3 +128,33 @@ class TestIndexOrgProjectKnowledge(TestCase):
                         ):
                             with pytest.raises(Exception):
                                 index_org_project_knowledge(self.org.id)
+
+
+@django_db_all
+class TestScheduleContextEngineIndexingTasks(TestCase):
+    @mock.patch("sentry.tasks.explorer_context_engine_tasks.build_service_map.apply_async")
+    @mock.patch(
+        "sentry.tasks.explorer_context_engine_tasks.index_org_project_knowledge.apply_async"
+    )
+    def test_dispatches_for_allowed_orgs(self, mock_index, mock_build):
+        org1 = self.create_organization()
+        org2 = self.create_organization()
+
+        with override_options({"explorer.service_map.allowed_organizations": [org1.id, org2.id]}):
+            schedule_context_engine_indexing_tasks()
+
+        assert mock_index.call_count == 2
+        assert mock_build.call_count == 2
+        dispatched_index_ids = [c[1]["args"][0] for c in mock_index.call_args_list]
+        assert dispatched_index_ids == [org1.id, org2.id]
+
+    @mock.patch("sentry.tasks.explorer_context_engine_tasks.build_service_map.apply_async")
+    @mock.patch(
+        "sentry.tasks.explorer_context_engine_tasks.index_org_project_knowledge.apply_async"
+    )
+    def test_noop_when_no_allowed_orgs(self, mock_index, mock_build):
+        with override_options({"explorer.service_map.allowed_organizations": []}):
+            schedule_context_engine_indexing_tasks()
+
+        mock_index.assert_not_called()
+        mock_build.assert_not_called()

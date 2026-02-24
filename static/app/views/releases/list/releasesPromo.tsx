@@ -13,7 +13,7 @@ import {
   MenuComponents,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -237,62 +237,65 @@ sentry-cli releases finalize "$VERSION"`;
           )}
         </Text>
 
-        <CopySetupInstructionsGate>
-          <Container>
-            <CopyMarkdownButton getMarkdown={getMarkdown} source="releases_quickstart" />
-          </Container>
-        </CopySetupInstructionsGate>
-
-        <CompactSelect
-          size="sm"
-          options={apps.map(makeAppOption)}
-          value={selectedApp?.slug}
-          emptyMessage={t('No Integrations')}
-          search
-          disabled={false}
-          menuFooter={({closeOverlay}) => (
-            <MenuComponents.CTAButton
-              tooltipProps={{
-                title: canMakeIntegration
-                  ? undefined
-                  : t(
-                      'You must be an organization owner, manager or admin to create an integration.'
-                    ),
-              }}
-              disabled={!canMakeIntegration}
-              onClick={() => {
-                closeOverlay();
-                openCreateReleaseIntegration({
-                  organization,
-                  project,
-                  onCreateSuccess: (app: SentryApp) => {
-                    setApps([app, ...apps]);
-                    setSelectedApp(app);
-                    generateAndSetNewToken(app.slug);
-                    trackQuickstartCreatedIntegration(app);
-                  },
-                  onCancel: trackCreateIntegrationModalClose,
-                });
-              }}
-            >
-              {t('Add New Integration')}
-            </MenuComponents.CTAButton>
-          )}
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              prefix={selectedApp ? t('Token From') : undefined}
-            >
-              {selectedApp ? triggerProps.children : t('Select Integration')}
-            </OverlayTrigger.Button>
-          )}
-          onChange={option => {
-            const app = apps.find(i => i.slug === option.value)!;
-            setSelectedApp(app);
-            generateAndSetNewToken(app.slug);
-          }}
-        />
-
+        <Flex justify="between" align="center">
+          <CompactSelect
+            style={{minWidth: 0}}
+            size="sm"
+            options={apps.map(makeAppOption)}
+            value={selectedApp?.slug}
+            emptyMessage={t('No Integrations')}
+            search
+            disabled={false}
+            menuFooter={({closeOverlay}) => (
+              <MenuComponents.CTAButton
+                tooltipProps={{
+                  title: canMakeIntegration
+                    ? undefined
+                    : t(
+                        'You must be an organization owner, manager or admin to create an integration.'
+                      ),
+                }}
+                disabled={!canMakeIntegration}
+                onClick={() => {
+                  closeOverlay();
+                  openCreateReleaseIntegration({
+                    organization,
+                    project,
+                    onCreateSuccess: (app: SentryApp) => {
+                      setApps([app, ...apps]);
+                      setSelectedApp(app);
+                      generateAndSetNewToken(app.slug);
+                      trackQuickstartCreatedIntegration(app);
+                    },
+                    onCancel: trackCreateIntegrationModalClose,
+                  });
+                }}
+              >
+                {t('Add New Integration')}
+              </MenuComponents.CTAButton>
+            )}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                prefix={selectedApp ? t('Token From') : undefined}
+              >
+                {selectedApp ? triggerProps.children : t('Select Integration')}
+              </OverlayTrigger.Button>
+            )}
+            onChange={option => {
+              const app = apps.find(i => i.slug === option.value)!;
+              setSelectedApp(app);
+              generateAndSetNewToken(app.slug);
+            }}
+          />
+          <CopySetupInstructionsGate>
+            <CopyMarkdownButton
+              borderless
+              getMarkdown={getMarkdown}
+              source="releases_quickstart"
+            />
+          </CopySetupInstructionsGate>
+        </Flex>
         <div ref={containerRef}>
           <CodeBlock
             dark
