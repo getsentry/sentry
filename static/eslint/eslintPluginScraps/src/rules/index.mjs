@@ -24,9 +24,25 @@ export const configs = {
                     'MenuComponents.CTALinkButton',
                     'MenuComponents.ApplyButton',
                     'MenuComponents.CancelButton',
+                    'MenuComponents.Alert',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuHeaderTrailingItems'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.HeaderButton',
                     'MenuComponents.ClearButton',
                     'MenuComponents.ResetButton',
-                    'MenuComponents.Alert',
                   ],
                 },
                 {
