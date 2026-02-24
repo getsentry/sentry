@@ -8,6 +8,7 @@ on:
       - mchen/tiered-file
       - mchen/tiered-class
       - mchen/tiered-test
+      - worktree-tiered-class-shard
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -108,7 +109,7 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 5
-      TEST_GROUP_STRATEGY: roundrobin
+      TEST_GROUP_STRATEGY: scope
       PYTHONHASHSEED: '0'
 
     steps:
@@ -195,7 +196,7 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 17
-      TEST_GROUP_STRATEGY: roundrobin
+      TEST_GROUP_STRATEGY: scope
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '3'
