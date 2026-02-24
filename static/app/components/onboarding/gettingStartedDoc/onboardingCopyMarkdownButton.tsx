@@ -90,20 +90,28 @@ export function OnboardingCopyMarkdownButton({
   );
 }
 
-const FEATURE_FLAG = 'onboarding-copy-setup-instructions';
+const DEFAULT_FEATURE_FLAG = 'onboarding-copy-setup-instructions';
 
 /**
- * Feature-gated wrapper that renders its children only when the
- * `onboarding-copy-setup-instructions` flag is enabled. Includes spacing
- * so callsites don't render an empty Container when the flag is off.
+ * Returns whether the copy setup instructions button should be shown.
+ * Defaults to the `onboarding-copy-setup-instructions` flag, but callers
+ * can pass a different flag name (e.g. for project-creation-specific gating).
  */
-export function useCopySetupInstructionsEnabled(): boolean {
+export function useCopySetupInstructionsEnabled(
+  featureFlag: string = DEFAULT_FEATURE_FLAG
+): boolean {
   const organization = useOrganization();
-  return organization.features.includes(FEATURE_FLAG);
+  return organization.features.includes(featureFlag);
 }
 
-export function CopySetupInstructionsGate({children}: {children: React.ReactNode}) {
-  const enabled = useCopySetupInstructionsEnabled();
+export function CopySetupInstructionsGate({
+  children,
+  featureFlag,
+}: {
+  children: React.ReactNode;
+  featureFlag?: string;
+}) {
+  const enabled = useCopySetupInstructionsEnabled(featureFlag);
   if (!enabled) {
     return null;
   }
