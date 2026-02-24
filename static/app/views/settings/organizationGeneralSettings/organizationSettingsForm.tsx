@@ -55,10 +55,6 @@ interface Props {
   onSave: (previous: Organization, updated: Organization) => void;
 }
 
-const slugSchema = z.object({
-  slug: z.string().min(1, t('Organization slug is required')),
-});
-
 const generalSchema = z.object({
   name: z.string().min(1, t('Display name is required')),
   organizationId: z.string(),
@@ -66,6 +62,7 @@ const generalSchema = z.object({
   hideAiFeatures: z.boolean(),
   codecovAccess: z.boolean(),
   enablePrReviewTestGeneration: z.boolean(),
+  slug: z.string().min(1, t('Organization slug is required')),
 });
 
 type GeneralSchema = z.infer<typeof generalSchema>;
@@ -102,23 +99,14 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     onError: () => addErrorMessage(t('Unable to save change')),
   });
 
-  const slugMutationOptions = mutationOptions({
-    mutationFn: (data: {slug: string}) =>
-      fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
-    onSuccess: updated => {
-      onSave(initialData, updated);
-    },
-    onError: () => addErrorMessage(t('Unable to save change')),
-  });
-
-  const {mutateAsync: updateSlug} = useMutation(slugMutationOptions);
+  const {mutateAsync: updateSlug} = useMutation(orgMutationOptions);
 
   // Slug form — uses explicit Save button instead of auto-save
   const slugForm = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {slug: initialData.slug},
-    validators: {onDynamic: slugSchema},
-    onSubmit: ({value}) => updateSlug({slug: value.slug}),
+    validators: {onDynamic: generalSchema},
+    onSubmit: ({value}) => updateSlug({slug: value.slug}).catch(() => {}),
   });
 
   return (
