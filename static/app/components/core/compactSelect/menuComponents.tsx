@@ -162,7 +162,7 @@ export const MenuComponents = {
   },
 
   Checkbox(props: DistributedOmit<CheckboxProps, 'size'>) {
-    return <Checkbox size="xs" {...props} />;
+    return <Checkbox size="sm" {...props} />;
   },
 };
 
