@@ -3,6 +3,8 @@ import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Checkmark, Spinner, Warning} from '@sentry/scraps/form/icons';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {IconLock} from 'sentry/icons/iconLock';
+
 export type BaseFieldProps = Record<never, unknown>;
 
 type FieldChildrenProps = {
@@ -13,7 +15,7 @@ type FieldChildrenProps = {
   onBlur: () => void;
 };
 
-export const useFieldStateIndicator = () => {
+export const useAutoSaveIndicator = () => {
   const field = useFieldContext();
   const status = useAutoSaveContext()?.status;
 
@@ -27,6 +29,12 @@ export const useFieldStateIndicator = () => {
     return <Checkmark variant="success" size="sm" />;
   }
 
+  return null;
+};
+
+export function FieldStatus({disabled}: {disabled?: boolean | string}) {
+  const field = useFieldContext();
+
   if (!field.state.meta.isValid) {
     const errorMessage = field.state.meta.errors.map(e => e?.message).join(',');
     return (
@@ -35,8 +43,19 @@ export const useFieldStateIndicator = () => {
       </Tooltip>
     );
   }
+
+  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
+
+  if (disabledReason) {
+    return (
+      <Tooltip position="bottom" offset={8} title={disabledReason} skipWrapper>
+        <IconLock locked size="sm" data-test-id="icon-lock" />
+      </Tooltip>
+    );
+  }
+
   return null;
-};
+}
 
 export const useFieldId = () => {
   const field = useFieldContext();

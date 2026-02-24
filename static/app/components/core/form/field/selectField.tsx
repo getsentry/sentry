@@ -3,12 +3,16 @@ import {useRef} from 'react';
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
 
-import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseField';
+import {
+  BaseField,
+  FieldStatus,
+  useAutoSaveIndicator,
+  type BaseFieldProps,
+} from './baseField';
 
 function SelectInput({
   selectProps,
@@ -22,7 +26,7 @@ function SelectInput({
 function SelectIndicatorsContainer({
   children,
 }: React.ComponentProps<typeof components.IndicatorsContainer>) {
-  const indicator = useFieldStateIndicator();
+  const indicator = useAutoSaveIndicator();
   return (
     <Flex padding="0 sm" gap="sm" align="center">
       {indicator}
@@ -81,15 +85,14 @@ export function SelectField<TValue = string>({
 }: SelectFieldProps<TValue>) {
   const autoSaveContext = useAutoSaveContext();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
-  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
 
   // Track whether the menu is open for multi-select auto-save behavior
   const isMenuOpenRef = useRef(false);
 
   return (
     <BaseField>
-      {({id, ...fieldProps}) => {
-        const select = (
+      {({id, ...fieldProps}) => (
+        <Flex gap="sm" align="center">
           <Select
             {...fieldProps}
             {...props}
@@ -140,14 +143,9 @@ export function SelectField<TValue = string>({
               }
             }}
           />
-        );
-
-        if (disabledReason) {
-          return <Tooltip title={disabledReason}>{select}</Tooltip>;
-        }
-
-        return select;
-      }}
+          <FieldStatus disabled={disabled} />
+        </Flex>
+      )}
     </BaseField>
   );
 }
