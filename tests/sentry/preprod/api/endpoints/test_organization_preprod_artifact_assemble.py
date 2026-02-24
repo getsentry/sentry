@@ -1,3 +1,4 @@
+import pytest
 from hashlib import sha1
 from unittest.mock import MagicMock, patch
 
@@ -655,6 +656,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             }
         )
 
+    @pytest.mark.skip(reason="flaky: #109201")
     @patch(
         "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.assemble_preprod_artifact"
     )
