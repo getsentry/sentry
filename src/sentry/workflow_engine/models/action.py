@@ -108,6 +108,12 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 condition=Q(type="sentry_app"),
                 name="action_sentry_app_lookup",
             ),
+            models.Index(
+                "type",
+                models.expressions.RawSQL("config->>'target_identifier'", []),
+                condition=Q(type="sentry_app"),
+                name="action_sentry_app_id_lookup",
+            ),
         ]
 
     def get_snapshot(self) -> ActionSnapshot:
