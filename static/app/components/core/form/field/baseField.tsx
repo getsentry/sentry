@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useSyncExternalStore, type Ref} from 'react';
+import {useEffect, useRef, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
@@ -53,22 +53,26 @@ export const useHintTextId = () => {
   return `${fieldId}-hint`;
 };
 
-function useHash() {
-  const onHashChange = useCallback((callback: () => void) => {
-    window.addEventListener('hashchange', callback);
-    return () => window.removeEventListener('hashchange', callback);
-  }, []);
-  return useSyncExternalStore(
-    onHashChange,
-    () => {
+function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    function handleHashChange() {
       try {
-        return decodeURIComponent(window.location.hash.slice(1));
+        const hash = decodeURIComponent(window.location.hash.slice(1));
+        if (hash !== fieldName) {
+          return;
+        }
       } catch {
-        return '';
+        return;
       }
-    },
-    () => ''
-  );
+      ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
+      ref.current?.focus({focusVisible: true});
+      animateRowHighlight(ref.current);
+    }
+    // Check on mount (page loaded with hash already in URL)
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [fieldName, ref]);
 }
 
 export function BaseField(
@@ -80,16 +84,7 @@ export function BaseField(
   const ref = useRef<HTMLElement>(null);
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
-  const hash = useHash();
-
-  useEffect(() => {
-    if (hash !== field.name) {
-      return;
-    }
-    ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
-    ref.current?.focus({focusVisible: true});
-    animateRowHighlight(ref.current);
-  }, [hash, field.name]);
+  useScrollToHash(field.name, ref);
 
   return props.children({
     ref,
