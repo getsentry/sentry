@@ -236,6 +236,8 @@ export const restrictJsxSlotChildren = {
         for (const child of jsxElement.children) {
           if (child.type === 'JSXElement') {
             checkSlotTree(child, propName, state);
+          } else if (child.type === 'JSXFragment') {
+            checkExpression(child, propName, state);
           } else if (child.type === 'JSXExpressionContainer') {
             checkExpression(child.expression, propName, state);
           }
@@ -263,6 +265,20 @@ export const restrictJsxSlotChildren = {
 
       if (expr.type === 'JSXElement') {
         checkSlotTree(expr, propName, state);
+        return;
+      }
+
+      // shorthand fragment <> — recurse into children
+      if (expr.type === 'JSXFragment') {
+        for (const child of expr.children) {
+          if (child.type === 'JSXElement') {
+            checkSlotTree(child, propName, state);
+          } else if (child.type === 'JSXFragment') {
+            checkExpression(child, propName, state);
+          } else if (child.type === 'JSXExpressionContainer') {
+            checkExpression(child.expression, propName, state);
+          }
+        }
         return;
       }
 
@@ -351,7 +367,7 @@ export const restrictJsxSlotChildren = {
         if (
           (expr.type === 'ArrowFunctionExpression' ||
             expr.type === 'FunctionExpression') &&
-          expr.body.type === 'JSXElement'
+          expr.body.type !== 'BlockStatement'
         ) {
           checkExpression(expr.body, propName, state);
           return;

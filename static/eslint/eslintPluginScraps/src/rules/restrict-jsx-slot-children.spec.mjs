@@ -145,6 +145,30 @@ ruleTester.run('restrict-jsx-slot-children', restrictJsxSlotChildren, {
       filename: '/static/app/foo.tsx',
     },
 
+    // ── Arrow function with conditional/logical expression body ──────────────
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={() => condition ? <MenuComponents.ApplyButton/> : null} />`,
+      filename: '/static/app/foo.tsx',
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuHeaderTrailingItems={() => condition && <MenuComponents.HeaderButton/>} />`,
+      filename: '/static/app/foo.tsx',
+    },
+
+    // ── Shorthand fragment — children are checked ─────────────────────────────
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<><MenuComponents.ApplyButton/><MenuComponents.CancelButton/></>} />`,
+      filename: '/static/app/foo.tsx',
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<><Flex><MenuComponents.ApplyButton/></Flex></>} />`,
+      filename: '/static/app/foo.tsx',
+    },
+
     // ── Top-level conditional / logical with valid branches ───────────────────
     {
       options: COMPACT_SELECT_OPTIONS,
@@ -270,6 +294,32 @@ import {Flex as FlexLayout} from '@sentry/scraps/layout';
     {
       options: COMPACT_SELECT_OPTIONS,
       code: `${IMPORTS}<CompactSelect menuFooter={({closeOverlay}) => <Flex><Button onClick={closeOverlay}/></Flex>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={() => condition ? <Button/> : null} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuHeaderTrailingItems={() => condition && <Button/>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuHeaderTrailingItems')],
+    },
+
+    // ── Invalid children inside shorthand fragment ────────────────────────────
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<><Button/></>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<><MenuComponents.ApplyButton/><Button/></>} />`,
       filename: '/static/app/foo.tsx',
       errors: [forbidden('Button', 'menuFooter')],
     },
