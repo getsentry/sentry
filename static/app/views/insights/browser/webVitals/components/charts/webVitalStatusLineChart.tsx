@@ -84,6 +84,7 @@ export function WebVitalStatusLineChart({
       },
       unit: 'ms',
     },
+    showLabels: true,
   });
 
   const extraPlottables: Plottable[] = isTimeseriesLoading ? [] : [thresholdsPlottable];

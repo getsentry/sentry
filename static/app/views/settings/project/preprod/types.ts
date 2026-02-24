@@ -11,6 +11,7 @@ export const ALL_ARTIFACT_TYPES = [
   'main_artifact',
   'watch_artifact',
   'android_dynamic_feature_artifact',
+  'app_clip_artifact',
 ] as const;
 
 export type ArtifactType = (typeof ALL_ARTIFACT_TYPES)[number];
@@ -65,6 +66,7 @@ const ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
   main_artifact: 'Main App',
   watch_artifact: 'Watch App',
   android_dynamic_feature_artifact: 'Android Dynamic Feature',
+  app_clip_artifact: 'App Clip',
 };
 
 export const ARTIFACT_TYPE_OPTIONS: Array<{label: string; value: ArtifactType}> =

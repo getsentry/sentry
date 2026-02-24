@@ -175,7 +175,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # the prefix pretty much guarantees it's hex).
             (\b0[xX][0-9a-fA-F]+\b) |
 
-            # Hex value without `0x/0X` prefix (including a number, either 8 or 16-64 digits, and
+            # Hex value without `0x/0X` prefix (including a number, either 8 or 16-128 digits, and
             # either all uppercase or all lowercase - we're more conservative here on all three
             # scores in order to reduce false positives).
             #
@@ -187,11 +187,11 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             #
             # Each regex consists of two parts:
             # (?=.*[0-9])             The aforementioned lookahead - at least one `0-9` is present
-            # [0-9a-f/A-F]{8/16,64}   8 or 16-64 hex characters
+            # [0-9a-f/A-F]{8 | 16,64}   8 or 16-128 hex characters
             (\b(?=.*[0-9])[0-9a-f]{8}\b) |
-            (\b(?=.*[0-9])[0-9a-f]{16,64}\b) |
+            (\b(?=.*[0-9])[0-9a-f]{16,128}\b) |
             (\b(?=.*[0-9])[0-9A-F]{8}\b) |
-            (\b(?=.*[0-9])[0-9A-F]{16,64}\b)
+            (\b(?=.*[0-9])[0-9A-F]{16,128}\b)
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),

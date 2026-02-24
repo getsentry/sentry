@@ -81,6 +81,20 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Additional Email'),
     hintText: t('Designate an alternative email for this account'),
   },
+  'notification-settings.personalActivityNotifications': {
+    name: 'personalActivityNotifications',
+    formId: 'notification-settings',
+    route: '/settings/account/notifications/',
+    label: t('My Own Activity'),
+    hintText: t('Notifications about your own actions on Sentry.'),
+  },
+  'notification-settings.selfAssignOnResolve': {
+    name: 'selfAssignOnResolve',
+    formId: 'notification-settings',
+    route: '/settings/account/notifications/',
+    label: t('Resolve and Auto-Assign'),
+    hintText: t("When you resolve an unassigned issue, we'll auto-assign it to you."),
+  },
   'password-form.password': {
     name: 'password',
     formId: 'password-form',
