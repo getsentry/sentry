@@ -91,10 +91,10 @@ export const MenuComponents = {
    * `priority` and `size` are locked to keep footer actions visually consistent.
    */
   CTAButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
-    return <Button size="xs" {...props} />;
+    return <Button size="xs" priority="default" {...props} />;
   },
   CTALinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
-    return <LinkButton size="xs" {...props} />;
+    return <LinkButton size="xs" priority="default" {...props} />;
   },
 
   /**

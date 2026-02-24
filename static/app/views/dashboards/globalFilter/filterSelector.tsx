@@ -429,7 +429,7 @@ function FilterSelector({
           </OperatorFlex>
         </MenuTitleWrapper>
       }
-      menuHeaderTrailingItems={() => (
+      menuHeaderTrailingItems={({closeOverlay}) => (
         <Flex gap="lg">
           {activeFilterValues.length > 0 && (
             <MenuComponents.ClearButton
@@ -443,6 +443,7 @@ function FilterSelector({
             <MenuComponents.HeaderButton
               onClick={() => {
                 onRemoveFilter(globalFilter);
+                closeOverlay();
               }}
             >
               {t('Remove Filter')}
