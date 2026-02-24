@@ -31,7 +31,7 @@ export default function EnvironmentPicker({
     <CompactSelect
       onChange={selected => onChange(selected.value)}
       options={options}
-      searchable
+      search
       size="xs"
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix="Environment" />

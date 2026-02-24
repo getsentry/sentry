@@ -106,9 +106,8 @@ export function TestSuiteDropdown() {
     <HybridFilter
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
-      searchable
+      search={{onChange: handleOnSearch}}
       options={options}
-      onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
       menuHeaderTrailingItems={
