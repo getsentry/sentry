@@ -75,10 +75,13 @@ export default function SeerRepoTable() {
     select: ({pages}) =>
       uniqBy(
         pages.flatMap(page => page.json),
-        'id'
+        'externalId'
       )
-        .filter(repository => isSupportedAutofixProvider(repository.provider))
-        .toSorted((a, b) => {
+        .filter(
+          repository =>
+            repository.externalId && isSupportedAutofixProvider(repository.provider)
+        )
+        .sort((a, b) => {
           if (sort.field === 'name') {
             return sort.kind === 'asc'
               ? a.name.localeCompare(b.name)
@@ -100,10 +103,10 @@ export default function SeerRepoTable() {
 
   // Auto-fetch each page, one at a time
   useEffect(() => {
-    if (!isFetchingNextPage && hasNextPage) {
+    if (!isError && !isFetchingNextPage && hasNextPage) {
       fetchNextPage();
     }
-  }, [hasNextPage, fetchNextPage, isFetchingNextPage]);
+  }, [hasNextPage, fetchNextPage, isError, isFetchingNextPage]);
 
   const [mutationData, setMutations] = useState<Record<string, RepositoryWithSettings>>(
     {}
@@ -181,7 +184,6 @@ export default function SeerRepoTable() {
             onSortClick={setSort}
             isPending={isPending}
             isFetchingNextPage={isFetchingNextPage}
-            hits={repositories?.length ?? 0}
             sort={sort}
           />
           {isPending ? (

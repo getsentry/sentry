@@ -1,6 +1,8 @@
+import pytest
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from rest_framework import serializers
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
@@ -16,12 +18,20 @@ from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.data_blobs import (
+    AZURE_DEVOPS_ACTION_DATA_BLOBS,
+    GITHUB_ACTION_DATA_BLOBS,
+    JIRA_ACTION_DATA_BLOBS,
+    JIRA_SERVER_ACTION_DATA_BLOBS,
+)
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import WorkflowDataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.data_condition import Condition
+
+ValidationError = serializers.ValidationError
 
 
 @freeze_time()
@@ -516,4 +526,189 @@ class WorkflowRuleSerializerTest(TestCase):
             include_legacy_rule_id=False,
             include_workflow_id=False,
         )
+        self.assert_equal_serializers(rule)
+
+    def test_jira_action(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="jira",
+                name="Jira Cloud",
+                external_id="jira:1",
+            )
+        action_data = {**JIRA_ACTION_DATA_BLOBS[0]}
+        action_data["integration"] = integration.id
+        action_data.pop("uuid")
+
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
+    def test_jira_server_action(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="jira_server",
+                name="Jira Server",
+                external_id="jira_server:1",
+            )
+        action_data = {**JIRA_SERVER_ACTION_DATA_BLOBS[0]}
+        action_data["integration"] = integration.id
+        action_data.pop("uuid")
+
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
+    def test_github_action(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="GitHub",
+                external_id="github:1",
+            )
+        action_data = {**GITHUB_ACTION_DATA_BLOBS[0]}
+        action_data["integration"] = integration.id
+        action_data.pop("uuid")
+
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
+    def test_github_enterprise_action(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="github_enterprise",
+                name="GitHub Enterprise",
+                external_id="github_enterprise:1",
+            )
+        action_data = {**GITHUB_ACTION_DATA_BLOBS[3]}
+        action_data["integration"] = integration.id
+        action_data.pop("uuid")
+
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
+    def test_azure_devops_action(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="vsts",
+                name="Azure DevOps",
+                external_id="vsts:1",
+            )
+        action_data = {**AZURE_DEVOPS_ACTION_DATA_BLOBS[0]}
+        action_data["integration"] = integration.id
+        action_data.pop("uuid")
+
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
+    def test_sentry_app_render_label(self) -> None:
+        schema = {"elements": [self.create_alert_rule_action_schema()]}
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=schema,
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+
+        action_data = {
+            "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+            "sentryAppInstallationUuid": installation.uuid,
+        }
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
+    def test_sentry_app_render_label_no_alert_rule_action_schema(self) -> None:
+        schema = {"elements": [self.create_issue_link_schema()]}
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=schema,
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+
+        action_data = {
+            "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+            "sentryAppInstallationUuid": installation.uuid,
+        }
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        with pytest.raises(ValidationError):
+            self.assert_equal_serializers(rule)
+
+    def test_sentry_app_render_label_no_installation(self) -> None:
+        schema = {"elements": [self.create_alert_rule_action_schema()]}
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=schema,
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+
+        action_data = {
+            "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+            "sentryAppInstallationUuid": installation.uuid,
+        }
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            installation.delete()
+
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        # actions part of response are both []
         self.assert_equal_serializers(rule)

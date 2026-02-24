@@ -198,33 +198,73 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         match event_type:
             case SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
                 root_cause = event_payload.get("root_cause", {})
+
+                if legacy_description := root_cause.get("description"):
+                    summary = legacy_description
+                elif explorer_description := root_cause.get("one_line_description"):
+                    summary = explorer_description
+                else:
+                    summary = ""
+
+                if legacy_steps := root_cause.get("steps", []):
+                    steps = [step.get("title", "") for step in legacy_steps]
+                elif explorer_steps := root_cause.get("reproduction_steps", []):
+                    steps = explorer_steps
+                else:
+                    steps = []
+
                 data_kwargs.update(
                     {
                         "current_point": AutofixStoppingPoint.ROOT_CAUSE,
-                        "summary": root_cause.get("description", ""),
-                        "steps": [step.get("title", "") for step in root_cause.get("steps", [])],
+                        "summary": summary,
+                        "steps": steps,
                     }
                 )
             case SentryAppEventType.SEER_SOLUTION_COMPLETED:
                 solution = event_payload.get("solution", {})
+
+                if legacy_description := solution.get("description"):
+                    summary = legacy_description
+                elif explorer_description := solution.get("one_line_description"):
+                    summary = explorer_description
+                else:
+                    summary = ""
+
+                steps = [step.get("title", "") for step in solution.get("steps", [])]
+
                 data_kwargs.update(
                     {
                         "current_point": AutofixStoppingPoint.SOLUTION,
-                        "summary": solution.get("description", ""),
-                        "steps": [step.get("title", "") for step in solution.get("steps", [])],
+                        "summary": summary,
+                        "steps": steps,
                     }
                 )
             case SentryAppEventType.SEER_CODING_COMPLETED:
-                changes = event_payload.get("changes", [])
-                changes_list = [
-                    {
-                        "repo_name": change.get("repo_name", ""),
-                        "diff": change.get("diff", ""),
-                        "title": change.get("title", ""),
-                        "description": change.get("description", ""),
-                    }
-                    for change in changes
-                ]
+                if legacy_changes := event_payload.get("changes", []):
+                    changes_list = [
+                        {
+                            "repo_name": change.get("repo_name", ""),
+                            "diff": change.get("diff", ""),
+                            "title": change.get("title", ""),
+                            "description": change.get("description", ""),
+                        }
+                        for change in legacy_changes
+                    ]
+                elif explorer_changes := event_payload.get("code_changes", {}):
+                    changes_list = [
+                        {
+                            "repo_name": repo,
+                            "title": change["path"],
+                            # TODO: add the diff to the change list
+                            "description": "",
+                            "diff": "",
+                        }
+                        for repo, changes in explorer_changes.items()
+                        for change in changes
+                    ]
+                else:
+                    changes_list = []
+
                 data_kwargs.update(
                     {
                         "current_point": AutofixStoppingPoint.CODE_CHANGES,

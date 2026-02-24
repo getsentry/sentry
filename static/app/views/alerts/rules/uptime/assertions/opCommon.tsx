@@ -10,7 +10,7 @@ import {Text} from '@sentry/scraps/text';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Comparison, Op} from 'sentry/views/alerts/rules/uptime/types';
+import {ComparisonType, type Op} from 'sentry/views/alerts/rules/uptime/types';
 
 interface AnimatedOpProps
   extends MotionProps, Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
@@ -107,46 +107,45 @@ export function OpContainer({
   );
 }
 
-export const COMPARISON_OPTIONS: Array<
-  SelectOption<Comparison['cmp']> & {symbol: string}
-> = [
-  {
-    value: 'equals',
-    label: t('equal'),
-    symbol: '=',
-    trailingItems: <Text monospace>=</Text>,
-  },
-  {
-    value: 'not_equal',
-    label: t('not equal'),
-    symbol: '\u2260',
-    trailingItems: <Text monospace>{'\u2260'}</Text>,
-  },
-  {
-    value: 'less_than',
-    label: t('less than'),
-    symbol: '<',
-    trailingItems: <Text monospace>{'<'}</Text>,
-  },
-  {
-    value: 'greater_than',
-    label: t('greater than'),
-    symbol: '>',
-    trailingItems: <Text monospace>{'>'}</Text>,
-  },
-  {
-    value: 'always',
-    label: t('present'),
-    symbol: '\u22A4',
-    trailingItems: <Text monospace>{'\u22A4'}</Text>,
-  },
-  {
-    value: 'never',
-    label: t('not present'),
-    symbol: '\u2205',
-    trailingItems: <Text monospace>{'\u2205'}</Text>,
-  },
-];
+export const COMPARISON_OPTIONS: Array<SelectOption<ComparisonType> & {symbol: string}> =
+  [
+    {
+      value: ComparisonType.EQUALS,
+      label: t('equal'),
+      symbol: '=',
+      trailingItems: <Text monospace>=</Text>,
+    },
+    {
+      value: ComparisonType.NOT_EQUAL,
+      label: t('not equal'),
+      symbol: '\u2260',
+      trailingItems: <Text monospace>{'\u2260'}</Text>,
+    },
+    {
+      value: ComparisonType.LESS_THAN,
+      label: t('less than'),
+      symbol: '<',
+      trailingItems: <Text monospace>{'<'}</Text>,
+    },
+    {
+      value: ComparisonType.GREATER_THAN,
+      label: t('greater than'),
+      symbol: '>',
+      trailingItems: <Text monospace>{'>'}</Text>,
+    },
+    {
+      value: ComparisonType.ALWAYS,
+      label: t('present'),
+      symbol: '\u22A4',
+      trailingItems: <Text monospace>{'\u22A4'}</Text>,
+    },
+    {
+      value: ComparisonType.NEVER,
+      label: t('not present'),
+      symbol: '\u2205',
+      trailingItems: <Text monospace>{'\u2205'}</Text>,
+    },
+  ];
 
 export const STRING_OPERAND_OPTIONS: Array<
   SelectOption<'literal' | 'glob'> & {symbol: string}

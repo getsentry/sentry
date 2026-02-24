@@ -19,7 +19,6 @@ import type {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomati
 
 interface Props {
   gridColumns: string;
-  hits: number;
   isFetchingNextPage: boolean;
   isPending: boolean;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
@@ -48,12 +47,11 @@ const COLUMNS = [
 ];
 
 export default function SeerRepoTableHeader({
-  isPending,
-  isFetchingNextPage,
   gridColumns,
+  isFetchingNextPage,
+  isPending,
   mutateRepositorySettings,
   onSortClick,
-  hits,
   sort,
 }: Props) {
   const canWrite = useCanWriteSettings();
@@ -106,7 +104,7 @@ export default function SeerRepoTableHeader({
         <SimpleTable.HeaderCell>
           <SelectAllCheckbox
             disabled={isPending || isFetchingNextPage}
-            hits={hits}
+            knownIds={knownIds}
             listItemCheckboxState={listItemCheckboxState}
           />
         </SimpleTable.HeaderCell>
@@ -139,7 +137,7 @@ export default function SeerRepoTableHeader({
           <TableCellFirst>
             <SelectAllCheckbox
               disabled={isPending || isFetchingNextPage}
-              hits={hits}
+              knownIds={knownIds}
               listItemCheckboxState={listItemCheckboxState}
             />
           </TableCellFirst>
@@ -190,8 +188,8 @@ export default function SeerRepoTableHeader({
                     count: countSelected,
                     queryString: <var>{queryString}</var>,
                   })
-                : countSelected > hits
-                  ? t('Selected all %s+ repositories.', hits)
+                : countSelected > knownIds.length
+                  ? t('Selected all %s+ repositories.', knownIds.length)
                   : tn(
                       'Selected %s repository.',
                       'Selected all %s repositories.',
@@ -207,20 +205,20 @@ export default function SeerRepoTableHeader({
 
 function SelectAllCheckbox({
   listItemCheckboxState: {deselectAll, isAllSelected, selectedIds, selectAll},
-  hits,
+  knownIds,
   disabled,
 }: {
   disabled: boolean;
-  hits: number;
+  knownIds: string[];
   listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
 }) {
   return (
     <Checkbox
       id="repository-table-select-all"
       checked={isAllSelected}
-      disabled={hits === 0 || disabled}
+      disabled={knownIds.length === 0 || disabled}
       onChange={() => {
-        if (isAllSelected === true || selectedIds.length === hits) {
+        if (isAllSelected === true || selectedIds.length === knownIds.length) {
           deselectAll();
         } else {
           selectAll();
