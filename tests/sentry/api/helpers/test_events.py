@@ -22,7 +22,6 @@ class TestEAPRunGroupEventsQuery(TestCase, SnubaTestCase):
             projects=[self.project],
             environments=[],
         )
-        snuba_data = snuba_query.run_query(referrer="test")["data"]
 
         snuba_query = get_query_builder_for_group(
             query="",
