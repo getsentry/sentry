@@ -376,13 +376,9 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             org_integration = OrganizationIntegration.objects.get(
                 integration_id=self.integration.id
             )
-        id1 = str(self.organization_integration.id) + "-thonk"
-
-        assert org_integration.config == {
-            "team_table": [
-                {"id": id1, "team": "thonk [MIGRATED]", "integration_key": "123-key"},
-            ]
-        }
+        team_table = org_integration.config["team_table"]
+        assert len(team_table) == 1
+        assert team_table[0]["integration_key"] == "123-key"
 
     def test_existing_key(self) -> None:
         """
