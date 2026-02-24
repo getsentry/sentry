@@ -252,6 +252,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-web-vitals-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable frontend overview dashboard on dashboards platform
     manager.add("organizations:insights-frontend-overview-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable frontend assets dashboard on dashboards platform
+    manager.add("organizations:insights-frontend-assets-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Next.js frontend overview dashboard on dashboards platform
     manager.add("organizations:insights-nextjs-frontend-overview-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Laravel overview dashboard on dashboards platform
