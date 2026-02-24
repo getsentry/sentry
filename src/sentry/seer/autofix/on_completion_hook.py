@@ -162,23 +162,22 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 extra={"event_type": event_type},
             )
 
-        if features.has("organizations:seer-webhooks", organization):
-            try:
-                broadcast_webhooks_for_organization.delay(
-                    resource_name="seer",
-                    event_name=event_name,
-                    organization_id=organization.id,
-                    payload=webhook_payload,
-                )
-            except Exception:
-                logger.exception(
-                    "autofix.on_completion_hook.webhook_failed",
-                    extra={
-                        "run_id": run_id,
-                        "organization_id": organization.id,
-                        "webhook_event": event_name,
-                    },
-                )
+        try:
+            broadcast_webhooks_for_organization.delay(
+                resource_name="seer",
+                event_name=event_name,
+                organization_id=organization.id,
+                payload=webhook_payload,
+            )
+        except Exception:
+            logger.exception(
+                "autofix.on_completion_hook.webhook_failed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "webhook_event": event_name,
+                },
+            )
 
     @classmethod
     def _maybe_trigger_supergroups_embedding(
