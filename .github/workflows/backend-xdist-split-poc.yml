@@ -147,11 +147,11 @@ jobs:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
         run: |
           echo "=== Tier 1: $(wc -l < /tmp/tier1-tests.txt) scopes, shard ${{ matrix.instance }}/5 ==="
-          # NOTE: T1 runs with -n 4 workers. If LPT sharding is added later,
-          # --n-workers in split-tests-by-tier.py must match this (not 3).
+          # NOTE: T1 runs with -n 3 workers. If LPT sharding is added later,
+          # --n-workers in split-tests-by-tier.py must match this.
           python3 -b -m pytest tests \
             --reuse-db \
-            -n 4 \
+            -n 3 \
             --dist=load \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
