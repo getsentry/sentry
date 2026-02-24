@@ -51,12 +51,27 @@ const dataScrubMultilineSchema = z.object({
   safeFields: z.string(),
 });
 
-export default function OrganizationSecurityAndPrivacyContent() {
-  const organization = useOrganization();
+function handleUpdateOrganization(data: Organization) {
+  // This will update OrganizationStore (as well as OrganizationsStore
+  // which is slightly incorrect because it has summaries vs a detailed org)
+  updateOrganization(data);
+}
 
+function getOrgMutationOptions(organization: Organization) {
   const orgEndpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
     path: {organizationIdOrSlug: organization.slug},
   });
+
+  return mutationOptions({
+    mutationFn: (data: Partial<Organization>) =>
+      fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
+    onSuccess: handleUpdateOrganization,
+  });
+}
+
+export default function OrganizationSecurityAndPrivacyContent() {
+  const organization = useOrganization();
+  const orgMutationOptions = getOrgMutationOptions(organization);
 
   const {data: authProvider} = useApiQuery<AuthProvider>(
     [
@@ -72,44 +87,6 @@ export default function OrganizationSecurityAndPrivacyContent() {
   const title = t('Security & Privacy');
   const hasOrgWrite = organization.access.includes('org:write');
   const hasSsoEnabled = !!authProvider;
-
-  function handleUpdateOrganization(data: Organization) {
-    // This will update OrganizationStore (as well as OrganizationsStore
-    // which is slightly incorrect because it has summaries vs a detailed org)
-    updateOrganization(data);
-  }
-
-  const orgMutationOptions = mutationOptions({
-    mutationFn: (data: Partial<Organization>) =>
-      fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
-    onSuccess: handleUpdateOrganization,
-  });
-
-  const orgMutation = useMutation(orgMutationOptions);
-
-  const initialSensitiveFields = convertMultilineFieldValue(organization.sensitiveFields);
-  const initialSafeFields = convertMultilineFieldValue(organization.safeFields);
-
-  const scrubbingConfiguration = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {
-      sensitiveFields: initialSensitiveFields,
-      safeFields: initialSafeFields,
-    },
-    validators: {onDynamic: dataScrubMultilineSchema},
-    onSubmit: ({value}) =>
-      orgMutation
-        .mutateAsync({
-          sensitiveFields: extractMultilineFields(value.sensitiveFields),
-          safeFields: extractMultilineFields(value.safeFields),
-        })
-        .then(() => {
-          addSuccessMessage(t('Scrubbing configuration updated'));
-        })
-        .catch(() => {
-          addErrorMessage(t('Unable to save change'));
-        }),
-  });
 
   const {isSelfHosted} = ConfigStore.getState();
   const showDataSecrecySettings =
@@ -399,79 +376,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
         </AutoSaveField>
       </FieldGroup>
 
-      <scrubbingConfiguration.AppForm>
-        <FieldGroup title={t('Scrubbing Configuration')}>
-          <scrubbingConfiguration.AppField name="sensitiveFields">
-            {field => (
-              <field.Layout.Row
-                label={t('Global Sensitive Fields')}
-                hintText={t(
-                  'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
-                )}
-              >
-                <field.TextArea
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder="e.g. email"
-                  disabled={!hasOrgWrite}
-                  rows={1}
-                />
-              </field.Layout.Row>
-            )}
-          </scrubbingConfiguration.AppField>
-
-          <scrubbingConfiguration.AppField name="safeFields">
-            {field => (
-              <field.Layout.Row
-                label={t('Global Safe Fields')}
-                hintText={t(
-                  'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
-                )}
-              >
-                <field.TextArea
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={t('e.g. business-email')}
-                  disabled={!hasOrgWrite}
-                  rows={1}
-                />
-              </field.Layout.Row>
-            )}
-          </scrubbingConfiguration.AppField>
-          <scrubbingConfiguration.Subscribe
-            selector={state =>
-              state.values.sensitiveFields !== initialSensitiveFields ||
-              state.values.safeFields !== initialSafeFields
-            }
-          >
-            {hasChanged =>
-              hasChanged ? (
-                <Alert
-                  variant="info"
-                  system
-                  trailingItems={
-                    <Flex gap="sm">
-                      <Alert.Button onClick={() => scrubbingConfiguration.reset()}>
-                        {t('Cancel')}
-                      </Alert.Button>
-                      <Alert.Button
-                        priority="primary"
-                        onClick={() => scrubbingConfiguration.handleSubmit()}
-                      >
-                        {t('Save')}
-                      </Alert.Button>
-                    </Flex>
-                  }
-                >
-                  {t(
-                    'Changes to your scrubbing configuration will apply to all new events.'
-                  )}
-                </Alert>
-              ) : null
-            }
-          </scrubbingConfiguration.Subscribe>
-        </FieldGroup>
-      </scrubbingConfiguration.AppForm>
+      <ScrubbingConfigurationFieldGroup hasOrgWrite={hasOrgWrite} />
 
       {showDataSecrecySettings && <DataSecrecy />}
 
@@ -486,5 +391,109 @@ export default function OrganizationSecurityAndPrivacyContent() {
         onSubmitSuccess={data => handleUpdateOrganization({...organization, ...data})}
       />
     </FormSearch>
+  );
+}
+
+function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean}) {
+  const organization = useOrganization();
+  const initialSensitiveFields = convertMultilineFieldValue(organization.sensitiveFields);
+  const initialSafeFields = convertMultilineFieldValue(organization.safeFields);
+  const orgMutation = useMutation(getOrgMutationOptions(organization));
+
+  const scrubbingConfiguration = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      sensitiveFields: initialSensitiveFields,
+      safeFields: initialSafeFields,
+    },
+    validators: {onDynamic: dataScrubMultilineSchema},
+    onSubmit: ({value}) =>
+      orgMutation
+        .mutateAsync({
+          sensitiveFields: extractMultilineFields(value.sensitiveFields),
+          safeFields: extractMultilineFields(value.safeFields),
+        })
+        .then(() => {
+          addSuccessMessage(t('Scrubbing configuration updated'));
+        })
+        .catch(() => {
+          addErrorMessage(t('Unable to save change'));
+        }),
+  });
+
+  return (
+    <scrubbingConfiguration.AppForm>
+      <FieldGroup title={t('Scrubbing Configuration')}>
+        <scrubbingConfiguration.AppField name="sensitiveFields">
+          {field => (
+            <field.Layout.Row
+              label={t('Global Sensitive Fields')}
+              hintText={t(
+                'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
+              )}
+            >
+              <field.TextArea
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="e.g. email"
+                disabled={!hasOrgWrite}
+                rows={1}
+              />
+            </field.Layout.Row>
+          )}
+        </scrubbingConfiguration.AppField>
+
+        <scrubbingConfiguration.AppField name="safeFields">
+          {field => (
+            <field.Layout.Row
+              label={t('Global Safe Fields')}
+              hintText={t(
+                'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
+              )}
+            >
+              <field.TextArea
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={t('e.g. business-email')}
+                disabled={!hasOrgWrite}
+                rows={1}
+              />
+            </field.Layout.Row>
+          )}
+        </scrubbingConfiguration.AppField>
+        <scrubbingConfiguration.Subscribe
+          selector={state =>
+            state.values.sensitiveFields !== initialSensitiveFields ||
+            state.values.safeFields !== initialSafeFields
+          }
+        >
+          {hasChanged =>
+            hasChanged ? (
+              <Alert
+                variant="info"
+                system
+                trailingItems={
+                  <Flex gap="sm">
+                    <Alert.Button onClick={() => scrubbingConfiguration.reset()}>
+                      {t('Cancel')}
+                    </Alert.Button>
+                    <Alert.Button
+                      priority="primary"
+                      onClick={() => scrubbingConfiguration.handleSubmit()}
+                    >
+                      {t('Save')}
+                    </Alert.Button>
+                  </Flex>
+                }
+              >
+                {t(
+                  'Changes to your scrubbing configuration will apply to all new events.'
+                )}
+              </Alert>
+            ) : null
+          }
+        </scrubbingConfiguration.Subscribe>
+      </FieldGroup>
+    </scrubbingConfiguration.AppForm>
   );
 }
