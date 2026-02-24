@@ -14,15 +14,13 @@ import IdBadge from 'sentry/components/idBadge';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {
-  dataForwarderFormSchema,
-} from 'sentry/views/settings/organizationDataForwarding/util/forms';
+import {dataForwarderFormSchema} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {
   useDataForwarders,
   useMutateDataForwarder,
