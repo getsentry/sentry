@@ -55,10 +55,14 @@ function RelatedIssues({
       // Issues and EAP spans disagree on what to call the HTTP request method
       // parameter, and it's commonly present in the query since the Insights
       // landing pages add it for HTTP transactions.
-      const requestMethods = currentFilter.getFilterValues('request.method');
-      currentFilter
-        .removeFilter('request.method')
-        .addFilterValues('http.method', requestMethods);
+      // Mutate tokens in-place to preserve operators, negation, and position.
+      for (const token of currentFilter.tokens) {
+        if (token.key === 'request.method') {
+          token.key = 'http.method';
+        } else if (token.key === '!request.method') {
+          token.key = '!http.method';
+        }
+      }
     }
     removeTracingKeysFromSearch(currentFilter);
     currentFilter
