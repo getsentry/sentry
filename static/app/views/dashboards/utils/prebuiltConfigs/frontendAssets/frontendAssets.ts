@@ -151,6 +151,15 @@ export const FRONTEND_ASSETS_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
         value: `${SpanFields.SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
       },
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: SpanFields.FILE_EXTENSION,
+          name: SpanFields.FILE_EXTENSION,
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
     ],
   },
   title: DASHBOARD_TITLE,
