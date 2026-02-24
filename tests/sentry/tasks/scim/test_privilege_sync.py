@@ -5,13 +5,12 @@ from django.db import IntegrityError
 from django.test import override_settings
 
 from sentry.conf.types.sentry_config import SentryMode
-from sentry.silo.base import SiloMode
 from sentry.tasks.scim.privilege_sync import (
     sync_scim_team_privileges,
     update_privilege,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
 
 
@@ -50,10 +49,9 @@ class UpdatePrivilegeGrantTest(TestCase):
     def test_grant_superuser_write_sets_superuser_and_permission(self):
         from sentry.users.models.userpermission import UserPermission
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not UserPermission.objects.filter(
-                user_id=self.user.id, permission="superuser.write"
-            ).exists()
+        assert not UserPermission.objects.filter(
+            user_id=self.user.id, permission="superuser.write"
+        ).exists()
 
         update_privilege(
             self.user.id, {"is_superuser": True}, grant=True, manage_write_permission=True
@@ -63,18 +61,16 @@ class UpdatePrivilegeGrantTest(TestCase):
         assert user is not None
         assert user.is_superuser
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert UserPermission.objects.filter(
-                user_id=self.user.id, permission="superuser.write"
-            ).exists()
+        assert UserPermission.objects.filter(
+            user_id=self.user.id, permission="superuser.write"
+        ).exists()
 
     def test_grant_superuser_write_rolls_back_permission_on_failure(self):
         from sentry.users.models.userpermission import UserPermission
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not UserPermission.objects.filter(
-                user_id=self.user.id, permission="superuser.write"
-            ).exists()
+        assert not UserPermission.objects.filter(
+            user_id=self.user.id, permission="superuser.write"
+        ).exists()
 
         with patch("sentry.tasks.scim.privilege_sync.user_service.update_user") as mock_update:
             mock_update.side_effect = Exception("RPC failure")
@@ -87,10 +83,9 @@ class UpdatePrivilegeGrantTest(TestCase):
                     manage_write_permission=True,
                 )
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not UserPermission.objects.filter(
-                user_id=self.user.id, permission="superuser.write"
-            ).exists()
+        assert not UserPermission.objects.filter(
+            user_id=self.user.id, permission="superuser.write"
+        ).exists()
 
     def test_grant_superuser_write_integrity_error_removes_permission_without_raising(self):
         from sentry.users.models.userpermission import UserPermission
@@ -105,10 +100,9 @@ class UpdatePrivilegeGrantTest(TestCase):
                 manage_write_permission=True,
             )
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not UserPermission.objects.filter(
-                user_id=self.user.id, permission="superuser.write"
-            ).exists()
+        assert not UserPermission.objects.filter(
+            user_id=self.user.id, permission="superuser.write"
+        ).exists()
 
 
 @control_silo_test
@@ -143,8 +137,7 @@ class UpdatePrivilegeRevokeTest(TestCase):
         from sentry.users.models.userpermission import UserPermission
 
         user_service.update_user(user_id=self.user.id, attrs={"is_superuser": True})
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            UserPermission.objects.create(user_id=self.user.id, permission="superuser.write")
+        UserPermission.objects.create(user_id=self.user.id, permission="superuser.write")
 
         update_privilege(
             self.user.id, {"is_superuser": False}, grant=False, manage_write_permission=True
@@ -154,10 +147,9 @@ class UpdatePrivilegeRevokeTest(TestCase):
         assert user is not None
         assert not user.is_superuser
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not UserPermission.objects.filter(
-                user_id=self.user.id, permission="superuser.write"
-            ).exists()
+        assert not UserPermission.objects.filter(
+            user_id=self.user.id, permission="superuser.write"
+        ).exists()
 
     def test_revoke_superuser_write_failure_keeps_permission_removed(self):
         from sentry.users.models.userpermission import UserPermission
@@ -165,8 +157,7 @@ class UpdatePrivilegeRevokeTest(TestCase):
         user_service.update_user(
             user_id=self.user.id, attrs={"is_staff": True, "is_superuser": True}
         )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            UserPermission.objects.create(user_id=self.user.id, permission="superuser.write")
+        UserPermission.objects.create(user_id=self.user.id, permission="superuser.write")
 
         with patch("sentry.tasks.scim.privilege_sync.user_service.update_user") as mock_update:
             mock_update.side_effect = Exception("RPC failure")
@@ -179,10 +170,9 @@ class UpdatePrivilegeRevokeTest(TestCase):
                     manage_write_permission=True,
                 )
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not UserPermission.objects.filter(
-                user_id=self.user.id, permission="superuser.write"
-            ).exists()
+        assert not UserPermission.objects.filter(
+            user_id=self.user.id, permission="superuser.write"
+        ).exists()
 
 
 PRIVILEGE_SETTINGS = {
