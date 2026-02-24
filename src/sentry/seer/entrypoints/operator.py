@@ -471,7 +471,7 @@ def process_autofix_updates(
             logging_ctx = {
                 "organization_id": organization.id,
                 "group_id": group_id,
-                "run": run_id,
+                "run_id": run_id,
                 "entrypoint_key": str(entrypoint_key),
             }
 

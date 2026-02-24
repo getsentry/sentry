@@ -152,12 +152,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             if SeerOperator.has_access(organization=organization):
                 metrics.incr(
                     "autofix.on_completion_hook.process_autofix_updates",
-                    tags={
-                        "event_type": str(event_type),
-                        "organization_id": organization.id,
-                        "group_id": group_id,
-                        "run_id": run_id,
-                    },
+                    tags={"event_type": str(event_type)},
                 )
                 process_autofix_updates.apply_async(
                     kwargs={
