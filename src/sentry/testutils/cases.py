@@ -82,7 +82,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
-from sentry.eventstream.item_helpers import build_occurrence_attributes
+from sentry.eventstream.item_helpers import _build_occurrence_attributes
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
@@ -1182,6 +1182,40 @@ class SnubaTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+
+    def store_occurrences_with_dual_write(
+        self,
+        fingerprint: str,
+        count: int = 1,
+        timestamp: float | None = None,
+        trace_id: str | None = None,
+        message: str | None = None,
+        project_id: int | None = None,
+        extra_event_data: dict[str, Any] | None = None,
+    ) -> list[Event]:
+        """
+        Store occurrences in both legacy Snuba and EAP via the production dual-write path.
+        """
+        events: list[Event] = []
+        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
+            for _ in range(count):
+                data: dict[str, Any] = {
+                    "message": message or f"error in {fingerprint}",
+                    "fingerprint": [fingerprint],
+                    "event_id": uuid4().hex,
+                    "contexts": {"trace": {"trace_id": trace_id or uuid4().hex}},
+                }
+                if timestamp is not None:
+                    data["timestamp"] = timestamp
+                if extra_event_data:
+                    data.update(extra_event_data)
+                event = self.store_event(
+                    data=data,
+                    project_id=project_id or self.project.id,
+                    assert_no_errors=False,
+                )
+                events.append(event)
+        return events
 
     def store_trace_metrics(self, trace_metrics):
         files = {
@@ -3556,7 +3590,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         if attributes:
             data.update(attributes)
 
-        attributes_proto = build_occurrence_attributes(data, tags=tags)
+        attributes_proto = _build_occurrence_attributes(data, tags=tags)
 
         return TraceItem(
             organization_id=organization.id,
