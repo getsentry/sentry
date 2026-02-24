@@ -1,5 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
-import {z} from 'zod';
+import {Fragment, useMemo, useState} from 'react';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -14,14 +13,15 @@ import IdBadge from 'sentry/components/idBadge';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {
-  dataForwarderFormSchema,
+  buildDataForwardingProviderConfig,
+  buildDataForwardingProviderSchema,
 } from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {
   useDataForwarders,
@@ -31,7 +31,7 @@ import {
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
   ProviderLabels,
-  type DataForwarder,
+  type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export default function OrganizationDataForwardingSetup() {
@@ -159,87 +159,11 @@ function DataForwarderSetupForm({
   onCreate,
 }: {
   disabled: boolean;
-  onCreate: (data: DataForwarder) => void;
+  onCreate: (data: DataForwarderPayload) => void;
   projects: Project[];
   provider: DataForwarderProviderSlug;
 }) {
-  const providerRef = useRef(provider);
-  providerRef.current = provider;
-
-  const schema = useMemo(
-    () =>
-      dataForwarderFormSchema.superRefine((data, ctx) => {
-        const p = providerRef.current;
-        if (p === DataForwarderProviderSlug.SQS) {
-          if (!data.queue_url?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['queue_url'],
-              message: t('Queue URL is required'),
-            });
-          }
-          if (!data.region?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['region'],
-              message: t('Region is required'),
-            });
-          }
-          if (!data.access_key?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['access_key'],
-              message: t('Access key is required'),
-            });
-          }
-          if (!data.secret_key?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['secret_key'],
-              message: t('Secret key is required'),
-            });
-          }
-        } else if (p === DataForwarderProviderSlug.SEGMENT) {
-          if (!data.write_key?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['write_key'],
-              message: t('Write key is required'),
-            });
-          }
-        } else if (p === DataForwarderProviderSlug.SPLUNK) {
-          if (!data.instance_url?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['instance_url'],
-              message: t('Instance URL is required'),
-            });
-          }
-          if (!data.token?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['token'],
-              message: t('Token is required'),
-            });
-          }
-          if (!data.index?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['index'],
-              message: t('Index is required'),
-            });
-          }
-          if (!data.source?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['source'],
-              message: t('Source is required'),
-            });
-          }
-        }
-      }),
-    []
-  );
+  const schema = useMemo(() => buildDataForwardingProviderSchema(provider), [provider]);
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -262,36 +186,13 @@ function DataForwarderSetupForm({
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
       const {is_enabled, enroll_new_projects, project_ids = [], ...allFields} = value;
-      const p = providerRef.current;
-
-      let config: Record<string, string | undefined>;
-      if (p === DataForwarderProviderSlug.SQS) {
-        config = {
-          queue_url: allFields.queue_url,
-          region: allFields.region,
-          access_key: allFields.access_key,
-          secret_key: allFields.secret_key,
-          message_group_id: allFields.message_group_id || undefined,
-          s3_bucket: allFields.s3_bucket || undefined,
-        };
-      } else if (p === DataForwarderProviderSlug.SEGMENT) {
-        config = {write_key: allFields.write_key};
-      } else {
-        config = {
-          instance_url: allFields.instance_url,
-          token: allFields.token,
-          index: allFields.index,
-          source: allFields.source,
-        };
-      }
-
       onCreate({
-        provider: p,
-        config,
+        provider,
+        config: buildDataForwardingProviderConfig(provider, allFields),
         is_enabled,
         enroll_new_projects,
         project_ids,
-      } as unknown as DataForwarder);
+      } satisfies DataForwarderPayload);
     },
   });
 

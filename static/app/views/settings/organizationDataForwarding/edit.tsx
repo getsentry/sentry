@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import {z} from 'zod';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
@@ -16,8 +15,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,7 +25,8 @@ import useProjects from 'sentry/utils/useProjects';
 import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
 import {ProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/components/projectOverrideForm';
 import {
-  dataForwarderFormSchema,
+  buildDataForwardingProviderConfig,
+  buildDataForwardingProviderSchema,
 } from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {
   useDataForwarders,
@@ -37,6 +37,7 @@ import {
   DataForwarderProviderSlug,
   ProviderLabels,
   type DataForwarder,
+  type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export default function OrganizationDataForwardingEditWrapper() {
@@ -181,86 +182,14 @@ function DataForwarderEditForm({
     },
   });
 
-  const schema = useMemo(
-    () =>
-      dataForwarderFormSchema.superRefine((data, ctx) => {
-        if (provider === DataForwarderProviderSlug.SQS) {
-          if (!data.queue_url?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['queue_url'],
-              message: t('Queue URL is required'),
-            });
-          }
-          if (!data.region?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['region'],
-              message: t('Region is required'),
-            });
-          }
-          if (!data.access_key?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['access_key'],
-              message: t('Access key is required'),
-            });
-          }
-          if (!data.secret_key?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['secret_key'],
-              message: t('Secret key is required'),
-            });
-          }
-        } else if (provider === DataForwarderProviderSlug.SEGMENT) {
-          if (!data.write_key?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['write_key'],
-              message: t('Write key is required'),
-            });
-          }
-        } else if (provider === DataForwarderProviderSlug.SPLUNK) {
-          if (!data.instance_url?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['instance_url'],
-              message: t('Instance URL is required'),
-            });
-          }
-          if (!data.token?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['token'],
-              message: t('Token is required'),
-            });
-          }
-          if (!data.index?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['index'],
-              message: t('Index is required'),
-            });
-          }
-          if (!data.source?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['source'],
-              message: t('Source is required'),
-            });
-          }
-        }
-      }),
-    [provider]
-  );
+  const schema = useMemo(() => buildDataForwardingProviderSchema(provider), [provider]);
 
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
       is_enabled: dataForwarder.isEnabled,
       enroll_new_projects: dataForwarder.enrollNewProjects,
-      project_ids: dataForwarder.enrolledProjects.map(p => p.id),
+      project_ids: dataForwarder.enrolledProjects.map(p => String(p.id)),
       queue_url: '',
       region: '',
       access_key: '',
@@ -277,36 +206,13 @@ function DataForwarderEditForm({
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
       const {is_enabled, enroll_new_projects, project_ids = [], ...allFields} = value;
-
-      let config: Record<string, string | undefined>;
-      if (provider === DataForwarderProviderSlug.SQS) {
-        config = {
-          queue_url: allFields.queue_url,
-          region: allFields.region,
-          access_key: allFields.access_key,
-          secret_key: allFields.secret_key,
-          message_group_id: allFields.message_group_id || undefined,
-          s3_bucket: allFields.s3_bucket || undefined,
-        };
-      } else if (provider === DataForwarderProviderSlug.SEGMENT) {
-        config = {write_key: allFields.write_key};
-      } else {
-        config = {
-          instance_url: allFields.instance_url,
-          token: allFields.token,
-          index: allFields.index,
-          source: allFields.source,
-        };
-      }
-
       updateDataForwarder({
-        ...dataForwarder,
         provider,
-        config,
+        config: buildDataForwardingProviderConfig(provider, allFields),
         is_enabled,
         enroll_new_projects,
         project_ids,
-      } as unknown as DataForwarder);
+      } satisfies DataForwarderPayload);
     },
   });
 
@@ -572,7 +478,9 @@ function DataForwarderEditForm({
               {t('Delete Data Forwarder')}
             </Button>
           </DataForwarderDeleteConfirm>
-          <form.SubmitButton disabled={disabled}>{t('Update Forwarder')}</form.SubmitButton>
+          <form.SubmitButton disabled={disabled}>
+            {t('Update Forwarder')}
+          </form.SubmitButton>
         </Flex>
       </form.FormWrapper>
     </form.AppForm>
