@@ -169,9 +169,10 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
 
       // Duration: from start of generation span to end of last span (generation or tool)
       const genEnd = getNodeEndTimestamp(turn.generation);
+      const toolSpanNodes = turn.toolSpanNodes ?? [];
       const lastToolEnd =
-        turn.toolSpanNodes?.length > 0
-          ? Math.max(...turn.toolSpanNodes.map(getNodeEndTimestamp))
+        toolSpanNodes.length > 0
+          ? Math.max(...toolSpanNodes.map(getNodeEndTimestamp))
           : 0;
       const endTs = Math.max(genEnd, lastToolEnd);
       const duration = endTs > timestamp ? endTs - timestamp : undefined;
@@ -201,23 +202,6 @@ function findToolSpansBetween(
     const ts = getNodeTimestamp(span);
     return ts > startTime && ts < endTime;
   });
-}
-
-export function findToolCallsBetween(
-  toolSpans: AITraceSpanNode[],
-  startTime: number,
-  endTime: number
-): ToolCall[] {
-  return toolSpans
-    .filter(span => {
-      const ts = getNodeTimestamp(span);
-      return ts > startTime && ts < endTime;
-    })
-    .map(span => {
-      const name = getStringAttr(span, SpanFields.GEN_AI_TOOL_NAME);
-      return name ? {name, nodeId: span.id, hasError: hasError(span)} : null;
-    })
-    .filter((tc): tc is ToolCall => tc !== null);
 }
 
 export function parseUserContent(node: AITraceSpanNode): string | null {
