@@ -108,11 +108,11 @@ export default function BuildDetails() {
   const wasPendingOrProcessingRef = useRef(isPendingOrProcessing);
 
   useEffect(() => {
-    if (wasPendingOrProcessingRef.current && !isPendingOrProcessing) {
+    if (wasPendingOrProcessingRef.current && !isPendingOrProcessing && projectId) {
       appSizeQuery.refetch();
     }
     wasPendingOrProcessingRef.current = isPendingOrProcessing;
-  }, [isPendingOrProcessing, appSizeQuery]);
+  }, [isPendingOrProcessing, appSizeQuery, projectId]);
 
   const {mutate: onRerunAnalysis, isPending: isRerunning} = useMutation<
     void,
@@ -142,7 +142,14 @@ export default function BuildDetails() {
   const projectType = project?.platform ?? null;
 
   let title = t('Build details');
-  if (version && buildNumber) {
+  if (
+    version !== undefined &&
+    version !== null &&
+    version !== '' &&
+    buildNumber !== undefined &&
+    buildNumber !== null &&
+    buildNumber !== ''
+  ) {
     title = t('Build details v%s (%s)', version, buildNumber);
   }
 
