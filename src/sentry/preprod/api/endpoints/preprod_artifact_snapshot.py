@@ -23,12 +23,14 @@ from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotDetailsApiResponse,
+    SnapshotDiffPair,
     SnapshotImageResponse,
 )
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
-from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
@@ -143,6 +145,51 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             pr_number=commit_comparison.pr_number if commit_comparison else None,
         )
 
+        comparison_data = None
+        base_manifest_data = None
+        comparison = (
+            PreprodSnapshotComparison.objects.select_related(
+                "base_snapshot_metrics",
+            )
+            .filter(
+                head_snapshot_metrics=snapshot_metrics,
+                state=PreprodSnapshotComparison.State.SUCCESS,
+            )
+            .first()
+        )
+        if comparison:
+            comparison_key = (comparison.extras or {}).get("comparison_key")
+            if comparison_key:
+                try:
+                    comparison_data = orjson.loads(session.get(comparison_key).payload.read())
+                    comparison_data["baseArtifactId"] = str(
+                        comparison.base_snapshot_metrics.preprod_artifact_id
+                    )
+                except Exception:
+                    comparison_data = None
+                    logger.exception(
+                        "Failed to fetch comparison manifest",
+                        extra={
+                            "preprod_artifact_id": artifact.id,
+                        },
+                    )
+
+            if comparison_data is not None:
+                base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get(
+                    "manifest_key"
+                )
+                if base_manifest_key:
+                    try:
+                        base_manifest_data = orjson.loads(
+                            session.get(base_manifest_key).payload.read()
+                        )
+                    except Exception:
+                        base_manifest_data = None
+                        logger.exception(
+                            "Failed to fetch base manifest",
+                            extra={"preprod_artifact_id": artifact.id},
+                        )
+
         analytics.record(
             PreprodArtifactApiGetSnapshotDetailsEvent(
                 organization_id=project.organization_id,
@@ -163,14 +210,127 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             for key, metadata in sorted(manifest.images.items())
         ]
 
+        images_by_file_name: dict[str, SnapshotImageResponse] = {
+            img.image_file_name: img for img in image_list
+        }
+
+        changed: list[SnapshotDiffPair] = []
+        added: list[SnapshotImageResponse] = []
+        removed: list[SnapshotImageResponse] = []
+        unchanged: list[SnapshotImageResponse] = []
+        base_artifact_id: str | None = None
+        comparison_state: str | None = None
+
+        if comparison_data is not None:
+            base_artifact_id = comparison_data.get("baseArtifactId")
+            comp_images = comparison_data.get("images", {})
+
+            raw_base_images = base_manifest_data.get("images", {}) if base_manifest_data else {}
+            base_images_by_file_name: dict[str, SnapshotImageResponse] = {}
+            for key, meta in raw_base_images.items():
+                fname = meta.get("image_file_name", meta.get("file_name", key))
+                base_images_by_file_name[fname] = SnapshotImageResponse(
+                    key=key,
+                    display_name=meta.get("display_name"),
+                    image_file_name=fname,
+                    width=meta.get("width", 0),
+                    height=meta.get("height", 0),
+                )
+
+            for name, img_data in sorted(comp_images.items()):
+                status = img_data.get("status", "")
+
+                head_img = images_by_file_name.get(name)
+                base_img = base_images_by_file_name.get(name)
+
+                if status == "changed":
+                    if head_img:
+                        if not base_img:
+                            base_img = SnapshotImageResponse(
+                                key=img_data.get("base_hash", ""),
+                                display_name=name,
+                                image_file_name=name,
+                                width=img_data.get("before_width", 0),
+                                height=img_data.get("before_height", 0),
+                            )
+                        changed.append(
+                            SnapshotDiffPair(
+                                base_image=base_img,
+                                head_image=head_img,
+                                diff_image_key=img_data.get("diff_mask_image_id"),
+                                diff=img_data.get("diff_score"),
+                            )
+                        )
+                elif status == "added":
+                    if head_img:
+                        added.append(head_img)
+                elif status == "removed":
+                    if base_img:
+                        removed.append(base_img)
+                    else:
+                        removed.append(
+                            SnapshotImageResponse(
+                                key=img_data.get("base_hash", ""),
+                                display_name=name,
+                                image_file_name=name,
+                                width=img_data.get("before_width", 0),
+                                height=img_data.get("before_height", 0),
+                            )
+                        )
+                elif status == "unchanged":
+                    if head_img:
+                        unchanged.append(head_img)
+
+            changed.sort(key=lambda p: p.diff or 0, reverse=True)
+        else:
+            pending_state = (
+                PreprodSnapshotComparison.objects.filter(
+                    head_snapshot_metrics=snapshot_metrics,
+                    state__in=[
+                        PreprodSnapshotComparison.State.PENDING,
+                        PreprodSnapshotComparison.State.PROCESSING,
+                    ],
+                )
+                .values_list("state", flat=True)
+                .first()
+            )
+            if pending_state is not None:
+                state_label = {
+                    PreprodSnapshotComparison.State.PENDING: "pending",
+                    PreprodSnapshotComparison.State.PROCESSING: "processing",
+                }
+                comparison_state = state_label.get(
+                    PreprodSnapshotComparison.State(pending_state), "pending"
+                )
+
+        comparison_type = "diff" if comparison_data is not None else "solo"
+
         def on_results(images: list[SnapshotImageResponse]) -> dict[str, Any]:
-            return SnapshotDetailsApiResponse(
+            response = SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
+                base_artifact_id=base_artifact_id,
                 state=artifact.state,
                 vcs_info=vcs_info,
                 images=images,
                 image_count=snapshot_metrics.image_count,
-            ).dict()
+                changed=changed,
+                changed_count=len(changed),
+                added=added,
+                added_count=len(added),
+                removed=removed,
+                removed_count=len(removed),
+                unchanged=unchanged,
+                unchanged_count=len(unchanged),
+            )
+
+            result = response.dict()
+            result["orgId"] = str(project.organization_id)
+            result["projectId"] = str(project.id)
+            result["comparison_type"] = comparison_type
+            if comparison_state is not None:
+                result["comparison_state"] = comparison_state
+
+            return result
 
         return self.paginate(
             request=request,
@@ -267,6 +427,60 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "image_count": len(images),
             },
         )
+
+        if base_sha and base_repo_name:
+            try:
+                base_commit_comparison = CommitComparison.objects.get(
+                    organization_id=project.organization_id,
+                    head_sha=base_sha,
+                    head_repo_name=base_repo_name,
+                    base_sha__isnull=True,
+                )
+                base_artifact = (
+                    PreprodArtifact.objects.filter(
+                        commit_comparison=base_commit_comparison,
+                        project=project,
+                        preprodsnapshotmetrics__isnull=False,
+                    )
+                    .order_by("-date_added")
+                    .first()
+                )
+                if base_artifact:
+                    logger.info(
+                        "Found matching base artifact, triggering snapshot comparison",
+                        extra={
+                            "head_artifact_id": artifact.id,
+                            "base_artifact_id": base_artifact.id,
+                            "base_sha": base_sha,
+                        },
+                    )
+
+                    compare_snapshots.apply_async(
+                        kwargs={
+                            "project_id": project.id,
+                            "org_id": project.organization_id,
+                            "head_artifact_id": artifact.id,
+                            "base_artifact_id": base_artifact.id,
+                        },
+                    )
+            except CommitComparison.DoesNotExist:
+                logger.info(
+                    "No matching base commit found for snapshot comparison",
+                    extra={
+                        "head_artifact_id": artifact.id,
+                        "base_sha": base_sha,
+                        "base_repo_name": base_repo_name,
+                        "base_ref": base_ref,
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to trigger snapshot comparison",
+                    extra={
+                        "head_artifact_id": artifact.id,
+                        "base_sha": base_sha,
+                    },
+                )
 
         return Response(
             {
