@@ -243,7 +243,8 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             "analysis_version": analysis_results.analysis_version,
             "insights": analysis_results.insights.dict() if analysis_results.insights else None,
             "app_components": cast(
-                list[AppComponentResponseDict], [c.dict() for c in analysis_results.app_components]
+                list[AppComponentResponseDict],
+                [c.dict(exclude={"model_config"}) for c in analysis_results.app_components],
             )
             if analysis_results.app_components
             else None,
