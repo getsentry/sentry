@@ -1,7 +1,6 @@
 import datetime
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
-from uuid import uuid4
 
 import pytest
 
@@ -223,24 +222,6 @@ class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
         self.integration = MockCommitContextIntegration()
         self.pr_comment_workflow = GitHubPRCommentWorkflow(self.integration)
 
-    def _store_events_with_dual_write(self, fingerprint: str, count: int = 1) -> int:
-        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
-            event = None
-            for _ in range(count):
-                event = self.store_event(
-                    data={
-                        "message": f"error in {fingerprint}",
-                        "fingerprint": [fingerprint],
-                        "timestamp": (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp(),
-                        "event_id": uuid4().hex,
-                        "contexts": {"trace": {"trace_id": uuid4().hex}},
-                    },
-                    project_id=self.project.id,
-                    assert_no_errors=False,
-                )
-            assert event is not None and event.group_id is not None
-            return event.group_id
-
     def _query_both(
         self, issue_ids: list[int]
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -254,9 +235,16 @@ class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_return_same_top_issues(self) -> None:
-        group_a = self._store_events_with_dual_write("group-a", count=5)
-        group_b = self._store_events_with_dual_write("group-b", count=3)
-        group_c = self._store_events_with_dual_write("group-c", count=1)
+        ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
+        group_a = self.store_occurrences_with_dual_write("group-a", count=5, timestamp=ts)[
+            0
+        ].group_id
+        group_b = self.store_occurrences_with_dual_write("group-b", count=3, timestamp=ts)[
+            0
+        ].group_id
+        group_c = self.store_occurrences_with_dual_write("group-c", count=1, timestamp=ts)[
+            0
+        ].group_id
 
         snuba_result, eap_result = self._query_both([group_a, group_b, group_c])
 
@@ -268,8 +256,11 @@ class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_isolate_groups(self) -> None:
-        group_a = self._store_events_with_dual_write("group-a", count=3)
-        self._store_events_with_dual_write("group-b", count=2)
+        ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
+        group_a = self.store_occurrences_with_dual_write("group-a", count=3, timestamp=ts)[
+            0
+        ].group_id
+        self.store_occurrences_with_dual_write("group-b", count=2, timestamp=ts)
 
         snuba_result, eap_result = self._query_both([group_a])
 

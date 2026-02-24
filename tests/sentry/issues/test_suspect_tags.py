@@ -75,32 +75,6 @@ class SuspectTagsTest(TestCase, SnubaTestCase):
 class TestEAPQueryErrorCounts(TestCase, SnubaTestCase):
     FROZEN_TIME = datetime.datetime(2026, 2, 12, 6, 0, 0)
 
-    def _store_events_with_dual_write(
-        self,
-        fingerprint: str,
-        count: int,
-    ) -> int:
-        group_id = None
-
-        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
-            for _ in range(count):
-                event = self.store_event(
-                    data={
-                        "message": "suspect tags test error",
-                        "fingerprint": [fingerprint],
-                        "timestamp": self.FROZEN_TIME.timestamp(),
-                        "event_id": uuid.uuid4().hex,
-                        "contexts": {"trace": {"trace_id": uuid.uuid4().hex}},
-                    },
-                    project_id=self.project.id,
-                    assert_no_errors=False,
-                )
-                if group_id is None:
-                    group_id = event.group_id
-
-        assert group_id is not None
-        return group_id
-
     def _query_both(self, group_id: int | None = None) -> tuple[int, int]:
         start = self.FROZEN_TIME - datetime.timedelta(hours=1)
         end = self.FROZEN_TIME + datetime.timedelta(hours=1)
@@ -115,7 +89,10 @@ class TestEAPQueryErrorCounts(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_counts_match_with_group(self) -> None:
-        group_id = self._store_events_with_dual_write("suspect-group-a", count=5)
+        events = self.store_occurrences_with_dual_write(
+            "suspect-group-a", count=5, timestamp=self.FROZEN_TIME.timestamp()
+        )
+        group_id = events[0].group_id
 
         snuba_count, eap_count = self._query_both(group_id=group_id)
 
@@ -123,8 +100,12 @@ class TestEAPQueryErrorCounts(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_counts_match_without_group(self) -> None:
-        self._store_events_with_dual_write("suspect-no-group-a", count=3)
-        self._store_events_with_dual_write("suspect-no-group-b", count=4)
+        self.store_occurrences_with_dual_write(
+            "suspect-no-group-a", count=3, timestamp=self.FROZEN_TIME.timestamp()
+        )
+        self.store_occurrences_with_dual_write(
+            "suspect-no-group-b", count=4, timestamp=self.FROZEN_TIME.timestamp()
+        )
 
         snuba_count, eap_count = self._query_both(group_id=None)
 
@@ -132,8 +113,12 @@ class TestEAPQueryErrorCounts(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_counts_isolate_groups(self) -> None:
-        group_a = self._store_events_with_dual_write("suspect-isolate-a", count=2)
-        group_b = self._store_events_with_dual_write("suspect-isolate-b", count=6)
+        group_a = self.store_occurrences_with_dual_write(
+            "suspect-isolate-a", count=2, timestamp=self.FROZEN_TIME.timestamp()
+        )[0].group_id
+        group_b = self.store_occurrences_with_dual_write(
+            "suspect-isolate-b", count=6, timestamp=self.FROZEN_TIME.timestamp()
+        )[0].group_id
 
         snuba_a, eap_a = self._query_both(group_id=group_a)
         snuba_b, eap_b = self._query_both(group_id=group_b)
