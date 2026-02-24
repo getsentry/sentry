@@ -38,7 +38,7 @@ echo "Running direnv allow in worktree ..."
 (cd "$WORKTREE" && direnv allow)
 
 echo "Checking sentry in worktree with per-worktree venv ..."
-if (cd "$WORKTREE" && "$WORKTREE/.venv/bin/sentry" --version) >/dev/null 2>&1; then
+if (cd "$WORKTREE" && "$WORKTREE/.venv/bin/sentry" --version) >/dev/null; then
     echo "SUCCESS: Worktree env validation passed (sentry --version in worktree with per-worktree .venv)."
 else
     echo "FAIL: sentry --version failed in worktree with per-worktree .venv."
