@@ -15,6 +15,7 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
+from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
@@ -67,7 +68,7 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
         )
 
         if response.status >= 400:
-            raise Exception(f"Seer request failed with status {response.status}")
+            raise SeerApiError("Seer request failed", response.status)
 
         group.update(seer_autofix_last_triggered=timezone.now())
 

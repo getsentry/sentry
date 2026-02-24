@@ -11,11 +11,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
-from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
-from sentry.seer.signed_seer_api import (
-    make_signed_seer_api_request,
-    seer_autofix_default_connection_pool,
+from sentry.seer.explorer.client_utils import (
+    explorer_connection_pool,
+    has_seer_explorer_access_with_detail,
 )
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +57,12 @@ class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
         )
 
         response = make_signed_seer_api_request(
-            seer_autofix_default_connection_pool,
+            explorer_connection_pool,
             path,
             body,
         )
 
         if response.status >= 400:
-            raise Exception(f"Seer request failed with status {response.status}")
+            raise SeerApiError("Seer request failed", response.status)
 
         return Response(status=202, data=response.json())

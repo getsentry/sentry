@@ -1,7 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import requests
-
 from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -32,7 +30,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
     @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
     def test_successful_title_generation(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock()
+        mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": "My Assigned Errors"}
         mock_request.return_value = mock_response
 
@@ -49,7 +47,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
     @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
     def test_title_is_stripped(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock()
+        mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": "  Title With Whitespace  "}
         mock_request.return_value = mock_response
 
@@ -102,7 +100,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
     @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
     def test_seer_api_error(self, mock_request: MagicMock) -> None:
-        mock_request.side_effect = requests.RequestException("Connection error")
+        mock_request.side_effect = Exception("Connection error")
 
         response = self.client.post(
             self.url,
@@ -116,7 +114,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
     @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
     def test_empty_response_from_seer(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock()
+        mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": None}
         mock_request.return_value = mock_response
 
@@ -132,7 +130,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
     @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
     def test_long_query_is_truncated(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock()
+        mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": "Generated Title"}
         mock_request.return_value = mock_response
 
@@ -146,7 +144,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
 
         assert response.status_code == 200
         call_args = mock_request.call_args
-        request_body = call_args.kwargs["data"]
+        request_body = call_args[0][2]
         assert len(long_query[:500]) == 500
         assert b"x" * 500 in request_body
         assert b"x" * 600 not in request_body
@@ -154,7 +152,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
     @with_feature("organizations:issue-view-ai-title")
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_signed_seer_api_request")
     def test_org_read_permission(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock()
+        mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": "My Assigned Errors"}
         mock_request.return_value = mock_response
 

@@ -432,6 +432,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def test_non_github_provider(self, mock_get_repos: MagicMock, mock_request: MagicMock) -> None:
         # Mock the response from the Seer service
         mock_response = mock_request.return_value
+        mock_response.status = 200
         mock_response.json.return_value = {"has_access": True}
 
         group = self.create_group()
@@ -450,10 +451,9 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
 
         # Verify the API call was made correctly
         mock_request.assert_called_once()
-        call_kwargs = mock_request.call_args.kwargs
-        assert "data" in call_kwargs
-        assert "headers" in call_kwargs
-        assert "content-type" in call_kwargs["headers"]
+        call_args = mock_request.call_args[0]
+        assert call_args[1] == "/v1/automation/codebase/repo/check-access"
+        assert len(call_args[2]) > 0  # body is non-empty bytes
 
     @patch("sentry.seer.endpoints.group_autofix_setup_check.make_signed_seer_api_request")
     @patch(
@@ -470,6 +470,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def test_repo_without_access(self, mock_get_repos: MagicMock, mock_request: MagicMock) -> None:
         # Mock the response to indicate no access
         mock_response = mock_request.return_value
+        mock_response.status = 200
         mock_response.json.return_value = {"has_access": False}
 
         group = self.create_group()

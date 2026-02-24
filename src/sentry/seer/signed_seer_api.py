@@ -18,6 +18,14 @@ seer_summarization_default_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
 )
 
+seer_autofix_default_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+)
+
+seer_anomaly_detection_default_connection_pool = connection_from_url(
+    settings.SEER_ANOMALY_DETECTION_URL,
+)
+
 
 @sentry_sdk.tracing.trace
 def make_signed_seer_api_request(

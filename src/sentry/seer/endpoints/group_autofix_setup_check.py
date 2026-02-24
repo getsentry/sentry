@@ -26,6 +26,7 @@ from sentry.seer.autofix.utils import (
     is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
@@ -93,7 +94,7 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
         )
 
         if response.status >= 400:
-            raise Exception(f"Seer request failed with status {response.status}")
+            raise SeerApiError("Seer request failed", response.status)
 
         repos_and_access.append({**repo, "ok": response.json().get("has_access", False)})
 

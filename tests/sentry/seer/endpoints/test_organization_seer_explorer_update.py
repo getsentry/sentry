@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
-from django.conf import settings
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
@@ -28,7 +27,7 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
         self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
         mock_has_access.return_value = (True, None)
-        mock_request.return_value.status_code = 200
+        mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {"run_id": 123}
 
         response = self.client.post(
@@ -47,10 +46,10 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
         # Verify the request was made to Seer
         mock_request.assert_called_once()
         call_args = mock_request.call_args
-        assert f"{settings.SEER_AUTOFIX_URL}/v1/automation/explorer/update" in call_args[0]
+        assert call_args[0][1] == "/v1/automation/explorer/update"
 
         # Verify the payload
-        sent_data = orjson.loads(call_args[1]["data"])
+        sent_data = orjson.loads(call_args[0][2])
         assert sent_data["run_id"] == "123"
         assert sent_data["organization_id"] == self.organization.id
         assert sent_data["payload"]["type"] == "interrupt"

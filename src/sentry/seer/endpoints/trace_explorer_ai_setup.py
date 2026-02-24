@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.models.organization import Organization
+from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
@@ -49,7 +50,7 @@ def fire_setup_request(org_id: int, project_ids: list[int]) -> None:
         body,
     )
     if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
+        raise SeerApiError("Seer request failed", response.status)
 
 
 @region_silo_endpoint

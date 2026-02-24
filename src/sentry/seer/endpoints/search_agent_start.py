@@ -17,6 +17,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.explorer.client_utils import collect_user_org_context
+from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
@@ -24,14 +25,6 @@ from sentry.seer.signed_seer_api import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class SeerHTTPError(Exception):
-    """Exception raised when Seer API returns an HTTP error status."""
-
-    def __init__(self, status_code: int, message: str):
-        self.status_code = status_code
-        super().__init__(message)
 
 
 class SearchAgentStartSerializer(serializers.Serializer):
@@ -108,7 +101,7 @@ def send_search_agent_start_request(
         timeout=30,
     )
     if response.status >= 400:
-        raise SeerHTTPError(response.status, f"Seer request failed with status {response.status}")
+        raise SeerApiError("Seer request failed", response.status)
     return response.json()
 
 
@@ -208,13 +201,13 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
             # Return the run_id for polling
             return Response({"run_id": run_id})
 
-        except SeerHTTPError as e:
+        except SeerApiError as e:
             logger.exception(
                 "search_agent.start_error",
                 extra={
                     "organization_id": organization.id,
                     "project_ids": project_ids,
-                    "status_code": e.status_code,
+                    "status_code": e.status,
                 },
             )
             return Response(

@@ -16,6 +16,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
+from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
@@ -90,7 +91,7 @@ def send_translate_agentic_request(
         body,
     )
     if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
+        raise SeerApiError("Seer request failed", response.status)
     return response.json()
 
 

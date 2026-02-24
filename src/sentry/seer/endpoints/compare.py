@@ -5,6 +5,7 @@ from typing import Any
 
 import orjson
 
+from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_anomaly_detection_default_connection_pool,
@@ -41,5 +42,5 @@ def compare_distributions(
         body,
     )
     if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
+        raise SeerApiError("Seer request failed", response.status)
     return response.json()

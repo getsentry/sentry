@@ -15,7 +15,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.seer.models import PreferenceResponse, SeerProjectPreference
+from sentry.seer.models import PreferenceResponse, SeerApiError, SeerProjectPreference
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
@@ -149,7 +149,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         )
 
         if response.status >= 400:
-            raise Exception(f"Seer request failed with status {response.status}")
+            raise SeerApiError("Seer request failed", response.status)
 
         return Response(status=204)
 
@@ -168,7 +168,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         )
 
         if response.status >= 400:
-            raise Exception(f"Seer request failed with status {response.status}")
+            raise SeerApiError("Seer request failed", response.status)
 
         result = response.json()
 

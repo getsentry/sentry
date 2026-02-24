@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
+from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
@@ -56,7 +57,7 @@ def generate_title_from_query(query: str) -> str | None:
         timeout=10,
     )
     if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
+        raise SeerApiError("Seer request failed", response.status)
     data = response.json()
     return data.get("content")
 
