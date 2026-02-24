@@ -41,7 +41,7 @@ function WelcomeBackgroundImages() {
         }}
         transition={testableTransition({duration: 0.9})}
       >
-        <Image src={BugAImage} alt="A bug holding onto broken code" />
+        <Image src={BugAImage} alt="" />
       </BugA>
       <BugB
         variants={{
@@ -60,7 +60,7 @@ function WelcomeBackgroundImages() {
           duration: 1.1,
         })}
       >
-        <Image src={BugBImage} alt="A bug inside a box" />
+        <Image src={BugBImage} alt="" />
       </BugB>
     </Fragment>
   );
