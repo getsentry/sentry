@@ -18,6 +18,7 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
   TIER_GRANULARITY: class
+  SEED_RUN: "true"  # remove after first seed run collects T1+T2 duration data
 
 jobs:
   # ─── Split tests into tiers using classification data ──────────────
@@ -91,32 +92,36 @@ jobs:
         run: |
           SCRIPT=.github/workflows/scripts/split-tests-by-tier.py
           CLASS=/tmp/classification/test-service-classification.json
-          T2_SHARDS=17
+          T1_SHARDS=6
+          T2_SHARDS=16
 
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" --summary
 
-          python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
-            --tier tier1 --output /tmp/tier1-tests.txt
-
-          # T2: worker-simulated LPT when duration data is available;
-          # hash-based sharding on seed runs (no prior data).
-          mkdir -p /tmp/tier2-shards
+          # LPT sharding for both tiers when duration data is available.
+          # SEED_RUN skips durations so hash-based sharding is used instead.
           DURATIONS_FLAG=""
-          if [ -f /tmp/durations/test-durations.json ]; then
+          if [ -z "${SEED_RUN:-}" ] && [ -f /tmp/durations/test-durations.json ]; then
             DURATIONS_FLAG="--durations-file /tmp/durations/test-durations.json --n-workers 3"
           fi
+
+          mkdir -p /tmp/tier1-shards
+          python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
+            --tier tier1 --shards $T1_SHARDS --output-dir /tmp/tier1-shards \
+            $DURATIONS_FLAG
+
+          mkdir -p /tmp/tier2-shards
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards \
             $DURATIONS_FLAG
 
-          echo "tier1-count=$(wc -l < /tmp/tier1-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          echo "tier1-count=$(find /tmp/tier1-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
           echo "tier2-count=$(find /tmp/tier2-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tier-file-lists
           path: |
-            /tmp/tier1-tests.txt
+            /tmp/tier1-shards/
             /tmp/tier2-shards/
           retention-days: 1
 
@@ -160,7 +165,6 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 6
-      TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
 
     steps:
@@ -196,9 +200,11 @@ jobs:
 
       - name: Run tier 1 tests
         env:
-          SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
+          SELECTED_TESTS_FILE: /tmp/tier1-shards/shard-${{ matrix.instance }}.txt
+          TOTAL_TEST_GROUPS: '1'
+          TEST_GROUP: '0'
         run: |
-          echo "=== Tier 1: $(wc -l < /tmp/tier1-tests.txt) scopes, shard ${{ matrix.instance }}/6 ==="
+          echo "=== Tier 1: $(wc -l < /tmp/tier1-shards/shard-${{ matrix.instance }}.txt) scopes, shard ${{ matrix.instance }}/6 ==="
           python3 -b -m pytest tests \
             --reuse-db \
             -n 4 \
@@ -228,6 +234,14 @@ jobs:
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
+      - name: Upload pytest JSON report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
+        with:
+          name: pytest-json-tier1-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          retention-days: 3
+
   # ─── Tier 2: Full Snuba stack (backend-ci mode) ──────────────────
   tier2:
     needs: split-tiers
@@ -241,10 +255,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 17
+      MATRIX_INSTANCE_TOTAL: 16
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
@@ -347,7 +361,7 @@ jobs:
           # Collection overlaps with service startup. The _wait_for_services
           # session fixture blocks on /tmp/services-ready before running tests.
           SCOPE_COUNT=$(wc -l < /tmp/tier2-shards/shard-${{ matrix.instance }}.txt)
-          echo "=== Tier 2: $SCOPE_COUNT scopes, shard ${{ matrix.instance }}/17 ==="
+          echo "=== Tier 2: $SCOPE_COUNT scopes, shard ${{ matrix.instance }}/16 ==="
           # Single-scope shards: use dist=load so all workers parallelize within
           # the one class rather than one worker running everything sequentially.
           if [ "$SCOPE_COUNT" -eq 1 ]; then
@@ -406,7 +420,7 @@ jobs:
 
   # ─── Merge per-shard durations for next run's LPT sharding ──────────
   merge-durations:
-    needs: [tier2]
+    needs: [tier1, tier2]
     name: merge test durations
     runs-on: ubuntu-24.04
     if: ${{ !cancelled() }}
@@ -414,10 +428,10 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Download all T2 pytest JSON reports
+      - name: Download all pytest JSON reports
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: pytest-json-tier2-*
+          pattern: pytest-json-*
           path: /tmp/pytest-jsons/
           merge-multiple: false
 
