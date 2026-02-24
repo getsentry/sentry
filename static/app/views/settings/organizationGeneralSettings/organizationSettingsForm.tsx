@@ -103,7 +103,6 @@ export function ReplayAccessMembersField({
         data: {replayAccessMembers: data.replayAccessMembers.map(Number)},
       }),
     onSuccess: updated => onSave(organization, updated),
-    onError: () => addErrorMessage(t('Unable to save change')),
   });
 
   return (

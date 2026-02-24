@@ -1,11 +1,9 @@
 import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
-import {type z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
@@ -15,8 +13,6 @@ import {
   membershipSchema,
   ReplayAccessMembersField,
 } from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
-
-type MembershipSchemaType = z.infer<typeof membershipSchema>;
 
 function OrganizationMembershipSettingsForm({
   organization,
@@ -39,10 +35,9 @@ function OrganizationMembershipSettingsForm({
   }));
 
   const mutationOpts = mutationOptions({
-    mutationFn: (data: Partial<MembershipSchemaType>) =>
+    mutationFn: (data: Partial<Organization>) =>
       fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
     onSuccess: updated => onSave(organization, updated),
-    onError: () => addErrorMessage(t('Unable to save change')),
   });
 
   // All fields are disabled if the org lacks the invite-members feature or user lacks org:write
@@ -77,7 +72,7 @@ function OrganizationMembershipSettingsForm({
                 options={roleOptions}
                 value={field.state.value}
                 onChange={field.handleChange}
-                disabled={!hasOrgAdmin || !hasInviteMembers}
+                disabled={baseDisabled || !hasOrgAdmin || !hasInviteMembers}
               />
             </field.Layout.Row>
           )}
