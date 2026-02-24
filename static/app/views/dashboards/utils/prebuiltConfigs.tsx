@@ -6,6 +6,7 @@ import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/pr
 import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/frontendOverview';
 import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
 import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
+import {LARAVEL_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/laravelOverview';
 import {MCP_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mcpOverview';
 import {MCP_PROMPTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mcpPrompts';
 import {MCP_RESOURCES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mcpResources';
@@ -45,6 +46,7 @@ export enum PrebuiltDashboardId {
   MCP_TOOLS = 20,
   MCP_RESOURCES = 21,
   MCP_PROMPTS = 22,
+  LARAVEL_OVERVIEW = 23,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
@@ -78,4 +80,5 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.MCP_PROMPTS]: MCP_PROMPTS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.AI_AGENTS_OVERVIEW]: AI_AGENTS_OVERVIEW_PREBUILT_CONFIG,
   [PrebuiltDashboardId.MCP_OVERVIEW]: MCP_OVERVIEW_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.LARAVEL_OVERVIEW]: LARAVEL_OVERVIEW_PREBUILT_CONFIG,
 };
