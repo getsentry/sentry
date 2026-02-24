@@ -392,7 +392,6 @@ class SnubaTagStorage(TagStorage):
                     return {
                         "group_id": item.group_id,
                         "key": item.key,
-                        "total_values": item.total_values,
                         "values_seen": item.values_seen,
                         "count": item.count,
                         "top_values": [
