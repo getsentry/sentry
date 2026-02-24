@@ -23,7 +23,6 @@ import {
 
 interface BuildVcsInfoProps {
   buildDetailsData: BuildDetailsApiResponse;
-  projectId?: string | null;
 }
 
 export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
