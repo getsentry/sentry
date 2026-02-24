@@ -10,6 +10,7 @@ on:
       - mchen/tiered-test
       - mchen/worker-lpt
       - mchen/worker-dist-load
+      - mchen/xdist-improved-lpt
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -53,7 +54,7 @@ jobs:
           # A run can have valid duration data even if some T2 shards were
           # flaky — merge-durations succeeds independently of shard failures.
           # Check own branch first, then fall back to worker-lpt for seed runs.
-          for BRANCH in mchen/worker-dist-load mchen/worker-lpt; do
+          for BRANCH in mchen/xdist-improved-lpt mchen/worker-dist-load mchen/worker-lpt; do
             RUNS=$(gh run list \
               --workflow=backend-xdist-split-poc.yml \
               --branch "$BRANCH" \
@@ -100,24 +101,32 @@ jobs:
 
           python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" --summary
 
-          # LPT sharding for both tiers when duration data is available.
-          # SEED_RUN skips durations so hash-based sharding is used instead.
-          DURATIONS_FLAG=""
-          if [ -z "${SEED_RUN:-}" ] && [ -f /tmp/durations/test-durations.json ]; then
-            DURATIONS_FLAG="--durations-file /tmp/durations/test-durations.json --n-workers 3"
+          # LPT sharding when duration data is available; hash fallback otherwise.
+          DURATIONS=/tmp/durations/test-durations.json
+          HAS_DURATIONS="false"
+          if [ -z "${SEED_RUN:-}" ] && [ -f "$DURATIONS" ]; then
+            HAS_DURATIONS="true"
           fi
 
+          # T1: --dist=loadfile → worker-simulated LPT, -n 4 workers
           mkdir -p /tmp/tier1-shards
+          T1_LPT_FLAGS=""
+          if [ "$HAS_DURATIONS" = "true" ]; then
+            T1_LPT_FLAGS="--durations-file $DURATIONS --n-workers 4 --dist-mode loadfile"
+          fi
           python3 -u $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier1 --shards $T1_SHARDS --output-dir /tmp/tier1-shards \
-            --swap-rounds 0 \
-            $DURATIONS_FLAG
+            $T1_LPT_FLAGS
 
+          # T2: --dist=load → flat LPT, -n 3 workers
           mkdir -p /tmp/tier2-shards
+          T2_LPT_FLAGS=""
+          if [ "$HAS_DURATIONS" = "true" ]; then
+            T2_LPT_FLAGS="--durations-file $DURATIONS --n-workers 3 --dist-mode load"
+          fi
           python3 -u $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards \
-            --swap-rounds 0 \
-            $DURATIONS_FLAG
+            $T2_LPT_FLAGS
 
           echo "tier1-count=$(find /tmp/tier1-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
           echo "tier2-count=$(find /tmp/tier2-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
@@ -264,7 +273,6 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 16
-      TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '3'
