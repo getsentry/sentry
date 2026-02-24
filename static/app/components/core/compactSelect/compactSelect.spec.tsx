@@ -565,7 +565,7 @@ describe('CompactSelect', () => {
       expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
     });
 
-    it('uses string.includes for default search matching', async () => {
+    it('uses fzf for default search matching', async () => {
       render(
         <CompactSelect
           search={{placeholder: 'Search here…'}}
@@ -581,7 +581,7 @@ describe('CompactSelect', () => {
       await userEvent.click(screen.getByRole('button'));
       await userEvent.click(screen.getByPlaceholderText('Search here…'));
 
-      // 'ption On' is a mid-string substring of 'Option One' — only includes() catches it
+      // 'ption On' is a subsequence of 'Option One' — fzf matches it
       await userEvent.keyboard('ption On');
       expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
