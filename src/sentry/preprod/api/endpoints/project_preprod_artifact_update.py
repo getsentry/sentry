@@ -81,8 +81,8 @@ def validate_preprod_artifact_update_schema(
             },
             "dequeued_at": {"type": "string"},
             "app_icon_id": {"type": "string", "maxLength": 255},
-            "distribution_state": {"type": "integer", "minimum": 0, "maximum": 2},
-            "distribution_skip_reason": {"type": "string", "maxLength": 32},
+            "installable_app_error_code": {"type": "integer", "minimum": 0, "maximum": 2},
+            "installable_app_error_message": {"type": "string"},
         },
         "additionalProperties": True,
     }
@@ -112,8 +112,8 @@ def validate_preprod_artifact_update_schema(
         "android_app_info.gradle_plugin_version": "The gradle_plugin_version field must be a string with a maximum length of 255 characters.",
         "dequeued_at": "The dequeued_at field must be a string.",
         "app_icon_id": "The app_icon_id field must be a string with a maximum length of 255 characters.",
-        "distribution_state": "The distribution_state field must be an integer between 0 and 2.",
-        "distribution_skip_reason": "The distribution_skip_reason field must be a string with a maximum length of 32 characters.",
+        "installable_app_error_code": "The installable_app_error_code field must be an integer between 0 and 2.",
+        "installable_app_error_message": "The installable_app_error_message field must be a string.",
     }
 
     try:
@@ -436,24 +436,48 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 },
             )
 
-        # Only set distribution state if it hasn't already been decided
-        # (guards against launchpad retries overwriting a COMPLETED state).
-        if head_artifact.distribution_state is None:
-            if "distribution_state" in data:
-                head_artifact.distribution_state = data["distribution_state"]
-                head_artifact.distribution_skip_reason = data.get("distribution_skip_reason")
+        # Only decide distribution outcome if nothing has been recorded yet
+        # (guards against launchpad retries overwriting a completed or skipped result).
+        if (
+            head_artifact.installable_app_file_id is None
+            and head_artifact.installable_app_error_code is None
+        ):
+            if "installable_app_error_code" in data:
+                head_artifact.installable_app_error_code = data["installable_app_error_code"]
+                head_artifact.installable_app_error_message = data.get(
+                    "installable_app_error_message"
+                )
+                head_artifact.save(
+                    update_fields=[
+                        "installable_app_error_code",
+                        "installable_app_error_message",
+                        "date_updated",
+                    ]
+                )
             else:
                 can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)
                 if can_run_distro:
                     requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
-                    head_artifact.distribution_state = PreprodArtifact.DistributionState.PENDING
                 else:
-                    head_artifact.distribution_state = PreprodArtifact.DistributionState.NOT_RAN
-                    head_artifact.distribution_skip_reason = distro_skip_reason
+                    if distro_skip_reason == "quota":
+                        error_code = PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
+                        error_message = "Distribution quota exceeded"
+                    elif distro_skip_reason == "disabled":
+                        error_code = PreprodArtifact.InstallableAppErrorCode.SKIPPED
+                        error_message = "Distribution disabled for this project"
+                    else:
+                        error_code = PreprodArtifact.InstallableAppErrorCode.SKIPPED
+                        error_message = "Distribution filtered out by project settings"
 
-            head_artifact.save(
-                update_fields=["distribution_state", "distribution_skip_reason", "date_updated"]
-            )
+                    head_artifact.installable_app_error_code = error_code
+                    head_artifact.installable_app_error_message = error_message
+                    head_artifact.save(
+                        update_fields=[
+                            "installable_app_error_code",
+                            "installable_app_error_message",
+                            "date_updated",
+                        ]
+                    )
 
         return Response(
             {

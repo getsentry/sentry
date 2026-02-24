@@ -761,8 +761,8 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         app_ids = {b["app_info"]["app_id"] for b in builds}
         assert "com.example.app" in app_ids
 
-    def test_list_builds_excludes_distribution_not_ran(self) -> None:
-        """NOT_RAN builds should be excluded from list-builds results."""
+    def test_list_builds_excludes_builds_with_error_code(self) -> None:
+        """Builds with an installable app error code should be excluded from results."""
         self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
@@ -770,8 +770,8 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             artifact_type=PreprodArtifact.ArtifactType.APK,
             app_id="com.example.skipped",
             build_configuration=None,
-            distribution_state=PreprodArtifact.DistributionState.NOT_RAN,
-            distribution_skip_reason="quota",
+            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
+            installable_app_error_message="Distribution quota exceeded",
         )
 
         response = self.client.get(
@@ -785,8 +785,8 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         assert "com.example.skipped" not in app_ids
         assert len(builds) == 4
 
-    def test_list_builds_includes_legacy_none_distribution_state(self) -> None:
-        """Pre-existing rows with distribution_state=None should still appear."""
+    def test_list_builds_includes_legacy_none_error_code(self) -> None:
+        """Pre-existing rows with no error code should still appear."""
         legacy = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
@@ -795,7 +795,7 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
             app_id="com.example.legacy",
             build_configuration=None,
         )
-        assert legacy.distribution_state is None
+        assert legacy.installable_app_error_code is None
 
         response = self.client.get(
             f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",

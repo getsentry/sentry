@@ -899,12 +899,12 @@ class BuildsEndpointTest(APITestCase):
         assert self._request({"query": "size_state:[bogus, completed]"}).status_code == 400
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_excludes_distribution_not_ran(self) -> None:
+    def test_excludes_builds_with_error_code(self) -> None:
         self.create_preprod_artifact(app_id="visible.app")
         self.create_preprod_artifact(
             app_id="skipped.app",
-            distribution_state=PreprodArtifact.DistributionState.NOT_RAN,
-            distribution_skip_reason="quota",
+            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
+            installable_app_error_message="Distribution quota exceeded",
         )
 
         response = self._request({})
@@ -914,7 +914,7 @@ class BuildsEndpointTest(APITestCase):
         assert data[0]["app_info"]["app_id"] == "visible.app"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_includes_legacy_none_distribution_state(self) -> None:
+    def test_includes_legacy_none_error_code(self) -> None:
         self.create_preprod_artifact(app_id="legacy.app")
         response = self._request({})
         self._assert_is_successful(response)
@@ -924,16 +924,13 @@ class BuildsEndpointTest(APITestCase):
 
     @with_feature("organizations:preprod-frontend-routes")
     def test_distribution_info_state_fields(self) -> None:
-        self.create_preprod_artifact(
-            app_id="pending.app",
-            distribution_state=PreprodArtifact.DistributionState.PENDING,
-        )
+        self.create_preprod_artifact(app_id="pending.app")
 
         response = self._request({})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
-        assert data[0]["distribution_info"]["state"] == "pending"
+        assert data[0]["distribution_info"]["state"] is None
         assert data[0]["distribution_info"]["skip_reason"] is None
 
     @with_feature("organizations:preprod-frontend-routes")

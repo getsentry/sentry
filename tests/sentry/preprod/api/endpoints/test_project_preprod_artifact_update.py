@@ -625,18 +625,19 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "build_distribution" not in resp_data["requestedFeatures"]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_sets_distribution_state_pending_when_can_run(self) -> None:
+    def test_update_does_not_set_error_code_when_can_run(self) -> None:
         data = {"artifact_type": 1}
         response = self._make_request(data)
 
         assert response.status_code == 200
         self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.distribution_state == PreprodArtifact.DistributionState.PENDING
-        assert self.preprod_artifact.distribution_skip_reason is None
+        assert self.preprod_artifact.installable_app_error_code is None
+        assert self.preprod_artifact.installable_app_error_message is None
+        assert "build_distribution" in response.json()["requestedFeatures"]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     @patch("sentry.preprod.quotas.has_installable_quota")
-    def test_update_sets_distribution_state_not_ran_when_no_quota(
+    def test_update_sets_error_code_no_quota_when_no_quota(
         self, mock_has_installable_quota
     ) -> None:
         mock_has_installable_quota.return_value = False
@@ -646,11 +647,14 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         assert response.status_code == 200
         self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.distribution_state == PreprodArtifact.DistributionState.NOT_RAN
-        assert self.preprod_artifact.distribution_skip_reason == "quota"
+        assert (
+            self.preprod_artifact.installable_app_error_code
+            == PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
+        )
+        assert self.preprod_artifact.installable_app_error_message == "Distribution quota exceeded"
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_sets_distribution_state_not_ran_when_filtered(self) -> None:
+    def test_update_sets_error_code_skipped_when_filtered(self) -> None:
         self.preprod_artifact.app_id = "com.my.app"
         self.preprod_artifact.save()
 
@@ -661,23 +665,30 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         assert response.status_code == 200
         self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.distribution_state == PreprodArtifact.DistributionState.NOT_RAN
-        assert self.preprod_artifact.distribution_skip_reason == "filtered"
+        assert (
+            self.preprod_artifact.installable_app_error_code
+            == PreprodArtifact.InstallableAppErrorCode.SKIPPED
+        )
+        assert (
+            self.preprod_artifact.installable_app_error_message
+            == "Distribution filtered out by project settings"
+        )
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_respects_explicit_distribution_state_from_request(self) -> None:
-        """Test that distribution_state from request body overrides server-side decision."""
+    def test_update_respects_explicit_error_code_from_request(self) -> None:
         data = {
-            "distribution_state": PreprodArtifact.DistributionState.NOT_RAN,
-            "distribution_skip_reason": "simulator",
+            "installable_app_error_code": PreprodArtifact.InstallableAppErrorCode.SKIPPED,
+            "installable_app_error_message": "simulator",
         }
         response = self._make_request(data)
 
         assert response.status_code == 200
         self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.distribution_state == PreprodArtifact.DistributionState.NOT_RAN
-        assert self.preprod_artifact.distribution_skip_reason == "simulator"
-        # Should not include build_distribution in requested features
+        assert (
+            self.preprod_artifact.installable_app_error_code
+            == PreprodArtifact.InstallableAppErrorCode.SKIPPED
+        )
+        assert self.preprod_artifact.installable_app_error_message == "simulator"
         assert "build_distribution" not in response.json()["requestedFeatures"]
 
 

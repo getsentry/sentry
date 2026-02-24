@@ -306,21 +306,19 @@ def transform_preprod_artifact_to_build_details(
     app_info = create_build_details_app_info(artifact)
     is_installable = is_installable_artifact(artifact)
 
-    distribution_state_str = None
-    if artifact.distribution_state is not None:
-        state_map = {
-            PreprodArtifact.DistributionState.PENDING: "pending",
-            PreprodArtifact.DistributionState.COMPLETED: "available",
-            PreprodArtifact.DistributionState.NOT_RAN: "not_ran",
-        }
-        distribution_state_str = state_map.get(artifact.distribution_state)
+    if artifact.installable_app_error_code is not None:
+        distribution_state_str = "not_ran"
+    elif artifact.installable_app_file_id is not None:
+        distribution_state_str = "available"
+    else:
+        distribution_state_str = None
 
     distribution_info = DistributionInfo(
         is_installable=is_installable,
         download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
         release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
         state=distribution_state_str,
-        skip_reason=artifact.distribution_skip_reason,
+        skip_reason=artifact.installable_app_error_message,
     )
 
     vcs_info = BuildDetailsVcsInfo(
