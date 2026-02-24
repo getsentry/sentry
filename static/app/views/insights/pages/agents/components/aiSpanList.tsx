@@ -239,14 +239,14 @@ const TraceListItem = memo(function TraceListItem({
       onClick={onClick}
       indent={indent}
     >
-      <Flex align="center" position="relative" style={{color, background: 'inherit'}}>
+      <Flex align="center" position="relative" style={{color}}>
         {icon}
         {hasErrors && (
           <Tooltip delay={300} title={t('This span encountered an error')} skipWrapper>
             <Container
               position="absolute"
               radius="full"
-              style={{bottom: -6, right: -6, padding: 1, background: 'inherit'}}
+              style={{bottom: -6, right: -6, padding: 1, background: 'var(--row-bg)'}}
             >
               <IconFire display="block" size="xs" variant="danger" />
             </Container>
@@ -533,10 +533,11 @@ const ListItemContainer = styled('div')<{
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
-  background-color: ${p =>
+  --row-bg: ${p =>
     p.isSelected
       ? p.theme.tokens.background.secondary
       : p.theme.tokens.background.primary};
+  background-color: var(--row-bg);
   outline: ${p =>
     p.isSelected
       ? p.hasErrors
