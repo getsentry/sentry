@@ -80,7 +80,7 @@ export const membershipSchema = z.object({
   replayAccessMembers: z.array(z.string()),
 });
 
-type MembershipSchemaType = z.infer<typeof membershipSchema>;
+type MembershipSchema = z.infer<typeof membershipSchema>;
 
 export function ReplayAccessMembersField({
   organization,
@@ -149,7 +149,7 @@ function OrganizationMembershipSettingsBase({
   }));
 
   const mutationOpts = mutationOptions({
-    mutationFn: (data: Partial<MembershipSchemaType>) =>
+    mutationFn: (data: Partial<MembershipSchema>) =>
       fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
     onSuccess: updated => onSave(organization, updated),
     onError: () => addErrorMessage(t('Unable to save change')),
