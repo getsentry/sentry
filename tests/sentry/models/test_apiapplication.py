@@ -47,6 +47,80 @@ class ApiApplicationTest(TestCase):
         assert not app.is_valid_redirect_uri("http://sub.example.com/path/../baz")
         assert not app.is_valid_redirect_uri("https://sub.example.com")
 
+    def test_is_valid_redirect_uri_encoded_traversal(self) -> None:
+        """Percent-encoded path traversal sequences must be resolved before comparison."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com/path/path/",
+            version=0,
+        )
+
+        # Single-encoded traversal (%2e = '.')
+        assert not app.is_valid_redirect_uri("http://example.com/path/path/%2e%2e/%2e%2e/new/path")
+        assert not app.is_valid_redirect_uri("http://example.com/path/path/%2E%2E/%2E%2E/new/path")
+
+        # Mixed case encoding
+        assert not app.is_valid_redirect_uri("http://example.com/path/path/%2e%2E/%2E%2e/new/path")
+
+        # Partial encoding (%2e mixed with literal dot)
+        assert not app.is_valid_redirect_uri("http://example.com/path/path/.%2e/.%2e/new/path")
+        assert not app.is_valid_redirect_uri("http://example.com/path/path/%2e./%2e./new/path")
+
+    def test_is_valid_redirect_uri_multi_layer_encoding(self) -> None:
+        """Double/triple percent-encoding must be fully resolved, not just one layer."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com/path/path/",
+            version=0,
+        )
+
+        # Double-encoded: %252e%252e → (unquote) %2e%2e → (unquote) ..
+        assert not app.is_valid_redirect_uri(
+            "http://example.com/path/path/%252e%252e/%252e%252e/new/path"
+        )
+
+        # Triple-encoded: %25252e → %252e → %2e → .
+        assert not app.is_valid_redirect_uri(
+            "http://example.com/path/path/%25252e%25252e/%25252e%25252e/new/path"
+        )
+
+    def test_is_valid_redirect_uri_backslash_traversal(self) -> None:
+        r"""Backslash path separators (e.g. '..\') must not bypass validation."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com/path/path/",
+            version=0,
+        )
+
+        assert not app.is_valid_redirect_uri("http://example.com/path/path/..\\..\\new/path")
+
+        # Encoded backslash: %5c = '\'
+        assert not app.is_valid_redirect_uri("http://example.com/path/path/..%5c..%5cnew/path")
+
+    def test_is_valid_redirect_uri_encoded_slash_traversal(self) -> None:
+        """Encoded forward slash (%2f) in traversal sequences must be resolved."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com/path/path/",
+            version=0,
+        )
+
+        assert not app.is_valid_redirect_uri("http://example.com/path/path/..%2f..%2fnew/path")
+
+    def test_is_valid_redirect_uri_encoded_traversal_strict(self) -> None:
+        """Encoded traversal must also be rejected in strict mode."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com/path/path/",
+            version=1,
+        )
+
+        assert not app.is_valid_redirect_uri("http://example.com/path/path/%2e%2e/%2e%2e/new/path")
+        assert not app.is_valid_redirect_uri(
+            "http://example.com/path/path/%252e%252e/%252e%252e/new/path"
+        )
+        assert not app.is_valid_redirect_uri("http://example.com/path/path/..\\..\\new/path")
+
     def test_is_valid_redirect_uri_strict_version(self) -> None:
         # In strict policy version, require exact matching (no prefix, no trailing-slash equivalence).
         app = ApiApplication.objects.create(

@@ -1,9 +1,9 @@
 import logging
-import os
+import posixpath
 import secrets
 from enum import Enum
 from typing import Any, ClassVar, Literal, Self, TypeIs
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import unquote, urlparse, urlunparse
 
 import petname
 from django.contrib.postgres.fields.array import ArrayField
@@ -163,7 +163,8 @@ class ApiApplication(Model):
 
     def normalize_url(self, value):
         parts = urlparse(value)
-        normalized_path = os.path.normpath(parts.path)
+        decoded_path = unquote(parts.path).replace("\\", "/")
+        normalized_path = posixpath.normpath(decoded_path)
         if normalized_path == ".":
             normalized_path = "/"
         elif value.endswith("/") and not normalized_path.endswith("/"):
@@ -216,6 +217,10 @@ class ApiApplication(Model):
 
         # Then: prefix-only match (legacy behavior). Log on success.
         if not self.has_feature(ApiApplicationFeature.STRICT_REDIRECT_URI):
+            # After normalize_url, reject any redirect URI that contains a residual '%'
+            # in the path. Effectively prevent additional URL encoding.
+            if "%" in urlparse(value).path:
+                return False
             for ruri in normalized_ruris:
                 if value.startswith(ruri):
                     logger.warning(
