@@ -298,14 +298,18 @@ function NumericFilterSelector({
         </MenuTitleWrapper>
       }
       menuHeaderTrailingItems={
-        disableRemoveFilter ? undefined : (
-          <MenuComponents.HeaderButton
-            aria-label={t('Remove Filter')}
-            onClick={() => onRemoveFilter(globalFilter)}
-          >
-            {t('Remove Filter')}
-          </MenuComponents.HeaderButton>
-        )
+        disableRemoveFilter
+          ? undefined
+          : () => (
+              <StyledButton
+                aria-label={t('Remove Filter')}
+                size="xs"
+                priority="transparent"
+                onClick={() => onRemoveFilter(globalFilter)}
+              >
+                {t('Remove Filter')}
+              </StyledButton>
+            )
       }
       menuBody={
         <MenuBodyWrap>
@@ -330,28 +334,19 @@ function NumericFilterSelector({
       )}
       menuFooter={
         hasStagedChanges
-          ? ({closeOverlay}: any) => (
-              <FooterWrap>
-                <FooterInnerWrap>
-                  <Button priority="transparent" size="xs" onClick={closeOverlay}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button
-                    size="xs"
-                    priority="primary"
-                    disabled={!filter.isValidValue}
-                    onClick={() => {
-                      onUpdateFilter({
-                        ...globalFilter,
-                        value: filter.buildFilterQuery(),
-                      });
-                      closeOverlay();
-                    }}
-                  >
-                    {t('Apply')}
-                  </Button>
-                </FooterInnerWrap>
-              </FooterWrap>
+          ? () => (
+              <Flex gap="md" justify="end">
+                <MenuComponents.CancelButton />
+                <MenuComponents.ApplyButton
+                  disabled={!filter.isValidValue}
+                  onClick={() => {
+                    onUpdateFilter({
+                      ...globalFilter,
+                      value: filter.buildFilterQuery(),
+                    });
+                  }}
+                />
+              </Flex>
             )
           : null
       }
@@ -365,32 +360,17 @@ const MenuBodyWrap = styled('div')`
   padding: ${p => p.theme.space.md};
 `;
 
-const FooterWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.xl};
-
-  /* If there's FooterMessage above */
-  &:not(:first-child) {
-    margin-top: ${p => p.theme.space.md};
-  }
-`;
-const FooterInnerWrap = styled('div')`
-  grid-row: -1;
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
-  justify-self: end;
-  justify-items: end;
-
-  &:empty {
-    display: none;
-  }
-`;
-
 const StyledOperatorButton = styled(Button)`
   width: 100%;
   font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
+
+const StyledButton = styled(Button)`
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: 0 ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
 `;
 
 const StyledInput = styled(Input)`

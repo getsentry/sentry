@@ -182,6 +182,7 @@ export const MenuComponents = {
 
 const StyledAlert = styled(Alert)`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+  font-size: ${p => p.theme.font.size.sm};
   text-wrap: balance;
 `;
 
