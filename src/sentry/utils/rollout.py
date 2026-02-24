@@ -158,7 +158,7 @@ class SafeRolloutComparator:
         return repr(value)
 
     @classmethod
-    def _emit_mismatch_observability(
+    def _maybe_log_mismatch(
         cls,
         *,
         callsite: str,
@@ -300,7 +300,7 @@ class SafeRolloutComparator:
         )
         if has_mismatch:
             try:
-                cls._emit_mismatch_observability(
+                cls._maybe_log_mismatch(
                     callsite=callsite,
                     use_experimental=use_experimental,
                     exact_match=exact_match,
