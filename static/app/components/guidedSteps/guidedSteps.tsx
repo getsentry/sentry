@@ -185,7 +185,7 @@ function Step(props: StepProps) {
           paddingLeft={{xs: 'lg', md: '0'}}
           justify="between"
           gap="sm"
-          style={{gridArea: 'heading'}}
+          area="heading"
         >
           {headingContent}
           <Flex align="center" onClick={e => e.stopPropagation()}>
