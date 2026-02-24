@@ -53,6 +53,7 @@ const StyledTabWrap = styled('li', {
   ${p =>
     p.overflowing &&
     css`
+      display: none;
       opacity: 0;
       pointer-events: none;
     `}
