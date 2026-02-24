@@ -29,11 +29,13 @@ def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiErro
 def translate_msteams_api_error(error: ApiError) -> None:
     if isinstance(error, ApiRateLimitedError):
         # TODO(ecosystem): We should batch this on a per-organization basis
-        raise IntegrationConfigurationError(error.text) from error
+        raise IntegrationConfigurationError(message=error.text, error_code=error.code) from error
     elif error.json:
         if error.json.get("error", {}).get("code") in MSTEAMS_HALT_ERROR_CODES:
-            raise IntegrationConfigurationError(error.text) from error
+            raise IntegrationConfigurationError(
+                message=error.text, error_code=error.code
+            ) from error
         else:
-            raise IntegrationError(error.text) from error
+            raise IntegrationError(message=error.text, error_code=error.code) from error
     else:
-        raise IntegrationError(error.text) from error
+        raise IntegrationError(message=error.text, error_code=error.code) from error

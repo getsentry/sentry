@@ -27,6 +27,7 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import IntegrationError
 
 if TYPE_CHECKING:
     from sentry.integrations.msteams.card_builder.block import AdaptiveCard, Block
@@ -164,5 +165,13 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
             )
             return SendResult()
 
-        msteams_target.integration_installation.send_notification(target=target, payload=renderable)
+        try:
+            msteams_target.integration_installation.send_notification(
+                target=target, payload=renderable
+            )
+        except IntegrationError as e:
+            return SendResult(
+                error_details={"msg": e.message, "error_code": e.error_code},
+            )
+
         return SendResult()
