@@ -35,4 +35,10 @@ class RegionBackedTestGenerationService(TestGenerationService):
         if response.status == 200:
             return CreateUnitTestResponse()
         else:
-            return CreateUnitTestResponse(error_detail=response.data.decode("utf-8"))
+            try:
+                error_detail = response.data.decode("utf-8") if response.data else None
+            except (AttributeError, UnicodeDecodeError):
+                error_detail = None
+            return CreateUnitTestResponse(
+                error_detail=error_detail or f"Request failed with status {response.status}"
+            )

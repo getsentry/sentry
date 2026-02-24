@@ -11,6 +11,8 @@ from typing import Any
 
 import orjson
 from pydantic import BaseModel, Field
+from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
@@ -361,7 +363,7 @@ def generate_assertion_suggestions(
         )
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
-    except SeerApiError as e:
+    except (SeerApiError, MaxRetryError, Urllib3TimeoutError) as e:
         logger.exception("Failed to call Seer LLM proxy")
         return None, f"Seer LLM proxy request failed: {e}"
 
