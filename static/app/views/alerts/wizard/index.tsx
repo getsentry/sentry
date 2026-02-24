@@ -37,7 +37,7 @@ import {
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
 } from './options';
-import {AlertWizardPanelContent} from './panelContent';
+import {getAlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
 const DEFAULT_ALERT_OPTION = 'issues';
@@ -158,7 +158,10 @@ export default function AlertWizard() {
     );
   }
 
-  const panelContent = AlertWizardPanelContent[alertOption];
+  const hasMetricIssues = organization.features.includes(
+    'workflow-engine-metric-issue-ui'
+  );
+  const panelContent = getAlertWizardPanelContent({hasMetricIssues})[alertOption];
   return (
     <Layout.Page>
       <SentryDocumentTitle title={t('Alert Creation Wizard')} projectSlug={projectSlug} />

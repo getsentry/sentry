@@ -144,6 +144,26 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_filter_translated(payload)
 
+    def test_issue_type(self) -> None:
+        payload = {"id": "sentry.rules.filters.issue_type.IssueTypeFilter", "value": "error"}
+        self.assert_basic_filter_translated(payload)
+
+    def test_issue_type_include(self) -> None:
+        payload = {
+            "id": "sentry.rules.filters.issue_type.IssueTypeFilter",
+            "value": "error",
+            "include": "true",
+        }
+        self.assert_basic_filter_translated(payload)
+
+    def test_issue_type_exclude(self) -> None:
+        payload = {
+            "id": "sentry.rules.filters.issue_type.IssueTypeFilter",
+            "value": "performance_slow_db_query",
+            "include": "false",
+        }
+        self.assert_basic_filter_translated(payload)
+
     def test_issue_occurrences(self) -> None:
         payload = {
             "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",

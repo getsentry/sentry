@@ -1,12 +1,13 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
-import {useOrganizationRepositoriesWithSettings} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
 import parseAsSort from 'sentry/utils/url/parseAsSort';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -29,19 +30,65 @@ import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/
 export default function SeerRepoTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {
-    data: repositoriesWithSettings,
-    error,
-    isFetching,
-  } = useOrganizationRepositoriesWithSettings();
 
-  const supportedRepositories = useMemo(
-    () =>
-      repositoriesWithSettings.filter(repository =>
-        isSupportedAutofixProvider(repository.provider)
-      ),
-    [repositoriesWithSettings]
+  const [searchTerm, setSearchTerm] = useQueryState(
+    'query',
+    parseAsString.withDefault('')
   );
+
+  const [sort, setSort] = useQueryState(
+    'sort',
+    parseAsSort.withDefault({field: 'name', kind: 'asc'})
+  );
+
+  const queryOptions = organizationRepositoriesInfiniteOptions({
+    organization,
+    query: {per_page: 100, query: searchTerm, sort},
+  });
+  const {
+    data: repositories,
+    hasNextPage,
+    isError,
+    isPending,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    ...queryOptions,
+    select: ({pages}) =>
+      uniqBy(
+        pages.flatMap(page => page.json),
+        'externalId'
+      )
+        .filter(
+          repository =>
+            repository.externalId && isSupportedAutofixProvider(repository.provider)
+        )
+        .sort((a, b) => {
+          if (sort.field === 'name') {
+            return sort.kind === 'asc'
+              ? a.name.localeCompare(b.name)
+              : b.name.localeCompare(a.name);
+          }
+          // TODO: if we can bulk-fetch all the preferences, then it'll be easier to sort by fixes, pr creation, and repos
+          // if (sort.field === 'fixes') {
+          //   return a.slug.localeCompare(b.slug);
+          // }
+          // if (sort.field === 'pr_creation') {
+          //   return a.platform.localeCompare(b.platform);
+          // }
+          // if (sort.field === 'repos') {
+          //   return a.status.localeCompare(b.status);
+          // }
+          return 0;
+        }),
+  });
+
+  // Auto-fetch each page, one at a time
+  useEffect(() => {
+    if (!isError && !isFetchingNextPage && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, fetchNextPage, isError, isFetchingNextPage]);
 
   const [mutationData, setMutations] = useState<Record<string, RepositoryWithSettings>>(
     {}
@@ -66,59 +113,14 @@ export default function SeerRepoTable() {
     },
   });
 
-  const [searchTerm, setSearchTerm] = useQueryState(
-    'query',
-    parseAsString.withDefault('')
-  );
-
-  const [sort, setSort] = useQueryState(
-    'sort',
-    parseAsSort.withDefault({field: 'name', kind: 'asc'})
-  );
-
-  const queryKey: ApiQueryKey = [
-    'seer-repos',
-    {query: {query: searchTerm, sort}},
-  ] as unknown as ApiQueryKey;
-
-  const sortedRepositories = useMemo(() => {
-    return supportedRepositories.toSorted((a, b) => {
-      if (sort.field === 'name') {
-        return sort.kind === 'asc'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
-      }
-
-      // TODO: if we can bulk-fetch all the preferences, then it'll be easier to sort by fixes, pr creation, and repos
-      // if (sort.field === 'fixes') {
-      //   return a.slug.localeCompare(b.slug);
-      // }
-      // if (sort.field === 'pr_creation') {
-      //   return a.platform.localeCompare(b.platform);
-      // }
-      // if (sort.field === 'repos') {
-      //   return a.status.localeCompare(b.status);
-      // }
-      return 0;
-    });
-  }, [supportedRepositories, sort]);
-
-  const filteredRepositories = useMemo(() => {
-    const lowerCase = searchTerm?.toLowerCase() ?? '';
-    if (lowerCase) {
-      return sortedRepositories.filter(repository =>
-        repository.name.toLowerCase().includes(lowerCase)
-      );
-    }
-    return sortedRepositories;
-  }, [sortedRepositories, searchTerm]);
-
-  if (isFetching) {
+  if (isPending) {
     return (
       <RepoTable
         mutateRepositorySettings={mutateRepositorySettings}
         onSortClick={setSort}
-        repositories={filteredRepositories}
+        isLoading={isPending || isFetchingNextPage}
+        isLoadingMore={false /* prevent redundant spinners */}
+        repositories={[]}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         sort={sort}
@@ -130,12 +132,14 @@ export default function SeerRepoTable() {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <RepoTable
         mutateRepositorySettings={mutateRepositorySettings}
         onSortClick={setSort}
-        repositories={filteredRepositories}
+        isLoading={isPending || isFetchingNextPage}
+        isLoadingMore={hasNextPage || isFetchingNextPage}
+        repositories={[]}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         sort={sort}
@@ -149,19 +153,21 @@ export default function SeerRepoTable() {
 
   return (
     <ListItemCheckboxProvider
-      hits={filteredRepositories.length}
-      knownIds={filteredRepositories.map(repository => repository.id)}
-      queryKey={queryKey}
+      hits={repositories.length}
+      knownIds={repositories.map(repository => repository.id)}
+      queryKey={queryOptions.queryKey}
     >
       <RepoTable
         mutateRepositorySettings={mutateRepositorySettings}
         onSortClick={setSort}
-        repositories={filteredRepositories}
+        isLoading={isPending || isFetchingNextPage}
+        isLoadingMore={hasNextPage || isFetchingNextPage}
+        repositories={repositories}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         sort={sort}
       >
-        {filteredRepositories.length === 0 ? (
+        {repositories.length === 0 ? (
           <SimpleTable.Empty>
             {searchTerm
               ? tct('No repositories found matching [searchTerm]', {
@@ -170,7 +176,7 @@ export default function SeerRepoTable() {
               : t('No repositories found')}
           </SimpleTable.Empty>
         ) : (
-          filteredRepositories.map(repository => (
+          repositories.map(repository => (
             <SeerRepoTableRow
               key={repository.id}
               mutateRepositorySettings={mutateRepositorySettings}
@@ -186,6 +192,8 @@ export default function SeerRepoTable() {
 
 function RepoTable({
   children,
+  isLoading,
+  isLoadingMore,
   mutateRepositorySettings,
   onSortClick,
   repositories,
@@ -194,6 +202,8 @@ function RepoTable({
   sort,
 }: {
   children: React.ReactNode;
+  isLoading: boolean;
+  isLoadingMore: boolean;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   onSortClick: (sort: Sort) => void;
   repositories: RepositoryWithSettings[];
@@ -202,9 +212,14 @@ function RepoTable({
   sort: Sort;
 }) {
   const organization = useOrganization();
+  const hasData = repositories.length > 0;
   return (
     <Stack gap="lg">
-      <Grid minWidth="0" gap="md" columns="1fr max-content">
+      <Grid
+        minWidth="0"
+        gap="md"
+        columns={hasData ? '1fr max-content' : '1fr max-content max-content'}
+      >
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch />
@@ -218,6 +233,9 @@ function RepoTable({
             }
           />
         </InputGroup>
+
+        {hasData ? null : <LoadingIndicator mini />}
+
         <LinkButton
           priority="primary"
           icon={<IconAdd />}
@@ -236,10 +254,22 @@ function RepoTable({
         <SeerRepoTableHeader
           mutateRepositorySettings={mutateRepositorySettings}
           onSortClick={onSortClick}
+          disabled={isLoading}
           repositories={repositories}
           sort={sort}
         />
         {children}
+        {isLoadingMore ? (
+          <SimpleTable.Row key="loading-row">
+            <SimpleTable.RowCell
+              align="center"
+              justify="center"
+              style={{gridColumn: '1 / -1'}}
+            >
+              <LoadingIndicator mini />
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
+        ) : null}
       </SimpleTableWithColumns>
     </Stack>
   );

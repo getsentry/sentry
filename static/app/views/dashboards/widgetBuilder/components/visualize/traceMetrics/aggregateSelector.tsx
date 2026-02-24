@@ -62,7 +62,7 @@ export function AggregateSelector({
 
   return (
     <AggregateCompactSelect
-      searchable
+      search
       hasColumnParameter={false}
       disabled={disabled || aggregateOptions.length <= 1}
       options={sortSelectedFirst(aggregateValue, aggregateOptions)}

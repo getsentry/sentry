@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
 import ConfigStore from 'sentry/stores/configStore';
@@ -73,6 +74,19 @@ describe('NewIssueExperienceButton', () => {
       method: 'PUT',
     });
 
+    // Start with old UI preference so the "Switch to new" button appears
+    act(() =>
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          options: {
+            ...UserFixture().options,
+            prefersIssueDetailsStreamlinedUI: false,
+          },
+        })
+      )
+    );
+
     render(<NewIssueExperienceButton />, {organization});
 
     const newExperienceButton = screen.getByRole('button', {
@@ -129,6 +143,19 @@ describe('NewIssueExperienceButton', () => {
       url: '/users/me/',
       method: 'PUT',
     });
+
+    // Start with old UI preference so the "Switch to new" button appears
+    act(() =>
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          options: {
+            ...UserFixture().options,
+            prefersIssueDetailsStreamlinedUI: false,
+          },
+        })
+      )
+    );
 
     render(<NewIssueExperienceButton />, {organization});
     await userEvent.click(

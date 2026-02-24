@@ -425,8 +425,7 @@ describe('CompactSelect', () => {
     it('can search', async () => {
       render(
         <CompactSelect
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -448,13 +447,270 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
+    it('restores full list when search query is cleared', async () => {
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // type 'Two' to filter to one option
+      await userEvent.keyboard('Two');
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+      // clear the search query — all options should return
+      await userEvent.clear(screen.getByPlaceholderText('Search here…'));
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+    });
+
+    it('resets search query and shows all options when menu is closed and reopened', async () => {
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      // open the menu and filter results
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Two');
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+      // close the menu by clicking outside
+      await userEvent.click(document.body);
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('option', {name: 'Option Two'})
+        ).not.toBeInTheDocument();
+      });
+
+      // reopen the menu — search input should be empty and all options visible
+      await userEvent.click(screen.getByRole('button'));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search here…')).toHaveValue('');
+      });
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+    });
+
+    it('uses custom searchMatcher when provided', async () => {
+      render(
+        <CompactSelect
+          search={{
+            placeholder: 'Search here…',
+            filter: (option, search) => ({
+              score: String(option.value).endsWith(search) ? 1 : 0,
+            }),
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // '_one' matches opt_one by value suffix, opt_two does not match
+      await userEvent.keyboard('_one');
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
+    });
+
+    it('does not call searchMatcher when search is empty, showing all options', async () => {
+      // A matcher that returns score 0 for any empty query would hide all options if
+      // called during the initial render (before the user types anything).
+      render(
+        <CompactSelect
+          search={{
+            placeholder: 'Search here…',
+            filter: (option, search) => ({
+              // Return 0 for empty search — real-world matchers may do this
+              score: search === '' ? 0 : String(option.value).includes(search) ? 1 : 0,
+            }),
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      // All options should be visible even though the matcher returns 0 for ''
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+    });
+
+    it('uses string.includes for default search matching', async () => {
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // 'ption On' is a mid-string substring of 'Option One' — only includes() catches it
+      await userEvent.keyboard('ption On');
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
+    });
+
+    it('sorts options by score when searchMatcher returns SearchMatchResult', async () => {
+      // Assign scores so the natural order (One, Two, Three) is reversed: Three > Two > One
+      const scores: Record<string, number> = {opt_one: 1, opt_two: 2, opt_three: 3};
+
+      render(
+        <CompactSelect
+          search={{
+            placeholder: 'Search here…',
+            filter: option => ({score: scores[String(option.value)] ?? 0}),
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('opt');
+
+      const options = screen.getAllByRole('option');
+      expect(options[0]).toHaveTextContent('Option Three'); // score 3
+      expect(options[1]).toHaveTextContent('Option Two'); // score 2
+      expect(options[2]).toHaveTextContent('Option One'); // score 1
+    });
+
+    it('options with equal scores maintain their original relative order', async () => {
+      // opt_two gets a higher score; opt_one and opt_three share the same low score
+      // and should keep their original relative order (One before Three)
+      render(
+        <CompactSelect
+          search={{
+            placeholder: 'Search here…',
+            filter: option => ({score: option.value === 'opt_two' ? 10 : 1}),
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('opt');
+
+      const options = screen.getAllByRole('option');
+      expect(options[0]).toHaveTextContent('Option Two'); // score 10
+      expect(options[1]).toHaveTextContent('Option One'); // no score, original order
+      expect(options[2]).toHaveTextContent('Option Three'); // no score, original order
+    });
+
+    it('sizeLimit keeps highest-scored options visible, not first-in-order options', async () => {
+      // Natural order: One (score 1), Two (score 3), Three (score 2).
+      // sizeLimit=2 should keep the two highest-scored items: Two (3) and Three (2),
+      // not the first two in original order: One (1) and Two (3).
+      const scores: Record<string, number> = {opt_one: 1, opt_two: 3, opt_three: 2};
+
+      render(
+        <CompactSelect
+          search={{
+            placeholder: 'Search here…',
+            filter: option => ({score: scores[String(option.value)] ?? 0}),
+          }}
+          sizeLimit={2}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('opt');
+
+      const options = screen.getAllByRole('option');
+      expect(options).toHaveLength(2);
+      expect(options[0]).toHaveTextContent('Option Two'); // score 3, visible
+      expect(options[1]).toHaveTextContent('Option Three'); // score 2, visible
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument(); // score 1, hidden
+    });
+
+    it('passes option and search string to searchMatcher', async () => {
+      const searchMatcher = jest.fn().mockReturnValue({score: 1});
+
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…', filter: searchMatcher}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('test');
+
+      expect(searchMatcher).toHaveBeenCalledWith(
+        expect.objectContaining({value: 'opt_one', label: 'Option One'}),
+        'test'
+      );
+    });
+
     it('can search with sections', async () => {
       render(
         <CompactSelect
           value={undefined}
           onChange={jest.fn()}
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {
               key: 'section-1',
@@ -491,6 +747,49 @@ describe('CompactSelect', () => {
       expect(screen.getAllByRole('option')).toHaveLength(1);
     });
 
+    it('uses custom searchMatcher with sections', async () => {
+      render(
+        <CompactSelect
+          value={undefined}
+          onChange={jest.fn()}
+          search={{
+            placeholder: 'Search here…',
+            filter: (option, search) => ({
+              score: String(option.value).endsWith(search) ? 1 : 0,
+            }),
+          }}
+          options={[
+            {
+              key: 'section-1',
+              label: 'Section 1',
+              options: [
+                {value: 'opt_one', label: 'Option One'},
+                {value: 'opt_two', label: 'Option Two'},
+              ],
+            },
+            {
+              key: 'section-2',
+              label: 'Section 2',
+              options: [
+                {value: 'opt_three', label: 'Option Three'},
+                {value: 'opt_four', label: 'Option Four'},
+              ],
+            },
+          ]}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // 'e' matches opt_one (section 1) and opt_three (section 2) by value suffix
+      await userEvent.keyboard('e');
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option Four'})).not.toBeInTheDocument();
+    });
+
     it('can limit the number of options', async () => {
       render(
         <CompactSelect
@@ -498,7 +797,7 @@ describe('CompactSelect', () => {
           onChange={jest.fn()}
           sizeLimit={2}
           sizeLimitMessage="Use search for more options…"
-          searchable
+          search
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -816,8 +1115,7 @@ describe('CompactSelect', () => {
       render(
         <CompactSelect
           grid
-          searchable
-          searchPlaceholder="Search here…"
+          search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},
@@ -839,13 +1137,104 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
+    it('restores full list when search query is cleared', async () => {
+      render(
+        <CompactSelect
+          grid
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // type 'Two' to filter to one option
+      await userEvent.keyboard('Two');
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+
+      // clear the search query — all options should return
+      await userEvent.clear(screen.getByPlaceholderText('Search here…'));
+      expect(screen.getByRole('row', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+    });
+
+    it('resets search query and shows all options when menu is closed and reopened', async () => {
+      render(
+        <CompactSelect
+          grid
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      // open the menu and filter results
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Two');
+      expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+
+      // close the menu by clicking outside
+      await userEvent.click(document.body);
+      await waitFor(() => {
+        expect(screen.queryByRole('row', {name: 'Option Two'})).not.toBeInTheDocument();
+      });
+
+      // reopen the menu — search input should be empty and all options visible
+      await userEvent.click(screen.getByRole('button'));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search here…')).toHaveValue('');
+      });
+      expect(screen.getByRole('row', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+    });
+
+    it('uses custom searchMatcher when provided', async () => {
+      render(
+        <CompactSelect
+          grid
+          search={{
+            placeholder: 'Search here…',
+            filter: (option, search) => ({
+              score: String(option.value).endsWith(search) ? 1 : 0,
+            }),
+          }}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // '_two' matches opt_two by value suffix, opt_one does not match
+      await userEvent.keyboard('_two');
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
     it('can limit the number of options', async () => {
       render(
         <CompactSelect
           grid
           sizeLimit={2}
           sizeLimitMessage="Use search for more options…"
-          searchable
+          search
           options={[
             {value: 'opt_one', label: 'Option One'},
             {value: 'opt_two', label: 'Option Two'},

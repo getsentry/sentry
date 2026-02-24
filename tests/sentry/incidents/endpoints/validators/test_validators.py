@@ -563,7 +563,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             validator.save()
 
     @with_feature("organizations:discover-saved-queries-deprecation")
-    @with_feature("organizations:mep-rollout-flag")
     def test_transaction_dataset_deprecation_generic_metrics(self) -> None:
         data = {
             **self.valid_data,
@@ -1407,7 +1406,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         updated_detector = update_validator.save()
         assert updated_detector.name == "Updated Detector Name"
 
-    @with_feature("organizations:mep-rollout-flag")
     def test_transaction_dataset_deprecation_generic_metrics_update(self) -> None:
         data = {
             **self.valid_data,
@@ -1453,7 +1451,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             update_validator.save()
 
-    @with_feature("organizations:mep-rollout-flag")
     def test_transaction_dataset_deprecation_update_to_transactions(self) -> None:
         data = {
             **self.valid_data,

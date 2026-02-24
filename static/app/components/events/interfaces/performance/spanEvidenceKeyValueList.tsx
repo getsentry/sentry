@@ -424,6 +424,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
   [IssueType.WEB_VITALS]: WebVitalsEvidence,
   [IssueType.LLM_DETECTED_EXPERIMENTAL]: AIDetectedSpanEvidence,
+  [IssueType.LLM_DETECTED_EXPERIMENTAL_V2]: AIDetectedSpanEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
