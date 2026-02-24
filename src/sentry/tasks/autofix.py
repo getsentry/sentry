@@ -116,7 +116,7 @@ def generate_issue_summary_only(group_id: int) -> None:
             )
         )
 
-    # Generate and cache the summary (cache is read by get_and_update_group_fixability_score)
+    # Generate and cache the summary
     get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
