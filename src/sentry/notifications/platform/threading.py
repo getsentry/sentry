@@ -8,12 +8,10 @@ from typing import Any, TypedDict
 
 from django.db import router, transaction
 
-from sentry.locks import locks
 from sentry.notifications.models.notificationrecord import NotificationRecord
 from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.utils import json
-from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -174,9 +172,6 @@ class ThreadingService:
         """
         Store a notification message and create a new thread.
 
-        Uses a Redis lock to prevent concurrent first-sends from creating
-        conflicting thread state.
-
         Args:
             threading_config: The information needed to create a new thread (see ThreadingConfig)
             external_message_id: The provider-specific message identifier returned by the provider
@@ -184,31 +179,12 @@ class ThreadingService:
         Returns:
             A tuple of (NotificationThread, NotificationRecord)
         """
-
         thread_key = ThreadingService.compute_thread_key(
             threading_config["key_type"], threading_config["key_data"]
         )
-        lock_key = f"notif-thread:{thread_key}:{threading_config['provider_key']}:{threading_config['target_id']}"
-        lock = locks.get(lock_key, duration=10, name="notification_thread_create")
-
-        try:
-            with lock.blocking_acquire(initial_delay=0.1, timeout=5):
-                return ThreadingService._create_thread_and_record(
-                    threading_config, external_message_id, thread_key
-                )
-        except UnableToAcquireLock as e:
-            logger.warning(
-                "notifications.platform.threading.unable_to_acquire_lock",
-                exc_info=True,
-                extra={
-                    "exception": e,
-                    "thread_key": thread_key,
-                    "provider_key": threading_config["provider_key"],
-                    "target_id": threading_config["target_id"],
-                    "external_message_id": external_message_id,
-                },
-            )
-            raise
+        return ThreadingService._create_thread_and_record(
+            threading_config, external_message_id, thread_key
+        )
 
     @staticmethod
     def store_existing_thread(
