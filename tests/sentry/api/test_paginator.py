@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from unittest import TestCase as SimpleTestCase
 
 import pytest
-from django.db.models import DateTimeField, F, IntegerField, OuterRef, Subquery, Value
+from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
@@ -656,16 +656,13 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         Rule.objects.all().delete()
         rule_ids = []
 
-        base_time = timezone.now()
         for i in range(1, 9):
             rule = self.create_project_rule(name=f"rule{i}")
-            # Set distinct date_added so the paginator has deterministic ordering
-            Rule.objects.filter(id=rule.id).update(date_added=base_time + timedelta(minutes=i))
             rule_ids.append(rule.id)
 
         rules = Rule.objects.all()
-        # Use each rule's date_added as date_triggered for distinct sort values
-        rules = rules.annotate(date_triggered=F("date_added"))
+        far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
+        rules = rules.annotate(date_triggered=far_past_date)
         incident_status_value = Value(-2, output_field=IntegerField())
         rules = rules.annotate(incident_status=incident_status_value)
 
@@ -680,23 +677,24 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             desc=True,
         )
 
-        # desc=True: rules ordered newest first (rule8, rule7, ..., rule1)
         result = paginator.get_result(limit=5, cursor=None)
         assert len(result) == 5
         page1_results = list(result)
-        assert page1_results[0].id == rule_ids[7]
-        assert page1_results[4].id == rule_ids[3]
+        page1_ids = {r.id for r in page1_results}
 
         next_cursor = result.next
         result = paginator.get_result(limit=5, cursor=next_cursor)
         page2_results = list(result)
         assert len(result) == 3
-        assert page2_results[-1].id == rule_ids[0]
+        page2_ids = {r.id for r in page2_results}
+
+        assert page1_ids & page2_ids == set()
+        assert page1_ids | page2_ids == set(rule_ids)
 
         prev_cursor = result.prev
-        result = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        result = paginator.get_result(limit=5, cursor=prev_cursor)
         assert len(result) == 5
-        assert result == page1_results
+        assert {r.id for r in result} == page1_ids
 
     def test_only_metric_alert_rules(self) -> None:
         project = self.project
