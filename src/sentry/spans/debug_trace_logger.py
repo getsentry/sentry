@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from sentry import options
 from sentry.spans.segment_key import SegmentKey, parse_segment_key
 
 if TYPE_CHECKING:
@@ -23,6 +24,9 @@ class DebugTraceLogger:
     def __init__(self, client: RedisCluster[bytes] | StrictRedis[bytes]) -> None:
         self._client = client
 
+    def _get_debug_traces(self) -> set[str]:
+        return set(options.get("spans.buffer.debug-traces"))
+
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
@@ -31,10 +35,10 @@ class DebugTraceLogger:
         project_and_trace: str,
         parent_span_id: str,
         subsegment: Sequence[Any],
-        debug_traces: set[str],
+        now: int,
     ) -> None:
         _, _, trace_id = project_and_trace.partition(":")
-        if trace_id not in debug_traces:
+        if trace_id not in self._get_debug_traces():
             return
 
         spans = []
@@ -74,6 +78,7 @@ class DebugTraceLogger:
                 "sunion_existing_key_count": num_existing_keys,
                 "set_sizes": set_sizes,
                 "total_set_sizes": sum(set_sizes.values()),
+                "now": now,
                 "subsegment_spans": spans,
             },
         )
@@ -84,10 +89,9 @@ class DebugTraceLogger:
         segment_span_id: str,
         root_span_in_segment: bool,
         num_spans: int,
-        debug_traces: set[str],
     ) -> None:
         project_id, trace_id, _ = parse_segment_key(segment_key)
-        if trace_id.decode("ascii") not in debug_traces:
+        if trace_id.decode("ascii") not in self._get_debug_traces():
             return
 
         hrs_key = b"span-buf:hrs:" + segment_key

@@ -14,7 +14,8 @@ class MockSpan(NamedTuple):
 
 class TestDebugTraceLogger:
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_logs_subsegment_info_with_no_span_keys(self, mock_logger):
+    @mock.patch("sentry.spans.debug_trace_logger.options.get", return_value=["trace456"])
+    def test_logs_subsegment_info_with_no_span_keys(self, mock_options, mock_logger):
         """Test logging when parent_span_id matches the only span's span_id."""
         mock_client = mock.MagicMock()
 
@@ -25,7 +26,7 @@ class TestDebugTraceLogger:
             project_and_trace="123:trace456",
             parent_span_id="abc123",
             subsegment=subsegment,
-            debug_traces={"trace456"},
+            now=1000,
         )
 
         assert mock_logger.info.call_count == 1
@@ -40,6 +41,7 @@ class TestDebugTraceLogger:
         assert extra["sunion_existing_key_count"] == 0
         assert extra["set_sizes"] == {}
         assert extra["total_set_sizes"] == 0
+        assert extra["now"] == 1000
         assert extra["subsegment_spans"] == [
             {"span_id": "abc123", "parent_span_id": None, "segment_id": None}
         ]
@@ -47,7 +49,8 @@ class TestDebugTraceLogger:
         mock_client.pipeline.assert_not_called()
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_logs_subsegment_info_with_span_keys(self, mock_logger):
+    @mock.patch("sentry.spans.debug_trace_logger.options.get", return_value=["trace789"])
+    def test_logs_subsegment_info_with_span_keys(self, mock_options, mock_logger):
         """Test logging with multiple spans where some have different span_ids."""
         mock_client = mock.MagicMock()
         mock_pipeline = mock.MagicMock()
@@ -66,7 +69,7 @@ class TestDebugTraceLogger:
             project_and_trace="456:trace789",
             parent_span_id="parent123",
             subsegment=subsegment,
-            debug_traces={"trace789"},
+            now=1000,
         )
 
         assert mock_logger.info.call_count == 1
@@ -83,7 +86,8 @@ class TestDebugTraceLogger:
         assert len(extra["subsegment_spans"]) == 3
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_span_key_format(self, mock_logger):
+    @mock.patch("sentry.spans.debug_trace_logger.options.get", return_value=["trace222"])
+    def test_span_key_format(self, mock_options, mock_logger):
         """Test that span keys are generated in the correct format."""
         mock_client = mock.MagicMock()
         mock_pipeline = mock.MagicMock()
@@ -101,7 +105,7 @@ class TestDebugTraceLogger:
             project_and_trace="111:trace222",
             parent_span_id="A",
             subsegment=subsegment,
-            debug_traces={"trace222"},
+            now=1000,
         )
 
         expected_key = b"span-buf:s:{111:trace222}:B"
@@ -112,7 +116,27 @@ class TestDebugTraceLogger:
         assert extra["set_sizes"]["span-buf:s:{111:trace222}:B"] == 3
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_flush_info_with_root_span_flag(self, mock_logger):
+    @mock.patch("sentry.spans.debug_trace_logger.options.get", return_value=[])
+    def test_subsegment_info_skips_when_trace_not_in_debug_traces(self, mock_options, mock_logger):
+        """Test that log_subsegment_info returns early when trace is not in debug_traces."""
+        mock_client = mock.MagicMock()
+
+        debug_logger = DebugTraceLogger(mock_client)
+        subsegment = [MockSpan(span_id="abc123", parent_span_id=None, segment_id=None)]
+
+        debug_logger.log_subsegment_info(
+            project_and_trace="123:trace456",
+            parent_span_id="abc123",
+            subsegment=subsegment,
+            now=1000,
+        )
+
+        mock_logger.info.assert_not_called()
+        mock_client.pipeline.assert_not_called()
+
+    @mock.patch("sentry.spans.debug_trace_logger.logger")
+    @mock.patch("sentry.spans.debug_trace_logger.options.get", return_value=["abcdef"])
+    def test_flush_info_with_root_span_flag(self, mock_options, mock_logger):
         """Test log_flush_info when HRS flag is set."""
         mock_client = mock.MagicMock()
         mock_client.exists.return_value = 1
@@ -125,7 +149,6 @@ class TestDebugTraceLogger:
             segment_span_id="span1",
             root_span_in_segment=True,
             num_spans=5,
-            debug_traces={"abcdef"},
         )
 
         assert mock_logger.info.call_count == 1
@@ -142,7 +165,8 @@ class TestDebugTraceLogger:
         mock_client.exists.assert_called_once_with(b"span-buf:hrs:" + segment_key)
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_flush_info_without_root_span_flag(self, mock_logger):
+    @mock.patch("sentry.spans.debug_trace_logger.options.get", return_value=["def789"])
+    def test_flush_info_without_root_span_flag(self, mock_options, mock_logger):
         """Test log_flush_info when HRS flag is not set."""
         mock_client = mock.MagicMock()
         mock_client.exists.return_value = 0
@@ -155,7 +179,6 @@ class TestDebugTraceLogger:
             segment_span_id="span2",
             root_span_in_segment=False,
             num_spans=3,
-            debug_traces={"def789"},
         )
 
         assert mock_logger.info.call_count == 1
@@ -165,7 +188,8 @@ class TestDebugTraceLogger:
         assert extra["num_spans"] == 3
 
     @mock.patch("sentry.spans.debug_trace_logger.logger")
-    def test_flush_info_skips_when_trace_not_in_debug_traces(self, mock_logger):
+    @mock.patch("sentry.spans.debug_trace_logger.options.get", return_value=["other_trace"])
+    def test_flush_info_skips_when_trace_not_in_debug_traces(self, mock_options, mock_logger):
         """Test that log_flush_info returns early when trace is not in debug_traces."""
         mock_client = mock.MagicMock()
 
@@ -177,7 +201,6 @@ class TestDebugTraceLogger:
             segment_span_id="span1",
             root_span_in_segment=True,
             num_spans=5,
-            debug_traces={"other_trace"},
         )
 
         mock_logger.info.assert_not_called()

@@ -156,10 +156,6 @@ class SpansBuffer:
         self._flusher_logger = FlusherLogger()
 
     @cached_property
-    def _debug_trace_logger(self) -> DebugTraceLogger:
-        return DebugTraceLogger(self.client)
-
-    @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
         return get_redis_client()
 
@@ -191,7 +187,6 @@ class SpansBuffer:
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
-        debug_traces = set(options.get("spans.buffer.debug-traces"))
 
         result_meta = []
         is_root_span_count = 0
@@ -242,8 +237,10 @@ class SpansBuffer:
                         byte_count = sum(len(span.payload) for span in subsegment)
 
                         try:
+                            if self._debug_trace_logger is None:
+                                self._debug_trace_logger = DebugTraceLogger(self.client)
                             self._debug_trace_logger.log_subsegment_info(
-                                project_and_trace, parent_span_id, subsegment, debug_traces
+                                project_and_trace, parent_span_id, subsegment, now
                             )
                         except Exception:
                             logger.exception("process_spans: Failed to log debug trace info")
@@ -484,7 +481,6 @@ class SpansBuffer:
         shard_factor = max(1, len(self.assigned_shards))
         max_flush_segments = options.get("spans.buffer.max-flush-segments")
         flusher_logger_enabled = options.get("spans.buffer.flusher-cumulative-logger-enabled")
-        debug_traces = set(options.get("spans.buffer.debug-traces"))
         max_segments_per_shard = math.ceil(max_flush_segments / shard_factor)
 
         ids_start = time.monotonic()
@@ -552,12 +548,13 @@ class SpansBuffer:
             num_has_root_spans += int(has_root_span)
 
             try:
+                if self._debug_trace_logger is None:
+                    self._debug_trace_logger = DebugTraceLogger(self.client)
                 self._debug_trace_logger.log_flush_info(
                     segment_key,
                     segment_span_id,
                     has_root_span,
                     len(segment),
-                    debug_traces,
                 )
             except Exception:
                 logger.exception("flush_segments: Failed to log debug trace flush info")
