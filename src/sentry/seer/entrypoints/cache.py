@@ -11,6 +11,7 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 AUTOFIX_CACHE_TIMEOUT_SECONDS = 60 * 60 * 12  # 12 hours
+EXPLORER_CACHE_TIMEOUT_SECONDS = 60 * 60  # 1 hour
 
 
 class SeerOperatorAutofixCache[CachePayloadT]:
@@ -186,3 +187,41 @@ class SeerOperatorAutofixCache[CachePayloadT]:
                 lifecycle.add_extras(
                     {"from_key": pre_cache_result["key"], "to_key": post_cache_key}
                 )
+
+
+class SeerOperatorExplorerCache[CachePayloadT]:
+    """
+    Cache for Explorer completion hook payloads, keyed only by run_id.
+
+    Unlike the Autofix cache which needs pre/post migration (group_id -> run_id),
+    Explorer receives a run_id directly from the trigger call, so this cache is
+    simpler: set on trigger, get on completion hook.
+    """
+
+    @classmethod
+    def _get_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
+        return f"seer:explorer:{entrypoint_key}:{run_id}"
+
+    @classmethod
+    def set(cls, *, entrypoint_key: str, run_id: int, cache_payload: CachePayloadT) -> None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_SET_EXPLORER,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls._get_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
+            lifecycle.add_extras({"run_id": run_id, "cache_key": cache_key})
+            cache.set(cache_key, cache_payload, timeout=EXPLORER_CACHE_TIMEOUT_SECONDS)
+
+    @classmethod
+    def get(cls, *, entrypoint_key: str, run_id: int) -> CachePayloadT | None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_GET_EXPLORER,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls._get_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
+            lifecycle.add_extras({"run_id": run_id, "cache_key": cache_key})
+            cache_payload = cache.get(cache_key)
+            if not cache_payload:
+                lifecycle.record_halt(halt_reason="cache_miss")
+                return None
+            return cache_payload
