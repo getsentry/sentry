@@ -4,6 +4,8 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 
+from django.db.models import Q
+
 from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
 
 logger = logging.getLogger(__name__)
@@ -49,7 +51,6 @@ def match_and_fetch_comparisons(
     base_size_metrics: list[PreprodArtifactSizeMetrics],
 ) -> list[MatchedComparison]:
     """Match head/base metrics by (artifact_type, identifier) and batch-fetch their comparisons."""
-    from django.db.models import Q
 
     head_metrics_map = build_size_metrics_map(head_size_metrics)
     base_metrics_map = build_size_metrics_map(base_size_metrics)
