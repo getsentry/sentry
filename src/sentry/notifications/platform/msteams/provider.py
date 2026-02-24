@@ -2,13 +2,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
+from sentry.notifications.platform.provider import (
+    NotificationProvider,
+    NotificationProviderError,
+    ProviderThreadingContext,
+    SendResult,
+)
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
     PreparedIntegrationNotificationTarget,
 )
+from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
@@ -128,7 +134,13 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
         return False
 
     @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: MSTeamsRenderable) -> None:
+    def send(
+        cls,
+        *,
+        target: NotificationTarget,
+        renderable: MSTeamsRenderable,
+        thread_context: ThreadContext | None = None,
+    ) -> SendResult:
         from sentry.integrations.msteams.integration import MsTeamsIntegration
 
         if not isinstance(target, cls.target_class):
@@ -139,4 +151,18 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
         msteams_target = PreparedIntegrationNotificationTarget[MsTeamsIntegration](
             target=target, installation_cls=MsTeamsIntegration
         )
+
+        # Currently, threading is not supported for Microsoft Teams so this will raise an exception
+        if thread_context is not None:
+            provider_threading_ctx = ProviderThreadingContext(
+                reply_broadcast=thread_context.reply_broadcast
+            )
+            msteams_target.integration_installation.send_notification_with_threading(
+                target=msteams_target.target,
+                payload=renderable,
+                threading_context=provider_threading_ctx,
+            )
+            return SendResult()
+
         msteams_target.integration_installation.send_notification(target=target, payload=renderable)
+        return SendResult()

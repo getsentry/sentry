@@ -1,10 +1,13 @@
 from unittest import mock
 
+import pytest
 from django.core.mail import EmailMultiAlternatives
 
 from sentry import options
 from sentry.notifications.platform.email.provider import EmailNotificationProvider, EmailRenderer
+from sentry.notifications.platform.provider import SendResult
 from sentry.notifications.platform.target import GenericNotificationTarget
+from sentry.notifications.platform.threading import ThreadContext, ThreadKey, ThreadKeyType
 from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
@@ -153,7 +156,22 @@ class EmailNotificationProviderTest(TestCase):
     @mock.patch("sentry.notifications.platform.email.provider.send_messages")
     def test_send(self, mock_send_messages: mock.MagicMock) -> None:
         email = EmailRenderer.render(data=self.data, rendered_template=self.rendered_template)
-        EmailNotificationProvider.send(target=self.target, renderable=email)
+        result = EmailNotificationProvider.send(target=self.target, renderable=email)
         mock_send_messages.assert_called_once()
         [sent_message] = mock_send_messages.call_args[0][0]
         assert sent_message.to == [self.email]
+        assert isinstance(result, SendResult)
+        assert result.provider_message_id is None
+        assert result.error_code is None
+
+    def test_send_raises_not_implemented_for_threading(self) -> None:
+        """Test that send raises NotImplementedError when thread_context is provided."""
+        email = EmailRenderer.render(data=self.data, rendered_template=self.rendered_template)
+        thread_context = ThreadContext(
+            thread_key=ThreadKey(key_type=ThreadKeyType.NOA, key_data={"test": "data"}),
+        )
+
+        with pytest.raises(NotImplementedError, match="Threading is not yet supported for email"):
+            EmailNotificationProvider.send(
+                target=self.target, renderable=email, thread_context=thread_context
+            )

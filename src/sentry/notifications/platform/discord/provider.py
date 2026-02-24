@@ -2,13 +2,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
+from sentry.notifications.platform.provider import (
+    NotificationProvider,
+    NotificationProviderError,
+    ProviderThreadingContext,
+    SendResult,
+)
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
     PreparedIntegrationNotificationTarget,
 )
+from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
@@ -129,7 +135,13 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
         return False
 
     @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: DiscordRenderable) -> None:
+    def send(
+        cls,
+        *,
+        target: NotificationTarget,
+        renderable: DiscordRenderable,
+        thread_context: ThreadContext | None = None,
+    ) -> SendResult:
         from sentry.integrations.discord.integration import DiscordIntegration
 
         if not isinstance(target, cls.target_class):
@@ -140,4 +152,18 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
         discord_target = PreparedIntegrationNotificationTarget[DiscordIntegration](
             target=target, installation_cls=DiscordIntegration
         )
+
+        # Currently, threading is not supported for Discord so this will raise an exception
+        if thread_context is not None:
+            provider_threading_ctx = ProviderThreadingContext(
+                reply_broadcast=thread_context.reply_broadcast
+            )
+            discord_target.integration_installation.send_notification_with_threading(
+                target=discord_target.target,
+                payload=renderable,
+                threading_context=provider_threading_ctx,
+            )
+            return SendResult()
+
         discord_target.integration_installation.send_notification(target=target, payload=renderable)
+        return SendResult()

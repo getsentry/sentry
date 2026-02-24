@@ -1,6 +1,8 @@
 from typing import TypeGuard
 from unittest.mock import Mock, patch
 
+import pytest
+
 from sentry.integrations.discord.message_builder.base.component.action_row import (
     DiscordActionRowDict,
 )
@@ -16,7 +18,9 @@ from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
     DiscordRenderable,
 )
+from sentry.notifications.platform.provider import SendResult
 from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.threading import ThreadContext, ThreadKey, ThreadKeyType
 
 
 def is_action_row(component: DiscordMessageComponentDict) -> TypeGuard[DiscordActionRowDict]:
@@ -362,3 +366,31 @@ class DiscordNotificationProviderSendTest(TestCase):
         mock_client_instance.send_message.assert_called_once_with(
             channel_id="123456789012345678", message=renderable
         )
+
+    @patch("sentry.integrations.discord.integration.DiscordClient")
+    def test_send_returns_send_result(self, mock_discord_client: Mock) -> None:
+        """Test that send returns a SendResult."""
+        mock_client_instance = mock_discord_client.return_value
+        mock_client_instance.send_message.return_value = {"id": "1234567890123456789"}
+
+        target = self._create_target()
+        renderable = self._create_renderable()
+
+        result = DiscordNotificationProvider.send(target=target, renderable=renderable)
+
+        assert isinstance(result, SendResult)
+        assert result.provider_message_id is None
+        assert result.error_code is None
+
+    def test_send_raises_not_implemented_for_threading(self) -> None:
+        """Test that send raises NotImplementedError when thread_context is provided."""
+        target = self._create_target()
+        renderable = self._create_renderable()
+        thread_context = ThreadContext(
+            thread_key=ThreadKey(key_type=ThreadKeyType.NOA, key_data={"test": "data"}),
+        )
+
+        with pytest.raises(NotImplementedError, match="Threading is not yet supported for Discord"):
+            DiscordNotificationProvider.send(
+                target=target, renderable=renderable, thread_context=thread_context
+            )

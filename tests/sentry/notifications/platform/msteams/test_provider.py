@@ -1,5 +1,7 @@
 from unittest.mock import Mock, patch
 
+import pytest
+
 from sentry.integrations.msteams.card_builder.block import (
     ADAPTIVE_CARD_SCHEMA_URL,
     CURRENT_CARD_VERSION,
@@ -12,7 +14,9 @@ from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
     MSTeamsRenderable,
 )
+from sentry.notifications.platform.provider import SendResult
 from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.threading import ThreadContext, ThreadKey, ThreadKeyType
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationProviderKey,
@@ -305,3 +309,33 @@ class MSTeamsNotificationProviderSendTest(TestCase):
         mock_client_instance.send_card.assert_called_once_with(
             conversation_id="29:test-user-id", card=renderable
         )
+
+    @patch("sentry.integrations.msteams.integration.MsTeamsClient")
+    def test_send_returns_send_result(self, mock_msteams_client: Mock) -> None:
+        """Test that send returns a SendResult."""
+        mock_client_instance = mock_msteams_client.return_value
+        mock_client_instance.send_card.return_value = {"id": "1234567890"}
+
+        target = self._create_target()
+        renderable = self._create_renderable()
+
+        result = MSTeamsNotificationProvider.send(target=target, renderable=renderable)
+
+        assert isinstance(result, SendResult)
+        assert result.provider_message_id is None
+        assert result.error_code is None
+
+    def test_send_raises_not_implemented_for_threading(self) -> None:
+        """Test that send raises NotImplementedError when thread_context is provided."""
+        target = self._create_target()
+        renderable = self._create_renderable()
+        thread_context = ThreadContext(
+            thread_key=ThreadKey(key_type=ThreadKeyType.NOA, key_data={"test": "data"}),
+        )
+
+        with pytest.raises(
+            NotImplementedError, match="Threading is not yet supported for Microsoft Teams"
+        ):
+            MSTeamsNotificationProvider.send(
+                target=target, renderable=renderable, thread_context=thread_context
+            )
