@@ -82,6 +82,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 
   return (
     <form
+      data-test-id={form.formId}
       id={form.formId}
       onSubmit={e => {
         e.preventDefault();
