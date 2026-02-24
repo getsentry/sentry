@@ -1396,6 +1396,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'location'
   | 'params'
   | 'router'
+  | 'queryClient'
 > {}
 
 export default function DashboardDetailWithInjectedProps(
