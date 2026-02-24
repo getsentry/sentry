@@ -314,7 +314,7 @@ def get_and_update_group_fixability_score(
     """
     Get the fixability score for a group and update the group with the score.
     If the fixability score is already set, return it without generating a new one.
-    Reads the issue summary from cache to pass to Seer, avoiding a DB lookup.
+    Reads the issue summary from cache to pass to Seer, avoiding a DB lookup for the summary on Seer's side.
     """
     if not force_generate and group.seer_fixability_score is not None:
         return group.seer_fixability_score
