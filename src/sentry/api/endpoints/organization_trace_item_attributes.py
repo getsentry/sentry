@@ -107,24 +107,9 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.DATA_BROWSING
-    feature_flags = [
-        "organizations:ourlogs-enabled",
-        "organizations:visibility-explore-view",
-        "organizations:tracemetrics-enabled",
-    ]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        batch_features = features.batch_has(
-            self.feature_flags, organization=organization, actor=request.user
-        )
-
-        if batch_features is None:
-            return False
-
-        key = f"organization:{organization.id}"
-        org_features = batch_features.get(key, {})
-
-        return any(org_features.get(feature) for feature in self.feature_flags)
+        return True
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
