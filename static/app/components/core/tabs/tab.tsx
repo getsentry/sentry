@@ -46,7 +46,7 @@ const StyledTabWrap = styled('li', {
   }
 
   &[aria-disabled] {
-    opacity: ${p => (p.overflowing ? 0 : 0.6)};
+    opacity: 0.6;
     cursor: default;
   }
 
