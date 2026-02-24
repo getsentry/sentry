@@ -43,7 +43,7 @@ from .project_preprod_size import (
     ProjectPreprodSizeWithIdentifierEndpoint,
 )
 from .project_preprod_upload_options import ProjectPreprodUploadOptionsEndpoint
-from .public.project_preprod_size_analysis import ProjectPreprodPublicSizeAnalysisEndpoint
+from .public.project_preprod_size_analysis import OrganizationPreprodPublicSizeAnalysisEndpoint
 from .pull_request.organization_pullrequest_comments import OrganizationPrCommentsEndpoint
 from .pull_request.organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
 from .pull_request.organization_pullrequest_size_analysis_download import (
@@ -133,12 +133,6 @@ preprod_project_urlpatterns = [
         PreprodArtifactRerunStatusChecksEndpoint.as_view(),
         name="sentry-api-0-preprod-artifact-rerun-status-checks",
     ),
-    # Public API endpoints
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/size-analysis/$",
-        ProjectPreprodPublicSizeAnalysisEndpoint.as_view(),
-        name="sentry-api-0-project-preprod-artifact-public-size-analysis",
-    ),
 ]
 
 preprod_organization_urlpatterns = [
@@ -177,6 +171,12 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/builds/$",
         BuildsEndpoint.as_view(),
         name="sentry-api-0-organization-builds",
+    ),
+    # Public API endpoints
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/size-analysis/$",
+        OrganizationPreprodPublicSizeAnalysisEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-public-size-analysis",
     ),
 ]
 

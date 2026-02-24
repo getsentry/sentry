@@ -12,13 +12,13 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.files.file import File
-from sentry.models.project import Project
+from sentry.models.organization import Organization
 from sentry.preprod.api.bases.preprod_artifact_endpoint import (
-    PreprodArtifactEndpoint,
     PreprodArtifactResourceDoesNotExist,
 )
 from sentry.preprod.api.models.public_api_models import (
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 @extend_schema(tags=["Builds"])
 @region_silo_endpoint
-class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
+class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -52,9 +52,8 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
         operation_id="Retrieve Size Analysis results for a given artifact",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            GlobalParams.PROJECT_ID_OR_SLUG,
             OpenApiParameter(
-                name="head_artifact_id",
+                name="artifact_id",
                 description="The ID of the build artifact.",
                 required=True,
                 type=str,
@@ -81,9 +80,8 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
     def get(
         self,
         request: Request,
-        project: Project,
-        head_artifact_id: int,
-        head_artifact: PreprodArtifact,
+        organization: Organization,
+        artifact_id: str,
     ) -> Response:
         """
         Retrieve size analysis results for a build artifact.
@@ -94,15 +92,30 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
         """
 
         if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
+            "organizations:preprod-frontend-routes", organization, actor=request.user
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
+
+        try:
+            head_artifact = PreprodArtifact.objects.select_related(
+                "mobile_app_info", "build_configuration", "commit_comparison"
+            ).get(id=int(artifact_id), project__organization_id=organization.id)
+        except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
+
+        app_info = create_app_info_dict(head_artifact)
+        git_info = create_git_info_dict(head_artifact)
 
         size_metrics = list(head_artifact.get_size_metrics())
 
         if not size_metrics:
             return Response(
-                {"detail": "Size analysis is not available for this artifact"}, status=404
+                {
+                    "state": "PENDING",
+                    "build_id": str(head_artifact.id),
+                    "app_info": app_info,
+                    "git_info": git_info,
+                }
             )
 
         main_metric = next(
@@ -114,9 +127,6 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
             ),
             size_metrics[0],
         )
-
-        app_info = create_app_info_dict(head_artifact)
-        git_info = create_git_info_dict(head_artifact)
         try:
             state_enum = PreprodArtifactSizeMetrics.SizeAnalysisState(main_metric.state)
         except ValueError:
@@ -165,7 +175,13 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                 )
             case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
                 return self._build_completed_response(
-                    request, project, head_artifact, main_metric, app_info, git_info, size_metrics
+                    request,
+                    organization,
+                    head_artifact,
+                    main_metric,
+                    app_info,
+                    git_info,
+                    size_metrics,
                 )
             case _:
                 assert_never(state_enum)
@@ -173,7 +189,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
     def _build_completed_response(
         self,
         request: Request,
-        project: Project,
+        organization: Organization,
         head_artifact: PreprodArtifact,
         main_metric: PreprodArtifactSizeMetrics,
         app_info: AppInfoResponseDict,
@@ -216,21 +232,22 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
                 {"detail": "There was an error retrieving size analysis results"}, status=500
             )
 
-        analysis_dict = analysis_results.dict()
         response_data: SizeAnalysisCompletedResponseDict = {
             "build_id": str(head_artifact.id),
             "state": "COMPLETED",
             "app_info": app_info,
             "git_info": git_info,
-            "download_size": analysis_dict["download_size"],
-            "install_size": analysis_dict["install_size"],
-            "analysis_duration": analysis_dict["analysis_duration"],
-            "analysis_version": analysis_dict["analysis_version"],
-            "insights": analysis_dict["insights"],
-            "app_components": analysis_dict["app_components"],
+            "download_size": analysis_results.download_size,
+            "install_size": analysis_results.install_size,
+            "analysis_duration": analysis_results.analysis_duration,
+            "analysis_version": analysis_results.analysis_version,
+            "insights": analysis_results.insights.dict() if analysis_results.insights else None,
+            "app_components": [c.dict() for c in analysis_results.app_components]
+            if analysis_results.app_components
+            else None,
         }
 
-        base_artifact = self._get_base_artifact(request, project, head_artifact)
+        base_artifact = self._get_base_artifact(request, organization, head_artifact)
         if base_artifact:
             comparisons = build_comparison_data(base_artifact, size_metrics)
             if comparisons:
@@ -243,7 +260,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
     def _get_base_artifact(
         self,
         request: Request,
-        project: Project,
+        organization: Organization,
         head_artifact: PreprodArtifact,
     ) -> PreprodArtifact | None:
         base_artifact_id = request.GET.get("base_artifact_id")
@@ -252,7 +269,7 @@ class ProjectPreprodPublicSizeAnalysisEndpoint(PreprodArtifactEndpoint):
             try:
                 base_artifact = PreprodArtifact.objects.select_related(
                     "mobile_app_info", "build_configuration", "commit_comparison"
-                ).get(id=int(base_artifact_id), project=project)
+                ).get(id=int(base_artifact_id), project__organization_id=organization.id)
                 return base_artifact
             except (PreprodArtifact.DoesNotExist, ValueError):
                 raise PreprodArtifactResourceDoesNotExist(

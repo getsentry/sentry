@@ -13,7 +13,7 @@ from sentry.utils import json
 
 
 class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-project-preprod-artifact-public-size-analysis"
+    endpoint = "sentry-api-0-organization-preprod-artifact-public-size-analysis"
 
     def setUp(self):
         self.user = self.create_user()
@@ -46,7 +46,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
             self.endpoint,
-            args=[self.organization.slug, self.project.slug, artifact_id],
+            args=[self.organization.slug, artifact_id],
         )
 
     def test_feature_flag_disabled(self):
@@ -58,12 +58,16 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
     def test_artifact_not_found(self):
         response = self.client.get(self._get_url(artifact_id=999999))
         assert response.status_code == 404
-        assert "The requested head preprod artifact does not exist" in response.json()["detail"]
+        assert "The requested preprod artifact does not exist" in response.json()["detail"]
 
-    def test_no_size_metrics(self):
+    def test_no_size_metrics_returns_pending(self):
         response = self.client.get(self._get_url())
-        assert response.status_code == 404
-        assert response.json()["detail"] == "Size analysis is not available for this artifact"
+        assert response.status_code == 200
+        data = response.json()
+        assert data["state"] == "PENDING"
+        assert data["build_id"] == str(self.preprod_artifact.id)
+        assert "download_size" not in data
+        assert "install_size" not in data
 
     def test_pending_state(self):
         self.create_preprod_artifact_size_metrics(
@@ -488,8 +492,24 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert response.status_code == 404
         assert "base preprod artifact does not exist" in response.json()["detail"]
 
-    def test_base_artifact_different_project(self):
-        other_project = self.create_project(organization=self.organization)
+    def test_cross_org_artifact_access(self):
+        other_org = self.create_organization(owner=self.user)
+        other_project = self.create_project(organization=other_org)
+        other_file = self.create_file(name="other_artifact.apk", type="application/octet-stream")
+        other_artifact = self.create_preprod_artifact(
+            project=other_project,
+            file_id=other_file.id,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.other.app",
+        )
+
+        response = self.client.get(self._get_url(artifact_id=other_artifact.id))
+        assert response.status_code == 404
+        assert "The requested preprod artifact does not exist" in response.json()["detail"]
+
+    def test_base_artifact_different_org(self):
+        other_org = self.create_organization(owner=self.user)
+        other_project = self.create_project(organization=other_org)
         other_file = self.create_file(name="other_artifact.apk", type="application/octet-stream")
         other_artifact = self.create_preprod_artifact(
             project=other_project,
