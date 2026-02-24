@@ -194,7 +194,7 @@ export function SizeCompareSelectedBuilds({
 }: SizeCompareSelectedBuildsProps) {
   const organization = useOrganization();
   const platform = headBuildDetails.app_info?.platform ?? null;
-  const project = ProjectsStore.getById(projectId);
+  const project = ProjectsStore.getBySlug(projectId);
 
   return (
     <ComparisonContainer>
