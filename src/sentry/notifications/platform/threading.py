@@ -158,9 +158,9 @@ class ThreadingService:
         except UnableToAcquireLock as e:
             logger.warning(
                 "notifications.platform.threading.unable_to_acquire_lock",
-                e,
                 exc_info=True,
                 extra={
+                    "exception": e,
                     "thread_key": thread_key,
                     "provider_key": threading_config["provider_key"],
                     "target_id": threading_config["target_id"],
