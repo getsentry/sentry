@@ -44,7 +44,7 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         self.browser.wait_until("[role='dialog']")
         self.browser.click("[role='dialog'] [data-test-id='confirm-button']")
         self.browser.wait_until_not("[role='dialog']")
-        self.browser.wait_until_test_id("toast-error")
+        self.browser.wait_until("input[type='checkbox'][name='require2FA'][aria-invalid='true']")
         self.load_organization_helper()
 
     def test_renders_advanced_data_scrubbing_without_rule(self) -> None:
