@@ -104,15 +104,17 @@ jobs:
           fi
 
           mkdir -p /tmp/tier1-shards
-          python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
+          python3 -u $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier1 --shards $T1_SHARDS --output-dir /tmp/tier1-shards \
             $DURATIONS_FLAG
 
+          echo "[debug] T1 LPT done, starting T2 LPT at $(date)" >&2
           mkdir -p /tmp/tier2-shards
-          python3 $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
+          python3 -u $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards \
             --swap-rounds 0 \
             $DURATIONS_FLAG
+          echo "[debug] T2 LPT done at $(date)" >&2
 
           echo "tier1-count=$(find /tmp/tier1-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
           echo "tier2-count=$(find /tmp/tier2-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
