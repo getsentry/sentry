@@ -38,12 +38,12 @@ def _extract_failed_model_from_error(error: ApiError) -> str | None:
         if error_json is None:
             return None
         message = error_json["error"]
+        match = _MODEL_NAME_PATTERN.search(message)
     except (AttributeError, KeyError, TypeError) as e:
         logger.warning(
             "coding_agent.cursor.extract_model_from_error_failed", extra={"error": str(e)}
         )
         return None
-    match = _MODEL_NAME_PATTERN.search(message)
     return match.group(1) if match else None
 
 
@@ -210,4 +210,15 @@ class CursorAgentClient(CodingAgentClient):
         model = models[0]
         logger.info("coding_agent.cursor.retry_with_model", extra={"model": model})
         payload.model = model
-        return self._post_launch(payload, request)
+        try:
+            return self._post_launch(payload, request)
+        except ApiError as e:
+            logger.warning(
+                "coding_agent.cursor.retry_failed",
+                extra={
+                    "model": model,
+                    "error": str(e),
+                    "status_code": e.code,
+                },
+            )
+            raise

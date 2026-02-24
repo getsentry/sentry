@@ -592,6 +592,16 @@ class ExtractFailedModelFromErrorTest(TestCase):
             del error.json
         assert _extract_failed_model_from_error(error) is None
 
+    def test_non_string_error_value(self) -> None:
+        error = ApiError("Bad Request", code=400)
+        error.json = {"error": 42}
+        assert _extract_failed_model_from_error(error) is None
+
+    def test_dict_error_value(self) -> None:
+        error = ApiError("Bad Request", code=400)
+        error.json = {"error": {"code": "model_not_found", "model": "gpt-4"}}
+        assert _extract_failed_model_from_error(error) is None
+
 
 class PrioritizeModelsByFamilyTest(TestCase):
     def test_same_family_first(self) -> None:
