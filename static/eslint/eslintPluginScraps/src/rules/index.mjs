@@ -8,7 +8,7 @@ export const configs = {
     /** @type {import('eslint').Linter.RulesRecord} */
     rules: {
       '@sentry/scraps/restrict-jsx-slot-children': [
-        'warn',
+        'error',
         {
           slots: [
             {
@@ -24,6 +24,8 @@ export const configs = {
                     'MenuComponents.CTALinkButton',
                     'MenuComponents.ApplyButton',
                     'MenuComponents.CancelButton',
+                    'MenuComponents.ClearButton',
+                    'MenuComponents.ResetButton',
                     'MenuComponents.Alert',
                   ],
                 },
