@@ -346,13 +346,22 @@ jobs:
           # ── Foreground: pytest starts immediately ──
           # Collection overlaps with service startup. The _wait_for_services
           # session fixture blocks on /tmp/services-ready before running tests.
-          echo "=== Tier 2: $(wc -l < /tmp/tier2-shards/shard-${{ matrix.instance }}.txt) scopes, shard ${{ matrix.instance }}/17 ==="
+          SCOPE_COUNT=$(wc -l < /tmp/tier2-shards/shard-${{ matrix.instance }}.txt)
+          echo "=== Tier 2: $SCOPE_COUNT scopes, shard ${{ matrix.instance }}/17 ==="
+          # Single-scope shards: use dist=load so all workers parallelize within
+          # the one class rather than one worker running everything sequentially.
+          if [ "$SCOPE_COUNT" -eq 1 ]; then
+            DIST_MODE=load
+          else
+            DIST_MODE=loadscope
+          fi
+          echo "=== dist mode: $DIST_MODE ==="
           PYTEST_EXIT=0
           SERVICES_READY_FILE=/tmp/services-ready \
           python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
-            --dist=loadscope \
+            --dist=$DIST_MODE \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
