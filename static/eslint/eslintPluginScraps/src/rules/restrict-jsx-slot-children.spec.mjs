@@ -23,19 +23,27 @@ import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
  */
 const COMPACT_SELECT_OPTIONS = [
   {
-    propNames: ['menuHeaderTrailingItems', 'menuFooter'],
-    allowed: [
+    slots: [
       {
-        type: 'member',
-        source: '@sentry/scraps/compactSelect',
-        objectName: 'MenuComponents',
-        role: 'leaf',
-      },
-      {
-        type: 'named',
-        source: '@sentry/scraps/layout',
-        names: ['Flex', 'Stack', 'Grid', 'Container'],
-        role: 'wrapper',
+        propNames: ['menuHeaderTrailingItems', 'menuFooter'],
+        allowed: [
+          {
+            source: '@sentry/scraps/compactSelect',
+            names: [
+              'MenuComponents.HeaderButton',
+              'MenuComponents.LinkButton',
+              'MenuComponents.CTAButton',
+              'MenuComponents.CTALinkButton',
+              'MenuComponents.ApplyButton',
+              'MenuComponents.CancelButton',
+              'MenuComponents.Alert',
+            ],
+          },
+          {
+            source: '@sentry/scraps/layout',
+            names: ['Flex', 'Stack', 'Grid', 'Container'],
+          },
+        ],
       },
     ],
   },
@@ -43,10 +51,13 @@ const COMPACT_SELECT_OPTIONS = [
 
 // Pre-computed hint string produced by buildAllowedHint() for the config above
 const ALLOWED_HINT =
-  "MenuComponents.* from '@sentry/scraps/compactSelect', or Flex, Stack, Grid, Container from '@sentry/scraps/layout'";
+  "MenuComponents.HeaderButton, MenuComponents.LinkButton, MenuComponents.CTAButton, MenuComponents.CTALinkButton, MenuComponents.ApplyButton, MenuComponents.CancelButton, MenuComponents.Alert from '@sentry/scraps/compactSelect', or Flex, Stack, Grid, Container from '@sentry/scraps/layout'";
 
 /**
  * Shorthand for an expected "forbidden" error for a given element name and prop.
+ *
+ * @param {string} name
+ * @param {string} prop
  */
 function forbidden(name, prop) {
   return {messageId: 'forbidden', data: {name, prop, allowed: ALLOWED_HINT}};

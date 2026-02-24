@@ -1,23 +1,22 @@
 /**
  * ESLint rule: restrict-jsx-slot-children
  *
- * Generic rule that restricts the JSX trees passed to specific props ("slots")
- * to a configurable set of allowed elements.
+ * Restricts the JSX trees passed to specific props ("slots") to a configurable
+ * set of allowed elements. Each slot config is applied to one or more prop
+ * names via `propNames`.
  *
- * Slots are identified by prop name.  Each allowed element comes from a known
- * import source and carries a role:
+ * Each allowed element descriptor lists the names that may appear in JSX and
+ * where they are imported from:
  *
- *   "leaf"    — allowed element, recursion stops here (the component's own
- *               internal JSX is not the slot's concern).
- *   "wrapper" — allowed element used to compose multiple children; the rule
- *               recurses into its direct JSX children and checks each one.
+ *   { source, names }
+ *     `names` is a flat list of allowed JSX tag names, using dot notation for
+ *     member expressions. Plain names match <Ident>; dotted names match
+ *     <Object.Member>. Import aliasing is respected.
  *
- * Two element kinds are supported:
- *
- *   "member"  — any JSXMemberExpression whose object is a named export
- *               (e.g. <MenuComponents.HeaderButton>).
- *   "named"   — a specific set of JSX identifiers that are named exports
- *               (e.g. <Flex>, <Stack>).
+ * Recursion semantics:
+ *   - Member expressions (<A.B>) are treated as leaves — the rule stops here.
+ *   - Plain identifiers (<Ident>) are treated as wrappers — the rule recurses
+ *     into their direct JSX children and checks each one.
  *
  * The rule handles direct JSX, arrow-function expression bodies, top-level
  * ternary / logical expressions, and JSXExpressionContainers inside wrapper
@@ -32,19 +31,23 @@
  *   '@sentry/scraps/restrict-jsx-slot-children': [
  *     'warn',
  *     {
- *       propNames: ['menuHeaderTrailingItems', 'menuFooter'],
- *       allowed: [
+ *       slots: [
  *         {
- *           type: 'member',
- *           source: '@sentry/scraps/compactSelect',
- *           objectName: 'MenuComponents',
- *           role: 'leaf',
- *         },
- *         {
- *           type: 'named',
- *           source: '@sentry/scraps/layout',
- *           names: ['Flex', 'Stack', 'Grid', 'Container'],
- *           role: 'wrapper',
+ *           propNames: ['menuHeaderTrailingItems', 'menuFooter'],
+ *           allowed: [
+ *             {
+ *               source: '@sentry/scraps/compactSelect',
+ *               names: [
+ *                 'MenuComponents.HeaderButton',
+ *                 'MenuComponents.CTAButton',
+ *                 'MenuComponents.ApplyButton',
+ *               ],
+ *             },
+ *             {
+ *               source: '@sentry/scraps/layout',
+ *               names: ['Flex', 'Stack', 'Grid', 'Container'],
+ *             },
+ *           ],
  *         },
  *       ],
  *     },
@@ -54,7 +57,7 @@
 /**
  * Returns a human-readable display name for a JSX element's opening-tag name.
  *
- * @param {import('eslint').Rule.NodeTypes['JSXOpeningElement']['name']} nameNode
+ * @param {*} nameNode
  * @returns {string}
  */
 function getDisplayName(nameNode) {
@@ -68,19 +71,46 @@ function getDisplayName(nameNode) {
 }
 
 /**
- * Builds the "use these instead" hint from the allowed config entries.
+ * Builds the "use these instead" hint string from an allowed-descriptor array.
  *
- * @param {Array<{type: string, source: string, objectName?: string, names?: string[]}>} allowedConfig
- * @returns {string}  e.g. "MenuComponents.* from '@sentry/scraps/compactSelect', or Flex, Stack from '@sentry/scraps/layout'"
+ * @param {Array<{source: string, names: string[]}>} allowedConfig
+ * @returns {string}
  */
 function buildAllowedHint(allowedConfig) {
-  const parts = allowedConfig.map(entry => {
-    if (entry.type === 'member') {
-      return `${entry.objectName}.* from '${entry.source}'`;
+  return allowedConfig
+    .map(entry => `${entry.names.join(', ')} from '${entry.source}'`)
+    .join(', or ');
+}
+
+/**
+ * Pre-processes a single allowed entry's names into member and identifier sets.
+ *
+ * @param {Array<string>} names
+ * @returns {{ memberNames: Map<string, Set<string>>, identifierNames: Set<string> }}
+ */
+function processNames(names) {
+  /** @type {Map<string, Set<string>>} */
+  const memberNames = new Map();
+  /** @type {Set<string>} */
+  const identifierNames = new Set();
+
+  for (const name of names) {
+    const dot = name.indexOf('.');
+    if (dot === -1) {
+      identifierNames.add(name);
+    } else {
+      const obj = name.slice(0, dot);
+      const member = name.slice(dot + 1);
+      const members = memberNames.get(obj);
+      if (members) {
+        members.add(member);
+      } else {
+        memberNames.set(obj, new Set([member]));
+      }
     }
-    return `${entry.names.join(', ')} from '${entry.source}'`;
-  });
-  return parts.join(', or ');
+  }
+
+  return {memberNames, identifierNames};
 }
 
 /**
@@ -90,70 +120,48 @@ export const restrictJsxSlotChildren = {
   meta: {
     type: 'suggestion',
     docs: {
-      description: 'Restrict JSX slot props to a configurable set of allowed elements.',
+      description:
+        'Restrict JSX slot props to a per-prop configurable set of allowed elements.',
       recommended: false,
     },
     schema: [
       {
         type: 'object',
         properties: {
-          /**
-           * Names of the JSX props that act as "slots" and should be checked.
-           * E.g. ["menuHeaderTrailingItems", "menuFooter"]
-           */
-          propNames: {
+          slots: {
             type: 'array',
-            items: {type: 'string'},
-          },
-          /**
-           * Allowed element descriptors.  Each descriptor specifies where the
-           * element comes from, what it looks like in JSX, and how the rule
-           * should treat it when walking the tree.
-           */
-          allowed: {
-            type: 'array',
-            minItems: 1,
             items: {
-              anyOf: [
-                {
-                  /**
-                   * "member" — allows <Object.Member> when Object was imported
-                   * as `objectName` from `source`.
-                   */
-                  type: 'object',
-                  properties: {
-                    type: {const: 'member'},
-                    source: {type: 'string'},
-                    objectName: {type: 'string'},
-                    role: {type: 'string', enum: ['leaf', 'wrapper']},
-                  },
-                  required: ['type', 'source', 'objectName', 'role'],
-                  additionalProperties: false,
+              type: 'object',
+              properties: {
+                propNames: {
+                  type: 'array',
+                  minItems: 1,
+                  items: {type: 'string'},
                 },
-                {
-                  /**
-                   * "named" — allows <Ident> when Ident was imported from
-                   * `source` as one of the listed `names`.
-                   */
-                  type: 'object',
-                  properties: {
-                    type: {const: 'named'},
-                    source: {type: 'string'},
-                    names: {
-                      type: 'array',
-                      minItems: 1,
-                      items: {type: 'string'},
+                allowed: {
+                  type: 'array',
+                  minItems: 1,
+                  items: {
+                    type: 'object',
+                    properties: {
+                      source: {type: 'string'},
+                      names: {
+                        type: 'array',
+                        minItems: 1,
+                        items: {type: 'string'},
+                      },
                     },
-                    role: {type: 'string', enum: ['leaf', 'wrapper']},
+                    required: ['source', 'names'],
+                    additionalProperties: false,
                   },
-                  required: ['type', 'source', 'names', 'role'],
-                  additionalProperties: false,
                 },
-              ],
+              },
+              required: ['propNames', 'allowed'],
+              additionalProperties: false,
             },
           },
         },
-        required: ['propNames', 'allowed'],
+        required: ['slots'],
         additionalProperties: false,
       },
     ],
@@ -163,76 +171,68 @@ export const restrictJsxSlotChildren = {
   },
 
   create(context) {
-    const options = context.options[0] ?? {propNames: [], allowed: []};
-    const slotProps = new Set(options.propNames);
-    const allowedConfig = options.allowed;
-
-    // Pre-compute the hint string once per rule invocation (same config for
-    // the whole file).
-    const allowedHint = buildAllowedHint(allowedConfig);
+    const slotsConfig = context.options[0]?.slots ?? [];
 
     /**
-     * Maps local binding name → role for "member"-type entries.
-     * Populated as we visit ImportDeclarations.
-     * Key: local name of the imported object (e.g. "MC" if aliased).
-     * Value: "leaf" | "wrapper"
+     * Per-slot runtime state, keyed by individual prop name.
      *
-     * @type {Map<string, 'leaf'|'wrapper'>}
+     * processedAllowed: pre-parsed config entries for fast import lookup
+     * memberAllowed:    localAlias → Set<memberName>  (leaf: stop recursion)
+     * namedAllowed:     Set<localAlias>               (wrapper: recurse)
+     * hint:             pre-computed error hint string
      */
-    const memberRoles = new Map();
+    const slotState = new Map();
+
+    for (const slot of slotsConfig) {
+      /** @type {Array<{source: string, names: string[]}>} */
+      const allowed = slot.allowed;
+      const state = {
+        processedAllowed: allowed.map(entry => ({
+          source: entry.source,
+          ...processNames(entry.names),
+        })),
+        memberAllowed: new Map(),
+        namedAllowed: new Set(),
+        hint: buildAllowedHint(allowed),
+      };
+      for (const propName of slot.propNames) {
+        slotState.set(propName, state);
+      }
+    }
 
     /**
-     * Maps local binding name → role for "named"-type entries.
-     * Key: local name of the imported identifier (e.g. "FlexLayout" if aliased).
-     * Value: "leaf" | "wrapper"
+     * Recursively walks a JSXElement against a slot's allowed set:
      *
-     * @type {Map<string, 'leaf'|'wrapper'>}
+     *   - Member expression (<A.B>) where A is a tracked alias and B is in its
+     *     allowed member set: leaf, stop.
+     *   - Identifier (<Ident>) where Ident is in namedAllowed: wrapper, recurse.
+     *   - Anything else: reported as forbidden.
+     *
+     * @param {*} jsxElement
+     * @param {string} propName
+     * @param {{memberAllowed: Map<string, Set<string>>, namedAllowed: Set<string>, hint: string}} state
      */
-    const namedRoles = new Map();
+    function checkSlotTree(jsxElement, propName, state) {
+      const nameNode = jsxElement.openingElement.name;
 
-    /**
-     * Returns the role of a JSX element name node, or null if the element is
-     * not in any allowed set.
-     *
-     * @param {import('eslint').Rule.NodeTypes['JSXOpeningElement']['name']} nameNode
-     * @returns {'leaf'|'wrapper'|null}
-     */
-    function getRole(nameNode) {
       if (
         nameNode.type === 'JSXMemberExpression' &&
         nameNode.object.type === 'JSXIdentifier'
       ) {
-        return memberRoles.get(nameNode.object.name) ?? null;
-      }
-      if (nameNode.type === 'JSXIdentifier') {
-        return namedRoles.get(nameNode.name) ?? null;
-      }
-      return null;
-    }
-
-    /**
-     * Recursively walks a JSXElement against the slot rules:
-     *   "leaf"    → allowed, stop recursing
-     *   "wrapper" → allowed, recurse into direct JSX children
-     *   null      → report
-     *
-     * @param {import('eslint').Rule.NodeTypes['JSXElement']} jsxElement
-     * @param {string} propName
-     */
-    function checkSlotTree(jsxElement, propName) {
-      const nameNode = jsxElement.openingElement.name;
-      const role = getRole(nameNode);
-
-      if (role === 'leaf') {
-        return;
-      }
-
-      if (role === 'wrapper') {
+        const allowedMembers = state.memberAllowed.get(nameNode.object.name);
+        if (allowedMembers?.has(nameNode.property.name)) {
+          return; // leaf — don't recurse into children
+        }
+      } else if (
+        nameNode.type === 'JSXIdentifier' &&
+        state.namedAllowed.has(nameNode.name)
+      ) {
+        // wrapper — recurse into direct JSX children
         for (const child of jsxElement.children) {
           if (child.type === 'JSXElement') {
-            checkSlotTree(child, propName);
+            checkSlotTree(child, propName, state);
           } else if (child.type === 'JSXExpressionContainer') {
-            checkExpression(child.expression, propName);
+            checkExpression(child.expression, propName, state);
           }
         }
         return;
@@ -241,7 +241,7 @@ export const restrictJsxSlotChildren = {
       context.report({
         node: jsxElement,
         messageId: 'forbidden',
-        data: {name: getDisplayName(nameNode), prop: propName, allowed: allowedHint},
+        data: {name: getDisplayName(nameNode), prop: propName, allowed: state.hint},
       });
     }
 
@@ -249,31 +249,32 @@ export const restrictJsxSlotChildren = {
      * Unwraps ternary / logical expressions to find JSX elements, then checks
      * each one with checkSlotTree.
      *
-     * @param {import('eslint').Rule.Node} expr
+     * @param {*} expr
      * @param {string} propName
+     * @param {{memberAllowed: Map<string, Set<string>>, namedAllowed: Set<string>, hint: string}} state
      */
-    function checkExpression(expr, propName) {
+    function checkExpression(expr, propName, state) {
       if (!expr) return;
 
       if (expr.type === 'JSXElement') {
-        checkSlotTree(expr, propName);
+        checkSlotTree(expr, propName, state);
         return;
       }
 
       // condition ? <A/> : <B/>
       if (expr.type === 'ConditionalExpression') {
-        checkExpression(expr.consequent, propName);
-        checkExpression(expr.alternate, propName);
+        checkExpression(expr.consequent, propName, state);
+        checkExpression(expr.alternate, propName, state);
         return;
       }
 
       // condition && <A/>  /  condition || <A/>
       if (expr.type === 'LogicalExpression') {
         if (expr.operator === '&&') {
-          checkExpression(expr.right, propName);
+          checkExpression(expr.right, propName, state);
         } else if (expr.operator === '||') {
-          checkExpression(expr.left, propName);
-          checkExpression(expr.right, propName);
+          checkExpression(expr.left, propName, state);
+          checkExpression(expr.right, propName, state);
         }
         return;
       }
@@ -285,19 +286,30 @@ export const restrictJsxSlotChildren = {
       ImportDeclaration(node) {
         const source = node.source.value;
 
-        for (const entry of allowedConfig) {
-          if (entry.source !== source) continue;
+        for (const [, state] of slotState) {
+          for (const entry of state.processedAllowed) {
+            if (entry.source !== source) continue;
 
-          for (const spec of node.specifiers) {
-            if (spec.type !== 'ImportSpecifier') continue;
+            for (const spec of node.specifiers) {
+              if (spec.type !== 'ImportSpecifier') continue;
+              if (spec.imported.type !== 'Identifier') continue;
 
-            if (entry.type === 'member' && spec.imported.name === entry.objectName) {
-              memberRoles.set(spec.local.name, entry.role);
-            } else if (
-              entry.type === 'named' &&
-              entry.names.includes(spec.imported.name)
-            ) {
-              namedRoles.set(spec.local.name, entry.role);
+              const importedName = spec.imported.name;
+              const localName = spec.local.name;
+
+              const memberNames = entry.memberNames.get(importedName);
+              if (memberNames) {
+                const existing = state.memberAllowed.get(localName);
+                if (existing) {
+                  for (const m of memberNames) existing.add(m);
+                } else {
+                  state.memberAllowed.set(localName, new Set(memberNames));
+                }
+              }
+
+              if (entry.identifierNames.has(importedName)) {
+                state.namedAllowed.add(localName);
+              }
             }
           }
         }
@@ -305,10 +317,10 @@ export const restrictJsxSlotChildren = {
 
       JSXAttribute(node) {
         const propName = node.name.type === 'JSXIdentifier' ? node.name.name : null;
+        if (!propName) return;
 
-        if (!propName || !slotProps.has(propName)) {
-          return;
-        }
+        const state = slotState.get(propName);
+        if (!state) return;
 
         if (!node.value || node.value.type !== 'JSXExpressionContainer') {
           return;
@@ -323,13 +335,11 @@ export const restrictJsxSlotChildren = {
             expr.type === 'FunctionExpression') &&
           expr.body.type === 'JSXElement'
         ) {
-          checkExpression(expr.body, propName);
+          checkExpression(expr.body, propName, state);
           return;
         }
 
-        // Direct JSX, conditional/logical expressions — checkExpression handles
-        // all of these. Variable references and non-JSX values are ignored.
-        checkExpression(expr, propName);
+        checkExpression(expr, propName, state);
       },
     };
   },
