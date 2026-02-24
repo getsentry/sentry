@@ -592,12 +592,34 @@ class SpansBuffer:
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
-        sizes = {key: 0 for key in segment_keys}
+        sizes: dict[SegmentKey, int] = {key: 0 for key in segment_keys}
         self._last_decompress_latency_ms = 0
         decompress_latency_ms = 0.0
 
         oob_refs: list[tuple[SegmentKey, bytes]] = []
         oob_keys_by_segment: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
+
+        def _add_spans(key: SegmentKey, raw_data: bytes) -> bool:
+            """
+            Decompress and add spans to the segment. Returns False if the
+            segment exceeded max_segment_bytes and was dropped.
+            """
+            nonlocal decompress_latency_ms
+
+            decompress_start = time.monotonic()
+            decompressed = self._decompress_batch(raw_data)
+            decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
+
+            sizes[key] = sizes.get(key, 0) + sum(len(span) for span in decompressed)
+            if sizes[key] > max_segment_bytes:
+                metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
+                logger.warning("Skipping too large segment, byte size %s", sizes[key])
+                payloads.pop(key, None)
+                sizes.pop(key, None)
+                return False
+
+            payloads[key].extend(decompressed)
+            return True
 
         while cursors:
             with self.client.pipeline(transaction=False) as p:
@@ -609,29 +631,18 @@ class SpansBuffer:
                 scan_results = p.execute()
 
             for key, (cursor, scan_values) in zip(current_keys, scan_results):
-                decompressed_spans = []
-
+                dropped = False
                 for scan_value in scan_values:
                     if scan_value.startswith(b"span-buf:p:"):
                         oob_refs.append((key, scan_value))
                         oob_keys_by_segment[key].append(scan_value)
-                    else:
-                        decompress_start = time.monotonic()
-                        decompressed_spans.extend(self._decompress_batch(scan_value))
-                        decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
+                    elif key in payloads:
+                        if not _add_spans(key, scan_value):
+                            dropped = True
 
-                sizes[key] += sum(len(span) for span in decompressed_spans)
-                if sizes[key] > max_segment_bytes:
-                    metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
-                    logger.warning("Skipping too large segment, byte size %s", sizes[key])
-
-                    del payloads[key]
-                    del cursors[key]
-                    del sizes[key]
-                    continue
-
-                payloads[key].extend(decompressed_spans)
-                if cursor == 0:
+                if dropped:
+                    cursors.pop(key, None)
+                elif cursor == 0:
                     del cursors[key]
                 else:
                     cursors[key] = cursor
@@ -648,22 +659,9 @@ class SpansBuffer:
                     metrics.incr("spans.buffer.oob_key_missing")
                     continue
                 if segment_key not in payloads:
-                    # Segment was already dropped due to size limit
                     continue
 
-                decompress_start = time.monotonic()
-                decompressed = self._decompress_batch(oob_payload)
-                decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
-
-                decompressed_size = sum(len(span) for span in decompressed)
-                sizes[segment_key] = sizes.get(segment_key, 0) + decompressed_size
-                if sizes[segment_key] > max_segment_bytes:
-                    metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
-                    logger.warning("Skipping too large segment, byte size %s", sizes[segment_key])
-                    del payloads[segment_key]
-                    continue
-
-                payloads[segment_key].extend(decompressed)
+                _add_spans(segment_key, oob_payload)
 
         # Fetch ingested counts for all segments to calculate dropped spans
         with self.client.pipeline(transaction=False) as p:
