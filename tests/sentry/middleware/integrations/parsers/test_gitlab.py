@@ -87,6 +87,24 @@ class GitlabRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
+    def test_invalid_webhook_secret(self) -> None:
+        self.get_integration()
+        # Token format is correct (external_id:secret) but the secret is wrong
+        bad_token = f"{EXTERNAL_ID}:wrong-secret"
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=bad_token,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        response = self.run_parser(request)
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.reason_phrase == "Webhook secret does not match"
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
     @responses.activate
     def test_routing_webhook_properly_no_regions(self) -> None:
         request = self.factory.post(

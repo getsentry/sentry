@@ -5,7 +5,9 @@ from collections.abc import Mapping
 from typing import Any
 
 import orjson
+from django.http import HttpResponse
 from django.http.response import HttpResponseBase
+from django.utils.crypto import constant_time_compare
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, get_gitlab_external_id
@@ -65,10 +67,19 @@ class GitlabRequestParser(BaseRequestParser):
         if isinstance(maybe_http_response, HttpResponseBase):
             return maybe_http_response
 
+        (external_id, secret) = maybe_http_response
+
         try:
             integration = self.get_integration_from_request()
             if not integration:
                 return self.get_default_missing_integration_response()
+
+            if not constant_time_compare(secret, integration.metadata.get("webhook_secret", "")):
+                logger.info(
+                    "gitlab.webhook.invalid-token-secret",
+                    extra={"integration_id": integration.id},
+                )
+                return HttpResponse(status=409, reason="Webhook secret does not match")
 
             regions = self.get_regions_from_organizations()
         except Integration.DoesNotExist:
