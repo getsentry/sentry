@@ -27,7 +27,7 @@ const CardContainer = styled(Container)<{seer?: boolean}>`
     p.seer &&
     `
     @media (min-width: ${p.theme.breakpoints.md}) {
-      padding-right: 36%;
+      padding-right: 4rem;
       grid-column: span 2;
     }
   `}
