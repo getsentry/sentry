@@ -128,7 +128,15 @@ function defaultSearchMatcher<Value extends SelectKey>(
   if (!text) {
     return {score: 0};
   }
-  return fzf(text, search.toLowerCase(), false);
+  const result = fzf(text, search.toLowerCase(), false);
+  // fzf returns end=-1 when no subsequence match exists (score is also 0).
+  // For valid matches fzf may return negative scores due to gap penalties, so we
+  // cannot rely on score > 0 to detect a match. Use end !== -1 instead and clamp
+  // the score so getHiddenOptions always sees score > 0 for any real match.
+  if (result.end === -1) {
+    return {score: 0};
+  }
+  return {score: Math.max(1, result.score)};
 }
 
 /**
@@ -136,9 +144,9 @@ function defaultSearchMatcher<Value extends SelectKey>(
  * outside the list box's count limit. Also collects match scores for use in sorting.
  *
  * An option is considered a match when its score is greater than 0. The default matcher
- * uses fzf and returns a positive score for subsequence matches, 0 otherwise. Custom
- * matchers can return any positive score to influence sort order — higher scores appear
- * first.
+ * uses fzf and always returns a positive score for any subsequence match, 0 when there
+ * is no match. Custom matchers can return any positive score to influence sort order —
+ * higher scores appear first.
  *
  * Returns both the set of hidden option keys and a map of key → score for matched
  * options.
