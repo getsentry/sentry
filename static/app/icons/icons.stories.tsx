@@ -1490,6 +1490,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'pullRequestClosed',
+        groups: ['code'],
+        keywords: ['git', 'repo', 'code', 'version control', 'project'],
+        name: 'PullRequestClosed',
+        defaultProps: {},
+      },
+      {
         id: 'repository',
         groups: ['code'],
         keywords: ['git', 'repo', 'code', 'version control', 'project'],
