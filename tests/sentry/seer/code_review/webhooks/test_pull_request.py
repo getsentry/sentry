@@ -8,8 +8,9 @@ import pytest
 from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.models.repositorysettings import CodeReviewTrigger
+from sentry.models.repositorysettings import CodeReviewSettings, CodeReviewTrigger
 from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
+from sentry.seer.code_review.webhooks.pull_request import handle_pull_request_event
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
 
@@ -309,7 +310,34 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_not_called()
 
-    def test_pull_request_closed_bypasses_trigger_check_post_ga(self) -> None:
+    def test_pull_request_closed_filtered_when_no_triggers_configured_post_ga(self) -> None:
+        """Test that closed action is filtered when no triggers are configured for a seat-based org.
+
+        If no triggers are configured, no pr_review was ever sent for any PR in this repo,
+        so there is nothing for Seer to process on close.
+
+        Note: This test calls handle_pull_request_event directly because the _send_webhook_event
+        helper skips RepositorySettings creation when triggers=[], which would cause the preflight
+        to deny the request before reaching the handler under test.
+        """
+        features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
+        with self.feature(features), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "closed"
+
+            handle_pull_request_event(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                event=event,
+                organization=self.organization,
+                repo=self.create_repo(project=self.project, provider="integrations:github"),
+                org_code_review_settings=CodeReviewSettings(enabled=True, triggers=[]),
+                tags={},
+            )
+
+            self.mock_seer.assert_not_called()
+
+    def test_pull_request_closed_not_filtered_when_triggers_configured_post_ga(self) -> None:
+        """Test that closed action reaches Seer when at least one trigger is configured."""
         triggers: list[CodeReviewTrigger] = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
         org_options = {"sentry:enable_pr_review_test_generation": False}

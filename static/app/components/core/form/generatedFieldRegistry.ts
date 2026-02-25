@@ -149,4 +149,93 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Show Generative AI Features'),
     hintText: '',
   },
+  'organization-security-and-privacy.require2FA': {
+    name: 'require2FA',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Require Two-Factor Authentication'),
+    hintText: t('Require and enforce two-factor authentication for all members'),
+  },
+  'organization-security-and-privacy.allowSharedIssues': {
+    name: 'allowSharedIssues',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Allow Shared Issues'),
+    hintText: t('Enable sharing of limited details on issues to anonymous users'),
+  },
+  'organization-security-and-privacy.enhancedPrivacy': {
+    name: 'enhancedPrivacy',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Enhanced Privacy'),
+    hintText: t(
+      'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications'
+    ),
+  },
+  'organization-security-and-privacy.scrapeJavaScript': {
+    name: 'scrapeJavaScript',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Allow JavaScript Source Fetching'),
+    hintText: t('Allow Sentry to scrape missing JavaScript source context when possible'),
+  },
+  'organization-security-and-privacy.storeCrashReports': {
+    name: 'storeCrashReports',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Store Minidumps As Attachments'),
+    hintText: t(
+      'Store minidumps as attachments for improved processing and download in issue details.'
+    ),
+  },
+  'organization-security-and-privacy.allowJoinRequests': {
+    name: 'allowJoinRequests',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Allow Join Requests'),
+    hintText: t('Allow users to request to join your organization'),
+  },
+  'organization-security-and-privacy.dataScrubber': {
+    name: 'dataScrubber',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Require Data Scrubber'),
+    hintText: t('Require server-side data scrubbing be enabled for all projects'),
+  },
+  'organization-security-and-privacy.dataScrubberDefaults': {
+    name: 'dataScrubberDefaults',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Require Using Default Scrubbers'),
+    hintText: t(
+      'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects'
+    ),
+  },
+  'organization-security-and-privacy.scrubIPAddresses': {
+    name: 'scrubIPAddresses',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Prevent Storing of IP Addresses'),
+    hintText: t(
+      'Preventing IP addresses from being stored for new events on all projects'
+    ),
+  },
+  'organization-security-and-privacy.sensitiveFields': {
+    name: 'sensitiveFields',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Global Sensitive Fields'),
+    hintText: t(
+      'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
+    ),
+  },
+  'organization-security-and-privacy.safeFields': {
+    name: 'safeFields',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Global Safe Fields'),
+    hintText: t(
+      'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
+    ),
+  },
 };
