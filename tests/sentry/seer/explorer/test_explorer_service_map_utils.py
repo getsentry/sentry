@@ -97,11 +97,14 @@ class TestBuildServiceMap(TestCase):
         assert isinstance(snuba_params, SnubaParams)
         mock_send.assert_called_once()
 
+    @mock.patch("sentry.tasks.explorer_context_engine_tasks._build_nodes")
     @mock.patch("sentry.tasks.explorer_context_engine_tasks._query_service_dependencies")
-    def test_handles_no_edges(self, mock_dependencies):
+    def test_handles_no_nodes(self, mock_dependencies, mock_build_nodes):
         org = self.create_organization()
+        self.create_project(organization=org)
 
         mock_dependencies.return_value = []
+        mock_build_nodes.return_value = []
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
@@ -785,8 +788,9 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
+        projects = list(self.organization.project_set.all())
         edges = _query_service_dependencies(self._snuba_params())
-        nodes = _build_nodes(edges)
+        nodes = _build_nodes(edges, projects)
         roles = {n["project_id"]: n["role"] for n in nodes}
 
         # Frontend should be classified as caller (only outgoing edges)
@@ -871,8 +875,9 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
+        projects = list(self.organization.project_set.all())
         edges = _query_service_dependencies(self._snuba_params())
-        nodes = _build_nodes(edges)
+        nodes = _build_nodes(edges, projects)
         roles = {n["project_id"]: n["role"] for n in nodes}
 
         # API should be hub (both incoming and outgoing edges)
@@ -942,8 +947,9 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
+        projects = list(self.organization.project_set.all())
         detected_edges = _query_service_dependencies(self._snuba_params())
-        nodes = _build_nodes(detected_edges)
+        nodes = _build_nodes(detected_edges, projects)
         roles = {n["project_id"]: n["role"] for n in nodes}
 
         assert roles[project_p.id] == "peripheral"
