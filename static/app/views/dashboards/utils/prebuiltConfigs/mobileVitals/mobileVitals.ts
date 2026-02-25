@@ -7,16 +7,14 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
 
-// Mirrors the span-op filter used by the App Starts sub-dashboard (appStarts.ts
-// TRANSACTION_OP_CONDITION) for avg(measurements.app_start_*) widgets, then requires at
-// least one app start measurement to be present. OR is intentional: a screen may only have
-// warm-start data (app was already running) and should still appear.
-const APP_START_CONDITION = `${TRANSACTION_OP_CONDITION} (has:${SpanFields.APP_START_COLD} OR has:${SpanFields.APP_START_WARM})`;
+// Filters to root transaction spans (is_transaction:true) since app start measurements are
+// only set on root spans. OR is intentional: a screen may only have warm-start data (app
+// was already running) and should still appear.
+const APP_START_CONDITION = `is_transaction:true ${TRANSACTION_OP_CONDITION} (has:${SpanFields.APP_START_COLD} OR has:${SpanFields.APP_START_WARM})`;
 
-// Mirrors the span-op filter used by the Screen Loads sub-dashboard (screenLoads.ts
-// TRANSACTION_CONDITION = 'is_transaction:true span.op:[ui.load,navigation]'), then requires
-// at least one screen-load measurement. OR is intentional: TTFD can be absent while TTID
-// is present (reportFullyDrawn() is opt-in).
+// Filters to root transaction spans (is_transaction:true) since TTID/TTFD are only set on
+// root spans. OR is intentional: TTFD can be absent while TTID is present
+// (reportFullyDrawn() is opt-in).
 const SCREEN_LOAD_CONDITION = `is_transaction:true ${TRANSACTION_OP_CONDITION} (has:${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY} OR has:${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`;
 
 // Uses transaction.op (consistent with APP_START_CONDITION and SCREEN_LOAD_CONDITION) since
