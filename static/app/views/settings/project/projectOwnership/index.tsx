@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -137,158 +137,160 @@ export default function ProjectOwnership() {
   }
 
   return (
-    <SentryDocumentTitle title={routeTitleGen(ownershipTitle, project.slug, false)}>
-      <SettingsPageHeader
-        title={t('Ownership Rules')}
-        action={
-          <Grid flow="column" align="center" gap="md">
-            {hasCodeowners && (
-              <Access access={['org:integrations']} project={project}>
-                {({hasAccess}) => (
-                  <Button
-                    onClick={handleAddCodeOwner}
-                    size="sm"
-                    data-test-id="add-codeowner-button"
-                    disabled={!hasAccess}
-                  >
-                    {t('Import CODEOWNERS')}
-                  </Button>
-                )}
-              </Access>
-            )}
-            <Button
-              type="button"
-              size="sm"
-              icon={<IconEdit />}
-              priority="primary"
-              onClick={() =>
-                openEditOwnershipRules({
-                  organization,
-                  project,
-                  ownership: ownership!,
-                  onSave: handleOwnershipSave,
-                  theme,
-                })
-              }
-              disabled={!!ownership && editOwnershipRulesDisabled}
-            >
-              {t('Edit Rules')}
-            </Button>
-          </Grid>
-        }
-      />
-      <TextBlock>
-        {tct(
-          `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-            ),
+    <FormSearch route="/settings/:orgId/projects/:projectId/ownership/">
+      <SentryDocumentTitle title={routeTitleGen(ownershipTitle, project.slug, false)}>
+        <SettingsPageHeader
+          title={t('Ownership Rules')}
+          action={
+            <Grid flow="column" align="center" gap="md">
+              {hasCodeowners && (
+                <Access access={['org:integrations']} project={project}>
+                  {({hasAccess}) => (
+                    <Button
+                      onClick={handleAddCodeOwner}
+                      size="sm"
+                      data-test-id="add-codeowner-button"
+                      disabled={!hasAccess}
+                    >
+                      {t('Import CODEOWNERS')}
+                    </Button>
+                  )}
+                </Access>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                icon={<IconEdit />}
+                priority="primary"
+                onClick={() =>
+                  openEditOwnershipRules({
+                    organization,
+                    project,
+                    ownership: ownership!,
+                    onSave: handleOwnershipSave,
+                    theme,
+                  })
+                }
+                disabled={!!ownership && editOwnershipRulesDisabled}
+              >
+                {t('Edit Rules')}
+              </Button>
+            </Grid>
           }
-        )}
-      </TextBlock>
-      <ProjectPermissionAlert
-        access={editOwnershipRulesDisabled ? ['project:write'] : ['project:read']}
-        project={project}
-      />
-      {isCodeownersError && (
-        <Alert.Container>
-          <Alert variant="danger" showIcon={false}>
-            {t(
-              "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
-            )}
-          </Alert>
-        </Alert.Container>
-      )}
-      <CodeOwnerErrors
-        orgSlug={organization.slug}
-        projectSlug={project.slug}
-        codeowners={codeowners ?? []}
-      />
-      {ownership && (
-        <ErrorBoundary mini>
-          <OwnershipRulesTable
-            projectRules={ownership.schema?.rules ?? []}
-            codeowners={codeowners ?? []}
-          />
-        </ErrorBoundary>
-      )}
-      <ProjectPermissionAlert project={project} />
-      {hasCodeowners && (
-        <CodeOwnerFileTable
-          project={project}
-          codeowners={codeowners ?? []}
-          onDelete={handleCodeOwnerDeleted}
-          onUpdate={handleCodeOwnerUpdated}
-          disabled={disabled}
         />
-      )}
-      {ownership && !isOwnershipError ? (
-        <FieldGroup title={t('Issue Owners')}>
-          <AutoSaveField
-            name="autoAssignment"
-            schema={ownershipSchema}
-            initialValue={ownership.autoAssignment}
-            mutationOptions={ownershipMutationOptions}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Prioritize Auto Assignment')}
-                hintText={t(
-                  "When there's a conflict between suspect commit and ownership rules."
-                )}
-              >
-                <field.Select
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={disabled}
-                  options={[
-                    {
-                      value: 'Auto Assign to Suspect Commits',
-                      label: t('Auto-assign to suspect commits'),
-                    },
-                    {
-                      value: 'Auto Assign to Issue Owner',
-                      label: t('Auto-assign to issue owner'),
-                    },
-                    {
-                      value: 'Turn off Auto-Assignment',
-                      label: t('Turn off auto-assignment'),
-                    },
-                  ]}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveField>
-          <AutoSaveField
-            name="codeownersAutoSync"
-            schema={ownershipSchema}
-            initialValue={ownership.codeownersAutoSync}
-            mutationOptions={ownershipMutationOptions}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Sync changes from CODEOWNERS')}
-                hintText={t(
-                  'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={disabled || !(codeowners || []).length}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveField>
-        </FieldGroup>
-      ) : (
-        <Alert.Container>
-          <Alert variant="danger" showIcon={false}>
-            {t('There was an error issue owner settings.')}
-          </Alert>
-        </Alert.Container>
-      )}
-    </SentryDocumentTitle>
+        <TextBlock>
+          {tct(
+            `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+              ),
+            }
+          )}
+        </TextBlock>
+        <ProjectPermissionAlert
+          access={editOwnershipRulesDisabled ? ['project:write'] : ['project:read']}
+          project={project}
+        />
+        {isCodeownersError && (
+          <Alert.Container>
+            <Alert variant="danger" showIcon={false}>
+              {t(
+                "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
+        <CodeOwnerErrors
+          orgSlug={organization.slug}
+          projectSlug={project.slug}
+          codeowners={codeowners ?? []}
+        />
+        {ownership && (
+          <ErrorBoundary mini>
+            <OwnershipRulesTable
+              projectRules={ownership.schema?.rules ?? []}
+              codeowners={codeowners ?? []}
+            />
+          </ErrorBoundary>
+        )}
+        <ProjectPermissionAlert project={project} />
+        {hasCodeowners && (
+          <CodeOwnerFileTable
+            project={project}
+            codeowners={codeowners ?? []}
+            onDelete={handleCodeOwnerDeleted}
+            onUpdate={handleCodeOwnerUpdated}
+            disabled={disabled}
+          />
+        )}
+        {ownership && !isOwnershipError ? (
+          <FieldGroup title={t('Issue Owners')}>
+            <AutoSaveField
+              name="autoAssignment"
+              schema={ownershipSchema}
+              initialValue={ownership.autoAssignment}
+              mutationOptions={ownershipMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Prioritize Auto Assignment')}
+                  hintText={t(
+                    "When there's a conflict between suspect commit and ownership rules."
+                  )}
+                >
+                  <field.Select
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={disabled}
+                    options={[
+                      {
+                        value: 'Auto Assign to Suspect Commits',
+                        label: t('Auto-assign to suspect commits'),
+                      },
+                      {
+                        value: 'Auto Assign to Issue Owner',
+                        label: t('Auto-assign to issue owner'),
+                      },
+                      {
+                        value: 'Turn off Auto-Assignment',
+                        label: t('Turn off auto-assignment'),
+                      },
+                    ]}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+            <AutoSaveField
+              name="codeownersAutoSync"
+              schema={ownershipSchema}
+              initialValue={ownership.codeownersAutoSync}
+              mutationOptions={ownershipMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Sync changes from CODEOWNERS')}
+                  hintText={t(
+                    'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
+                  )}
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={disabled || !(codeowners || []).length}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+          </FieldGroup>
+        ) : (
+          <Alert.Container>
+            <Alert variant="danger" showIcon={false}>
+              {t('There was an error issue owner settings.')}
+            </Alert>
+          </Alert.Container>
+        )}
+      </SentryDocumentTitle>
+    </FormSearch>
   );
 }
