@@ -905,6 +905,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
             "sentry.rollbackorganization": [DateUpdatedComparator("date_updated")],
+            "sentry.seerorganizationsettings": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
             "sentry.rollbackuser": [
                 UUID4Comparator("uuid", "share_uuid"),
                 DateUpdatedComparator("date_updated"),
