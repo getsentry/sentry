@@ -27,6 +27,14 @@ EXCLUDED_TEST_FILES: set[str] = {
     "tests/sentry/test_wsgi.py",
 }
 
+# Non-source files that don't appear in coverage data but have known test
+# dependencies.  When one of these files is changed, the mapped test files
+# are added to the selected set so selective testing covers them without
+# falling back to a full suite run.
+EXTRA_FILE_TO_TEST_MAPPING: dict[str, list[str]] = {
+    ".github/CODEOWNERS": ["tests/sentry/api/test_api_owners.py"],
+}
+
 
 def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
     if isinstance(trigger, re.Pattern):
@@ -136,6 +144,13 @@ def main() -> int:
             return 1
 
         affected_test_files -= EXCLUDED_TEST_FILES
+
+        # Include tests for non-source files with known test dependencies
+        for file_path in changed_files:
+            mapped_tests = EXTRA_FILE_TO_TEST_MAPPING.get(file_path, [])
+            if mapped_tests:
+                print(f"Including {len(mapped_tests)} mapped test files for {file_path}")
+                affected_test_files.update(mapped_tests)
 
         # Also include any test files that were directly changed/added in the PR
         changed_test_files = get_changed_test_files(changed_files)
