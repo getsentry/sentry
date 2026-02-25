@@ -133,6 +133,7 @@ def audit_hybrid_cloud_writes_and_deletes(request: pytest.FixtureRequest) -> Gen
 
 @pytest.fixture(autouse=True)
 <<<<<<< HEAD
+<<<<<<< HEAD
 def reset_sentry_isolation_scope() -> Generator[None]:
     """Reset isolation scope level after tests to prevent pollution.
 
@@ -156,6 +157,19 @@ def reset_default_store_cache() -> Generator[None]:
     original_cache = default_store.cache
     yield
     default_store.set_cache_impl(original_cache)
+
+
+@pytest.fixture(autouse=True)
+def reset_sentry_isolation_scope() -> Generator[None]:
+    """Reset isolation scope level after tests to prevent pollution.
+
+    SpanFlusher.main() and ProcessSpansStrategyFactory.create_with_partitions()
+    set scope.level = "warning" on the shared isolation scope. In tests the
+    flusher runs as a thread (not a separate process), so this leaks into
+    subsequent tests.
+    """
+    yield
+    sentry_sdk.get_isolation_scope()._level = None
 
 
 @pytest.fixture(autouse=True)
