@@ -107,7 +107,7 @@ class CursorAgentClient(CodingAgentClient):
             logger.info("coding_agent.cursor.verify_api_key.v0_me_success")
             return metadata
         except Exception:
-            logger.exception("coding_agent.cursor.verify_api_key.v0_me_failed_trying_models")
+            logger.warning("coding_agent.cursor.verify_api_key.v0_me_failed_trying_models")
 
         # Fall back to /v0/models for service accounts
         self.get(
