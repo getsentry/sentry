@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -183,20 +183,40 @@ export function OnboardingLayout({
               />
             ) : null}
           </Stack>
-          <Divider withBottomMargin={!copyEnabled} />
-          {copyEnabled && (
-            <Flex justify="end" margin="0 0 md">
-              <OnboardingCopyMarkdownButton
-                steps={steps}
-                borderless
-                source={newOrg ? 'first_time_setup' : 'project_getting_started'}
-              />
-            </Flex>
-          )}
+          <Divider />
           <div>
-            {steps.map((step, index) => (
-              <StyledStep key={step.title ?? step.type} stepIndex={index} {...step} />
-            ))}
+            {steps.map((step, index) => {
+              const copyButton =
+                copyEnabled && index === 0 ? (
+                  <OnboardingCopyMarkdownButton
+                    steps={steps}
+                    borderless
+                    source={newOrg ? 'first_time_setup' : 'project_getting_started'}
+                  />
+                ) : null;
+
+              const trailingItems = copyButton ? (
+                step.trailingItems ? (
+                  <Fragment>
+                    {step.trailingItems}
+                    {copyButton}
+                  </Fragment>
+                ) : (
+                  copyButton
+                )
+              ) : (
+                step.trailingItems
+              );
+
+              return (
+                <StyledStep
+                  key={step.title ?? step.type}
+                  stepIndex={index}
+                  {...step}
+                  trailingItems={trailingItems}
+                />
+              );
+            })}
           </div>
           {nextSteps.length > 0 && (
             <Fragment>
@@ -235,13 +255,12 @@ export function OnboardingLayout({
   );
 }
 
-const Divider = styled('hr')<{withBottomMargin?: boolean}>`
+const Divider = styled('hr')`
   height: 1px;
   width: 100%;
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
-  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;
 
 const StyledStep = styled(Step)`
