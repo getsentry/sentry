@@ -107,7 +107,7 @@ def compare_snapshots(
         comparison, created = PreprodSnapshotComparison.objects.get_or_create(
             head_snapshot_metrics=head_metrics,
             base_snapshot_metrics=base_metrics,
-            defaults={"state": PreprodSnapshotComparison.State.PENDING},
+            defaults={"state": PreprodSnapshotComparison.State.PROCESSING},
         )
     except IntegrityError:
         comparison = PreprodSnapshotComparison.objects.get(
@@ -125,27 +125,25 @@ def compare_snapshots(
         )
         updated = PreprodSnapshotComparison.objects.filter(
             id=comparison.id,
-            state=PreprodSnapshotComparison.State.PENDING,
+            state__in=[
+                PreprodSnapshotComparison.State.PENDING,
+                PreprodSnapshotComparison.State.FAILED,
+            ],
         ).update(state=PreprodSnapshotComparison.State.PROCESSING)
         if not updated:
             logger.info(
-                "compare_snapshots: skipping, comparison not in PENDING state (state=%s)",
+                "compare_snapshots: skipping, comparison not in retryable state (state=%s)",
                 comparison.state,
                 extra={"head_artifact_id": head_artifact_id, "comparison_id": comparison.id},
             )
             return
         comparison.state = PreprodSnapshotComparison.State.PROCESSING
     else:
-        # Plain save is safe here: get_or_create's unique constraint guarantees
-        # only one worker gets created=True; others go through the atomic
-        # filter().update() path above.
         logger.info(
             "compare_snapshots: created new comparison (id=%d)",
             comparison.id,
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
-        comparison.state = PreprodSnapshotComparison.State.PROCESSING
-        comparison.save(update_fields=["state"])
 
     try:
         session = get_preprod_session(org_id, project_id)
@@ -315,7 +313,7 @@ def compare_snapshots(
                         }
                         continue
 
-                    safe_name = name.replace("\\", "/").strip("/").replace("/", "_")
+                    safe_name = name.replace("\\", "/").strip("/")
                     stem = safe_name.rsplit(".", 1)[0] if "." in safe_name else safe_name
                     diff_mask_key = (
                         f"{image_key_prefix}/{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
@@ -427,7 +425,7 @@ def compare_snapshots(
             },
         )
 
-    except Exception:
+    except BaseException:
         logger.exception(
             "Snapshot comparison failed",
             extra={
