@@ -25,7 +25,6 @@ function OrganizationMembershipSettingsForm({
   const hasInviteMembers = features.has('invite-members');
   const hasOrgWrite = access.has('org:write');
   const hasOrgAdmin = access.has('org:admin');
-  const hasTeamRoles = features.has('team-roles');
 
   const hasGranularReplay = organization.hasGranularReplayPermissions ?? false;
 
@@ -159,11 +158,7 @@ function OrganizationMembershipSettingsForm({
               <field.Switch
                 checked={field.state.value}
                 onChange={field.handleChange}
-                disabled={
-                  hasTeamRoles
-                    ? !hasOrgWrite
-                    : t('You must be on a business plan to toggle this feature.')
-                }
+                disabled={!hasOrgWrite}
               />
             </field.Layout.Row>
           )}
