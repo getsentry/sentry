@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -87,7 +87,7 @@ export default function ProjectAlertSettings() {
   );
 
   return (
-    <Fragment>
+    <FormSearch route="/settings/:orgId/projects/:projectId/alerts/">
       <SentryDocumentTitle
         title={routeTitleGen(t('Alerts Settings'), project.slug, false)}
       />
@@ -217,6 +217,6 @@ export default function ProjectAlertSettings() {
           )}
         </Fragment>
       )}
-    </Fragment>
+    </FormSearch>
   );
 }
