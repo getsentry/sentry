@@ -169,6 +169,7 @@ function GlobalModal({onClose}: Props) {
 
     const reset = () => {
       body?.style.removeProperty('overflow');
+      body?.style.removeProperty('scrollbar-gutter');
       root?.removeAttribute('aria-hidden');
       focusTrap.current?.deactivate();
       document.removeEventListener('keydown', handleEscapeClose);
@@ -177,6 +178,8 @@ function GlobalModal({onClose}: Props) {
     if (visible) {
       if (body) {
         body.style.overflow = 'hidden';
+        // Prevent layout shift caused by scrollbar removal when scroll is blocked
+        body.style.setProperty('scrollbar-gutter', 'stable');
       }
       root?.setAttribute('aria-hidden', 'true');
       focusTrap.current?.activate();
