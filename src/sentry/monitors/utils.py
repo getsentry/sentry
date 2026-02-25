@@ -301,6 +301,13 @@ def fetch_associated_groups(
             reasonable_match_comparator=lambda snuba, eap: (
                 eap.keys() <= snuba.keys() and all(eap[gid] <= snuba[gid] for gid in eap)
             ),
+            debug_context={
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "trace_ids_count": len(trace_ids),
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+            },
         )
 
     trace_groups: dict[str, list[dict[str, int | str]]] = defaultdict(list)
