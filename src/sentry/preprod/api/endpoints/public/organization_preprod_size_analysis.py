@@ -74,7 +74,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "SizeAnalysisResponse", SizeAnalysisResponseDict
+                "SizeAnalysisResponse", cast(type, SizeAnalysisResponseDict)
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
