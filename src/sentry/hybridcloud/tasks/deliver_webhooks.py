@@ -238,53 +238,60 @@ def drain_mailbox(payload_id: int) -> None:
 
     delivered = 0
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
-    while True:
+    try:
+        while True:
+            if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+                try:
+                    cache.set(f"wh:drain_active:{payload.mailbox_name}", 1, timeout=15)
+                except Exception:
+                    pass
+            # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
+            # task.
+            if timezone.now() >= deadline:
+                logger.info(
+                    "deliver_webhook.delivery_deadline",
+                    extra={
+                        **payload.as_dict(),
+                        "delivered": delivered,
+                    },
+                )
+                metrics.incr(
+                    "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "delivery_deadline"}
+                )
+                break
+
+            # Fetch records from the batch in slices of 100. This avoids reading
+            # redundant data should we hit an error and should help keep query duration low.
+            query = WebhookPayloadReplica.filter(
+                id__gte=payload.id, mailbox_name=payload.mailbox_name
+            ).order_by("id")
+
+            batch_count = 0
+            for record in query[:100]:
+                batch_count += 1
+                try:
+                    deliver_message(record)
+                    delivered += 1
+                except DeliveryFailed:
+                    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
+                    return
+
+            # No more messages to deliver
+            if batch_count < 1:
+                logger.debug(
+                    "deliver_webhook.delivery_complete",
+                    extra={
+                        **payload.as_dict(),
+                        "delivered": delivered,
+                    },
+                )
+                return
+    finally:
         if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
             try:
-                cache.set(f"wh:drain_active:{payload.mailbox_name}", 1, timeout=15)
+                cache.delete(f"wh:drain_active:{payload.mailbox_name}")
             except Exception:
                 pass
-        # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
-        # task.
-        if timezone.now() >= deadline:
-            logger.info(
-                "deliver_webhook.delivery_deadline",
-                extra={
-                    **payload.as_dict(),
-                    "delivered": delivered,
-                },
-            )
-            metrics.incr(
-                "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "delivery_deadline"}
-            )
-            break
-
-        # Fetch records from the batch in slices of 100. This avoids reading
-        # redundant data should we hit an error and should help keep query duration low.
-        query = WebhookPayloadReplica.filter(
-            id__gte=payload.id, mailbox_name=payload.mailbox_name
-        ).order_by("id")
-
-        batch_count = 0
-        for record in query[:100]:
-            batch_count += 1
-            try:
-                deliver_message(record)
-                delivered += 1
-            except DeliveryFailed:
-                metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
-                return
-
-        # No more messages to deliver
-        if batch_count < 1:
-            logger.debug(
-                "deliver_webhook.delivery_complete",
-                extra={
-                    **payload.as_dict(),
-                    "delivered": delivered,
-                },
-            )
-            return
 
 
 def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
@@ -442,32 +449,39 @@ def drain_mailbox_parallel(payload_id: int) -> None:
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     delivered = 0
     extra = {**payload.as_dict(), "delivered": delivered}
-    while True:
+    try:
+        while True:
+            if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+                try:
+                    cache.set(f"wh:drain_active:{payload.mailbox_name}", 1, timeout=15)
+                except Exception:
+                    pass
+            if timezone.now() >= deadline:
+                logger.info("deliver_webhook_parallel.delivery_deadline", extra=extra)
+                metrics.incr(
+                    "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "delivery_deadline"}
+                )
+                break
+
+            delivered_batch, request_failed, no_more_messages = _run_parallel_delivery_batch(
+                payload, worker_threads
+            )
+            delivered += delivered_batch
+            extra["delivered"] = delivered
+
+            if no_more_messages:
+                logger.info("deliver_webhook_parallel.task_complete", extra=extra)
+                break
+
+            if request_failed:
+                logger.info("deliver_webhook_parallel.delivery_request_failed", extra=extra)
+                return
+    finally:
         if options.get("hybridcloud.webhookpayload.push_drain_trigger"):
             try:
-                cache.set(f"wh:drain_active:{payload.mailbox_name}", 1, timeout=15)
+                cache.delete(f"wh:drain_active:{payload.mailbox_name}")
             except Exception:
                 pass
-        if timezone.now() >= deadline:
-            logger.info("deliver_webhook_parallel.delivery_deadline", extra=extra)
-            metrics.incr(
-                "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "delivery_deadline"}
-            )
-            break
-
-        delivered_batch, request_failed, no_more_messages = _run_parallel_delivery_batch(
-            payload, worker_threads
-        )
-        delivered += delivered_batch
-        extra["delivered"] = delivered
-
-        if no_more_messages:
-            logger.info("deliver_webhook_parallel.task_complete", extra=extra)
-            break
-
-        if request_failed:
-            logger.info("deliver_webhook_parallel.delivery_request_failed", extra=extra)
-            return
 
 
 def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:

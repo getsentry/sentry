@@ -1191,7 +1191,7 @@ class PushTriggerTest(TestCase):
     @responses.activate
     @override_regions(region_config)
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
-    def test_drain_refreshes_lock_during_processing(self) -> None:
+    def test_drain_clears_lock_on_completion(self) -> None:
         from django.core.cache import cache
 
         responses.add(
@@ -1203,5 +1203,29 @@ class PushTriggerTest(TestCase):
         webhook = self.create_webhook_payload(mailbox_name="github:123", region_name="us")
         drain_mailbox(webhook.id)
 
-        # Lock should still be set after the drain ran (refreshed on each iteration)
-        assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is not None
+        # Lock must be released so new webhooks can immediately trigger a fresh drain
+        assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @responses.activate
+    @override_regions(region_config)
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_push_trigger_fires_immediately_after_drain_completes(
+        self, mock_drain: MagicMock
+    ) -> None:
+        from django.core.cache import cache
+
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook_one = self.create_webhook_payload(mailbox_name="github:123", region_name="us")
+        drain_mailbox(webhook_one.id)
+
+        # Lock is cleared; a new webhook arriving now must be able to trigger a drain
+        assert cache.get(f"wh:drain_active:{webhook_one.mailbox_name}") is None
+        webhook_two = self.create_webhook_payload(mailbox_name="github:123", region_name="us")
+        maybe_trigger_drain(webhook_two.mailbox_name, webhook_two.id)
+        mock_drain.delay.assert_called_once_with(webhook_two.id)
