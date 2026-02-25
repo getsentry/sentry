@@ -26,7 +26,8 @@ def _to_pil_image(source: bytes | Image.Image) -> Image.Image:
 
 
 def _mask_from_diff_output(output_path: Path) -> Image.Image:
-    alpha = Image.open(output_path).convert("RGBA").split()[3]
+    with Image.open(output_path) as img:
+        alpha = img.convert("RGBA").split()[3]
     return alpha.point(lambda px: 255 if px > 0 else 0)
 
 
