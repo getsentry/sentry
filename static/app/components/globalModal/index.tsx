@@ -17,6 +17,7 @@ import getModalPortal from 'sentry/utils/getModalPortal';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useScrollLock} from 'sentry/utils/useScrollLock';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
@@ -146,6 +147,7 @@ function GlobalModal({onClose}: Props) {
     [closeModal, closeEvents]
   );
 
+  const {lock, unlock} = useScrollLock();
   const portal = getModalPortal();
   const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
@@ -164,23 +166,17 @@ function GlobalModal({onClose}: Props) {
   }, [portal]);
 
   useEffect(() => {
-    const body = document.querySelector('body');
     const root = document.getElementById(ROOT_ELEMENT);
 
     const reset = () => {
-      body?.style.removeProperty('overflow');
-      body?.style.removeProperty('scrollbar-gutter');
+      unlock();
       root?.removeAttribute('aria-hidden');
       focusTrap.current?.deactivate();
       document.removeEventListener('keydown', handleEscapeClose);
     };
 
     if (visible) {
-      if (body) {
-        body.style.overflow = 'hidden';
-        // Prevent layout shift caused by scrollbar removal when scroll is blocked
-        body.style.setProperty('scrollbar-gutter', 'stable');
-      }
+      lock();
       root?.setAttribute('aria-hidden', 'true');
       focusTrap.current?.activate();
 
@@ -190,7 +186,7 @@ function GlobalModal({onClose}: Props) {
     }
 
     return reset;
-  }, [portal, handleEscapeClose, visible]);
+  }, [portal, handleEscapeClose, visible, lock, unlock]);
 
   // Close the modal when the browser history changes.
   //

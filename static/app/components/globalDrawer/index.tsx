@@ -18,6 +18,7 @@ import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {useScrollLock} from 'sentry/utils/useScrollLock';
 
 export interface DrawerOptions {
   /**
@@ -118,21 +119,19 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const previousOverflowRef = useRef<string>(null);
-  const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
-    previousOverflowRef.current ??= document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    // Prevent layout shift caused by scrollbar removal when scroll is blocked
-    document.body.style.setProperty('scrollbar-gutter', 'stable');
-    overwriteDrawerConfig({renderer, options});
-    options.onOpen?.();
-  }, []);
+  const {lock, unlock} = useScrollLock();
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
+    (renderer, options) => {
+      lock();
+      overwriteDrawerConfig({renderer, options});
+      options.onOpen?.();
+    },
+    [lock]
+  );
   const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(() => {
-    document.body.style.overflow = previousOverflowRef.current ?? '';
-    document.body.style.removeProperty('scrollbar-gutter');
-    previousOverflowRef.current = null;
+    unlock();
     overwriteDrawerConfig(undefined);
-  }, []);
+  }, [unlock]);
 
   const handleClose = useCallback(() => {
     currentDrawerConfig?.options?.onClose?.();
