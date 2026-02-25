@@ -5,7 +5,10 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
-from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import GetTracesResponse, TraceAttribute
+from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import (
+    GetTracesResponse,
+    TraceAttribute,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 
 from sentry.api.endpoints.organization_traces import process_breakdowns
@@ -586,6 +589,70 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
 
         query = {
             "project": [],
+            "field": ["id", "parent_span", "span.duration"],
+            "query": "",
+            "maxSpansPerTrace": 3,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
+        assert response.data["data"] == [
+            {
+                "breakdowns": [
+                    {
+                        "duration": 60_100,
+                        "start": timestamp,
+                        "end": timestamp + 60_100,
+                        "sliceStart": 0,
+                        "sliceEnd": 40,
+                        "sliceWidth": 40,
+                        "isRoot": False,
+                        "kind": "project",
+                        "project": self.project.slug,
+                        "sdkName": "sentry.javascript.node",
+                    },
+                ],
+                "duration": 60_100,
+                "end": timestamp + 60_100,
+                "name": "foo",
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 1,
+                "matchingSpans": 1,
+                "project": self.project.slug,
+                "start": timestamp,
+                "trace": trace_id,
+                "rootDuration": 60_100,
+            },
+        ]
+
+    def test_selected_projects(self) -> None:
+        trace_id = uuid4().hex
+        span_id = "1" + uuid4().hex[:15]
+        parent_span_id = "1" + uuid4().hex[:15]
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        ts = now - timedelta(minutes=10)
+        self.create_project()
+
+        self.double_write_segment(
+            project=self.project,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id=span_id,
+            parent_span_id=parent_span_id,
+            timestamp=ts,
+            transaction="foo",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            op="pageload",
+        )
+
+        timestamp = int(ts.timestamp() * 1000)
+
+        query = {
+            "project": [self.project.id],
             "field": ["id", "parent_span", "span.duration"],
             "query": "",
             "maxSpansPerTrace": 3,

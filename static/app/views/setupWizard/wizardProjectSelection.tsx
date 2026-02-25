@@ -4,9 +4,9 @@ import {PlatformIcon} from 'platformicons';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -291,7 +291,7 @@ export function WizardProjectSelection({
       <label>{t('Platform')}</label>
       <StyledCompactSelect
         value={newProjectPlatform as string}
-        searchable
+        search
         options={platformOptions}
         trigger={triggerProps => (
           <OverlayTrigger.Button
@@ -334,7 +334,7 @@ export function WizardProjectSelection({
           <StyledCompactSelect
             autoFocus
             value={selectedOrgId as string}
-            searchable
+            search
             options={orgOptions}
             trigger={triggerProps => (
               <OverlayTrigger.Button
@@ -372,11 +372,10 @@ export function WizardProjectSelection({
             <StyledCompactSelect
               // Remount the component when the org changes to reset the component state
               key={selectedOrgId}
-              onSearch={setSearch}
+              search={{onChange: setSearch}}
               onClose={() => setSearch('')}
               disabled={!selectedOrgId}
               value={selectedProjectId as string}
-              searchable
               options={sortedProjectOptions}
               trigger={triggerProps => (
                 <OverlayTrigger.Button
@@ -403,18 +402,15 @@ export function WizardProjectSelection({
               menuFooter={
                 isCreationEnabled
                   ? ({closeOverlay}) => (
-                      <Flex justify="end">
-                        <Button
-                          size="xs"
-                          onClick={() => {
-                            setSelectedProjectId(CREATE_PROJECT_VALUE);
-                            closeOverlay();
-                          }}
-                          icon={<IconAdd />}
-                        >
-                          {t('Create Project')}
-                        </Button>
-                      </Flex>
+                      <MenuComponents.CTAButton
+                        onClick={() => {
+                          setSelectedProjectId(CREATE_PROJECT_VALUE);
+                          closeOverlay();
+                        }}
+                        icon={<IconAdd />}
+                      >
+                        {t('Create Project')}
+                      </MenuComponents.CTAButton>
                     )
                   : undefined
               }

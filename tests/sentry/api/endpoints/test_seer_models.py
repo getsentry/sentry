@@ -1,10 +1,8 @@
 from unittest.mock import MagicMock, patch
 
-import requests
-from django.conf import settings
 from rest_framework import status
 
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
 
 
@@ -15,84 +13,65 @@ class TestSeerModels(APITestCase):
         super().setUp()
         self.url = "/api/0/seer/models/"
 
-    @patch("sentry.api.endpoints.seer_models.requests.get")
-    def test_get_models_successful(self, mock_get: MagicMock) -> None:
+    @patch("sentry.api.endpoints.seer_models.make_signed_seer_api_request")
+    def test_get_models_successful(self, mock_request: MagicMock) -> None:
         """Test successful retrieval of models from Seer."""
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {
             "models": ["gpt-4", "claude-3", "gemini-pro"],
         }
-        mock_get.return_value = mock_response
 
         response = self.client.get(self.url)
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"models": ["gpt-4", "claude-3", "gemini-pro"]}
+        mock_request.assert_called_once()
 
-        expected_url = f"{settings.SEER_AUTOFIX_URL}/v1/models"
-        expected_headers = {
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(b""),
-        }
-        mock_get.assert_called_once_with(
-            expected_url,
-            headers=expected_headers,
-            timeout=5,
-        )
-
-    @patch("sentry.api.endpoints.seer_models.requests.get")
-    def test_get_models_no_authentication_required(self, mock_get: MagicMock) -> None:
+    @patch("sentry.api.endpoints.seer_models.make_signed_seer_api_request")
+    def test_get_models_no_authentication_required(self, mock_request: MagicMock) -> None:
         """Test that the endpoint works without authentication."""
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"models": ["gpt-4"]}
-        mock_get.return_value = mock_response
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {"models": ["gpt-4"]}
 
         response = self.client.get(self.url)
 
         assert response.status_code == status.HTTP_200_OK
 
-    @patch("sentry.api.endpoints.seer_models.requests.get")
-    def test_get_models_timeout(self, mock_get: MagicMock) -> None:
+    @patch("sentry.api.endpoints.seer_models.make_signed_seer_api_request")
+    def test_get_models_timeout(self, mock_request: MagicMock) -> None:
         """Test handling of timeout errors."""
-        mock_get.side_effect = requests.exceptions.Timeout("Request timed out")
+        mock_request.side_effect = TimeoutError("Request timed out")
 
         response = self.client.get(self.url)
 
         assert response.status_code == status.HTTP_504_GATEWAY_TIMEOUT
         assert response.data == {"detail": "Request to Seer timed out"}
 
-    @patch("sentry.api.endpoints.seer_models.requests.get")
-    def test_get_models_request_exception(self, mock_get: MagicMock) -> None:
+    @patch("sentry.api.endpoints.seer_models.make_signed_seer_api_request")
+    def test_get_models_request_exception(self, mock_request: MagicMock) -> None:
         """Test handling of request exceptions."""
-        mock_get.side_effect = requests.exceptions.RequestException("Connection error")
+        mock_request.side_effect = SeerApiError("Connection error", 500)
 
         response = self.client.get(self.url)
 
         assert response.status_code == status.HTTP_502_BAD_GATEWAY
         assert response.data == {"detail": "Failed to fetch models from Seer"}
 
-    @patch("sentry.api.endpoints.seer_models.requests.get")
-    def test_get_models_http_error(self, mock_get: MagicMock) -> None:
+    @patch("sentry.api.endpoints.seer_models.make_signed_seer_api_request")
+    def test_get_models_http_error(self, mock_request: MagicMock) -> None:
         """Test handling of HTTP errors from Seer."""
-        mock_response = MagicMock()
-        mock_response.status_code = 500
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("Server error")
-        mock_get.return_value = mock_response
+        mock_request.return_value.status = 500
 
         response = self.client.get(self.url)
 
         assert response.status_code == status.HTTP_502_BAD_GATEWAY
         assert response.data == {"detail": "Failed to fetch models from Seer"}
 
-    @patch("sentry.api.endpoints.seer_models.requests.get")
-    def test_get_models_empty_response(self, mock_get: MagicMock) -> None:
+    @patch("sentry.api.endpoints.seer_models.make_signed_seer_api_request")
+    def test_get_models_empty_response(self, mock_request: MagicMock) -> None:
         """Test handling of empty models list."""
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"models": []}
-        mock_get.return_value = mock_response
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {"models": []}
 
         response = self.client.get(self.url)
 

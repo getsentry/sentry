@@ -7,14 +7,13 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {
-  useCodingAgentIntegrations,
+  organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -35,7 +34,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -182,7 +181,9 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const queryClient = useQueryClient();
   const {preference} = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
-  const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
+  const {data: codingAgentIntegrations} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
 
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
@@ -499,17 +500,6 @@ function ProjectSeer({
 export default function ProjectSeerContainer() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-
-  if (!organization.features.includes('autofix-seer-preferences')) {
-    return (
-      <FeatureDisabled
-        features={['organizations:autofix-seer-preferences']}
-        hideHelpToggle
-        message={t('Autofix is not enabled for this organization.')}
-        featureName={t('Autofix')}
-      />
-    );
-  }
 
   return <ProjectSeer organization={organization} project={project} />;
 }

@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -194,41 +194,40 @@ export function InstrumentationGuide() {
           <Section
             title={t('Auto-Instrument with %s', platform.label)}
             trailingItems={
-              platform.guides.length > 1 ? (
-                <CompactSelect
-                  size="xs"
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...triggerProps}
-                      priority="transparent"
-                      size="zero"
-                    />
-                  )}
-                  value={guideKey ?? 'upsert'}
-                  onChange={option => {
-                    setPlatformGuide(platformKey, option.value);
-                  }}
-                  options={platform.guides.map(g => ({
-                    value: g.key as GuideKey,
-                    label: g.title,
-                  }))}
-                />
-              ) : undefined
-            }
-          >
-            <Flex direction="column" gap="lg">
-              <CopySetupInstructionsGate>
-                <Container>
+              <Flex align="center" gap="sm">
+                {platform.guides.length > 1 && (
+                  <CompactSelect
+                    size="xs"
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button
+                        {...triggerProps}
+                        priority="transparent"
+                        size="zero"
+                      />
+                    )}
+                    value={guideKey ?? 'upsert'}
+                    onChange={option => {
+                      setPlatformGuide(platformKey, option.value);
+                    }}
+                    options={platform.guides.map(g => ({
+                      value: g.key as GuideKey,
+                      label: g.title,
+                    }))}
+                  />
+                )}
+                <CopySetupInstructionsGate>
                   <CopyMarkdownButton
+                    borderless
                     getMarkdown={getGuideMarkdown}
                     source="crons_detector_guide"
                   />
-                </Container>
-              </CopySetupInstructionsGate>
-              <div ref={guideContainerRef}>
-                <guide.Guide />
-              </div>
-            </Flex>
+                </CopySetupInstructionsGate>
+              </Flex>
+            }
+          >
+            <div ref={guideContainerRef}>
+              <guide.Guide />
+            </div>
           </Section>
         </WorkflowEngineContainer>
       )}

@@ -5,6 +5,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {IssueCategory, IssueType} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
@@ -20,8 +21,30 @@ describe('MetricDetectorTriggeredSection', () => {
   const dataSource = SnubaQueryDataSourceFixture();
   const openPeriodStartDate = '2024-01-01T00:00:00Z';
   const openPeriodEndDate = '2024-01-01T00:05:00.000Z';
-  const defaultGroup = GroupFixture();
-  const defaultEvent = EventFixture();
+  const defaultGroup = GroupFixture({
+    issueType: IssueType.METRIC_ISSUE,
+    issueCategory: IssueCategory.METRIC,
+  });
+  const defaultEvent = EventFixture({
+    id: 'event-1',
+    eventID: 'event-1',
+    occurrence: {
+      id: '1',
+      eventId: 'event-1',
+      fingerprint: ['fingerprint'],
+      issueTitle: 'Test Issue',
+      subtitle: 'Subtitle',
+      resourceId: 'resource-1',
+      evidenceData: {
+        conditions: [condition],
+        dataSources: [dataSource],
+        value: 150,
+      },
+      evidenceDisplay: [],
+      type: 8001,
+      detectionTime: '2024-01-01T00:00:00Z',
+    },
+  });
   const defaultProps: ComponentProps<typeof MetricDetectorTriggeredSection> = {
     group: defaultGroup,
     event: defaultEvent,
@@ -300,5 +323,53 @@ describe('MetricDetectorTriggeredSection', () => {
       'href',
       '/organizations/org-slug/explore/discover/results/?dataset=errors&end=2024-01-01T00%3A05%3A00.000&field=issue&field=count%28%29&field=count_unique%28user%29&interval=1m&name=Transactions&project=1&query=event.type%3Aerror%20browser.name%3AChrome%20OR%20browser.name%3AFirefox&sort=-count&start=2023-12-31T23%3A58%3A00.000&yAxis=count%28%29'
     );
+  });
+
+  describe('zoom to open period', () => {
+    it('applies detector zoom range when URL has no time period', async () => {
+      const {router} = render(<MetricDetectorTriggeredSection {...defaultProps} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/org-slug/issues/${defaultGroup.id}/`,
+            query: {},
+          },
+          routes: [
+            '/organizations/:orgId/issues/:groupId/',
+            '/organizations/:orgId/issues/:groupId/events/:eventId/',
+          ],
+        },
+      });
+
+      await screen.findByRole('region', {name: 'Triggered Condition'});
+
+      expect(router.location.pathname).toMatch(
+        `/organizations/org-slug/issues/${defaultGroup.id}/events/${defaultEvent.id}/`
+      );
+      expect(router.location.query.statsPeriod).toBeDefined();
+    });
+
+    it('does not apply detector zoom range when URL already has a time period', async () => {
+      const {router} = render(<MetricDetectorTriggeredSection {...defaultProps} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/org-slug/issues/${defaultGroup.id}/`,
+            query: {statsPeriod: '24h'},
+          },
+          routes: [
+            '/organizations/:orgId/issues/:groupId/',
+            '/organizations/:orgId/issues/:groupId/events/:eventId/',
+          ],
+        },
+      });
+
+      await screen.findByRole('region', {name: 'Triggered Condition'});
+
+      expect(router.location.pathname).toMatch(
+        `/organizations/org-slug/issues/${defaultGroup.id}/`
+      );
+      expect(router.location.query.statsPeriod).toBe('24h');
+      expect(router.location.query.start).toBeUndefined();
+      expect(router.location.query.end).toBeUndefined();
+    });
   });
 });

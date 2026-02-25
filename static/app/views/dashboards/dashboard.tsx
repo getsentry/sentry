@@ -92,6 +92,7 @@ type Props = {
   onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
   useTimeseriesVisualization?: boolean;
+  widgetInterval?: string;
 };
 
 interface LayoutState extends Record<string, Layout[]> {
@@ -116,6 +117,7 @@ function Dashboard({
   onNewWidgetScrollComplete,
   onSetNewWidget,
   useTimeseriesVisualization,
+  widgetInterval,
 }: Props) {
   const theme = useTheme();
   const location = useLocation();
@@ -442,6 +444,7 @@ function Dashboard({
               newlyAddedWidget={newlyAddedWidget}
               onNewWidgetScrollComplete={onNewWidgetScrollComplete}
               useTimeseriesVisualization={useTimeseriesVisualization}
+              widgetInterval={widgetInterval}
             />
           </div>
         ))}

@@ -5,7 +5,6 @@ from typing import NotRequired, TypedDict
 
 import orjson
 import pydantic
-import requests
 from django.conf import settings
 from pydantic import BaseModel
 from rest_framework import serializers
@@ -28,7 +27,7 @@ from sentry.seer.models import (
     SeerRawPreferenceResponse,
     SeerRepoDefinition,
 )
-from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -357,16 +356,14 @@ def get_autofix_state(
         }
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body,
     )
 
-    response.raise_for_status()
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
 
     result = response.json()
 
@@ -396,16 +393,14 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
         }
     ).encode("utf-8")
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body,
     )
 
-    response.raise_for_status()
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
     result = response.json()
 
     if not result:
@@ -430,9 +425,6 @@ def is_seer_scanner_rate_limited(project: Project, organization: Organization) -
     Returns:
         bool: Whether the seer scanner is rate limited.
     """
-    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-        return False
-
     limit = options.get("seer.max_num_scanner_autotriggered_per_ten_seconds", 15)
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
         project=project,
@@ -561,16 +553,11 @@ def _get_autofix_rate_limit_config(project: Project) -> AutoTriggerRateLimitConf
     return AutoTriggerRateLimitConfig(limit=limit, key="autofix.auto_triggered", window=60 * 60)
 
 
-def is_seer_autotriggered_autofix_rate_limited(
-    project: Project, organization: Organization
-) -> bool:
+def is_seer_autotriggered_autofix_rate_limited(project: Project) -> bool:
     """
     Read-only check of whether the autofix rate limit has been reached.
     Does NOT increment the counter. Safe to call from non-triggering code paths.
     """
-    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-        return False
-
     config = _get_autofix_rate_limit_config(project)
     current = ratelimits.backend.current_value(
         key=config["key"],
@@ -595,9 +582,6 @@ def is_seer_autotriggered_autofix_rate_limited_and_increment(
     Returns:
         bool: Whether Autofix is rate limited.
     """
-    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
-        return False
-
     config = _get_autofix_rate_limit_config(project)
 
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
