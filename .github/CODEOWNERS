@@ -174,7 +174,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/releases/                               @getsentry/replay-frontend
 /static/app/views/releases/drawer/                        @getsentry/replay-frontend
 /static/app/views/releases/releaseBubbles/                @getsentry/replay-frontend
-/src/sentry/rules/processing/delayed_processing.py        @getsentry/alerts-notifications
 
 /static/app/views/settings/account/notifications/         @getsentry/alerts-notifications
 
@@ -422,7 +421,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 *sentry_app*.py                                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 *sentryapp*.py                                                       @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 *doc_integration*.py                                                 @getsentry/ecosystem
-*docintegration*.py                                                  @getsentry/ecosystem
 
 ## End of Integrations
 
@@ -550,7 +548,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/helpers/events.py                           @getsentry/issue-workflow
 /src/sentry/api/helpers/group_index/                        @getsentry/issue-workflow
 /src/sentry/api/helpers/source_map_helper.py                @getsentry/issue-workflow
-/src/sentry/api/issue_search.py                             @getsentry/issue-workflow
 /src/sentry/api/endpoints/                                  @getsentry/issue-workflow
 /src/sentry/api/helpers/group_index/delete.py               @getsentry/issue-detection-backend
 /src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend
@@ -600,7 +597,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/nav/secondary/sections/issues/            @getsentry/issue-workflow
 /static/app/components/events/interfaces/performance/spanEvidenceKeyValueList.tsx @getsentry/issue-detection-frontend
 /static/app/components/events/interfaces/crashContent/exception/actionableItems.tsx   @getsentry/issue-workflow
-/tests/sentry/api/test_issue_search.py                      @getsentry/issue-workflow
 /tests/sentry/deletions/test_group.py                       @getsentry/issue-detection-backend
 /tests/sentry/event_manager/                                @getsentry/issue-detection-backend
 /tests/sentry/grouping/                                     @getsentry/issue-detection-backend
@@ -666,7 +662,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/gsAdmin/views/relocation*            @getsentry/hybrid-cloud
 
 ## Ecosystem
-/src/sentry/api/endpoints/notifications/notification_actions*           @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/ecosystem
 /static/app/components/modals/inviteMissingMembersModal/                @getsentry/ecosystem
 /src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/ecosystem

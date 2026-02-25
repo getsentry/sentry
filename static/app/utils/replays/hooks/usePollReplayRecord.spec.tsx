@@ -1,34 +1,18 @@
-import {type ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import usePollReplayRecord from './usePollReplayRecord';
 
-const {organization, project} = initializeOrg();
-
-const invalidateQueries = jest.fn();
-
-function wrapper({children}: {children?: ReactNode}) {
-  const queryClient = makeTestQueryClient();
-  queryClient.invalidateQueries = invalidateQueries;
-  return (
-    <QueryClientProvider client={queryClient}>
-      <OrganizationContext value={organization}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
-}
+const organization = OrganizationFixture();
 
 function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
   return ReplayRecordFixture({
     ...replayRecord,
-    project_id: project.id,
+    project_id: '1',
   });
 }
 
@@ -36,7 +20,6 @@ jest.useFakeTimers();
 
 describe('usePollReplayRecord', () => {
   beforeEach(() => {
-    invalidateQueries();
     MockApiClient.clearMockResponses();
   });
   it('should fetch count_segments', async () => {
@@ -50,8 +33,7 @@ describe('usePollReplayRecord', () => {
       body: {data: replayRecord},
     });
 
-    const renderedPollHook = renderHook(usePollReplayRecord, {
-      wrapper,
+    const renderedPollHook = renderHookWithProviders(usePollReplayRecord, {
       initialProps: {
         enabled: true,
         orgSlug: organization.slug,
@@ -72,8 +54,7 @@ describe('usePollReplayRecord', () => {
       body: {data: replayRecord},
     });
 
-    const renderedHook = renderHook(usePollReplayRecord, {
-      wrapper,
+    const renderedHook = renderHookWithProviders(usePollReplayRecord, {
       initialProps: {
         enabled: true,
         orgSlug: organization.slug,

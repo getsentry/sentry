@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
@@ -98,6 +98,7 @@ class HistoricGroupCounts(
             "project_id": event.project_id,
         }
 
+    @freeze_time(TIME_YESTERDAY)
     def test_query_single_group(self) -> None:
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
@@ -365,43 +366,19 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
 
 class TestEAPIsEscalating(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime(2026, 2, 11, 6, 30, 0)
+    FROZEN_TIME = datetime(2026, 2, 11, 6, 30, 0, tzinfo=timezone.utc)
 
-    def _store_events_with_dual_write(
-        self,
-        fingerprint: str,
-        count: int,
-        hours_ago: int = 0,
-    ) -> Group:
-        # Timestamps at the start of the frozen hour so they fall within the
-        # hourly count query window [current_hour, now).
-        event_timestamp = self.FROZEN_TIME.replace(minute=0, second=0, microsecond=0) - timedelta(
-            hours=hours_ago
-        )
-        group = None
-
-        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
-            for _ in range(count):
-                event = self.store_event(
-                    data={
-                        "message": "escalating test error",
-                        "fingerprint": [fingerprint],
-                        "timestamp": event_timestamp.timestamp(),
-                        "event_id": uuid4().hex,
-                        "contexts": {"trace": {"trace_id": uuid4().hex}},
-                    },
-                    project_id=self.project.id,
-                    assert_no_errors=False,
-                )
-                if group is None:
-                    group = event.group
-
-        assert group is not None
-        return group
+    def _event_timestamp(self, hours_ago: int = 0) -> float:
+        return (
+            self.FROZEN_TIME.replace(minute=0, second=0, microsecond=0) - timedelta(hours=hours_ago)
+        ).timestamp()
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_hourly_counts_match(self) -> None:
-        group = self._store_events_with_dual_write(fingerprint="hourly-count-match", count=6)
+        group = self.store_events_to_snuba_and_eap(
+            "hourly-count-match", count=6, timestamp=self._event_timestamp()
+        )[0].group
+        assert group is not None
 
         snuba_count = get_group_hourly_count_snuba(group)
         eap_count = get_group_hourly_count_eap(group)
@@ -410,8 +387,13 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_hourly_count_excludes_old_events(self) -> None:
-        self._store_events_with_dual_write(fingerprint="time-window-test", count=2, hours_ago=1)
-        group = self._store_events_with_dual_write(fingerprint="time-window-test", count=1)
+        self.store_events_to_snuba_and_eap(
+            "time-window-test", count=2, timestamp=self._event_timestamp(hours_ago=1)
+        )
+        group = self.store_events_to_snuba_and_eap(
+            "time-window-test", count=1, timestamp=self._event_timestamp()
+        )[0].group
+        assert group is not None
 
         snuba_count = get_group_hourly_count_snuba(group)
         eap_count = get_group_hourly_count_eap(group)
@@ -420,7 +402,10 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_past_counts_match_single_group(self) -> None:
-        group = self._store_events_with_dual_write(fingerprint="past-counts-single", count=3)
+        group = self.store_events_to_snuba_and_eap(
+            "past-counts-single", count=3, timestamp=self._event_timestamp()
+        )[0].group
+        assert group is not None
 
         snuba_results = _query_groups_past_counts_snuba([group])
         eap_results = _query_groups_past_counts_eap([group])
@@ -432,9 +417,18 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_past_counts_match_multiple_groups(self) -> None:
-        group_a = self._store_events_with_dual_write(fingerprint="past-counts-a", count=2)
-        group_b = self._store_events_with_dual_write(fingerprint="past-counts-b", count=4)
-        group_c = self._store_events_with_dual_write(fingerprint="past-counts-c", count=6)
+        group_a = self.store_events_to_snuba_and_eap(
+            "past-counts-a", count=2, timestamp=self._event_timestamp()
+        )[0].group
+        group_b = self.store_events_to_snuba_and_eap(
+            "past-counts-b", count=4, timestamp=self._event_timestamp()
+        )[0].group
+        group_c = self.store_events_to_snuba_and_eap(
+            "past-counts-c", count=6, timestamp=self._event_timestamp()
+        )[0].group
+        assert group_a is not None
+        assert group_b is not None
+        assert group_c is not None
 
         snuba_results = _query_groups_past_counts_snuba([group_a, group_b, group_c])
         eap_results = _query_groups_past_counts_eap([group_a, group_b, group_c])
@@ -449,7 +443,10 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_past_counts_aggregate_same_hour(self) -> None:
-        group = self._store_events_with_dual_write(fingerprint="zero-filter-test", count=2)
+        group = self.store_events_to_snuba_and_eap(
+            "zero-filter-test", count=2, timestamp=self._event_timestamp()
+        )[0].group
+        assert group is not None
 
         snuba_results = _query_groups_past_counts_snuba([group])
         eap_results = _query_groups_past_counts_eap([group])

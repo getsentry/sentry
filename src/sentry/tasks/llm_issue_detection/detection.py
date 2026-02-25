@@ -86,6 +86,7 @@ class DetectedIssue(BaseModel):
     subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     verification_reason: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     group_for_fingerprint: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    project_id: int | None = None
     # context field, not LLM generated
     trace_id: str
 

@@ -23,12 +23,18 @@ export function navigateTo(
   // Check for placeholder params
   const needOrg = pathname.includes(':orgId');
   const needProject = pathname.includes(':projectId') || pathname.includes(':project');
+  const needTeam = pathname.includes(':teamId');
   const comingFromProjectId = router?.location?.query?.project;
   const needProjectId = !comingFromProjectId || Array.isArray(comingFromProjectId);
 
   const projectById = ProjectsStore.getById(comingFromProjectId);
 
-  if (needOrg || (needProject && (needProjectId || !projectById)) || configQueryKey) {
+  if (
+    needOrg ||
+    needTeam ||
+    (needProject && (needProjectId || !projectById)) ||
+    configQueryKey
+  ) {
     openModal(
       modalProps => (
         <ContextPickerModal
@@ -36,6 +42,7 @@ export function navigateTo(
           nextPath={to}
           needOrg={needOrg}
           needProject={needProject}
+          needTeam={needTeam}
           configQueryKey={configQueryKey}
           onFinish={path => {
             modalProps.closeModal();
