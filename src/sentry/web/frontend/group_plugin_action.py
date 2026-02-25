@@ -23,6 +23,8 @@ class GroupPluginActionView(ProjectView):
             plugin = plugins.get(slug)
             if is_plugin_deprecated(plugin, project):
                 raise Http404("Plugin not found")
+            if not plugin.is_enabled(project):
+                raise Http404("Plugin not found")
         except KeyError:
             raise Http404("Plugin not found")
 
