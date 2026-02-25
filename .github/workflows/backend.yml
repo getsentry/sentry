@@ -32,6 +32,8 @@ jobs:
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      # When true, skip selective testing and run the full backend suite
+      skip_selective_testing: "${{ contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -79,6 +81,7 @@ jobs:
   prepare-selective-tests:
     if: >-
       needs.files-changed.outputs.backend == 'true' &&
+      needs.files-changed.outputs.skip_selective_testing != 'true' &&
       github.event_name == 'pull_request'
     needs: files-changed
     name: prepare selective tests
@@ -226,7 +229,7 @@ jobs:
       - name: Calculate test shards
         id: calculate-shards
         env:
-          SELECTED_TESTS_FILE: "${{ !contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') && needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}"
+          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
           SELECTED_TEST_COUNT: ${{ needs.prepare-selective-tests.outputs.test-count || '' }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
@@ -276,7 +279,7 @@ jobs:
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
-          SELECTED_TESTS_FILE: "${{ !contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') && needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}"
+          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
         run: |
           make test-python-ci
 
@@ -578,7 +581,6 @@ jobs:
         calculate-shards,
         cli,
         files-changed,
-        prepare-selective-tests,
         requirements,
         migration,
         monolith-dbs,
