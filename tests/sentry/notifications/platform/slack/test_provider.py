@@ -18,7 +18,7 @@ from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
 )
-from sentry.notifications.platform.threading import ThreadContext, ThreadKey, ThreadKeyType
+from sentry.notifications.platform.threading import ThreadContext, ThreadKey
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationProviderKey,
@@ -199,7 +199,7 @@ class SlackNotificationProviderThreadingTest(TestCase):
             metadata={"domain_name": "test-workspace.slack.com"},
         )
         self.thread_key = ThreadKey(
-            key_type=ThreadKeyType.NOA,
+            key_type=NotificationSource.ERROR_ALERT,
             key_data={"action_id": "123", "group_id": "456"},
         )
 
