@@ -11,6 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.auth.superuser import superuser_has_permission
 from sentry.issue_detection.performance_detection import (
+    SETTINGS_PROJECT_OPTION_KEY,
     get_merged_settings,
     reset_performance_settings,
     update_performance_settings,
@@ -37,7 +38,6 @@ from sentry.issues.grouptype import (
 MAX_VALUE = 2147483647
 TEN_SECONDS = 10000  # ten seconds in milliseconds
 TEN_MB = 10000000  # ten MB in bytes
-SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
 
 class InternalProjectOptions(Enum):
