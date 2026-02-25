@@ -250,9 +250,12 @@ export function useGetSavedQuery(id?: string) {
     }
   );
   const savedQuery = useMemo(() => {
-    return Array.isArray(data?.query) && data.query.length > 0
+    if (!defined(data)) {
+      return undefined;
+    }
+    return Array.isArray(data.query) && data.query.length > 0
       ? new SavedQuery(data)
-      : data;
+      : undefined;
   }, [data]);
   return {data: savedQuery, isLoading, ...rest};
 }
