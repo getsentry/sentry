@@ -805,9 +805,7 @@ function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
             ),
             disabledReason,
-            visible: organization.features.includes(
-              'large-http-payload-detector-improvements'
-            ),
+            visible: true,
           },
         ],
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,

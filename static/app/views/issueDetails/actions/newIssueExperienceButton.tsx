@@ -124,6 +124,7 @@ function useIssueDetailsPromoModal() {
 
 export function NewIssueExperienceButton() {
   const organization = useOrganization();
+  const user = useUser();
   const isSuperUser = isActiveSuperuser();
   const {
     startTour,
@@ -153,8 +154,6 @@ export function NewIssueExperienceButton() {
 
   const hasStreamlinedUI = useHasStreamlinedUI();
   const hasNewUIOnly = Boolean(organization.streamlineOnly);
-  const user = useUser();
-  const userStreamlinePreference = user?.options?.prefersIssueDetailsStreamlinedUI;
 
   const openForm = useFeedbackForm();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
@@ -164,11 +163,14 @@ export function NewIssueExperienceButton() {
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
       organization,
-      enforced_streamline_ui:
-        organization.features.includes('issue-details-streamline-enforce') &&
-        userStreamlinePreference === null,
+      enforced_streamline_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
     });
-  }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
+  }, [
+    mutateUserOptions,
+    organization,
+    hasStreamlinedUI,
+    user?.options?.prefersIssueDetailsStreamlinedUI,
+  ]);
 
   if (!hasStreamlinedUI) {
     return (

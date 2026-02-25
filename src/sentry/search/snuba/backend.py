@@ -16,7 +16,6 @@ from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -593,33 +592,6 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
             "issue.seer_last_run": ScalarCondition("seer_autofix_last_triggered"),
         }
-
-        message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)
-        if message_filter:
-
-            def _issue_platform_issue_message_condition(query: str) -> Q:
-                return Q(
-                    ~Q(type=ErrorGroupType.type_id),
-                    message__icontains=query,
-                )
-
-            queryset_conditions.update(
-                {
-                    "message": (
-                        QCallbackCondition(
-                            lambda query: Q(type=ErrorGroupType.type_id)
-                            | _issue_platform_issue_message_condition(query)
-                        )
-                        # negation should only apply on the message search icontains, we have to include
-                        # the type filter(type=GroupType.ERROR) check since we don't wanna search on the message
-                        # column when type=GroupType.ERROR - we delegate that to snuba in that case
-                        if not message_filter.is_negation
-                        else QCallbackCondition(
-                            lambda query: _issue_platform_issue_message_condition(query)
-                        )
-                    )
-                }
-            )
 
         if environments is not None:
             environment_ids = [environment.id for environment in environments]

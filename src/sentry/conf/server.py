@@ -926,7 +926,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
-    "sentry.tasks.explorer_service_map",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
@@ -1438,8 +1437,6 @@ SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
-# DSN for tracking all client HTTP requests (which can be noisy) [experimental]
-SENTRY_FRONTEND_REQUESTS_DSN: str | None = None
 
 # Configuration for the JavaScript SDK's allowUrls option - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS: list[str] | None = None

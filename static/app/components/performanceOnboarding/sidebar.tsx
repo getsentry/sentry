@@ -5,7 +5,6 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -13,8 +12,8 @@ import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -234,6 +233,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const [received, setReceived] = useState<boolean>(false);
 
   const previousProject = usePrevious(currentProject);
@@ -343,17 +343,24 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       {performanceDocs.introduction && (
         <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
       )}
-      <CopySetupInstructionsGate>
-        <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton
-            steps={steps}
-            source="performance_sidebar_onboarding"
-          />
-        </Container>
-      </CopySetupInstructionsGate>
       <Steps>
         {steps.map((step, index) => {
-          return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
+          return (
+            <Step
+              key={step.title ?? step.type}
+              stepIndex={index}
+              {...step}
+              trailingItems={
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="performance_sidebar_onboarding"
+                  />
+                ) : undefined
+              }
+            />
+          );
         })}
       </Steps>
       <EventWaiter

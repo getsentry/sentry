@@ -409,7 +409,7 @@ def launch_coding_agents_for_run(
 
     Raises:
         NotFound: If organization, integration, autofix state, or repos are not found
-        PermissionDenied: If feature is not enabled for the organization
+        PermissionDenied: If GitHub Copilot is not enabled for the organization
         ValidationError: If integration is invalid
         APIException: If there's an error launching agents
     """
@@ -417,9 +417,6 @@ def launch_coding_agents_for_run(
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         raise NotFound("Organization not found")
-
-    if not features.has("organizations:seer-coding-agent-integrations", organization):
-        raise PermissionDenied("Feature not available")
 
     integration = None
     installation: CodingAgentIntegration | None = None
