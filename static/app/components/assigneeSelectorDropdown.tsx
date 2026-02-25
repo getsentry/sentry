@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
-import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
+  MenuComponents,
   type SelectOption,
   type SelectOptionOrSection,
 } from '@sentry/scraps/compactSelect';
@@ -533,28 +533,10 @@ export default function AssigneeSelectorDropdown({
     );
   };
 
-  const footerInviteButton = (
-    <Flex align="center" gap="md">
-      <Button
-        size="xs"
-        aria-label={t('Invite Member')}
-        disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-          event.preventDefault();
-          openInviteMembersModal({source: 'assignee_selector'});
-        }}
-        icon={<IconAdd />}
-      >
-        {t('Invite Member')}
-      </Button>
-      {additionalMenuFooterItems}
-    </Flex>
-  );
-
   return (
     <AssigneeWrapper>
       <CompactSelect
-        searchable
+        search={{placeholder: 'Search users or teams...'}}
         clearable
         className={className}
         menuWidth={275}
@@ -566,12 +548,25 @@ export default function AssigneeSelectorDropdown({
             : ''
         }
         menuTitle={t('Assignee')}
-        searchPlaceholder="Search users or teams..."
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
         trigger={trigger ?? makeTrigger}
-        menuFooter={footerInviteButton}
+        menuFooter={
+          <Flex gap="md">
+            <MenuComponents.CTAButton
+              disabled={loading}
+              onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+                event.preventDefault();
+                openInviteMembersModal({source: 'assignee_selector'});
+              }}
+              icon={<IconAdd />}
+            >
+              {t('Invite Member')}
+            </MenuComponents.CTAButton>
+            {additionalMenuFooterItems}
+          </Flex>
+        }
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
         strategy="fixed"

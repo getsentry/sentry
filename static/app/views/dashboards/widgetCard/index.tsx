@@ -60,6 +60,11 @@ import {
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
 
+export type OnDataFetchedParams = {
+  tableResults?: TableDataWithTitle[];
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+};
+
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
@@ -98,7 +103,7 @@ type Props = WithRouterProps & {
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
-  onDataFetched?: (results: TableDataWithTitle[]) => void;
+  onDataFetched?: (results: OnDataFetchedParams) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
@@ -140,12 +145,14 @@ function WidgetCard(props: Props) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
-    const {...rest} = newData;
-    if (props.onDataFetched && rest.tableResults) {
-      props.onDataFetched(rest.tableResults);
+    if (props.onDataFetched) {
+      props.onDataFetched({
+        tableResults: newData.tableResults,
+        timeseriesResultsTypes: newData.timeseriesResultsTypes,
+      });
     }
 
-    setData(prevData => ({...prevData, ...rest}));
+    setData(prevData => ({...prevData, ...newData}));
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);

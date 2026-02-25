@@ -200,6 +200,27 @@ def create_issue_category_data_condition(
     )
 
 
+def create_issue_type_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataConditionKwargs:
+    comparison: dict[str, Any] = {
+        "value": str(data["value"]),
+    }
+    include_data = data.get("include")
+    if include_data is not None:
+        if isinstance(include_data, bool):
+            comparison["include"] = include_data
+        else:
+            comparison["include"] = include_data != "false"
+
+    return DataConditionKwargs(
+        type=Condition.ISSUE_TYPE,
+        comparison=comparison,
+        condition_result=True,
+        condition_group=dcg,
+    )
+
+
 def create_issue_occurrences_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
@@ -380,6 +401,7 @@ data_condition_translator_mapping: dict[
     "sentry.rules.filters.age_comparison.AgeComparisonFilter": create_age_comparison_data_condition,
     "sentry.rules.filters.assigned_to.AssignedToFilter": create_assigned_to_data_condition,
     "sentry.rules.filters.issue_category.IssueCategoryFilter": create_issue_category_data_condition,
+    "sentry.rules.filters.issue_type.IssueTypeFilter": create_issue_type_data_condition,
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter": create_issue_occurrences_data_condition,
     "sentry.rules.filters.latest_release.LatestReleaseFilter": create_latest_release_data_condition,
     "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter": create_latest_adopted_release_data_condition,

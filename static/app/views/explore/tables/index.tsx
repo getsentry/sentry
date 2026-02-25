@@ -107,7 +107,7 @@ export function ExploreTables(props: ExploreTablesProps) {
 
   return (
     <Fragment>
-      <Flex justify="between" marginBottom="md">
+      <Flex justify="between" marginBottom="md" gap="md" wrap="wrap">
         <Tabs value={props.tab} onChange={props.setTab} size="sm">
           <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>

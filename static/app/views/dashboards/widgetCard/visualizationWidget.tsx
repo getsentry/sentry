@@ -36,19 +36,23 @@ import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/setti
 import type {
   TabularColumn,
   TimeSeries,
+  TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {
   SeriesColorIndicator,
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
@@ -202,7 +206,8 @@ function VisualizationWidgetContent({
         timeSeries,
         widget,
         labelParts.filter(defined).join(SERIES_NAME_PART_DELIMITER),
-        seriesName
+        seriesName,
+        timeSeries.meta.isOther ? theme.tokens.dataviz.semantic.neutral : undefined
       );
       if (!plottable) {
         return null;
@@ -272,7 +277,13 @@ function VisualizationWidgetContent({
         const dataUnit = timeSeries.meta.valueUnit ?? undefined;
         const label = plottable?.label ?? timeSeries.yAxis;
 
-        let labelContent = <Text>{label}</Text>;
+        const labelDisplay = renderBreakdownLabel(
+          firstColumn,
+          firstColumnGroupByValue,
+          label
+        );
+
+        let labelContent = <Text>{labelDisplay}</Text>;
 
         // TODO: to simplify things, we only support one widget query for explore urls right now
         // Otherwise we have to map the correct widget query to the timeseries result
@@ -296,7 +307,7 @@ function VisualizationWidgetContent({
               widget.widgetType
             ),
           });
-          labelContent = <Link to={exploreUrl}>{label}</Link>;
+          labelContent = <Link to={exploreUrl}>{labelDisplay}</Link>;
         }
 
         if (
@@ -315,7 +326,7 @@ function VisualizationWidgetContent({
             locationQuery: location.query,
           });
           if (linkedDashbordUrl) {
-            labelContent = <Link to={linkedDashbordUrl}>{label}</Link>;
+            labelContent = <Link to={linkedDashbordUrl}>{labelDisplay}</Link>;
           }
         }
 
@@ -353,7 +364,21 @@ function VisualizationWidgetContent({
     paddingBottom: 'lg',
   };
 
-  const plottables = timeSeriesWithPlottable.map(([, plottable]) => plottable);
+  const plottables: Plottable[] = timeSeriesWithPlottable.map(
+    ([, plottable]) => plottable
+  );
+
+  if (
+    defined(widget.thresholds?.max_values.max1) ||
+    defined(widget.thresholds?.max_values.max2)
+  ) {
+    plottables.push(
+      new Thresholds({
+        thresholds: widget.thresholds,
+        dataType: timeSeriesWithPlottable[0]?.[0]?.meta?.valueType,
+      })
+    );
+  }
 
   // Check for empty plottables before rendering the visualization
   // This prevents TimeSeriesWidgetVisualization from throwing an error
@@ -397,4 +422,24 @@ function VisualizationWidgetContent({
       />
     </Container>
   );
+}
+
+/**
+ * Returns a custom label element for breakdown legend rows that need special rendering
+ * (e.g., model icons for AI model fields), or falls back to the plain text label.
+ */
+function renderBreakdownLabel(
+  column?: string,
+  groupByValue?: TimeSeriesGroupBy['value'],
+  fallbackLabel?: string
+): React.ReactNode {
+  if (
+    typeof groupByValue === 'string' &&
+    (column === SpanFields.GEN_AI_REQUEST_MODEL ||
+      column === SpanFields.GEN_AI_RESPONSE_MODEL)
+  ) {
+    return <ModelName modelId={groupByValue} size={14} />;
+  }
+
+  return fallbackLabel;
 }
