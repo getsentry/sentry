@@ -238,4 +238,18 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
     ),
   },
+  'team-settings.slug': {
+    name: 'slug',
+    formId: 'team-settings',
+    route: '/settings/:orgId/teams/:teamId/settings/',
+    label: t('Team Slug'),
+    hintText: t('A unique ID used to identify the team'),
+  },
+  'team-settings.teamId': {
+    name: 'teamId',
+    formId: 'team-settings',
+    route: '/settings/:orgId/teams/:teamId/settings/',
+    label: t('Team ID'),
+    hintText: t('The unique identifier for this team. It cannot be modified.'),
+  },
 };
