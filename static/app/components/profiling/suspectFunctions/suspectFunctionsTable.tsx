@@ -270,7 +270,7 @@ export function SuspectFunctionsTable({
             <TableStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
-          ) : flamegraphQuery.isFetched ? (
+          ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
             metrics.map((metric, i) => (
               <TableEntry
                 key={i}
