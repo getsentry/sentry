@@ -38,38 +38,29 @@ def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
     WARNING: This is used by PUBLIC API endpoints. Changes here may break the
     public API contract. Always verify public endpoint tests pass after modifying.
     """
+    extras = artifact.extras or {}
     installable = is_installable_artifact(artifact)
     install_url: str | None = None
 
     if installable:
         if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            if not artifact.extras or artifact.extras.get("is_code_signature_valid") is not True:
+            if extras.get("is_code_signature_valid") is not True:
                 installable = False
 
         if installable:
             install_url = get_download_url_for_artifact(artifact)
 
     download_count = get_download_count_for_artifact(artifact) if installable else 0
-    release_notes = artifact.extras.get("release_notes") if artifact.extras else None
+    release_notes = extras.get("release_notes")
 
     is_code_signature_valid: bool | None = None
     profile_name: str | None = None
     codesigning_type: str | None = None
 
     if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-        is_code_signature_valid = bool(
-            artifact.extras and artifact.extras.get("is_code_signature_valid") is True
-        )
-        profile_name = (
-            artifact.extras.get("profile_name")
-            if artifact.extras and "profile_name" in artifact.extras
-            else None
-        )
-        codesigning_type = (
-            artifact.extras.get("codesigning_type")
-            if artifact.extras and "codesigning_type" in artifact.extras
-            else None
-        )
+        is_code_signature_valid = extras.get("is_code_signature_valid") is True
+        profile_name = extras.get("profile_name")
+        codesigning_type = extras.get("codesigning_type")
 
     return ArtifactInstallInfo(
         is_installable=installable,
