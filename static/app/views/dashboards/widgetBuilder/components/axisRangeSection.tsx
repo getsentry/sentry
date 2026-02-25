@@ -1,5 +1,4 @@
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
@@ -14,16 +13,18 @@ function AxisRangeSection() {
   return (
     <div>
       <SectionHeader title={t('Y-Axis Range')} />
-      <CompactSelect
+      <RadioGroup
+        label=""
         value={value}
-        options={[
-          {value: 'auto' as const, label: t('Auto (start at 0)')},
-          {value: 'dataMin' as const, label: t('Fit to data')},
+        orientInline
+        choices={[
+          ['auto' as const, t('Auto')],
+          ['dataMin' as const, t('Fit to data')],
         ]}
-        onChange={selection => {
+        onChange={selected => {
           dispatch({
             type: BuilderStateAction.SET_AXIS_RANGE,
-            payload: selection.value,
+            payload: selected,
           });
         }}
       />
