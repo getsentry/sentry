@@ -188,6 +188,7 @@ class SpansBuffer:
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
+        zero_copy_threshold = options.get("spans.buffer.zero-copy-dest-threshold-bytes")
         debug_traces = set(options.get("spans.buffer.debug-traces"))
 
         result_meta = []
@@ -265,6 +266,7 @@ class SpansBuffer:
                             redis_ttl,
                             max_segment_bytes,
                             byte_count,
+                            zero_copy_threshold,
                             *span_ids,
                         )
 
@@ -529,7 +531,9 @@ class SpansBuffer:
                 span = orjson.loads(payload)
 
                 if not attribute_value(span, "sentry.segment.id"):
-                    span.setdefault("attributes", {})["sentry.segment.id"] = {
+                    if not isinstance(span.get("attributes"), dict):
+                        span["attributes"] = {}
+                    span["attributes"]["sentry.segment.id"] = {
                         "type": "string",
                         "value": segment_span_id,
                     }

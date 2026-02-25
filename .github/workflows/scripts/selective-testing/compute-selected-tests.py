@@ -152,11 +152,28 @@ def main() -> int:
                 print(f"Including {len(mapped_tests)} mapped test files for {file_path}")
                 affected_test_files.update(mapped_tests)
 
-        # Also include any test files that were directly changed/added in the PR
+        # Also include test files that were directly modified or added in the PR.
+        # Note: we intentionally exclude deleted test files here — they can't be
+        # run, and their coverage is already captured by the lookup above (any
+        # OTHER test that covered the now-deleted source will be included via
+        # get_affected_test_files). Deleted test files that appear in the
+        # coverage results are removed by the filter below.
         changed_test_files = get_changed_test_files(changed_files)
-        if changed_test_files:
-            print(f"Including {len(changed_test_files)} directly changed test files")
-            affected_test_files.update(changed_test_files)
+        existing_changed_test_files = {f for f in changed_test_files if Path(f).exists()}
+        if existing_changed_test_files:
+            print(f"Including {len(existing_changed_test_files)} directly changed test files")
+            affected_test_files.update(existing_changed_test_files)
+
+    # Filter out any test files found via coverage lookup that no longer exist
+    # (e.g. a deleted test file that covered the same source as another changed file).
+    existing_files = {f for f in affected_test_files if Path(f).exists()}
+    deleted_files = affected_test_files - existing_files
+    if deleted_files:
+        print(
+            f"Excluding {len(deleted_files)} deleted test file(s) found via coverage: "
+            + ", ".join(sorted(deleted_files))
+        )
+        affected_test_files = existing_files
 
     print(f"Found {len(affected_test_files)} affected test files")
 

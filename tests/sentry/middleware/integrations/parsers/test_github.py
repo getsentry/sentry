@@ -295,6 +295,123 @@ class GithubRequestParserTest(TestCase):
 
 
 @control_silo_test
+class GithubRequestParserMailboxBucketingTest(TestCase):
+    factory = RequestFactory()
+    path = reverse("sentry-integration-github-webhook")
+
+    def get_response(self, req: HttpRequest) -> HttpResponse:
+        return HttpResponse(status=200, content="passthrough")
+
+    def get_integration(self) -> Integration:
+        return self.create_integration(
+            organization=self.organization,
+            external_id="1",
+            provider="github",
+        )
+
+    def test_mailbox_bucket_id_returns_repo_id(self) -> None:
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        assert parser.mailbox_bucket_id({"repository": {"id": 35129377}}) == 35129377
+
+    def test_mailbox_bucket_id_returns_none_without_repository(self) -> None:
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        assert parser.mailbox_bucket_id({"installation": {"id": "1"}}) is None
+
+    def test_mailbox_bucket_id_handles_malformed_payload(self) -> None:
+        request = self.factory.post(
+            self.path,
+            data={},
+            content_type="application/json",
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        assert parser.mailbox_bucket_id({"repository": "not-a-dict"}) is None
+        assert parser.mailbox_bucket_id({"repository": {"id": "not-an-int"}}) is None
+        assert parser.mailbox_bucket_id({"repository": {}}) is None
+        assert parser.mailbox_bucket_id({}) is None
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    def test_webhook_outbox_creation_with_bucketing(self) -> None:
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+
+        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
+            parser = GithubRequestParser(request=request, response_handler=self.get_response)
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        # 35129377 % 100 = 77
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}:77",
+            region_names=[region.name],
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    def test_webhook_outbox_creation_without_bucketing(self) -> None:
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}",
+            region_names=[region.name],
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    def test_webhook_without_repository_falls_back_to_single_mailbox(self) -> None:
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
+        )
+
+        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
+            parser = GithubRequestParser(request=request, response_handler=self.get_response)
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}",
+            region_names=[region.name],
+        )
+
+
+@control_silo_test
 class GithubRequestParserTypeRoutingTest(GithubRequestParserTest):
     """
     Test fixture that runs the routing tests with header-based routing enabled.

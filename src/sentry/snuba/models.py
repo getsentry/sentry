@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -36,15 +36,15 @@ class ExtrapolationMode(Enum):
     SERVER_WEIGHTED = 3
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[Any, ...]:
         return tuple((mode.value, mode.name.lower()) for mode in cls)
 
     @classmethod
-    def as_text_choices(cls):
+    def as_text_choices(cls) -> tuple[Any, ...]:
         return tuple((mode.name.lower(), mode.value) for mode in cls)
 
     @classmethod
-    def from_str(cls, name: str):
+    def from_str(cls, name: str) -> Self | None:
         for mode in cls:
             if mode.name.lower() == name:
                 return mode
@@ -89,7 +89,7 @@ class SnubaQuery(Model):
         db_table = "sentry_snubaquery"
 
     @property
-    def event_types(self):
+    def event_types(self) -> list[SnubaQueryEventType.EventType]:
         return [type.event_type for type in self.snubaqueryeventtype_set.all()]
 
     @classmethod
@@ -132,7 +132,7 @@ class SnubaQueryEventType(Model):
         unique_together = (("snuba_query", "type"),)
 
     @property
-    def event_type(self):
+    def event_type(self) -> SnubaQueryEventType.EventType:
         return self.EventType(self.type)
 
 
@@ -212,7 +212,7 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
 
     @override
     @staticmethod
-    def related_model(instance) -> list[ModelRelation]:
+    def related_model(instance: DataSource) -> list[ModelRelation]:
         return [ModelRelation(QuerySubscription, {"id": instance.source_id})]
 
     @override

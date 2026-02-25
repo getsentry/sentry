@@ -104,8 +104,6 @@ const highlightFade = keyframes`
 
 const HighlightableFlex = styled(Flex)`
   --highlight-color: ${p => p.theme.tokens.background.transparent.accent.muted};
-  margin: calc(${p => p.theme.space.xl} * -1);
-  padding: ${p => p.theme.space.xl};
 
   &[data-highlight] {
     animation: ${highlightFade} ${p => p.theme.motion.smooth.slow};

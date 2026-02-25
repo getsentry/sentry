@@ -1,6 +1,10 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {z} from 'zod';
 
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -9,8 +13,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -19,9 +21,8 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
@@ -29,13 +30,11 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organizationAuthTokens';
 
-type CreateTokenQueryVariables = {
-  name: string;
-};
-
 type OrgAuthTokenWithToken = OrgAuthToken & {token: string};
 
-type CreateOrgAuthTokensResponse = OrgAuthTokenWithToken;
+const schema = z.object({
+  name: z.string().min(1, t('Name is required')),
+});
 
 function AuthTokenCreateForm({
   organization,
@@ -44,12 +43,7 @@ function AuthTokenCreateForm({
   onCreatedToken: (token: OrgAuthTokenWithToken) => void;
   organization: Organization;
 }) {
-  const initialData = {
-    name: '',
-  };
-
   const navigate = useNavigate();
-  const api = useApi();
   const queryClient = useQueryClient();
 
   const handleGoBack = useCallback(
@@ -57,21 +51,17 @@ function AuthTokenCreateForm({
     [navigate, organization.slug]
   );
 
-  const {mutate: submitToken, isPending} = useMutation<
-    CreateOrgAuthTokensResponse,
+  const mutation = useMutation<
+    OrgAuthTokenWithToken,
     RequestError,
-    CreateTokenQueryVariables
+    z.infer<typeof schema>
   >({
-    mutationFn: ({name}) => {
-      addLoadingMessage();
-      return api.requestPromise(`/organizations/${organization.slug}/org-auth-tokens/`, {
+    mutationFn: data =>
+      fetchMutation<OrgAuthTokenWithToken>({
+        url: `/organizations/${organization.slug}/org-auth-tokens/`,
         method: 'POST',
-        data: {
-          name,
-        },
-      });
-    },
-
+        data,
+      }),
     onSuccess: (token: OrgAuthTokenWithToken) => {
       addSuccessMessage(t('Created organization token.'));
 
@@ -96,36 +86,47 @@ function AuthTokenCreateForm({
     },
   });
 
-  return (
-    <Form
-      apiMethod="POST"
-      initialData={initialData}
-      apiEndpoint={`/organizations/${organization.slug}/org-auth-tokens/`}
-      onSubmit={({name}) => {
-        submitToken({name});
-      }}
-      onCancel={handleGoBack}
-      submitLabel={t('Create Token')}
-      requireChanges
-      submitDisabled={isPending}
-    >
-      <TextField
-        name="name"
-        label={t('Name')}
-        required
-        help={t('A name to help you identify this token.')}
-      />
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {name: ''},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      addLoadingMessage();
+      return mutation.mutateAsync(value).catch(() => {});
+    },
+  });
 
-      <FieldGroup
-        label={t('Scopes')}
-        help={t('Organization tokens currently have a limited set of scopes.')}
-      >
-        <div>
-          <div>org:ci</div>
-          <ScopeHelpText>{t('Source Map Upload, Release Creation')}</ScopeHelpText>
-        </div>
-      </FieldGroup>
-    </Form>
+  return (
+    <form.AppForm>
+      <form.FormWrapper>
+        <form.AppField name="name">
+          {field => (
+            <field.Layout.Row
+              label={t('Name')}
+              hintText={t('A name to help you identify this token.')}
+              required
+            >
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+
+        <FieldGroup
+          label={t('Scopes')}
+          help={t('Organization tokens currently have a limited set of scopes.')}
+        >
+          <div>
+            <div>org:ci</div>
+            <ScopeHelpText>{t('Source Map Upload, Release Creation')}</ScopeHelpText>
+          </div>
+        </FieldGroup>
+
+        <Flex justify="end" gap="md" padding="md">
+          <Button onClick={handleGoBack}>{t('Cancel')}</Button>
+          <form.SubmitButton>{t('Create Token')}</form.SubmitButton>
+        </Flex>
+      </form.FormWrapper>
+    </form.AppForm>
   );
 }
 

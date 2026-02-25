@@ -1,5 +1,8 @@
 # Outbox Pattern Test Reference
 
+> For outbox system architecture, model mixins, categories, signal receivers, and debugging,
+> see the `hybrid-cloud-outboxes` skill. This reference covers test generation patterns only.
+
 ## Import Block
 
 ```python

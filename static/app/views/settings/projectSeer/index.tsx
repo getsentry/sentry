@@ -13,7 +13,7 @@ import {useProjectSeerPreferences} from 'sentry/components/events/autofix/prefer
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {
-  useCodingAgentIntegrations,
+  organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -34,7 +34,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -181,7 +181,9 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const queryClient = useQueryClient();
   const {preference} = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
-  const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
+  const {data: codingAgentIntegrations} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
 
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 

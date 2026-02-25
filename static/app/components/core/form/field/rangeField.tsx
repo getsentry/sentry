@@ -15,7 +15,7 @@ export function RangeField({
   value,
   ...props
 }: BaseFieldProps &
-  DistributedOmit<SliderProps, 'value' | 'onChange' | 'onBlur' | 'disabled'> & {
+  DistributedOmit<SliderProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
     onChange: (value: number) => void;
     value: number;
     disabled?: boolean | string;

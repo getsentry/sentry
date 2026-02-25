@@ -5,7 +5,7 @@ import {mergeProps} from '@react-aria/utils';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SingleSelectProps} from '@sentry/scraps/compactSelect';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
@@ -447,7 +447,7 @@ export function TimeRangeSelector({
           }
           menuFooter={
             menuFooter || menuFooterMessage || showAbsoluteSelector
-              ? ({closeOverlay}) => (
+              ? () => (
                   <Fragment>
                     {menuFooterMessage && (
                       <FooterMessage>{menuFooterMessage}</FooterMessage>
@@ -466,17 +466,10 @@ export function TimeRangeSelector({
                               {t('Back')}
                             </Button>
                           )}
-                          <Button
-                            size="xs"
-                            priority="primary"
+                          <MenuComponents.ApplyButton
                             disabled={!hasChanges || hasDateRangeErrors}
-                            onClick={() => {
-                              commitChanges();
-                              closeOverlay();
-                            }}
-                          >
-                            {t('Apply')}
-                          </Button>
+                            onClick={commitChanges}
+                          />
                         </Flex>
                       )}
                     </FooterWrap>
