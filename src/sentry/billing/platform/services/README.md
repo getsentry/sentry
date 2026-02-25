@@ -1,59 +1,47 @@
-# Billing Platform Services
+# Service Implementations
 
-This directory contains the implementation of billing services. Each subdirectory represents a distinct service with well-defined boundaries.
+Individual billing services with strict boundaries.
 
-## Service Guidelines
+## Service Boundaries
 
-### Service Boundaries
-
-**CRITICAL**: Services should **BY NO MEANS** import code across service lines. Services should communicate with each other using the `BillingService` abstraction.
+**CRITICAL**: Never import across service directories. Use service methods for cross-service communication.
 
 ```python
-# ❌ WRONG: Importing across service boundaries
+# ❌ WRONG: Direct import
 from sentry.billing.platform.services.contract.models import Contract
 
-# ✅ CORRECT: Use service methods
+# ✅ CORRECT: Service method
 from sentry.billing.platform.services.contract import ContractService
 contract = ContractService().get_contract(GetContractRequest(organization_id=1))
 ```
 
-### Service Structure
-
-Each service should be in its own directory with the following structure:
+## Directory Structure
 
 ```
 services/
 └── contract/           # Service name
-    ├── __init__.py     # Exports the service class
+    ├── __init__.py     # Exports ContractService
     ├── service.py      # Service implementation
     └── ...             # Internal implementation files
 ```
 
-### Creating a New Service
+## Creating a Service
 
-1. Create a new directory for your service
-2. Create a service class that inherits from `BillingService`
-3. Define service methods decorated with `@service_method`
-4. Ensure all interfaces use protobuf messages
-
-Example:
+1. Create service directory: `services/myservice/`
+2. Implement service class inheriting from `BillingService`
+3. Decorate methods with `@service_method`
+4. Export service in `__init__.py`
 
 ```python
-# services/contract/service.py
+# services/myservice/service.py
 from sentry.billing.platform.core import BillingService, service_method
-from sentry_protos.billing.v1.services.contract import GetContractRequest, GetContractResponse
 
 
-class ContractService(BillingService):
+class MyService(BillingService):
     @service_method
-    def get_contract(self, request: GetContractRequest) -> GetContractResponse:
+    def my_method(self, request: MyRequest) -> MyResponse:
         # Implementation
         pass
-
-# services/contract/__init__.py
-from .service import ContractService
-
-__all__ = ["ContractService"]
 ```
 
 ## Available Services
