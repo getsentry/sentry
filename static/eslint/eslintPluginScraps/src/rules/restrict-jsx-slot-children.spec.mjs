@@ -121,13 +121,6 @@ ruleTester.run('restrict-jsx-slot-children', restrictJsxSlotChildren, {
       filename: '/static/app/foo.tsx',
     },
 
-    // ── Content inside a leaf element is not checked ─────────────────────────
-    {
-      options: COMPACT_SELECT_OPTIONS,
-      code: `${IMPORTS}<CompactSelect menuFooter={<Flex><MenuComponents.Alert><div>text</div></MenuComponents.Alert></Flex>} />`,
-      filename: '/static/app/foo.tsx',
-    },
-
     // ── Arrow function with expression body ───────────────────────────────────
     {
       options: COMPACT_SELECT_OPTIONS,
@@ -166,6 +159,23 @@ ruleTester.run('restrict-jsx-slot-children', restrictJsxSlotChildren, {
     {
       options: COMPACT_SELECT_OPTIONS,
       code: `${IMPORTS}<CompactSelect menuFooter={<><Flex><MenuComponents.ApplyButton/></Flex></>} />`,
+      filename: '/static/app/foo.tsx',
+    },
+
+    // ── Named React fragments are transparent (children are checked) ──────────
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Fragment><MenuComponents.ApplyButton/></Fragment>} />`,
+      filename: '/static/app/foo.tsx',
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<React.Fragment><MenuComponents.ApplyButton/></React.Fragment>} />`,
+      filename: '/static/app/foo.tsx',
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Fragment><Flex><MenuComponents.CancelButton/></Flex></Fragment>} />`,
       filename: '/static/app/foo.tsx',
     },
 
@@ -260,12 +270,18 @@ import {Flex as FlexLayout} from '@sentry/scraps/layout';
       errors: [forbidden('Button', 'menuFooter')],
     },
 
-    // ── Fragment is not in the allowed set ────────────────────────────────────
+    // ── Invalid children inside named React fragments ─────────────────────────
     {
       options: COMPACT_SELECT_OPTIONS,
-      code: `${IMPORTS}<CompactSelect menuFooter={<Fragment><MenuComponents.ApplyButton/></Fragment>} />`,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Fragment><Button/></Fragment>} />`,
       filename: '/static/app/foo.tsx',
-      errors: [forbidden('Fragment', 'menuFooter')],
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<React.Fragment><Button/></React.Fragment>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
     },
 
     // ── Custom component directly in slot ─────────────────────────────────────
@@ -352,6 +368,14 @@ import {Flex as FlexLayout} from '@sentry/scraps/layout';
       code: `${IMPORTS}<CompactSelect menuHeaderTrailingItems={condition && <Button/>} />`,
       filename: '/static/app/foo.tsx',
       errors: [forbidden('Button', 'menuHeaderTrailingItems')],
+    },
+
+    // ── Content inside a member expression element is checked ────────────────
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Flex><MenuComponents.Alert><div>text</div></MenuComponents.Alert></Flex>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('div', 'menuFooter')],
     },
 
     // ── MenuComponents not imported → member expression is unknown ────────────

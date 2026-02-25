@@ -1,1 +1,1 @@
-export {configs, rules} from './src/rules/index.mjs';
+export {rules} from './src/rules/index.mjs';

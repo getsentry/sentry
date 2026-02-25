@@ -14,13 +14,12 @@
  *     <Object.Member>. Import aliasing is respected.
  *
  * Recursion semantics:
- *   - Member expressions (<A.B>) are treated as leaves — the rule stops here.
- *   - Plain identifiers (<Ident>) are treated as wrappers — the rule recurses
- *     into their direct JSX children and checks each one.
+ *   - Every element in the slot's JSX tree is checked against the allowed set.
+ *   - Allowed elements always have their children checked recursively.
+ *   - Disallowed elements are reported immediately (children are not checked).
  *
  * The rule handles direct JSX, arrow-function expression bodies, top-level
- * ternary / logical expressions, and JSXExpressionContainers inside wrapper
- * children.
+ * ternary / logical expressions, and JSXExpressionContainers inside children.
  *
  * Known limitations:
  *   - Block-body callbacks (`() => { return <Elem>; }`) are not checked.
@@ -55,6 +54,29 @@
  */
 
 /**
+ * Returns true if the name node refers to a React fragment (<Fragment> or
+ * <React.Fragment>). Fragments are always transparent wrappers — the rule
+ * recurses into their children without checking the fragment element itself.
+ *
+ * @param {*} nameNode
+ * @returns {boolean}
+ */
+function isReactFragment(nameNode) {
+  if (nameNode.type === 'JSXIdentifier' && nameNode.name === 'Fragment') {
+    return true;
+  }
+  if (
+    nameNode.type === 'JSXMemberExpression' &&
+    nameNode.object.type === 'JSXIdentifier' &&
+    nameNode.object.name === 'React' &&
+    nameNode.property.name === 'Fragment'
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Returns a human-readable display name for a JSX element's opening-tag name.
  *
  * @param {*} nameNode
@@ -80,37 +102,6 @@ function buildAllowedHint(allowedConfig) {
   return allowedConfig
     .map(entry => `${entry.names.join(', ')} from '${entry.source}'`)
     .join(', or ');
-}
-
-/**
- * Pre-processes a single allowed entry's names into member and identifier sets.
- *
- * @param {Array<string>} names
- * @returns {{ memberNames: Map<string, Set<string>>, identifierNames: Set<string> }}
- */
-function processNames(names) {
-  /** @type {Map<string, Set<string>>} */
-  const memberNames = new Map();
-  /** @type {Set<string>} */
-  const identifierNames = new Set();
-
-  for (const name of names) {
-    const dot = name.indexOf('.');
-    if (dot === -1) {
-      identifierNames.add(name);
-    } else {
-      const obj = name.slice(0, dot);
-      const member = name.slice(dot + 1);
-      const members = memberNames.get(obj);
-      if (members) {
-        members.add(member);
-      } else {
-        memberNames.set(obj, new Set([member]));
-      }
-    }
-  }
-
-  return {memberNames, identifierNames};
 }
 
 /**
@@ -180,10 +171,11 @@ export const restrictJsxSlotChildren = {
     /**
      * Per-slot runtime state, keyed by individual prop name.
      *
-     * processedAllowed: pre-parsed config entries for fast import lookup
-     * memberAllowed:    localAlias → Set<memberName>  (leaf: stop recursion)
-     * namedAllowed:     Set<localAlias>               (wrapper: recurse)
+     * processedAllowed: raw config entries used to resolve imports at runtime
+     * allowedNames:     Set of resolved local display names (e.g. "Flex", "MC.Alert")
      * hint:             pre-computed error hint string
+     * componentNames:   optional set of component names that restrict which
+     *                   JSX elements this slot config applies to
      */
     const slotState = new Map();
 
@@ -193,63 +185,60 @@ export const restrictJsxSlotChildren = {
       const state = {
         processedAllowed: allowed.map(entry => ({
           source: entry.source,
-          ...processNames(entry.names),
+          names: entry.names,
         })),
-        memberAllowed: new Map(),
-        namedAllowed: new Set(),
+        allowedNames: new Set(),
         hint: buildAllowedHint(allowed),
         componentNames: new Set(slot.componentNames ?? []),
       };
       for (const propName of slot.propNames) {
+        if (slotState.has(propName)) {
+          throw new TypeError(
+            `Duplicate prop configuration for: ${propName} in slot ${slot.componentNames.join(', ')}`
+          );
+        }
         slotState.set(propName, state);
       }
     }
 
     /**
-     * Recursively walks a JSXElement against a slot's allowed set:
+     * Recursively walks a JSXElement against a slot's allowed set.
      *
-     *   - Member expression (<A.B>) where A is a tracked alias and B is in its
-     *     allowed member set: leaf, stop.
-     *   - Identifier (<Ident>) where Ident is in namedAllowed: wrapper, recurse.
-     *   - Anything else: reported as forbidden.
+     * Every element is checked: if its display name is in `allowedNames` the
+     * rule recurses into direct JSX children; otherwise the element is reported
+     * as forbidden and recursion stops.
      *
      * @param {*} jsxElement
      * @param {string} propName
-     * @param {{memberAllowed: Map<string, Set<string>>, namedAllowed: Set<string>, hint: string}} state
+     * @param {{allowedNames: Set<string>, hint: string}} state
      */
     function checkSlotTree(jsxElement, propName, state) {
       const nameNode = jsxElement.openingElement.name;
 
-      if (
-        nameNode.type === 'JSXMemberExpression' &&
-        nameNode.object.type === 'JSXIdentifier'
-      ) {
-        const allowedMembers = state.memberAllowed.get(nameNode.object.name);
-        if (allowedMembers?.has(nameNode.property.name)) {
-          return; // leaf — don't recurse into children
+      // React fragments are always transparent — skip the allowed check and
+      // recurse directly into their children.
+      if (!isReactFragment(nameNode)) {
+        const displayName = getDisplayName(nameNode);
+        if (!state.allowedNames.has(displayName)) {
+          context.report({
+            node: jsxElement,
+            messageId: 'forbidden',
+            data: {name: displayName, prop: propName, allowed: state.hint},
+          });
+          return;
         }
-      } else if (
-        nameNode.type === 'JSXIdentifier' &&
-        state.namedAllowed.has(nameNode.name)
-      ) {
-        // wrapper — recurse into direct JSX children
-        for (const child of jsxElement.children) {
-          if (child.type === 'JSXElement') {
-            checkSlotTree(child, propName, state);
-          } else if (child.type === 'JSXFragment') {
-            checkExpression(child, propName, state);
-          } else if (child.type === 'JSXExpressionContainer') {
-            checkExpression(child.expression, propName, state);
-          }
-        }
-        return;
       }
 
-      context.report({
-        node: jsxElement,
-        messageId: 'forbidden',
-        data: {name: getDisplayName(nameNode), prop: propName, allowed: state.hint},
-      });
+      // recurse into direct JSX children
+      for (const child of jsxElement.children) {
+        if (child.type === 'JSXElement') {
+          checkSlotTree(child, propName, state);
+        } else if (child.type === 'JSXFragment') {
+          checkExpression(child, propName, state);
+        } else if (child.type === 'JSXExpressionContainer') {
+          checkExpression(child.expression, propName, state);
+        }
+      }
     }
 
     /**
@@ -258,7 +247,7 @@ export const restrictJsxSlotChildren = {
      *
      * @param {*} expr
      * @param {string} propName
-     * @param {{memberAllowed: Map<string, Set<string>>, namedAllowed: Set<string>, hint: string}} state
+     * @param {{allowedNames: Set<string>, hint: string}} state
      */
     function checkExpression(expr, propName, state) {
       if (!expr) return;
@@ -318,18 +307,21 @@ export const restrictJsxSlotChildren = {
               const importedName = spec.imported.name;
               const localName = spec.local.name;
 
-              const memberNames = entry.memberNames.get(importedName);
-              if (memberNames) {
-                const existing = state.memberAllowed.get(localName);
-                if (existing) {
-                  for (const m of memberNames) existing.add(m);
+              for (const name of entry.names) {
+                const dot = name.indexOf('.');
+                if (dot === -1) {
+                  // plain identifier: e.g. "Flex"
+                  if (name === importedName) {
+                    state.allowedNames.add(localName);
+                  }
                 } else {
-                  state.memberAllowed.set(localName, new Set(memberNames));
+                  // member expression: e.g. "MenuComponents.Alert"
+                  const obj = name.slice(0, dot);
+                  const member = name.slice(dot + 1);
+                  if (obj === importedName) {
+                    state.allowedNames.add(`${localName}.${member}`);
+                  }
                 }
-              }
-
-              if (entry.identifierNames.has(importedName)) {
-                state.namedAllowed.add(localName);
               }
             }
           }
