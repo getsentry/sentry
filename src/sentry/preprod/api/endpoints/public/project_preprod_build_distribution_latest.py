@@ -11,7 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.paginator import DateTimePaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -196,7 +196,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
             queryset=annotated_queryset,
             order_by="-date_added",
             on_results=on_results,
-            paginator_cls=OffsetPaginator,
+            paginator_cls=DateTimePaginator,
             default_per_page=params.get("per_page", 25),
             max_per_page=100,
         )
