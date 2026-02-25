@@ -1,5 +1,3 @@
-import {skipToken} from '@tanstack/react-query';
-
 import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
@@ -13,7 +11,7 @@ interface FirstLastReleaseQueryOptions {
 }
 
 interface GetIssueFirstLastReleaseQueryOptions {
-  groupId: string | undefined;
+  groupId: string;
   organizationSlug: string;
   query?: FirstLastReleaseQueryOptions;
 }
@@ -26,9 +24,7 @@ export function issueFirstLastReleaseQueryOptions({
   return apiOptions.as<GroupRelease>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/first-last-release/',
     {
-      path: groupId
-        ? {organizationIdOrSlug: organizationSlug, issueId: groupId}
-        : skipToken,
+      path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
       staleTime: 30_000,
       query,
     }

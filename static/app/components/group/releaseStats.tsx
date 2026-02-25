@@ -18,14 +18,14 @@ import type {CurrentRelease} from 'sentry/types/release';
 import {useQuery} from 'sentry/utils/queryClient';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
 
-type Props = {
+interface GroupReleaseStatsProps {
+  allEnvironments: Group | undefined;
+  currentRelease: CurrentRelease | undefined;
   environments: string[];
+  group: Group;
   organization: Organization;
   project: Project;
-  allEnvironments?: Group;
-  currentRelease?: CurrentRelease;
-  group?: Group;
-};
+}
 
 function GroupReleaseStats({
   organization,
@@ -34,7 +34,7 @@ function GroupReleaseStats({
   allEnvironments,
   group,
   currentRelease,
-}: Props) {
+}: GroupReleaseStatsProps) {
   const environment = environments.length > 0 ? environments.join(', ') : undefined;
   const environmentLabel = environment ? environment : t('All Environments');
 
@@ -47,7 +47,7 @@ function GroupReleaseStats({
 
   const {data: groupReleaseData} = useQuery(
     issueFirstLastReleaseQueryOptions({
-      groupId: group?.id,
+      groupId: group.id,
       organizationSlug: organization.slug,
     })
   );
@@ -62,9 +62,7 @@ function GroupReleaseStats({
 
   return (
     <div>
-      {!group || !allEnvironments ? (
-        <Placeholder height="346px" bottomGutter={4} />
-      ) : (
+      {allEnvironments ? (
         <Fragment>
           <GraphContainer>
             <GroupReleaseChart
@@ -156,6 +154,8 @@ function GroupReleaseStats({
             </SidebarSection.Wrap>
           )}
         </Fragment>
+      ) : (
+        <Placeholder height="346px" bottomGutter={4} />
       )}
     </div>
   );
