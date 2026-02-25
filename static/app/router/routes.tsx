@@ -1199,6 +1199,13 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
         },
         {
+          path: 'advanced/',
+          component: make(
+            // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
+            () => import('getsentry/views/seerAutomation/advancedSettings')
+          ),
+        },
+        {
           path: 'onboarding/',
           name: t('Setup Wizard'),
           component: make(
