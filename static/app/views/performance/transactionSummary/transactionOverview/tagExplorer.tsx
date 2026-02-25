@@ -377,11 +377,6 @@ export function TagExplorer(props: Props) {
     return value;
   }
 
-  function renderBodyCellWithData() {
-    return (column: TableColumn<ColumnKeys>, dataRow: TableDataRow): React.ReactNode =>
-      renderBodyCell(column, dataRow);
-  }
-
   const tagSort = decodeScalar(location.query?.tagSort);
   const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
 
@@ -443,7 +438,7 @@ export function TagExplorer(props: Props) {
                   tableData?.meta || {},
                   adjustedColumns
                 ) as any,
-                renderBodyCell: renderBodyCellWithData() as any,
+                renderBodyCell: renderBodyCell as any,
                 onResizeColumn: handleResizeColumn as any,
               }}
             />
