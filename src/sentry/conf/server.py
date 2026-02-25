@@ -2396,19 +2396,21 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
-    "intel": {
-        "type": "http",
-        "id": "sentry:intel",
-        "name": "Intel",
-        "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pe", "pdb"]},
-        "url": "https://software.intel.com/sites/downloads/symbols/",
-        "headers": {
-            "User-Agent": "curl/7.72.0",
-        },
-        "is_public": True,
-        "has_index": True,
-    },
+    # Symbolicator is again not able to sucessfully download from the
+    # Intel source, even with the previous workarrounds.
+    # "intel": {
+    #     "type": "http",
+    #     "id": "sentry:intel",
+    #     "name": "Intel",
+    #     "layout": {"type": "symstore"},
+    #     "filters": {"filetypes": ["pe", "pdb"]},
+    #     "url": "https://software.intel.com/sites/downloads/symbols/",
+    #     "headers": {
+    #         "User-Agent": "curl/7.72.0",
+    #     },
+    #     "is_public": True,
+    #     "has_index": True,
+    # },
     "amd": {
         "type": "http",
         "id": "sentry:amd",
