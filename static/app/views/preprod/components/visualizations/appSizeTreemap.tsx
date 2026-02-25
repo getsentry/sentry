@@ -21,7 +21,10 @@ import {
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
-import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
+import {
+  getAppSizeCategoryInfo,
+  getOpaqueColorFromComposite,
+} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import {
   TreemapControlButtons,
   type TreemapControlButton,
@@ -158,24 +161,44 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     }
   };
 
-  function convertToEChartsData(element: TreemapElement): any {
+  const chartSurfaceColor = theme.tokens.background.primary;
+
+  function convertToEChartsData(
+    element: TreemapElement,
+    parentCompositeColor: string = chartSurfaceColor
+  ): any {
     const categoryInfo =
       appSizeCategoryInfo[element.type] ?? appSizeCategoryInfo[TreemapType.OTHER];
     if (!categoryInfo) {
       throw new Error(`Category ${element.type} not found`);
     }
 
-    // Use headerColor for parent nodes, regular color for leaf nodes
-    const hasChildren = element.children && element.children.length > 0;
+    const hasChildren = element.children.length > 0;
     const hasFlaggedInsights =
       element.flagged_insights && element.flagged_insights.length > 0;
     const shouldHighlight = highlightInsights && hasFlaggedInsights;
 
-    const borderColor = shouldHighlight
-      ? theme.tokens.border.danger.vibrant
-      : hasChildren && categoryInfo.translucentColor
+    const baselineNodeColor =
+      hasChildren && categoryInfo.translucentColor
         ? categoryInfo.translucentColor
         : categoryInfo.color;
+
+    const compositeNodeColor = getOpaqueColorFromComposite(
+      baselineNodeColor,
+      parentCompositeColor
+    );
+
+    const borderColor = shouldHighlight
+      ? theme.tokens.border.danger.vibrant
+      : compositeNodeColor;
+
+    const fillColor =
+      shouldHighlight && !hasChildren
+        ? getOpaqueColorFromComposite(
+            theme.tokens.border.danger.vibrant,
+            parentCompositeColor
+          )
+        : compositeNodeColor;
 
     const data: any = {
       name: element.name,
@@ -185,11 +208,11 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       misc: element.misc,
       flagged_insights: element.flagged_insights,
       itemStyle: {
-        color: 'transparent',
+        color: fillColor,
         borderColor,
         borderWidth: 6,
         gapWidth: 2,
-        gapColor: 'transparent',
+        gapColor: fillColor,
       },
       label: {
         fontSize: 12,
@@ -217,9 +240,9 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       },
     };
 
-    if (element.children && element.children.length > 0) {
+    if (element.children.length > 0) {
       data.children = element.children.map((child: TreemapElement) =>
-        convertToEChartsData(child)
+        convertToEChartsData(child, compositeNodeColor)
       );
     }
 
@@ -293,7 +316,6 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         {
           itemStyle: {
             gapWidth: 4,
-            borderColor: 'transparent',
             borderRadius: 6,
           },
           colorSaturation: [0.3, 0.5],
