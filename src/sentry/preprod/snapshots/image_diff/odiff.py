@@ -55,7 +55,11 @@ class OdiffServer:
     ) -> dict[str, Any]:
         if not line:
             proc = process or self._process
-            stderr = proc.stderr.read() if proc and proc.stderr else b""
+            stderr = b""
+            if proc and proc.stderr:
+                readable, _, _ = select.select([proc.stderr], [], [], 5)
+                if readable:
+                    stderr = proc.stderr.read()
             raise RuntimeError(
                 f"odiff server exited unexpectedly: {stderr.decode(errors='replace')}"
             )
