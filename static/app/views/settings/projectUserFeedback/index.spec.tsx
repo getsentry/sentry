@@ -56,6 +56,47 @@ describe('ProjectUserFeedback', () => {
     );
   });
 
+  it('renders all fields with correct labels', () => {
+    render(<ProjectUserFeedback />, {
+      organization,
+      outletContext: {project},
+    });
+
+    expect(
+      screen.getByRole('checkbox', {name: 'Show Sentry Branding in Crash Report Modal'})
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('checkbox', {name: 'Enable Crash Report Notifications'})
+    ).toBeInTheDocument();
+  });
+
+  it('can toggle crash report notifications', async () => {
+    render(<ProjectUserFeedback />, {
+      organization,
+      outletContext: {project},
+    });
+
+    const mock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Enable Crash Report Notifications'})
+    );
+
+    expect(mock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          options: {'sentry:feedback_user_report_notifications': true},
+        },
+      })
+    );
+  });
+
   it('cannot toggle spam detection when the user does not have the spam feature flag', () => {
     organization.features.push('gen-ai-features');
     seerSetupMock = mockSeerSetup();
