@@ -171,7 +171,11 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
                 PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
                 | PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
             ):
-                response_data["errorCode"] = main_metric.error_code
+                response_data["errorCode"] = (
+                    PreprodArtifactSizeMetrics.ErrorCode(main_metric.error_code).name
+                    if main_metric.error_code is not None
+                    else None
+                )
                 response_data["errorMessage"] = main_metric.error_message
                 return Response(response_data)
             case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
@@ -245,6 +249,11 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
                 list[AppComponentResponseDict],
                 [
                     convert_dict_key_case(c.dict(exclude={"model_config"}), snake_to_camel_case)
+                    | {
+                        "componentType": PreprodArtifactSizeMetrics.MetricsArtifactType(
+                            c.component_type
+                        ).name
+                    }
                     for c in analysis_results.app_components
                 ],
             )

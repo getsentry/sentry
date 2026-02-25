@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class AppComponentResponseDict(TypedDict):
-    componentType: int
+    componentType: str
     name: str
     appId: str
     path: str
@@ -44,7 +44,7 @@ class DiffItemResponseDict(TypedDict):
 
 
 class SizeMetricDiffResponseDict(TypedDict):
-    metricsArtifactType: int
+    metricsArtifactType: str
     identifier: str | None
     headInstallSize: int
     headDownloadSize: int
@@ -62,14 +62,14 @@ class InsightDiffItemResponseDict(TypedDict):
 
 # Keep in sync with internal models in sentry.preprod.size_analysis.models
 class ComparisonResponseDict(TypedDict):
-    metricsArtifactType: int
+    metricsArtifactType: str
     identifier: str | None
-    state: int
-    errorCode: NotRequired[str | None]
-    errorMessage: NotRequired[str | None]
-    diffItems: NotRequired[list[DiffItemResponseDict] | None]
-    insightDiffItems: NotRequired[list[InsightDiffItemResponseDict] | None]
-    sizeMetricDiff: NotRequired[SizeMetricDiffResponseDict | None]
+    state: str
+    errorCode: str | None
+    errorMessage: str | None
+    diffItems: list[DiffItemResponseDict] | None
+    insightDiffItems: list[InsightDiffItemResponseDict] | None
+    sizeMetricDiff: SizeMetricDiffResponseDict | None
 
 
 class SizeAnalysisResponseDict(TypedDict):
@@ -77,7 +77,7 @@ class SizeAnalysisResponseDict(TypedDict):
     state: str
     appInfo: AppInfoResponseDict
     gitInfo: GitInfoResponseDict | None
-    errorCode: int | None
+    errorCode: str | None
     errorMessage: str | None
     downloadSize: int | None
     installSize: int | None
@@ -133,11 +133,16 @@ def _build_failed_comparison(
     error_message: str | None,
 ) -> ComparisonResponseDict:
     return {
-        "metricsArtifactType": head_metric.metrics_artifact_type,
+        "metricsArtifactType": PreprodArtifactSizeMetrics.MetricsArtifactType(
+            head_metric.metrics_artifact_type
+        ).name,
         "identifier": head_metric.identifier,
-        "state": PreprodArtifactSizeComparison.State.FAILED,
+        "state": PreprodArtifactSizeComparison.State.FAILED.name,
         "errorCode": error_code,
         "errorMessage": error_message,
+        "diffItems": None,
+        "insightDiffItems": None,
+        "sizeMetricDiff": None,
     }
 
 
@@ -151,16 +156,23 @@ def _build_comparison_result(
     elif comparison_obj.state == PreprodArtifactSizeComparison.State.FAILED:
         return _build_failed_comparison(
             head_metric,
-            error_code=str(comparison_obj.error_code)
+            error_code=PreprodArtifactSizeComparison.ErrorCode(comparison_obj.error_code).name
             if comparison_obj.error_code is not None
             else None,
             error_message=comparison_obj.error_message,
         )
     else:
         return {
-            "metricsArtifactType": head_metric.metrics_artifact_type,
+            "metricsArtifactType": PreprodArtifactSizeMetrics.MetricsArtifactType(
+                head_metric.metrics_artifact_type
+            ).name,
             "identifier": head_metric.identifier,
-            "state": PreprodArtifactSizeComparison.State.PROCESSING,
+            "state": PreprodArtifactSizeComparison.State.PROCESSING.name,
+            "errorCode": None,
+            "errorMessage": None,
+            "diffItems": None,
+            "insightDiffItems": None,
+            "sizeMetricDiff": None,
         }
 
 
@@ -186,13 +198,21 @@ def _build_success_comparison(
         comparison_results = ComparisonResults(**comparison_data)
 
         comparison_dict = convert_dict_key_case(comparison_results.dict(), snake_to_camel_case)
+        size_metric_diff = comparison_dict["sizeMetricDiffItem"]
+        size_metric_diff["metricsArtifactType"] = PreprodArtifactSizeMetrics.MetricsArtifactType(
+            size_metric_diff["metricsArtifactType"]
+        ).name
         return {
-            "metricsArtifactType": head_metric.metrics_artifact_type,
+            "metricsArtifactType": PreprodArtifactSizeMetrics.MetricsArtifactType(
+                head_metric.metrics_artifact_type
+            ).name,
             "identifier": head_metric.identifier,
-            "state": PreprodArtifactSizeComparison.State.SUCCESS,
+            "state": PreprodArtifactSizeComparison.State.SUCCESS.name,
+            "errorCode": None,
+            "errorMessage": None,
             "diffItems": comparison_dict["diffItems"],
             "insightDiffItems": comparison_dict["insightDiffItems"],
-            "sizeMetricDiff": comparison_dict["sizeMetricDiffItem"],
+            "sizeMetricDiff": size_metric_diff,
         }
 
     except File.DoesNotExist:

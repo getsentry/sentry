@@ -130,7 +130,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["state"] == "FAILED"
-        assert data["errorCode"] == 1
+        assert data["errorCode"] == "TIMEOUT"
         assert data["errorMessage"] == "Analysis failed"
         assert data["downloadSize"] is None
         assert data["installSize"] is None
@@ -179,6 +179,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["insights"]["platform"] == "android"
         assert len(data["appComponents"]) == 1
         assert data["appComponents"][0]["name"] == "Watch App"
+        assert data["appComponents"][0]["componentType"] == "WATCH_ARTIFACT"
         assert data["baseBuildId"] is None
         assert data["baseAppInfo"] is None
         assert data["comparisons"] is None
@@ -266,9 +267,11 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["comparisons"] is not None
         assert len(data["comparisons"]) == 1
         comparison = data["comparisons"][0]
-        assert comparison["state"] == PreprodArtifactSizeComparison.State.SUCCESS
+        assert comparison["state"] == "SUCCESS"
+        assert comparison["metricsArtifactType"] == "MAIN_ARTIFACT"
         assert comparison["diffItems"] is not None
         assert comparison["sizeMetricDiff"] is not None
+        assert comparison["sizeMetricDiff"]["metricsArtifactType"] == "MAIN_ARTIFACT"
 
     def test_completed_state_with_explicit_base_id(self):
         base_file = self.create_file(name="base_artifact.apk", type="application/octet-stream")
