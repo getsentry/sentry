@@ -1,34 +1,35 @@
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 function AxisRangeSection() {
   const {state, dispatch} = useWidgetBuilderContext();
   const datasetConfig = getDatasetConfig(state.dataset);
-  const value = state.axisRange ?? datasetConfig.axisRange ?? 'auto';
+  const value = state.axisRange || datasetConfig.axisRange || 'auto';
 
   return (
-    <div>
-      <SectionHeader title={t('Y-Axis Range')} />
-      <RadioGroup
-        label=""
-        value={value}
-        orientInline
-        choices={[
-          ['auto' as const, t('Auto')],
-          ['dataMin' as const, t('Fit to data')],
-        ]}
-        onChange={selected => {
+    <Flex
+      as="label"
+      align="center"
+      gap="sm"
+      style={{marginTop: space(1), cursor: 'pointer'}}
+    >
+      <Checkbox
+        checked={value === 'dataMin'}
+        onChange={e => {
           dispatch({
             type: BuilderStateAction.SET_AXIS_RANGE,
-            payload: selected,
+            payload: e.target.checked ? 'dataMin' : 'auto',
           });
         }}
       />
-    </div>
+      {t('Fit Y-Axis to data')}
+    </Flex>
   );
 }
 

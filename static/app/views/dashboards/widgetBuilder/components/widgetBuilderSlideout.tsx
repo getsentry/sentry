@@ -391,6 +391,7 @@ function WidgetBuilderSlideout({
                   <DisableTransactionWidget>
                     <Section>
                       <WidgetBuilderTypeSelector error={error} setError={setError} />
+                      {isTimeSeriesWidget && <AxisRangeSection />}
                     </Section>
                     <div ref={observeForDraggablePreview}>
                       {isSmallScreen && (
@@ -453,11 +454,6 @@ function WidgetBuilderSlideout({
                     {showSortByStep && (
                       <Section>
                         <WidgetBuilderSortBySelector />
-                      </Section>
-                    )}
-                    {isTimeSeriesWidget && (
-                      <Section>
-                        <AxisRangeSection />
                       </Section>
                     )}
                   </DisableTransactionWidget>
