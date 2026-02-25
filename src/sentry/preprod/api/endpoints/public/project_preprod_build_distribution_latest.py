@@ -144,7 +144,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                     ]
                 )
 
-        app_id = params.get("app_id")
+        app_id = params.get("appId")
         if app_id:
             queryset = queryset.filter(app_id__exact=app_id)
 
@@ -155,15 +155,15 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 commit_comparison__organization_id=project.organization_id,
             )
 
-        build_version = params.get("build_version")
+        build_version = params.get("buildVersion")
         if build_version:
             queryset = queryset.filter(mobile_app_info__build_version__icontains=build_version)
 
-        build_configuration = params.get("build_configuration")
+        build_configuration = params.get("buildConfiguration")
         if build_configuration:
             queryset = queryset.filter(build_configuration__name__exact=build_configuration)
 
-        pr_number = params.get("pr_number")
+        pr_number = params.get("prNumber")
         if pr_number is not None:
             queryset = queryset.filter(
                 commit_comparison__pr_number=pr_number,
@@ -192,6 +192,6 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
             order_by="-date_added",
             on_results=on_results,
             paginator_cls=DateTimePaginator,
-            default_per_page=params.get("per_page", 25),
+            default_per_page=params.get("perPage", 25),
             max_per_page=100,
         )

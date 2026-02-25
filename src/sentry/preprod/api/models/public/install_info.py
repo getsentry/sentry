@@ -19,6 +19,7 @@ class InstallInfoResponseDict(TypedDict):
     installUrl: str | None
     downloadCount: int
     releaseNotes: str | None
+    installGroups: list[str] | None
     isCodeSignatureValid: bool | None
     profileName: str | None
     codesigningType: str | None
@@ -35,6 +36,7 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
         "installUrl": info.install_url,
         "downloadCount": info.download_count,
         "releaseNotes": info.release_notes,
+        "installGroups": info.install_groups,
         "isCodeSignatureValid": info.is_code_signature_valid,
         "profileName": info.profile_name,
         "codesigningType": info.codesigning_type,

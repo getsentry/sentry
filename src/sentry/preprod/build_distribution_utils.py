@@ -27,6 +27,7 @@ class ArtifactInstallInfo:
     install_url: str | None
     download_count: int
     release_notes: str | None
+    install_groups: list[str] | None
     is_code_signature_valid: bool | None
     profile_name: str | None
     codesigning_type: str | None
@@ -52,6 +53,7 @@ def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
 
     download_count = get_download_count_for_artifact(artifact) if installable else 0
     release_notes = extras.get("release_notes")
+    install_groups = extras.get("install_groups")
 
     is_code_signature_valid: bool | None = None
     profile_name: str | None = None
@@ -67,6 +69,7 @@ def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
         install_url=install_url,
         download_count=download_count,
         release_notes=release_notes,
+        install_groups=install_groups,
         is_code_signature_valid=is_code_signature_valid,
         profile_name=profile_name,
         codesigning_type=codesigning_type,

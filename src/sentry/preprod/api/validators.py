@@ -116,15 +116,3 @@ class PreprodPublicBuildsValidator(serializers.Serializer[Any]):
         if value:
             return value.lower()
         return value
-
-    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Convert camelCase params to snake_case for internal use."""
-        return {
-            "platform": data.get("platform"),
-            "app_id": data.get("appId"),
-            "branch": data.get("branch"),
-            "build_version": data.get("buildVersion"),
-            "build_configuration": data.get("buildConfiguration"),
-            "pr_number": data.get("prNumber"),
-            "per_page": data.get("perPage", 25),
-        }
