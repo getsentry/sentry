@@ -139,9 +139,7 @@ class GithubRequestParser(BaseRequestParser):
         mailbox_name = f"{self.provider}:{self.get_mailbox_identifier(integration, event)}"
         region_processed_values = {t.value for t in REGION_PROCESSED_GITHUB_EVENTS}
         allowlist = options.get("github.webhook.drop-unprocessed-events.mailbox-allowlist") or ()
-        mailbox_in_allowlist = any(
-            mailbox_name == m or mailbox_name.startswith(f"{m}:") for m in allowlist
-        )
+        mailbox_in_allowlist = any(mailbox_name == m for m in allowlist)
 
         if (
             github_event not in region_processed_values
