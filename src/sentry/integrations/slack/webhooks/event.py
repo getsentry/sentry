@@ -304,6 +304,64 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         return True
 
+    def on_app_mention(self, slack_request: SlackDMRequest) -> Response:
+        """Handle @mention events for Seer Explorer."""
+        data = slack_request.data.get("event", {})
+
+        ois = integration_service.get_organization_integrations(
+            integration_id=slack_request.integration.id, limit=1
+        )
+        if not ois:
+            _logger.info(
+                "on_app_mention.no-organization",
+                extra={"integration_id": slack_request.integration.id},
+            )
+            return self.respond()
+
+        organization_id = ois[0].organization_id
+        organization_context = organization_service.get_organization_by_id(
+            id=organization_id,
+            user_id=None,
+            include_projects=False,
+            include_teams=False,
+        )
+        if not organization_context:
+            _logger.info(
+                "on_app_mention.organization-not-found",
+                extra={
+                    "integration_id": slack_request.integration.id,
+                    "organization_id": organization_id,
+                },
+            )
+            return self.respond()
+
+        if not features.has("organizations:seer-slack-explorer", organization_context.organization):
+            return self.respond()
+
+        channel_id = slack_request.channel_id
+        text = data.get("text", "")
+        thread_ts = data.get("thread_ts")
+        message_ts = data.get("ts", "")
+
+        if not channel_id or not text:
+            return self.respond()
+
+        from sentry.seer.entrypoints.slack.tasks import process_explorer_mention
+
+        process_explorer_mention.apply_async(
+            kwargs={
+                "integration_id": slack_request.integration.id,
+                "organization_id": organization_id,
+                "channel_id": channel_id,
+                "thread_ts": thread_ts,
+                "message_ts": message_ts,
+                "text": text,
+                "slack_user_id": slack_request.user_id,
+            }
+        )
+
+        return self.respond()
+
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     def post(self, request: Request) -> Response:
         try:
@@ -317,6 +375,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if slack_request.type == "link_shared":
             if self.on_link_shared(request, slack_request):
                 return self.respond()
+
+        if slack_request.type == "app_mention":
+            return self.on_app_mention(slack_request)
 
         if slack_request.type == "message":
             if slack_request.is_bot():
