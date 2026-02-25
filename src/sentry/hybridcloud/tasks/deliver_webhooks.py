@@ -121,7 +121,7 @@ def maybe_trigger_drain(mailbox_name: str, payload_id: int) -> None:
                 .values_list("id", flat=True)
                 .first()
             )
-            drain_mailbox.delay(head_id if head_id is not None else payload_id)
+            drain_mailbox.delay(head_id if head_id is not None else payload_id, mailbox_name)
             metrics.incr("hybridcloud.deliver_webhooks.push_trigger")
         else:
             metrics.incr("hybridcloud.deliver_webhooks.push_trigger_skipped")
@@ -216,7 +216,7 @@ def schedule_webhook_delivery() -> None:
     processing_deadline_duration=300,
     silo_mode=SiloMode.CONTROL,
 )
-def drain_mailbox(payload_id: int) -> None:
+def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
     """
     Attempt deliver up to 50 webhooks from the mailbox that `id` is from.
 
@@ -232,6 +232,15 @@ def drain_mailbox(payload_id: int) -> None:
         # and let the other process continue, or a future process.
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
         logger.info("deliver_webhook.potential_race", extra={"id": payload_id})
+        # Release the lock so push triggers and the scheduler can still reach this
+        # mailbox. Without this, replication lag on a freshly written payload can
+        # cause DoesNotExist here while the lock (set by maybe_trigger_drain) keeps
+        # both push triggers and the scheduler from scheduling new work for up to 15s.
+        if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            try:
+                cache.delete(f"wh:drain_active:{mailbox_name}")
+            except Exception:
+                pass
         return
 
     _set_webhook_delivery_sentry_context(payload)
@@ -420,7 +429,7 @@ def _run_parallel_delivery_batch(
     processing_deadline_duration=int(BATCH_SCHEDULE_OFFSET.total_seconds() + 10),
     silo_mode=SiloMode.CONTROL,
 )
-def drain_mailbox_parallel(payload_id: int) -> None:
+def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> None:
     """
     Deliver messages from a mailbox in small parallel batches.
 
@@ -440,6 +449,11 @@ def drain_mailbox_parallel(payload_id: int) -> None:
         # and let the other process continue, or a future process.
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
         logger.info("deliver_webhook_parallel.potential_race", extra={"id": payload_id})
+        if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            try:
+                cache.delete(f"wh:drain_active:{mailbox_name}")
+            except Exception:
+                pass
         return
 
     _set_webhook_delivery_sentry_context(payload)
