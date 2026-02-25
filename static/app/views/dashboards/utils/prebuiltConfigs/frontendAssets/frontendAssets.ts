@@ -32,7 +32,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     },
     {
       id: 'average-duration-widget',
-      title: t('Requests per Minute'),
+      title: t('Average Duration'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -84,11 +84,11 @@ const ASSETS_TABLE: Widget = {
       ],
       orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
       linkedDashboards: [
-        // {
-        //   dashboardId: '-1',
-        //   field: SpanFields.NORMALIZED_DESCRIPTION,
-        //   staticDashboardId: 25,
-        // },
+        {
+          dashboardId: '-1',
+          field: SpanFields.NORMALIZED_DESCRIPTION,
+          staticDashboardId: 25,
+        },
       ],
     },
   ],

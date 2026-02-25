@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
@@ -48,7 +48,11 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
     );
   }
 
-  return <Wrapper>{`${spanOp} - ${spanDescription}`}</Wrapper>;
+  if (moduleName === ModuleName.RESOURCE) {
+    return <Container padding="md xl">{spanDescription}</Container>;
+  }
+
+  return `${spanOp} - ${spanDescription}`;
 }
 
 function HttpSpanVisualization(props: {
