@@ -2,6 +2,7 @@ import {z} from 'zod';
 
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import Access from 'sentry/components/acl/access';
 import LoadingError from 'sentry/components/loadingError';
@@ -182,6 +183,9 @@ export default function ProjectCspReports() {
                     placeholder={'e.g.\nfile://*\n*.example.com\nexample.com'}
                     disabled={!hasAccess}
                   />
+                  <Text size="sm" variant="muted">
+                    {t('Separate multiple entries with a newline.')}
+                  </Text>
                 </field.Layout.Stack>
               )}
             </AutoSaveField>
