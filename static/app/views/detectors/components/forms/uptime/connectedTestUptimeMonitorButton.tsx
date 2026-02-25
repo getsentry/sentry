@@ -1,14 +1,9 @@
-import {useCallback, useContext} from 'react';
+import {useContext} from 'react';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 
 import FormContext from 'sentry/components/forms/formContext';
 import {defined} from 'sentry/utils';
-import {mapAssertionFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
-import {
-  extractCompilationError,
-  usePreviewCheckResult,
-} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 import {TestUptimeMonitorButton} from 'sentry/views/alerts/rules/uptime/testUptimeMonitorButton';
 import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from 'sentry/views/detectors/components/forms/uptime/fields';
 
@@ -22,7 +17,6 @@ export function ConnectedTestUptimeMonitorButton({
   size,
 }: ConnectedTestUptimeMonitorButtonProps) {
   const {form} = useContext(FormContext);
-  const {setPreviewCheckData, setPreviewCheckError} = usePreviewCheckResult();
 
   const getFormData = () => {
     const data = form?.getTransformedData() ?? {};
@@ -40,29 +34,9 @@ export function ConnectedTestUptimeMonitorButton({
     };
   };
 
-  const handleSuccess = useCallback(
-    (response: Parameters<typeof setPreviewCheckData>[0]) => {
-      setPreviewCheckData(response);
-    },
-    [setPreviewCheckData]
-  );
-
-  const handleValidationError = useCallback(
-    (responseJson: any) => {
-      setPreviewCheckError(extractCompilationError(responseJson));
-      if (form) {
-        const mapped = mapAssertionFormErrors(responseJson);
-        form.handleErrorResponse({responseJSON: mapped});
-      }
-    },
-    [form, setPreviewCheckError]
-  );
-
   return (
     <TestUptimeMonitorButton
       getFormData={getFormData}
-      onSuccess={handleSuccess}
-      onValidationError={handleValidationError}
       size={size}
     />
   );

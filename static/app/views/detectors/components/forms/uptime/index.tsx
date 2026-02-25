@@ -5,7 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {mapAssertionFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
+import {mapToFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
 import {
   extractCompilationError,
   PreviewCheckResultProvider,
@@ -96,8 +96,9 @@ function NewUptimeDetectorFormContent() {
         ) : undefined
       }
       mapFormErrors={responseJson => {
-        setPreviewCheckError(extractCompilationError(responseJson));
-        return mapAssertionFormErrors(responseJson);
+        const extractedError = extractCompilationError(responseJson);
+        setPreviewCheckError(extractedError);
+        return mapToFormErrors(extractedError);
       }}
     >
       <UptimeDetectorForm />
@@ -138,8 +139,9 @@ function EditExistingUptimeDetectorFormContent({
         ) : undefined
       }
       mapFormErrors={responseJson => {
-        setPreviewCheckError(extractCompilationError(responseJson));
-        return mapAssertionFormErrors(responseJson);
+        const extractedError = extractCompilationError(responseJson);
+        setPreviewCheckError(extractedError);
+        return mapToFormErrors(extractedError);
       }}
     >
       <UptimeDetectorForm />

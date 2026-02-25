@@ -40,7 +40,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Assertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
-import {mapAssertionFormErrors} from './assertionFormErrors';
+import {mapToFormErrors} from './assertionFormErrors';
 import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
 import {HTTPSnippet} from './httpSnippet';
 import {
@@ -117,7 +117,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
-  const {setPreviewCheckData, setPreviewCheckError} = usePreviewCheckResult();
+  const {setPreviewCheckError} = usePreviewCheckResult();
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -223,8 +223,9 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
       mapFormErrors={responseJson => {
-        setPreviewCheckError(extractCompilationError(responseJson));
-        return mapAssertionFormErrors(responseJson);
+        const extractedError = extractCompilationError(responseJson);
+        setPreviewCheckError(extractedError);
+        return mapToFormErrors(extractedError);
       }}
       onFieldChange={onFieldChange}
       onPreSubmit={() => {
@@ -290,14 +291,6 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
                   timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
                   assertion: data.assertion ?? null,
                 };
-              }}
-              onSuccess={response => {
-                setPreviewCheckData(response);
-              }}
-              onValidationError={responseJson => {
-                setPreviewCheckError(extractCompilationError(responseJson));
-                const mapped = mapAssertionFormErrors(responseJson);
-                formModel.handleErrorResponse({responseJSON: mapped});
               }}
             />
           )}
