@@ -235,6 +235,7 @@
     "react-refresh": "0.18.0",
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",
+    "svgo": "4.0.0",
     "terser": "5.40.0",
     "typescript-eslint": "8.39.0"
   },
@@ -272,6 +273,7 @@
     "lint:css": "stylelint '**/*.[jt]sx'",
     "lint:prettier": "prettier \"**/*{.md,.yaml,.js,.mjs,.jsx,.ts,.tsx}\" --check --log-level=error --experimental-cli --no-cache",
     "fix": "pnpm run fix:prettier && pnpm run fix:eslint",
+    "fix:svg": "svgo -r -f 'static/images/' -f 'src/sentry/static/sentry/images/' --exclude 'dist/' --exclude 'fonts/'",
     "fix:eslint": "eslint --fix",
     "fix:prettier": "prettier \"**/*{.md,.yaml,.js,.mjs,.jsx,.ts,.tsx}\" --write --log-level=error --experimental-cli --no-cache",
     "dev": "pnpm install --frozen-lockfile && sentry devserver",
