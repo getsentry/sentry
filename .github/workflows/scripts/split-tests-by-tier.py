@@ -144,7 +144,57 @@ def hash_shard(scopes: set[str], n_shards: int) -> list[list[str]]:
 
 
 # ---------------------------------------------------------------------------
-# Sharding: worker-simulated LPT
+# Sharding: flat LPT (for --dist=load)
+# ---------------------------------------------------------------------------
+
+
+def flat_lpt_shard(
+    scopes: set[str],
+    n_shards: int,
+    n_workers: int,
+    durations: dict[str, float],
+) -> list[list[str]]:
+    """Flat LPT minimising max total duration per shard.
+
+    Correct model for --dist=load, where xdist distributes individual tests
+    round-robin across workers regardless of scope boundaries. Shard wallclock
+    ≈ sum(scope_durations) / n_workers, so we just minimise the max sum.
+    """
+    known = [v for v in durations.values() if v > 0]
+    fallback = statistics.median(known) if known else 1.0
+
+    sorted_scopes = sorted(
+        scopes,
+        key=lambda s: durations.get(s, fallback),
+        reverse=True,
+    )
+
+    shard_totals = [0.0] * n_shards
+    shards: list[list[str]] = [[] for _ in range(n_shards)]
+
+    for scope in sorted_scopes:
+        dur = durations.get(scope, fallback)
+        best = min(range(n_shards), key=lambda i: shard_totals[i])
+        shard_totals[best] += dur
+        shards[best].append(scope)
+
+    max_total = max(shard_totals)
+    min_total = min(shard_totals)
+    total = sum(shard_totals)
+    max_wc = max_total / n_workers
+    min_wc = min_total / n_workers
+    print(
+        f"[flat-lpt] {n_shards} shards × {n_workers} workers: "
+        f"total={total:.0f}s, max_wallclock={max_wc:.1f}s, "
+        f"min_wallclock={min_wc:.1f}s, spread={max_wc - min_wc:.1f}s",
+        file=sys.stderr,
+    )
+
+    return shards
+
+
+# ---------------------------------------------------------------------------
+# Sharding: worker-simulated LPT (for --dist=loadfile / --dist=loadscope)
 # ---------------------------------------------------------------------------
 
 
@@ -371,6 +421,12 @@ def main() -> int:
         default=50,
         help="Max swap-refinement rounds after initial LPT (default: 50, 0 to disable)",
     )
+    parser.add_argument(
+        "--flat-lpt",
+        action="store_true",
+        help="Use flat LPT (minimise max sum per shard) instead of worker-simulated LPT. "
+        "Correct for --dist=load where xdist distributes individual tests across workers.",
+    )
 
     args = parser.parse_args()
 
@@ -418,7 +474,7 @@ def main() -> int:
         out_dir.mkdir(parents=True, exist_ok=True)
 
         if args.durations_file:
-            # Worker-simulated LPT using real per-scope durations.
+            # LPT sharding using real per-scope durations.
             with open(args.durations_file) as f:
                 durations: dict[str, float] = json.load(f)
 
@@ -429,7 +485,14 @@ def main() -> int:
                 file=sys.stderr,
             )
 
-            shards = worker_simulated_lpt_shard(scopes, args.shards, args.n_workers, durations)
+            if args.flat_lpt:
+                # Flat LPT: correct for --dist=load (xdist distributes
+                # individual tests, so shard wallclock ≈ sum / n_workers).
+                shards = flat_lpt_shard(scopes, args.shards, args.n_workers, durations)
+            else:
+                # Worker-simulated LPT: correct for --dist=loadfile or
+                # --dist=loadscope (entire scope goes to one worker).
+                shards = worker_simulated_lpt_shard(scopes, args.shards, args.n_workers, durations)
 
             if args.swap_rounds > 0:
                 shards = swap_refine(shards, args.n_workers, durations, args.swap_rounds)

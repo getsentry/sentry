@@ -107,16 +107,18 @@ jobs:
             DURATIONS_FLAG="--durations-file /tmp/durations/test-durations.json --n-workers 3"
           fi
 
+          # T1 uses --dist=loadfile → worker-simulated LPT (scopes are indivisible per worker)
           mkdir -p /tmp/tier1-shards
           python3 -u $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier1 --shards $T1_SHARDS --output-dir /tmp/tier1-shards \
             --swap-rounds 0 \
             $DURATIONS_FLAG
 
+          # T2 uses --dist=load → flat LPT (xdist distributes individual tests across workers)
           mkdir -p /tmp/tier2-shards
           python3 -u $SCRIPT --classification $CLASS --granularity "$TIER_GRANULARITY" \
             --tier tier2 --shards $T2_SHARDS --output-dir /tmp/tier2-shards \
-            --swap-rounds 0 \
+            --swap-rounds 0 --flat-lpt \
             $DURATIONS_FLAG
 
           echo "tier1-count=$(find /tmp/tier1-shards -name 'shard-*.txt' | xargs wc -l | tail -1 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
