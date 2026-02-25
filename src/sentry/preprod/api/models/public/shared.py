@@ -5,6 +5,18 @@ from typing import TypedDict
 from sentry.preprod.models import PreprodArtifact
 
 
+def platform_from_artifact_type(artifact_type: int | None) -> str | None:
+    if artifact_type is None:
+        return None
+    match artifact_type:
+        case PreprodArtifact.ArtifactType.XCARCHIVE:
+            return "ios"
+        case PreprodArtifact.ArtifactType.AAB | PreprodArtifact.ArtifactType.APK:
+            return "android"
+        case _:
+            return None
+
+
 class AppInfoResponseDict(TypedDict):
     appId: str | None
     name: str | None

@@ -116,8 +116,8 @@ class PreprodExamples:
         "isCodeSignatureValid": None,
         "profileName": None,
         "codesigningType": None,
-        "installableAppErrorCode": None,
-        "installableAppErrorMessage": None,
+        "errorCode": None,
+        "errorMessage": None,
     }
 
     EXAMPLE_INSTALL_INFO_NOT_INSTALLABLE = {
@@ -131,8 +131,8 @@ class PreprodExamples:
         "isCodeSignatureValid": None,
         "profileName": None,
         "codesigningType": None,
-        "installableAppErrorCode": None,
-        "installableAppErrorMessage": None,
+        "errorCode": None,
+        "errorMessage": None,
     }
 
     EXAMPLE_INSTALL_INFO_IOS = {
@@ -149,8 +149,8 @@ class PreprodExamples:
         "isCodeSignatureValid": True,
         "profileName": "iOS Team Provisioning Profile",
         "codesigningType": "development",
-        "installableAppErrorCode": None,
-        "installableAppErrorMessage": None,
+        "errorCode": None,
+        "errorMessage": None,
     }
 
     GET_INSTALL_INFO = [
@@ -183,10 +183,7 @@ class PreprodExamples:
         "projectId": "1",
         "projectSlug": "my-project",
         "buildConfiguration": "release",
-        "distributionInfo": {
-            "isInstallable": True,
-            "downloadCount": 5,
-        },
+        "downloadCount": 5,
     }
 
     GET_BUILDS = [
