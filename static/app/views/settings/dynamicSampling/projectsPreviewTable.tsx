@@ -16,7 +16,7 @@ import type {
   ProjectSampleCount,
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
-export interface ProjectsPreviewTableProps {
+interface ProjectsPreviewTableProps {
   actions: React.ReactNode;
   isLoading: boolean;
   onTargetSampleRateChange: (value: string) => void;
