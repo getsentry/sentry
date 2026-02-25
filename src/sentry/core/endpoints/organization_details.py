@@ -1287,7 +1287,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
-        measure = SamplingMeasure.TRANSACTIONS
+        measure = SamplingMeasure.SEGMENTS
         if options.get("dynamic-sampling.check_span_feature_flag"):
             span_org_ids = options.get("dynamic-sampling.measure.spans") or []
             if org_id in span_org_ids:
