@@ -114,38 +114,120 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Verify New Password'),
     hintText: t('Verify your new password'),
   },
+  'organization-settings-form.replayAccessMembers': {
+    name: 'replayAccessMembers',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Replay Access Members'),
+    hintText: t('Select the members who will have access to replay data.'),
+  },
+  'organization-settings-form.defaultRole': {
+    name: 'defaultRole',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Default Role'),
+    hintText: t('The default role new members will receive'),
+  },
+  'organization-settings-form.openMembership': {
+    name: 'openMembership',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Open Team Membership'),
+    hintText: t('Allow organization members to freely join any team'),
+  },
+  'organization-settings-form.allowMemberInvite': {
+    name: 'allowMemberInvite',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Let Members Invite Others'),
+    hintText: t(
+      'Allow organization members to invite other members via email without needing org owner or manager approval.'
+    ),
+  },
+  'organization-settings-form.allowMemberProjectCreation': {
+    name: 'allowMemberProjectCreation',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Let Members Create Projects'),
+    hintText: t('Allow organization members to create and configure new projects.'),
+  },
+  'organization-settings-form.eventsMemberAdmin': {
+    name: 'eventsMemberAdmin',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Let Members Delete Events'),
+    hintText: t(
+      'Allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.'
+    ),
+  },
+  'organization-settings-form.alertsMemberWrite': {
+    name: 'alertsMemberWrite',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Let Members Create and Edit Alerts'),
+    hintText: t(
+      'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
+    ),
+  },
+  'organization-settings-form.attachmentsRole': {
+    name: 'attachmentsRole',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Attachments Access'),
+    hintText: t(
+      'Role required to download event attachments, such as native crash reports or log files.'
+    ),
+  },
+  'organization-settings-form.debugFilesRole': {
+    name: 'debugFilesRole',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Debug Files Access'),
+    hintText: t(
+      'Role required to download debug information files, proguard mappings and source maps.'
+    ),
+  },
+  'organization-settings-form.hasGranularReplayPermissions': {
+    name: 'hasGranularReplayPermissions',
+    formId: 'organization-settings-form',
+    route: '/settings/organization/',
+    label: t('Restrict Replay Access'),
+    hintText: t(
+      'Allow granular access to replay data by selecting specific members of your organization.'
+    ),
+  },
   'organization-settings-form.slug': {
     name: 'slug',
     formId: 'organization-settings-form',
-    route: '/settings/:orgId/',
+    route: '/settings/organization/',
     label: t('Organization Slug'),
     hintText: t('A unique ID used to identify this organization'),
   },
   'organization-settings-form.name': {
     name: 'name',
     formId: 'organization-settings-form',
-    route: '/settings/:orgId/',
+    route: '/settings/organization/',
     label: t('Display Name'),
     hintText: t('A human-friendly name for the organization'),
   },
   'organization-settings-form.organizationId': {
     name: 'organizationId',
     formId: 'organization-settings-form',
-    route: '/settings/:orgId/',
+    route: '/settings/organization/',
     label: t('Organization ID'),
     hintText: t('The unique identifier for this organization. It cannot be modified.'),
   },
   'organization-settings-form.isEarlyAdopter': {
     name: 'isEarlyAdopter',
     formId: 'organization-settings-form',
-    route: '/settings/:orgId/',
+    route: '/settings/organization/',
     label: t('Early Adopter'),
     hintText: '',
   },
   'organization-settings-form.hideAiFeatures': {
     name: 'hideAiFeatures',
     formId: 'organization-settings-form',
-    route: '/settings/:orgId/',
+    route: '/settings/organization/',
     label: t('Show Generative AI Features'),
     hintText: '',
   },

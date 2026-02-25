@@ -1,11 +1,9 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
-import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
@@ -468,17 +466,15 @@ export function ProjectPageFilter({
         selectionLimitExceeded || hasProjectWrite || stagedSelect.hasStagedChanges ? (
           <Stack gap="md" direction="column">
             {selectionLimitExceeded && (
-              <CondensedAlert variant="warning" showIcon={false}>
-                <Text size="sm">
-                  {tct(
-                    `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
-                    {
-                      limit: SELECTION_COUNT_LIMIT,
-                      count: stagedValue.length,
-                    }
-                  )}
-                </Text>
-              </CondensedAlert>
+              <MenuComponents.Alert variant="warning">
+                {tct(
+                  `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
+                  {
+                    limit: SELECTION_COUNT_LIMIT,
+                    count: stagedValue.length,
+                  }
+                )}
+              </MenuComponents.Alert>
             )}
             <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
               {hasProjectWrite ? (
@@ -521,11 +517,6 @@ export function ProjectPageFilter({
     />
   );
 }
-
-const CondensedAlert = styled(Alert)`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
-  text-wrap: balance;
-`;
 
 function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard

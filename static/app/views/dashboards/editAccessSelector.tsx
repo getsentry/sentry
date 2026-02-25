@@ -6,9 +6,8 @@ import sortBy from 'lodash/sortBy';
 
 import {AvatarList, CollapsedAvatars, TeamAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {InnerWrap, LeadingItems} from '@sentry/scraps/menuListItem';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -286,59 +285,6 @@ function EditAccessSelector({
     [userCanEditDashboardPermissions, teamsToRender, makeCreatorOption, listSort]
   );
 
-  // Save and Cancel Buttons
-  const dropdownFooterButtons = (
-    <FilterButtons>
-      <Button
-        size="sm"
-        onClick={() => {
-          setMenuOpen(false);
-        }}
-        disabled={!userCanEditDashboardPermissions}
-      >
-        {t('Cancel')}
-      </Button>
-      <Button
-        size="sm"
-        onClick={() => {
-          const isDefaultState =
-            !defined(dashboard.permissions) && selectedOptions.includes('_allUsers');
-          const newDashboardPermissions = getDashboardPermissions();
-          if (
-            !isDefaultState &&
-            !isEqual(newDashboardPermissions, dashboard.permissions)
-          ) {
-            trackAnalytics('dashboards2.edit_access.save', {
-              organization,
-              editable_by: newDashboardPermissions.isEditableByEveryone
-                ? 'all'
-                : newDashboardPermissions.teamsWithEditAccess.length > 0
-                  ? 'team_selection'
-                  : 'owner_only',
-              team_count: newDashboardPermissions.teamsWithEditAccess.length || undefined,
-            });
-
-            onChangeEditAccess?.(newDashboardPermissions);
-          }
-          setMenuOpen(!isMenuOpen);
-        }}
-        priority="primary"
-        disabled={
-          disabled ||
-          !userCanEditDashboardPermissions ||
-          isEqual(getDashboardPermissions(), {
-            ...dashboard.permissions,
-            teamsWithEditAccess: dashboard.permissions?.teamsWithEditAccess?.sort(
-              (a, b) => a - b
-            ),
-          })
-        }
-      >
-        {t('Save Changes')}
-      </Button>
-    </FilterButtons>
-  );
-
   const dropdownMenu = (
     <StyledCompactSelect
       data-test-id="edit-access-dropdown"
@@ -376,7 +322,51 @@ function EditAccessSelector({
         setStagedOptions(selectedOptions);
         setMenuOpen(!isMenuOpen);
       }}
-      menuFooter={dropdownFooterButtons}
+      menuFooter={
+        <Flex gap="md" justify="end">
+          <MenuComponents.CancelButton
+            onClick={() => {
+              setMenuOpen(false);
+            }}
+            disabled={!userCanEditDashboardPermissions}
+          />
+          <MenuComponents.ApplyButton
+            onClick={() => {
+              const isDefaultState =
+                !defined(dashboard.permissions) && selectedOptions.includes('_allUsers');
+              const newDashboardPermissions = getDashboardPermissions();
+              if (
+                !isDefaultState &&
+                !isEqual(newDashboardPermissions, dashboard.permissions)
+              ) {
+                trackAnalytics('dashboards2.edit_access.save', {
+                  organization,
+                  editable_by: newDashboardPermissions.isEditableByEveryone
+                    ? 'all'
+                    : newDashboardPermissions.teamsWithEditAccess.length > 0
+                      ? 'team_selection'
+                      : 'owner_only',
+                  team_count:
+                    newDashboardPermissions.teamsWithEditAccess.length || undefined,
+                });
+
+                onChangeEditAccess?.(newDashboardPermissions);
+              }
+              setMenuOpen(!isMenuOpen);
+            }}
+            disabled={
+              disabled ||
+              !userCanEditDashboardPermissions ||
+              isEqual(getDashboardPermissions(), {
+                ...dashboard.permissions,
+                teamsWithEditAccess: dashboard.permissions?.teamsWithEditAccess?.sort(
+                  (a, b) => a - b
+                ),
+              })
+            }
+          />
+        </Flex>
+      }
       strategy="fixed"
       preventOverflowOptions={{mainAxis: false}}
       disabled={disabled}
@@ -434,14 +424,6 @@ const StyledBadge = styled(Tag)<{size: number}>`
   justify-content: center;
   align-items: center;
   margin-left: 0px;
-`;
-
-const FilterButtons = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="lg" {...props} />
-))`
-  margin-top: ${space(0.5)};
-  margin-bottom: ${space(0.5)};
-  justify-content: flex-end;
 `;
 
 const CollapsedAvatarTooltip = styled('div')`
