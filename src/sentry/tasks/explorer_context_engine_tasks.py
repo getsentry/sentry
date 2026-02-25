@@ -180,7 +180,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
             logger.info("No service map data found", extra={"org_id": organization_id})
             return
 
-        _send_to_seer(organization_id, nodes)
+        _send_to_seer(organization_id, nodes, edges)
 
         logger.info(
             "Successfully completed service map build",

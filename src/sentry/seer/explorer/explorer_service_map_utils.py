@@ -19,6 +19,11 @@ from django.utils import timezone as django_timezone
 from sentry import options
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
@@ -285,17 +290,28 @@ def _build_nodes(edges: list[dict], all_projects: list[Any]) -> list[dict]:
     return nodes
 
 
-def _send_to_seer(org_id: int, nodes: list[dict]) -> None:
+def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
     """
     Send service map data to Seer.
 
     Args:
         org_id: Organization ID
         nodes: List of service nodes with role, callers, callees, project_slug, project_id
+        edges: List of edges with source_project_id, source_project_slug, target_project_id,
+               target_project_slug, count
     """
+    # ServiceMapNode and ServiceMapEdge on the Seer side require non-null slugs.
+    valid_nodes = [n for n in nodes if n.get("project_slug") is not None]
+    valid_edges = [
+        e
+        for e in edges
+        if e.get("source_project_slug") is not None and e.get("target_project_slug") is not None
+    ]
+
     payload = {
         "organization_id": org_id,
-        "nodes": nodes,
+        "nodes": valid_nodes,
+        "edges": valid_edges,
         "generated_at": django_timezone.now().isoformat(),
     }
 
@@ -305,9 +321,17 @@ def _send_to_seer(org_id: int, nodes: list[dict]) -> None:
         "Sending service map to Seer",
         extra={
             "org_id": org_id,
-            "node_count": len(nodes),
+            "node_count": len(valid_nodes),
+            "edge_count": len(valid_edges),
             "payload_size_bytes": len(body),
         },
     )
 
-    # TODO: Add endpoint in seer before making the actual request
+    response = make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        SEER_SERVICE_MAP_PATH,
+        body,
+        timeout=30,
+    )
+    if response.status >= 400:
+        raise SeerApiError("Seer service map update failed", response.status)

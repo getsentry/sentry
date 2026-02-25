@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from unittest import mock
 from uuid import uuid4
 
+import orjson
 import pytest
 
 from sentry.search.events.types import SnubaParams
@@ -52,17 +53,74 @@ class TestSendToSeer(TestCase):
                 "callees": [],
             },
         ]
+        edges = [
+            {
+                "source_project_id": 1,
+                "source_project_slug": "frontend",
+                "target_project_id": 2,
+                "target_project_slug": "api",
+                "count": 5,
+            }
+        ]
+
+        mock_response = mock.MagicMock()
+        mock_response.status = 200
 
         with mock.patch(
-            "sentry.seer.explorer.explorer_service_map_utils.orjson.dumps"
-        ) as mock_dumps:
-            mock_dumps.return_value = b"{}"
-            _send_to_seer(org.id, nodes)
+            "sentry.seer.explorer.explorer_service_map_utils.make_signed_seer_api_request",
+            return_value=mock_response,
+        ) as mock_request:
+            _send_to_seer(org.id, nodes, edges)
 
-        call_args = mock_dumps.call_args[0][0]
-        assert call_args["organization_id"] == org.id
-        assert call_args["nodes"] == nodes
-        assert "generated_at" in call_args
+        mock_request.assert_called_once()
+        body = orjson.loads(mock_request.call_args[0][2])
+        assert body["organization_id"] == org.id
+        assert body["nodes"] == nodes
+        assert body["edges"] == edges
+        assert "generated_at" in body
+
+    def test_filters_nodes_with_missing_slugs(self):
+        org = self.create_organization()
+
+        nodes = [
+            {
+                "project_id": 1,
+                "project_slug": "frontend",
+                "role": "caller",
+                "callers": [],
+                "callees": [],
+            },
+            {
+                "project_id": 2,
+                "project_slug": None,
+                "role": "isolated",
+                "callers": [],
+                "callees": [],
+            },
+        ]
+        edges = [
+            {
+                "source_project_id": 1,
+                "source_project_slug": "frontend",
+                "target_project_id": 3,
+                "target_project_slug": None,
+                "count": 1,
+            },
+        ]
+
+        mock_response = mock.MagicMock()
+        mock_response.status = 200
+
+        with mock.patch(
+            "sentry.seer.explorer.explorer_service_map_utils.make_signed_seer_api_request",
+            return_value=mock_response,
+        ) as mock_request:
+            _send_to_seer(org.id, nodes, edges)
+
+        body = orjson.loads(mock_request.call_args[0][2])
+        assert len(body["nodes"]) == 1
+        assert body["nodes"][0]["project_slug"] == "frontend"
+        assert body["edges"] == []
 
 
 @django_db_all
