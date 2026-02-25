@@ -1903,7 +1903,7 @@ class OrganizationDefaultCodingAgentTest(OrganizationDetailsTestBase):
 
     def test_get_returns_defaults(self) -> None:
         response = self.get_success_response(self.organization.slug, method="get")
-        assert response.data["defaultCodingAgent"] == CodingAgent.SEER
+        assert response.data["defaultCodingAgent"] is None
         assert response.data["defaultCodingAgentIntegrationId"] is None
 
     def test_set_coding_agent_to_seer(self) -> None:
@@ -1951,19 +1951,30 @@ class OrganizationDefaultCodingAgentTest(OrganizationDetailsTestBase):
         assert response.data["defaultCodingAgent"] == CodingAgent.CURSOR
         assert response.data["defaultCodingAgentIntegrationId"] == integration.id
 
-    def test_set_integration_id_only(self) -> None:
-        integration = self.create_integration(
+    def test_update_integration_id_on_existing_cursor_agent(self) -> None:
+        old_integration = self.create_integration(
             organization=self.organization,
             provider="github",
             external_id="12345",
         )
+        SeerOrganizationSettings.objects.create(
+            organization=self.organization,
+            default_coding_agent=CodingAgent.CURSOR,
+            default_coding_agent_integration_id=old_integration.id,
+        )
+        new_integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="67890",
+        )
         self.get_success_response(
-            self.organization.slug, defaultCodingAgentIntegrationId=integration.id
+            self.organization.slug, defaultCodingAgentIntegrationId=new_integration.id
         )
         settings = SeerOrganizationSettings.objects.get(organization=self.organization)
-        assert settings.default_coding_agent_integration_id == integration.id
+        assert settings.default_coding_agent_integration_id == new_integration.id
+        assert settings.default_coding_agent == CodingAgent.CURSOR
 
-    def test_clear_integration_id(self) -> None:
+    def test_clear_integration_id_when_switching_to_seer(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -1971,10 +1982,16 @@ class OrganizationDefaultCodingAgentTest(OrganizationDetailsTestBase):
         )
         SeerOrganizationSettings.objects.create(
             organization=self.organization,
+            default_coding_agent=CodingAgent.CURSOR,
             default_coding_agent_integration_id=integration.id,
         )
-        self.get_success_response(self.organization.slug, defaultCodingAgentIntegrationId=None)
+        self.get_success_response(
+            self.organization.slug,
+            defaultCodingAgent=CodingAgent.SEER,
+            defaultCodingAgentIntegrationId=None,
+        )
         settings = SeerOrganizationSettings.objects.get(organization=self.organization)
+        assert settings.default_coding_agent == CodingAgent.SEER
         assert settings.default_coding_agent_integration_id is None
 
     def test_rejects_cursor_without_integration(self) -> None:
@@ -2019,6 +2036,41 @@ class OrganizationDefaultCodingAgentTest(OrganizationDetailsTestBase):
         self.get_error_response(
             self.organization.slug,
             defaultCodingAgent="invalid_agent",
+            status_code=400,
+        )
+
+    def test_partial_update_clearing_integration_validates_against_existing_agent(self) -> None:
+        """Clearing integration_id when existing agent requires it should fail."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+        )
+        SeerOrganizationSettings.objects.create(
+            organization=self.organization,
+            default_coding_agent=CodingAgent.CURSOR,
+            default_coding_agent_integration_id=integration.id,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            defaultCodingAgentIntegrationId=None,
+            status_code=400,
+        )
+
+    def test_partial_update_setting_integration_validates_against_existing_agent(self) -> None:
+        """Setting integration_id when existing agent doesn't need it should fail."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+        )
+        SeerOrganizationSettings.objects.create(
+            organization=self.organization,
+            default_coding_agent=CodingAgent.SEER,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            defaultCodingAgentIntegrationId=integration.id,
             status_code=400,
         )
 

@@ -312,7 +312,7 @@ class OrganizationExamples:
                 "orgRole": "owner",
                 "pendingAccessRequests": 0,
                 "isDynamicallySampled": False,
-                "defaultCodingAgent": "seer",
+                "defaultCodingAgent": None,
                 "defaultCodingAgentIntegrationId": None,
                 "teams": [
                     {

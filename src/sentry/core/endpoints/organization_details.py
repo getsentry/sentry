@@ -375,7 +375,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
     defaultCodingAgent = serializers.ChoiceField(
-        choices=CodingAgent.choices + [("", "")],
+        choices=CodingAgent.choices,
         required=False,
         allow_null=True,
         help_text='Which coding agent to use for new projects. Valid values: "seer" (default), "cursor", or null (disabled).',
@@ -568,31 +568,43 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Must be in Automatic Mode to configure the organization sample rate."
             )
 
-        agent = attrs.get("defaultCodingAgent")
-        integration_id = attrs.get("defaultCodingAgentIntegrationId")
-        if agent is not None and agent in INTEGRATION_REQUIRED_AGENTS and integration_id is None:
-            # Check if the org already has an integration set that we can keep
-            org = self.context["organization"]
-            existing = SeerOrganizationSettings.objects.filter(organization=org).first()
-            if existing is None or existing.default_coding_agent_integration_id is None:
-                raise serializers.ValidationError(
-                    {
-                        "defaultCodingAgentIntegrationId": f"An integration ID is required when using the {agent} agent."
-                    }
-                )
+        if "defaultCodingAgent" in attrs or "defaultCodingAgentIntegrationId" in attrs:
+            self._validate_coding_agent_fields(attrs)
 
-        if (
-            agent is not None
-            and agent not in INTEGRATION_REQUIRED_AGENTS
-            and integration_id is not None
-        ):
+        return attrs
+
+    def _validate_coding_agent_fields(self, attrs: dict[str, Any]) -> None:
+        """Validate defaultCodingAgent and defaultCodingAgentIntegrationId consistency.
+
+        Merges request attrs with existing DB state so partial updates are
+        validated against the final state, not just the submitted fields.
+        """
+        org = self.context["organization"]
+        existing = SeerOrganizationSettings.objects.filter(organization=org).first()
+
+        # Resolve the final state after this update
+        agent = attrs.get(
+            "defaultCodingAgent",
+            existing.default_coding_agent if existing else None,
+        )
+        integration_id = attrs.get(
+            "defaultCodingAgentIntegrationId",
+            existing.default_coding_agent_integration_id if existing else None,
+        )
+
+        if agent in INTEGRATION_REQUIRED_AGENTS and integration_id is None:
+            raise serializers.ValidationError(
+                {
+                    "defaultCodingAgentIntegrationId": f"An integration ID is required when using the {agent} agent."
+                }
+            )
+
+        if agent not in INTEGRATION_REQUIRED_AGENTS and integration_id is not None:
             raise serializers.ValidationError(
                 {
                     "defaultCodingAgentIntegrationId": f"An integration ID must not be set for the {agent} agent."
                 }
             )
-
-        return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
         timestamp_now = datetime.now(timezone.utc).isoformat()
@@ -1156,7 +1168,7 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
 
     # seer features
     defaultCodingAgent = serializers.ChoiceField(
-        choices=CodingAgent.choices + [("", "")],
+        choices=CodingAgent.choices,
         help_text='Which coding agent to use for new projects. Valid values: "seer" (default), "cursor", or null (disabled).',
         required=False,
         allow_null=True,
