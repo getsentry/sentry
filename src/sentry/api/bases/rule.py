@@ -6,6 +6,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.constants import ObjectStatus
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.models.rule import Rule
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
@@ -61,9 +62,11 @@ class WorkflowEngineRuleEndpoint(RuleEndpoint):
                 try:
                     workflow_id = get_object_id_from_fake_id(int(rule_id))
                     kwargs["rule"] = Workflow.objects.get(
-                        id=workflow_id, organization=project.organization
+                        id=workflow_id,
+                        organization=project.organization,
+                        status=ObjectStatus.ACTIVE,
                     )
-                except Workflow.DoesNotExist:
+                except (AlertRuleWorkflow.DoesNotExist, Workflow.DoesNotExist):
                     raise ResourceDoesNotExist
 
             return args, kwargs
