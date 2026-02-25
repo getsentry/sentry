@@ -34,7 +34,7 @@ describe('RelayWrapper', () => {
       expect(screen.queryByText('Data Authenticity')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       ).not.toBeInTheDocument();
     });
@@ -44,7 +44,7 @@ describe('RelayWrapper', () => {
 
       expect(
         await screen.findByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       ).toBeInTheDocument();
       expect(screen.getByText('Data Authenticity')).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe('RelayWrapper', () => {
 
       expect(
         await screen.findByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       ).not.toBeChecked();
     });
@@ -71,7 +71,7 @@ describe('RelayWrapper', () => {
 
       expect(
         await screen.findByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       ).toBeChecked();
     });
@@ -89,7 +89,7 @@ describe('RelayWrapper', () => {
 
       await userEvent.click(
         await screen.findByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       );
 
@@ -123,7 +123,7 @@ describe('RelayWrapper', () => {
 
       await userEvent.click(
         await screen.findByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       );
 
@@ -132,7 +132,7 @@ describe('RelayWrapper', () => {
       expect(mock).not.toHaveBeenCalled();
       expect(
         screen.getByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       ).not.toBeChecked();
     });
@@ -150,7 +150,7 @@ describe('RelayWrapper', () => {
 
       await userEvent.click(
         await screen.findByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       );
 
@@ -179,7 +179,7 @@ describe('RelayWrapper', () => {
 
       await userEvent.click(
         await screen.findByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       );
 
@@ -189,7 +189,7 @@ describe('RelayWrapper', () => {
 
       expect(
         await screen.findByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       ).not.toBeChecked();
 
@@ -204,7 +204,7 @@ describe('RelayWrapper', () => {
 
       expect(
         await screen.findByRole('checkbox', {
-          name: 'Enable to require events to be ingested only through trusted relays',
+          name: 'Ingest Through Trusted Relays Only',
         })
       ).toBeDisabled();
     });
