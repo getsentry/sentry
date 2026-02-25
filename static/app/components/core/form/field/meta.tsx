@@ -1,6 +1,7 @@
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
+import {useGroupContext} from '@sentry/scraps/form/field/groupContext';
 import {RequiredIndicator} from '@sentry/scraps/form/icons';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -42,10 +43,8 @@ function Label(props: {
           <Text
             {...containerProps}
             as={isGroup ? 'legend' : 'label'}
-            data-field={fieldName}
             htmlFor={isGroup ? undefined : fieldId}
             bold={false}
-            ref={scrollToFieldRef}
             style={isGroup ? legendStyles : undefined}
           >
             {labelContent}
