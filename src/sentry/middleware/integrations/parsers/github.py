@@ -14,7 +14,11 @@ from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
 )
-from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER, GithubWebhookType
+from sentry.integrations.github.webhook_types import (
+    GITHUB_WEBHOOK_TYPE_HEADER,
+    REGION_PROCESSED_GITHUB_EVENTS,
+    GithubWebhookType,
+)
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -130,6 +134,25 @@ class GithubRequestParser(BaseRequestParser):
             )
             if codecov_regions:
                 self.try_forward_to_codecov(event=event)
+
+        github_event = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
+        mailbox_name = f"{self.provider}:{self.get_mailbox_identifier(integration, event)}"
+        region_processed_values = {t.value for t in REGION_PROCESSED_GITHUB_EVENTS}
+        allowlist = options.get("github.webhook.drop-unprocessed-events.mailbox-allowlist") or ()
+        mailbox_in_allowlist = any(
+            mailbox_name == m or mailbox_name.startswith(f"{m}:") for m in allowlist
+        )
+
+        if (
+            github_event not in region_processed_values
+            and options.get("github.webhook.drop-unprocessed-events.enabled")
+            and mailbox_in_allowlist
+        ):
+            metrics.incr(
+                "github.webhook.drop_unprocessed_event",
+                tags={"event_type": github_event or "unknown"},
+            )
+            return HttpResponse(status=202)
 
         response = self.get_response_from_webhookpayload(
             regions=regions,
