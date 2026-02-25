@@ -69,7 +69,7 @@ export function makeColorBufferForNodes(
     }
 
     const c = colorMap.get(frame.node);
-    const colorWithAlpha = c && c.length === 3 ? c.concat(1) : c ? c : fallbackColor;
+    const colorWithAlpha = c?.length === 3 ? c.concat(1) : c ? c : fallbackColor;
 
     for (let i = 0; i < 6; i++) {
       const offset = index * 6 * 4 + i * 4;
@@ -100,7 +100,7 @@ function makeColorBuffer(
     }
 
     const c = colorMap.get(frame.key);
-    const colorWithAlpha = c && c.length === 3 ? c.concat(1) : c ? c : fallbackColor;
+    const colorWithAlpha = c?.length === 3 ? c.concat(1) : c ? c : fallbackColor;
 
     for (let i = 0; i < 6; i++) {
       const offset = index * 6 * 4 + i * 4;
