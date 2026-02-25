@@ -167,14 +167,15 @@ export function DomainSelector({
       options={options}
       emptyMessage={t('No results')}
       loading={isPending}
-      searchable
+      search={{
+        onChange: newValue => {
+          if (!wasSearchSpaceExhausted) {
+            debouncedSetSearch(newValue);
+          }
+        },
+      }}
       menuTitle={domainAlias}
       data-test-id="domain-selector"
-      onSearch={newValue => {
-        if (!wasSearchSpaceExhausted) {
-          debouncedSetSearch(newValue);
-        }
-      }}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix={domainAlias} />
       )}

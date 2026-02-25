@@ -52,6 +52,30 @@ export interface SearchMatchResult {
   score: number;
 }
 
+/**
+ * Configuration for CompactSelect's search/filter behavior. Providing this prop
+ * implicitly enables the search input.
+ */
+export interface SearchConfig<Value extends SelectKey> {
+  /**
+   * Controls client-side option filtering:
+   * - Omitted: default case-insensitive substring filter
+   * - Function: custom matcher (receives option + search string, returns SearchMatchResult)
+   * - `false`: disables client-side filtering entirely (use with `onChange` for server-side search)
+   */
+  filter?:
+    | ((option: SelectOptionWithKey<Value>, search: string) => SearchMatchResult)
+    | false;
+  /**
+   * Called when the search input value changes.
+   */
+  onChange?: (value: string) => void;
+  /**
+   * Placeholder text for the search input. Defaults to 'Search…'.
+   */
+  placeholder?: string;
+}
+
 export interface SelectOptionWithKey<
   Value extends SelectKey,
 > extends SelectOption<Value> {

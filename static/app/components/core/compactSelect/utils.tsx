@@ -11,6 +11,7 @@ import {defined} from 'sentry/utils';
 import type {SelectProps} from './compactSelect';
 import {SectionToggleButton} from './styles';
 import type {
+  SearchConfig,
   SearchMatchResult,
   SelectKey,
   SelectOption,
@@ -20,6 +21,19 @@ import type {
   SelectSection,
   SelectSectionWithKey,
 } from './types';
+
+/**
+ * Normalises the `search` prop into a plain config object (or `undefined` if
+ * search is disabled). Accepts `true` as shorthand for `{}` and treats
+ * `false`/`undefined` as "no search".
+ */
+export function getSearchConfig<Value extends SelectKey>(
+  search: boolean | SearchConfig<Value> | undefined
+): SearchConfig<Value> | undefined {
+  if (!search) return undefined;
+  if (search === true) return {};
+  return search;
+}
 
 export function getEscapedKey<Value extends SelectKey | undefined>(value: Value): string {
   return CSS.escape(String(value));

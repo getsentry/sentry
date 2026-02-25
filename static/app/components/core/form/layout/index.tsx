@@ -1,3 +1,6 @@
+import {keyframes} from '@emotion/react';
+import styled from '@emotion/styled';
+
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {
@@ -25,8 +28,9 @@ function RowLayout(props: RowLayoutProps) {
   const field = useFieldContext();
 
   return (
-    <Flex
+    <HighlightableFlex
       id={field.name}
+      direction="row"
       gap="sm"
       align="center"
       justify="between"
@@ -48,7 +52,7 @@ function RowLayout(props: RowLayoutProps) {
       </Stack>
 
       <Container flexGrow={1}>{props.children}</Container>
-    </Flex>
+    </HighlightableFlex>
   );
 }
 
@@ -61,7 +65,13 @@ function StackLayout(props: StackLayoutProps) {
   const field = useFieldContext();
 
   return (
-    <Stack id={field.name} gap="md" padding={props.padding} flexGrow={1}>
+    <HighlightableFlex
+      id={field.name}
+      direction="column"
+      gap="md"
+      padding={props.padding}
+      flexGrow={1}
+    >
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}
@@ -74,7 +84,7 @@ function StackLayout(props: StackLayoutProps) {
       {props.hintText && !isCompact ? (
         <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
       ) : null}
-    </Stack>
+    </HighlightableFlex>
   );
 }
 
@@ -84,3 +94,20 @@ export function FieldLayout() {
 
 FieldLayout.Row = RowLayout;
 FieldLayout.Stack = StackLayout;
+
+const highlightFade = keyframes`
+  0% {
+    background-color: var(--highlight-color);
+  }
+  100% {
+    background-color: transparent;
+  }
+`;
+
+const HighlightableFlex = styled(Flex)`
+  --highlight-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+
+  &[data-highlight] {
+    animation: ${highlightFade} ${p => p.theme.motion.smooth.slow};
+  }
+`;

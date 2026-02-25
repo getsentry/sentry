@@ -6,7 +6,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -316,12 +315,10 @@ function SpanTabContentSection({
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
         <Flex gap="xs">
-          <Feature features="organizations:tracing-export-csv">
-            <SpansExport
-              aggregatesTableResult={aggregatesTableResult}
-              spansTableResult={spansTableResult}
-            />
-          </Feature>
+          <SpansExport
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
+          />
           <SettingsDropdown />
         </Flex>
       </OverChartButtonGroup>

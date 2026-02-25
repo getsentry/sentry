@@ -5,7 +5,6 @@ from typing import NotRequired, TypedDict
 
 import orjson
 import pydantic
-import requests
 from django.conf import settings
 from pydantic import BaseModel
 from rest_framework import serializers
@@ -28,7 +27,7 @@ from sentry.seer.models import (
     SeerRawPreferenceResponse,
     SeerRepoDefinition,
 )
-from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -357,16 +356,14 @@ def get_autofix_state(
         }
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body,
     )
 
-    response.raise_for_status()
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
 
     result = response.json()
 
@@ -396,16 +393,14 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
         }
     ).encode("utf-8")
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body,
     )
 
-    response.raise_for_status()
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
     result = response.json()
 
     if not result:

@@ -13,7 +13,6 @@ from math import floor
 from typing import Any, TypedDict, cast
 
 import sentry_sdk
-from django.db.models import Q
 from django.utils import timezone
 from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
@@ -24,8 +23,7 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.grouping.grouptype import ErrorGroupType
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
@@ -825,21 +823,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 .filter(last_seen__gte=start, last_seen__lte=end)
                 .order_by("-last_seen")
             )
-
-            for sf in search_filters or ():
-                # general search query:
-                if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
-                    group_queryset = group_queryset.filter(
-                        Q(type=ErrorGroupType.type_id)
-                        | (
-                            Q(type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value))
-                            and (
-                                ~Q(message__icontains=sf.value.raw_value)
-                                if sf.is_negation
-                                else Q(message__icontains=sf.value.raw_value)
-                            )
-                        )
-                    )
 
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
 

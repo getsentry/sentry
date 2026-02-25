@@ -288,11 +288,11 @@ class GenerateAssertionSuggestionsTest(TestCase):
         assert suggestions is None
         assert debug is not None and "No status_code" in debug
 
-    @patch("sentry.uptime.seer_assertions.requests.post")
-    def test_seer_request_failure(self, mock_post):
-        import requests
+    @patch("sentry.uptime.seer_assertions.make_signed_seer_api_request")
+    def test_seer_request_failure(self, mock_request):
+        from sentry.seer.models import SeerApiError
 
-        mock_post.side_effect = requests.RequestException("Connection failed")
+        mock_request.side_effect = SeerApiError("Connection failed", 500)
 
         preview_result = {
             "check_result": {
@@ -310,11 +310,10 @@ class GenerateAssertionSuggestionsTest(TestCase):
         assert suggestions is None
         assert debug is not None and "request failed" in debug
 
-    @patch("sentry.uptime.seer_assertions.requests.post")
-    def test_successful_generation(self, mock_post):
-        mock_response = mock_post.return_value
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {
+    @patch("sentry.uptime.seer_assertions.make_signed_seer_api_request")
+    def test_successful_generation(self, mock_request):
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {
             "content": '{"suggestions": [{"assertion_type": "status_code", "comparison": "equals", "expected_value": "200", "confidence": 0.95, "explanation": "test"}]}'
         }
 
@@ -336,11 +335,10 @@ class GenerateAssertionSuggestionsTest(TestCase):
         assert suggestions.suggestions[0].assertion_type == "status_code"
         assert debug is None
 
-    @patch("sentry.uptime.seer_assertions.requests.post")
-    def test_empty_seer_content(self, mock_post):
-        mock_response = mock_post.return_value
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"content": ""}
+    @patch("sentry.uptime.seer_assertions.make_signed_seer_api_request")
+    def test_empty_seer_content(self, mock_request):
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {"content": ""}
 
         preview_result = {
             "check_result": {

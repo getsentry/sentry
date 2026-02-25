@@ -354,7 +354,7 @@ def get_group_list(
         return list(
             Group.objects.filter(
                 project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
-            )
+            ).select_related("project")
         )
     else:
         project_ids = {p.id for p in projects}
