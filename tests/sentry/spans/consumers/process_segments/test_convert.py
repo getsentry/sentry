@@ -5,8 +5,16 @@ import orjson
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
+from sentry_protos.snuba.v1.trace_item_pb2 import (
+    AnyValue,
+    ArrayValue,
+    CategoryCount,
+    KeyValue,
+    KeyValueList,
+    Outcomes,
+)
 
+from sentry.constants import DataCategory
 from sentry.spans.consumers.process_segments.convert import RENAME_ATTRIBUTES, convert_span_to_item
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
 
@@ -250,3 +258,53 @@ def test_convert_renamed_attribute_meta() -> None:
     assert item.attributes.get("sentry._meta.fields.attributes.sentry.raw_description") == AnyValue(
         string_value=orjson.dumps({"meta": description_meta}).decode()
     )
+
+
+def test_convert_outcomes_when_not_emitted() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["accepted_outcome_emitted"] = False
+    message["key_id"] = 123
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.HasField("outcomes")
+    assert item.outcomes == Outcomes(
+        key_id=123,
+        category_count=[
+            CategoryCount(
+                data_category=int(DataCategory.SPAN_INDEXED),
+                quantity=1,
+            ),
+        ],
+    )
+
+
+def test_convert_outcomes_when_not_emitted_no_key_id() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["accepted_outcome_emitted"] = False
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.HasField("outcomes")
+    assert item.outcomes == Outcomes(
+        key_id=0,
+        category_count=[
+            CategoryCount(
+                data_category=int(DataCategory.SPAN_INDEXED),
+                quantity=1,
+            ),
+        ],
+    )
+
+
+def test_convert_outcomes_when_already_emitted() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["accepted_outcome_emitted"] = True
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+    assert not item.HasField("outcomes")
+
+
+def test_convert_outcomes_when_field_missing() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+    assert not item.HasField("outcomes")
