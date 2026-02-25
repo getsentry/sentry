@@ -144,7 +144,13 @@ class TestBuildServiceMap(TestCase):
         project2 = self.create_project(organization=org)
 
         mock_dependencies.return_value = [
-            {"source_project_id": project1.id, "target_project_id": project2.id, "count": 10}
+            {
+                "source_project_id": project1.id,
+                "source_project_slug": project1.slug,
+                "target_project_id": project2.id,
+                "target_project_slug": project2.slug,
+                "count": 10,
+            }
         ]
 
         with override_options({"explorer.context_engine_indexing.enable": True}):

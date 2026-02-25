@@ -67,8 +67,9 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     def _process_rows(rows: list[dict]) -> None:
         for row in rows:
             child_project_id = row.get("project.id")
+            child_project_slug = row.get("project.slug")
             parent_span_id = row.get("parent_span")
-            if not child_project_id:
+            if not child_project_id or not child_project_slug:
                 continue
             covered_project_ids.add(child_project_id)
             key = (child_project_id, parent_span_id)
@@ -77,7 +78,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                 segments_by_parent[parent_span_id].append(
                     {
                         "child_project_id": child_project_id,
-                        "child_project_slug": row.get("project.slug"),
+                        "child_project_slug": child_project_slug,
                     }
                 )
 
@@ -146,7 +147,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
 
     # Parent resolution: Batch-resolve parent spans → get their project_ids.
     # Batched to keep query strings within reasonable size limits.
-    edges_by_pair: dict[tuple[int, str | None, int, str | None], int] = defaultdict(int)
+    edges_by_pair: dict[tuple[int, str, int, str], int] = defaultdict(int)
 
     with sentry_sdk.start_span(op="explorer.service_map.resolve_parents") as span:
         span.set_data("unique_parent_spans", len(unique_parent_span_ids))
@@ -177,7 +178,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                 parent_span_id = parent_row.get("id")
                 parent_project_id = parent_row.get("project.id")
                 parent_project_slug = parent_row.get("project.slug")
-                if not parent_span_id or not parent_project_id:
+                if not parent_span_id or not parent_project_id or not parent_project_slug:
                     continue
                 for segment in segments_by_parent.get(parent_span_id, []):
                     child_project_id = segment["child_project_id"]
@@ -229,25 +230,23 @@ def _build_nodes(edges: list[dict], all_projects: list[Any]) -> list[dict]:
     """
     in_degrees: dict[int, int] = defaultdict(int)
     out_degrees: dict[int, int] = defaultdict(int)
-    project_slugs: dict[int, str | None] = {p.id: p.slug for p in all_projects}
+    project_slugs: dict[int, str] = {p.id: p.slug for p in all_projects}
     callers_map: dict[int, set[str]] = defaultdict(set)
     callees_map: dict[int, set[str]] = defaultdict(set)
 
     for edge in edges:
         src_id = edge["source_project_id"]
-        src_slug = edge.get("source_project_slug")
+        src_slug = edge["source_project_slug"]
         tgt_id = edge["target_project_id"]
-        tgt_slug = edge.get("target_project_slug")
+        tgt_slug = edge["target_project_slug"]
 
         out_degrees[src_id] += 1
         in_degrees[tgt_id] += 1
         project_slugs[src_id] = src_slug
         project_slugs[tgt_id] = tgt_slug
 
-        if tgt_slug:
-            callees_map[src_id].add(tgt_slug)
-        if src_slug:
-            callers_map[tgt_id].add(src_slug)
+        callees_map[src_id].add(tgt_slug)
+        callers_map[tgt_id].add(src_slug)
 
     connected_ids = set(in_degrees.keys()) | set(out_degrees.keys())
     n = len(connected_ids)
