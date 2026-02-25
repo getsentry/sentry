@@ -270,7 +270,9 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     );
   }
 
-  const chartData = convertToEChartsData(root);
+  const chartDataChildren = root.children.map((child: TreemapElement) =>
+    convertToEChartsData(child, chartSurfaceColor)
+  );
   const totalSize = root.size;
 
   const series: TreemapSeriesOption[] = [
@@ -345,7 +347,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
           colorSaturation: [0.4, 0.6],
         },
       ],
-      data: chartData.children || [chartData],
+      data: chartDataChildren,
     },
   ];
 
