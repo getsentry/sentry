@@ -1,19 +1,19 @@
+import {z} from 'zod';
+
+import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import Access from 'sentry/components/acl/access';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import formGroups from 'sentry/data/forms/cspReports';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -21,6 +21,13 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import ReportUri, {
   getSecurityDsn,
 } from 'sentry/views/settings/projectSecurityHeaders/reportUri';
+
+const cspSchema = z.object({
+  'sentry:csp_ignored_sources_defaults': z.boolean(),
+  'sentry:csp_ignored_sources': z.string(),
+});
+
+type CspSchema = z.infer<typeof cspSchema>;
 
 function getInstructions(keyList: ProjectKey[]) {
   return (
@@ -99,6 +106,20 @@ export default function ProjectCspReports() {
     );
   }
 
+  const projectEndpoint = `/projects/${organization.slug}/${projectId}/`;
+
+  function getCspMutationOptions(hasAccess: boolean) {
+    return {
+      mutationFn: (data: Partial<CspSchema>) =>
+        fetchMutation({
+          url: projectEndpoint,
+          method: 'PUT',
+          data: {options: data},
+        }),
+      enabled: hasAccess,
+    };
+  }
+
   return (
     <div>
       <SentryDocumentTitle
@@ -108,16 +129,65 @@ export default function ProjectCspReports() {
 
       <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
 
-      <Form
-        saveOnBlur
-        apiMethod="PUT"
-        initialData={project.options}
-        apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
-      >
-        <Access access={['project:write']} project={project}>
-          {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
-        </Access>
-      </Form>
+      <Access access={['project:write']} project={project}>
+        {({hasAccess}) => (
+          <FieldGroup title={t('CSP Settings')}>
+            <AutoSaveField
+              name="sentry:csp_ignored_sources_defaults"
+              schema={cspSchema}
+              initialValue={
+                (project.options?.['sentry:csp_ignored_sources_defaults'] as
+                  | boolean
+                  | undefined) ?? false
+              }
+              mutationOptions={getCspMutationOptions(hasAccess)}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Use default ignored sources')}
+                  hintText={t(
+                    'Our default list will attempt to ignore common issues and reduce noise.'
+                  )}
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={!hasAccess}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+
+            <AutoSaveField
+              name="sentry:csp_ignored_sources"
+              schema={cspSchema}
+              initialValue={
+                (project.options?.['sentry:csp_ignored_sources'] as string | undefined) ??
+                ''
+              }
+              mutationOptions={getCspMutationOptions(hasAccess)}
+            >
+              {field => (
+                <field.Layout.Stack
+                  label={t('Additional ignored sources')}
+                  hintText={t(
+                    'Discard reports about requests from the given sources. Separate multiple entries with a newline.'
+                  )}
+                >
+                  <field.TextArea
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    autosize
+                    rows={4}
+                    placeholder={'e.g.\nfile://*\n*.example.com\nexample.com'}
+                    disabled={!hasAccess}
+                  />
+                </field.Layout.Stack>
+              )}
+            </AutoSaveField>
+          </FieldGroup>
+        )}
+      </Access>
 
       <Panel>
         <PanelHeader>{t('About')}</PanelHeader>
