@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-preprod-artifact-public-install-info"
+    endpoint = "sentry-api-0-organization-preprod-artifact-public-install-details"
 
     def setUp(self):
         self.user = self.create_user()
