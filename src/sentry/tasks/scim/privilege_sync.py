@@ -6,7 +6,7 @@ from django.db import IntegrityError
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import auth_control_tasks
+from sentry.taskworker.namespaces import auth_tasks
 from sentry.taskworker.retry import Retry
 from sentry.users.services.user.service import user_service
 
@@ -68,9 +68,9 @@ def update_privilege(
 
 @instrumented_task(
     name="sentry.tasks.scim.privilege_sync.sync_scim_team_privileges",
-    namespace=auth_control_tasks,
+    namespace=auth_tasks,
     retry=Retry(times=3, on=(Exception,)),
-    silo_mode=SiloMode.CONTROL,
+    silo_mode=SiloMode.REGION,
 )
 def sync_scim_team_privileges(
     team_slug: str,

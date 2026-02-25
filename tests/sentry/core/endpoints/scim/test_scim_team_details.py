@@ -11,7 +11,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SCIMTestCase
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class SCIMDetailGetTest(SCIMTestCase):
@@ -327,6 +327,7 @@ class SCIMDetailDeleteTest(SCIMTestCase):
         mock_metrics.incr.assert_called_with("sentry.scim.team.delete")
 
 
+@region_silo_test
 class SCIMPrivilegeManagementTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
     method = "patch"
@@ -370,7 +371,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(
                     self.organization.slug, staff_team.id, **self.base_data, status_code=204
                 )
@@ -405,7 +406,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(
                     self.organization.slug, superuser_team.id, **self.base_data, status_code=204
                 )
@@ -438,7 +439,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(
                     self.organization.slug, staff_team.id, **self.base_data, status_code=204
                 )
@@ -483,7 +484,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(
                     self.organization.slug, superuser_team.id, **self.base_data, status_code=204
                 )
@@ -526,7 +527,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(
                     self.organization.slug, staff_team.id, **self.base_data, status_code=204
                 )
@@ -562,7 +563,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(
                     self.organization.slug,
                     superuser_write_team.id,
@@ -570,9 +571,10 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                     status_code=204,
                 )
 
-                self.user_one.refresh_from_db()
-                assert self.user_one.is_superuser
+            self.user_one.refresh_from_db()
+            assert self.user_one.is_superuser
 
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 assert UserPermission.objects.filter(
                     user_id=self.user_one.id, permission="superuser.write"
                 ).exists()
@@ -594,7 +596,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             su_write_user = self.create_user(email="remove_su_write@example.com", is_superuser=True)
             su_write_member = self.create_member(user=su_write_user, organization=self.organization)
 
-            with assume_test_silo_mode(SiloMode.MONOLITH):
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 UserPermission.objects.create(
                     user_id=su_write_user.id, permission="superuser.write"
                 )
@@ -610,7 +612,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(
                     self.organization.slug,
                     superuser_write_team.id,
@@ -618,10 +620,10 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                     status_code=204,
                 )
 
-            with assume_test_silo_mode(SiloMode.MONOLITH):
-                su_write_user.refresh_from_db()
-                assert not su_write_user.is_superuser
+            su_write_user.refresh_from_db()
+            assert not su_write_user.is_superuser
 
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 assert not UserPermission.objects.filter(
                     user_id=su_write_user.id, permission="superuser.write"
                 ).exists()
@@ -651,7 +653,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(
                     self.organization.slug, regular_team.id, **self.base_data, status_code=204
                 )
@@ -671,7 +673,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             other_org = self.create_organization(name="Other Org")
             other_member = self.create_member(user=self.user_one, organization=other_org)
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 other_auth_provider = AuthProviderModel(
                     organization_id=other_org.id, provider="dummy"
                 )
@@ -681,31 +683,32 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                     token=other_auth_provider.get_scim_token()
                 ).user
 
-                self.login_as(user=other_scim_user)
+            self.login_as(user=other_scim_user)
 
-                staff_team = self.create_team(
-                    organization=other_org, slug="snty-staff", idp_provisioned=True
-                )
+            staff_team = self.create_team(
+                organization=other_org, slug="snty-staff", idp_provisioned=True
+            )
 
-                self.base_data["Operations"] = [
-                    {
-                        "op": "add",
-                        "path": "members",
-                        "value": [
-                            {
-                                "value": other_member.id,
-                                "display": other_member.email,
-                            }
-                        ],
-                    }
-                ]
+            self.base_data["Operations"] = [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": other_member.id,
+                            "display": other_member.email,
+                        }
+                    ],
+                }
+            ]
 
+            with self.tasks():
                 self.get_success_response(
                     other_org.slug, staff_team.id, **self.base_data, status_code=204
                 )
 
-                self.user_one.refresh_from_db()
-                assert not self.user_one.is_staff
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
 
     def test_non_saas_mode_does_not_dispatch_task(self) -> None:
         with override_settings(
@@ -732,7 +735,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(
                     self.organization.slug, staff_team.id, **self.base_data, status_code=204
                 )
@@ -778,7 +781,7 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
                 team=staff_team, organizationmember=staff_member_b
             )
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(self.organization.slug, staff_team.id, status_code=204)
 
             staff_user_a.refresh_from_db()
@@ -804,7 +807,7 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
 
             OrganizationMemberTeam.objects.create(team=superuser_team, organizationmember=su_member)
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(
                     self.organization.slug, superuser_team.id, status_code=204
                 )
@@ -828,7 +831,7 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
                 team=regular_team, organizationmember=self.member_one
             )
 
-            with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            with self.tasks():
                 self.get_success_response(self.organization.slug, regular_team.id, status_code=204)
 
             self.user_one.refresh_from_db()
