@@ -1,11 +1,39 @@
 import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 
+import {useCopySetupInstructionsEnabled} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {IconCopy} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 
+export function ManualInstrumentationNote({docsLink}: {docsLink: React.ReactNode}) {
+  const copyEnabled = useCopySetupInstructionsEnabled();
+
+  if (copyEnabled) {
+    return tct(
+      'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+      {link: docsLink, bold: <strong />}
+    );
+  }
+
+  return (
+    <Stack gap="xl">
+      <p>
+        {tct(
+          'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
+          {link: docsLink}
+        )}
+      </p>
+      <CopyLLMPromptButton />
+    </Stack>
+  );
+}
+
+/**
+ * @deprecated Will be removed when the `onboarding-copy-setup-instructions` feature flag GAs.
+ */
 export function CopyLLMPromptButton() {
   const {copy} = useCopyToClipboard();
   const organization = useOrganization();
@@ -28,8 +56,13 @@ export function CopyLLMPromptButton() {
   );
 }
 
-const LLM_ONBOARDING_INSTRUCTIONS = `
+export const LLM_ONBOARDING_INSTRUCTIONS = `
 # Instrument Sentry AI Agent Monitoring
+
+> IMPORTANT: IF SETUP STEPS WERE PROVIDED ABOVE THIS SECTION AND YOU HAVE NOT YET FOLLOWED THEM, FOLLOW THEM FIRST.
+> They contain the correct DSN and project-specific SDK configuration. DO NOT SKIP THEM.
+> Then use the guide below to add Sentry manual instrumentation for AI Agent Monitoring.
+> Complete the verification step LAST.
 
 Follow this decision tree to instrument AI Agent Monitoring.
 

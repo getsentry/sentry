@@ -12,6 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
+  CopyMarkdownButton,
   OnboardingCopyMarkdownButton,
   useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
@@ -44,6 +45,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -52,7 +54,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {
+  CopyLLMPromptButton,
+  LLM_ONBOARDING_INSTRUCTIONS,
+} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
@@ -286,6 +291,8 @@ export function Onboarding() {
   };
 
   const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+  const isManualIntegration =
+    selectedPlatformOptions.integration === AgentIntegration.MANUAL;
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -377,6 +384,18 @@ export function Onboarding() {
                   borderless
                   steps={steps}
                   source="agent_monitoring_onboarding"
+                  llmPostamble={
+                    isManualIntegration ? LLM_ONBOARDING_INSTRUCTIONS : undefined
+                  }
+                  onCopy={
+                    isManualIntegration
+                      ? () => {
+                          trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
+                            organization,
+                          });
+                        }
+                      : undefined
+                  }
                 />
               ) : undefined
             }
@@ -384,6 +403,28 @@ export function Onboarding() {
         ))}
       </GuidedSteps>
     </OnboardingPanel>
+  );
+}
+
+function CopyInstructionsButton() {
+  const organization = useOrganization();
+  const copySetupInstructionsEnabled = useCopySetupInstructionsEnabled();
+
+  if (!copySetupInstructionsEnabled) {
+    return <CopyLLMPromptButton />;
+  }
+
+  return (
+    <CopyMarkdownButton
+      title={t('Copies setup instructions as Markdown, optimized for use with an LLM.')}
+      source="agent_monitoring_onboarding"
+      getMarkdown={() => LLM_ONBOARDING_INSTRUCTIONS}
+      onCopy={() => {
+        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
+          organization,
+        });
+      }}
+    />
   );
 }
 
@@ -407,15 +448,16 @@ function UnsupportedPlatformOnboarding({
         </p>
         <p>
           {tct(
-            'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or use an AI coding agent to do it for you.',
+            'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
               ),
+              bold: <strong />,
             }
           )}
         </p>
-        <CopyLLMPromptButton />
+        <CopyInstructionsButton />
       </DescriptionWrapper>
     </OnboardingPanel>
   );
@@ -433,15 +475,16 @@ function NoDocsOnboarding({project}: {project: Project}) {
         </p>
         <p>
           {tct(
-            'You can set up the Sentry SDK by following our [link:documentation], or use an AI coding agent to do it for you.',
+            'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
               ),
+              bold: <strong />,
             }
           )}
         </p>
-        <CopyLLMPromptButton />
+        <CopyInstructionsButton />
       </DescriptionWrapper>
     </OnboardingPanel>
   );
