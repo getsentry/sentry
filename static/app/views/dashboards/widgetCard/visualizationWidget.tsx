@@ -203,7 +203,8 @@ function VisualizationWidgetContent({
         timeSeries,
         widget,
         labelParts.filter(defined).join(SERIES_NAME_PART_DELIMITER),
-        seriesName
+        seriesName,
+        timeSeries.meta.isOther ? theme.tokens.dataviz.semantic.neutral : undefined
       );
       if (!plottable) {
         return null;
