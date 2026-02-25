@@ -150,32 +150,40 @@ ruleTester.run('restrict-jsx-slot-children', restrictJsxSlotChildren, {
       filename: '/static/app/foo.tsx',
     },
 
-    // ── Shorthand fragment — children are checked ─────────────────────────────
+    // ── All fragment forms are traversed: valid children pass ────────────────
+    // shorthand <>
     {
       options: COMPACT_SELECT_OPTIONS,
       code: `${IMPORTS}<CompactSelect menuFooter={<><MenuComponents.ApplyButton/><MenuComponents.CancelButton/></>} />`,
       filename: '/static/app/foo.tsx',
     },
+    // <Fragment>
     {
       options: COMPACT_SELECT_OPTIONS,
-      code: `${IMPORTS}<CompactSelect menuFooter={<><Flex><MenuComponents.ApplyButton/></Flex></>} />`,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Fragment><MenuComponents.ApplyButton/><MenuComponents.CancelButton/></Fragment>} />`,
       filename: '/static/app/foo.tsx',
     },
-
-    // ── Named React fragments are transparent (children are checked) ──────────
+    // <React.Fragment>
     {
       options: COMPACT_SELECT_OPTIONS,
-      code: `${IMPORTS}<CompactSelect menuFooter={<Fragment><MenuComponents.ApplyButton/></Fragment>} />`,
+      code: `${IMPORTS}<CompactSelect menuFooter={<React.Fragment><MenuComponents.ApplyButton/><MenuComponents.CancelButton/></React.Fragment>} />`,
+      filename: '/static/app/foo.tsx',
+    },
+    // fragments nested inside layout wrappers
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Flex><Fragment><MenuComponents.ApplyButton/></Fragment></Flex>} />`,
       filename: '/static/app/foo.tsx',
     },
     {
       options: COMPACT_SELECT_OPTIONS,
-      code: `${IMPORTS}<CompactSelect menuFooter={<React.Fragment><MenuComponents.ApplyButton/></React.Fragment>} />`,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Flex><React.Fragment><MenuComponents.CancelButton/></React.Fragment></Flex>} />`,
       filename: '/static/app/foo.tsx',
     },
+    // fragments nested inside fragments
     {
       options: COMPACT_SELECT_OPTIONS,
-      code: `${IMPORTS}<CompactSelect menuFooter={<Fragment><Flex><MenuComponents.CancelButton/></Flex></Fragment>} />`,
+      code: `${IMPORTS}<CompactSelect menuFooter={<><Fragment><MenuComponents.ApplyButton/></Fragment></>} />`,
       filename: '/static/app/foo.tsx',
     },
 
@@ -270,16 +278,52 @@ import {Flex as FlexLayout} from '@sentry/scraps/layout';
       errors: [forbidden('Button', 'menuFooter')],
     },
 
-    // ── Invalid children inside named React fragments ─────────────────────────
+    // ── All fragment forms are traversed: invalid children are caught ─────────
+    // shorthand <>
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<><Button/></>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    // <Fragment>
     {
       options: COMPACT_SELECT_OPTIONS,
       code: `${IMPORTS}<CompactSelect menuFooter={<Fragment><Button/></Fragment>} />`,
       filename: '/static/app/foo.tsx',
       errors: [forbidden('Button', 'menuFooter')],
     },
+    // <React.Fragment>
     {
       options: COMPACT_SELECT_OPTIONS,
       code: `${IMPORTS}<CompactSelect menuFooter={<React.Fragment><Button/></React.Fragment>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    // multiple invalid children inside a fragment
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Fragment><Button/><LinkButton/></Fragment>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter'), forbidden('LinkButton', 'menuFooter')],
+    },
+    // invalid child inside a fragment nested in a layout wrapper
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Flex><Fragment><Button/></Fragment></Flex>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Flex><React.Fragment><Button/></React.Fragment></Flex>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    // invalid child inside a fragment nested in another fragment
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<><Fragment><Button/></Fragment></>} />`,
       filename: '/static/app/foo.tsx',
       errors: [forbidden('Button', 'menuFooter')],
     },
@@ -326,13 +370,7 @@ import {Flex as FlexLayout} from '@sentry/scraps/layout';
       errors: [forbidden('Button', 'menuHeaderTrailingItems')],
     },
 
-    // ── Invalid children inside shorthand fragment ────────────────────────────
-    {
-      options: COMPACT_SELECT_OPTIONS,
-      code: `${IMPORTS}<CompactSelect menuFooter={<><Button/></>} />`,
-      filename: '/static/app/foo.tsx',
-      errors: [forbidden('Button', 'menuFooter')],
-    },
+    // ── Mix of valid and invalid children inside shorthand fragment ──────────
     {
       options: COMPACT_SELECT_OPTIONS,
       code: `${IMPORTS}<CompactSelect menuFooter={<><MenuComponents.ApplyButton/><Button/></>} />`,
