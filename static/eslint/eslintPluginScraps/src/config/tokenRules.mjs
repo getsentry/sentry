@@ -5,13 +5,24 @@
  * 1. Token detection (which keywords to match in token paths)
  * 2. Property validation (which properties each category allows)
  * 3. Autofix suggestions (reverse lookup: property → correct category)
+ * 4. Size token replacement (hardcoded value → token path)
  */
+
+import {normalizePropertyName} from '../ast/utils/normalizePropertyName.mjs';
 
 /**
  * @typedef {Object} TokenRule
  * @property {string} name - Human-readable name for error messages
  * @property {string[]} keywords - Keywords to match in token paths (e.g., 'content', 'link')
  * @property {Set<string>} allowedProperties - CSS properties these tokens can be used with
+ */
+
+/**
+ * @typedef {Object} SizeTokenRule
+ * @property {string} name - Category identifier (e.g., 'space', 'radius', 'border-width')
+ * @property {string} tokenPrefix - Theme object path segment (e.g., 'space' → theme.space.*)
+ * @property {Map<string, string>} valueToToken - Map of CSS value → token key
+ * @property {Set<string>} properties - CSS properties this category applies to
  */
 
 /**
@@ -163,3 +174,176 @@ function buildPropertyToRule(rules) {
  * @type {Map<string, string>}
  */
 export const PROPERTY_TO_RULE = buildPropertyToRule(TOKEN_RULES);
+
+// ---------------------------------------------------------------------------
+// Size token rules — maps hardcoded CSS values to design token replacements
+// ---------------------------------------------------------------------------
+
+/**
+ * Size token categories with value→token mappings and applicable CSS properties.
+ * Values are derived from static/app/utils/theme/scraps/tokens/size.tsx.
+ *
+ * @type {SizeTokenRule[]}
+ */
+const SIZE_TOKEN_RULES = [
+  {
+    name: 'space',
+    tokenPrefix: 'space',
+    valueToToken: new Map([
+      ['0px', '0'],
+      ['2px', '2xs'],
+      ['4px', 'xs'],
+      ['6px', 'sm'],
+      ['8px', 'md'],
+      ['12px', 'lg'],
+      ['16px', 'xl'],
+      ['24px', '2xl'],
+      ['32px', '3xl'],
+    ]),
+    properties: new Set([
+      'padding',
+      'padding-top',
+      'padding-right',
+      'padding-bottom',
+      'padding-left',
+      'padding-block',
+      'padding-block-start',
+      'padding-block-end',
+      'padding-inline',
+      'padding-inline-start',
+      'padding-inline-end',
+      'margin',
+      'margin-top',
+      'margin-right',
+      'margin-bottom',
+      'margin-left',
+      'margin-block',
+      'margin-block-start',
+      'margin-block-end',
+      'margin-inline',
+      'margin-inline-start',
+      'margin-inline-end',
+      'gap',
+      'row-gap',
+      'column-gap',
+      'top',
+      'right',
+      'bottom',
+      'left',
+      'inset',
+      'inset-block',
+      'inset-block-start',
+      'inset-block-end',
+      'inset-inline',
+      'inset-inline-start',
+      'inset-inline-end',
+    ]),
+  },
+  {
+    name: 'radius',
+    tokenPrefix: 'radius',
+    valueToToken: new Map([
+      ['0px', '0'],
+      ['3px', '2xs'],
+      ['4px', 'xs'],
+      ['5px', 'sm'],
+      ['6px', 'md'],
+      ['8px', 'lg'],
+      ['12px', 'xl'],
+      ['16px', '2xl'],
+      ['999px', 'full'],
+    ]),
+    properties: new Set([
+      'border-radius',
+      'border-top-left-radius',
+      'border-top-right-radius',
+      'border-bottom-left-radius',
+      'border-bottom-right-radius',
+      'border-start-start-radius',
+      'border-start-end-radius',
+      'border-end-start-radius',
+      'border-end-end-radius',
+    ]),
+  },
+  {
+    name: 'border-width',
+    tokenPrefix: 'border',
+    valueToToken: new Map([
+      ['0px', '0'],
+      ['1px', 'md'],
+      ['1.5px', 'lg'],
+      ['2px', 'xl'],
+      ['4px', '2xl'],
+    ]),
+    properties: new Set([
+      'border-width',
+      'border-top-width',
+      'border-right-width',
+      'border-bottom-width',
+      'border-left-width',
+      'border-block-width',
+      'border-block-start-width',
+      'border-block-end-width',
+      'border-inline-width',
+      'border-inline-start-width',
+      'border-inline-end-width',
+      'outline-width',
+    ]),
+  },
+];
+
+/**
+ * Build a reverse lookup: property → SizeTokenRule for O(1) lookups.
+ * @param {SizeTokenRule[]} rules
+ * @returns {Map<string, SizeTokenRule>}
+ */
+function buildPropertyToSizeRule(rules) {
+  /** @type {Map<string, SizeTokenRule>} */
+  const result = new Map();
+  for (const rule of rules) {
+    for (const property of rule.properties) {
+      result.set(property, rule);
+    }
+  }
+  return result;
+}
+
+/** @type {Map<string, SizeTokenRule>} */
+const PROPERTY_TO_SIZE_RULE = buildPropertyToSizeRule(SIZE_TOKEN_RULES);
+
+/**
+ * Given a CSS value and property, find the matching size token.
+ *
+ * Uses the property to disambiguate categories — e.g., `4px` with
+ * `padding` resolves to `space.xs`, but `4px` with `border-radius`
+ * resolves to `radius.xs`.
+ *
+ * @param {string} value - CSS value (e.g., '8px')
+ * @param {string} property - CSS property name (camelCase or kebab-case)
+ * @returns {{ prefix: string, tokenName: string } | null}
+ */
+export function findSizeTokenForValue(value, property) {
+  const normalized = normalizePropertyName(property);
+  const rule = PROPERTY_TO_SIZE_RULE.get(normalized);
+  if (!rule) {
+    return null;
+  }
+  const tokenName = rule.valueToToken.get(value);
+  if (!tokenName) {
+    return null;
+  }
+  return {prefix: rule.tokenPrefix, tokenName};
+}
+
+/**
+ * Format a token access path as valid JS property access.
+ * Uses bracket notation for keys that aren't valid identifiers.
+ *
+ * @param {string} prefix - Token prefix (e.g., 'space')
+ * @param {string} tokenName - Token key (e.g., 'md', '2xl')
+ * @returns {string} e.g., 'space.md' or "space['2xl']"
+ */
+export function formatTokenAccess(prefix, tokenName) {
+  const isValidIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(tokenName);
+  return isValidIdentifier ? `${prefix}.${tokenName}` : `${prefix}['${tokenName}']`;
+}

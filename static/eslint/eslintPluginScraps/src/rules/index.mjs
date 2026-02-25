@@ -1,9 +1,11 @@
 import {noCoreImport} from './no-core-import.mjs';
 import {noTokenImport} from './no-token-import.mjs';
+import {preferTokens} from './prefer-tokens.mjs';
 import {useSemanticToken} from './use-semantic-token.mjs';
 
 export const rules = {
   'no-core-import': noCoreImport,
   'no-token-import': noTokenImport,
+  'prefer-tokens': preferTokens,
   'use-semantic-token': useSemanticToken,
 };
