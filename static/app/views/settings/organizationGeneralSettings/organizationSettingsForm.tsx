@@ -154,7 +154,6 @@ function OrganizationMembershipSettingsBase({
     mutationFn: (data: Partial<MembershipSchema>) =>
       fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
     onSuccess: updated => onSave(organization, updated),
-    onError: () => addErrorMessage(t('Unable to save change')),
   });
 
   return (
