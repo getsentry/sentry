@@ -91,6 +91,8 @@ export function OnboardingCopyMarkdownButton({
 }
 
 const DEFAULT_FEATURE_FLAG = 'onboarding-copy-setup-instructions';
+export const PROJECT_CREATION_FEATURE_FLAG =
+  'onboarding-copy-setup-instructions-project-creation';
 
 /**
  * Returns whether the copy setup instructions button should be shown.
