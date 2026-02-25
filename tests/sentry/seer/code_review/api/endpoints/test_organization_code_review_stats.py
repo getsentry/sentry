@@ -69,7 +69,7 @@ class OrganizationCodeReviewStatsTest(APITestCase):
 
         with self.feature("organizations:pr-review-dashboard"):
             url = reverse(self.endpoint, args=[self.organization.slug])
-            response = self.client.get(url)
+            response = self.client.get(url, {"topAuthorsLimit": "3"})
 
         assert response.status_code == 200
         stats = response.data["stats"]
@@ -90,7 +90,7 @@ class OrganizationCodeReviewStatsTest(APITestCase):
 
         with self.feature("organizations:pr-review-dashboard"):
             url = reverse(self.endpoint, args=[self.organization.slug])
-            response = self.client.get(url)
+            response = self.client.get(url, {"topAuthorsLimit": "3"})
 
         assert response.status_code == 200
         assert len(response.data["timeSeries"]) >= 1
@@ -105,7 +105,7 @@ class OrganizationCodeReviewStatsTest(APITestCase):
 
         with self.feature("organizations:pr-review-dashboard"):
             url = reverse(self.endpoint, args=[self.organization.slug])
-            response = self.client.get(url)
+            response = self.client.get(url, {"topAuthorsLimit": "3"})
 
         assert response.status_code == 200
         repos = response.data["repositories"]
@@ -122,7 +122,9 @@ class OrganizationCodeReviewStatsTest(APITestCase):
 
         with self.feature("organizations:pr-review-dashboard"):
             url = reverse(self.endpoint, args=[self.organization.slug])
-            response = self.client.get(url, {"repositoryId": str(self.repo.id)})
+            response = self.client.get(
+                url, {"repositoryId": str(self.repo.id), "topAuthorsLimit": "3"}
+            )
 
         # Stats are filtered but repository list shows all repos
         assert response.data["stats"]["totalPrs"] == 1
@@ -131,7 +133,7 @@ class OrganizationCodeReviewStatsTest(APITestCase):
     def test_empty_stats(self) -> None:
         with self.feature("organizations:pr-review-dashboard"):
             url = reverse(self.endpoint, args=[self.organization.slug])
-            response = self.client.get(url)
+            response = self.client.get(url, {"topAuthorsLimit": "3"})
 
         assert response.status_code == 200
         assert response.data["repositories"] == []
@@ -157,7 +159,7 @@ class OrganizationCodeReviewStatsTest(APITestCase):
 
         with self.feature("organizations:pr-review-dashboard"):
             url = reverse(self.endpoint, args=[self.organization.slug])
-            response = self.client.get(url)
+            response = self.client.get(url, {"topAuthorsLimit": "3"})
 
         assert response.status_code == 200
         assert response.data["stats"]["totalPrs"] == 0
@@ -179,7 +181,9 @@ class OrganizationCodeReviewStatsTest(APITestCase):
 
         with self.feature("organizations:pr-review-dashboard"):
             url = reverse(self.endpoint, args=[self.organization.slug])
-            response = self.client.get(url, {"repositoryId": str(self.repo.id)})
+            response = self.client.get(
+                url, {"repositoryId": str(self.repo.id), "topAuthorsLimit": "3"}
+            )
 
         assert response.status_code == 200
         assert response.data["stats"]["totalPrs"] == 1

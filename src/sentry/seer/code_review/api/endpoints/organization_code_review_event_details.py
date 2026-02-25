@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db.models import Avg, Count, F, Q, Sum
+from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -29,8 +30,11 @@ class OrganizationCodeReviewPRDetailsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:pr-review-dashboard", organization, actor=request.user):
             return Response(status=404)
 
-        repo_id_int = int(repo_id)
-        pr_number_int = int(pr_number)
+        try:
+            repo_id_int = int(repo_id)
+            pr_number_int = int(pr_number)
+        except ValueError:
+            raise ParseError("repo_id and pr_number must be integers")
 
         events = CodeReviewEvent.objects.filter(
             organization_id=organization.id,
@@ -39,7 +43,7 @@ class OrganizationCodeReviewPRDetailsEndpoint(OrganizationEndpoint):
         ).order_by("-trigger_at")
 
         if not events.exists():
-            return Response(status=404)
+            raise NotFound()
 
         latest_event = events[0]
 

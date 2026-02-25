@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.db.models import CharField, Count, Min, Q, Sum, Value
 from django.db.models.functions import Cast, Coalesce, Concat, TruncDay, TruncHour
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -91,9 +92,18 @@ class OrganizationCodeReviewStatsEndpoint(OrganizationEndpoint):
             )
             .order_by("-pr_count")
         )
+        top_authors_limit_str = request.GET.get("topAuthorsLimit")
+        if not top_authors_limit_str:
+            raise ParseError("topAuthorsLimit is required")
+        try:
+            top_authors_limit = int(top_authors_limit_str)
+        except ValueError:
+            raise ParseError("topAuthorsLimit must be an integer")
+
         total_authors = author_prs.count()
         top_authors = [
-            {"author": entry["pr_author"], "prCount": entry["pr_count"]} for entry in author_prs[:3]
+            {"author": entry["pr_author"], "prCount": entry["pr_count"]}
+            for entry in author_prs[:top_authors_limit]
         ]
 
         interval = request.GET.get("interval", "1d")
