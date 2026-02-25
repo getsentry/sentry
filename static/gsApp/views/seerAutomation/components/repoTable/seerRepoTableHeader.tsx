@@ -60,12 +60,14 @@ export default function SeerRepoTableHeader({
     countSelected,
     isAllSelected,
     isAnySelected,
-    queryKey,
+    queryKeyRef,
     selectAll,
     selectedIds,
     knownIds,
   } = listItemCheckboxState;
-  const queryOptions = queryKey ? parseQueryKey(queryKey).options : undefined;
+  const queryOptions = queryKeyRef.current
+    ? parseQueryKey(queryKeyRef.current).options
+    : undefined;
   const queryString = queryOptions?.query?.query;
 
   const handleBulkCodeReview = (enabledCodeReview: boolean) => {
@@ -100,37 +102,39 @@ export default function SeerRepoTableHeader({
 
   return (
     <Fragment>
-      <TableHeader gridColumns={gridColumns}>
-        <SimpleTable.HeaderCell>
-          <SelectAllCheckbox
-            disabled={isPending || isFetchingNextPage}
-            knownIds={knownIds}
-            listItemCheckboxState={listItemCheckboxState}
-          />
-        </SimpleTable.HeaderCell>
-        {COLUMNS.map(({title, key, sortKey}) => (
-          <SimpleTable.HeaderCell
-            key={key}
-            handleSortClick={
-              sortKey
-                ? () =>
-                    onSortClick({
-                      field: sortKey,
-                      kind:
-                        sortKey === sort.field
-                          ? sort.kind === 'asc'
-                            ? 'desc'
-                            : 'asc'
-                          : 'desc',
-                    })
-                : undefined
-            }
-            sort={sort?.field === sortKey ? sort.kind : undefined}
-          >
-            {title}
+      {isAnySelected ? null : (
+        <TableHeader gridColumns={gridColumns}>
+          <SimpleTable.HeaderCell>
+            <SelectAllCheckbox
+              disabled={isPending || isFetchingNextPage}
+              knownIds={knownIds}
+              listItemCheckboxState={listItemCheckboxState}
+            />
           </SimpleTable.HeaderCell>
-        ))}
-      </TableHeader>
+          {COLUMNS.map(({title, key, sortKey}) => (
+            <SimpleTable.HeaderCell
+              key={key}
+              handleSortClick={
+                sortKey
+                  ? () =>
+                      onSortClick({
+                        field: sortKey,
+                        kind:
+                          sortKey === sort.field
+                            ? sort.kind === 'asc'
+                              ? 'desc'
+                              : 'asc'
+                            : 'desc',
+                      })
+                  : undefined
+              }
+              sort={sort?.field === sortKey ? sort.kind : undefined}
+            >
+              {title}
+            </SimpleTable.HeaderCell>
+          ))}
+        </TableHeader>
+      )}
 
       {isAnySelected ? (
         <TableHeader gridColumns={gridColumns}>

@@ -18,7 +18,10 @@ import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
-import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  ListItemCheckboxProvider,
+  useListItemCheckboxContext,
+} from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
 import parseAsSort from 'sentry/utils/url/parseAsSort';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,6 +32,7 @@ import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/on
 import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 const GRID_COLUMNS = '40px 1fr 76px 150px';
+const SELECTED_ROW_HEIGHT = 44;
 const BOTTOM_PADDING = 24; // px gap between table bottom and viewport edge
 const estimateSize = () => 60;
 
@@ -36,18 +40,6 @@ export default function SeerRepoTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const scrollBodyRef = useRef<HTMLDivElement>(null);
-  const [scrollBodyHeight, setScrollBodyHeight] = useState<string | undefined>(undefined);
-
-  const setScrollBodyRef = useCallback((el: HTMLDivElement | null) => {
-    scrollBodyRef.current = el;
-    if (el) {
-      const measure = () => {
-        const top = el.getBoundingClientRect().top;
-        setScrollBodyHeight(`calc(100vh - ${Math.round(top + BOTTOM_PADDING)}px)`);
-      };
-      requestAnimationFrame(measure);
-    }
-  }, []);
 
   const [searchTerm, setSearchTerm] = useQueryState(
     'query',
@@ -205,27 +197,14 @@ export default function SeerRepoTable() {
               </Text>
             </Flex>
           ) : (
-            <ScrollableBody
-              ref={setScrollBodyRef}
-              style={{minHeight: 0, maxHeight: scrollBodyHeight}}
-            >
-              <VirtualizedRepoTable
-                repositories={repositories}
-                scrollBodyRef={scrollBodyRef}
-                mutateRepositorySettings={mutateRepositorySettings}
-                mutationData={mutationData}
-              />
-              {hasNextPage || isFetchingNextPage ? (
-                <StickyLoadingRow
-                  align="center"
-                  justify="center"
-                  padding="md"
-                  borderTop="muted"
-                >
-                  <LoadingIndicator mini />
-                </StickyLoadingRow>
-              ) : null}
-            </ScrollableBody>
+            <VirtualizedRepoTable
+              hasNextPage={hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              mutateRepositorySettings={mutateRepositorySettings}
+              mutationData={mutationData}
+              repositories={repositories}
+              scrollBodyRef={scrollBodyRef}
+            />
           )}
         </TablePanel>
       </Stack>
@@ -234,11 +213,15 @@ export default function SeerRepoTable() {
 }
 
 function VirtualizedRepoTable({
-  repositories,
-  scrollBodyRef,
+  hasNextPage,
+  isFetchingNextPage,
   mutateRepositorySettings,
   mutationData,
+  repositories,
+  scrollBodyRef,
 }: {
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   mutationData: Record<string, RepositoryWithSettings>;
   repositories: RepositoryWithSettings[];
@@ -249,25 +232,62 @@ function VirtualizedRepoTable({
     getScrollElement: () => scrollBodyRef.current,
     estimateSize,
   });
+
+  const [scrollBodyHeight, setScrollBodyHeight] = useState<number | undefined>(undefined);
+
+  const setScrollBodyRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      scrollBodyRef.current = el;
+      if (el) {
+        const measure = () => {
+          const top = el.getBoundingClientRect().top;
+          setScrollBodyHeight(Math.round(top + BOTTOM_PADDING));
+        };
+        requestAnimationFrame(measure);
+      }
+    },
+    [scrollBodyRef]
+  );
+
+  const {isAnySelected} = useListItemCheckboxContext();
+
+  const maxHeight = scrollBodyHeight
+    ? isAnySelected
+      ? SELECTED_ROW_HEIGHT + scrollBodyHeight
+      : scrollBodyHeight
+    : undefined;
   return (
-    <VirtualInner style={{height: virtualizer.getTotalSize()}}>
-      {virtualizer.getVirtualItems().map(virtualItem => {
-        const repository = repositories[virtualItem.index];
-        if (!repository) {
-          return null;
-        }
-        return (
-          <SeerRepoTableRow
-            key={repository.id}
-            gridColumns={GRID_COLUMNS}
-            style={{transform: `translateY(${virtualItem.start}px)`}}
-            mutateRepositorySettings={mutateRepositorySettings}
-            mutationData={mutationData}
-            repository={repository}
-          />
-        );
-      })}
-    </VirtualInner>
+    <ScrollableBody
+      ref={setScrollBodyRef}
+      style={{
+        minHeight: 0,
+        maxHeight: maxHeight ? `calc(100vh - ${Math.round(maxHeight)}px)` : undefined,
+      }}
+    >
+      <VirtualInner style={{height: virtualizer.getTotalSize()}}>
+        {virtualizer.getVirtualItems().map(virtualItem => {
+          const repository = repositories[virtualItem.index];
+          if (!repository) {
+            return null;
+          }
+          return (
+            <SeerRepoTableRow
+              key={repository.id}
+              gridColumns={GRID_COLUMNS}
+              style={{transform: `translateY(${virtualItem.start}px)`}}
+              mutateRepositorySettings={mutateRepositorySettings}
+              mutationData={mutationData}
+              repository={repository}
+            />
+          );
+        })}
+      </VirtualInner>
+      {hasNextPage || isFetchingNextPage ? (
+        <StickyLoadingRow align="center" justify="center" padding="md" borderTop="muted">
+          <LoadingIndicator mini />
+        </StickyLoadingRow>
+      ) : null}
+    </ScrollableBody>
   );
 }
 
