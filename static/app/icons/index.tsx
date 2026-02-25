@@ -77,6 +77,7 @@ export {IconMarkdown} from './iconMarkdown';
 export {IconMegaphone} from './iconMegaphone';
 export {IconMeh} from './iconMeh';
 export {IconMenu} from './iconMenu';
+export {IconMerge} from './iconMerge';
 export {IconMobile} from './iconMobile';
 export {IconMoon} from './iconMoon';
 export {IconMute} from './iconMute';
