@@ -12,7 +12,9 @@ import PluginList from 'sentry/components/pluginList';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMail} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Plugin} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
@@ -47,6 +49,20 @@ const formatMinutes = (value: number | '') => {
   return tn('%s minute', '%s minutes', minutes);
 };
 
+function getProjectMutationOptions(organizationSlug: string, projectSlug: string) {
+  return {
+    mutationFn: (data: Partial<AlertsSchema>) =>
+      fetchMutation<Project>({
+        url: `/projects/${organizationSlug}/${projectSlug}/`,
+        method: 'PUT',
+        data,
+      }),
+    onSuccess: (updatedProject: Project) => {
+      ProjectsStore.onUpdateSuccess(updatedProject);
+    },
+  };
+}
+
 export default function ProjectAlertSettings() {
   const organization = useOrganization();
   const {canEditRule, project} = useProjectAlertsOutlet();
@@ -65,14 +81,10 @@ export default function ProjectAlertSettings() {
     return <LoadingError onRetry={refetchPluginList} />;
   }
 
-  const projectMutationOptions = {
-    mutationFn: (data: Partial<AlertsSchema>) =>
-      fetchMutation({
-        url: `/projects/${organization.slug}/${project.slug}/`,
-        method: 'PUT',
-        data,
-      }),
-  };
+  const projectMutationOptions = getProjectMutationOptions(
+    organization.slug,
+    project.slug
+  );
 
   return (
     <Fragment>
