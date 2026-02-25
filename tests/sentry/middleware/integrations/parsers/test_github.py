@@ -1,5 +1,3 @@
-from unittest import mock
-
 import pytest
 import responses
 from django.db import router, transaction
@@ -400,10 +398,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
             headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
         )
 
-        with mock.patch(
-            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited",
-            return_value=True,
-        ):
+        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
             parser = GithubRequestParser(request=request, response_handler=self.get_response)
             response = parser.get_response()
 
