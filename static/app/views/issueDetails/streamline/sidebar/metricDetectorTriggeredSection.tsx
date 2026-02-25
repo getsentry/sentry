@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -29,7 +29,15 @@ import type {
 import {defined} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {
+  buildDetectorZoomQuery,
+  computeZoomRangeMs,
+} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
 import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
@@ -127,6 +135,83 @@ function getFormattedEvaluatedValue({
 }): string {
   const unitSuffix = getMetricDetectorSuffix(detectionType, aggregate);
   return `${value.toLocaleString()}${unitSuffix}`;
+}
+
+/**
+ * Once the open period loads, this hook will set the time range to visibly center the open period.
+ * If the URL already has a time period, this hook will do nothing
+ */
+function useZoomTimeRangeToOpenPeriod({
+  eventId,
+  intervalSeconds,
+  openPeriodStart,
+  openPeriodEnd,
+}: {
+  eventId: string;
+  intervalSeconds: number | undefined;
+  openPeriodEnd: string | null;
+  openPeriodStart: string | null;
+}) {
+  const organization = useOrganization();
+  const params = useParams<{groupId: string; eventId?: string}>();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const zoomTimeRangeToOpenPeriod = useEffectEvent(() => {
+    const hasTimePeriod =
+      defined(location.query.statsPeriod) ||
+      defined(location.query.start) ||
+      defined(location.query.end);
+
+    if (hasTimePeriod) {
+      return;
+    }
+
+    if (openPeriodStart) {
+      const zoomRange = computeZoomRangeMs({
+        startMs: new Date(openPeriodStart).getTime(),
+        endMs: openPeriodEnd ? new Date(openPeriodEnd).getTime() : Date.now(),
+        intervalSeconds,
+      });
+
+      const query = buildDetectorZoomQuery(location.query, zoomRange);
+
+      navigate(
+        {
+          pathname: normalizeUrl(
+            `/organizations/${organization.slug}/issues/${params.groupId}/events/${eventId}/`
+          ),
+          query,
+        },
+        {replace: true}
+      );
+    }
+  });
+
+  useEffect(() => {
+    zoomTimeRangeToOpenPeriod();
+  }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
+}
+
+function ZoomToOpenPeriod({
+  eventId,
+  intervalSeconds,
+  openPeriodStart,
+  openPeriodEnd,
+}: {
+  eventId: string;
+  intervalSeconds: number | undefined;
+  openPeriodEnd: string;
+  openPeriodStart: string;
+}) {
+  useZoomTimeRangeToOpenPeriod({
+    eventId,
+    openPeriodStart,
+    openPeriodEnd,
+    intervalSeconds,
+  });
+
+  return null;
 }
 
 /**
@@ -319,6 +404,12 @@ function TriggeredConditionDetails({
 
   return (
     <Fragment>
+      <ZoomToOpenPeriod
+        eventId={eventId}
+        intervalSeconds={snubaQuery?.timeWindow}
+        openPeriodStart={startDate}
+        openPeriodEnd={endDate}
+      />
       <InterimSection
         title="Triggered Condition"
         type="triggered_condition"

@@ -1,5 +1,4 @@
 import ResolveActions from 'sentry/components/actions/resolve';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useProjectReleaseVersionIsSemver from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 
@@ -23,7 +22,6 @@ function ResolveActionsContainer({
   confirm,
   label,
 }: Props) {
-  const organization = useOrganization();
   const {initiallyLoaded, projects, fetchError} = useProjects({
     slugs: selectedProjectSlug ? [selectedProjectSlug] : [],
   });
@@ -43,8 +41,7 @@ function ResolveActionsContainer({
     enabled: Boolean(project),
   });
 
-  const hasSemverReleaseFeature =
-    organization.features?.includes('resolve-in-semver-release') && projHasSemverRelease;
+  const hasSemverReleaseFeature = projHasSemverRelease;
 
   // resolve requires a single project to be active in an org context
   // projectId is null when 0 or >1 projects are selected.

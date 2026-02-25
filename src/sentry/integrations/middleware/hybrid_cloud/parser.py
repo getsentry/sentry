@@ -209,15 +209,34 @@ class BaseRequestParser(ABC):
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
         if not use_buckets:
+            metrics.incr(
+                "hybridcloud.webhookpayload.mailbox_routing",
+                tags={"provider": self.provider, "bucketed": "false"},
+            )
             return str(integration.id)
 
+        return self._build_bucketed_identifier(integration, data)
+
+    def _build_bucketed_identifier(
+        self, integration: RpcIntegration | Integration, data: dict[str, Any]
+    ) -> str:
+        """Compute a sub-mailbox identifier from mailbox_bucket_id, falling back to
+        the integration-level mailbox when no bucket ID is available."""
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
+            metrics.incr(
+                "hybridcloud.webhookpayload.mailbox_routing",
+                tags={"provider": self.provider, "bucketed": "false"},
+            )
             return str(integration.id)
 
         # Split high volume integrations into 100 buckets.
         # 100 is arbitrary but we can't leave it unbounded.
         bucket_number = mailbox_bucket_id % 100
+        metrics.incr(
+            "hybridcloud.webhookpayload.mailbox_routing",
+            tags={"provider": self.provider, "bucketed": "true"},
+        )
 
         return f"{integration.id}:{bucket_number}"
 

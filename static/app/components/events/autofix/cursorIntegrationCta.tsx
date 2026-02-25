@@ -8,13 +8,14 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
+import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -30,8 +31,9 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
     useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences, isPending: isUpdatingPreferences} =
     useUpdateProjectSeerPreferences(project);
-  const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} =
-    useCodingAgentIntegrations();
+  const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
   const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
 
   const cursorIntegration = codingAgentIntegrations?.integrations.find(

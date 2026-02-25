@@ -1,5 +1,9 @@
 import {defined} from 'sentry/utils';
-import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {
+  generateFieldAsString,
+  getEquation,
+  isEquation,
+} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
@@ -14,6 +18,19 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+/**
+ * Resolves the selected aggregate index, defaulting to the last aggregate.
+ */
+export function getSelectedAggregateIndex(
+  selectedAggregate: number | undefined,
+  aggregateCount: number
+): number {
+  if (selectedAggregate === undefined) {
+    return aggregateCount > 0 ? aggregateCount - 1 : 0;
+  }
+  return Math.min(selectedAggregate, Math.max(0, aggregateCount - 1));
+}
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const datasetConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
@@ -44,7 +61,10 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
         return axis.field;
       }) ?? [];
   } else if (state.yAxis?.length) {
-    aggregates = state.yAxis?.map(generateFieldAsString) ?? [];
+    aggregates =
+      state.yAxis
+        ?.map(generateFieldAsString)
+        .filter(f => !isEquation(f) || getEquation(f).trim() !== '') ?? [];
   } else {
     aggregates =
       state.fields
@@ -54,7 +74,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
           )
         )
         .map(generateFieldAsString)
-        .filter(Boolean) ?? [];
+        .filter(f => f && (!isEquation(f) || getEquation(f).trim() !== '')) ?? [];
   }
 
   const columns = state.fields
@@ -86,8 +106,24 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   if (isReleaseTable) {
     defaultSort = '';
   } else if (isCategoricalBar) {
-    // Categorical bars should sort by aggregate, not by category column
-    defaultSort = aggregates?.[0] ? `-${aggregates[0]}` : defaultQuery.orderby;
+    // Categorical bars should sort by the selected aggregate (last by default, matching Big Number).
+    // For equations, use the alias format (equation[N]) that the API expects, not the raw equation|... string
+    const selectedIndex = getSelectedAggregateIndex(
+      state.selectedAggregate,
+      aggregates.length
+    );
+    const selectedAggregate = aggregates[selectedIndex] ?? aggregates[0];
+    if (selectedAggregate) {
+      if (isEquation(selectedAggregate)) {
+        const equationIndex =
+          aggregates.slice(0, selectedIndex + 1).filter(isEquation).length - 1;
+        // Defensive: equationIndex should always be >= 0 since selectedAggregate
+        // is an equation, but Math.max guards against an empty filter result.
+        defaultSort = `-equation[${Math.max(0, equationIndex)}]`;
+      } else {
+        defaultSort = `-${selectedAggregate}`;
+      }
+    }
   }
   const sort =
     defined(state.sort) && state.sort.length > 0

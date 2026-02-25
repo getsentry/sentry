@@ -1,11 +1,14 @@
+import logging
 import random
 from collections.abc import Callable
 from typing import Any, TypeVar
 
 from sentry import options
 from sentry.utils import metrics
+from sentry.utils.safe import trim
 
 TData = TypeVar("TData")
+logger = logging.getLogger(__name__)
 
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
@@ -94,6 +97,14 @@ class SafeRolloutComparator:
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_experimental_sample_rate"
 
+    @classmethod
+    def _mismatch_log_callsite_allowlist_option_name(cls) -> str:
+        """
+        Controls which callsites emit structured mismatch logs. Add a callsite
+        string to enable logging for it, or ``"*"`` to enable for all callsites.
+        """
+        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.mismatch_log_callsite_allowlist"
+
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         from sentry.options import register
@@ -121,6 +132,65 @@ class SafeRolloutComparator:
             type=Float,
             default=1.0,
             flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+        register(
+            cls._mismatch_log_callsite_allowlist_option_name(),
+            type=Sequence,
+            default=[],
+            flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+
+    @classmethod
+    def should_log_mismatch(cls, callsite: str) -> bool:
+        allowlist = set(options.get(cls._mismatch_log_callsite_allowlist_option_name()))
+        return "*" in allowlist or callsite in allowlist
+
+    @classmethod
+    def _default_serialize_for_log(cls, value: Any) -> Any:
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        if isinstance(value, dict):
+            return {str(k): cls._default_serialize_for_log(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [cls._default_serialize_for_log(v) for v in value]
+        if isinstance(value, set):
+            return [cls._default_serialize_for_log(v) for v in sorted(value, key=repr)]
+        return repr(value)
+
+    @classmethod
+    def _maybe_log_mismatch(
+        cls,
+        *,
+        callsite: str,
+        use_experimental: bool,
+        exact_match: bool,
+        reasonable_match: bool | None,
+        is_experimental_data_a_null_result: bool | None,
+        control_data: TData,
+        experimental_data: TData,
+        debug_context: dict[str, Any] | None,
+        data_serializer: Callable[[TData], Any] | None,
+    ) -> None:
+        if not cls.should_log_mismatch(callsite):
+            return
+
+        serialize = data_serializer or cls._default_serialize_for_log
+
+        logger.info(
+            "saferollout.mismatch",
+            extra=trim(
+                {
+                    "rollout_name": cls.ROLLOUT_NAME,
+                    "callsite": callsite,
+                    "source_of_truth": ("experimental" if use_experimental else "control"),
+                    "exact_match": exact_match,
+                    "reasonable_match": reasonable_match,
+                    "is_null_result": is_experimental_data_a_null_result,
+                    "debug_context": cls._default_serialize_for_log(debug_context),
+                    "control_data_raw": serialize(control_data),
+                    "experimental_data_raw": serialize(experimental_data),
+                }
+            ),
         )
 
     @classmethod
@@ -172,6 +242,8 @@ class SafeRolloutComparator:
         callsite: str,
         is_experimental_data_a_null_result: bool | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
+        debug_context: dict[str, Any] | None = None,
+        data_serializer: Callable[[TData], Any] | None = None,
     ) -> TData:
         """
         This function does two things.
@@ -185,19 +257,24 @@ class SafeRolloutComparator:
             same as passed to should_check_experiment.
         * is_null_result: Whether the result is a "null result" (e.g. empty array). This
             helps to determine whether a "match" is significant.
-        * reasonable_match_comparator: None, or a function taking control_data & experimental_data and
-            returning True if the read is "reasonable" and False otherwise. An example might
-            be checking whether the experimental data is a subset of the control data (useful
-            in case of migrating something where you don't yet have full retention in the
-            experimental branch).
+        * reasonable_match_comparator: Optional predicate for semantic correctness
+            (e.g. subset semantics with retention gaps), returning True if the read is
+            "reasonable" and False otherwise. An example might be checking whether the
+            experimental data is a subset of the control data (useful in case of migrating
+            something where you don't yet have full retention in the experimental branch).
+        * debug_context: Optional structured metadata included on mismatch logs.
+        * data_serializer: Optional serializer for control/experimental payloads in
+            logs. Defaults to `_default_serialize_for_log`.
         """
         use_experimental = cls.should_use_experiment(callsite)
+        exact_match = control_data == experimental_data
+        reasonable_match: bool | None = None
 
-        # Part 1: Compare & log
+        # Part 1: Compare results, log debug info, and emit metrics
         tags: dict[str, str] = {
             "rollout_name": cls.ROLLOUT_NAME,
             "callsite": callsite,
-            "exact_match": str(control_data == experimental_data),
+            "exact_match": str(exact_match),
             "source_of_truth": ("experimental" if use_experimental else "control"),
         }
 
@@ -205,16 +282,47 @@ class SafeRolloutComparator:
             tags["is_null_result"] = str(is_experimental_data_a_null_result)
 
         if reasonable_match_comparator is not None:
-            tags["reasonable_match"] = str(
-                reasonable_match_comparator(control_data, experimental_data)
-            )
+            try:
+                reasonable_match = reasonable_match_comparator(control_data, experimental_data)
+            except Exception:
+                logger.exception(
+                    "saferollout.comparator_error",
+                    extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
+                )
+                reasonable_match = None
+            else:
+                tags["reasonable_match"] = str(reasonable_match)
+
+        # Log mismatch only for true mismatches: when a reasonable comparator
+        # exists, only log if it returned False; otherwise log on exact mismatch.
+        has_mismatch = reasonable_match is False or (
+            reasonable_match is None and exact_match is False
+        )
+        if has_mismatch:
+            try:
+                cls._maybe_log_mismatch(
+                    callsite=callsite,
+                    use_experimental=use_experimental,
+                    exact_match=exact_match,
+                    reasonable_match=reasonable_match,
+                    is_experimental_data_a_null_result=is_experimental_data_a_null_result,
+                    control_data=control_data,
+                    experimental_data=experimental_data,
+                    debug_context=debug_context,
+                    data_serializer=data_serializer,
+                )
+            except Exception:
+                logger.exception(
+                    "saferollout.logging_error",
+                    extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
+                )
 
         metrics.incr(
             "SafeRolloutComparator.check_and_choose",
             tags=tags,
         )
 
-        # Part 2: determine what to return
+        # Part 2: determine which data to return
         return experimental_data if use_experimental else control_data
 
     @classmethod
@@ -225,6 +333,8 @@ class SafeRolloutComparator:
         callsite: str,
         null_result_determiner: Callable[[TData], bool] | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
+        debug_context: dict[str, Any] | None = None,
+        data_serializer: Callable[[TData], Any] | None = None,
     ) -> TData:
         """
         This method is essentially the same as check_and_choose, but captures timing
@@ -262,9 +372,11 @@ class SafeRolloutComparator:
             is_experimental_data_a_null_result = null_result_determiner(experimental_data)
 
         return cls.check_and_choose(
-            control_data,
-            experimental_data,
-            callsite,
-            is_experimental_data_a_null_result,
-            reasonable_match_comparator,
+            control_data=control_data,
+            experimental_data=experimental_data,
+            callsite=callsite,
+            is_experimental_data_a_null_result=is_experimental_data_a_null_result,
+            reasonable_match_comparator=reasonable_match_comparator,
+            debug_context=debug_context,
+            data_serializer=data_serializer,
         )

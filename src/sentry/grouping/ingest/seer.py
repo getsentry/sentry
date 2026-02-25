@@ -159,7 +159,8 @@ def _event_content_is_seer_eligible(event: Event) -> bool:
 
 
 def _stacktrace_exceeds_limits(event: Event, variants: dict[str, BaseVariant]) -> bool:
-    if stacktrace_exceeds_limits(event, variants, ReferrerOptions.INGEST):
+    model_version = get_grouping_model_version(event.project)
+    if stacktrace_exceeds_limits(event, variants, ReferrerOptions.INGEST, model_version):
         record_did_call_seer_metric(event, call_made=False, blocker="stacktrace-too-long")
         return True
 

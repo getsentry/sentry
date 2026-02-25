@@ -1,6 +1,8 @@
+import pytest
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from rest_framework import serializers
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
@@ -28,6 +30,8 @@ from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import WorkflowDataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.data_condition import Condition
+
+ValidationError = serializers.ValidationError
 
 
 @freeze_time()
@@ -627,4 +631,84 @@ class WorkflowRuleSerializerTest(TestCase):
             include_legacy_rule_id=False,
             include_workflow_id=False,
         )
+        self.assert_equal_serializers(rule)
+
+    def test_sentry_app_render_label(self) -> None:
+        schema = {"elements": [self.create_alert_rule_action_schema()]}
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=schema,
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+
+        action_data = {
+            "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+            "sentryAppInstallationUuid": installation.uuid,
+        }
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        self.assert_equal_serializers(rule)
+
+    def test_sentry_app_render_label_no_alert_rule_action_schema(self) -> None:
+        schema = {"elements": [self.create_issue_link_schema()]}
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=schema,
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+
+        action_data = {
+            "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+            "sentryAppInstallationUuid": installation.uuid,
+        }
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        with pytest.raises(ValidationError):
+            self.assert_equal_serializers(rule)
+
+    def test_sentry_app_render_label_no_installation(self) -> None:
+        schema = {"elements": [self.create_alert_rule_action_schema()]}
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=schema,
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+
+        action_data = {
+            "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+            "sentryAppInstallationUuid": installation.uuid,
+        }
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            installation.delete()
+
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            condition_data=self.conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        # actions part of response are both []
         self.assert_equal_serializers(rule)

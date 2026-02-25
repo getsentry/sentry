@@ -1180,14 +1180,7 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
 
 
 def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
-    # Feature flag check for expanded sentry apps webhooks
-    has_expanded_sentry_apps_webhooks = features.has(
-        "organizations:expanded-sentry-apps-webhooks", job["event"].project.organization
-    )
     group_category = job["event"].group.issue_category
-
-    if group_category != GroupCategory.ERROR and not has_expanded_sentry_apps_webhooks:
-        return False
 
     supported_group_categories = [
         GroupCategory(category)
