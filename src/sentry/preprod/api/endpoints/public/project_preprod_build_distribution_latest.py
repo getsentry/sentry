@@ -89,13 +89,6 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 type=int,
                 location="query",
             ),
-            OpenApiParameter(
-                name="cursor",
-                description="Pagination cursor.",
-                required=False,
-                type=str,
-                location="query",
-            ),
         ],
         request=None,
         responses={

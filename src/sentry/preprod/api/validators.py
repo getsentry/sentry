@@ -111,7 +111,6 @@ class PreprodPublicBuildsValidator(serializers.Serializer[Any]):
         required=False,
         help_text="Number of results per page",
     )
-    cursor = serializers.CharField(required=False, help_text="Cursor for pagination")
 
     def validate_platform(self, value: str | None) -> str | None:
         if value:
