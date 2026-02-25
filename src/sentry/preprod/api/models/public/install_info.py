@@ -18,8 +18,8 @@ class InstallInfoResponseDict(TypedDict):
     isCodeSignatureValid: bool | None
     profileName: str | None
     codesigningType: str | None
-    installableAppErrorCode: str | None
-    installableAppErrorMessage: str | None
+    errorCode: str | None
+    errorMessage: str | None
 
 
 def _platform_from_artifact_type(artifact_type: int | None) -> str | None:
@@ -58,6 +58,6 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
         "isCodeSignatureValid": info.is_code_signature_valid,
         "profileName": info.profile_name,
         "codesigningType": info.codesigning_type,
-        "installableAppErrorCode": error_code,
-        "installableAppErrorMessage": error_message,
+        "errorCode": error_code,
+        "errorMessage": error_message,
     }
