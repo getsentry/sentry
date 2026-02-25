@@ -20,7 +20,7 @@ from sentry.api.helpers.events import get_direct_hit_response, run_group_events_
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import SimpleEventSerializerResponse
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -104,7 +104,8 @@ class GroupEventsEndpoint(GroupEndpoint):
             raise ParseError(detail=str(e))
 
         try:
-            return self._get_events_snuba(request, group, environments, query, start, end)
+            with handle_query_errors():
+                return self._get_events_snuba(request, group, environments, query, start, end)
         except GroupEventsError as exc:
             raise ParseError(detail=str(exc))
 

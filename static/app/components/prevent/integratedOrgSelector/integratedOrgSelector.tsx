@@ -1,19 +1,17 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
 
 import Access from 'sentry/components/acl/access';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
-import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
+import {IconAdd, IconBuilding} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -62,19 +60,16 @@ function OrgFooterMessage() {
     <Flex gap="sm" direction="column" align="start">
       <Grid columns="max-content 1fr" gap="sm">
         {props => (
-          <Text variant="muted" size="sm" {...props}>
-            <IconInfo size="sm" />
-            <div>
-              {tct(
-                'Installing the [githubAppLink:GitHub Application] will require admin approval.',
-                {
-                  githubAppLink: (
-                    <ExternalLink openInNewTab href="https://github.com/apps/sentry" />
-                  ),
-                }
-              )}
-            </div>
-          </Text>
+          <MenuComponents.Alert variant="info" {...props}>
+            {tct(
+              'Installing the [githubAppLink:GitHub Application] will require admin approval.',
+              {
+                githubAppLink: (
+                  <ExternalLink openInNewTab href="https://github.com/apps/sentry" />
+                ),
+              }
+            )}
+          </MenuComponents.Alert>
         )}
       </Grid>
       {isIntegrationInfoPending ? (
@@ -106,14 +101,13 @@ function OrgFooterMessage() {
           </Access>
         </IntegrationContext>
       ) : (
-        <LinkButton
+        <MenuComponents.CTALinkButton
           href="https://github.com/apps/sentry/installations/select_target"
-          size="xs"
           icon={<IconAdd />}
           external
         >
           {t('GitHub Organization')}
-        </LinkButton>
+        </MenuComponents.CTALinkButton>
       )}
     </Flex>
   );
@@ -175,6 +169,7 @@ export function IntegratedOrgSelector() {
         );
       }}
       menuWidth="280px"
+      // eslint-disable-next-line @sentry/scraps/restrict-jsx-slot-children
       menuFooter={<OrgFooterMessage />}
     />
   );

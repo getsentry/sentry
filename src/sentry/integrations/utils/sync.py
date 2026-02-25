@@ -40,7 +40,7 @@ def should_sync_assignee_inbound(
     organization: Organization | RpcOrganization, provider: str
 ) -> bool:
     if provider == "github":
-        return features.has("organizations:integrations-github-project-management", organization)
+        return True
     elif provider == "github_enterprise":
         return features.has(
             "organizations:integrations-github_enterprise-project-management", organization

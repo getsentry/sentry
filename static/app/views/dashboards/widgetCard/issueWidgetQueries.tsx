@@ -27,6 +27,7 @@ type Props = {
   onDataFetched?: (results: OnDataFetchedProps) => void;
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
+  widgetInterval?: string;
 };
 
 function IssueWidgetQueries({
@@ -38,6 +39,7 @@ function IssueWidgetQueries({
   onDataFetched,
   onDataFetchStart,
   selection,
+  widgetInterval,
 }: Props) {
   const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
 
@@ -66,6 +68,7 @@ function IssueWidgetQueries({
     selection,
     afterFetchTableData,
     skipDashboardFilterParens: true, // Issue widgets do not support parens in search
+    widgetInterval,
   });
 
   return getDynamicText({

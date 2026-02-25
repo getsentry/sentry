@@ -10,7 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import * as Storybook from 'sentry/stories';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import {fzf} from 'sentry/utils/search/fzf';
 
 interface APIReferenceProps {
   componentProps: TypeLoader.ComponentDocWithFilename | undefined;

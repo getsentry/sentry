@@ -6,9 +6,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import orjson
-import requests
 import sentry_sdk
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from rest_framework.response import Response
@@ -34,10 +32,11 @@ from sentry.seer.autofix.types import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    autofix_connection_pool,
     get_autofix_repos_from_project_code_mappings,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
@@ -467,16 +466,14 @@ def _call_autofix(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body,
     )
 
-    response.raise_for_status()
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
 
     return response.json().get("run_id")
 
@@ -726,15 +723,13 @@ def update_autofix(
     path = "/v1/automation/autofix/update"
     data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
     body = orjson.dumps(data)
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={"content-type": "application/json;charset=utf-8", **sign_with_seer_secret(body)},
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body,
     )
 
-    try:
-        response.raise_for_status()
-    except Exception:
+    if response.status >= 400:
         return Response({"detail": "Failed to update autofix run"}, status=500)
 
     try:

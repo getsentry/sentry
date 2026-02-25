@@ -10,18 +10,24 @@ export function createPlottableFromTimeSeries(
   timeSeries: TimeSeries,
   widget: Widget,
   alias?: string,
-  name?: string
+  name?: string,
+  color?: string
 ): Plottable | null {
   const shouldStack = widget.queries[0]?.columns.length! > 0;
 
   const {displayType, title} = widget;
   switch (displayType) {
     case DisplayType.LINE:
-      return new Line(timeSeries, {alias, name});
+      return new Line(timeSeries, {alias, name, color});
     case DisplayType.AREA:
-      return new Area(timeSeries, {alias, name});
+      return new Area(timeSeries, {alias, name, color});
     case DisplayType.BAR:
-      return new Bars(timeSeries, {stack: shouldStack ? title : undefined, alias, name});
+      return new Bars(timeSeries, {
+        stack: shouldStack ? title : undefined,
+        alias,
+        name,
+        color,
+      });
     default:
       return null;
   }
