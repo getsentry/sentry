@@ -148,21 +148,30 @@ def schedule_webhook_delivery() -> None:
         .values("id", "mailbox_name")
     )
 
+    # Materialize the queryset to avoid repeated query compilation during iteration
+    scheduled_mailboxes_list = list(scheduled_mailboxes[:BATCH_SIZE])
+
     metrics.distribution(
-        "hybridcloud.schedule_webhook_delivery.mailbox_count", scheduled_mailboxes.count()
+        "hybridcloud.schedule_webhook_delivery.mailbox_count", len(scheduled_mailboxes_list)
     )
 
-    for record in scheduled_mailboxes[:BATCH_SIZE]:
+    for record in scheduled_mailboxes_list:
         # Reschedule the records that we will attempt to deliver next.
         # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
-        mailbox_batch = (
-            WebhookPayloadReplica.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
+        # Fetch IDs efficiently using values_list instead of Subquery to avoid N+1 pattern
+        mailbox_ids = list(
+            WebhookPayload.objects.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
             .order_by("id")
-            .values("id")[:MAX_MAILBOX_DRAIN]
+            .values_list("id", flat=True)[:MAX_MAILBOX_DRAIN]
         )
-        updated_count = WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch)).update(
-            schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
-        )
+
+        if mailbox_ids:
+            updated_count = WebhookPayload.objects.filter(id__in=mailbox_ids).update(
+                schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
+            )
+        else:
+            updated_count = 0
+
         # If we have 1/5 or more in a mailbox we should process in parallel as we're likely behind.
         if updated_count >= int(MAX_MAILBOX_DRAIN / 5):
             drain_mailbox_parallel.delay(record["id"])
