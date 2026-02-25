@@ -887,6 +887,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
+    "sentry.preprod.snapshots.tasks",
     "sentry.preprod.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.profiles.task",

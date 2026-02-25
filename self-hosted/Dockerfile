@@ -20,6 +20,10 @@ RUN : \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+ARG ODIFF_VERSION=4.3.2
+ARG ODIFF_SHA256_X64=2c17e6bcf92a58e6668f19f17f4a27fa4b1d70840994f31bd837b55bb6b297d7
+ARG ODIFF_SHA256_ARM64=d65f748c463a6aa78fa7bcdd31acd797eaed5160867e7769a3b291cfea42c9a0
+
 WORKDIR /usr/src/sentry
 
 ENV PATH="/.venv/bin:$PATH" UV_PROJECT_ENVIRONMENT=/.venv \
@@ -51,6 +55,14 @@ RUN set -x \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && uv sync --frozen --quiet --no-install-project \
+  && case "$(dpkg --print-architecture)" in \
+       amd64) ODIFF_ARCH=x64 ODIFF_SHA256="$ODIFF_SHA256_X64" ;; \
+       arm64) ODIFF_ARCH=arm64 ODIFF_SHA256="$ODIFF_SHA256_ARM64" ;; \
+       *) echo "Unsupported architecture for odiff" && exit 1 ;; \
+     esac \
+  && wget -qO /usr/local/bin/odiff "https://github.com/dmtrKovalenko/odiff/releases/download/v${ODIFF_VERSION}/odiff-linux-${ODIFF_ARCH}" \
+  && echo "${ODIFF_SHA256} /usr/local/bin/odiff" | sha256sum --check --status \
+  && chmod +x /usr/local/bin/odiff \
   && apt-get purge -y --auto-remove $buildDeps \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
