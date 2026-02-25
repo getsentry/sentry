@@ -909,9 +909,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 UUID4Comparator("uuid", "share_uuid"),
                 DateUpdatedComparator("date_updated"),
             ],
-            "sentry.seerorganizationsettings": [
-                DateUpdatedComparator("date_updated", "date_added"),
-            ],
             "sentry.sentryapp": [
                 DateUpdatedComparator("date_updated"),
                 EmailObfuscatingComparator("creator_label"),
@@ -1000,6 +997,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "monitors.monitor": [UUID4Comparator("guid")],
             "replays.organizationmemberreplayaccess": [
                 DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "seer.seerorganizationsettings": [
+                DateUpdatedComparator("date_updated", "date_added"),
             ],
         },
     )

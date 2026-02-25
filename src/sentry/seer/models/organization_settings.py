@@ -30,7 +30,7 @@ class SeerOrganizationSettings(DefaultFieldsModel):
     )
 
     class Meta:
-        app_label = "sentry"
+        app_label = "seer"
         db_table = "sentry_seerorganizationsettings"
 
     __repr__ = sane_repr("organization_id", "default_coding_agent_integration_id")
