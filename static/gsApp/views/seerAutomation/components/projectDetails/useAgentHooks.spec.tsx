@@ -1,8 +1,7 @@
-import {useEffect} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
@@ -13,31 +12,6 @@ import {
   useMutateSelectedAgent,
   useSelectedAgent,
 } from 'getsentry/views/seerAutomation/components/projectDetails/useAgentHooks';
-
-function MutateSelectedAgentHarness({
-  preference,
-  project,
-  mutateRef,
-}: {
-  mutateRef: React.MutableRefObject<
-    | ((
-        integration: 'seer' | 'none' | CodingAgentIntegration,
-        options: {onError?: (error: Error) => void; onSuccess?: () => void}
-      ) => void)
-    | null
-  >;
-  preference: ProjectSeerPreferences;
-  project: ReturnType<typeof ProjectFixture>;
-}) {
-  const mutate = useMutateSelectedAgent({preference, project});
-  useEffect(() => {
-    mutateRef.current = mutate;
-    return () => {
-      mutateRef.current = null;
-    };
-  }, [mutate, mutateRef]);
-  return null;
-}
 
 describe('useAgentHooks', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
@@ -58,13 +32,13 @@ describe('useAgentHooks', () => {
       const integrations: CodingAgentIntegration[] = [
         {id: '42', name: 'Cursor', provider: 'cursor'},
       ];
-      let options: ReturnType<typeof useAgentOptions> = [];
 
-      function Test() {
-        options = useAgentOptions({integrations});
-        return null;
-      }
-      render(<Test />, {organization});
+      const {result} = renderHookWithProviders(useAgentOptions, {
+        initialProps: {integrations},
+        organization,
+      });
+
+      const options = result.current;
       expect(options).toHaveLength(3);
       expect(options[0]).toEqual({value: 'seer', label: expect.any(String)});
       expect(options[1]).toMatchObject({
@@ -79,66 +53,69 @@ describe('useAgentHooks', () => {
         {id: null, name: 'No Id', provider: 'other'},
         {id: '1', name: 'With Id', provider: 'cursor'},
       ];
-      let options: ReturnType<typeof useAgentOptions> = [];
 
-      function Test() {
-        options = useAgentOptions({integrations});
-        return null;
-      }
-      render(<Test />, {organization});
+      const {result} = renderHookWithProviders(useAgentOptions, {
+        initialProps: {integrations},
+        organization,
+      });
+
+      const options = result.current;
       expect(options).toHaveLength(3);
-      expect(options[1].value).toMatchObject({id: '1', name: 'With Id'});
+      expect(options[1]!.value).toMatchObject({id: '1', name: 'With Id'});
     });
   });
 
   describe('useSelectedAgent', () => {
     it('returns "none" when project autofixAutomationTuning is off', () => {
       const p = ProjectFixture({...project, autofixAutomationTuning: 'off'});
-      let selected: ReturnType<typeof useSelectedAgent> = null;
 
-      function Test() {
-        selected = useSelectedAgent({
-          preference: {},
+      const {result} = renderHookWithProviders(useSelectedAgent, {
+        initialProps: {
+          preference: {repositories: []},
           project: p,
           integrations: [],
-        });
-        return null;
-      }
-      render(<Test />, {organization});
-      expect(selected).toBe('none');
+        },
+        organization,
+      });
+
+      expect(result.current).toBe('none');
     });
 
     it('returns "seer" when no automation_handoff integration_id', () => {
-      let selected: ReturnType<typeof useSelectedAgent> = null;
-
-      function Test() {
-        selected = useSelectedAgent({
-          preference: {},
+      const {result} = renderHookWithProviders(useSelectedAgent, {
+        initialProps: {
+          preference: {repositories: []},
           project,
           integrations: [],
-        });
-        return null;
-      }
-      render(<Test />, {organization});
-      expect(selected).toBe('seer');
+        },
+        organization,
+      });
+
+      expect(result.current).toBe('seer');
     });
 
     it('returns matching integration when automation_handoff has integration_id', () => {
       const integrations: CodingAgentIntegration[] = [
         {id: '99', name: 'Cursor', provider: 'cursor'},
       ];
-      let selected: ReturnType<typeof useSelectedAgent> = null;
 
-      function Test() {
-        selected = useSelectedAgent({
-          preference: {automation_handoff: {integration_id: 99}},
+      const {result} = renderHookWithProviders(useSelectedAgent, {
+        initialProps: {
+          preference: {
+            repositories: [],
+            automation_handoff: {
+              handoff_point: 'root_cause',
+              target: 'cursor_background_agent',
+              integration_id: 99,
+            },
+          },
           project,
           integrations,
-        });
-        return null;
-      }
-      render(<Test />, {organization});
-      expect(selected).toMatchObject({id: '99', name: 'Cursor'});
+        },
+        organization,
+      });
+
+      expect(result.current).toMatchObject({id: '99', name: 'Cursor'});
     });
   });
 
@@ -165,19 +142,14 @@ describe('useAgentHooks', () => {
 
     it('sends correct API requests when integration is "seer"', async () => {
       const {projectPutRequest, seerPreferencesPostRequest} = setupMocks();
-      const mutateRef = {current: null as ReturnType<typeof useMutateSelectedAgent>};
 
-      render(
-        <MutateSelectedAgentHarness
-          preference={basePreference}
-          project={project}
-          mutateRef={mutateRef}
-        />,
-        {organization}
-      );
+      const {result} = renderHookWithProviders(useMutateSelectedAgent, {
+        initialProps: {preference: basePreference, project},
+        organization,
+      });
 
       act(() => {
-        mutateRef.current!('seer', {});
+        result.current('seer', {});
       });
 
       await waitFor(() => {
@@ -207,19 +179,14 @@ describe('useAgentHooks', () => {
 
     it('sends correct API requests when integration is "none"', async () => {
       const {projectPutRequest, seerPreferencesPostRequest} = setupMocks();
-      const mutateRef = {current: null as ReturnType<typeof useMutateSelectedAgent>};
 
-      render(
-        <MutateSelectedAgentHarness
-          preference={basePreference}
-          project={project}
-          mutateRef={mutateRef}
-        />,
-        {organization}
-      );
+      const {result} = renderHookWithProviders(useMutateSelectedAgent, {
+        initialProps: {preference: basePreference, project},
+        organization,
+      });
 
       act(() => {
-        mutateRef.current!('none', {});
+        result.current('none', {});
       });
 
       await waitFor(() => {
@@ -249,24 +216,19 @@ describe('useAgentHooks', () => {
 
     it('sends correct API requests when integration is a CodingAgentIntegration', async () => {
       const {projectPutRequest, seerPreferencesPostRequest} = setupMocks();
-      const mutateRef = {current: null as ReturnType<typeof useMutateSelectedAgent>};
       const integration: CodingAgentIntegration = {
         id: '123',
         name: 'Cursor',
         provider: 'cursor',
       };
 
-      render(
-        <MutateSelectedAgentHarness
-          preference={basePreference}
-          project={project}
-          mutateRef={mutateRef}
-        />,
-        {organization}
-      );
+      const {result} = renderHookWithProviders(useMutateSelectedAgent, {
+        initialProps: {preference: basePreference, project},
+        organization,
+      });
 
       act(() => {
-        mutateRef.current!(integration, {});
+        result.current(integration, {});
       });
 
       await waitFor(() => {
@@ -301,7 +263,6 @@ describe('useAgentHooks', () => {
 
     it('sets auto_create_pr from preference when integration is CodingAgentIntegration and stopping point is open_pr', async () => {
       const {seerPreferencesPostRequest} = setupMocks();
-      const mutateRef = {current: null as ReturnType<typeof useMutateSelectedAgent>};
       const integration: CodingAgentIntegration = {
         id: '456',
         name: 'Cursor',
@@ -312,17 +273,13 @@ describe('useAgentHooks', () => {
         automated_run_stopping_point: 'open_pr',
       };
 
-      render(
-        <MutateSelectedAgentHarness
-          preference={preferenceWithOpenPr}
-          project={project}
-          mutateRef={mutateRef}
-        />,
-        {organization}
-      );
+      const {result} = renderHookWithProviders(useMutateSelectedAgent, {
+        initialProps: {preference: preferenceWithOpenPr, project},
+        organization,
+      });
 
       act(() => {
-        mutateRef.current!(integration, {});
+        result.current(integration, {});
       });
 
       await waitFor(() => {
@@ -343,24 +300,26 @@ describe('useAgentHooks', () => {
 
     it('passes through preference repositories and automated_run_stopping_point for all integration types', async () => {
       const {seerPreferencesPostRequest} = setupMocks();
-      const mutateRef = {current: null as ReturnType<typeof useMutateSelectedAgent>};
       const preferenceWithRepos: ProjectSeerPreferences = {
-        repositories: [{id: 'repo-1', name: 'my-repo'}],
+        repositories: [
+          {
+            external_id: 'repo-1',
+            name: 'my-repo',
+            owner: 'my-org',
+            provider: 'github',
+          },
+        ],
         automated_run_stopping_point: 'open_pr',
         automation_handoff: undefined,
       };
 
-      render(
-        <MutateSelectedAgentHarness
-          preference={preferenceWithRepos}
-          project={project}
-          mutateRef={mutateRef}
-        />,
-        {organization}
-      );
+      const {result} = renderHookWithProviders(useMutateSelectedAgent, {
+        initialProps: {preference: preferenceWithRepos, project},
+        organization,
+      });
 
       act(() => {
-        mutateRef.current!('seer', {});
+        result.current('seer', {});
       });
 
       await waitFor(() => {
@@ -370,7 +329,14 @@ describe('useAgentHooks', () => {
         `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
         expect.objectContaining({
           data: expect.objectContaining({
-            repositories: [{id: 'repo-1', name: 'my-repo'}],
+            repositories: [
+              {
+                external_id: 'repo-1',
+                name: 'my-repo',
+                owner: 'my-org',
+                provider: 'github',
+              },
+            ],
             automated_run_stopping_point: 'open_pr',
           }),
         })
@@ -379,20 +345,15 @@ describe('useAgentHooks', () => {
 
     it('calls onSuccess when both requests succeed', async () => {
       setupMocks();
-      const mutateRef = {current: null as ReturnType<typeof useMutateSelectedAgent>};
       const onSuccess = jest.fn();
 
-      render(
-        <MutateSelectedAgentHarness
-          preference={basePreference}
-          project={project}
-          mutateRef={mutateRef}
-        />,
-        {organization}
-      );
+      const {result} = renderHookWithProviders(useMutateSelectedAgent, {
+        initialProps: {preference: basePreference, project},
+        organization,
+      });
 
       act(() => {
-        mutateRef.current!('seer', {onSuccess});
+        result.current('seer', {onSuccess});
       });
 
       await waitFor(() => {
@@ -412,26 +373,21 @@ describe('useAgentHooks', () => {
         method: 'POST',
         body: {},
       });
-      const mutateRef = {current: null as ReturnType<typeof useMutateSelectedAgent>};
       const onError = jest.fn();
 
-      render(
-        <MutateSelectedAgentHarness
-          preference={basePreference}
-          project={project}
-          mutateRef={mutateRef}
-        />,
-        {organization}
-      );
+      const {result} = renderHookWithProviders(useMutateSelectedAgent, {
+        initialProps: {preference: basePreference, project},
+        organization,
+      });
 
       act(() => {
-        mutateRef.current!('seer', {onError});
+        result.current('seer', {onError});
       });
 
       await waitFor(() => {
         expect(onError).toHaveBeenCalledTimes(1);
-        expect(onError).toHaveBeenCalledWith(expect.any(Error));
       });
+      expect(onError).toHaveBeenCalledWith(expect.any(Error));
     });
   });
 });
