@@ -21,8 +21,6 @@ const productionEntryPoints = [
   'static/app/utils/theme/scraps/**/*.tsx',
   // Only used in stories (so far)
   'static/app/components/core/quote/*.tsx',
-  // Prevent exception until we build out coverage
-  'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,mjs,ts,tsx}',
   // todo find out how chartcuterie works
