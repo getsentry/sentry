@@ -49,7 +49,7 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
         assert trace_item.project_id == self.project.id
         assert trace_item.trace_id == "b" * 32
         assert trace_item.timestamp.seconds == 1234567890
-        assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_PREPROD
+        assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR
         assert trace_item.attributes["event_id"].string_value == "a" * 32
         assert trace_item.attributes["error_type"].string_value == "js_no_source"
         assert trace_item.attributes["symbolicator_type"].string_value == "missing_sourcemap"

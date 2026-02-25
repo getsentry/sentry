@@ -20,7 +20,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
-from sentry.processing_errors.eap.producer import produce_processing_errors_to_eap
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
@@ -1291,6 +1290,8 @@ def process_processing_errors_eap(job: PostProcessJob):
     processing_errors = event.data.get("errors", [])
     if not processing_errors:
         return
+
+    from sentry.processing_errors.eap.producer import produce_processing_errors_to_eap
 
     produce_processing_errors_to_eap(event.project, event.data, processing_errors)
 

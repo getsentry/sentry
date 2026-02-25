@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
@@ -14,12 +14,14 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.models.project import Project
 from sentry.search.eap.rpc_utils import anyvalue
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
