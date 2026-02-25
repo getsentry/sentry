@@ -6,6 +6,7 @@ import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -25,6 +26,7 @@ const toolbarSchema = z.object({
 export default function ProjectToolbarSettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
   const {domain} = useLocationQuery({
     fields: {domain: decodeScalar},
   });
@@ -107,6 +109,7 @@ export default function ProjectToolbarSettings() {
               <field.TextArea
                 value={field.state.value}
                 onChange={field.handleChange}
+                disabled={!hasAccess}
                 autosize
                 rows={3}
               />
