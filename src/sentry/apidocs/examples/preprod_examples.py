@@ -5,7 +5,7 @@ _APP_INFO = {
     "name": "Example App",
     "version": "1.2.0",
     "buildNumber": 42,
-    "artifactType": 1,
+    "artifactType": "AAB",
     "dateAdded": "2025-01-15T10:30:00+00:00",
     "dateBuilt": "2025-01-15T10:00:00+00:00",
 }

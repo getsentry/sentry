@@ -10,7 +10,7 @@ class AppInfoResponseDict(TypedDict):
     name: str | None
     version: str | None
     buildNumber: int | None
-    artifactType: int | None
+    artifactType: str | None
     dateAdded: str | None
     dateBuilt: str | None
 
@@ -34,7 +34,9 @@ def create_app_info_dict(artifact: PreprodArtifact) -> AppInfoResponseDict:
         "name": mobile_app_info.app_name if mobile_app_info else None,
         "version": mobile_app_info.build_version if mobile_app_info else None,
         "buildNumber": mobile_app_info.build_number if mobile_app_info else None,
-        "artifactType": artifact.artifact_type,
+        "artifactType": PreprodArtifact.ArtifactType(artifact.artifact_type).name
+        if artifact.artifact_type is not None
+        else None,
         "dateAdded": artifact.date_added.isoformat() if artifact.date_added else None,
         "dateBuilt": artifact.date_built.isoformat() if artifact.date_built else None,
     }
