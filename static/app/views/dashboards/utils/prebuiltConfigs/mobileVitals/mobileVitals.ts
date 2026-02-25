@@ -19,11 +19,11 @@ const APP_START_CONDITION = `${TRANSACTION_OP_CONDITION} (has:${SpanFields.APP_S
 // is present (reportFullyDrawn() is opt-in).
 const SCREEN_LOAD_CONDITION = `is_transaction:true ${TRANSACTION_OP_CONDITION} (has:${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY} OR has:${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`;
 
-// Mirrors the span-op filter used by the Screen Rendering sub-dashboard (screenRendering.ts
-// SPAN_OPERATIONS_CONDITION), then requires mobile.total_frames to be present. A single
-// `has:` on the shared denominator is used (not OR) because both the slow-frames and
-// frozen-frames equations are undefined when total_frames is absent.
-const SCREEN_RENDERING_CONDITION = `${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load] has:${SpanFields.MOBILE_TOTAL_FRAMES}`;
+// Uses transaction.op (consistent with APP_START_CONDITION and SCREEN_LOAD_CONDITION) since
+// this table groups by transaction. Requires mobile.total_frames to be present — a single
+// `has:` on the shared denominator, because both the slow-frames and frozen-frames equations
+// are undefined when total_frames is absent.
+const SCREEN_RENDERING_CONDITION = `${TRANSACTION_OP_CONDITION} has:${SpanFields.MOBILE_TOTAL_FRAMES}`;
 
 const COLD_START_BIG_NUMBER_WIDGET: Widget = {
   id: 'cold-start-big-number',
