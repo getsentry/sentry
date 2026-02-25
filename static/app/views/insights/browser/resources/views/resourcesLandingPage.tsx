@@ -80,13 +80,17 @@ function PageWithProviders() {
 
   const hasPlatformizedAssets = useHasPlatformizedAssets();
 
+  if (hasPlatformizedAssets) {
+    return <PlatformizedAssetsOverview />;
+  }
+
   return (
     <ModulePageProviders
       moduleName="resource"
       analyticEventName="insight.page_loads.assets"
       maxPickableDays={maxPickableDays.maxPickableDays}
     >
-      {hasPlatformizedAssets ? <PlatformizedAssetsOverview /> : <ResourcesLandingPage />}
+      <ResourcesLandingPage />
     </ModulePageProviders>
   );
 }
