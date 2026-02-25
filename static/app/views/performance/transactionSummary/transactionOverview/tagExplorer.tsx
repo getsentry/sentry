@@ -199,13 +199,15 @@ export function TagExplorer(props: Props) {
 
   const handleResizeColumn = useCallback(
     (columnIndex: number, nextColumn: GridColumn) => {
-      const newWidths: number[] = [...widths];
-      newWidths[columnIndex] = nextColumn.width
-        ? Number(nextColumn.width)
-        : COL_WIDTH_UNDEFINED;
-      setWidths(newWidths);
+      setWidths(prevWidths => {
+        const newWidths = [...prevWidths];
+        newWidths[columnIndex] = nextColumn.width
+          ? Number(nextColumn.width)
+          : COL_WIDTH_UNDEFINED;
+        return newWidths;
+      });
     },
-    [widths]
+    []
   );
 
   function getColumnOrder(columns: GridColumnOrder[]) {
