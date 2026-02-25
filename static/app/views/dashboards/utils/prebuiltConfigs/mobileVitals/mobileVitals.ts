@@ -7,6 +7,24 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
 
+// Mirrors the span-op filter used by the App Starts sub-dashboard (appStarts.ts
+// TRANSACTION_OP_CONDITION) for avg(measurements.app_start_*) widgets, then requires at
+// least one app start measurement to be present. OR is intentional: a screen may only have
+// warm-start data (app was already running) and should still appear.
+const APP_START_CONDITION = `${TRANSACTION_OP_CONDITION} (has:${SpanFields.APP_START_COLD} OR has:${SpanFields.APP_START_WARM})`;
+
+// Mirrors the span-op filter used by the Screen Loads sub-dashboard (screenLoads.ts
+// TRANSACTION_CONDITION = 'is_transaction:true span.op:[ui.load,navigation]'), then requires
+// at least one screen-load measurement. OR is intentional: TTFD can be absent while TTID
+// is present (reportFullyDrawn() is opt-in).
+const SCREEN_LOAD_CONDITION = `is_transaction:true ${TRANSACTION_OP_CONDITION} (has:${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY} OR has:${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`;
+
+// Mirrors the span-op filter used by the Screen Rendering sub-dashboard (screenRendering.ts
+// SPAN_OPERATIONS_CONDITION), then requires mobile.total_frames to be present. A single
+// `has:` on the shared denominator is used (not OR) because both the slow-frames and
+// frozen-frames equations are undefined when total_frames is absent.
+const SCREEN_RENDERING_CONDITION = `${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load] has:${SpanFields.MOBILE_TOTAL_FRAMES}`;
+
 const COLD_START_BIG_NUMBER_WIDGET: Widget = {
   id: 'cold-start-big-number',
   title: t('Avg. Cold App Start'),
@@ -266,7 +284,7 @@ const APP_START_TABLE: Widget = {
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: ['Screen', 'Cold Start', 'Warm Start', 'Screen Loads'],
-      conditions: '',
+      conditions: APP_START_CONDITION,
       orderby: '-count(span.duration)',
       linkedDashboards: [
         {
@@ -316,7 +334,7 @@ const SCREEN_RENDERING_TABLE: Widget = {
         {valueType: 'percentage', valueUnit: null},
         null,
       ],
-      conditions: TRANSACTION_OP_CONDITION,
+      conditions: SCREEN_RENDERING_CONDITION,
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
       linkedDashboards: [
         {
@@ -360,7 +378,7 @@ const SCREEN_LOAD_TABLE: Widget = {
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: ['Screen', 'TTID', 'TTFD', 'Screen Loads'],
-      conditions: '',
+      conditions: SCREEN_LOAD_CONDITION,
       orderby: '-count(span.duration)',
       linkedDashboards: [
         {
