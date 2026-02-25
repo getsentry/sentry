@@ -7,9 +7,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {
-  AssertionType,
-  ComparisonType,
-  type AssertionSuggestion,
+  UptimeAssertionType,
+  UptimeComparisonType,
+  type UptimeAssertionSuggestion,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 function getConfidenceBadgeVariant(confidence: number): 'success' | 'warning' | 'danger' {
@@ -24,7 +24,7 @@ function getConfidenceBadgeVariant(confidence: number): 'success' | 'warning' | 
 
 interface AssertionSuggestionCardProps {
   onApply: () => void;
-  suggestion: AssertionSuggestion;
+  suggestion: UptimeAssertionSuggestion;
 }
 
 export function AssertionSuggestionCard({
@@ -33,13 +33,13 @@ export function AssertionSuggestionCard({
 }: AssertionSuggestionCardProps) {
   const getAssertionLabel = () => {
     switch (suggestion.assertion_type) {
-      case AssertionType.STATUS_CODE:
+      case UptimeAssertionType.STATUS_CODE:
         return tct('Status code [comparison] [value]', {
           comparison: suggestion.comparison.replace('_', ' '),
           value: suggestion.expected_value,
         });
-      case AssertionType.JSON_PATH:
-        if (suggestion.comparison === ComparisonType.ALWAYS) {
+      case UptimeAssertionType.JSON_PATH:
+        if (suggestion.comparison === UptimeComparisonType.ALWAYS) {
           return tct('[path] exists', {
             path: suggestion.json_path,
           });
@@ -49,8 +49,8 @@ export function AssertionSuggestionCard({
           comparison: suggestion.comparison.replace('_', ' '),
           value: `"${suggestion.expected_value}"`,
         });
-      case AssertionType.HEADER:
-        if (suggestion.comparison === ComparisonType.ALWAYS) {
+      case UptimeAssertionType.HEADER:
+        if (suggestion.comparison === UptimeComparisonType.ALWAYS) {
           return tct('Header [name] exists', {
             name: suggestion.header_name,
           });

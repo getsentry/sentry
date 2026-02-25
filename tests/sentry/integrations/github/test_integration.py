@@ -1721,7 +1721,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)
 
     @responses.activate
-    @with_feature("organizations:integrations-github-project-management")
     def test_get_organization_config(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)

@@ -2066,6 +2066,69 @@ class SDKCrashMonitoringTestMixin(BasePostProcessGroupMixin):
         mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
 
+@patch("sentry.processing_errors.eap.producer.produce_processing_errors_to_eap")
+class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
+    @with_feature("organizations:processing-errors-eap")
+    def test_processing_errors_eap_called_with_errors(self, mock_produce: MagicMock) -> None:
+        event = self.create_event(
+            data={
+                "message": "testing",
+                "exception": {"values": [{"type": "Error", "value": "test"}]},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        # Ensure the event has processing errors
+        event.data["errors"] = [{"type": "js_no_source", "symbolicator_type": "missing_sourcemap"}]
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_produce.assert_called_once()
+        args = mock_produce.call_args[0]
+        assert args[0].id == self.project.id
+        assert args[2] == [{"type": "js_no_source", "symbolicator_type": "missing_sourcemap"}]
+
+    def test_processing_errors_eap_not_called_without_feature(
+        self, mock_produce: MagicMock
+    ) -> None:
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        event.data["errors"] = [{"type": "js_no_source"}]
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_produce.assert_not_called()
+
+    @with_feature("organizations:processing-errors-eap")
+    def test_processing_errors_eap_not_called_without_errors(self, mock_produce: MagicMock) -> None:
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_produce.assert_not_called()
+
+
 @mock.patch.object(replays_kafka, "get_kafka_producer_cluster_options")
 @mock.patch.object(replays_kafka, "KafkaPublisher")
 @mock.patch("sentry.utils.metrics.incr")
@@ -3390,6 +3453,7 @@ class PostProcessGroupErrorTest(
     SnoozeTestMixin,
     SnoozeTestSkipSnoozeMixin,
     SDKCrashMonitoringTestMixin,
+    ProcessingErrorsEAPTestMixin,
     ReplayLinkageTestMixin,
     DetectNewEscalationTestMixin,
     UserReportEventLinkTestMixin,
@@ -3998,9 +4062,8 @@ class PostProcessGroupFeedbackTest(
     def test_group_last_seen_buffer(self) -> None:
         pass
 
-    @with_feature("organizations:expanded-sentry-apps-webhooks")
     @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
-    def test_feedback_sends_webhook_with_feature_flag(self, mock_delay: MagicMock) -> None:
+    def test_feedback_sends_webhook(self, mock_delay: MagicMock) -> None:
         sentry_app = self.create_sentry_app(
             organization=self.organization, events=["issue.created"]
         )
@@ -4022,28 +4085,6 @@ class PostProcessGroupFeedbackTest(
         mock_delay.assert_called_once_with(
             action="created", sender="Group", instance_id=event.group.id
         )
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
-    def test_feedback_no_webhook_without_feature_flag(self, mock_delay: MagicMock) -> None:
-        sentry_app = self.create_sentry_app(
-            organization=self.organization, events=["issue.created"]
-        )
-        self.create_sentry_app_installation(organization=self.organization, slug=sentry_app.slug)
-
-        event = self.create_event(
-            data={},
-            project_id=self.project.id,
-            feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
-
-        assert not mock_delay.called
 
 
 class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
