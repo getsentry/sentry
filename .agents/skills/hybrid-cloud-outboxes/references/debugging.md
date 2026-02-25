@@ -265,6 +265,7 @@ for shard in RegionOutbox.get_shard_depths_descending(limit=10):
 2. Check if `drain_outbox_shards` tasks are being spawned (check Taskbroker queue)
 3. Check if specific shards are disabled via kill switches
 4. Check if all shards are in backoff (`scheduled_for > now()`)
+5. Check if the signal handler is crashing or raising any exceptions
 
 ### Handler Raising Exceptions
 

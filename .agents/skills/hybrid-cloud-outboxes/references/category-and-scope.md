@@ -8,116 +8,15 @@ Every outbox message has a **category** (what kind of change) and a **scope** (h
 
 ## Scope-to-Category Mapping
 
-### `ORGANIZATION_SCOPE` (scope=0)
+Scope to category mappings can be found in src/sentry/hybridcloud/outbox/category.py
 
-Shard key: `organization_id`. The most common scope — use for any model that belongs to an organization.
+When selecting a scope to use, consider which other operations the target outbox depends on.
 
-Categories:
+### Retired Categories and Scopes
 
-- `ORGANIZATION_UPDATE` (2)
-- `ORGANIZATION_MEMBER_UPDATE` (3)
-- `PROJECT_UPDATE` (8)
-- `TEAM_UPDATE` (11)
-- `ORGANIZATION_INTEGRATION_UPDATE` (12)
-- `SEND_SIGNAL` (14)
-- `ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE` (15)
-- `ORGAUTHTOKEN_UPDATE_USED` (16)
-- `POST_ORGANIZATION_PROVISION` (18)
-- `DISABLE_AUTH_PROVIDER` (20) — retired
-- `RESET_IDP_FLAGS` (21)
-- `MARK_INVALID_SSO` (22)
-- `AUTH_PROVIDER_UPDATE` (24)
-- `AUTH_IDENTITY_UPDATE` (25)
-- `ORGANIZATION_MEMBER_TEAM_UPDATE` (26)
-- `ORGANIZATION_SLUG_RESERVATION_UPDATE` (27)
-- `API_KEY_UPDATE` (28)
-- `ORG_AUTH_TOKEN_UPDATE` (33)
-- `ISSUE_COMMENT_UPDATE` (34)
-- `IDENTITY_UPDATE` (43)
+Categories and scopes should never be deleted. If a category is to be retired, simply add an inline comment denoting it as no longer in use.
 
-### `USER_SCOPE` (scope=1)
-
-Shard key: `user_id`. Use for models that belong to a user but not a specific organization.
-
-Categories:
-
-- `USER_UPDATE` (0)
-- `SENTRY_APP_INSTALLATION_UPDATE` (10)
-- `SENTRY_APP_INSTALLATION_DELETE` (42)
-
-### `AUDIT_LOG_SCOPE` (scope=3)
-
-Shard key: `organization_id`. Dedicated scope for audit log events.
-
-Categories:
-
-- `AUDIT_LOG_EVENT` (5)
-
-### `USER_IP_SCOPE` (scope=4)
-
-Shard key: `user_id`. Dedicated scope for user IP address tracking.
-
-Categories:
-
-- `USER_IP_EVENT` (6)
-
-### `INTEGRATION_SCOPE` (scope=5)
-
-Shard key: `integration_id`. Use for models keyed to an integration.
-
-Categories:
-
-- `INTEGRATION_UPDATE` (7)
-- `EXTERNAL_ACTOR_UPDATE` (35)
-
-### `APP_SCOPE` (scope=6)
-
-Shard key: `api_application_id` or `sentry_app_id`. Use for API application and Sentry App models.
-
-Categories:
-
-- `API_APPLICATION_UPDATE` (9)
-- `SENTRY_APP_UPDATE` (30)
-- `SENTRY_APP_DELETE` (41)
-- `SERVICE_HOOK_UPDATE` (40)
-
-### `PROVISION_SCOPE` (scope=8)
-
-Shard key: `organization_id`. Used for organization provisioning.
-
-Categories:
-
-- `PROVISION_ORGANIZATION` (17)
-
-### `SUBSCRIPTION_SCOPE` (scope=9)
-
-Shard key: `organization_id`. Used for subscription updates.
-
-Categories:
-
-- `SUBSCRIPTION_UPDATE` (23)
-
-### `API_TOKEN_SCOPE` (scope=11)
-
-Shard key: `api_token_id`. Use for API token models.
-
-Categories:
-
-- `API_TOKEN_UPDATE` (32)
-
-### `ACTION_SCOPE` (scope=12)
-
-Shard key: varies. Used for Sentry App action normalization.
-
-Categories:
-
-- `SENTRY_APP_NORMALIZE_ACTIONS` (44)
-
-### Retired Scopes
-
-- `WEBHOOK_SCOPE` (2) — no longer in use
-- `TEAM_SCOPE` (7) — no longer in use (empty category set)
-- `RELOCATION_SCOPE` (10) — no longer in use
+If a scope is to be retired, remove all categories from its nested definition, and denote that it's no longer in use with a comment above the list.
 
 ## Sharding Pitfalls
 
