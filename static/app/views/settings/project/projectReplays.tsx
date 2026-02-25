@@ -88,9 +88,7 @@ export default function ProjectReplaySettings() {
                 <AutoSaveField
                   name="sentry:replay_rage_click_issues"
                   schema={replaySchema}
-                  initialValue={
-                    project.options['sentry:replay_rage_click_issues'] as boolean
-                  }
+                  initialValue={!!project.options?.['sentry:replay_rage_click_issues']}
                   mutationOptions={mutationOptions}
                 >
                   {field => (
@@ -113,7 +111,7 @@ export default function ProjectReplaySettings() {
                   name="sentry:replay_hydration_error_issues"
                   schema={replaySchema}
                   initialValue={
-                    project.options['sentry:replay_hydration_error_issues'] as boolean
+                    !!project.options?.['sentry:replay_hydration_error_issues']
                   }
                   mutationOptions={mutationOptions}
                 >
