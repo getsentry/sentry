@@ -74,6 +74,9 @@ class OdiffServer:
             start_new_session=True,
         )
         try:
+            readable, _, _ = select.select([proc.stdout], [], [], 30)
+            if not readable:
+                raise RuntimeError("odiff server timed out waiting for ready message")
             line = proc.stdout.readline()  # type: ignore[union-attr]
             ready = self._read_json(line, proc)
             if not ready.get("ready"):
@@ -113,14 +116,20 @@ class OdiffServer:
                 process.stdin.flush()
             except (BrokenPipeError, OSError) as e:
                 process.kill()
-                process.wait()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
                 self._process = None
                 raise RuntimeError("odiff process died unexpectedly") from e
 
             readable, _, _ = select.select([process.stdout], [], [], 30)
             if not readable:
                 process.kill()
-                process.wait()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
                 self._process = None
                 raise RuntimeError("odiff server timed out after 30s")
             line = process.stdout.readline()
@@ -128,7 +137,10 @@ class OdiffServer:
                 response = self._read_json(line)
             except RuntimeError:
                 process.kill()
-                process.wait()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
                 self._process = None
                 raise
 
