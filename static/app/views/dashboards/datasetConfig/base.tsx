@@ -166,6 +166,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters
   ) => TableData;
   /**
+   * Default Y-axis range for this dataset. Defaults to 'auto' if not set.
+   */
+  axisRange?: 'auto' | 'dataMin';
+  /**
    * Default field to use as the X-axis category for categorical bar charts.
    * This should be a non-aggregate field name (e.g., 'transaction', 'browser').
    */

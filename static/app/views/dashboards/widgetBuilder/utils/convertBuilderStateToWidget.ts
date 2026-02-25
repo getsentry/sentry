@@ -161,5 +161,6 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     widgetType: state.dataset,
     limit,
     thresholds: state.thresholds,
+    axisRange: state.axisRange,
   };
 }

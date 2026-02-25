@@ -7,6 +7,7 @@ const SUPPORTED_WIDGET_TYPES = new Set<WidgetType>([
   WidgetType.LOGS,
   WidgetType.ERRORS,
   WidgetType.TRACEMETRICS,
+  WidgetType.PREPROD_APP_SIZE,
 ]);
 
 const SUPPORTED_DISPLAY_TYPES = new Set<DisplayType>([

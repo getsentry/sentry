@@ -143,6 +143,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  axisRange?: 'auto' | 'dataMin';
   changedReason?: WidgetChangedReason[];
   dashboardId?: string;
   datasetSource?: DatasetSource;

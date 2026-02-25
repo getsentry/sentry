@@ -61,6 +61,7 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 export const MAX_NUM_Y_AXES = 3;
 
 export type WidgetBuilderStateQueryParams = {
+  axisRange?: string;
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
@@ -96,6 +97,7 @@ export const BuilderStateAction = {
   SET_CATEGORICAL_X_AXIS: 'SET_CATEGORICAL_X_AXIS',
   SET_CATEGORICAL_AGGREGATE: 'SET_CATEGORICAL_AGGREGATE',
   DELETE_AGGREGATE: 'DELETE_AGGREGATE',
+  SET_AXIS_RANGE: 'SET_AXIS_RANGE',
 } as const;
 
 type WidgetAction =
@@ -131,12 +133,17 @@ type WidgetAction =
   | {
       payload: number; // index of the field to delete within the visible fields list
       type: typeof BuilderStateAction.DELETE_AGGREGATE;
+    }
+  | {
+      payload: 'auto' | 'dataMin' | undefined;
+      type: typeof BuilderStateAction.SET_AXIS_RANGE;
     };
 type WidgetBuilderStateActionOptions = {
   updateUrl?: boolean;
 };
 
 export interface WidgetBuilderState {
+  axisRange?: 'auto' | 'dataMin';
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
@@ -337,6 +344,10 @@ function useWidgetBuilderState(): {
     deserializer: deserializeTraceMetric,
     serializer: serializeTraceMetric,
   });
+  const [axisRange, setAxisRange] = useQueryParamState<'auto' | 'dataMin' | undefined>({
+    fieldName: 'axisRange',
+    decoder: decodeScalar,
+  });
 
   const state = useMemo(
     () => ({
@@ -353,6 +364,7 @@ function useWidgetBuilderState(): {
       thresholds,
       linkedDashboards,
       traceMetric,
+      axisRange,
       // The selected aggregate is the last aggregate for big number and categorical bar widgets
       // if it hasn't been explicitly set.
       // For categorical bar, only count aggregate fields (FUNCTION/EQUATION), not the X-axis FIELD column
@@ -387,6 +399,7 @@ function useWidgetBuilderState(): {
       thresholds,
       linkedDashboards,
       traceMetric,
+      axisRange,
     ]
   );
 
@@ -559,6 +572,9 @@ function useWidgetBuilderState(): {
           if (!doesDisplayTypeSupportThresholds(action.payload)) {
             setThresholds(undefined, options);
           }
+          if (!usesTimeSeriesData(action.payload)) {
+            setAxisRange(undefined, options);
+          }
           setSelectedAggregate(undefined, options);
           setLinkedDashboards([], options);
           break;
@@ -647,6 +663,7 @@ function useWidgetBuilderState(): {
           }
 
           setThresholds(undefined, options);
+          setAxisRange(undefined, options);
           setQuery([config.defaultWidgetQuery.conditions], options);
           setLegendAlias([], options);
           setSelectedAggregate(undefined, options);
@@ -906,9 +923,16 @@ function useWidgetBuilderState(): {
           if (action.payload.traceMetric) {
             setTraceMetric(deserializeTraceMetric(action.payload.traceMetric), options);
           }
+          setAxisRange(
+            action.payload.axisRange as 'auto' | 'dataMin' | undefined,
+            options
+          );
           break;
         case BuilderStateAction.SET_THRESHOLDS:
           setThresholds(action.payload, options);
+          break;
+        case BuilderStateAction.SET_AXIS_RANGE:
+          setAxisRange(action.payload, options);
           break;
         case BuilderStateAction.SET_TRACE_METRIC:
           if (dataset === WidgetType.TRACEMETRICS) {
@@ -1182,6 +1206,7 @@ function useWidgetBuilderState(): {
       setLegendAlias,
       setSelectedAggregate,
       setThresholds,
+      setAxisRange,
       setLinkedDashboards,
       fields,
       yAxis,

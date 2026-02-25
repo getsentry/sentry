@@ -39,6 +39,7 @@ import {
   doesDisplayTypeSupportThresholds,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
+import AxisRangeSection from 'sentry/views/dashboards/widgetBuilder/components/axisRangeSection';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -452,6 +453,11 @@ function WidgetBuilderSlideout({
                     {showSortByStep && (
                       <Section>
                         <WidgetBuilderSortBySelector />
+                      </Section>
+                    )}
+                    {isTimeSeriesWidget && (
+                      <Section>
+                        <AxisRangeSection />
                       </Section>
                     )}
                   </DisableTransactionWidget>
