@@ -24,7 +24,6 @@ from sentry.utils.kafka_config import get_topic_definition
 logger = logging.getLogger(__name__)
 
 PROCESSING_ERROR_NAMESPACE = uuid.UUID("a4d8f4e2-1b3c-4a9d-9e1f-5c2b1a0d7f6e")
-
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 
 
@@ -100,7 +99,7 @@ def produce_processing_errors_to_eap(
                 organization_id=project.organization_id,
                 project_id=project.id,
                 item_id=item_id,
-                item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,  # TODO: switch to TRACE_ITEM_TYPE_PROCESSING_ERROR once sentry-protos is updated
+                item_type=TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR,
                 timestamp=timestamp,
                 trace_id=trace_id,
                 retention_days=retention_days,
