@@ -53,15 +53,26 @@ class TestSendToSeer(TestCase):
             },
         ]
 
+        edges = [
+            {
+                "source_project_id": 1,
+                "source_project_slug": "frontend",
+                "target_project_id": 2,
+                "target_project_slug": "api",
+                "count": 5,
+            }
+        ]
+
         with mock.patch(
             "sentry.seer.explorer.explorer_service_map_utils.orjson.dumps"
         ) as mock_dumps:
             mock_dumps.return_value = b"{}"
-            _send_to_seer(org.id, nodes)
+            _send_to_seer(org.id, nodes, edges)
 
         call_args = mock_dumps.call_args[0][0]
         assert call_args["organization_id"] == org.id
         assert call_args["nodes"] == nodes
+        assert call_args["edges"] == edges
         assert "generated_at" in call_args
 
 
@@ -1089,12 +1100,21 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
                 build_service_map(self.organization.id)
 
         mock_send.assert_called_once()
-        _, nodes = mock_send.call_args[0]
+        _, nodes, edges = mock_send.call_args[0]
 
         node_by_slug = {n["project_slug"]: n for n in nodes}
 
         # Verify all 4 services are present
         assert set(node_by_slug.keys()) == {"frontend", "api", "database", "cache"}
+
+        # Verify edges are present and well-formed
+        assert len(edges) > 0
+        for edge in edges:
+            assert "source_project_id" in edge
+            assert "source_project_slug" in edge
+            assert "target_project_id" in edge
+            assert "target_project_slug" in edge
+            assert "count" in edge
 
         # Verify caller/callee relationships
         assert node_by_slug["frontend"]["callees"] == ["api"]
