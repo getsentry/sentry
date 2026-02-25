@@ -1,19 +1,17 @@
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest import mock
 
 from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 
-from sentry.api.endpoints.release_thresholds.utils import (
-    get_errors_counts_timeseries_by_project_and_release,
-)
 from sentry.api.endpoints.release_thresholds.utils.get_errors_counts_timeseries import (
     _get_errors_counts_timeseries_eap,
     _get_errors_counts_timeseries_snuba,
 )
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.snuba.occurrences_rpc import OccurrenceCategory
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class GetErrorCountTimeseriesSnubaTest(TestCase):
@@ -61,262 +59,162 @@ class GetErrorCountTimeseriesSnubaTest(TestCase):
         assert env_condition in call_conditions
 
 
-class GetErrorCountTimeseriesEAPTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.org = self.create_organization()
-        self.project = self.create_project(name="foo", organization=self.org)
+class TestEAPGetErrorsCountsTimeseries(TestCase, SnubaTestCase):
+    FROZEN_TIME = datetime(2026, 2, 12, 6, 0, 0, tzinfo=UTC)
 
-    @mock.patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
-    def test_eap_impl_returns_empty_list_on_exception(
-        self, mock_timeseries: mock.MagicMock
-    ) -> None:
-        mock_timeseries.side_effect = Exception("RPC failed")
-        now = timezone.now()
+    def _query_both(
+        self,
+        release_value_list: list[str],
+        project_id_list: list[int] | None = None,
+        environments_list: list[str] | None = None,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        target_project_ids = project_id_list or [self.project.id]
+        start = self.FROZEN_TIME - timedelta(hours=1)
+        end = self.FROZEN_TIME + timedelta(hours=1)
 
-        result = _get_errors_counts_timeseries_eap(
-            end=now,
-            organization_id=self.org.id,
+        snuba_result = _get_errors_counts_timeseries_snuba(
+            end=end,
+            organization_id=self.organization.id,
+            project_id_list=target_project_ids,
+            release_value_list=release_value_list,
+            start=start,
+            environments_list=environments_list,
+        )
+        eap_result = _get_errors_counts_timeseries_eap(
+            end=end,
+            organization_id=self.organization.id,
+            project_id_list=target_project_ids,
+            release_value_list=release_value_list,
+            start=start,
+            environments_list=environments_list,
+        )
+        return snuba_result, eap_result
+
+    @staticmethod
+    def _error_event_data(release: str, environment: str) -> dict[str, Any]:
+        return {
+            "type": "error",
+            "release": release,
+            "environment": environment,
+            "exception": [{"value": "BadError"}],
+            "tags": [["release", release], ["environment", environment]],
+        }
+
+    @freeze_time(FROZEN_TIME)
+    def test_single_release_single_environment(self) -> None:
+        release = self.create_release(project=self.project, version="1.0.0")
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+        self.store_events_to_snuba_and_eap(
+            "release-thresholds-group-a",
+            count=3,
+            timestamp=ts,
+            extra_event_data=self._error_event_data(release.version, "production"),
+        )
+
+        snuba_result, eap_result = self._query_both(
+            release_value_list=[release.version], environments_list=["production"]
+        )
+
+        assert eap_result == snuba_result
+        assert len(snuba_result) == 1
+        assert snuba_result[0]["release"] == release.version
+        assert snuba_result[0]["environment"] == "production"
+        assert snuba_result[0]["count()"] == 3
+
+    @freeze_time(FROZEN_TIME)
+    def test_multiple_releases(self) -> None:
+        release_a = self.create_release(project=self.project, version="1.0.0")
+        release_b = self.create_release(project=self.project, version="2.0.0")
+        ts_a = (self.FROZEN_TIME - timedelta(minutes=10)).timestamp()
+        ts_b = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+        self.store_events_to_snuba_and_eap(
+            "release-thresholds-group-a",
+            count=2,
+            timestamp=ts_a,
+            extra_event_data=self._error_event_data(release_a.version, "production"),
+        )
+        self.store_events_to_snuba_and_eap(
+            "release-thresholds-group-b",
+            count=4,
+            timestamp=ts_b,
+            extra_event_data=self._error_event_data(release_b.version, "production"),
+        )
+
+        snuba_result, eap_result = self._query_both(
+            release_value_list=[release_a.version, release_b.version],
+            environments_list=["production"],
+        )
+
+        assert eap_result == snuba_result
+        assert {row["release"] for row in snuba_result} == {release_a.version, release_b.version}
+        counts_by_release = {row["release"]: row["count()"] for row in snuba_result}
+        assert counts_by_release[release_a.version] == 2
+        assert counts_by_release[release_b.version] == 4
+
+    @freeze_time(FROZEN_TIME)
+    def test_environment_filtering(self) -> None:
+        release = self.create_release(project=self.project, version="1.0.0")
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+        self.store_events_to_snuba_and_eap(
+            "release-thresholds-group-a",
+            count=2,
+            timestamp=ts,
+            extra_event_data=self._error_event_data(release.version, "production"),
+        )
+        self.store_events_to_snuba_and_eap(
+            "release-thresholds-group-b",
+            count=1,
+            timestamp=ts,
+            extra_event_data=self._error_event_data(release.version, "staging"),
+        )
+
+        snuba_result, eap_result = self._query_both(
+            release_value_list=[release.version], environments_list=["staging"]
+        )
+
+        assert eap_result == snuba_result
+        assert len(snuba_result) == 1
+        assert snuba_result[0]["environment"] == "staging"
+        assert snuba_result[0]["count()"] == 1
+
+    @freeze_time(FROZEN_TIME)
+    def test_project_isolation(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        release = self.create_release(project=self.project, version="1.0.0")
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+
+        self.store_events_to_snuba_and_eap(
+            "release-thresholds-group-local",
+            count=2,
+            timestamp=ts,
+            project_id=self.project.id,
+            extra_event_data=self._error_event_data(release.version, "production"),
+        )
+        self.store_events_to_snuba_and_eap(
+            "release-thresholds-group-other",
+            count=5,
+            timestamp=ts,
+            project_id=other_project.id,
+            extra_event_data=self._error_event_data(release.version, "production"),
+        )
+
+        snuba_result, eap_result = self._query_both(
+            release_value_list=[release.version],
             project_id_list=[self.project.id],
-            release_value_list=["1.0.0"],
-            start=now,
+            environments_list=["production"],
         )
 
-        assert result == []
+        assert eap_result == snuba_result
+        assert len(snuba_result) == 1
+        assert snuba_result[0]["project_id"] == self.project.id
+        assert snuba_result[0]["count()"] == 2
 
-    @mock.patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
-    def test_eap_impl_filters_zero_count_rows(self, mock_timeseries: mock.MagicMock) -> None:
-        mock_timeseries.return_value = [
-            {
-                "release": "backend@1.0.0",
-                "project_id": self.project.id,
-                "environment": "production",
-                "time": 1736074800,
-                "count()": 5.0,
-            },
-            {
-                "release": "backend@1.0.0",
-                "project_id": self.project.id,
-                "environment": "production",
-                "time": 1736074860,
-                "count()": 0,
-            },
-        ]
-
-        now = timezone.now()
-        result = _get_errors_counts_timeseries_eap(
-            end=now,
-            organization_id=self.org.id,
-            project_id_list=[self.project.id],
-            release_value_list=["backend@1.0.0"],
-            start=now,
+    @freeze_time(FROZEN_TIME)
+    def test_empty_results(self) -> None:
+        release = self.create_release(project=self.project, version="1.0.0")
+        snuba_result, eap_result = self._query_both(
+            release_value_list=[release.version], environments_list=["production"]
         )
 
-        assert len(result) == 1
-        assert result[0]["count()"] == 5
-
-    @mock.patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
-    def test_eap_impl_transforms_results_correctly(self, mock_timeseries: mock.MagicMock) -> None:
-        mock_timeseries.return_value = [
-            {
-                "release": "backend@1.0.0",
-                "project_id": self.project.id,
-                "environment": "production",
-                "time": 1736074800,  # Unix timestamp
-                "count()": 5.0,
-            },
-            {
-                "release": "backend@1.0.0",
-                "project_id": self.project.id,
-                "environment": "production",
-                "time": 1736074860,  # 1 minute later
-                "count()": 3.0,
-            },
-        ]
-
-        now = timezone.now()
-        result = _get_errors_counts_timeseries_eap(
-            end=now,
-            organization_id=self.org.id,
-            project_id_list=[self.project.id],
-            release_value_list=["backend@1.0.0"],
-            start=now,
-        )
-
-        mock_timeseries.assert_called_once()
-        call_kwargs = mock_timeseries.call_args[1]
-        assert call_kwargs["query_string"] == 'release:"backend@1.0.0"'
-        assert call_kwargs["occurrence_category"] == OccurrenceCategory.ERROR
-        assert len(result) == 2
-
-        assert result[0]["release"] == "backend@1.0.0"
-        assert result[0]["project_id"] == self.project.id
-        assert result[0]["environment"] == "production"
-        assert result[0]["count()"] == 3
-        assert "time" in result[0]
-
-        assert result[1]["count()"] == 5
-
-    @mock.patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
-    def test_eap_impl_handles_multiple_releases(self, mock_timeseries: mock.MagicMock) -> None:
-        mock_timeseries.return_value = [
-            {
-                "release": "backend@1.0.0",
-                "project_id": self.project.id,
-                "environment": "production",
-                "time": 1736074800,
-                "count()": 5.0,
-            },
-            {
-                "release": "backend@2.0.0",
-                "project_id": self.project.id,
-                "environment": "production",
-                "time": 1736074800,
-                "count()": 10.0,
-            },
-        ]
-
-        now = timezone.now()
-        result = _get_errors_counts_timeseries_eap(
-            end=now,
-            organization_id=self.org.id,
-            project_id_list=[self.project.id],
-            release_value_list=["backend@1.0.0", "backend@2.0.0"],
-            start=now,
-        )
-
-        call_kwargs = mock_timeseries.call_args[1]
-        assert call_kwargs["query_string"] == (
-            '(release:"backend@1.0.0" OR release:"backend@2.0.0")'
-        )
-        assert call_kwargs["occurrence_category"] == OccurrenceCategory.ERROR
-        assert len(result) == 2
-        releases_in_result = [r["release"] for r in result]
-        assert "backend@1.0.0" in releases_in_result
-        assert "backend@2.0.0" in releases_in_result
-
-    @mock.patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
-    def test_eap_impl_with_environment_filter(self, mock_timeseries: mock.MagicMock) -> None:
-        mock_timeseries.return_value = [
-            {
-                "release": "backend@1.0.0",
-                "project_id": self.project.id,
-                "environment": "staging",
-                "time": 1736074800,
-                "count()": 5.0,
-            },
-        ]
-
-        now = timezone.now()
-        result = _get_errors_counts_timeseries_eap(
-            end=now,
-            organization_id=self.org.id,
-            project_id_list=[self.project.id],
-            release_value_list=["backend@1.0.0"],
-            start=now,
-            environments_list=["staging", "production"],
-        )
-
-        mock_timeseries.assert_called_once()
-        call_kwargs = mock_timeseries.call_args[1]
-        assert call_kwargs["query_string"] == (
-            'release:"backend@1.0.0" (environment:"staging" OR environment:"production")'
-        )
-        assert call_kwargs["occurrence_category"] == OccurrenceCategory.ERROR
-        assert len(result) == 1
-        assert result[0]["environment"] == "staging"
-
-    @mock.patch(
-        "sentry.api.endpoints.release_thresholds.utils.get_errors_counts_timeseries._get_errors_counts_timeseries_eap"
-    )
-    @mock.patch(
-        "sentry.api.endpoints.release_thresholds.utils.get_errors_counts_timeseries._get_errors_counts_timeseries_snuba"
-    )
-    def test_uses_snuba_result_as_source_of_truth(
-        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock
-    ) -> None:
-        mock_snuba.return_value = [
-            {
-                "release": "1.0.0",
-                "project_id": self.project.id,
-                "environment": "production",
-                "time": "2025-01-05T10:00:00+00:00",
-                "count()": 5,
-            }
-        ]
-        mock_eap.return_value = [
-            {
-                "release": "1.0.0",
-                "project_id": self.project.id,
-                "environment": "production",
-                "time": "2025-01-05T10:00:00+00:00",
-                "count()": 10,  # Different count to verify which is returned
-            }
-        ]
-
-        now = timezone.now()
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
-            result = get_errors_counts_timeseries_by_project_and_release(
-                end=now,
-                organization_id=self.org.id,
-                project_id_list=[self.project.id],
-                release_value_list=["1.0.0"],
-                start=now,
-            )
-
-        mock_snuba.assert_called_once()
-        mock_eap.assert_called_once()
-        # Should return Snuba result (count=5), not EAP result (count=10)
-        assert result == mock_snuba.return_value
-        assert result[0]["count()"] == 5
-
-    @mock.patch(
-        "sentry.api.endpoints.release_thresholds.utils.get_errors_counts_timeseries._get_errors_counts_timeseries_eap"
-    )
-    @mock.patch(
-        "sentry.api.endpoints.release_thresholds.utils.get_errors_counts_timeseries._get_errors_counts_timeseries_snuba"
-    )
-    def test_uses_eap_result_when_callsite_allowlisted(
-        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock
-    ) -> None:
-        mock_snuba.return_value = [
-            {
-                "release": "1.0.0",
-                "project_id": self.project.id,
-                "environment": "production",
-                "time": "2025-01-05T10:00:00+00:00",
-                "count()": 5,
-            }
-        ]
-        mock_eap.return_value = [
-            {
-                "release": "1.0.0",
-                "project_id": self.project.id,
-                "environment": "production",
-                "time": "2025-01-05T10:00:00+00:00",
-                "count()": 10,  # Different count to verify which is returned
-            }
-        ]
-
-        now = timezone.now()
-        with self.options(
-            {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
-                    "release_thresholds.get_errors_counts_timeseries"
-                ],
-            }
-        ):
-            result = get_errors_counts_timeseries_by_project_and_release(
-                end=now,
-                organization_id=self.org.id,
-                project_id_list=[self.project.id],
-                release_value_list=["1.0.0"],
-                start=now,
-            )
-
-        mock_snuba.assert_called_once()
-        mock_eap.assert_called_once()
-        # Should return EAP result (count=10), not Snuba result (count=5)
-        assert result == mock_eap.return_value
-        assert result[0]["count()"] == 10
+        assert snuba_result == []
+        assert eap_result == []

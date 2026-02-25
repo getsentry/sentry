@@ -60,6 +60,17 @@ def get_errors_counts_timeseries_by_project_and_release(
             eap_results,
             "release_thresholds.get_errors_counts_timeseries",
             is_experimental_data_a_null_result=len(eap_results) == 0,
+            reasonable_match_comparator=_reasonable_timeseries_match,
+            debug_context={
+                "organization_id": organization_id,
+                "project_ids": project_id_list,
+                "releases": release_value_list,
+                "environments": environments_list,
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "snuba_result_count": len(snuba_results),
+                "eap_result_count": len(eap_results),
+            },
         )
 
     return results
@@ -187,7 +198,7 @@ def _get_errors_counts_timeseries_eap(
                     }
                 )
 
-        transformed.sort(key=lambda x: x["time"], reverse=True)
+        transformed.sort(key=lambda row: row["time"], reverse=True)
 
         return transformed
 
@@ -201,3 +212,25 @@ def _get_errors_counts_timeseries_eap(
             },
         )
         return []
+
+
+def _reasonable_timeseries_match(
+    snuba_results: list[dict[str, Any]], eap_results: list[dict[str, Any]]
+) -> bool:
+    snuba_by_key = {
+        (row["release"], int(row["project_id"]), row["environment"], row["time"]): int(
+            row["count()"]
+        )
+        for row in snuba_results
+    }
+    eap_by_key = {
+        (row["release"], int(row["project_id"]), row["environment"], row["time"]): int(
+            row["count()"]
+        )
+        for row in eap_results
+    }
+
+    if not set(eap_by_key).issubset(set(snuba_by_key)):
+        return False
+
+    return all(eap_count <= snuba_by_key[key] for key, eap_count in eap_by_key.items())
