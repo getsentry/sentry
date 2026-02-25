@@ -152,6 +152,8 @@ type GetsentryEventParameters = {
   'growth.upsell_feature.cancelled': UpsellProvider;
   'growth.upsell_feature.clicked': UpsellProvider;
   'growth.upsell_feature.confirmed': UpsellProvider;
+  'intercom_link.clicked': {source?: string};
+  'intercom_link.viewed': {source?: string};
   'learn_more_link.clicked': {source?: string};
   'ondemand_budget_modal.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
   'ondemand_budget_modal.ondemand_budget.update': OnDemandBudgetUpdate;
@@ -368,9 +370,11 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'upgrade_now.modal.sent_email': 'Upgrade Now Modal: Sent Email',
   'upgrade_now.modal.update_now': 'Upgrade Now Modal: Clicked Update Now',
   'upgrade_now.modal.viewed': 'Upgrade Now Modal: Viewed Modal',
-  'zendesk_link.viewed': 'Zendesk Link Viewed',
-  'zendesk_link.clicked': 'Zendesk Link Clicked',
+  'intercom_link.clicked': 'Intercom Link Clicked',
+  'intercom_link.viewed': 'Intercom Link Viewed',
   'learn_more_link.clicked': 'Learn More Link Clicked',
+  'zendesk_link.clicked': 'Zendesk Link Clicked',
+  'zendesk_link.viewed': 'Zendesk Link Viewed',
   'spend_allocations.open_form': 'Spend Allocations: Form Opened',
   'spend_allocations.submit': 'Spend Allocations: Form Submitted',
   'data_consent_modal.learn_more': 'Data Consent Modal: Learn More',
