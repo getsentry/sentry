@@ -13,7 +13,9 @@ class CodingAgent(models.TextChoices):
     CURSOR = "cursor", "Cursor"
 
 
-# Agents that require an integration to be configured
+# Agents that require an integration to be configured.
+# Validated at the API/serializer layer (not via DB constraint) so that adding
+# new agents doesn't require a migration to update a CheckConstraint.
 INTEGRATION_REQUIRED_AGENTS: frozenset[str] = frozenset({CodingAgent.CURSOR})
 
 
