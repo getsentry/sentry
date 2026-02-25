@@ -1,3 +1,5 @@
+import datetime
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -11,10 +13,10 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.users.models.identity import Identity
 
 
@@ -212,80 +214,57 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
 
-class TestGetTop5IssuesByCountEAP(TestCase):
+class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
+    FROZEN_TIME = datetime.datetime(2026, 2, 12, 6, 0, 0, tzinfo=datetime.UTC)
+
     def setUp(self) -> None:
         super().setUp()
         self.integration = MockCommitContextIntegration()
         self.pr_comment_workflow = GitHubPRCommentWorkflow(self.integration)
 
-    @patch(
-        "sentry.integrations.source_code_management.commit_context.PRCommentWorkflow._get_top_5_issues_by_count_eap"
-    )
-    @patch(
-        "sentry.integrations.source_code_management.commit_context.PRCommentWorkflow._get_top_5_issues_by_count_snuba"
-    )
-    def test_uses_snuba_as_source_of_truth(
-        self,
-        mock_snuba: MagicMock,
-        mock_eap: MagicMock,
-    ) -> None:
-        mock_snuba.return_value = [
-            {"group_id": 1, "event_count": 100},
-            {"group_id": 2, "event_count": 50},
-        ]
-        mock_eap.return_value = [
-            {"group_id": 1, "event_count": 90},
-            {"group_id": 2, "event_count": 45},
-        ]
+    def _query_both(
+        self, issue_ids: list[int]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        snuba_result = self.pr_comment_workflow._get_top_5_issues_by_count_snuba(
+            issue_ids, self.project
+        )
+        eap_result = self.pr_comment_workflow._get_top_5_issues_by_count_eap(
+            issue_ids, self.project
+        )
+        return snuba_result, eap_result
 
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
-            result = self.pr_comment_workflow.get_top_5_issues_by_count([1, 2], self.project)
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_return_same_top_issues(self) -> None:
+        ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
+        group_a = self.store_events_to_snuba_and_eap("group-a", count=5, timestamp=ts)[0].group_id
+        group_b = self.store_events_to_snuba_and_eap("group-b", count=3, timestamp=ts)[0].group_id
+        group_c = self.store_events_to_snuba_and_eap("group-c", count=1, timestamp=ts)[0].group_id
+        assert group_a is not None
+        assert group_b is not None
+        assert group_c is not None
 
-        # Should use Snuba results by default
-        assert result == [
-            {"group_id": 1, "event_count": 100},
-            {"group_id": 2, "event_count": 50},
-        ]
-        mock_snuba.assert_called_once()
-        mock_eap.assert_called_once()
+        snuba_result, eap_result = self._query_both([group_a, group_b, group_c])
 
-    @patch(
-        "sentry.integrations.source_code_management.commit_context.PRCommentWorkflow._get_top_5_issues_by_count_eap"
-    )
-    @patch(
-        "sentry.integrations.source_code_management.commit_context.PRCommentWorkflow._get_top_5_issues_by_count_snuba"
-    )
-    def test_uses_eap_as_source_of_truth(
-        self,
-        mock_snuba: MagicMock,
-        mock_eap: MagicMock,
-    ) -> None:
-        mock_snuba.return_value = [
-            {"group_id": 1, "event_count": 100},
-            {"group_id": 2, "event_count": 50},
-        ]
-        mock_eap.return_value = [
-            {"group_id": 1, "event_count": 90},
-            {"group_id": 2, "event_count": 45},
-        ]
+        snuba_counts = {r["group_id"]: r["event_count"] for r in snuba_result}
+        eap_counts = {r["group_id"]: int(r["event_count"]) for r in eap_result}
 
-        with self.options(
-            {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
-                    "integrations.pr_comment.get_top_5_issues_by_count"
-                ],
-            }
-        ):
-            result = self.pr_comment_workflow.get_top_5_issues_by_count([1, 2], self.project)
+        assert snuba_counts == {group_a: 5, group_b: 3, group_c: 1}
+        assert eap_counts == snuba_counts
 
-        # Should use EAP results when in allowlist
-        assert result == [
-            {"group_id": 1, "event_count": 90},
-            {"group_id": 2, "event_count": 45},
-        ]
-        mock_snuba.assert_called_once()
-        mock_eap.assert_called_once()
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_isolate_groups(self) -> None:
+        ts = (self.FROZEN_TIME - datetime.timedelta(minutes=5)).timestamp()
+        group_a = self.store_events_to_snuba_and_eap("group-a", count=3, timestamp=ts)[0].group_id
+        assert group_a is not None
+        self.store_events_to_snuba_and_eap("group-b", count=2, timestamp=ts)
+
+        snuba_result, eap_result = self._query_both([group_a])
+
+        snuba_groups = {r["group_id"] for r in snuba_result}
+        eap_groups = {r["group_id"] for r in eap_result}
+
+        assert snuba_groups == {group_a}
+        assert eap_groups == snuba_groups
 
     def test_empty_issue_ids_returns_empty(self) -> None:
         result = self.pr_comment_workflow.get_top_5_issues_by_count([], self.project)

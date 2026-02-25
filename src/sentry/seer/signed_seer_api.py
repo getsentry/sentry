@@ -8,9 +8,23 @@ import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
+from sentry.net.http import connection_from_url
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+seer_summarization_default_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL,
+)
+
+seer_autofix_default_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+)
+
+seer_anomaly_detection_default_connection_pool = connection_from_url(
+    settings.SEER_ANOMALY_DETECTION_URL,
+)
 
 
 @sentry_sdk.tracing.trace

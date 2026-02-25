@@ -1,12 +1,12 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -39,6 +39,7 @@ export function ReplayOnboardingLayout({
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -144,17 +145,22 @@ export function ReplayOnboardingLayout({
       <TabSelectionScope>
         <Wrapper>
           {introduction && <Stack margin="0 0 xl 0">{introduction}</Stack>}
-          <CopySetupInstructionsGate>
-            <Container paddingBottom="md">
-              <OnboardingCopyMarkdownButton
-                steps={transformedSteps}
-                source="replay_onboarding"
-              />
-            </Container>
-          </CopySetupInstructionsGate>
           <Stack gap="lg">
             {transformedSteps.map((step, index) => (
-              <Step key={step.title ?? step.type} stepIndex={index} {...step} />
+              <Step
+                key={step.title ?? step.type}
+                stepIndex={index}
+                {...step}
+                trailingItems={
+                  index === 0 && copyEnabled ? (
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={transformedSteps}
+                      source="replay_onboarding"
+                    />
+                  ) : undefined
+                }
+              />
             ))}
           </Stack>
         </Wrapper>

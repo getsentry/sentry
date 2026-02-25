@@ -39,13 +39,13 @@ const NativeHiddenCheckbox = styled('input')<{
 
   + div {
     background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
-    border-top: 3px solid ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+    border-top: 2px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border-right: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+      ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border-bottom: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+      ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border-left: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+      ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
 
     transition: all ${p => p.theme.motion.spring.moderate};
 
@@ -90,18 +90,18 @@ const NativeHiddenCheckbox = styled('input')<{
       transform: scale(1) translate(-50%, -50%);
     }
 
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.accent.background};
 
-    border-top: 3px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    border-top: 2px solid ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-right: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+      ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-bottom: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
-    border-left: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+      ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
+    border-left: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
 
     > div {
       background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
-      border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
+      border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
       transform: translateY(-1px) translateX(-1px)
         translateX(
           ${p =>
