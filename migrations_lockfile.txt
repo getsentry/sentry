@@ -21,9 +21,9 @@ monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0003_notification_thread_models
+notifications: 0004_notificationmessage_group_action_date_added_idx
 
-preprod: 0026_add_initial_snapshot_models
+preprod: 0027_add_distribution_state_fields
 
 prevent: 0004_delete_prevent_ai_configuration_table
 
@@ -31,7 +31,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-sentry: 1030_add_commitcomparison_extras
+sentry: 1033_remove_grouprelease_group_id_last_seen_idx
 
 social_auth: 0003_social_auth_json_field
 
@@ -39,4 +39,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0054_delete_bad_assertions
 
-workflow_engine: 0107_fix_email_action_fallthrough_type
+workflow_engine: 0108_remove_sentry_app_identifier_from_action

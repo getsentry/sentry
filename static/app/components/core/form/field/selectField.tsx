@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useRef, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
@@ -14,9 +14,15 @@ function SelectInput({
   selectProps,
   ...props
 }: React.ComponentProps<typeof components.Input> & {
-  selectProps: {'aria-invalid': boolean};
+  selectProps: {'aria-invalid': boolean; inputRef: Ref<{input: HTMLInputElement}>};
 }) {
-  return <components.Input {...props} aria-invalid={selectProps['aria-invalid']} />;
+  return (
+    <components.Input
+      {...props}
+      {...{ref: selectProps.inputRef}}
+      aria-invalid={selectProps['aria-invalid']}
+    />
+  );
 }
 
 function SelectIndicatorsContainer({
@@ -31,38 +37,76 @@ function SelectIndicatorsContainer({
   );
 }
 
-// Base props shared by both single and multiple select
+// Base props shared by all select variants
 type BaseSelectFieldProps = BaseFieldProps &
   Omit<
     React.ComponentProps<typeof Select>,
-    'value' | 'onChange' | 'onBlur' | 'disabled' | 'multiple' | 'multi'
+    | 'value'
+    | 'onChange'
+    | 'onBlur'
+    | 'disabled'
+    | 'multiple'
+    | 'multi'
+    | 'clearable'
+    | 'id'
   > & {
     disabled?: boolean | string;
   };
 
-// Single select (default)
-interface SingleSelectFieldProps extends BaseSelectFieldProps {
-  onChange: (value: string) => void;
-  value: string;
+// Helper type for non-array constraint
+type NonArray<T> = T extends readonly unknown[] ? never : T;
+
+// Single select WITHOUT clearable - onChange receives TValue (never null)
+interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps {
+  onChange: (value: NonArray<TValue>) => void;
+  value: NonArray<TValue> | null;
+  clearable?: false;
   multiple?: false;
 }
 
-// Multiple select
-interface MultipleSelectFieldProps extends BaseSelectFieldProps {
-  multiple: true;
-  onChange: (value: string[]) => void;
-  value: string[];
+// Single select WITH clearable - onChange can receive TValue | null
+interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps {
+  clearable: true;
+  onChange: (value: NonArray<TValue> | null) => void;
+  value: NonArray<TValue> | null;
+  multiple?: false;
 }
 
-export type SelectFieldProps = SingleSelectFieldProps | MultipleSelectFieldProps;
+// Multiple select - TValue must be an array
+interface MultipleSelectFieldProps<TValue> extends BaseSelectFieldProps {
+  multiple: true;
+  onChange: (value: TValue extends readonly unknown[] ? TValue : never) => void;
+  value: TValue extends readonly unknown[] ? TValue : never;
+  clearable?: boolean;
+}
 
-export function SelectField({
+export type SelectFieldProps<TValue = string> =
+  | SingleUnclearableSelectFieldProps<TValue>
+  | SingleClearableSelectFieldProps<TValue>
+  | MultipleSelectFieldProps<TValue>;
+
+// HACK: react-select types are bad, ref is a custom StateManager
+// This converts the `ref` value of SelectInput into a format
+// that works for BaseField, which expects `fieldProps.ref: Ref<HTMLElement>`
+const applyInputToRef =
+  (ref: Ref<HTMLElement>) =>
+  (instance: null | {input: HTMLInputElement}): void => {
+    if (instance) {
+      if (typeof ref === 'function') {
+        ref(instance.input);
+      } else if (ref) {
+        ref.current = instance.input;
+      }
+    }
+  };
+
+export function SelectField<TValue = string>({
   onChange,
   disabled,
   multiple,
   value,
   ...props
-}: SelectFieldProps) {
+}: SelectFieldProps<TValue>) {
   const autoSaveContext = useAutoSaveContext();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
   const disabledReason = typeof disabled === 'string' ? disabled : undefined;
@@ -72,7 +116,7 @@ export function SelectField({
 
   return (
     <BaseField>
-      {({id, ...fieldProps}) => {
+      {({id, ref, ...fieldProps}) => {
         const select = (
           <Select
             {...fieldProps}
@@ -81,6 +125,7 @@ export function SelectField({
             disabled={isDisabled}
             multiple={multiple}
             value={value}
+            inputRef={applyInputToRef(ref)}
             components={{
               ...props.components,
               Input: SelectInput,
@@ -98,22 +143,29 @@ export function SelectField({
                 fieldProps.onBlur();
               }
             }}
-            onChange={(option: SelectValue<string> | Array<SelectValue<string>>) => {
+            onChange={(
+              option: SelectValue<TValue> | Array<SelectValue<TValue>> | null
+            ) => {
               if (multiple) {
                 // For multi-select, option is an array
-                const values = Array.isArray(option)
-                  ? option.map(o => o?.value ?? '').filter(Boolean)
-                  : [];
-                (onChange as (value: string[]) => void)(values);
+                (onChange as (value: TValue[]) => void)(
+                  Array.isArray(option) ? option.map(o => o.value) : []
+                );
                 // For multi-select in auto-save context, trigger save when menu is closed
                 // (e.g., clicking X on a tag or clear all while menu is not open)
                 if (autoSaveContext && !isMenuOpenRef.current) {
                   fieldProps.onBlur();
                 }
               } else {
+                if (!option) {
+                  // Clearable single select - type system allows null via discriminated union
+                  (onChange as (value: TValue | null) => void)(null);
+                  return;
+                }
                 // For single-select, option is a single value
-                const val = (option as SelectValue<string>)?.value ?? '';
-                (onChange as (value: string) => void)(val);
+                (onChange as (value: TValue) => void)(
+                  (option as SelectValue<TValue>).value
+                );
               }
             }}
           />

@@ -1,7 +1,13 @@
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {uniqueId} from 'sentry/utils/guid';
-import type {AndOp, Assertion, Op} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  ComparisonType,
+  OpType,
+  type AndOp,
+  type Assertion,
+  type Op,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionOpGroup} from './opGroup';
 
@@ -11,19 +17,19 @@ import {AssertionOpGroup} from './opGroup';
  */
 export function normalizeAssertion(op: Op): Op {
   switch (op.op) {
-    case 'status_code_check':
+    case OpType.STATUS_CODE_CHECK:
       return {
         ...op,
         // Default to 200 if NaN (e.g., user cleared input and submitted without blur)
         value: isNaN(op.value) ? 200 : Math.max(100, Math.min(599, op.value)),
       };
-    case 'and':
-    case 'or':
+    case OpType.AND:
+    case OpType.OR:
       return {
         ...op,
         children: op.children.map(normalizeAssertion),
       };
-    case 'not':
+    case OpType.NOT:
       return {
         ...op,
         operand: normalizeAssertion(op.operand),
@@ -40,7 +46,7 @@ export function normalizeAssertion(op: Op): Op {
  */
 export function createEmptyAssertionRoot(): AndOp {
   return {
-    op: 'and',
+    op: OpType.AND,
     id: uniqueId(),
     children: [],
   };
@@ -51,19 +57,19 @@ export function createEmptyAssertionRoot(): AndOp {
  */
 function createDefaultAssertionRoot(): AndOp {
   return {
-    op: 'and',
+    op: OpType.AND,
     id: uniqueId(),
     children: [
       {
-        op: 'status_code_check',
+        op: OpType.STATUS_CODE_CHECK,
         id: uniqueId(),
-        operator: {cmp: 'greater_than'},
+        operator: {cmp: ComparisonType.GREATER_THAN},
         value: 199,
       },
       {
-        op: 'status_code_check',
+        op: OpType.STATUS_CODE_CHECK,
         id: uniqueId(),
-        operator: {cmp: 'less_than'},
+        operator: {cmp: ComparisonType.LESS_THAN},
         value: 300,
       },
     ],

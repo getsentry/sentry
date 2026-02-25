@@ -303,8 +303,8 @@ def _get_user(validated_event: dict[str, Any]) -> tuple[str, int]:
     except ValidationError:
         pass
 
-    if "createdByUserId" in validated_event:
-        return validated_event["createdByUserId"], CREATED_BY_TYPE_MAP["id"]
+    if validated_event.get("createdByUserId") is not None:
+        return str(validated_event["createdByUserId"]), CREATED_BY_TYPE_MAP["id"]
     return created_by, CREATED_BY_TYPE_MAP["name"]
 
 
@@ -504,7 +504,7 @@ class FlagAuditLogItem(TypedDict):
     flag: str
     created_at: datetime.datetime
     created_by: str
-    tags: dict[str, str]
+    tags: dict[str, Any]
 
 
 def handle_flag_pole_event_internal(items: list[FlagAuditLogItem], organization_id: int) -> None:

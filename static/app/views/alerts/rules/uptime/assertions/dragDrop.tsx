@@ -12,7 +12,7 @@ import {restrictToVerticalAxis} from '@dnd-kit/modifiers';
 
 import {Container} from '@sentry/scraps/layout';
 
-import type {LogicalOp, Op} from 'sentry/views/alerts/rules/uptime/types';
+import {OpType, type LogicalOp, type Op} from 'sentry/views/alerts/rules/uptime/types';
 
 import {isAfterOp, moveTo} from './utils';
 
@@ -76,7 +76,7 @@ export function DroppableHitbox(props: DroppableProps) {
     disabled: dropzoneDisabled,
   });
 
-  const isGroup = op.op === 'and' || op.op === 'or' || op.op === 'not';
+  const isGroup = op.op === OpType.AND || op.op === OpType.OR || op.op === OpType.NOT;
 
   const offsetConfig = {
     before: {bottom: isGroup ? 'calc(100% - 10px)' : '50%'},
@@ -117,7 +117,7 @@ export function DropHandler({rootOp, onChange}: DropHandlerProps) {
       const {active, over} = event;
 
       // the root op should ALWAYS be `and`, but the typing doesn't strictly enforce that
-      if (rootOp.op !== 'and') {
+      if (rootOp.op !== OpType.AND) {
         return;
       }
 

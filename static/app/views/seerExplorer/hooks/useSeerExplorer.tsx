@@ -64,10 +64,6 @@ const OPTIMISTIC_ASSISTANT_TEXTS = [
   'Scanning the error-waves...',
 ] as const;
 
-const makeInitialSeerExplorerData = (): SeerExplorerResponse => ({
-  session: null,
-});
-
 const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse => ({
   session: {
     run_id: undefined,
@@ -161,24 +157,21 @@ export const useSeerExplorer = () => {
     data: apiData,
     isPending,
     isError,
-  } = useApiQuery<SeerExplorerResponse>(
-    makeSeerExplorerQueryKey(orgSlug || '', runId || undefined),
-    {
-      staleTime: 0,
-      retry: false,
-      enabled: !!runId && !!orgSlug,
-      refetchInterval: query => {
-        // Always poll when Seer drawer is open (actions triggered from drawer need updates)
-        if (isSeerDrawerOpen) {
-          return POLL_INTERVAL;
-        }
-        if (isPolling(query.state.data?.[0]?.session || null, waitingForResponse)) {
-          return POLL_INTERVAL;
-        }
-        return false;
-      },
-    } as UseApiQueryOptions<SeerExplorerResponse, RequestError>
-  );
+  } = useApiQuery<SeerExplorerResponse>(makeSeerExplorerQueryKey(orgSlug || '', runId), {
+    staleTime: 0,
+    retry: false,
+    enabled: !!runId && !!orgSlug,
+    refetchInterval: query => {
+      // Always poll when Seer drawer is open (actions triggered from drawer need updates)
+      if (isSeerDrawerOpen) {
+        return POLL_INTERVAL;
+      }
+      if (isPolling(query.state.data?.[0]?.session || null, waitingForResponse)) {
+        return POLL_INTERVAL;
+      }
+      return false;
+    },
+  } as UseApiQueryOptions<SeerExplorerResponse, RequestError>);
 
   const sendMessage = useCallback(
     async (query: string, insertIndex?: number, explicitRunId?: number | null) => {
@@ -252,7 +245,7 @@ export const useSeerExplorer = () => {
 
       try {
         const response = (await api.requestPromise(
-          `/organizations/${orgSlug}/seer/explorer-chat/${effectiveRunId ? `${effectiveRunId}/` : ''}`,
+          makeSeerExplorerQueryKey(orgSlug, effectiveRunId)[0],
           {
             method: 'POST',
             data: {
@@ -275,11 +268,15 @@ export const useSeerExplorer = () => {
       } catch (e: any) {
         setWaitingForResponse(false);
         setOptimistic(null);
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(orgSlug, effectiveRunId || undefined),
-          makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
-        );
+        if (effectiveRunId !== null) {
+          // API data is disabled for null runId (new runs).
+          setApiQueryData<SeerExplorerResponse>(
+            queryClient,
+            makeSeerExplorerQueryKey(orgSlug, effectiveRunId),
+            makeErrorSeerExplorerData(e?.responseJSON?.detail ?? 'An error occurred')
+          );
+        }
+        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to send message');
       }
     },
     [
@@ -540,14 +537,7 @@ export const useSeerExplorer = () => {
     setOptimistic(null);
     setInterruptRequested(false);
     setWasJustInterrupted(false);
-    if (orgSlug) {
-      setApiQueryData<SeerExplorerResponse>(
-        queryClient,
-        makeSeerExplorerQueryKey(orgSlug),
-        makeInitialSeerExplorerData()
-      );
-    }
-  }, [queryClient, orgSlug, setRunId]);
+  }, [setRunId]);
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(

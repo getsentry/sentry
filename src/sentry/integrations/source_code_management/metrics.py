@@ -55,6 +55,10 @@ class SCMIntegrationInteractionType(StrEnum):
     # Rate Limiting
     GET_RATE_LIMIT = "get_rate_limit"
 
+    # Repo Trees
+    GET_REPOSITORIES = "get_repositories"
+    GET_REPO_TREE = "get_repo_tree"
+
 
 @dataclass
 class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):

@@ -43,6 +43,7 @@ interface StepProps {
   isCompleted?: boolean;
   onClick?: () => void;
   optional?: boolean;
+  trailingItems?: React.ReactNode;
 }
 
 type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
@@ -158,18 +159,42 @@ function Step(props: StepProps) {
     }
   }, [advanceToNextIncompleteStep, isActive, isCompleted, previousIsCompleted]);
 
+  const headingContent = (
+    <StepButton
+      hasTrailingItems={!!props.trailingItems}
+      disabled={!props.onClick}
+      onClick={props.onClick}
+    >
+      <Flex align="center" gap="lg">
+        <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
+        <StepHeading isActive={isActive}>
+          {props.title}
+          {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
+        </StepHeading>
+        {props.onClick ? <InteractionStateLayer /> : null}
+      </Flex>
+    </StepButton>
+  );
+
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
-      <StepButton area="heading" disabled={!props.onClick} onClick={props.onClick}>
-        <Flex align="center" gap="lg">
-          <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
-          <StepHeading isActive={isActive}>
-            {props.title}
-            {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
-          </StepHeading>
-          {props.onClick ? <InteractionStateLayer /> : null}
+      {props.trailingItems ? (
+        <Flex
+          direction={{xs: 'column', md: 'row'}}
+          align={{xs: 'start', md: 'center'}}
+          paddingLeft={{xs: 'lg', md: '0'}}
+          justify="between"
+          gap="sm"
+          area="heading"
+        >
+          {headingContent}
+          <Flex align="center" onClick={e => e.stopPropagation()}>
+            {props.trailingItems}
+          </Flex>
         </Flex>
-      </StepButton>
+      ) : (
+        headingContent
+      )}
 
       <StepDetails>
         {props.optional ? <StepOptionalLabel>Optional</StepOptionalLabel> : null}
@@ -262,8 +287,11 @@ const StepWrapper = styled('div')`
   }
 `;
 
-const StepButton = styled('button')<{area: string}>`
-  grid-area: ${p => p.area};
+const StepButton = styled('button')<{hasTrailingItems: boolean}>`
+  ${p =>
+    p.hasTrailingItems
+      ? `flex: 1; min-width: 0; text-align: left;`
+      : `grid-area: heading;`}
 
   position: relative;
   background: none;

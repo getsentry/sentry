@@ -7,7 +7,12 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
-from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message, SeerRunState
+from sentry.seer.explorer.client_models import (
+    Artifact,
+    MemoryBlock,
+    Message,
+    SeerRunState,
+)
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 
@@ -455,7 +460,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 ),
             ]
         )
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
         mock_get_prefs.return_value = self._make_preference_response()
 
         trigger_coding_agent_handoff(
@@ -479,7 +487,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
         mock_get_prefs.return_value = self._make_preference_response()
 
         # Set a specific title on the group
@@ -504,7 +515,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
 
         # Set up preferences with auto_create_pr=True
         mock_get_prefs.return_value = self._make_preference_response(auto_create_pr=True)
@@ -527,7 +541,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_client.launch_coding_agents.return_value = {
+            "successes": [],
+            "failures": [],
+        }
         # Use helper with default args: repos are set but auto_create_pr=False (no handoff config)
         mock_get_prefs.return_value = self._make_preference_response()
 

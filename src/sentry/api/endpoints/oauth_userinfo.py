@@ -85,6 +85,9 @@ class OAuthUserInfoEndpoint(Endpoint):
         except ApiToken.DoesNotExist:
             raise BearerTokenInvalid()
 
+        if token_details.is_expired():
+            raise BearerTokenInvalid()
+
         scopes = token_details.get_scopes()
         if "openid" not in scopes:
             raise BearerTokenInsufficientScope()

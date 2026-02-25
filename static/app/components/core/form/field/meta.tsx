@@ -6,7 +6,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-function HintText(props: {children: string}) {
+function HintText(props: {children: React.ReactNode}) {
   const id = useHintTextId();
 
   return (
@@ -20,7 +20,11 @@ function HintText(props: {children: string}) {
   );
 }
 
-function Label(props: {children: string; description?: string; required?: boolean}) {
+function Label(props: {
+  children: React.ReactNode;
+  description?: React.ReactNode;
+  required?: boolean;
+}) {
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
 
@@ -34,7 +38,7 @@ function Label(props: {children: string; description?: string; required?: boolea
     <Container width="fit-content">
       {containerProps => (
         <Flex gap="xs">
-          <Text {...containerProps} as="label" htmlFor={fieldId}>
+          <Text {...containerProps} as="label" htmlFor={fieldId} bold={false}>
             {labelContent}
           </Text>
           {props.required ? <RequiredIndicator /> : null}
