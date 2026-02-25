@@ -436,14 +436,33 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 },
             )
 
-        # Only decide distribution once per artifact
-        # (guards against launchpad retries overwriting a decided state).
-        if head_artifact.installable_app_error_code is None:
-            if "installable_app_error_code" in data:
-                head_artifact.installable_app_error_code = data["installable_app_error_code"]
-                head_artifact.installable_app_error_message = data.get(
-                    "installable_app_error_message"
+        # Always accept explicit distribution state from launchpad so reruns
+        # can overwrite a previous decision.
+        if "installable_app_error_code" in data:
+            head_artifact.installable_app_error_code = data["installable_app_error_code"]
+            head_artifact.installable_app_error_message = data.get("installable_app_error_message")
+            head_artifact.save(
+                update_fields=[
+                    "installable_app_error_code",
+                    "installable_app_error_message",
+                    "date_updated",
+                ]
+            )
+        elif head_artifact.installable_app_error_code is None:
+            # Only auto-evaluate distribution if not yet decided
+            # (guards against launchpad retries re-running the check).
+            can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)
+            if can_run_distro:
+                requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
+            else:
+                skip_reason_to_error_code = {
+                    "quota": PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
+                }
+                head_artifact.installable_app_error_code = skip_reason_to_error_code.get(
+                    distro_skip_reason or "",
+                    PreprodArtifact.InstallableAppErrorCode.SKIPPED,
                 )
+                head_artifact.installable_app_error_message = distro_skip_reason
                 head_artifact.save(
                     update_fields=[
                         "installable_app_error_code",
@@ -451,26 +470,6 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                         "date_updated",
                     ]
                 )
-            else:
-                can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)
-                if can_run_distro:
-                    requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
-                else:
-                    skip_reason_to_error_code = {
-                        "quota": PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
-                    }
-                    head_artifact.installable_app_error_code = skip_reason_to_error_code.get(
-                        distro_skip_reason or "",
-                        PreprodArtifact.InstallableAppErrorCode.SKIPPED,
-                    )
-                    head_artifact.installable_app_error_message = distro_skip_reason
-                    head_artifact.save(
-                        update_fields=[
-                            "installable_app_error_code",
-                            "installable_app_error_message",
-                            "date_updated",
-                        ]
-                    )
 
         return Response(
             {

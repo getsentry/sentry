@@ -685,6 +685,28 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert self.preprod_artifact.installable_app_error_message == "simulator"
         assert "build_distribution" not in response.json()["requestedFeatures"]
 
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_explicit_error_code_overwrites_existing(self) -> None:
+        self.preprod_artifact.installable_app_error_code = (
+            PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
+        )
+        self.preprod_artifact.installable_app_error_message = "quota"
+        self.preprod_artifact.save()
+
+        data = {
+            "installable_app_error_code": PreprodArtifact.InstallableAppErrorCode.PROCESSING_ERROR,
+            "installable_app_error_message": "build failed",
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        assert (
+            self.preprod_artifact.installable_app_error_code
+            == PreprodArtifact.InstallableAppErrorCode.PROCESSING_ERROR
+        )
+        assert self.preprod_artifact.installable_app_error_message == "build failed"
+
 
 class FindOrCreateReleaseTest(TestCase):
     def test_exact_version_matching_prevents_incorrect_matches(self):
