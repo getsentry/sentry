@@ -50,9 +50,10 @@ const COMPACT_SELECT_OPTIONS = [
   },
 ];
 
-// Pre-computed hint string produced by buildAllowedHint() for the config above
-const ALLOWED_HINT =
-  "MenuComponents.HeaderButton, MenuComponents.LinkButton, MenuComponents.CTAButton, MenuComponents.CTALinkButton, MenuComponents.ApplyButton, MenuComponents.CancelButton, MenuComponents.Alert from '@sentry/scraps/compactSelect', or Flex, Stack, Grid, Container from '@sentry/scraps/layout'";
+// Derive the hint from the config the same way the rule does internally.
+const ALLOWED_HINT = COMPACT_SELECT_OPTIONS[0]?.slots[0]?.allowed
+  .map(entry => `${entry.names.join(', ')} from '${entry.source}'`)
+  .join(', or ');
 
 /**
  * Shorthand for an expected "forbidden" error for a given element name and prop.
