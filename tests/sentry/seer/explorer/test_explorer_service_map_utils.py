@@ -1152,7 +1152,7 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
                 build_service_map(self.organization.id)
 
         mock_send.assert_called_once()
-        _, nodes = mock_send.call_args[0]
+        _, nodes, _ = mock_send.call_args[0]
 
         node_by_slug = {n["project_slug"]: n for n in nodes}
 
