@@ -846,6 +846,34 @@ class GitHubCommitContextClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_get_check_run(self, get_jwt) -> None:
+        repo_name = "getsentry/sentry"
+        check_run_id = 123456
+
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{repo_name}/check-runs/{check_run_id}",
+            json={
+                "id": check_run_id,
+                "name": "Seer Code Review",
+                "head_sha": "abc123",
+                "status": "in_progress",
+                "conclusion": None,
+                "started_at": "2026-02-17T12:00:00Z",
+                "details_url": "https://example.com/check/123456",
+            },
+            status=200,
+        )
+
+        result = self.github_client.get_check_run(repo_name, check_run_id)
+
+        assert result["id"] == check_run_id
+        assert result["name"] == "Seer Code Review"
+        assert result["status"] == "in_progress"
+        assert result["conclusion"] is None
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_check_runs(self, get_jwt) -> None:
         repo_name = "getsentry/sentry"
         sha = "abc123"

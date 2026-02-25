@@ -144,6 +144,20 @@ def create_issue_category_filter(
     return {}, [payload]
 
 
+def create_issue_type_filter(
+    data_condition: DataCondition, is_filter: bool = False
+) -> ConditionAndFilters:
+    payload: dict[str, Any] = {
+        "id": "sentry.rules.filters.issue_type.IssueTypeFilter",
+        "value": str(data_condition.comparison["value"]),
+    }
+    include = data_condition.comparison.get("include")
+    if isinstance(include, bool):
+        payload["include"] = "true" if include else "false"
+
+    return {}, [payload]
+
+
 def create_issue_occurrences_filter(
     data_condition: DataCondition, is_filter: bool = False
 ) -> ConditionAndFilters:
@@ -280,6 +294,7 @@ data_condition_to_rule_condition_mapping = {
     Condition.AGE_COMPARISON: create_age_comparison_filter,
     Condition.ASSIGNED_TO: create_assigned_to_filter,
     Condition.ISSUE_CATEGORY: create_issue_category_filter,
+    Condition.ISSUE_TYPE: create_issue_type_filter,
     Condition.ISSUE_OCCURRENCES: create_issue_occurrences_filter,
     Condition.LATEST_RELEASE: create_latest_release_filter,
     Condition.LATEST_ADOPTED_RELEASE: create_latest_adopted_release_filter,

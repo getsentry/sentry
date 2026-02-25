@@ -828,7 +828,7 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         organization={{
           ...organization,
-          features: [...organization.features, 'dashboards-mep'],
+          features: [...organization.features],
         }}
         widget={multipleQueryWidget}
         selection={selection}

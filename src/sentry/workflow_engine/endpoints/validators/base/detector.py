@@ -26,6 +26,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
+    log_alerting_quota_hit,
     toggle_detector,
 )
 from sentry.workflow_engine.models import (
@@ -148,6 +149,12 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         """
         detector_quota = self.get_quota()
         if detector_quota.has_exceeded:
+            request = self.context["request"]
+            log_alerting_quota_hit(
+                object_type=f"detector:{validated_data['type'].slug}",
+                organization=self.context["organization"],
+                actor=request.user if request.user.is_authenticated else None,
+            )
             raise serializers.ValidationError(
                 f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type'].slug} monitors."
             )

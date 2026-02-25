@@ -91,6 +91,7 @@ import {
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
+import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -526,6 +527,17 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                               // only add release series if there is series data
                               ...(series?.length > 0
                                 ? (modifiedReleaseSeriesResults ?? [])
+                                : []),
+                              ...(defined(widget.thresholds?.max_values.max1) ||
+                              defined(widget.thresholds?.max_values.max2)
+                                ? new ThresholdsPlottable({
+                                    thresholds: {
+                                      ...widget.thresholds,
+                                      preferredPolarity:
+                                        widget.thresholds?.preferredPolarity ?? '-',
+                                    },
+                                    dataType: outputType,
+                                  }).toSeries({theme})
                                 : []),
                             ],
                             onLegendSelectChanged: handleLegendSelectChange,

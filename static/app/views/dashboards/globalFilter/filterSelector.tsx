@@ -4,14 +4,17 @@ import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   HybridFilter,
-  HybridFilterComponents,
   useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
@@ -214,7 +217,6 @@ function FilterSelector({
       if (canSelectMultipleValues) {
         option.leadingItems = ({isSelected}: {isSelected: boolean}) => (
           <Checkbox
-            size="sm"
             checked={isSelected}
             onChange={() => hybridFilterRef.current?.toggleOption?.(value)}
             aria-label={t('Select %s', value)}
@@ -343,31 +345,23 @@ function FilterSelector({
         menuHeaderTrailingItems={({closeOverlay}) => (
           <Flex gap="lg">
             {activeFilterValues.length > 0 && (
-              <StyledButton
-                size="xs"
-                aria-label={t('Clear Selections')}
-                priority="transparent"
+              <MenuComponents.ClearButton
                 onClick={() => {
                   setSearchQuery('');
                   handleChange([]);
-                  closeOverlay();
                 }}
-              >
-                {t('Clear')}
-              </StyledButton>
+              />
             )}
             {!disableRemoveFilter && (
-              <StyledButton
-                size="xs"
+              <MenuComponents.HeaderButton
                 aria-label={t('Remove Filter')}
-                priority="transparent"
                 onClick={() => {
                   onRemoveFilter(globalFilter);
                   closeOverlay();
                 }}
               >
                 {t('Remove Filter')}
-              </StyledButton>
+              </MenuComponents.HeaderButton>
             )}
           </Flex>
         )}
@@ -384,11 +378,12 @@ function FilterSelector({
     <HybridFilter
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
-      searchable
+      search={{
+        placeholder: t('Search or enter a custom value...'),
+        onChange: setSearchQuery,
+      }}
       disabled={false}
       options={translatedOptions}
-      searchPlaceholder={t('Search or enter a custom value...')}
-      onSearch={setSearchQuery}
       sizeLimit={30}
       onClose={() => {
         setSearchQuery('');
@@ -402,10 +397,10 @@ function FilterSelector({
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton
+            <MenuComponents.CancelButton
               onClick={() => stagedSelect.removeStagedChanges()}
             />
-            <HybridFilterComponents.ApplyButton
+            <MenuComponents.ApplyButton
               onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
             />
           </Flex>
@@ -437,31 +432,22 @@ function FilterSelector({
       menuHeaderTrailingItems={({closeOverlay}) => (
         <Flex gap="lg">
           {activeFilterValues.length > 0 && (
-            <StyledButton
-              size="xs"
-              aria-label={t('Clear Selections')}
-              priority="transparent"
+            <MenuComponents.ClearButton
               onClick={() => {
                 setSearchQuery('');
                 handleChange([]);
-                closeOverlay();
               }}
-            >
-              {t('Clear')}
-            </StyledButton>
+            />
           )}
           {!disableRemoveFilter && (
-            <StyledButton
-              size="xs"
-              priority="transparent"
-              aria-label={t('Remove Filter')}
+            <MenuComponents.HeaderButton
               onClick={() => {
                 onRemoveFilter(globalFilter);
                 closeOverlay();
               }}
             >
               {t('Remove Filter')}
-            </StyledButton>
+            </MenuComponents.HeaderButton>
           )}
         </Flex>
       )}
@@ -491,14 +477,6 @@ const translateKnownFilterOptions = (
 };
 
 export default FilterSelector;
-
-const StyledButton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${p => p.theme.space.xs};
-  margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
-`;
 
 export const MenuTitleWrapper = styled('span')`
   display: inline-block;

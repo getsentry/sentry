@@ -196,8 +196,8 @@ importers:
         specifier: 2.40.0
         version: 2.40.0
       '@sentry/conventions':
-        specifier: ^0.3.1
-        version: 0.3.1
+        specifier: ^0.4.0
+        version: 0.4.0
       '@sentry/core':
         specifier: 10.27.0
         version: 10.27.0
@@ -3219,8 +3219,8 @@ packages:
     engines: {node: '>= 10'}
     hasBin: true
 
-  '@sentry/conventions@0.3.1':
-    resolution: {integrity: sha512-JjMmRjiD9bYm+8HYII95YLWMHYHMmasFr6v5uDsdGnVMxgK+QJKTcxRY0KYRLu+RMfO05oULzhrKqq5uQTNg0w==}
+  '@sentry/conventions@0.4.0':
+    resolution: {integrity: sha512-GP7BkRVtdta3vOoNKSSTJ2nkzN1s85i3iebPhwlvlNIIaqnlB741cIm7TO+6ApMfu6afBtMOfmzj4/PnFdmXHQ==}
     engines: {node: '>=14'}
 
   '@sentry/core@10.27.0':
@@ -12552,7 +12552,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@sentry/conventions@0.3.1': {}
+  '@sentry/conventions@0.4.0': {}
 
   '@sentry/core@10.27.0': {}
 

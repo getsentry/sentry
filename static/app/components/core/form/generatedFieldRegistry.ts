@@ -74,4 +74,182 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
   },
+  'account-emails.email': {
+    name: 'email',
+    formId: 'account-emails',
+    route: '/settings/account/emails/',
+    label: t('Additional Email'),
+    hintText: t('Designate an alternative email for this account'),
+  },
+  'notification-settings.personalActivityNotifications': {
+    name: 'personalActivityNotifications',
+    formId: 'notification-settings',
+    route: '/settings/account/notifications/',
+    label: t('My Own Activity'),
+    hintText: t('Notifications about your own actions on Sentry.'),
+  },
+  'notification-settings.selfAssignOnResolve': {
+    name: 'selfAssignOnResolve',
+    formId: 'notification-settings',
+    route: '/settings/account/notifications/',
+    label: t('Resolve and Auto-Assign'),
+    hintText: t("When you resolve an unassigned issue, we'll auto-assign it to you."),
+  },
+  'password-form.password': {
+    name: 'password',
+    formId: 'password-form',
+    route: '/settings/account/security/',
+    label: t('Current Password'),
+  },
+  'password-form.passwordNew': {
+    name: 'passwordNew',
+    formId: 'password-form',
+    route: '/settings/account/security/',
+    label: t('New Password'),
+  },
+  'password-form.passwordVerify': {
+    name: 'passwordVerify',
+    formId: 'password-form',
+    route: '/settings/account/security/',
+    label: t('Verify New Password'),
+    hintText: t('Verify your new password'),
+  },
+  'organization-settings-form.slug': {
+    name: 'slug',
+    formId: 'organization-settings-form',
+    route: '/settings/:orgId/',
+    label: t('Organization Slug'),
+    hintText: t('A unique ID used to identify this organization'),
+  },
+  'organization-settings-form.name': {
+    name: 'name',
+    formId: 'organization-settings-form',
+    route: '/settings/:orgId/',
+    label: t('Display Name'),
+    hintText: t('A human-friendly name for the organization'),
+  },
+  'organization-settings-form.organizationId': {
+    name: 'organizationId',
+    formId: 'organization-settings-form',
+    route: '/settings/:orgId/',
+    label: t('Organization ID'),
+    hintText: t('The unique identifier for this organization. It cannot be modified.'),
+  },
+  'organization-settings-form.isEarlyAdopter': {
+    name: 'isEarlyAdopter',
+    formId: 'organization-settings-form',
+    route: '/settings/:orgId/',
+    label: t('Early Adopter'),
+    hintText: '',
+  },
+  'organization-settings-form.hideAiFeatures': {
+    name: 'hideAiFeatures',
+    formId: 'organization-settings-form',
+    route: '/settings/:orgId/',
+    label: t('Show Generative AI Features'),
+    hintText: '',
+  },
+  'organization-security-and-privacy.require2FA': {
+    name: 'require2FA',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Require Two-Factor Authentication'),
+    hintText: t('Require and enforce two-factor authentication for all members'),
+  },
+  'organization-security-and-privacy.allowSharedIssues': {
+    name: 'allowSharedIssues',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Allow Shared Issues'),
+    hintText: t('Enable sharing of limited details on issues to anonymous users'),
+  },
+  'organization-security-and-privacy.enhancedPrivacy': {
+    name: 'enhancedPrivacy',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Enhanced Privacy'),
+    hintText: t(
+      'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications'
+    ),
+  },
+  'organization-security-and-privacy.scrapeJavaScript': {
+    name: 'scrapeJavaScript',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Allow JavaScript Source Fetching'),
+    hintText: t('Allow Sentry to scrape missing JavaScript source context when possible'),
+  },
+  'organization-security-and-privacy.storeCrashReports': {
+    name: 'storeCrashReports',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Store Minidumps As Attachments'),
+    hintText: t(
+      'Store minidumps as attachments for improved processing and download in issue details.'
+    ),
+  },
+  'organization-security-and-privacy.allowJoinRequests': {
+    name: 'allowJoinRequests',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Allow Join Requests'),
+    hintText: t('Allow users to request to join your organization'),
+  },
+  'organization-security-and-privacy.dataScrubber': {
+    name: 'dataScrubber',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Require Data Scrubber'),
+    hintText: t('Require server-side data scrubbing be enabled for all projects'),
+  },
+  'organization-security-and-privacy.dataScrubberDefaults': {
+    name: 'dataScrubberDefaults',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Require Using Default Scrubbers'),
+    hintText: t(
+      'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects'
+    ),
+  },
+  'organization-security-and-privacy.scrubIPAddresses': {
+    name: 'scrubIPAddresses',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Prevent Storing of IP Addresses'),
+    hintText: t(
+      'Preventing IP addresses from being stored for new events on all projects'
+    ),
+  },
+  'organization-security-and-privacy.sensitiveFields': {
+    name: 'sensitiveFields',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Global Sensitive Fields'),
+    hintText: t(
+      'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
+    ),
+  },
+  'organization-security-and-privacy.safeFields': {
+    name: 'safeFields',
+    formId: 'organization-security-and-privacy',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Global Safe Fields'),
+    hintText: t(
+      'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
+    ),
+  },
+  'team-settings.slug': {
+    name: 'slug',
+    formId: 'team-settings',
+    route: '/settings/:orgId/teams/:teamId/settings/',
+    label: t('Team Slug'),
+    hintText: t('A unique ID used to identify the team'),
+  },
+  'team-settings.teamId': {
+    name: 'teamId',
+    formId: 'team-settings',
+    route: '/settings/:orgId/teams/:teamId/settings/',
+    label: t('Team ID'),
+    hintText: t('The unique identifier for this team. It cannot be modified.'),
+  },
 };
