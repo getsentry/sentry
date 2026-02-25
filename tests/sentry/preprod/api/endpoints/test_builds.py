@@ -504,8 +504,6 @@ class BuildsEndpointTest(APITestCase):
 
     @with_feature("organizations:preprod-frontend-routes")
     def test_query_platform_name_apple(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
         self.create_preprod_artifact(
             app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
         )
@@ -521,8 +519,6 @@ class BuildsEndpointTest(APITestCase):
 
     @with_feature("organizations:preprod-frontend-routes")
     def test_query_platform_name_android(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
         self.create_preprod_artifact(
             app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
         )
@@ -542,8 +538,6 @@ class BuildsEndpointTest(APITestCase):
 
     @with_feature("organizations:preprod-frontend-routes")
     def test_query_platform_name_in(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
         self.create_preprod_artifact(
             app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
         )
@@ -563,8 +557,6 @@ class BuildsEndpointTest(APITestCase):
 
     @with_feature("organizations:preprod-frontend-routes")
     def test_query_platform_name_not_in(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
         self.create_preprod_artifact(
             app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
         )
@@ -825,8 +817,6 @@ class BuildsEndpointTest(APITestCase):
 
     @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_with_structured_filter(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
         cc = self.create_commit_comparison(
             organization=self.organization, head_ref="feature/awesome"
         )
@@ -899,30 +889,6 @@ class BuildsEndpointTest(APITestCase):
         assert self._request({"query": "size_state:[bogus, completed]"}).status_code == 400
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_excludes_builds_with_error_code(self) -> None:
-        self.create_preprod_artifact(app_id="visible.app")
-        self.create_preprod_artifact(
-            app_id="skipped.app",
-            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
-            installable_app_error_message="quota",
-        )
-
-        response = self._request({})
-        self._assert_is_successful(response)
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["app_info"]["app_id"] == "visible.app"
-
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_includes_builds_without_error_code(self) -> None:
-        self.create_preprod_artifact(app_id="legacy.app")
-        response = self._request({})
-        self._assert_is_successful(response)
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["app_info"]["app_id"] == "legacy.app"
-
-    @with_feature("organizations:preprod-frontend-routes")
     @patch("sentry.preprod.api.endpoints.builds.get_size_retention_cutoff")
     def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
         mock_cutoff.return_value = before_now(days=30)
@@ -959,7 +925,6 @@ class QuerysetForQueryTest(APITestCase):
 
     def test_queryset_for_query_platform_filter(self) -> None:
         from sentry.preprod.artifact_search import queryset_for_query
-        from sentry.preprod.models import PreprodArtifact
 
         ios_artifact = self.create_preprod_artifact(
             app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
@@ -1026,7 +991,6 @@ class QuerysetForQueryTest(APITestCase):
 
     def test_artifact_matches_query_complex_filter(self) -> None:
         from sentry.preprod.artifact_search import artifact_matches_query
-        from sentry.preprod.models import PreprodArtifact
 
         cc = self.create_commit_comparison(
             organization=self.organization, head_ref="feature/test", pr_number=123

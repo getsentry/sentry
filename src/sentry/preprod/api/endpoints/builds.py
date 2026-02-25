@@ -62,7 +62,6 @@ class BuildsEndpoint(OrganizationEndpoint):
         try:
             queryset = queryset_for_query(query, organization)
             queryset = queryset.filter(date_added__gte=cutoff)
-            queryset = queryset.exclude(installable_app_error_code__isnull=False)
             if start:
                 queryset = queryset.filter(date_added__gte=start)
             if end:

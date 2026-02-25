@@ -648,7 +648,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             self.preprod_artifact.installable_app_error_code
             == PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
         )
-        assert self.preprod_artifact.installable_app_error_message == "quota"
+        assert self.preprod_artifact.installable_app_error_message == "Distribution quota exceeded"
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_sets_error_code_skipped_when_filtered(self) -> None:
@@ -666,46 +666,10 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             self.preprod_artifact.installable_app_error_code
             == PreprodArtifact.InstallableAppErrorCode.SKIPPED
         )
-        assert self.preprod_artifact.installable_app_error_message == "filtered"
-
-    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_respects_explicit_error_code_from_request(self) -> None:
-        data = {
-            "installable_app_error_code": PreprodArtifact.InstallableAppErrorCode.SKIPPED,
-            "installable_app_error_message": "simulator",
-        }
-        response = self._make_request(data)
-
-        assert response.status_code == 200
-        self.preprod_artifact.refresh_from_db()
         assert (
-            self.preprod_artifact.installable_app_error_code
-            == PreprodArtifact.InstallableAppErrorCode.SKIPPED
+            self.preprod_artifact.installable_app_error_message
+            == "Distribution filtered out by project settings"
         )
-        assert self.preprod_artifact.installable_app_error_message == "simulator"
-        assert "build_distribution" not in response.json()["requestedFeatures"]
-
-    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_explicit_error_code_overwrites_existing(self) -> None:
-        self.preprod_artifact.installable_app_error_code = (
-            PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
-        )
-        self.preprod_artifact.installable_app_error_message = "quota"
-        self.preprod_artifact.save()
-
-        data = {
-            "installable_app_error_code": PreprodArtifact.InstallableAppErrorCode.PROCESSING_ERROR,
-            "installable_app_error_message": "build failed",
-        }
-        response = self._make_request(data)
-
-        assert response.status_code == 200
-        self.preprod_artifact.refresh_from_db()
-        assert (
-            self.preprod_artifact.installable_app_error_code
-            == PreprodArtifact.InstallableAppErrorCode.PROCESSING_ERROR
-        )
-        assert self.preprod_artifact.installable_app_error_message == "build failed"
 
 
 class FindOrCreateReleaseTest(TestCase):

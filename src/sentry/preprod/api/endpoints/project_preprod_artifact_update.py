@@ -81,8 +81,6 @@ def validate_preprod_artifact_update_schema(
             },
             "dequeued_at": {"type": "string"},
             "app_icon_id": {"type": "string", "maxLength": 255},
-            "installable_app_error_code": {"type": "integer", "minimum": 0},
-            "installable_app_error_message": {"type": "string"},
         },
         "additionalProperties": True,
     }
@@ -112,8 +110,6 @@ def validate_preprod_artifact_update_schema(
         "android_app_info.gradle_plugin_version": "The gradle_plugin_version field must be a string with a maximum length of 255 characters.",
         "dequeued_at": "The dequeued_at field must be a string.",
         "app_icon_id": "The app_icon_id field must be a string with a maximum length of 255 characters.",
-        "installable_app_error_code": "The installable_app_error_code field must be a non-negative integer.",
-        "installable_app_error_message": "The installable_app_error_message field must be a string.",
     }
 
     try:
@@ -436,11 +432,22 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 },
             )
 
-        # Always accept explicit distribution state from launchpad so reruns
-        # can overwrite a previous decision.
-        if "installable_app_error_code" in data:
-            head_artifact.installable_app_error_code = data["installable_app_error_code"]
-            head_artifact.installable_app_error_message = data.get("installable_app_error_message")
+        can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)
+        if can_run_distro:
+            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
+        else:
+            if distro_skip_reason == "quota":
+                distro_error_code = PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
+                distro_error_message = "Distribution quota exceeded"
+            elif distro_skip_reason == "disabled":
+                distro_error_code = PreprodArtifact.InstallableAppErrorCode.SKIPPED
+                distro_error_message = "Distribution disabled for this project"
+            else:
+                distro_error_code = PreprodArtifact.InstallableAppErrorCode.SKIPPED
+                distro_error_message = "Distribution filtered out by project settings"
+
+            head_artifact.installable_app_error_code = distro_error_code
+            head_artifact.installable_app_error_message = distro_error_message
             head_artifact.save(
                 update_fields=[
                     "installable_app_error_code",
@@ -448,28 +455,6 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                     "date_updated",
                 ]
             )
-        elif head_artifact.installable_app_error_code is None:
-            # Only auto-evaluate distribution if not yet decided
-            # (guards against launchpad retries re-running the check).
-            can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)
-            if can_run_distro:
-                requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
-            else:
-                skip_reason_to_error_code = {
-                    "quota": PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
-                }
-                head_artifact.installable_app_error_code = skip_reason_to_error_code.get(
-                    distro_skip_reason or "",
-                    PreprodArtifact.InstallableAppErrorCode.SKIPPED,
-                )
-                head_artifact.installable_app_error_message = distro_skip_reason
-                head_artifact.save(
-                    update_fields=[
-                        "installable_app_error_code",
-                        "installable_app_error_message",
-                        "date_updated",
-                    ]
-                )
 
         return Response(
             {

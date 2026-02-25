@@ -94,7 +94,6 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
             )
             .prefetch_related("preprodartifactsizemetrics_set")
             .filter(project_id__in=project_ids, date_added__gte=cutoff)
-            .exclude(installable_app_error_code__isnull=False)
         )
 
         if start and end:

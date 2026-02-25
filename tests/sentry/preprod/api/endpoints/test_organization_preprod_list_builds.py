@@ -761,50 +761,6 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         app_ids = {b["app_info"]["app_id"] for b in builds}
         assert "com.example.app" in app_ids
 
-    def test_list_builds_excludes_builds_with_error_code(self) -> None:
-        self.create_preprod_artifact(
-            project=self.project,
-            file_id=self.file.id,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            artifact_type=PreprodArtifact.ArtifactType.APK,
-            app_id="com.example.skipped",
-            build_configuration=None,
-            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
-            installable_app_error_message="quota",
-        )
-
-        response = self.client.get(
-            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
-        )
-        assert response.status_code == 200
-        builds = response.json()["builds"]
-        app_ids = {b["app_info"]["app_id"] for b in builds}
-        assert "com.example.skipped" not in app_ids
-        assert len(builds) == 4
-
-    def test_list_builds_includes_builds_without_error_code(self) -> None:
-        legacy = self.create_preprod_artifact(
-            project=self.project,
-            file_id=self.file.id,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            artifact_type=PreprodArtifact.ArtifactType.APK,
-            app_id="com.example.legacy",
-            build_configuration=None,
-        )
-        assert legacy.installable_app_error_code is None
-
-        response = self.client.get(
-            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
-        )
-        assert response.status_code == 200
-        builds = response.json()["builds"]
-        app_ids = {b["app_info"]["app_id"] for b in builds}
-        assert "com.example.legacy" in app_ids
-
     @patch(
         "sentry.preprod.api.endpoints.organization_preprod_list_builds.get_size_retention_cutoff"
     )
