@@ -2,7 +2,14 @@ import {Fragment, useEffect, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {
@@ -519,6 +526,114 @@ describe('ExplorerPanel', () => {
         'placeholder',
         'Type your message or / command and press Enter ↵'
       );
+    });
+  });
+
+  describe('Text selection during drag', () => {
+    const mockSessionData = {
+      blocks: [
+        {
+          id: 'block-1',
+          message: {role: 'user', content: 'First block content'},
+          timestamp: '2024-01-01T00:00:00Z',
+          loading: false,
+        },
+        {
+          id: 'block-2',
+          message: {role: 'assistant', content: 'Second block content'},
+          timestamp: '2024-01-01T00:01:00Z',
+          loading: false,
+        },
+      ],
+      run_id: 123,
+      status: 'completed' as const,
+      updated_at: '2024-01-01T00:01:00Z',
+    };
+
+    function renderWithBlocks() {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        sessionData:
+          mockSessionData as useSeerExplorerModule.SeerExplorerResponse['session'],
+        sendMessage: jest.fn(),
+        deleteFromIndex: jest.fn(),
+        startNewSession: jest.fn(),
+        isPolling: false,
+        isError: false,
+        isPending: false,
+        deletedFromIndex: null,
+        interruptRun: jest.fn(),
+        interruptRequested: false,
+        wasJustInterrupted: false,
+        clearWasJustInterrupted: jest.fn(),
+        runId: null,
+        respondToUserInput: jest.fn(),
+        switchToRun: jest.fn(),
+        createPR: jest.fn(),
+      });
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
+    }
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('updates focus on mouseenter normally', () => {
+      renderWithBlocks();
+
+      const secondBlockEl = screen
+        .getAllByText('Second block content')[0]!
+        .closest('div')!;
+
+      // Initially no block is focused so no action buttons visible
+      expect(
+        screen.queryByRole('button', {name: 'Seer Explorer Thumbs Up'})
+      ).not.toBeInTheDocument();
+
+      // Fire mousemove first to ensure allowHoverFocusChange is true
+      fireEvent.mouseMove(document);
+      // Hover over assistant block — should focus it and show action buttons
+      fireEvent.mouseEnter(secondBlockEl);
+
+      expect(
+        screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'})
+      ).toBeInTheDocument();
+    });
+
+    it('suppresses focus change on mouseenter during mouse drag', () => {
+      renderWithBlocks();
+
+      const firstBlockEl = screen.getAllByText('First block content')[0]!.closest('div')!;
+      const secondBlockEl = screen
+        .getAllByText('Second block content')[0]!
+        .closest('div')!;
+
+      // Enable hover focus
+      fireEvent.mouseMove(document);
+
+      // Hover over user block (no action buttons for user blocks)
+      fireEvent.mouseEnter(firstBlockEl);
+      expect(
+        screen.queryByRole('button', {name: 'Seer Explorer Thumbs Up'})
+      ).not.toBeInTheDocument();
+
+      // Start a drag (mousedown on primary button)
+      fireEvent.mouseDown(document, {button: 0});
+
+      // Hover over assistant block while dragging — focus should be suppressed
+      fireEvent.mouseEnter(secondBlockEl);
+      expect(
+        screen.queryByRole('button', {name: 'Seer Explorer Thumbs Up'})
+      ).not.toBeInTheDocument();
+
+      // Release the mouse
+      fireEvent.mouseUp(document, {button: 0});
+
+      // After release, hovering should work again — focus moves and buttons appear
+      fireEvent.mouseEnter(secondBlockEl);
+      expect(
+        screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'})
+      ).toBeInTheDocument();
     });
   });
 

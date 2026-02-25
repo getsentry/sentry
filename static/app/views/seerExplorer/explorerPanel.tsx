@@ -62,6 +62,7 @@ function ExplorerPanel() {
   const hoveredBlockIndex = useRef<number>(-1);
   const userScrolledUpRef = useRef<boolean>(false);
   const allowHoverFocusChange = useRef<boolean>(true);
+  const isMouseDownRef = useRef<boolean>(false);
   const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -539,6 +540,31 @@ function ExplorerPanel() {
     isQuestionPending,
   ]);
 
+  // Suppress hover focus changes during mouse drag to preserve text selection
+  useEffect(() => {
+    if (!isVisible) {
+      return undefined;
+    }
+
+    const handleMouseDown = (e: MouseEvent) => {
+      if (e.button === 0) {
+        isMouseDownRef.current = true;
+      }
+    };
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) {
+        isMouseDownRef.current = false;
+      }
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isVisible]);
+
   useBlockNavigation({
     isOpen: isVisible,
     focusedBlockIndex,
@@ -655,11 +681,12 @@ function ExplorerPanel() {
                 readOnly={readOnly}
                 onClick={() => handleBlockClick(index)}
                 onMouseEnter={() => {
-                  // Don't change focus while menu is open, if already on this block, or if hover is disabled
+                  // Don't change focus while menu is open, if already on this block, if hover is disabled, or during drag/selection
                   if (
                     isMenuOpen ||
                     hoveredBlockIndex.current === index ||
-                    !allowHoverFocusChange.current
+                    !allowHoverFocusChange.current ||
+                    isMouseDownRef.current
                   ) {
                     return;
                   }
