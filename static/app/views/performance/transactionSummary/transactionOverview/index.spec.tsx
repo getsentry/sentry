@@ -677,6 +677,10 @@ describe('Performance > TransactionSummary', () => {
           name: 'Project Name 2',
         }),
       ];
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: projects,
+      });
       OrganizationStore.onUpdate(OrganizationFixture({slug: 'org-slug'}), {
         replace: true,
       });

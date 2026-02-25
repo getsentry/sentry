@@ -19,6 +19,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.cardinality-limiter.mode",
     "relay.cardinality-limiter.error-sample-rate",
     "relay.eap-outcomes.rollout-rate",
+    "relay.eap-span-outcomes.rollout-rate",
     "relay.metric-bucket-set-encodings",
     "relay.metric-bucket-distribution-encodings",
     "relay.sessions-eap.rollout-rate",

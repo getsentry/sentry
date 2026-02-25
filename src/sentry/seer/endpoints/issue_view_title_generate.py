@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 
 import orjson
-import requests
-from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,7 +13,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,16 +50,14 @@ def generate_title_from_query(query: str) -> str | None:
         }
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/llm/generate",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/llm/generate",
+        body,
         timeout=10,
     )
-    response.raise_for_status()
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
     data = response.json()
     return data.get("content")
 
@@ -100,7 +100,7 @@ class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
             return Response({"title": title.strip()})
-        except requests.RequestException:
+        except Exception:
             logger.exception("Failed to call Seer LLM proxy")
             return Response(
                 {"detail": "Failed to generate title"},
