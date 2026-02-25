@@ -64,13 +64,13 @@ const {useAppForm} = createFormHook({
 function SubmitButton(props: ButtonProps) {
   const form = useFormContext();
   return (
-    <form.Subscribe selector={state => state.isSubmitting}>
-      {isSubmitting => (
+    <form.Subscribe selector={state => state.isSubmitting || state.isDefaultValue}>
+      {isDisabled => (
         <Button
           {...props}
           priority="primary"
           type="submit"
-          disabled={isSubmitting || props.disabled}
+          disabled={isDisabled || props.disabled}
         />
       )}
     </form.Subscribe>
@@ -82,6 +82,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 
   return (
     <form
+      data-test-id={form.formId}
       id={form.formId}
       onSubmit={e => {
         e.preventDefault();

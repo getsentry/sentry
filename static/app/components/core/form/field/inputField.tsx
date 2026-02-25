@@ -9,7 +9,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseField';
 
 export interface InputFieldProps
-  extends BaseFieldProps, Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled'> {
+  extends
+    BaseFieldProps,
+    Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> {
   onChange: (value: string) => void;
   value: string;
   disabled?: boolean | string;
