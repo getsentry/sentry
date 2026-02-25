@@ -114,6 +114,29 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Verify New Password'),
     hintText: t('Verify your new password'),
   },
+  'settings.subjectTemplate': {
+    name: 'subjectTemplate',
+    formId: 'settings',
+    route: '/settings/:orgId/projects/:projectId/alerts/',
+    label: t('Subject Template'),
+    hintText: t(
+      'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $title, $shortID, $projectID, $orgID, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
+    ),
+  },
+  'settings.digestsMinDelay': {
+    name: 'digestsMinDelay',
+    formId: 'settings',
+    route: '/settings/:orgId/projects/:projectId/alerts/',
+    label: t('Minimum delivery interval'),
+    hintText: t('Notifications will be delivered at most this often.'),
+  },
+  'settings.digestsMaxDelay': {
+    name: 'digestsMaxDelay',
+    formId: 'settings',
+    route: '/settings/:orgId/projects/:projectId/alerts/',
+    label: t('Maximum delivery interval'),
+    hintText: t('Notifications will be delivered at least this often.'),
+  },
   'organization-settings-form.replayAccessMembers': {
     name: 'replayAccessMembers',
     formId: 'organization-settings-form',
