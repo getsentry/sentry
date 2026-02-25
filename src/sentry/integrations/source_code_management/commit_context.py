@@ -556,10 +556,10 @@ class PRCommentWorkflow(ABC):
             projects=[project],
         )
 
-        group_id_filter = " OR ".join([f"group_id:{gid}" for gid in issue_ids])
-        group_id_query = (
-            f"({group_id_filter})" if len(issue_ids) > 1 else f"group_id:{issue_ids[0]}"
-        )
+        if len(issue_ids) == 1:
+            group_id_query = f"group_id:{issue_ids[0]}"
+        else:
+            group_id_query = f"group_id:[{', '.join(str(gid) for gid in issue_ids)}]"
         query_string = f"{group_id_query} !level:info"
 
         try:
