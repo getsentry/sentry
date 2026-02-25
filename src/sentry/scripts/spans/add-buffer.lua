@@ -130,11 +130,8 @@ table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_arg
 local spop_end_time_ms = -1
 if #sunionstore_args > 0 then
     local dest_memory = redis.call("memory", "usage", set_key) or 0
-    if dest_memory > max_segment_bytes then
-        table.insert(metrics_table, {"parent_span_set_already_oversized", 1})
-    else
-        table.insert(metrics_table, {"parent_span_set_already_oversized", 0})
-    end
+    local already_oversized = dest_memory > max_segment_bytes
+    table.insert(metrics_table, {"parent_span_set_already_oversized", already_oversized and 1 or 0})
 
     local use_zero_copy_dest = zero_copy_dest_threshold > 0 and dest_memory > zero_copy_dest_threshold
 
@@ -143,7 +140,11 @@ if #sunionstore_args > 0 then
     table.insert(latency_table, {"scard_step_latency_ms", scard_end_time_ms - sunionstore_args_end_time_ms})
 
     local output_size
-    if use_zero_copy_dest then
+    if already_oversized then
+        -- Dest already exceeds max_segment_bytes, skip merge entirely.
+        -- The SPOP loop would just remove what we added.
+        output_size = start_output_size
+    elseif use_zero_copy_dest then
         -- Zero-copy: read each source set and SADD its members into dest.
         -- Avoids SUNIONSTORE re-reading the entire large destination set.
         local all_members = {}
