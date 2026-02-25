@@ -106,28 +106,30 @@ export function ReplayAccessMembersField({
   });
 
   return (
-    <AutoSaveField
-      name="replayAccessMembers"
-      schema={membershipSchema}
-      initialValue={(organization.replayAccessMembers ?? []).map(String)}
-      mutationOptions={replayMutationOpts}
-    >
-      {field => (
-        <field.Layout.Row
-          label={t('Replay Access Members')}
-          hintText={t('Select the members who will have access to replay data.')}
-        >
-          <field.Select
-            multiple
-            options={memberOptions}
-            value={field.state.value}
-            onChange={field.handleChange}
-            disabled={disabled}
-            isLoading={fetching}
-          />
-        </field.Layout.Row>
-      )}
-    </AutoSaveField>
+    <FormSearch route="/settings/organization/">
+      <AutoSaveField
+        name="replayAccessMembers"
+        schema={membershipSchema}
+        initialValue={(organization.replayAccessMembers ?? []).map(String)}
+        mutationOptions={replayMutationOpts}
+      >
+        {field => (
+          <field.Layout.Row
+            label={t('Replay Access Members')}
+            hintText={t('Select the members who will have access to replay data.')}
+          >
+            <field.Select
+              multiple
+              options={memberOptions}
+              value={field.state.value}
+              onChange={field.handleChange}
+              disabled={disabled}
+              isLoading={fetching}
+            />
+          </field.Layout.Row>
+        )}
+      </AutoSaveField>
+    </FormSearch>
   );
 }
 
@@ -156,7 +158,7 @@ function OrganizationMembershipSettingsBase({
   });
 
   return (
-    <FormSearch route="/settings/:orgId/">
+    <FormSearch route="/settings/organization/">
       <FieldGroup title={t('Membership')}>
         <AutoSaveField
           name="defaultRole"
@@ -450,7 +452,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
 
   return (
     <Fragment>
-      <FormSearch route="/settings/:orgId/">
+      <FormSearch route="/settings/organization/">
         <FieldGroup title={t('General')}>
           {/* Slug — explicit save with warning */}
           <slugForm.AppForm>
