@@ -101,8 +101,8 @@ export default function TeamSettings() {
       )}
 
       <form.AppForm>
-        <FieldGroup title={t('Team Settings')}>
-          <form.FormWrapper>
+        <form.FormWrapper>
+          <FieldGroup title={t('Team Settings')}>
             <form.AppField name="slug">
               {field => (
                 <field.Layout.Row
@@ -119,46 +119,44 @@ export default function TeamSettings() {
                 </field.Layout.Row>
               )}
             </form.AppField>
-          </form.FormWrapper>
-
-          <form.Subscribe selector={state => state.values.slug !== team.slug}>
-            {hasChanged =>
-              hasChanged ? (
-                <Alert
-                  system
-                  variant="info"
-                  trailingItems={
-                    <Flex gap="sm">
-                      <Alert.Button onClick={() => form.reset()}>
-                        {t('Cancel')}
-                      </Alert.Button>
-                      <form.SubmitButton size="zero">{t('Save')}</form.SubmitButton>
-                    </Flex>
-                  }
+            <form.AppField name="teamId">
+              {field => (
+                <field.Layout.Row
+                  label={t('Team ID')}
+                  hintText={t(
+                    'The unique identifier for this team. It cannot be modified.'
+                  )}
                 >
-                  {t('You will be redirected to the new team slug after saving.')}
-                </Alert>
-              ) : null
-            }
-          </form.Subscribe>
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    disabled
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
 
-          <form.AppField name="teamId">
-            {field => (
-              <field.Layout.Row
-                label={t('Team ID')}
-                hintText={t(
-                  'The unique identifier for this team. It cannot be modified.'
+            <Flex gap="md" align="center" padding="sm">
+              <form.Subscribe selector={state => state.values.slug !== team.slug}>
+                {hasChanged => (
+                  <Flex
+                    flex="1"
+                    minWidth={0}
+                    style={{visibility: hasChanged ? 'visible' : 'hidden'}}
+                  >
+                    <Alert variant="info">
+                      {t('You will be redirected to the new team slug after saving.')}
+                    </Alert>
+                  </Flex>
                 )}
-              >
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-        </FieldGroup>
+              </form.Subscribe>
+              <Flex gap="sm" flexShrink={0}>
+                <Button onClick={() => form.reset()}>{t('Cancel')}</Button>
+                <form.SubmitButton>{t('Save')}</form.SubmitButton>
+              </Flex>
+            </Flex>
+          </FieldGroup>
+        </form.FormWrapper>
       </form.AppForm>
 
       <Panel>
