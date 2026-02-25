@@ -1,10 +1,9 @@
 from datetime import UTC, datetime
 from unittest import mock
+from unittest.mock import patch
 
 import orjson
 import pytest
-import responses
-from django.conf import settings
 
 from sentry.constants import ObjectStatus
 from sentry.models.promptsactivity import PromptsActivity
@@ -412,39 +411,31 @@ class TestDispatchExplorerIndexProjects(TestCase):
 
 @django_db_all
 class TestRunExplorerIndexForProjects(TestCase):
-    @responses.activate
-    def test_calls_seer_endpoint_successfully(self):
+    @patch("sentry.tasks.seer_explorer_index.make_signed_seer_api_request")
+    def test_calls_seer_endpoint_successfully(self, mock_request):
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {"scheduled_count": 3, "projects": []}
+
         projects = [(1, 100), (2, 100), (3, 200)]
         start = "2024-01-15T12:00:00+00:00"
-
-        responses.add(
-            responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/explorer/index",
-            json={"scheduled_count": 3, "projects": []},
-            status=200,
-        )
 
         with self.options({"seer.explorer_index.enable": True}):
             run_explorer_index_for_projects(projects, start)
 
-        request_body = orjson.loads(responses.calls[0].request.body)
-        assert request_body["projects"] == [
+        mock_request.assert_called_once()
+        body = orjson.loads(mock_request.call_args[0][2])
+        assert body["projects"] == [
             {"org_id": 100, "project_id": 1},
             {"org_id": 100, "project_id": 2},
             {"org_id": 200, "project_id": 3},
         ]
 
-    @responses.activate
-    def test_handles_request_error(self):
+    @patch("sentry.tasks.seer_explorer_index.make_signed_seer_api_request")
+    def test_handles_request_error(self, mock_request):
+        mock_request.return_value.status = 500
+
         projects = [(1, 100)]
         start = "2024-01-15T12:00:00+00:00"
-
-        responses.add(
-            responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/explorer/index",
-            json={"error": "Internal server error"},
-            status=500,
-        )
 
         with self.options({"seer.explorer_index.enable": True}):
             with pytest.raises(Exception):
@@ -452,6 +443,8 @@ class TestRunExplorerIndexForProjects(TestCase):
 
     def test_skips_when_option_disabled(self):
         with self.options({"seer.explorer_index.enable": False}):
-            with mock.patch("sentry.tasks.seer_explorer_index.requests.post") as mock_post:
+            with mock.patch(
+                "sentry.tasks.seer_explorer_index.make_signed_seer_api_request"
+            ) as mock_request:
                 run_explorer_index_for_projects([(1, 100)], "2024-01-15T12:00:00+00:00")
-                mock_post.assert_not_called()
+                mock_request.assert_not_called()

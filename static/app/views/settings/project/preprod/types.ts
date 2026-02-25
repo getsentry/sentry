@@ -1,3 +1,5 @@
+import {t} from 'sentry/locale';
+
 const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
 
 type MetricType = (typeof ALL_METRIC_TYPES)[number];
@@ -17,7 +19,6 @@ export const ALL_ARTIFACT_TYPES = [
 export type ArtifactType = (typeof ALL_ARTIFACT_TYPES)[number];
 
 export const DEFAULT_ARTIFACT_TYPE: ArtifactType = 'main_artifact';
-export const ALL_ARTIFACTS_ARTIFACT_TYPE: ArtifactType = 'all_artifacts';
 
 export interface StatusCheckFilter {
   key: string;
@@ -37,8 +38,8 @@ export interface StatusCheckRule {
 export const DEFAULT_METRIC_TYPE: MetricType = 'install_size';
 
 const METRIC_LABELS: Record<MetricType, string> = {
-  install_size: 'Install/Uncompressed Size',
-  download_size: 'Download Size',
+  install_size: t('Install/Uncompressed Size'),
+  download_size: t('Download Size'),
 };
 
 export const METRIC_OPTIONS: Array<{label: string; value: MetricType}> =
@@ -50,9 +51,9 @@ export const METRIC_OPTIONS: Array<{label: string; value: MetricType}> =
 export const DEFAULT_MEASUREMENT_TYPE: MeasurementType = 'absolute';
 
 const MEASUREMENT_LABELS: Record<MeasurementType, string> = {
-  absolute: 'Absolute Size',
-  absolute_diff: 'Absolute Diff',
-  relative_diff: 'Relative Diff',
+  absolute: t('Absolute Size'),
+  absolute_diff: t('Absolute Diff'),
+  relative_diff: t('Relative Diff'),
 };
 
 export const MEASUREMENT_OPTIONS: Array<{label: string; value: MeasurementType}> =
@@ -62,11 +63,11 @@ export const MEASUREMENT_OPTIONS: Array<{label: string; value: MeasurementType}>
   }));
 
 const ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
-  all_artifacts: 'All Artifact Types',
-  main_artifact: 'Main App',
-  watch_artifact: 'Watch App',
-  android_dynamic_feature_artifact: 'Android Dynamic Feature',
-  app_clip_artifact: 'App Clip',
+  all_artifacts: t('Any Artifact Type'),
+  main_artifact: t('Main App'),
+  watch_artifact: t('Watch App'),
+  android_dynamic_feature_artifact: t('Android Dynamic Feature'),
+  app_clip_artifact: t('App Clip'),
 };
 
 export const ARTIFACT_TYPE_OPTIONS: Array<{label: string; value: ArtifactType}> =

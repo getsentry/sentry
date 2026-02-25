@@ -2,8 +2,6 @@ from unittest import mock
 
 import orjson
 import pytest
-import responses
-from django.conf import settings
 
 from sentry.seer.explorer.context_engine_utils import ProjectEventCounts
 from sentry.tasks.explorer_context_engine_tasks import (
@@ -41,19 +39,14 @@ class TestIndexOrgProjectKnowledge(TestCase):
                 return_value={},
             ):
                 with mock.patch(
-                    "sentry.tasks.explorer_context_engine_tasks.requests.post"
-                ) as mock_post:
+                    "sentry.tasks.explorer_context_engine_tasks.make_signed_seer_api_request"
+                ) as mock_request:
                     index_org_project_knowledge(self.org.id)
-                    mock_post.assert_not_called()
+                    mock_request.assert_not_called()
 
-    @responses.activate
-    def test_calls_seer_endpoint_with_correct_payload(self):
-        responses.add(
-            responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/explorer/index/org-project-knowledge",
-            json={"scheduled": True},
-            status=200,
-        )
+    @mock.patch("sentry.tasks.explorer_context_engine_tasks.make_signed_seer_api_request")
+    def test_calls_seer_endpoint_with_correct_payload(self, mock_request):
+        mock_request.return_value.status = 200
 
         event_counts = {
             self.project.id: ProjectEventCounts(error_count=5000, transaction_count=2000)
@@ -76,14 +69,10 @@ class TestIndexOrgProjectKnowledge(TestCase):
                             "sentry.tasks.explorer_context_engine_tasks.get_sdk_names_for_org_projects",
                             return_value={self.project.id: "sentry.python"},
                         ):
-                            with mock.patch(
-                                "sentry.tasks.explorer_context_engine_tasks.sign_with_seer_secret",
-                                return_value={},
-                            ):
-                                index_org_project_knowledge(self.org.id)
+                            index_org_project_knowledge(self.org.id)
 
-        assert len(responses.calls) == 1
-        body = orjson.loads(responses.calls[0].request.body)
+        mock_request.assert_called_once()
+        body = orjson.loads(mock_request.call_args[0][2])
         assert body["org_id"] == self.org.id
         assert len(body["projects"]) == 1
 
@@ -98,14 +87,9 @@ class TestIndexOrgProjectKnowledge(TestCase):
         assert project_payload["top_transactions"] == ["GET /api/0/projects/"]
         assert project_payload["top_span_operations"] == [["db", "SELECT * FROM table"]]
 
-    @responses.activate
-    def test_raises_on_seer_error(self):
-        responses.add(
-            responses.POST,
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/explorer/index/org-project-knowledge",
-            json={"error": "Internal server error"},
-            status=500,
-        )
+    @mock.patch("sentry.tasks.explorer_context_engine_tasks.make_signed_seer_api_request")
+    def test_raises_on_seer_error(self, mock_request):
+        mock_request.return_value.status = 500
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
@@ -126,12 +110,8 @@ class TestIndexOrgProjectKnowledge(TestCase):
                             "sentry.tasks.explorer_context_engine_tasks.get_sdk_names_for_org_projects",
                             return_value={},
                         ):
-                            with mock.patch(
-                                "sentry.tasks.explorer_context_engine_tasks.sign_with_seer_secret",
-                                return_value={},
-                            ):
-                                with pytest.raises(Exception):
-                                    index_org_project_knowledge(self.org.id)
+                            with pytest.raises(Exception):
+                                index_org_project_knowledge(self.org.id)
 
 
 @django_db_all
