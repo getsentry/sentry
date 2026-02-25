@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -122,7 +122,7 @@ export default function ProjectCspReports() {
   }
 
   return (
-    <div>
+    <FormSearch route="/settings/:orgId/projects/:projectId/security-headers/csp/">
       <SentryDocumentTitle
         title={routeTitleGen(t('Content Security Policy (CSP)'), projectId, false)}
       />
@@ -251,6 +251,6 @@ export default function ProjectCspReports() {
           </p>
         </PanelBody>
       </Panel>
-    </div>
+    </FormSearch>
   );
 }
