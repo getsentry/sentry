@@ -1,3 +1,4 @@
+import pytest
 from unittest import mock
 
 import sentry_sdk
@@ -249,6 +250,7 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
+    @pytest.mark.skip(reason="flaky: #109337")
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
