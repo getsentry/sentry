@@ -348,6 +348,27 @@ def test_observability_metrics_parent_span_already_oversized(
     )
 
 
+def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
+    spans = [
+        Span(
+            payload=orjson.dumps({"span_id": "b" * 16, "attributes": None}),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+    ]
+
+    process_spans(spans, buffer, now=0)
+
+    rv = buffer.flush_segments(now=11)
+    segment = rv[_segment_id(1, "a" * 32, "b" * 16)]
+    assert segment.spans[0].payload["attributes"]["sentry.segment.id"]["value"] == "b" * 16
+
+
 @pytest.mark.parametrize(
     "spans",
     list(

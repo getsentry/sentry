@@ -8,7 +8,7 @@ from django import forms
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from requests import HTTPError
 
 from sentry.integrations.base import (
@@ -113,11 +113,11 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
 
         try:
             client = CursorAgentClient(api_key=api_key, webhook_secret=webhook_secret)
-            cursor_metadata = client.get_api_key_metadata()
-            api_key_name = cursor_metadata.apiKeyName
-            user_email = cursor_metadata.userEmail
+            cursor_metadata = client.verify_api_key()
+            api_key_name = cursor_metadata.apiKeyName if cursor_metadata else None
+            user_email = cursor_metadata.userEmail if cursor_metadata else None
         except (HTTPError, ApiError) as e:
-            self.get_logger().exception("cursor.build_integration.metadata_fetch_failed")
+            self.get_logger().exception("cursor.build_integration.api_key_verification_failed")
             status_code: int | None = None
             if isinstance(e, ApiError):
                 status_code = e.code
@@ -130,19 +130,14 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
             raise IntegrationConfigurationError(
                 "Unable to validate Cursor API key. Please try again or contact support if the issue persists."
             )
-        except ValidationError:
-            self.get_logger().exception("cursor.build_integration.metadata_validation_failed")
-            raise IntegrationConfigurationError(
-                "Received unexpected response from Cursor API. Please try again."
-            )
 
-        integration_name = (
-            f"Cursor Cloud Agent - {user_email}/{api_key_name}"
-            if user_email and api_key_name
-            else "Cursor Cloud Agent"
-        )
+        if user_email and api_key_name:
+            integration_name = f"Cursor Cloud Agent - {user_email}/{api_key_name}"
+        else:
+            key_hint = api_key[:8] if len(api_key) >= 8 else api_key
+            integration_name = f"Cursor Cloud Agent ({key_hint}...)"
 
-        metadata = CursorIntegrationMetadata(
+        int_metadata = CursorIntegrationMetadata(
             domain_name="cursor.sh",
             api_key=api_key,
             webhook_secret=webhook_secret,
@@ -156,7 +151,7 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
             # or if the same user can have multiple installations across multiple orgs. So just a UUID per installation is the best approach. Re-configuring an existing installation will still maintain this external id
             "external_id": uuid.uuid4().hex,
             "name": integration_name,
-            "metadata": metadata.dict(),
+            "metadata": int_metadata.dict(),
         }
 
     def get_agent_name(self) -> str:
@@ -195,10 +190,10 @@ class CursorAgentIntegration(CodingAgentIntegration):
 
         try:
             client = CursorAgentClient(api_key=api_key, webhook_secret=metadata.webhook_secret)
-            cursor_metadata = client.get_api_key_metadata()
+            cursor_metadata = client.verify_api_key()
             metadata.api_key = api_key
-            metadata.api_key_name = cursor_metadata.apiKeyName
-            metadata.user_email = cursor_metadata.userEmail
+            metadata.api_key_name = cursor_metadata.apiKeyName if cursor_metadata else None
+            metadata.user_email = cursor_metadata.userEmail if cursor_metadata else None
         except (HTTPError, ApiError) as e:
             status_code: int | None = None
             if isinstance(e, ApiError):
@@ -212,16 +207,12 @@ class CursorAgentIntegration(CodingAgentIntegration):
             raise IntegrationConfigurationError(
                 "Unable to validate Cursor API key. Please try again or contact support if the issue persists."
             )
-        except ValidationError:
-            raise IntegrationConfigurationError(
-                "Received unexpected response from Cursor API. Please try again."
-            )
 
-        integration_name = (
-            f"Cursor Cloud Agent - {metadata.user_email}/{metadata.api_key_name}"
-            if metadata.user_email and metadata.api_key_name
-            else "Cursor Cloud Agent"
-        )
+        if metadata.user_email and metadata.api_key_name:
+            integration_name = f"Cursor Cloud Agent - {metadata.user_email}/{metadata.api_key_name}"
+        else:
+            key_hint = api_key[:8] if len(api_key) >= 8 else api_key
+            integration_name = f"Cursor Cloud Agent ({key_hint}...)"
 
         integration_service.update_integration(
             integration_id=self.model.id, name=integration_name, metadata=metadata.dict()

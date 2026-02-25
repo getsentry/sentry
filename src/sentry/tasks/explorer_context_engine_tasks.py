@@ -4,9 +4,7 @@ import logging
 from datetime import UTC, datetime, timedelta, timezone
 
 import orjson
-import requests
 import sentry_sdk
-from django.conf import settings
 
 from sentry import options
 from sentry.constants import ObjectStatus
@@ -27,7 +25,11 @@ from sentry.seer.explorer.explorer_service_map_utils import (
     _query_service_dependencies,
     _send_to_seer,
 )
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 
@@ -44,6 +46,10 @@ def index_org_project_knowledge(org_id: int) -> None:
     For a given org, list active projects, assemble project metadata and call
     the Seer endpoint to generate LLM summaries and embeddings.
     """
+    if not options.get("explorer.context_engine_indexing.enable"):
+        logger.info("explorer.context_engine_indexing.enable flag is disabled")
+        return
+
     projects = list(
         Project.objects.filter(organization_id=org_id, status=ObjectStatus.ACTIVE).select_related(
             "organization"
@@ -99,17 +105,15 @@ def index_org_project_knowledge(org_id: int) -> None:
     path = "/v1/automation/explorer/index/org-project-knowledge"
 
     try:
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            path,
+            body,
             timeout=30,
         )
-        response.raise_for_status()
-    except requests.RequestException:
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+    except Exception:
         logger.exception(
             "Failed to call Seer org-project-knowledge endpoint",
             extra={"org_id": org_id, "num_projects": len(project_data)},
@@ -140,14 +144,14 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     Args:
         organization_id: Organization ID to build map for
     """
+    if not options.get("explorer.context_engine_indexing.enable"):
+        logger.info("explorer.context_engine_indexing.enable flag is disabled")
+        return
+
     logger.info(
         "Starting service map build",
         extra={"org_id": organization_id},
     )
-
-    if not options.get("explorer.service_map.enable"):
-        logger.info("explorer.service_map.enable flag is disabled")
-        return
 
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -210,6 +214,10 @@ def schedule_context_engine_indexing_tasks() -> None:
     option and dispatches index_org_project_knowledge and build_service_map
     for each org.
     """
+    if not options.get("explorer.context_engine_indexing.enable"):
+        logger.info("explorer.context_engine_indexing.enable flag is disabled")
+        return
+
     allowed_org_ids = options.get("explorer.service_map.allowed_organizations")
     if not allowed_org_ids:
         logger.info("No allowed organizations for context engine indexing")

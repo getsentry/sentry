@@ -231,9 +231,7 @@ def get_unique_active_actions(
         if action.status != ObjectStatus.ACTIVE:
             continue
 
-        # workflow_id is annotated in the queryset
-        workflow_id = getattr(action, "workflow_id")
-        dedup_key = action.get_dedup_key(workflow_id)
+        dedup_key = action.get_dedup_key()
         previous_action_id = dedup_key_to_action_id.get(dedup_key)
         if previous_action_id is not None:
             dropped[dedup_key].add(previous_action_id)

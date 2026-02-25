@@ -11,7 +11,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
 import {
-  ALL_ARTIFACTS_ARTIFACT_TYPE,
+  DEFAULT_ARTIFACT_TYPE,
   DEFAULT_MEASUREMENT_TYPE,
   DEFAULT_METRIC_TYPE,
   toArtifactType,
@@ -141,7 +141,7 @@ export function useStatusCheckRules(project: Project) {
       measurement: DEFAULT_MEASUREMENT,
       value: 0,
       filterQuery: '',
-      artifactType: ALL_ARTIFACTS_ARTIFACT_TYPE,
+      artifactType: DEFAULT_ARTIFACT_TYPE,
     };
   }, []);
 

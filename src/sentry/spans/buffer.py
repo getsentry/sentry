@@ -529,7 +529,9 @@ class SpansBuffer:
                 span = orjson.loads(payload)
 
                 if not attribute_value(span, "sentry.segment.id"):
-                    span.setdefault("attributes", {})["sentry.segment.id"] = {
+                    if not isinstance(span.get("attributes"), dict):
+                        span["attributes"] = {}
+                    span["attributes"]["sentry.segment.id"] = {
                         "type": "string",
                         "value": segment_span_id,
                     }
