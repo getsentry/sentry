@@ -31,6 +31,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.buffer.oob-threshold-bytes": 0,
+    "spans.buffer.zero-copy-dest-threshold-bytes": 0,
 }
 
 
@@ -346,6 +347,27 @@ def test_observability_metrics_parent_span_already_oversized(
     assert 1 in oversized_metric_values, (
         "Expected at least one evalsha call with an already oversized parent set"
     )
+
+
+def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
+    spans = [
+        Span(
+            payload=orjson.dumps({"span_id": "b" * 16, "attributes": None}),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+    ]
+
+    process_spans(spans, buffer, now=0)
+
+    rv = buffer.flush_segments(now=11)
+    segment = rv[_segment_id(1, "a" * 32, "b" * 16)]
+    assert segment.spans[0].payload["attributes"]["sentry.segment.id"]["value"] == "b" * 16
 
 
 @pytest.mark.parametrize(
@@ -1262,3 +1284,98 @@ def test_oob_cleanup(buffer: SpansBuffer) -> None:
         assert len(buffer.client.keys("span-buf:p:*")) == 0
 
         assert_clean(buffer.client)
+
+
+@mock.patch("sentry.spans.buffer.emit_observability_metrics")
+def test_zero_copy(emit_observability_metrics: mock.MagicMock) -> None:
+    """
+    Test that zero-copy mode (SMEMBERS+SADD instead of SUNIONSTORE) produces
+    identical results. Uses a threshold of 1 byte so that every merge triggers
+    the zero-copy path.
+    """
+    with override_options(
+        {
+            **DEFAULT_OPTIONS,
+            "spans.buffer.zero-copy-dest-threshold-bytes": 1,
+            "spans.buffer.max-spans-per-evalsha": 1,
+        }
+    ):
+        buf = SpansBuffer(assigned_shards=list(range(32)))
+        buf.client.flushdb()
+
+        spans = [
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+                end_timestamp=1700000000.0,
+            ),
+            Span(
+                payload=_payload("d" * 16),
+                trace_id="a" * 32,
+                span_id="d" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+                end_timestamp=1700000000.0,
+            ),
+            Span(
+                payload=_payload("c" * 16),
+                trace_id="a" * 32,
+                span_id="c" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+                end_timestamp=1700000000.0,
+            ),
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=1,
+                end_timestamp=1700000000.0,
+            ),
+        ]
+
+        process_spans(spans, buf, now=0)
+
+        assert_ttls(buf.client)
+
+        assert buf.flush_segments(now=5) == {}
+        rv = buf.flush_segments(now=11)
+        _normalize_output(rv)
+        assert rv == {
+            _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+                queue_key=mock.ANY,
+                spans=[
+                    _output_segment(b"a" * 16, b"b" * 16, False),
+                    _output_segment(b"b" * 16, b"b" * 16, True),
+                    _output_segment(b"c" * 16, b"b" * 16, False),
+                    _output_segment(b"d" * 16, b"b" * 16, False),
+                ],
+            )
+        }
+        buf.done_flush_segments(rv)
+        assert buf.flush_segments(now=30) == {}
+
+        assert_clean(buf.client)
+
+        # Verify used_zero_copy_dest metric was emitted
+        emit_observability_metrics.assert_called()
+        args, _ = emit_observability_metrics.call_args
+        gauge_metrics = args[1]
+        zero_copy_values = [
+            value
+            for evalsha_metrics in gauge_metrics
+            for metric_name, value in evalsha_metrics
+            if metric_name == b"used_zero_copy_dest"
+        ]
+        assert any(v == 1 for v in zero_copy_values), (
+            f"Expected at least one evalsha call to use zero-copy, got {zero_copy_values}"
+        )

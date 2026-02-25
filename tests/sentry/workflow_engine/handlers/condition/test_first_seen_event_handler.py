@@ -1,4 +1,5 @@
 from dataclasses import replace
+from typing import Any, Mapping
 
 import pytest
 from jsonschema import ValidationError
@@ -12,7 +13,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestFirstSeenEventCondition(ConditionTestCase):
     condition = Condition.FIRST_SEEN_EVENT
-    payload = {"id": FirstSeenEventCondition.id}
+    payload: Mapping[str, Any] = {"id": FirstSeenEventCondition.id}
 
     def setUp(self) -> None:
         super().setUp()

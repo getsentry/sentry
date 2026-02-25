@@ -9,7 +9,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
@@ -44,8 +43,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -53,6 +50,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
   useOptionalIssueSelectionActions,
@@ -317,41 +315,35 @@ function StreamGroup({
     };
   }, [organization, group]);
 
-  const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation<
-    AssignableEntity | null,
-    RequestError,
-    AssignableEntity | null
-  >({
-    mutationFn: async (
-      newAssignee: AssignableEntity | null
-    ): Promise<AssignableEntity | null> => {
-      if (newAssignee) {
-        await assignToActor({
-          id: groupId,
-          orgSlug: organization.slug,
-          actor: {id: newAssignee.id, type: newAssignee.type},
-          assignedBy: 'assignee_selector',
-        });
-        return Promise.resolve(newAssignee);
-      }
+  const {mutate: assignMutate, isPending: assigneeLoading} = useAssignIssueMutation();
 
-      await clearAssignment(groupId, organization.slug, 'assignee_selector');
-      return Promise.resolve(null);
+  const handleAssigneeChange = useCallback(
+    (newAssignee: AssignableEntity | null) => {
+      assignMutate(
+        {
+          groupId,
+          orgSlug: organization.slug,
+          actor: newAssignee ? {id: newAssignee.id, type: newAssignee.type} : null,
+          assignedBy: 'assignee_selector',
+        },
+        {
+          onSuccess: () => {
+            if (query !== undefined && newAssignee) {
+              trackAnalytics('issues_stream.issue_assigned', {
+                ...sharedAnalytics,
+                did_assign_suggestion: !!newAssignee.suggestedAssignee,
+                assigned_suggestion_reason:
+                  newAssignee.suggestedAssignee?.suggestedReason,
+                assigned_type: newAssignee.type,
+              });
+            }
+            onAssigneeChange?.(newAssignee);
+          },
+        }
+      );
     },
-    onSuccess: (newAssignee: AssignableEntity | null) => {
-      if (query !== undefined && newAssignee) {
-        trackAnalytics('issues_stream.issue_assigned', {
-          ...sharedAnalytics,
-          did_assign_suggestion: !!newAssignee.suggestedAssignee,
-          assigned_suggestion_reason: newAssignee.suggestedAssignee?.suggestedReason,
-          assigned_type: newAssignee.type,
-        });
-      }
-      onAssigneeChange?.(newAssignee);
-    },
-    // Error is already handled by GroupStore.onAssignToError which shows an alert
-    onError: () => {},
-  });
+    [assignMutate, groupId, onAssigneeChange, organization.slug, query, sharedAnalytics]
+  );
 
   const clickHasBeenHandled = useCallback((evt: React.MouseEvent<HTMLDivElement>) => {
     const targetElement = evt.target as Partial<HTMLElement>;

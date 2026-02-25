@@ -41,7 +41,14 @@ function SelectIndicatorsContainer({
 type BaseSelectFieldProps = BaseFieldProps &
   Omit<
     React.ComponentProps<typeof Select>,
-    'value' | 'onChange' | 'onBlur' | 'disabled' | 'multiple' | 'multi' | 'clearable'
+    | 'value'
+    | 'onChange'
+    | 'onBlur'
+    | 'disabled'
+    | 'multiple'
+    | 'multi'
+    | 'clearable'
+    | 'id'
   > & {
     disabled?: boolean | string;
   };

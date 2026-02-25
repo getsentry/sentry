@@ -462,6 +462,51 @@ export default typescript.config([
         'error',
         {enabledCategories: ['background', 'border', 'content']},
       ],
+      '@sentry/scraps/restrict-jsx-slot-children': [
+        'error',
+        {
+          slots: [
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuFooter'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.CTAButton',
+                    'MenuComponents.CTALinkButton',
+                    'MenuComponents.ApplyButton',
+                    'MenuComponents.CancelButton',
+                    'MenuComponents.Alert',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuHeaderTrailingItems'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.HeaderButton',
+                    'MenuComponents.ClearButton',
+                    'MenuComponents.ResetButton',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
   },
   {

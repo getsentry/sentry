@@ -1183,6 +1183,40 @@ class SnubaTestCase(BaseTestCase):
         )
         assert response.status_code == 200
 
+    def store_events_to_snuba_and_eap(
+        self,
+        fingerprint: str,
+        count: int = 1,
+        timestamp: float | None = None,
+        trace_id: str | None = None,
+        message: str | None = None,
+        project_id: int | None = None,
+        extra_event_data: dict[str, Any] | None = None,
+    ) -> list[Event]:
+        """
+        Store occurrences in both legacy Snuba and EAP via the production dual-write path.
+        """
+        events: list[Event] = []
+        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
+            for _ in range(count):
+                data: dict[str, Any] = {
+                    "message": message or f"error in {fingerprint}",
+                    "fingerprint": [fingerprint],
+                    "event_id": uuid4().hex,
+                    "contexts": {"trace": {"trace_id": trace_id or uuid4().hex}},
+                }
+                if timestamp is not None:
+                    data["timestamp"] = timestamp
+                if extra_event_data:
+                    data.update(extra_event_data)
+                event = self.store_event(
+                    data=data,
+                    project_id=project_id or self.project.id,
+                    assert_no_errors=False,
+                )
+                events.append(event)
+        return events
+
     def store_trace_metrics(self, trace_metrics):
         files = {
             f"trace_metric_{i}": trace_metric.SerializeToString()
