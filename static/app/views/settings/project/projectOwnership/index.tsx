@@ -1,15 +1,15 @@
 import {useTheme} from '@emotion/react';
+import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
@@ -18,6 +18,7 @@ import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
+  fetchMutation,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
@@ -33,6 +34,11 @@ import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership
 import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+const ownershipSchema = z.object({
+  autoAssignment: z.string(),
+  codeownersAutoSync: z.boolean(),
+});
 
 export default function ProjectOwnership() {
   const theme = useTheme();
@@ -116,6 +122,15 @@ export default function ProjectOwnership() {
     project,
   });
   const hasCodeowners = organization.features?.includes('integrations-codeowners');
+
+  const ownershipMutationOptions = {
+    mutationFn: (data: Record<string, unknown>) =>
+      fetchMutation({
+        url: `/projects/${organization.slug}/${project.slug}/ownership/`,
+        method: 'PUT',
+        data,
+      }),
+  };
 
   if (isOwnershipPending || isCodeownersLoading) {
     return <LoadingIndicator />;
@@ -209,53 +224,64 @@ export default function ProjectOwnership() {
         />
       )}
       {ownership && !isOwnershipError ? (
-        <Form
-          apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}
-          apiMethod="PUT"
-          saveOnBlur
-          initialData={{
-            fallthrough: ownership.fallthrough,
-            autoAssignment: ownership.autoAssignment,
-            codeownersAutoSync: ownership.codeownersAutoSync,
-          }}
-          hideFooter
-        >
-          <JsonForm
-            forms={[
-              {
-                title: t('Issue Owners'),
-                fields: [
-                  {
-                    name: 'autoAssignment',
-                    type: 'choice',
-                    label: t('Prioritize Auto Assignment'),
-                    help: t(
-                      "When there's a conflict between suspect commit and ownership rules."
-                    ),
-                    choices: [
-                      [
-                        'Auto Assign to Suspect Commits',
-                        t('Auto-assign to suspect commits'),
-                      ],
-                      ['Auto Assign to Issue Owner', t('Auto-assign to issue owner')],
-                      ['Turn off Auto-Assignment', t('Turn off auto-assignment')],
-                    ],
-                    disabled,
-                  },
-                  {
-                    name: 'codeownersAutoSync',
-                    type: 'boolean',
-                    label: t('Sync changes from CODEOWNERS'),
-                    help: t(
-                      'We’ll update any changes you make to your CODEOWNERS files during a release.'
-                    ),
-                    disabled: disabled || !(codeowners || []).length,
-                  },
-                ],
-              },
-            ]}
-          />
-        </Form>
+        <FieldGroup title={t('Issue Owners')}>
+          <AutoSaveField
+            name="autoAssignment"
+            schema={ownershipSchema}
+            initialValue={ownership.autoAssignment}
+            mutationOptions={ownershipMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Prioritize Auto Assignment')}
+                hintText={t(
+                  "When there's a conflict between suspect commit and ownership rules."
+                )}
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={disabled}
+                  options={[
+                    {
+                      value: 'Auto Assign to Suspect Commits',
+                      label: t('Auto-assign to suspect commits'),
+                    },
+                    {
+                      value: 'Auto Assign to Issue Owner',
+                      label: t('Auto-assign to issue owner'),
+                    },
+                    {
+                      value: 'Turn off Auto-Assignment',
+                      label: t('Turn off auto-assignment'),
+                    },
+                  ]}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
+          <AutoSaveField
+            name="codeownersAutoSync"
+            schema={ownershipSchema}
+            initialValue={ownership.codeownersAutoSync}
+            mutationOptions={ownershipMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Sync changes from CODEOWNERS')}
+                hintText={t(
+                  'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
+                )}
+              >
+                <field.Switch
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={disabled || !(codeowners || []).length}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
+        </FieldGroup>
       ) : (
         <Alert.Container>
           <Alert variant="danger" showIcon={false}>
