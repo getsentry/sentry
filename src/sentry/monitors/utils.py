@@ -166,6 +166,7 @@ def _fetch_associated_groups_snuba(
     cols = [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
     cols.append(Columns.TRACE_ID.value.event_name)
 
+    # query snuba for related errors and their associated issues
     snql_request = Request(
         dataset=dataset.value,
         app_id="eventstore",
@@ -209,10 +210,14 @@ def _fetch_associated_groups_snuba(
     group_id_data: dict[int, set[str]] = defaultdict(set)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
+    # if query completes successfully, add an array of objects with group id and short id
+    # otherwise, return an empty dict to return an empty array through the serializer
     if "error" not in result:
         for event in result["data"]:
             trace_id_event_name = Columns.TRACE_ID.value.event_name
             assert trace_id_event_name is not None
+
+            # create dict with group_id and trace_id
             group_id_data[event["group_id"]].add(event[trace_id_event_name])
 
     return dict(group_id_data)
