@@ -82,7 +82,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
-from sentry.seer.models.organization_settings import SeerOrganizationSettings
+from sentry.seer.models.organization_settings import CodingAgent, SeerOrganizationSettings
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -561,6 +561,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
+    defaultCodingAgent: str | None
     defaultCodingAgentIntegrationId: int | None
     hasGranularReplayPermissions: bool
     replayAccessMembers: list[int]
@@ -783,6 +784,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 team__organization=obj
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
+            "defaultCodingAgent": (
+                attrs["seer_settings"].default_coding_agent
+                if attrs.get("seer_settings")
+                else CodingAgent.SEER
+            ),
             "defaultCodingAgentIntegrationId": (
                 attrs["seer_settings"].default_coding_agent_integration_id
                 if attrs.get("seer_settings")

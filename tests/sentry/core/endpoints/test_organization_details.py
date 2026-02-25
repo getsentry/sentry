@@ -33,7 +33,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.replays.models import OrganizationMemberReplayAccess
-from sentry.seer.models.organization_settings import SeerOrganizationSettings
+from sentry.seer.models.organization_settings import CodingAgent, SeerOrganizationSettings
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.metrics import TransactionMRI
@@ -1901,11 +1901,57 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 class OrganizationDefaultCodingAgentTest(OrganizationDetailsTestBase):
     method = "put"
 
-    def test_get_returns_null_by_default(self) -> None:
+    def test_get_returns_defaults(self) -> None:
         response = self.get_success_response(self.organization.slug, method="get")
+        assert response.data["defaultCodingAgent"] == CodingAgent.SEER
         assert response.data["defaultCodingAgentIntegrationId"] is None
 
-    def test_set_default_coding_agent(self) -> None:
+    def test_set_coding_agent_to_seer(self) -> None:
+        self.get_success_response(self.organization.slug, defaultCodingAgent=CodingAgent.SEER)
+        settings = SeerOrganizationSettings.objects.get(organization=self.organization)
+        assert settings.default_coding_agent == CodingAgent.SEER
+        assert settings.default_coding_agent_integration_id is None
+
+    def test_set_coding_agent_to_cursor_with_integration(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+        )
+        self.get_success_response(
+            self.organization.slug,
+            defaultCodingAgent=CodingAgent.CURSOR,
+            defaultCodingAgentIntegrationId=integration.id,
+        )
+        settings = SeerOrganizationSettings.objects.get(organization=self.organization)
+        assert settings.default_coding_agent == CodingAgent.CURSOR
+        assert settings.default_coding_agent_integration_id == integration.id
+
+    def test_set_coding_agent_to_null_disables(self) -> None:
+        SeerOrganizationSettings.objects.create(
+            organization=self.organization,
+            default_coding_agent=CodingAgent.SEER,
+        )
+        self.get_success_response(self.organization.slug, defaultCodingAgent=None)
+        settings = SeerOrganizationSettings.objects.get(organization=self.organization)
+        assert settings.default_coding_agent is None
+
+    def test_get_returns_set_values(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+        )
+        SeerOrganizationSettings.objects.create(
+            organization=self.organization,
+            default_coding_agent=CodingAgent.CURSOR,
+            default_coding_agent_integration_id=integration.id,
+        )
+        response = self.get_success_response(self.organization.slug, method="get")
+        assert response.data["defaultCodingAgent"] == CodingAgent.CURSOR
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+
+    def test_set_integration_id_only(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -1914,11 +1960,10 @@ class OrganizationDefaultCodingAgentTest(OrganizationDetailsTestBase):
         self.get_success_response(
             self.organization.slug, defaultCodingAgentIntegrationId=integration.id
         )
-
         settings = SeerOrganizationSettings.objects.get(organization=self.organization)
         assert settings.default_coding_agent_integration_id == integration.id
 
-    def test_get_returns_set_value(self) -> None:
+    def test_clear_integration_id(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -1928,25 +1973,29 @@ class OrganizationDefaultCodingAgentTest(OrganizationDetailsTestBase):
             organization=self.organization,
             default_coding_agent_integration_id=integration.id,
         )
-
-        response = self.get_success_response(self.organization.slug, method="get")
-        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
-
-    def test_clear_default_coding_agent(self) -> None:
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github",
-            external_id="12345",
-        )
-        SeerOrganizationSettings.objects.create(
-            organization=self.organization,
-            default_coding_agent_integration_id=integration.id,
-        )
-
         self.get_success_response(self.organization.slug, defaultCodingAgentIntegrationId=None)
-
         settings = SeerOrganizationSettings.objects.get(organization=self.organization)
         assert settings.default_coding_agent_integration_id is None
+
+    def test_rejects_cursor_without_integration(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            defaultCodingAgent=CodingAgent.CURSOR,
+            status_code=400,
+        )
+
+    def test_rejects_seer_with_integration(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+        )
+        self.get_error_response(
+            self.organization.slug,
+            defaultCodingAgent=CodingAgent.SEER,
+            defaultCodingAgentIntegrationId=integration.id,
+            status_code=400,
+        )
 
     def test_rejects_invalid_integration_id(self) -> None:
         self.get_error_response(
@@ -1963,6 +2012,13 @@ class OrganizationDefaultCodingAgentTest(OrganizationDetailsTestBase):
         self.get_error_response(
             self.organization.slug,
             defaultCodingAgentIntegrationId=integration.id,
+            status_code=400,
+        )
+
+    def test_rejects_invalid_agent_choice(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            defaultCodingAgent="invalid_agent",
             status_code=400,
         )
 

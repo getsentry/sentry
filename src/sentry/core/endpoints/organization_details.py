@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
@@ -108,7 +108,11 @@ from sentry.organizations.services.organization.model import (
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.seer.models.organization_settings import SeerOrganizationSettings
+from sentry.seer.models.organization_settings import (
+    INTEGRATION_REQUIRED_AGENTS,
+    CodingAgent,
+    SeerOrganizationSettings,
+)
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
@@ -370,10 +374,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
+    defaultCodingAgent = serializers.ChoiceField(
+        choices=CodingAgent.choices + [("", "")],
+        required=False,
+        allow_null=True,
+        help_text='Which coding agent to use for new projects. Valid values: "seer" (default), "cursor", or null (disabled).',
+    )
     defaultCodingAgentIntegrationId = serializers.IntegerField(
         required=False,
         allow_null=True,
-        help_text="The default coding agent integration ID for new projects. When null, Sentry's built-in Seer agent is used.",
+        help_text="The integration ID for the coding agent, required when defaultCodingAgent requires an integration (e.g. cursor).",
     )
     hasGranularReplayPermissions = serializers.BooleanField(required=False)
     replayAccessMembers = serializers.ListField(
@@ -558,6 +568,30 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Must be in Automatic Mode to configure the organization sample rate."
             )
 
+        agent = attrs.get("defaultCodingAgent")
+        integration_id = attrs.get("defaultCodingAgentIntegrationId")
+        if agent is not None and agent in INTEGRATION_REQUIRED_AGENTS and integration_id is None:
+            # Check if the org already has an integration set that we can keep
+            org = self.context["organization"]
+            existing = SeerOrganizationSettings.objects.filter(organization=org).first()
+            if existing is None or existing.default_coding_agent_integration_id is None:
+                raise serializers.ValidationError(
+                    {
+                        "defaultCodingAgentIntegrationId": f"An integration ID is required when using the {agent} agent."
+                    }
+                )
+
+        if (
+            agent is not None
+            and agent not in INTEGRATION_REQUIRED_AGENTS
+            and integration_id is not None
+        ):
+            raise serializers.ValidationError(
+                {
+                    "defaultCodingAgentIntegrationId": f"An integration ID must not be set for the {agent} agent."
+                }
+            )
+
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
@@ -641,19 +675,43 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     changed_data[key] = f"from {old_val} to {option_inst.value}"
                 option_inst.save()
 
+        seer_fields_to_update: dict[str, Any] = {}
+        if "defaultCodingAgent" in data:
+            seer_fields_to_update["default_coding_agent"] = data["defaultCodingAgent"] or None
         if "defaultCodingAgentIntegrationId" in data:
-            new_value = data["defaultCodingAgentIntegrationId"]
+            seer_fields_to_update["default_coding_agent_integration_id"] = data[
+                "defaultCodingAgentIntegrationId"
+            ]
+
+        if seer_fields_to_update:
             settings, created = SeerOrganizationSettings.objects.get_or_create(
                 organization=org,
-                defaults={"default_coding_agent_integration_id": new_value},
+                defaults=seer_fields_to_update,
             )
-            if not created and settings.default_coding_agent_integration_id != new_value:
-                old_val = settings.default_coding_agent_integration_id
-                settings.default_coding_agent_integration_id = new_value
-                settings.save(update_fields=["default_coding_agent_integration_id", "date_updated"])
-                changed_data["defaultCodingAgentIntegrationId"] = f"from {old_val} to {new_value}"
-            elif created and new_value is not None:
-                changed_data["defaultCodingAgentIntegrationId"] = f"to {new_value}"
+            if not created:
+                update_fields = ["date_updated"]
+                for field, new_value in seer_fields_to_update.items():
+                    old_val = getattr(settings, field)
+                    if old_val != new_value:
+                        setattr(settings, field, new_value)
+                        update_fields.append(field)
+                        camel_key = (
+                            "defaultCodingAgent"
+                            if field == "default_coding_agent"
+                            else "defaultCodingAgentIntegrationId"
+                        )
+                        changed_data[camel_key] = f"from {old_val} to {new_value}"
+                if len(update_fields) > 1:
+                    settings.save(update_fields=update_fields)
+            else:
+                for field, new_value in seer_fields_to_update.items():
+                    if new_value is not None:
+                        camel_key = (
+                            "defaultCodingAgent"
+                            if field == "default_coding_agent"
+                            else "defaultCodingAgentIntegrationId"
+                        )
+                        changed_data[camel_key] = f"to {new_value}"
 
         trusted_relay_info = data.get("trustedRelays")
         if trusted_relay_info is not None:
@@ -1097,8 +1155,14 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     )
 
     # seer features
+    defaultCodingAgent = serializers.ChoiceField(
+        choices=CodingAgent.choices + [("", "")],
+        help_text='Which coding agent to use for new projects. Valid values: "seer" (default), "cursor", or null (disabled).',
+        required=False,
+        allow_null=True,
+    )
     defaultCodingAgentIntegrationId = serializers.IntegerField(
-        help_text="The default coding agent integration ID for new projects. When null, Sentry's built-in Seer agent is used.",
+        help_text="The integration ID for the coding agent, required when defaultCodingAgent requires an integration (e.g. cursor).",
         required=False,
         allow_null=True,
     )
