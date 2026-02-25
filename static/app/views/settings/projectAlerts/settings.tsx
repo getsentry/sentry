@@ -141,7 +141,7 @@ export default function ProjectAlertSettings() {
                 >
                   <field.Input
                     value={field.state.value}
-                    onChange={e => field.handleChange(e.target.value)}
+                    onChange={field.handleChange}
                     placeholder={t('e.g. $shortID - $title')}
                     disabled={!canEditRule}
                   />
