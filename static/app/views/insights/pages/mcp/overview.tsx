@@ -23,6 +23,7 @@ import {InsightsProjectSelector} from 'sentry/views/insights/common/components/p
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import McpTrafficWidget from 'sentry/views/insights/common/components/widgets/mcpTrafficWidget';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {McpOverviewTable} from 'sentry/views/insights/pages/mcp/components/mcpOverviewTable';
 import McpPromptTrafficWidget from 'sentry/views/insights/pages/mcp/components/mcpPromptTrafficWidget';
@@ -34,6 +35,7 @@ import {WidgetGrid} from 'sentry/views/insights/pages/mcp/components/styles';
 import {useMcpSpanSearchProps} from 'sentry/views/insights/pages/mcp/hooks/useMcpSpanSearchProps';
 import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useShowMCPOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/mcp/onboarding';
+import {PlatformizedMcpOverview} from 'sentry/views/insights/pages/mcp/platformizedMcpOverview';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 
 interface McpOverviewPageProps {
@@ -42,6 +44,7 @@ interface McpOverviewPageProps {
 
 function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
   const organization = useOrganization();
+  const hasPlatformized = useHasPlatformizedAiAndMcp();
   const showOnboarding = useShowMCPOnboarding();
 
   useOverviewPageTrackPageload();
@@ -54,6 +57,10 @@ function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
   }, [organization, showOnboarding]);
 
   const mcpSpanSearchProps = useMcpSpanSearchProps();
+
+  if (hasPlatformized) {
+    return <PlatformizedMcpOverview />;
+  }
 
   return (
     <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>

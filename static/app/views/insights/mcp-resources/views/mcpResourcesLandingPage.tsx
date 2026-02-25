@@ -19,7 +19,9 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {PlatformizedMcpResourcesOverview} from 'sentry/views/insights/mcp-resources/views/platformizedMcpResourcesOverview';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import McpResourceDurationWidget from 'sentry/views/insights/pages/mcp/components/mcpResourceDurationWidget';
 import McpResourceErrorRateWidget from 'sentry/views/insights/pages/mcp/components/mcpResourceErrorRateWidget';
 import {McpResourcesTable} from 'sentry/views/insights/pages/mcp/components/mcpResourcesTable';
@@ -96,6 +98,11 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
+  const hasPlatformized = useHasPlatformizedAiAndMcp();
+  if (hasPlatformized) {
+    return <PlatformizedMcpResourcesOverview />;
+  }
 
   return (
     <ModulePageProviders

@@ -45,12 +45,14 @@ import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
+import {PlatformizedAgentsOverview} from 'sentry/views/insights/pages/agents/platformizedAgentsOverview';
 import {getAgentRunsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
   TableUrlParams,
   useTraceDrawerQueryState,
 } from 'sentry/views/insights/pages/agents/utils/urlParams';
+import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 
@@ -60,6 +62,11 @@ interface AgentsOverviewPageProps {
 
 function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   const organization = useOrganization();
+  const hasPlatformized = useHasPlatformizedAiAndMcp();
+
+  if (hasPlatformized) {
+    return <PlatformizedAgentsOverview />;
+  }
 
   return (
     <Feature
