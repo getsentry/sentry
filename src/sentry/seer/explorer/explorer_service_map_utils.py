@@ -187,7 +187,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                             parent_project_id,
                             parent_project_slug,
                             child_project_id,
-                            segment.get("child_project_slug"),
+                            segment["child_project_slug"],
                         )
                         edges_by_pair[edge_key] += 1
         span.set_data("edges_found", len(edges_by_pair))
