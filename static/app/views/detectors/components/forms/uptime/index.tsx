@@ -5,7 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {mapToFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
+import {mapToFormErrors} from 'sentry/views/alerts/rules/uptime/formErrors';
 import {
   extractCompilationError,
   PreviewCheckResultProvider,

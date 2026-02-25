@@ -3,58 +3,61 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
-  AssertionErrorKind,
+  PreviewCheckErrorKind,
   CompilationErrorType,
   OpType,
   PreviewCheckStatusReasonType,
   RuntimeErrorType,
   type AndOp,
-  type Assertion,
   type GroupOp,
   type NotOp,
   type Op,
-  type PreviewCheckCompilationError,
+  type PreviewCheckError,
   type PreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/types';
 import {isLeafOp, leafOpsMatch} from 'sentry/views/alerts/rules/uptime/assertions/utils';
+import type { usePreviewCheckResult } from './previewCheckContext';
 
+export function mapPreviewCheckErrorToMessage(
+  error: PreviewCheckError | null
+): string | null {
+  if (!error) return null;
 
-export function mapToFormErrors(error: PreviewCheckCompilationError | null): any {
+  return error.assertion.error === PreviewCheckErrorKind.COMPILATION_ERROR
+    ? t('Assertion Compilation Error')
+    : t('Assertion Serialization Error');
+}
+
+export function mapToFormErrors(error: PreviewCheckError | null): any {
   if (!error) return null;
 
   const trailingMessage = mapPreviewCheckErrorToMessage(error);
   return {nonFieldErrors: [t('Failed to create monitor %s', trailingMessage ? `(${trailingMessage})` : '')]};
 }
 
+function isPreviewCheckError(value: any): value is PreviewCheckError {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'assertion' in value &&
+    'error' in value.assertion 
+  );
+}
+
 /**
- * Extracts a PreviewCheckCompilationError from API error response JSON.
+ * Validates and extracts a PreviewCheckError from API error response JSON.
  *
  * Handles two formats:
  *
- * 1. Direct format (uptime alerts test button / form submission):
- *    {"assertion": {"error": "compilation_error", ...}}
+ * 1. Direct format: {...PreviewCheckError}
  *
- * 2. Nested format (detector form submission):
- *    {"dataSources": {"assertion": {"error": "compilation_error", ...}}}
+ * 2. Nested format: {dataSources: {...PreviewCheckError}}
  */
-export function extractCompilationError(
+export function extractPreviewCheckError(
   responseJson: any
-): PreviewCheckCompilationError | null {
-  if (!responseJson) {
-    return null;
-  }
-
-  // Nested detector format: {dataSources: {assertion: {...}}}
-  if (responseJson.dataSources?.assertion) {
-    return {assertion: responseJson.dataSources.assertion};
-  }
-
-  // Direct format: {assertion: {...}}
-  if (responseJson.assertion && !Array.isArray(responseJson.assertion)) {
-    return {assertion: responseJson.assertion};
-  }
-
-  return null;
+): PreviewCheckError | null {
+  const candidates = [responseJson?.dataSources, responseJson];
+  return candidates.find(isPreviewCheckError) ?? null;
 }
 
 const PREVIEW_CHECK_STATUS_REASON_LABELS: Record<PreviewCheckStatusReasonType, string> =
@@ -68,89 +71,72 @@ const PREVIEW_CHECK_STATUS_REASON_LABELS: Record<PreviewCheckStatusReasonType, s
     [PreviewCheckStatusReasonType.MISS_PRODUCED]: t('Missed Window'),
     [PreviewCheckStatusReasonType.MISS_BACKFILL]: t('Missed Window'),
     [PreviewCheckStatusReasonType.ASSERTION_COMPILATION_ERROR]: t(
-      'Assertions Compilation Error'
+      'Assertion Compilation Error'
     ),
     [PreviewCheckStatusReasonType.ASSERTION_EVALUATION_ERROR]: t(
-      'Assertions Evaluation Error'
+      'Assertion Evaluation Error'
     ),
   };
 
-export function mapPreviewCheckErrorToMessage(
-  error: PreviewCheckCompilationError | null
-): string | null {
-  if (!error) return null;
-
-  return error.assertion.error === AssertionErrorKind.COMPILATION_ERROR
-    ? t('Assertions Compilation Error')
-    : t('Assertions Serialization Error');
-}
-
-export function mapPreviewCheckResponseToMessage(
+export function mapPreviewCheckResultToMessage(
   response: PreviewCheckResult
 ): string | null {
   const result = response.check_result;
   if (!result) return null;
 
   if (result.assertion_failure_data) {
-    return t('Assertions Failure');
+    return t('Assertion Failure');
   }
 
   const type = result.status_reason?.type;
   return type ? (PREVIEW_CHECK_STATUS_REASON_LABELS[type] ?? null) : null;
 }
 
-// --- Op resolution helpers ---
-
-// Walk failure_data and rootOp to find the errored leaf.
-// failure_data contains only ONE child at each AND/OR level (the failing branch),
-// so we find the matching sibling in rootOp by op type + value rather than by index.
-function matchOpNode(first: Op, second: Op): Op | null {
-  if (isLeafOp(first)) {
-    return second;
+// Matches a leaf op from the failure data op tree (pointing to the failing assertion) 
+// to an op from the form's assertion op tree.
+function matchFailureDataLeafOp(failureDataOp: Op, assertionOp: Op): Op | null {
+  if (isLeafOp(failureDataOp)) {
+    return assertionOp;
   }
 
   if (
-    (first.op === OpType.AND || first.op === OpType.OR) &&
-    (second.op === OpType.AND || second.op === OpType.OR)
+    (failureDataOp.op === OpType.AND || failureDataOp.op === OpType.OR) &&
+    (assertionOp.op === OpType.AND || assertionOp.op === OpType.OR)
   ) {
-    const [failingChild] = (first as GroupOp).children;
+    const [failingChild] = (failureDataOp as GroupOp).children;
     if (!failingChild) return null;
     // For leaves, also match by value to distinguish siblings of the same op type.
-    const match = (second as GroupOp).children.find(
+    const match = (assertionOp as GroupOp).children.find(
       c =>
         c.op === failingChild.op &&
         (isLeafOp(failingChild) ? leafOpsMatch(failingChild, c) : true)
     );
     if (!match) return null;
-    return matchOpNode(failingChild, match);
+    return matchFailureDataLeafOp(failingChild, match);
   }
 
   // NOT wraps a group op in `operand`; descend into it for both sides
-  if (first.op === OpType.NOT && second.op === OpType.NOT) {
-    return matchOpNode((first as NotOp).operand, (second as NotOp).operand);
+  if (failureDataOp.op === OpType.NOT && assertionOp.op === OpType.NOT) {
+    return matchFailureDataLeafOp((failureDataOp as NotOp).operand, (assertionOp as NotOp).operand);
   }
 
   return null;
 }
 
-/**
- * assertion_failure_data mirrors rootOp's structure without ids.
- * Walk both trees by position to find the errored leaf in rootOp.
- */
-function resolveOpFromFailureData(failureData: Assertion, rootOp: AndOp): Op | null {
-  return matchOpNode(failureData.root, rootOp);
+function resolveErroredOpFromFailureData(failureDataOp: AndOp, rootOp: AndOp): Op | null {
+  return matchFailureDataLeafOp(failureDataOp, rootOp);
 }
 
-/**
- * assertPath is ["groupPos", "childIndex", "groupPos", "childIndex", ...].
- * The first segment identifies the root group itself (not a child), so we skip it.
- * e.g. ["0", "2", "0"] -> children[2] -> children[0]
- */
-function resolveOpFromAssertPath(assertPath: string[], rootOp: AndOp): Op | null {
+// Maps the assert path to the op in the form's assertion op tree.
+// Examples: assertPath = ["0", "0", "1"] points to:  
+// first child of root: call it A -> first child of A: call it B -> second child of B
+function resolveErroredOpFromAssertPath(assertPath: string[], rootOp: AndOp): Op | null {
   let current: Op = rootOp;
 
   for (const segment of assertPath.slice(1)) {
-    const index = parseInt(segment, 10);
+    const index = Number.parseInt(segment);
+    if (isNaN(index)) return null;
+
     if (current.op === OpType.AND || current.op === OpType.OR) {
       const next: Op | undefined = (current as GroupOp).children[index];
       if (!next) return null;
@@ -158,8 +144,7 @@ function resolveOpFromAssertPath(assertPath: string[], rootOp: AndOp): Op | null
     } else if (current.op === OpType.NOT) {
       current = (current as NotOp).operand;
     } else {
-      // Already at a leaf — the remaining path segments index into the op's
-      // operands, which we don't need. Return the leaf as the errored op.
+      // At a leaf op; return it as the errored op.
       return current;
     }
   }
@@ -172,30 +157,32 @@ function resolveOpFromAssertPath(assertPath: string[], rootOp: AndOp): Op | null
  * the specific Op that caused the failure, or null if one cannot be identified.
  */
 export function resolveErroredOp(
-  state: {data: PreviewCheckResult | null; error: PreviewCheckCompilationError | null},
+  previewCheckResult: ReturnType<typeof usePreviewCheckResult>,
   rootOp: AndOp
 ): Op | null {
-  if (state.data) {
-    const result = state.data.check_result;
+  const {data, error} = previewCheckResult;
+  
+  if (data) {
+    const result = data.check_result;
     if (!result) return null;
 
     if (result.assertion_failure_data) {
-      return resolveOpFromFailureData(result.assertion_failure_data, rootOp);
+      return resolveErroredOpFromFailureData(result.assertion_failure_data.root, rootOp);
     }
 
     // No failure data; fall back to status_reason details if they carry an assertPath
     const {details} = result.status_reason ?? {};
     if (details && 'assertPath' in details) {
-      return resolveOpFromAssertPath(details.assertPath, rootOp);
+      return resolveErroredOpFromAssertPath(details.assertPath, rootOp);
     }
 
     return null;
   }
 
-  if (state.error) {
-    const {assertion} = state.error;
-    if (assertion.error === AssertionErrorKind.COMPILATION_ERROR) {
-      return resolveOpFromAssertPath(assertion.compileError.assertPath, rootOp);
+  if (error) {
+    const {assertion} = error;
+    if (assertion.error === PreviewCheckErrorKind.COMPILATION_ERROR) {
+      return resolveErroredOpFromAssertPath(assertion.compileError.assertPath, rootOp);
     }
   }
 
@@ -212,11 +199,13 @@ const ASSERTION_ERROR_TYPE_LABELS: Partial<Record<string, string>> = {
   [RuntimeErrorType.INVALID_TYPE_COMPARISON]: t('Invalid Type Comparison'),
 };
 
-function getAssertionFormErrorMessage(
-  state: {data: PreviewCheckResult | null; error: PreviewCheckCompilationError | null}
+function getFormErrorMessage(
+  previewCheckResult: ReturnType<typeof usePreviewCheckResult>
 ): string | null {
-  if (state.data) {
-    const result = state.data.check_result;
+  const {data, error} = previewCheckResult;
+  
+  if (data) {
+    const result = data.check_result;
     if (!result) return null;
 
     if (result.assertion_failure_data) {
@@ -224,10 +213,10 @@ function getAssertionFormErrorMessage(
     }
 
     const details = result.status_reason?.details;
-    if (details && 'type' in details) {
+    if (details) {
       const label =
         ASSERTION_ERROR_TYPE_LABELS[
-          details.type as CompilationErrorType | RuntimeErrorType
+          details.type
         ] ?? details.type;
       return 'msg' in details ? `${label}: ${details.msg}` : label;
     }
@@ -235,13 +224,13 @@ function getAssertionFormErrorMessage(
     return null;
   }
 
-  if (state.error) {
-    const {assertion} = state.error;
-    if (assertion.error === AssertionErrorKind.COMPILATION_ERROR) {
+  if (error) {
+    const {assertion} = error;
+    if (assertion.error === PreviewCheckErrorKind.COMPILATION_ERROR) {
       const {compileError} = assertion;
       const label = ASSERTION_ERROR_TYPE_LABELS[compileError.type] ?? compileError.type;
       return 'msg' in compileError ? `${label}: ${compileError.msg}` : label;
-    } else if (assertion.error === AssertionErrorKind.SERIALIZATION_ERROR) {
+    } else if (assertion.error === PreviewCheckErrorKind.SERIALIZATION_ERROR) {
       return t('Serialization Error: %s', assertion.details);
     }
   }
@@ -250,17 +239,17 @@ function getAssertionFormErrorMessage(
 }
 
 interface AssertionFormErrorProps {
-  erroredOp: Op | null;
+  erroredOp: Op | undefined;
   op: Op;
-  state: {data: PreviewCheckResult | null; error: PreviewCheckCompilationError | null};
+  previewCheckResult: ReturnType<typeof usePreviewCheckResult>;
 }
 
-export function AssertionFormError({op, erroredOp, state}: AssertionFormErrorProps) {
+export function AssertionFormError({op, erroredOp, previewCheckResult}: AssertionFormErrorProps) {
   if (!erroredOp || erroredOp.id !== op.id) {
     return null;
   }
 
-  const message = getAssertionFormErrorMessage(state);
+  const message = getFormErrorMessage(previewCheckResult);
   if (!message) {
     return null;
   }

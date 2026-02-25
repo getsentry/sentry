@@ -31,7 +31,7 @@ interface AssertionOpGroupProps {
   onChange: (op: LogicalOp) => void;
   value: LogicalOp;
   disableDropping?: boolean;
-  erroredOp?: Op | null;
+  erroredOp?: Op;
   onRemove?: () => void;
   root?: boolean;
 }

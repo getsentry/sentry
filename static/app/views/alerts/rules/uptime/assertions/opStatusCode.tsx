@@ -18,7 +18,7 @@ interface AssertionOpStatusCodeProps {
   onChange: (op: StatusCodeOp) => void;
   onRemove: () => void;
   value: StatusCodeOp;
-  erroredOp?: Op | null;
+  erroredOp?: Op;
 }
 
 export function AssertionOpStatusCode({

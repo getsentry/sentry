@@ -27,7 +27,7 @@ interface AssertionOpJsonPathProps {
   onChange: (op: JsonPathOp) => void;
   onRemove: () => void;
   value: JsonPathOp;
-  erroredOp?: Op | null;
+  erroredOp?: Op;
 }
 
 export function AssertionOpJsonPath({

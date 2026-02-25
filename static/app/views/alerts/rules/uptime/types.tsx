@@ -231,12 +231,12 @@ export enum CompilationErrorType {
   TOO_MANY_OPERATIONS = 'too_many_operations',
 }
 
-export enum AssertionErrorKind {
+export enum PreviewCheckErrorKind {
   COMPILATION_ERROR = 'compilation_error',
   SERIALIZATION_ERROR = 'serialization_error',
 }
 
-export type AssertionCompilationErrorDetail =
+type AssertionCompilationErrorDetail =
   | {
       assertPath: string[];
       glob: string;
@@ -267,7 +267,7 @@ export enum RuntimeErrorType {
   INVALID_TYPE_COMPARISON = 'invalid_type_comparison',
 }
 
-export type AssertionEvaluationErrorDetail =
+type AssertionEvaluationErrorDetail =
   | {
       assertPath: string[];
       msg: string;
@@ -291,15 +291,15 @@ type AssertionErrorDetail =
   | AssertionCompilationErrorDetail
   | AssertionEvaluationErrorDetail;
 
-export interface PreviewCheckCompilationError {
+export interface PreviewCheckError {
   assertion:
     | {
         compileError: AssertionCompilationErrorDetail;
-        error: AssertionErrorKind.COMPILATION_ERROR;
+        error: PreviewCheckErrorKind.COMPILATION_ERROR;
       }
     | {
         details: string;
-        error: AssertionErrorKind.SERIALIZATION_ERROR;
+        error: PreviewCheckErrorKind.SERIALIZATION_ERROR;
       };
 }
 

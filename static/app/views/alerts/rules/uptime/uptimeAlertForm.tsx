@@ -40,7 +40,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Assertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
-import {mapToFormErrors} from './assertionFormErrors';
+import {mapToFormErrors} from './formErrors';
 import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
 import {HTTPSnippet} from './httpSnippet';
 import {

@@ -26,7 +26,7 @@ interface AssertionOpHeaderProps {
   onChange: (op: HeaderCheckOp) => void;
   onRemove: () => void;
   value: HeaderCheckOp;
-  erroredOp?: Op | null;
+  erroredOp?: Op;
 }
 
 export function AssertionOpHeader({

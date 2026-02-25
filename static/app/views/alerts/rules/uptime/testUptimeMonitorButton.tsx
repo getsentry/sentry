@@ -14,7 +14,7 @@ import {
   type PreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/types';
 import { extractCompilationError, usePreviewCheckResult } from './previewCheckContext';
-import { mapPreviewCheckErrorToMessage, mapPreviewCheckResponseToMessage } from './assertionFormErrors';
+import { mapPreviewCheckErrorToMessage, mapPreviewCheckResultToMessage } from './formErrors';
 
 interface TestUptimeMonitorButtonProps {
   /**
@@ -70,7 +70,7 @@ export function TestUptimeMonitorButton({
       if (response.check_result?.status === PreviewCheckStatus.SUCCESS) {
         addSuccessMessage(t('Uptime check passed successfully'));
       } else {
-        const trailingMessage = mapPreviewCheckResponseToMessage(response);
+        const trailingMessage = mapPreviewCheckResultToMessage(response);
         addErrorMessage(t('Uptime check failed %s', trailingMessage ? `(${trailingMessage})` : ''));
       }
     },

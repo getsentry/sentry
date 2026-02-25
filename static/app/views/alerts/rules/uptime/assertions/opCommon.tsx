@@ -11,7 +11,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ComparisonType, type Op} from 'sentry/views/alerts/rules/uptime/types';
-import {AssertionFormError} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
+import {AssertionFormError} from 'sentry/views/alerts/rules/uptime/formErrors';
 import {usePreviewCheckResult} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 
 interface AnimatedOpProps
@@ -56,7 +56,7 @@ interface OpContainerProps {
   label: React.ReactNode;
   onRemove: () => void;
   op: Op;
-  erroredOp?: Op | null;
+  erroredOp?: Op;
   inputId?: string;
   tooltip?: React.ReactNode;
 }
@@ -75,7 +75,7 @@ export function OpContainer({
       data: op,
     });
 
-  const {data, error} = usePreviewCheckResult();
+  const previewCheckResult = usePreviewCheckResult();
 
   return (
     <Flex direction="column" gap="sm">
@@ -106,7 +106,7 @@ export function OpContainer({
               aria-label={t('Remove assertion')}
               onClick={onRemove}
             />
-            <AssertionFormError op={op} erroredOp={erroredOp ?? null} state={{data, error}} />
+            <AssertionFormError op={op} erroredOp={erroredOp} previewCheckResult={previewCheckResult} />
           </Grid>
         </AnimatedOp>
       )}

@@ -1,20 +1,20 @@
 import {createContext, useContext, useState} from 'react';
 
 import type {
-  PreviewCheckCompilationError,
+  PreviewCheckError,
   PreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/types';
 
-export {extractCompilationError} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
+export {extractPreviewCheckError as extractCompilationError} from 'sentry/views/alerts/rules/uptime/formErrors';
 
 type PreviewCheckResultState = {
   data: PreviewCheckResult | null;
-  error: PreviewCheckCompilationError | null;
+  error: PreviewCheckError | null;
 };
 
 type PreviewCheckResultContextType = PreviewCheckResultState & {
   setPreviewCheckData: (data: PreviewCheckResult | null) => void;
-  setPreviewCheckError: (error: PreviewCheckCompilationError | null) => void;
+  setPreviewCheckError: (error: PreviewCheckError | null) => void;
   resetPreviewCheckResult: () => void;
 };
 
@@ -30,7 +30,7 @@ export function PreviewCheckResultProvider({children}: {children: React.ReactNod
   const setPreviewCheckData = (data: PreviewCheckResult | null) =>
     setState({data, error: null});
 
-  const setPreviewCheckError = (error: PreviewCheckCompilationError | null) =>
+  const setPreviewCheckError = (error: PreviewCheckError | null) =>
     setState({data: null, error});
 
   const resetPreviewCheckResult = () => setState({data: null, error: null});
