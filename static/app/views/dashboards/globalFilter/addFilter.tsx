@@ -135,52 +135,54 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
             : t('Select Filter Dataset')}
         </MenuTitleWrapper>
       }
-      menuFooter={({resetSearch}) => {
-        if (!isSelectingFilterKey) return null;
+      menuFooter={
+        isSelectingFilterKey
+          ? ({resetSearch}) => {
+              return (
+                <Flex gap="md" justify="end">
+                  <Button
+                    size="xs"
+                    priority="transparent"
+                    icon={<IconArrow direction="left" />}
+                    onClick={() => {
+                      resetSearch();
+                      setIsSelectingFilterKey(false);
+                    }}
+                  >
+                    {t('Back')}
+                  </Button>
 
-        return (
-          <Flex gap="md" justify="end">
-            <Button
-              size="xs"
-              priority="transparent"
-              icon={<IconArrow direction="left" />}
-              onClick={() => {
-                resetSearch();
-                setIsSelectingFilterKey(false);
-              }}
-            >
-              {t('Back')}
-            </Button>
+                  <MenuComponents.ApplyButton
+                    disabled={!selectedFilterKey}
+                    onClick={() => {
+                      if (!selectedFilterKey || !selectedDataset) return;
 
-            <MenuComponents.ApplyButton
-              disabled={!selectedFilterKey}
-              onClick={() => {
-                if (!selectedFilterKey || !selectedDataset) return;
+                      let defaultFilterValue = '';
+                      const fieldDefinition =
+                        fieldDefinitionMap.get(selectedFilterKey.key) ?? null;
+                      const valueType = fieldDefinition?.valueType;
 
-                let defaultFilterValue = '';
-                const fieldDefinition =
-                  fieldDefinitionMap.get(selectedFilterKey.key) ?? null;
-                const valueType = fieldDefinition?.valueType;
+                      if (valueType && !IGNORE_DEFAULT_VALUES.includes(valueType)) {
+                        defaultFilterValue = getInitialFilterText(
+                          selectedFilterKey.key,
+                          fieldDefinition
+                        );
+                      }
 
-                if (valueType && !IGNORE_DEFAULT_VALUES.includes(valueType)) {
-                  defaultFilterValue = getInitialFilterText(
-                    selectedFilterKey.key,
-                    fieldDefinition
-                  );
-                }
-
-                const newFilter: GlobalFilter = {
-                  dataset: selectedDataset,
-                  tag: pick(selectedFilterKey, 'key', 'name', 'kind'),
-                  value: defaultFilterValue,
-                };
-                onAddFilter(newFilter);
-                setIsSelectingFilterKey(false);
-              }}
-            />
-          </Flex>
-        );
-      }}
+                      const newFilter: GlobalFilter = {
+                        dataset: selectedDataset,
+                        tag: pick(selectedFilterKey, 'key', 'name', 'kind'),
+                        value: defaultFilterValue,
+                      };
+                      onAddFilter(newFilter);
+                      setIsSelectingFilterKey(false);
+                    }}
+                  />
+                </Flex>
+              );
+            }
+          : undefined
+      }
       trigger={triggerProps => (
         <OverlayTrigger.IconButton
           {...triggerProps}
