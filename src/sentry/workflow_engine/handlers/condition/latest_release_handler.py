@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, Literal, NamedTuple
 
 from sentry import tagstore
 from sentry.models.environment import Environment
@@ -12,38 +12,30 @@ from sentry.rules.filters.latest_release import (
 from sentry.search.utils import get_latest_release
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
-from sentry.workflow_engine.caches import CacheAccess
+from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
-class _LatestReleaseCacheAccess(CacheAccess[Release | Literal[False]]):
-    """
-    If we have a release for a project in an environment, we cache it.
-    If we don't, we cache False.
-    """
-
-    def __init__(self, event: GroupEvent, environment: Environment | None):
-        self._key = latest_release_cache_key(
-            event.group.project_id, environment.id if environment else None
-        )
-
-    def key(self) -> str:
-        return self._key
+class _LatestReleaseCacheKey(NamedTuple):
+    project_id: int
+    environment_id: int | None
 
 
-class _LatestAdoptedReleaseCacheAccess(CacheAccess[Release | Literal[False]]):
-    """
-    If we have a latest adopted release for a project in an environment, we cache it.
-    If we don't, we cache False.
-    """
+class _LatestAdoptedReleaseCacheKey(NamedTuple):
+    project_id: int
+    environment_id: int
 
-    def __init__(self, event: GroupEvent, environment: Environment):
-        self._key = latest_adopted_release_cache_key(event.group.project_id, environment.id)
 
-    def key(self) -> str:
-        return self._key
+# Cache mappings for latest release lookups.
+# Values are Release objects, or False if no release exists (to cache negative lookups).
+_latest_release_cache = CacheMapping[_LatestReleaseCacheKey, Release | Literal[False]](
+    lambda key: latest_release_cache_key(key.project_id, key.environment_id)
+)
+_latest_adopted_release_cache = CacheMapping[
+    _LatestAdoptedReleaseCacheKey, Release | Literal[False]
+](lambda key: latest_adopted_release_cache_key(key.project_id, key.environment_id))
 
 
 def get_latest_adopted_release_for_env(
@@ -52,11 +44,13 @@ def get_latest_adopted_release_for_env(
     """
     Get the latest adopted release for a project in an environment.
     """
+    cache_key = _LatestAdoptedReleaseCacheKey(event.group.project_id, environment.id)
     return _get_latest_release_for_env_impl(
         environment,
         event,
         only_adopted=True,
-        cache_access=_LatestAdoptedReleaseCacheAccess(event, environment),
+        mapping=_latest_adopted_release_cache,
+        cache_key=cache_key,
     )
 
 
@@ -68,21 +62,26 @@ def get_latest_release_for_env(
     Get the latest release for a project in an environment.
     NOTE: This is independent of whether it has been adopted or not.
     """
+    cache_key = _LatestReleaseCacheKey(
+        event.group.project_id, environment.id if environment else None
+    )
     return _get_latest_release_for_env_impl(
         environment,
         event,
         only_adopted=False,
-        cache_access=_LatestReleaseCacheAccess(event, environment),
+        mapping=_latest_release_cache,
+        cache_key=cache_key,
     )
 
 
-def _get_latest_release_for_env_impl(
+def _get_latest_release_for_env_impl[K](
     environment: Environment | None,
     event: GroupEvent,
     only_adopted: bool,
-    cache_access: CacheAccess[Release | Literal[False]],
+    mapping: CacheMapping[K, Release | Literal[False]],
+    cache_key: K,
 ) -> Release | None:
-    latest_release = cache_access.get()
+    latest_release = mapping.get(cache_key)
     if latest_release is not None:
         if latest_release is False:
             return None
@@ -111,12 +110,12 @@ def _get_latest_release_for_env_impl(
         record_get_latest_release_result("success")
     except Release.DoesNotExist:
         record_get_latest_release_result("does_not_exist")
-        cache_access.set(False, 600)
+        mapping.set(cache_key, False, 600)
         return None
     latest_release = Release.objects.get(
         version=latest_release_version, organization_id=organization_id
     )
-    cache_access.set(latest_release or False, 600)
+    mapping.set(cache_key, latest_release or False, 600)
     return latest_release
 
 

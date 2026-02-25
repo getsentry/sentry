@@ -6,7 +6,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
 
-@with_feature("organizations:gen-ai-explore-traces")
 @with_feature("organizations:gen-ai-features")
 class TraceExplorerAIQueryTest(APITestCase):
     def setUp(self) -> None:

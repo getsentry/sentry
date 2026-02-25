@@ -693,7 +693,8 @@ export function getActiveProductTrial(
       pt =>
         pt.category === category &&
         pt.isStarted &&
-        getDaysSinceDate(pt.endDate ?? '') <= 0
+        getDaysSinceDate(pt.endDate ?? '') <= 0 &&
+        getDaysSinceDate(pt.startDate ?? '') >= 0
     )
     .sort((a, b) => b.endDate?.localeCompare(a.endDate ?? '') || 0);
 

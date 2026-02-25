@@ -2,10 +2,12 @@ import {useState} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {
-  Comparison,
-  JsonPathOp,
-  JsonPathOperand,
+import {
+  ComparisonType,
+  OpType,
+  type Comparison,
+  type JsonPathOp,
+  type JsonPathOperand,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionsDndContext} from './dragDrop';
@@ -16,7 +18,7 @@ describe('AssertionOpJsonPath', () => {
   const mockOnChange = jest.fn();
   const mockOnRemove = jest.fn();
 
-  const defaultOperator: Comparison = {cmp: 'equals'};
+  const defaultOperator: Comparison = {cmp: ComparisonType.EQUALS};
   const defaultOperand: JsonPathOperand = {jsonpath_op: 'literal', value: 'ok'};
 
   const renderOp = async (value: JsonPathOp) => {
@@ -63,7 +65,7 @@ describe('AssertionOpJsonPath', () => {
 
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
-      op: 'json_path',
+      op: OpType.JSON_PATH,
       value: 'a',
       operator: defaultOperator,
       operand: defaultOperand,
@@ -85,7 +87,7 @@ describe('AssertionOpJsonPath', () => {
 
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
-      op: 'json_path',
+      op: OpType.JSON_PATH,
       value: '$.status',
       operator: defaultOperator,
       operand: {jsonpath_op: 'literal', value: 'a'},
@@ -184,7 +186,7 @@ describe('AssertionOpJsonPath', () => {
       makeJsonPathOp({
         id: 'test-id-1',
         value: '$.status',
-        operator: {cmp: 'less_than'},
+        operator: {cmp: ComparisonType.LESS_THAN},
         operand: defaultOperand,
       })
     );
@@ -192,9 +194,9 @@ describe('AssertionOpJsonPath', () => {
     await waitFor(() =>
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-1',
-        op: 'json_path',
+        op: OpType.JSON_PATH,
         value: '$.status',
-        operator: {cmp: 'equals'},
+        operator: {cmp: ComparisonType.EQUALS},
         operand: defaultOperand,
       })
     );
@@ -203,7 +205,7 @@ describe('AssertionOpJsonPath', () => {
   it('renders safely when given a legacy op without operator or operand', async () => {
     await renderOp({
       id: 'test-id-1',
-      op: 'json_path',
+      op: OpType.JSON_PATH,
       value: '$.status',
     } as JsonPathOp);
 

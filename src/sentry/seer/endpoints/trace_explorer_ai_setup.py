@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 
 import orjson
-import requests
 from django.conf import settings
 from rest_framework import status
 from rest_framework.exceptions import ParseError
@@ -16,7 +15,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.models.organization import Organization
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,15 +44,13 @@ def fire_setup_request(org_id: int, project_ids: list[int]) -> None:
         }
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/assisted-query/create-cache",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/create-cache",
+        body,
     )
-    response.raise_for_status()
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
 
 
 @region_silo_endpoint

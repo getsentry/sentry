@@ -4,10 +4,13 @@ import logging
 from typing import Any
 
 import orjson
-import requests
-from django.conf import settings
 
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_anomaly_detection_default_connection_pool,
+)
+from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +37,15 @@ def compare_distributions(
             "meta": meta,
         }
     )
-    response = requests.post(
-        f"{settings.SEER_ANOMALY_DETECTION_URL}/v1/workflows/compare/cohort",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        seer_anomaly_detection_default_connection_pool,
+        "/v1/workflows/compare/cohort",
+        body,
     )
-    response.raise_for_status()
-    return response.json()
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
+    try:
+        return response.json()
+    except JSONDecodeError:
+        logger.exception("Failed to parse Seer compare_distributions response")
+        raise SeerApiError("Seer returned invalid JSON response", response.status)

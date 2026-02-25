@@ -1,13 +1,20 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
-import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
+import type {
+  SelectKey,
+  SelectOption,
+  SelectOptionOrSection,
+  SelectOptionWithKey,
+} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -20,7 +27,6 @@ import type {
 } from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
-  HybridFilterComponents,
   useStagedCompactSelect,
 } from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
@@ -31,6 +37,7 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {fzf} from 'sentry/utils/search/fzf';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -41,7 +48,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 export interface ProjectPageFilterProps extends Partial<
   Omit<
     HybridFilterProps<number>,
-    | 'searchable'
+    | 'search'
     | 'multiple'
     | 'options'
     | 'value'
@@ -73,6 +80,19 @@ export interface ProjectPageFilterProps extends Partial<
    * TODO: ideally this can be determined by what's set in the PageFiltersContainer
    */
   storageNamespace?: string;
+}
+
+/**
+ * fzf-based search matcher for the project dropdown. Runs the fzf v1 algorithm
+ * against the option's textValue (project slug) so that fuzzy/subsequence matches
+ * are ranked by score rather than relying on plain substring inclusion.
+ */
+function projectSearchMatcher(option: SelectOptionWithKey<SelectKey>, search: string) {
+  const text = option.textValue ?? (typeof option.label === 'string' ? option.label : '');
+  if (!text) {
+    return {score: 0};
+  }
+  return fzf(text, search.toLowerCase(), false);
 }
 
 /**
@@ -276,17 +296,14 @@ export function ProjectPageFilter({
         value: parseInt(project.id, 10),
         textValue: project.slug,
         leadingItems: ({isSelected}) => (
-          <Flex align="center" gap="sm" flex="1 1 100%">
-            <Checkbox
-              size="sm"
-              checked={isSelected}
-              onChange={() =>
-                hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
-              }
-              aria-label={t('Select %s', project.slug)}
-              tabIndex={-1}
-            />
-          </Flex>
+          <MenuComponents.Checkbox
+            checked={isSelected}
+            onChange={() =>
+              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+            }
+            aria-label={t('Select %s', project.slug)}
+            tabIndex={-1}
+          />
         ),
         label: (
           <Flex align="center" gap="sm" flex="1 1 100%">
@@ -435,21 +452,35 @@ export function ProjectPageFilter({
       ref={hybridFilterRef}
       {...selectProps}
       stagedSelect={stagedSelect}
-      searchable
+      search={{filter: projectSearchMatcher}}
       options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       emptyMessage={emptyMessage ?? t('No projects found')}
-      menuTitle={menuTitle ?? t('Filter Projects')}
+      menuTitle={
+        menuTitle ?? (
+          <Flex gap="xs" align="center">
+            <Text>{t('Filter Projects')}</Text>
+            <InfoTip
+              size="xs"
+              title={tct(
+                '[rangeModifier] + click to select a range of projects or [multiModifier] + click to select multiple projects at once.',
+                {
+                  rangeModifier: t('Shift'),
+                  multiModifier: isAppleDevice() ? t('Cmd') : t('Ctrl'),
+                }
+              )}
+            />
+          </Flex>
+        )
+      }
       menuWidth={menuWidth ?? defaultMenuWidth}
       onOpenChange={() => {
         bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
       }}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
-          />
+          <MenuComponents.ResetButton onClick={() => stagedSelect.handleReset()} />
         ) : null
       }
       menuFooter={
@@ -470,20 +501,20 @@ export function ProjectPageFilter({
             )}
             <Flex gap="md" align="center" justify={hasProjectWrite ? 'between' : 'end'}>
               {hasProjectWrite ? (
-                <HybridFilterComponents.LinkButton
+                <MenuComponents.CTALinkButton
                   icon={<IconAdd />}
                   to={makeProjectsPathname({path: '/new/', organization})}
                   onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                 >
                   {t('Create Project')}
-                </HybridFilterComponents.LinkButton>
+                </MenuComponents.CTALinkButton>
               ) : undefined}
               {stagedSelect.hasStagedChanges ? (
                 <Flex gap="md" align="center" justify="end">
-                  <HybridFilterComponents.CancelButton
+                  <MenuComponents.CancelButton
                     onClick={() => stagedSelect.removeStagedChanges()}
                   />
-                  <HybridFilterComponents.ApplyButton
+                  <MenuComponents.ApplyButton
                     disabled={stagedSelect.disableCommit}
                     onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
                   />

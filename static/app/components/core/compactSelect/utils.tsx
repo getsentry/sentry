@@ -11,6 +11,8 @@ import {defined} from 'sentry/utils';
 import type {SelectProps} from './compactSelect';
 import {SectionToggleButton} from './styles';
 import type {
+  SearchConfig,
+  SearchMatchResult,
   SelectKey,
   SelectOption,
   SelectOptionOrSection,
@@ -19,6 +21,19 @@ import type {
   SelectSection,
   SelectSectionWithKey,
 } from './types';
+
+/**
+ * Normalises the `search` prop into a plain config object (or `undefined` if
+ * search is disabled). Accepts `true` as shorthand for `{}` and treats
+ * `false`/`undefined` as "no search".
+ */
+export function getSearchConfig<Value extends SelectKey>(
+  search: boolean | SearchConfig<Value> | undefined
+): SearchConfig<Value> | undefined {
+  if (!search) return undefined;
+  if (search === true) return {};
+  return search;
+}
 
 export function getEscapedKey<Value extends SelectKey | undefined>(value: Value): string {
   return CSS.escape(String(value));
@@ -104,23 +119,58 @@ export function getDisabledOptions<Value extends SelectKey>(
   }, []);
 }
 
+function defaultSearchMatcher<Value extends SelectKey>(
+  opt: SelectOptionWithKey<Value>,
+  search: string
+): SearchMatchResult {
+  const searchableText =
+    opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
+  return {score: searchableText.toLowerCase().includes(search.toLowerCase()) ? 1 : 0};
+}
+
 /**
  * Recursively finds the option(s) that don't match the designated search string or are
- * outside the list box's count limit.
+ * outside the list box's count limit. Also collects match scores for use in sorting.
+ *
+ * An option is considered a match when its score is greater than 0. The default matcher
+ * returns score 1 for a substring match and 0 otherwise. Custom matchers can return any
+ * positive score to influence sort order — higher scores appear first.
+ *
+ * Returns both the set of hidden option keys and a map of key → score for matched
+ * options. The scores map only contains entries when a custom searchMatcher is provided.
  */
 export function getHiddenOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   search: string,
-  limit = Infinity
-): Set<SelectKey> {
+  limit = Infinity,
+  searchMatcher?: (
+    option: SelectOptionWithKey<Value>,
+    search: string
+  ) => SearchMatchResult
+): {hidden: Set<SelectKey>; scores: Map<SelectKey, number>} {
+  const scores = new Map<SelectKey, number>();
+  const matcher = searchMatcher ?? defaultSearchMatcher;
+
   //
   // First, filter options using `search` value
   //
-  const filterOption = (opt: SelectOption<Value>) => {
-    // Build search string: use textValue if provided, otherwise use label only if it's a string
-    const searchableText =
-      opt.textValue ?? (typeof opt.label === 'string' ? opt.label : '');
-    return searchableText.toLowerCase().includes(search.toLowerCase());
+  const filterOption = (opt: SelectOptionWithKey<Value>) => {
+    // When there is no active search query, all options match. Do not call the
+    // searchMatcher — a custom matcher may return score 0 for an empty query,
+    // which would incorrectly hide all options.
+    if (!search) {
+      return true;
+    }
+    const result = matcher(opt, search);
+    if (result.score > 0) {
+      if (searchMatcher) {
+        // Only track scores when a custom matcher is provided — default scores are
+        // always 1 and would trigger unnecessary sorting.
+        scores.set(opt.key, result.score);
+      }
+      return true;
+    }
+    return false;
   };
 
   const hiddenOptionsSet = new Set<SelectKey>();
@@ -151,14 +201,21 @@ export function getHiddenOptions<Value extends SelectKey>(
     .filter((item): item is SelectOptionOrSectionWithKey<Value> => !!item);
 
   //
+  // Sort remaining items by score before applying the size limit, so that higher-scored
+  // (more relevant) items are kept visible when the limit is reached.
+  //
+  const orderedRemainingItems =
+    scores.size > 0 ? getSortedItems(remainingItems, scores) : remainingItems;
+
+  //
   // Then, limit the number of remaining options to `limit`
   //
   let threshold = [Infinity, Infinity];
   let accumulator = 0;
   let currentIndex = 0;
 
-  while (currentIndex < remainingItems.length) {
-    const item = remainingItems[currentIndex]!;
+  while (currentIndex < orderedRemainingItems.length) {
+    const item = orderedRemainingItems[currentIndex]!;
     const delta = 'options' in item ? item.options.length : 1;
 
     if (accumulator + delta > limit) {
@@ -170,8 +227,8 @@ export function getHiddenOptions<Value extends SelectKey>(
     currentIndex += 1;
   }
 
-  for (let i = threshold[0]!; i < remainingItems.length; i++) {
-    const item = remainingItems[i]!;
+  for (let i = threshold[0]!; i < orderedRemainingItems.length; i++) {
+    const item = orderedRemainingItems[i]!;
     if ('options' in item) {
       const startingIndex = i === threshold[0] ? threshold[1]! : 0;
       for (let j = startingIndex; j < item.options.length; j++) {
@@ -182,8 +239,41 @@ export function getHiddenOptions<Value extends SelectKey>(
     }
   }
 
-  // Return the values of options that were removed.
-  return hiddenOptionsSet;
+  return {hidden: hiddenOptionsSet, scores};
+}
+
+/**
+ * Sorts items by their match scores (descending). Options with higher scores appear
+ * first. Options without a score entry maintain their original relative order.
+ *
+ * For sectioned lists, options are sorted within each section. For flat lists, all
+ * options are sorted globally.
+ */
+export function getSortedItems<Value extends SelectKey>(
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
+  scores: Map<SelectKey, number>
+): Array<SelectOptionOrSectionWithKey<Value>> {
+  const hasSections = items.some(item => 'options' in item);
+
+  if (hasSections) {
+    return items.map(item => {
+      if ('options' in item) {
+        return {
+          ...item,
+          options: [...item.options].sort(
+            (a, b) => (scores.get(b.key) ?? 0) - (scores.get(a.key) ?? 0)
+          ),
+        };
+      }
+      return item;
+    });
+  }
+
+  return [...items].sort(
+    (a, b) =>
+      (scores.get((b as SelectOptionWithKey<Value>).key) ?? 0) -
+      (scores.get((a as SelectOptionWithKey<Value>).key) ?? 0)
+  );
 }
 
 /**
@@ -353,4 +443,36 @@ export function shouldCloseOnSelect({
   // By default, single-selection lists close on select, while multiple-selection
   // lists stay open
   return !multiple;
+}
+
+export function getDuplicateOptionKeysInfo<Value extends SelectKey>(
+  items: Array<SelectOptionOrSectionWithKey<Value>>
+): {duplicateOptionKeys: string[]; hasSections: boolean; optionCount: number} {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  let optionCount = 0;
+  let hasSections = false;
+
+  const collect = (list: Array<SelectOptionOrSectionWithKey<Value>>) => {
+    for (const item of list) {
+      if ('options' in item) {
+        hasSections = true;
+        collect(item.options);
+        continue;
+      }
+
+      optionCount += 1;
+      const key = String(item.key);
+      if (duplicates.has(key)) continue;
+
+      if (seen.has(key)) {
+        duplicates.add(key);
+      } else {
+        seen.add(key);
+      }
+    }
+  };
+
+  collect(items);
+  return {duplicateOptionKeys: [...duplicates], hasSections, optionCount};
 }
