@@ -21,12 +21,15 @@ DEFAULT_THRESHOLD_SCALE = 25
 
 def _to_pil_image(source: bytes | Image.Image) -> Image.Image:
     if isinstance(source, bytes):
-        return Image.open(io.BytesIO(source))
+        img = Image.open(io.BytesIO(source))
+        img.load()
+        return img
     return source
 
 
 def _mask_from_diff_output(output_path: Path) -> Image.Image:
-    alpha = Image.open(output_path).convert("RGBA").split()[3]
+    with Image.open(output_path) as img:
+        alpha = img.convert("RGBA").split()[3]
     return alpha.point(lambda px: 255 if px > 0 else 0)
 
 
