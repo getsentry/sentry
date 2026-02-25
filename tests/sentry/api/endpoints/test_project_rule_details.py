@@ -158,10 +158,12 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase, BaseWorkflowTest):
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_engine_serializer_single_written_rule(self) -> None:
-        # self.workflow = self.create_workflow()
         self.detector = self.create_detector()
         self.workflow_triggers = self.create_data_condition_group()
-        self.workflow = self.create_workflow(when_condition_group=self.workflow_triggers)
+        self.workflow = self.create_workflow(
+            when_condition_group=self.workflow_triggers,
+            organization=self.detector.project.organization,
+        )
         self.detector_workflow = self.create_detector_workflow(
             detector=self.detector, workflow=self.workflow
         )
@@ -182,10 +184,12 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase, BaseWorkflowTest):
             condition_result=True,
         )
         self.action_group, self.action = self.create_workflow_action(self.workflow)
+
+        fake_workflow_id = get_fake_id_from_object_id(self.workflow.id)
         response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.workflow.id, status_code=200
+            self.organization.slug, self.project.slug, fake_workflow_id, status_code=200
         )
-        assert response.data["id"] == str(get_fake_id_from_object_id(self.workflow.id))
+        assert response.data["id"] == str(fake_workflow_id)
         assert response.data["environment"] is None
         assert response.data["conditions"][0]["name"]
         assert response.data["filters"][0]["name"]
