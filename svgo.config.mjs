@@ -21,7 +21,7 @@ const svgo = {
       name: 'prefixIds',
       params: {
         delim: '-',
-        prefix: (_, info) => (info.path ? shorthash(info.path) : ''),
+        prefix: (_, info) => (info.path ? `s${shorthash(info.path)}` : ''),
       },
     },
   ],
