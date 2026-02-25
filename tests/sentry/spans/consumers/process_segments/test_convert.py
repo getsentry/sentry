@@ -263,8 +263,8 @@ def test_convert_renamed_attribute_meta() -> None:
 
 @pytest.mark.parametrize(
     "key_id, expected_key_id",
-    [(123, 123), (None, 0)],
-    ids=["int_key_id", "none_key_id"],
+    [(123, 123), ("123", 123), (None, 0)],
+    ids=["int_key_id", "str_key_id", "none_key_id"],
 )
 def test_convert_outcomes_when_not_emitted(key_id, expected_key_id) -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)

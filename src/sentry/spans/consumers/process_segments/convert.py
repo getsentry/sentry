@@ -117,7 +117,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     outcomes = None
     if span.get("accepted_outcome_emitted") is False:
         outcomes = Outcomes(
-            key_id=span.get("key_id") or 0,
+            key_id=int(span.get("key_id") or 0),
             category_count=[
                 CategoryCount(
                     data_category=int(DataCategory.SPAN_INDEXED),
