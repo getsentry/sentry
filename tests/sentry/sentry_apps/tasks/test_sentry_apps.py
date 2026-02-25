@@ -1430,7 +1430,7 @@ class TestInstallationWebhook(TestCase):
     def test_gracefully_handles_missing_user(self, mock_record: MagicMock) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
 
-        installation_webhook(self.install.id, 999)
+        installation_webhook(self.install.id, 2147483647)
         assert len(responses.calls) == 0
 
         # SLO assertions
