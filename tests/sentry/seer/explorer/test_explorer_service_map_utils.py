@@ -6,9 +6,11 @@ for the Explorer service map feature.
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
+import orjson
 import pytest
 
 from sentry.search.events.types import SnubaParams
@@ -52,7 +54,6 @@ class TestSendToSeer(TestCase):
                 "callees": [],
             },
         ]
-
         edges = [
             {
                 "source_project_id": 1,
@@ -63,17 +64,63 @@ class TestSendToSeer(TestCase):
             }
         ]
 
+        mock_response = mock.MagicMock()
+        mock_response.status = 200
+
         with mock.patch(
-            "sentry.seer.explorer.explorer_service_map_utils.orjson.dumps"
-        ) as mock_dumps:
-            mock_dumps.return_value = b"{}"
+            "sentry.seer.explorer.explorer_service_map_utils.make_signed_seer_api_request",
+            return_value=mock_response,
+        ) as mock_request:
             _send_to_seer(org.id, nodes, edges)
 
-        call_args = mock_dumps.call_args[0][0]
-        assert call_args["organization_id"] == org.id
-        assert call_args["nodes"] == nodes
-        assert call_args["edges"] == edges
-        assert "generated_at" in call_args
+        mock_request.assert_called_once()
+        body = orjson.loads(mock_request.call_args[0][2])
+        assert body["organization_id"] == org.id
+        assert body["nodes"] == nodes
+        assert body["edges"] == edges
+
+    def test_filters_nodes_with_missing_slugs(self):
+        org = self.create_organization()
+
+        nodes: list[dict[str, Any]] = [
+            {
+                "project_id": 1,
+                "project_slug": "frontend",
+                "role": "caller",
+                "callers": [],
+                "callees": [],
+            },
+            {
+                "project_id": 2,
+                "project_slug": None,
+                "role": "isolated",
+                "callers": [],
+                "callees": [],
+            },
+        ]
+        edges: list[dict[str, Any]] = [
+            {
+                "source_project_id": 1,
+                "source_project_slug": "frontend",
+                "target_project_id": 3,
+                "target_project_slug": None,
+                "count": 1,
+            },
+        ]
+
+        mock_response = mock.MagicMock()
+        mock_response.status = 200
+
+        with mock.patch(
+            "sentry.seer.explorer.explorer_service_map_utils.make_signed_seer_api_request",
+            return_value=mock_response,
+        ) as mock_request:
+            _send_to_seer(org.id, nodes, edges)
+
+        body = orjson.loads(mock_request.call_args[0][2])
+        assert len(body["nodes"]) == 1
+        assert body["nodes"][0]["project_slug"] == "frontend"
+        assert body["edges"] == []
 
 
 @django_db_all
@@ -97,7 +144,13 @@ class TestBuildServiceMap(TestCase):
         project2 = self.create_project(organization=org)
 
         mock_dependencies.return_value = [
-            {"source_project_id": project1.id, "target_project_id": project2.id, "count": 10}
+            {
+                "source_project_id": project1.id,
+                "source_project_slug": project1.slug,
+                "target_project_id": project2.id,
+                "target_project_slug": project2.slug,
+                "count": 10,
+            }
         ]
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
@@ -108,11 +161,14 @@ class TestBuildServiceMap(TestCase):
         assert isinstance(snuba_params, SnubaParams)
         mock_send.assert_called_once()
 
+    @mock.patch("sentry.tasks.context_engine_index._build_nodes")
     @mock.patch("sentry.tasks.context_engine_index._query_service_dependencies")
-    def test_handles_no_edges(self, mock_dependencies):
+    def test_handles_no_nodes(self, mock_dependencies, mock_build_nodes):
         org = self.create_organization()
+        self.create_project(organization=org)
 
         mock_dependencies.return_value = []
+        mock_build_nodes.return_value = []
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch("sentry.tasks.context_engine_index._send_to_seer") as mock_send:
@@ -794,8 +850,9 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
+        projects = list(self.organization.project_set.all())
         edges = _query_service_dependencies(self._snuba_params())
-        nodes = _build_nodes(edges)
+        nodes = _build_nodes(edges, projects)
         roles = {n["project_id"]: n["role"] for n in nodes}
 
         # Frontend should be classified as caller (only outgoing edges)
@@ -880,8 +937,9 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
+        projects = list(self.organization.project_set.all())
         edges = _query_service_dependencies(self._snuba_params())
-        nodes = _build_nodes(edges)
+        nodes = _build_nodes(edges, projects)
         roles = {n["project_id"]: n["role"] for n in nodes}
 
         # API should be hub (both incoming and outgoing edges)
@@ -951,8 +1009,9 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
+        projects = list(self.organization.project_set.all())
         detected_edges = _query_service_dependencies(self._snuba_params())
-        nodes = _build_nodes(detected_edges)
+        nodes = _build_nodes(detected_edges, projects)
         roles = {n["project_id"]: n["role"] for n in nodes}
 
         assert roles[project_p.id] == "peripheral"

@@ -169,6 +169,7 @@ export function IntegratedOrgSelector() {
         );
       }}
       menuWidth="280px"
+      // eslint-disable-next-line @sentry/scraps/restrict-jsx-slot-children
       menuFooter={<OrgFooterMessage />}
     />
   );
