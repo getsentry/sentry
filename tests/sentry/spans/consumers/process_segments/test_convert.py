@@ -2,6 +2,7 @@ import copy
 from typing import cast
 
 import orjson
+import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -260,34 +261,22 @@ def test_convert_renamed_attribute_meta() -> None:
     )
 
 
-def test_convert_outcomes_when_not_emitted() -> None:
+@pytest.mark.parametrize(
+    "key_id, expected_key_id",
+    [(123, 123), (None, 0)],
+    ids=["with_key_id", "without_key_id"],
+)
+def test_convert_outcomes_when_not_emitted(key_id, expected_key_id) -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     message["accepted_outcome_emitted"] = False
-    message["key_id"] = 123
+    if key_id is not None:
+        message["key_id"] = key_id
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
     assert item.HasField("outcomes")
     assert item.outcomes == Outcomes(
-        key_id=123,
-        category_count=[
-            CategoryCount(
-                data_category=int(DataCategory.SPAN_INDEXED),
-                quantity=1,
-            ),
-        ],
-    )
-
-
-def test_convert_outcomes_when_not_emitted_no_key_id() -> None:
-    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["accepted_outcome_emitted"] = False
-
-    item = convert_span_to_item(cast(CompatibleSpan, message))
-
-    assert item.HasField("outcomes")
-    assert item.outcomes == Outcomes(
-        key_id=0,
+        key_id=expected_key_id,
         category_count=[
             CategoryCount(
                 data_category=int(DataCategory.SPAN_INDEXED),
