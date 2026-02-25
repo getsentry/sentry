@@ -33,6 +33,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.models.organization_settings import SeerOrganizationSettings
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.metrics import TransactionMRI
@@ -1895,6 +1896,75 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert response.data["hasGranularReplayPermissions"] is False
         assert response.data["replayAccessMembers"] == []
+
+
+class OrganizationDefaultCodingAgentTest(OrganizationDetailsTestBase):
+    method = "put"
+
+    def test_get_returns_null_by_default(self) -> None:
+        response = self.get_success_response(self.organization.slug, method="get")
+        assert response.data["defaultCodingAgentIntegrationId"] is None
+
+    def test_set_default_coding_agent(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+        )
+        self.get_success_response(
+            self.organization.slug, defaultCodingAgentIntegrationId=integration.id
+        )
+
+        settings = SeerOrganizationSettings.objects.get(organization=self.organization)
+        assert settings.default_coding_agent_integration_id == integration.id
+
+    def test_get_returns_set_value(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+        )
+        SeerOrganizationSettings.objects.create(
+            organization=self.organization,
+            default_coding_agent_integration_id=integration.id,
+        )
+
+        response = self.get_success_response(self.organization.slug, method="get")
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+
+    def test_clear_default_coding_agent(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+        )
+        SeerOrganizationSettings.objects.create(
+            organization=self.organization,
+            default_coding_agent_integration_id=integration.id,
+        )
+
+        self.get_success_response(self.organization.slug, defaultCodingAgentIntegrationId=None)
+
+        settings = SeerOrganizationSettings.objects.get(organization=self.organization)
+        assert settings.default_coding_agent_integration_id is None
+
+    def test_rejects_invalid_integration_id(self) -> None:
+        self.get_error_response(
+            self.organization.slug, defaultCodingAgentIntegrationId=99999, status_code=400
+        )
+
+    def test_rejects_other_org_integration(self) -> None:
+        other_org = self.create_organization(owner=self.create_user())
+        integration = self.create_integration(
+            organization=other_org,
+            provider="github",
+            external_id="99999",
+        )
+        self.get_error_response(
+            self.organization.slug,
+            defaultCodingAgentIntegrationId=integration.id,
+            status_code=400,
+        )
 
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):

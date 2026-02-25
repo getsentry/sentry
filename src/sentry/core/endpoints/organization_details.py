@@ -86,6 +86,7 @@ from sentry.dynamic_sampling.utils import (
 )
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.hybridcloud.rpc.service import RpcValidationException
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -107,6 +108,7 @@ from sentry.organizations.services.organization.model import (
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.models.organization_settings import SeerOrganizationSettings
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
@@ -368,6 +370,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
+    defaultCodingAgentIntegrationId = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text="The default coding agent integration ID for new projects. When null, Sentry's built-in Seer agent is used.",
+    )
     hasGranularReplayPermissions = serializers.BooleanField(required=False)
     replayAccessMembers = serializers.ListField(
         child=serializers.IntegerField(),
@@ -465,6 +472,19 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Only staff members can change console SDK invite quota limit."
             )
 
+        return value
+
+    def validate_defaultCodingAgentIntegrationId(self, value):
+        if value is None:
+            return value
+        organization = self.context["organization"]
+        org_integration = integration_service.get_organization_integration(
+            organization_id=organization.id, integration_id=value
+        )
+        if org_integration is None:
+            raise serializers.ValidationError(
+                "Invalid integration ID, or integration does not belong to this organization."
+            )
         return value
 
     def validate_targetSampleRate(self, value):
@@ -620,6 +640,20 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     old_val = old_value(option_inst, "value")
                     changed_data[key] = f"from {old_val} to {option_inst.value}"
                 option_inst.save()
+
+        if "defaultCodingAgentIntegrationId" in data:
+            new_value = data["defaultCodingAgentIntegrationId"]
+            settings, created = SeerOrganizationSettings.objects.get_or_create(
+                organization=org,
+                defaults={"default_coding_agent_integration_id": new_value},
+            )
+            if not created and settings.default_coding_agent_integration_id != new_value:
+                old_val = settings.default_coding_agent_integration_id
+                settings.default_coding_agent_integration_id = new_value
+                settings.save(update_fields=["default_coding_agent_integration_id", "date_updated"])
+                changed_data["defaultCodingAgentIntegrationId"] = f"from {old_val} to {new_value}"
+            elif created and new_value is not None:
+                changed_data["defaultCodingAgentIntegrationId"] = f"to {new_value}"
 
         trusted_relay_info = data.get("trustedRelays")
         if trusted_relay_info is not None:
@@ -1060,6 +1094,13 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     cancelDeletion = serializers.BooleanField(
         help_text="Specify `true` to restore an organization that is pending deletion.",
         required=False,
+    )
+
+    # seer features
+    defaultCodingAgentIntegrationId = serializers.IntegerField(
+        help_text="The default coding agent integration ID for new projects. When null, Sentry's built-in Seer agent is used.",
+        required=False,
+        allow_null=True,
     )
 
     # private attributes

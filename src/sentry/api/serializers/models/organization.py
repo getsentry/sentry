@@ -82,6 +82,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.models.organization_settings import SeerOrganizationSettings
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -560,6 +561,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
+    defaultCodingAgentIntegrationId: int | None
     hasGranularReplayPermissions: bool
     replayAccessMembers: list[int]
 
@@ -569,6 +571,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
+
+        seer_settings_by_org = {
+            s.organization_id: s
+            for s in SeerOrganizationSettings.objects.filter(organization__in=item_list)
+        }
+        for item in item_list:
+            attrs[item]["seer_settings"] = seer_settings_by_org.get(item.id)
 
         replay_permissions = {}
         has_feature = features.batch_has_for_organizations(
@@ -774,6 +783,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 team__organization=obj
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
+            "defaultCodingAgentIntegrationId": (
+                attrs["seer_settings"].default_coding_agent_integration_id
+                if attrs.get("seer_settings")
+                else None
+            ),
             "hasGranularReplayPermissions": False,
             "replayAccessMembers": [],
         }
