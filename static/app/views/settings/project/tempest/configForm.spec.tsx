@@ -3,7 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigForm} from './configForm';
 
 describe('ConfigForm', () => {
   const organization = OrganizationFixture();
@@ -55,11 +56,12 @@ describe('ConfigForm', () => {
 
   it('calls the API with correct data when toggling the switch', async () => {
     const project = ProjectFixture({tempestFetchScreenshots: false});
+    const updatedProject = {...project, tempestFetchScreenshots: true};
 
     const putMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
-      body: {...project, tempestFetchScreenshots: true},
+      body: updatedProject,
     });
 
     render(<ConfigForm organization={organization} project={project} />);
@@ -74,6 +76,30 @@ describe('ConfigForm', () => {
           method: 'PUT',
           data: {tempestFetchScreenshots: true},
         })
+      );
+    });
+  });
+
+  it('updates ProjectsStore on successful save', async () => {
+    const project = ProjectFixture({tempestFetchScreenshots: false});
+    const updatedProject = {...project, tempestFetchScreenshots: true};
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: updatedProject,
+    });
+
+    const onUpdateSuccessSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
+
+    render(<ConfigForm organization={organization} project={project} />);
+
+    const switchInput = await screen.findByRole('checkbox');
+    await userEvent.click(switchInput);
+
+    await waitFor(() => {
+      expect(onUpdateSuccessSpy).toHaveBeenCalledWith(
+        expect.objectContaining({tempestFetchScreenshots: true})
       );
     });
   });

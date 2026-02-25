@@ -3,6 +3,7 @@ import {z} from 'zod';
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -25,11 +26,12 @@ export function ConfigForm({organization, project}: ConfigFormProps) {
         initialValue={project.tempestFetchScreenshots ?? false}
         mutationOptions={{
           mutationFn: data =>
-            fetchMutation({
+            fetchMutation<Project>({
               url: `/projects/${organization.slug}/${project.slug}/`,
               method: 'PUT',
               data,
             }),
+          onSuccess: response => ProjectsStore.onUpdateSuccess(response),
         }}
       >
         {field => (
