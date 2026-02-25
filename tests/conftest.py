@@ -10,6 +10,7 @@ import sentry_sdk
 from django.core.cache import cache
 from django.db import connections
 
+from sentry.options import default_store
 from sentry.silo.base import SiloMode
 from sentry.testutils.pytest.sentry import get_default_silo_mode_for_test_cases
 
@@ -131,6 +132,7 @@ def audit_hybrid_cloud_writes_and_deletes(request: pytest.FixtureRequest) -> Gen
 
 
 @pytest.fixture(autouse=True)
+<<<<<<< HEAD
 def reset_sentry_isolation_scope() -> Generator[None]:
     """Reset isolation scope level after tests to prevent pollution.
 
@@ -141,6 +143,19 @@ def reset_sentry_isolation_scope() -> Generator[None]:
     """
     yield
     sentry_sdk.get_isolation_scope()._level = None
+
+
+@pytest.fixture(autouse=True)
+def reset_default_store_cache() -> Generator[None]:
+    """Reset default_store.cache after tests to prevent pollution.
+
+    bind_cache_to_option_store() globally mutates default_store.cache via
+    set_cache_impl(). override_settings restores CACHES but not the option
+    store's cache reference, leaving it pointing to a stale ConnectionProxy.
+    """
+    original_cache = default_store.cache
+    yield
+    default_store.set_cache_impl(original_cache)
 
 
 @pytest.fixture(autouse=True)
