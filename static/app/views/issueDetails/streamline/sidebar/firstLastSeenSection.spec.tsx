@@ -65,9 +65,7 @@ describe('FirstLastSeenSection', () => {
 
     expect(mockFirstLastRelease).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-      expect.objectContaining({
-        query: {},
-      })
+      expect.objectContaining({query: undefined})
     );
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();

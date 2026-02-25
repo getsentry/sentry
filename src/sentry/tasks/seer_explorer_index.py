@@ -5,16 +5,18 @@ from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
 
 import orjson
-import requests
 import sentry_sdk
-from django.conf import settings
 from django.utils import timezone as django_timezone
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.statistical_detectors import compute_delay
 from sentry.taskworker.namespaces import seer_tasks
@@ -227,17 +229,15 @@ def run_explorer_index_for_projects(
     path = "/v1/automation/explorer/index"
 
     try:
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            path,
+            body,
             timeout=30,
         )
-        response.raise_for_status()
-    except requests.RequestException as e:
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+    except Exception as e:
         logger.exception(
             "Failed to schedule explorer index tasks in seer",
             extra={

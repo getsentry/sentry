@@ -13,7 +13,7 @@ export function SwitchField({
   disabled,
   ...props
 }: BaseFieldProps &
-  Omit<SwitchProps, 'checked' | 'onChange' | 'onBlur' | 'disabled'> & {
+  Omit<SwitchProps, 'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
     checked: boolean;
     onChange: (value: boolean) => void;
     disabled?: boolean | string;

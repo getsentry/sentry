@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Any
+from typing import Any, TypedDict
 
 from django.db import router, transaction
 
@@ -12,6 +12,31 @@ from sentry.notifications.platform.types import NotificationProviderKey, Notific
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+# Info needed to lookup a thread
+class ThreadingLookup(TypedDict):
+    # The notification source type
+    key_type: NotificationSource
+
+    # Dictionary of identifying data for this thread
+    # e.g for issue alerts {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
+    key_data: dict[str, Any]
+
+    # The notification provider
+    provider_key: NotificationProviderKey
+
+    # The target identifier (e.g., channel_id)
+    target_id: str
+
+
+# Info needed to create a new thread
+class ThreadingConfig(ThreadingLookup):
+    # The provider-specific thread identifier
+    thread_identifier: str
+
+    # Optional provider-specific metadata
+    provider_data: dict[str, Any] | None
 
 
 class ThreadingService:
@@ -41,10 +66,7 @@ class ThreadingService:
     @staticmethod
     def resolve(
         *,
-        key_type: NotificationSource,
-        key_data: dict[str, Any],
-        provider_key: NotificationProviderKey,
-        target_id: str,
+        threading_lookup: ThreadingLookup,
     ) -> NotificationThread | None:
         """
         Check if a thread exists for the given key and return it.
@@ -54,89 +76,97 @@ class ThreadingService:
         when sending to the provider.
 
         Args:
-            key_type: The notification source type
-            key_data: Dictionary of identifying data for this thread e.g for issue alerts {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
-            provider_key: The notification provider (e.g., "slack", "msteams")
-            target_id: The target identifier (e.g., channel_id)
+            threading_lookup: The information needed to lookup a thread (see ThreadingLookup)
 
         Returns:
             NotificationThread if a thread exists, None otherwise
         """
-        thread_key = ThreadingService.compute_thread_key(key_type, key_data)
+        thread_key = ThreadingService.compute_thread_key(
+            threading_lookup["key_type"], threading_lookup["key_data"]
+        )
 
         try:
             return NotificationThread.objects.get(
                 thread_key=thread_key,
-                provider_key=provider_key,
-                target_id=target_id,
+                provider_key=threading_lookup["provider_key"],
+                target_id=threading_lookup["target_id"],
             )
         except NotificationThread.DoesNotExist:
             return None
 
     @staticmethod
-    def store(
+    def _create_thread_and_record(
+        threading_config: ThreadingConfig,
+        external_message_id: str,
+        thread_key: str,
+    ) -> tuple[NotificationThread, NotificationRecord]:
+        with transaction.atomic(router.db_for_write(NotificationThread)):
+            thread, _created = NotificationThread.objects.get_or_create(
+                thread_key=thread_key,
+                provider_key=threading_config["provider_key"],
+                target_id=threading_config["target_id"],
+                defaults={
+                    "thread_identifier": threading_config["thread_identifier"],
+                    "key_type": threading_config["key_type"],
+                    "key_data": threading_config["key_data"],
+                    "provider_data": threading_config["provider_data"] or {},
+                },
+            )
+
+            record = NotificationRecord.objects.create(
+                thread=thread,
+                provider_key=threading_config["provider_key"],
+                target_id=threading_config["target_id"],
+                message_id=external_message_id,
+            )
+
+            return thread, record
+
+    @staticmethod
+    def store_new_thread(
         *,
-        key_type: NotificationSource,
-        key_data: dict[str, Any],
-        provider_key: NotificationProviderKey,
-        target_id: str,
-        message_id: str,
-        thread_identifier: str,
-        thread: NotificationThread | None = None,
-        provider_data: dict[str, Any] | None = None,
+        threading_config: ThreadingConfig,
+        external_message_id: str,
     ) -> tuple[NotificationThread, NotificationRecord]:
         """
-        Store a notification message and its thread.
-
-        If thread is None (first message), creates a new NotificationThread
-        using the provided thread_identifier, plus a NotificationRecord.
-
-        If thread is provided (subsequent messages), links the new
-        NotificationRecord to the existing thread.
+        Store a notification message and create a new thread.
 
         Args:
-            key_type: The notification source type
-            key_data: Dictionary of identifying data for this thread
-            provider_key: The notification provider
-            target_id: The target identifier (e.g., channel_id)
-            message_id: The provider-specific message identifier returned by the provider
-            thread: The thread from resolve() if an existing thread was found
-            thread_identifier: The provider-specific thread identifier
-            provider_data: Optional provider-specific metadata (only used when creating thread)
+            threading_config: The information needed to create a new thread (see ThreadingConfig)
+            external_message_id: The provider-specific message identifier returned by the provider
 
         Returns:
             A tuple of (NotificationThread, NotificationRecord)
-
-        Raises:
-            ValueError: If thread is provided but doesn't match provider_key or target_id
         """
-        if thread is not None:
-            if thread.provider_key != provider_key or thread.target_id != target_id:
-                raise ValueError(
-                    f"Provided thread (provider_key={thread.provider_key}, target_id={thread.target_id}) does not match parameters (provider_key={provider_key}, target_id={target_id})"
-                )
+        thread_key = ThreadingService.compute_thread_key(
+            threading_config["key_type"], threading_config["key_data"]
+        )
+        return ThreadingService._create_thread_and_record(
+            threading_config, external_message_id, thread_key
+        )
 
-        with transaction.atomic(router.db_for_write(NotificationThread)):
-            if thread is None:
-                thread_key = ThreadingService.compute_thread_key(key_type, key_data)
-                thread, created = NotificationThread.objects.get_or_create(
-                    thread_key=thread_key,
-                    provider_key=provider_key,
-                    target_id=target_id,
-                    defaults={
-                        "thread_identifier": thread_identifier,
-                        "key_type": key_type,
-                        "key_data": key_data,
-                        "provider_data": provider_data or {},
-                    },
-                )
+    @staticmethod
+    def store_existing_thread(
+        *,
+        thread: NotificationThread,
+        external_message_id: str,
+    ) -> tuple[NotificationThread, NotificationRecord]:
+        """
+        Store a notification message for an existing thread.
 
-            # Create the record for this message
+        Args:
+            thread: The existing thread to store the message in
+            external_message_id: The provider-specific message identifier returned by the provider
+
+        Returns:
+            A tuple of (NotificationThread, NotificationRecord)
+        """
+        with transaction.atomic(router.db_for_write(NotificationRecord)):
             record = NotificationRecord.objects.create(
                 thread=thread,
-                provider_key=provider_key,
-                target_id=target_id,
-                message_id=message_id,
+                provider_key=thread.provider_key,
+                target_id=thread.target_id,
+                message_id=external_message_id,
             )
 
             return thread, record

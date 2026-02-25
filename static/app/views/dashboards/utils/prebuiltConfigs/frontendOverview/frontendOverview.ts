@@ -133,6 +133,13 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           aggregates: ['p75(span.duration)'],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
           orderby: `-sum(span.duration)`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.NORMALIZED_DESCRIPTION,
+              staticDashboardId: 25,
+            },
+          ],
         },
       ],
     },
