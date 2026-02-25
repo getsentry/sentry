@@ -669,6 +669,7 @@ module = [
     "sentry.snuba.metrics.naming_layer.*",
     "sentry.snuba.models",
     "sentry.snuba.query_subscriptions.*",
+    "sentry.snuba.sessions",
     "sentry.snuba.snuba_query_validator",
     "sentry.snuba.tasks",
     "sentry.spans.consumers.process_segments.*",
