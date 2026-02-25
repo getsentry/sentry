@@ -128,7 +128,7 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
       result.push({...turn, toolCalls: allToolCalls, toolSpanNodes: allToolSpanNodes});
       pendingToolCalls = [];
       pendingToolSpanNodes = [];
-    } else if (turn.toolCalls.length > 0) {
+    } else if (allToolCalls.length > 0 || allToolSpanNodes.length > 0) {
       if (turn.userContent) {
         result.push({...turn, toolCalls: [], toolSpanNodes: []});
       }
