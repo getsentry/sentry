@@ -6,6 +6,7 @@ for the Explorer service map feature.
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -66,16 +67,6 @@ class TestSendToSeer(TestCase):
         mock_response = mock.MagicMock()
         mock_response.status = 200
 
-        edges = [
-            {
-                "source_project_id": 1,
-                "source_project_slug": "frontend",
-                "target_project_id": 2,
-                "target_project_slug": "api",
-                "count": 5,
-            }
-        ]
-
         with mock.patch(
             "sentry.seer.explorer.explorer_service_map_utils.make_signed_seer_api_request",
             return_value=mock_response,
@@ -91,7 +82,7 @@ class TestSendToSeer(TestCase):
     def test_filters_nodes_with_missing_slugs(self):
         org = self.create_organization()
 
-        nodes = [
+        nodes: list[dict[str, Any]] = [
             {
                 "project_id": 1,
                 "project_slug": "frontend",
@@ -107,7 +98,7 @@ class TestSendToSeer(TestCase):
                 "callees": [],
             },
         ]
-        edges = [
+        edges: list[dict[str, Any]] = [
             {
                 "source_project_id": 1,
                 "source_project_slug": "frontend",
