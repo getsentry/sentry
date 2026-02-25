@@ -77,8 +77,6 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["platform"] == "android"
 
         assert data["appInfo"]["appId"] == "com.example.app"
-        assert data["errorCode"] is None
-        assert data["errorMessage"] is None
         # iOS fields should be None for android
         assert data["isCodeSignatureValid"] is None
         assert data["profileName"] is None
@@ -131,7 +129,6 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["isCodeSignatureValid"] is True
         assert data["profileName"] == "iOS Team Provisioning Profile"
         assert data["codesigningType"] == "development"
-        assert data["errorCode"] is None
 
     def test_ios_artifact_invalid_signature(self):
         ios_file = self.create_file(name="test.xcarchive", type="application/octet-stream")
@@ -153,8 +150,6 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
         assert data["isCodeSignatureValid"] is False
-        assert data["errorCode"] == "INVALID_CODE_SIGNATURE"
-        assert data["errorMessage"] == "Code signature is not valid"
 
     def test_ios_artifact_no_extras(self):
         ios_file = self.create_file(name="test.xcarchive", type="application/octet-stream")
@@ -174,7 +169,6 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is False
         assert data["isCodeSignatureValid"] is False
-        assert data["errorCode"] == "INVALID_CODE_SIGNATURE"
 
     def test_release_notes(self):
         artifact = self.create_preprod_artifact(

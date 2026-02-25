@@ -116,8 +116,6 @@ class PreprodExamples:
         "isCodeSignatureValid": None,
         "profileName": None,
         "codesigningType": None,
-        "errorCode": None,
-        "errorMessage": None,
     }
 
     EXAMPLE_INSTALL_INFO_NOT_INSTALLABLE = {
@@ -149,8 +147,6 @@ class PreprodExamples:
         "isCodeSignatureValid": True,
         "profileName": "iOS Team Provisioning Profile",
         "codesigningType": "development",
-        "errorCode": None,
-        "errorMessage": None,
     }
 
     GET_INSTALL_INFO = [

@@ -22,22 +22,10 @@ class InstallInfoResponseDict(TypedDict):
     isCodeSignatureValid: bool | None
     profileName: str | None
     codesigningType: str | None
-    errorCode: str | None
-    errorMessage: str | None
 
 
 def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDict:
     info = get_artifact_install_info(artifact)
-
-    error_code: str | None = None
-    error_message: str | None = None
-    if (
-        artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE
-        and not info.is_installable
-        and info.is_code_signature_valid is False
-    ):
-        error_code = "INVALID_CODE_SIGNATURE"
-        error_message = "Code signature is not valid"
 
     return {
         "buildId": str(artifact.id),
@@ -50,6 +38,4 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
         "isCodeSignatureValid": info.is_code_signature_valid,
         "profileName": info.profile_name,
         "codesigningType": info.codesigning_type,
-        "errorCode": error_code,
-        "errorMessage": error_message,
     }
