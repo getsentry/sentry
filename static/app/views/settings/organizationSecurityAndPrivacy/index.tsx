@@ -460,41 +460,43 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
                     onChange={field.handleChange}
                     placeholder={t('e.g. business-email')}
                     disabled={!hasOrgWrite}
-                    autoSize
+                    autosize
                   />
                 </field.Layout.Row>
               )}
             </scrubbingConfiguration.AppField>
-            <Flex gap="md" align="center" padding="sm">
-              <scrubbingConfiguration.Subscribe
-                selector={state =>
-                  state.values.sensitiveFields !== initialSensitiveFields ||
-                  state.values.safeFields !== initialSafeFields
-                }
-              >
-                {hasChanged => (
-                  <Flex
-                    flex="1"
-                    minWidth={0}
-                    style={{visibility: hasChanged ? 'visible' : 'hidden'}}
-                  >
-                    <Alert variant="info">
-                      {t(
-                        'Changes to your scrubbing configuration will apply to all new events.'
-                      )}
-                    </Alert>
-                  </Flex>
-                )}
-              </scrubbingConfiguration.Subscribe>
-              <Flex gap="sm" flexShrink={0}>
-                <Button onClick={() => scrubbingConfiguration.reset()}>
-                  {t('Cancel')}
-                </Button>
-                <scrubbingConfiguration.SubmitButton>
-                  {t('Save')}
-                </scrubbingConfiguration.SubmitButton>
+            {hasOrgWrite ? (
+              <Flex gap="md" align="center" padding="sm">
+                <scrubbingConfiguration.Subscribe
+                  selector={state =>
+                    state.values.sensitiveFields !== initialSensitiveFields ||
+                    state.values.safeFields !== initialSafeFields
+                  }
+                >
+                  {hasChanged => (
+                    <Flex
+                      flex="1"
+                      minWidth={0}
+                      style={{visibility: hasChanged ? 'visible' : 'hidden'}}
+                    >
+                      <Alert variant="info">
+                        {t(
+                          'Changes to your scrubbing configuration will apply to all new events.'
+                        )}
+                      </Alert>
+                    </Flex>
+                  )}
+                </scrubbingConfiguration.Subscribe>
+                <Flex gap="sm" flexShrink={0}>
+                  <Button onClick={() => scrubbingConfiguration.reset()}>
+                    {t('Cancel')}
+                  </Button>
+                  <scrubbingConfiguration.SubmitButton>
+                    {t('Save')}
+                  </scrubbingConfiguration.SubmitButton>
+                </Flex>
               </Flex>
-            </Flex>
+            ) : null}
           </FieldGroup>
         </scrubbingConfiguration.FormWrapper>
       </scrubbingConfiguration.AppForm>
