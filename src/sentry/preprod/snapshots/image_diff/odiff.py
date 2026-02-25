@@ -44,7 +44,9 @@ class OdiffServer:
         self._lock = threading.Lock()
 
     def __enter__(self) -> OdiffServer:
-        self._start()
+        with self._lock:
+            if self._process is None:
+                self._start()
         return self
 
     def __exit__(self, *args: object) -> None:
@@ -68,6 +70,17 @@ class OdiffServer:
         except JSONDecodeError as e:
             raise RuntimeError(f"odiff server returned invalid JSON: {line!r}") from e
 
+    def _kill_process(self) -> None:
+        proc = self._process
+        self._process = None
+        if proc is None:
+            return
+        proc.kill()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+
     def _start(self) -> None:
         binary = _find_odiff_binary()
         proc = subprocess.Popen(
@@ -87,7 +100,10 @@ class OdiffServer:
                 raise RuntimeError("odiff server failed to start")
         except BaseException:
             proc.kill()
-            proc.wait()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
             raise
         self._process = proc
 
@@ -119,33 +135,18 @@ class OdiffServer:
                 process.stdin.write(json.dumps(request).encode() + b"\n")
                 process.stdin.flush()
             except (BrokenPipeError, OSError) as e:
-                process.kill()
-                try:
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    pass
-                self._process = None
+                self._kill_process()
                 raise RuntimeError("odiff process died unexpectedly") from e
 
             readable, _, _ = select.select([process.stdout], [], [], 30)
             if not readable:
-                process.kill()
-                try:
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    pass
-                self._process = None
+                self._kill_process()
                 raise RuntimeError("odiff server timed out after 30s")
             line = process.stdout.readline()
             try:
                 response = self._read_json(line)
             except RuntimeError:
-                process.kill()
-                try:
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    pass
-                self._process = None
+                self._kill_process()
                 raise
 
         if "error" in response:
@@ -177,7 +178,10 @@ class OdiffServer:
         except subprocess.TimeoutExpired:
             pass
         proc.kill()
-        proc.wait()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
 
     def __del__(self) -> None:
         self.close()
