@@ -623,6 +623,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'bug',
+        groups: ['status'],
+        keywords: ['bug', 'error', 'issue', 'problem', 'defect'],
+        name: 'Bug',
+        defaultProps: {},
+      },
+      {
         id: 'lock',
         groups: ['action', 'status'],
         keywords: ['secure', 'private', 'protected', 'key'],

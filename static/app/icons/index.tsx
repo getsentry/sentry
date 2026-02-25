@@ -9,6 +9,7 @@ export {IconBookmark} from './iconBookmark';
 export {IconBot} from './iconBot';
 export {IconBranch} from './iconBranch';
 export {IconBroadcast} from './iconBroadcast';
+export {IconBug} from './iconBug';
 export {IconBuilding} from './iconBuilding';
 export {IconBusiness} from './iconBusiness';
 export {IconCalendar} from './iconCalendar';
