@@ -9,6 +9,7 @@ import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -71,6 +72,9 @@ export default function ProjectUserFeedback() {
         method: 'PUT',
         data: {options: data},
       }),
+    onSuccess: () => {
+      addSuccessMessage(t('Saved'));
+    },
   });
 
   const options = project.options ?? {};
