@@ -1,22 +1,21 @@
 import {Fragment} from 'react';
+import {z} from 'zod';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PluginList from 'sentry/components/pluginList';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -35,6 +34,19 @@ function makeFetchProjectPluginsQueryKey(
   ];
 }
 
+const alertsSchema = z.object({
+  subjectTemplate: z.string(),
+  digestsMinDelay: z.number(),
+  digestsMaxDelay: z.number(),
+});
+
+type AlertsSchema = z.infer<typeof alertsSchema>;
+
+const formatMinutes = (value: number | '') => {
+  const minutes = Number(value) / 60;
+  return tn('%s minute', '%s minutes', minutes);
+};
+
 export default function ProjectAlertSettings() {
   const organization = useOrganization();
   const {canEditRule, project} = useProjectAlertsOutlet();
@@ -52,6 +64,15 @@ export default function ProjectAlertSettings() {
   if (isPluginListError) {
     return <LoadingError onRetry={refetchPluginList} />;
   }
+
+  const projectMutationOptions = {
+    mutationFn: (data: Partial<AlertsSchema>) =>
+      fetchMutation({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        method: 'PUT',
+        data,
+      }),
+  };
 
   return (
     <Fragment>
@@ -92,36 +113,87 @@ export default function ProjectAlertSettings() {
         <LoadingIndicator />
       ) : (
         <Fragment>
-          <Form
-            saveOnBlur
-            allowUndo
-            initialData={{
-              subjectTemplate: project.subjectTemplate,
-              digestsMinDelay: project.digestsMinDelay,
-              digestsMaxDelay: project.digestsMaxDelay,
-            }}
-            apiMethod="PUT"
-            apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-          >
-            <JsonForm
-              disabled={!canEditRule}
-              title={t('Email Settings')}
-              fields={[fields.subjectTemplate]}
-            />
-
-            <JsonForm
-              title={t('Digests')}
-              disabled={!canEditRule}
-              fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
-              renderHeader={() => (
-                <PanelAlert variant="info">
-                  {t(
-                    'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. To control how frequently notifications are delivered, use the sliders below.'
+          <FieldGroup title={t('Email Settings')}>
+            <AutoSaveField
+              name="subjectTemplate"
+              schema={alertsSchema}
+              initialValue={project.subjectTemplate}
+              mutationOptions={projectMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Subject Template')}
+                  hintText={t(
+                    'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $title, $shortID, $projectID, $orgID, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
                   )}
-                </PanelAlert>
+                >
+                  <field.Input
+                    value={field.state.value}
+                    onChange={e => field.handleChange(e.target.value)}
+                    placeholder={t('e.g. $shortID - $title')}
+                    disabled={!canEditRule}
+                  />
+                </field.Layout.Row>
               )}
-            />
-          </Form>
+            </AutoSaveField>
+          </FieldGroup>
+
+          <FieldGroup title={t('Digests')}>
+            <PanelAlert variant="info">
+              {t(
+                'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. To control how frequently notifications are delivered, use the sliders below.'
+              )}
+            </PanelAlert>
+            <AutoSaveField
+              name="digestsMinDelay"
+              schema={alertsSchema}
+              initialValue={project.digestsMinDelay}
+              mutationOptions={projectMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Minimum delivery interval')}
+                  hintText={t('Notifications will be delivered at most this often.')}
+                >
+                  <field.Range
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    min={60}
+                    max={3600}
+                    step={60}
+                    disabled={!canEditRule}
+                    formatLabel={formatMinutes}
+                    aria-label={t('Minimum delivery interval')}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+
+            <AutoSaveField
+              name="digestsMaxDelay"
+              schema={alertsSchema}
+              initialValue={project.digestsMaxDelay}
+              mutationOptions={projectMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Maximum delivery interval')}
+                  hintText={t('Notifications will be delivered at least this often.')}
+                >
+                  <field.Range
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    min={60}
+                    max={3600}
+                    step={60}
+                    disabled={!canEditRule}
+                    formatLabel={formatMinutes}
+                    aria-label={t('Maximum delivery interval')}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+          </FieldGroup>
 
           {canEditRule && (
             <PluginList

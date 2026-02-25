@@ -1,7 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectAlertSettings from 'sentry/views/settings/projectAlerts/settings';
 
@@ -30,7 +30,7 @@ describe('ProjectAlertSettings', () => {
     });
   });
 
-  it('renders', async () => {
+  it('renders all fields with correct labels', async () => {
     render(<ProjectAlertSettings />, {
       outletContext: {project, canEditRule: true},
       organization,
@@ -39,6 +39,7 @@ describe('ProjectAlertSettings', () => {
     expect(
       await screen.findByPlaceholderText('e.g. $shortID - $title')
     ).toBeInTheDocument();
+    expect(screen.getByText('Subject Template')).toBeInTheDocument();
     expect(
       screen.getByRole('slider', {name: 'Minimum delivery interval'})
     ).toBeInTheDocument();
@@ -50,5 +51,48 @@ describe('ProjectAlertSettings', () => {
         "Oops! Looks like there aren't any available integrations installed."
       )
     ).toBeInTheDocument();
+  });
+
+  it('renders range sliders with correct initial numeric values', async () => {
+    render(<ProjectAlertSettings />, {
+      outletContext: {project, canEditRule: true},
+      organization,
+    });
+
+    await screen.findByPlaceholderText('e.g. $shortID - $title');
+
+    const minSlider = screen.getByRole('slider', {name: 'Minimum delivery interval'});
+    const maxSlider = screen.getByRole('slider', {name: 'Maximum delivery interval'});
+
+    expect(minSlider).toHaveValue(String(digestsMinDelay));
+    expect(maxSlider).toHaveValue(String(digestsMaxDelay));
+  });
+
+  it('calls the API when subject template input is changed and blurred', async () => {
+    const putMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {...project},
+    });
+
+    render(<ProjectAlertSettings />, {
+      outletContext: {project, canEditRule: true},
+      organization,
+    });
+
+    const input = await screen.findByPlaceholderText('e.g. $shortID - $title');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'new subject');
+    await userEvent.tab();
+
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({subjectTemplate: 'new subject'}),
+        })
+      )
+    );
   });
 });
