@@ -7,9 +7,9 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
-    Model,
+    DefaultFieldsModel,
+    FlexibleForeignKey,
     region_silo_model,
     sane_repr,
 )
@@ -31,16 +31,16 @@ class CodeReviewEventStatus(StrEnum):
 
 
 @region_silo_model
-class CodeReviewEvent(Model):
+class CodeReviewEvent(DefaultFieldsModel):
     """
     Records every SCM webhook event entering the Seer code review pipeline.
     Tracks the full lifecycle from webhook receipt to review completion.
     """
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Organization
 
-    organization_id = BoundedBigIntegerField(db_index=True)
-    repository_id = BoundedPositiveIntegerField()
+    organization = FlexibleForeignKey("sentry.Organization")
+    repository = FlexibleForeignKey("sentry.Repository")
 
     # PR identification
     pr_number = models.IntegerField(null=True)
@@ -70,7 +70,6 @@ class CodeReviewEvent(Model):
     denial_reason = models.TextField(null=True)
 
     # Timestamps for pipeline stages
-    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     webhook_received_at = models.DateTimeField(null=True)
     preflight_completed_at = models.DateTimeField(null=True)
     task_enqueued_at = models.DateTimeField(null=True)
@@ -87,13 +86,14 @@ class CodeReviewEvent(Model):
         app_label = "sentry"
         db_table = "sentry_code_review_event"
         indexes = (
-            models.Index(fields=("organization_id", "trigger_at")),
-            models.Index(fields=("organization_id", "repository_id", "trigger_at")),
-            models.Index(fields=("organization_id", "repository_id", "pr_number")),
+            models.Index(fields=("date_added",)),
+            models.Index(fields=("organization", "trigger_at")),
+            models.Index(fields=("organization", "repository", "trigger_at")),
+            models.Index(fields=("organization", "repository", "pr_number")),
         )
         constraints = [
             models.UniqueConstraint(
-                fields=["organization_id", "repository_id", "trigger_id"],
+                fields=["organization", "repository", "trigger_id"],
                 name="unique_org_repo_trigger_id",
                 condition=models.Q(trigger_id__isnull=False),
             ),

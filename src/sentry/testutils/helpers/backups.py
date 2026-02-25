@@ -61,6 +61,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
 from sentry.models.dashboard import (
     Dashboard,
@@ -654,6 +655,25 @@ class ExhaustiveFixtures(Fixtures):
                 CodeReviewTrigger.ON_NEW_COMMIT,
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ],
+        )
+
+        CodeReviewEvent.objects.create(
+            organization=org,
+            repository=repo,
+            raw_event_type="pull_request",
+            raw_event_action="opened",
+            trigger_id=f"trigger-{slug}",
+            pr_number=1,
+            pr_title=f"Test PR for {slug}",
+            pr_author="test-author",
+            pr_url="https://github.com/getsentry/getsentry/pull/1",
+            pr_state="open",
+            trigger="on_new_commit",
+            trigger_user="test-user",
+            target_commit_sha="abc123",
+            status=CodeReviewEventStatus.REVIEW_COMPLETED,
+            seer_run_id=f"seer-run-{slug}",
+            comments_posted=2,
         )
 
         # Group*

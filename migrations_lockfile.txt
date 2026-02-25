@@ -33,7 +33,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0002_add_default_coding_agent
 
-sentry: 1033_remove_grouprelease_group_id_last_seen_idx
+sentry: 1034_alter_code_review_event_model
 
 social_auth: 0003_social_auth_json_field
 
