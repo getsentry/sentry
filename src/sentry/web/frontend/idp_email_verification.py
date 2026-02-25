@@ -3,7 +3,11 @@ import logging
 from django.http import HttpRequest
 from django.http.response import HttpResponse
 
-from sentry.auth.idpmigration import SSO_VERIFICATION_KEY, get_verification_value_from_key
+from sentry.auth.idpmigration import (
+    SSO_VERIFICATION_KEY,
+    delete_verification_key,
+    get_verification_value_from_key,
+)
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.utils.cache import cache
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -27,6 +31,7 @@ class AccountConfirmationView(BaseView):
         context = {"org": org}
 
         if verification_value and org:
+            delete_verification_key(key)
             request.session[SSO_VERIFICATION_KEY] = key
             user_id = verification_value.get("user_id")
             if user_id:

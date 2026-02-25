@@ -132,3 +132,10 @@ def get_verification_value_from_key(key: str) -> dict[str, Any] | None:
         sample_rate=1.0,
     )
     return verification_value
+
+
+def delete_verification_key(key: str) -> None:
+    """Delete a verification key from Redis to enforce one-time use."""
+    client = _get_redis_client()
+    verification_key = f"auth:one-time-key:{key}"
+    client.delete(verification_key)

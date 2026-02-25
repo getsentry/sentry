@@ -69,6 +69,29 @@ class IDPMigrationTests(TestCase):
         assert response.status_code == 200
         assert response.templates[0].name == "sentry/idp_account_verified.html"
 
+    def test_verify_account_token_cannot_be_reused(self) -> None:
+        link = idpmigration.send_one_time_account_confirm_link(
+            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
+        )
+        path = reverse(
+            "sentry-idp-email-verification",
+            args=[link.verification_code],
+        )
+
+        # First use should succeed
+        response = self.client.get(path)
+        assert response.status_code == 200
+        assert response.templates[0].name == "sentry/idp_account_verified.html"
+
+        # Verify the Redis key has been deleted
+        redis_value = idpmigration._get_redis_client().get(link.verification_key)
+        assert redis_value is None
+
+        # Second use of the same token should fail
+        response = self.client.get(path)
+        assert response.status_code == 200
+        assert response.templates[0].name == "sentry/idp_account_not_verified.html"
+
     def test_verify_account_wrong_key(self) -> None:
         idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
