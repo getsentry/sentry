@@ -15,8 +15,8 @@ import {
   type PreviewCheckError,
   type PreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/types';
-import {isLeafOp, leafOpsMatch} from 'sentry/views/alerts/rules/uptime/assertions/utils';
-import type { usePreviewCheckResult } from './previewCheckContext';
+import {isLeafOp, leafOpsMatchByValue} from 'sentry/views/alerts/rules/uptime/assertions/utils';
+import { usePreviewCheckResult } from './previewCheckContext';
 
 export function mapPreviewCheckErrorToMessage(
   error: PreviewCheckError | null
@@ -40,7 +40,7 @@ function isPreviewCheckError(value: any): value is PreviewCheckError {
     value !== null &&
     typeof value === 'object' &&
     'assertion' in value &&
-    'error' in value.assertion
+    'error' in value.assertion 
   );
 }
 
@@ -92,7 +92,7 @@ export function mapPreviewCheckResultToMessage(
   return type ? (PREVIEW_CHECK_STATUS_REASON_LABELS[type] ?? null) : null;
 }
 
-// Matches a leaf op from the failure data op tree (pointing to the failing assertion)
+// Matches a leaf op from the failure data op tree (pointing to the failing assertion) 
 // to an op from the form's assertion op tree.
 function matchFailureDataLeafOp(failureDataOp: Op, assertionOp: Op): Op | null {
   if (isLeafOp(failureDataOp)) {
@@ -109,7 +109,7 @@ function matchFailureDataLeafOp(failureDataOp: Op, assertionOp: Op): Op | null {
     const match = (assertionOp as GroupOp).children.find(
       c =>
         c.op === failingChild.op &&
-        (isLeafOp(failingChild) ? leafOpsMatch(failingChild, c) : true)
+        (isLeafOp(failingChild) ? leafOpsMatchByValue(failingChild, c) : true)
     );
     if (!match) return null;
     return matchFailureDataLeafOp(failingChild, match);
@@ -128,7 +128,7 @@ function resolveErroredOpFromFailureData(failureDataOp: AndOp, rootOp: AndOp): O
 }
 
 // Maps the assert path to the op in the form's assertion op tree.
-// Examples: assertPath = ["0", "0", "1"] points to:
+// Examples: assertPath = ["0", "0", "1"] points to:  
 // first child of root: call it A -> first child of A: call it B -> second child of B
 function resolveErroredOpFromAssertPath(assertPath: string[], rootOp: AndOp): Op | null {
   let current: Op = rootOp;
@@ -161,7 +161,7 @@ export function resolveErroredOp(
   rootOp: AndOp
 ): Op | null {
   const {data, error} = previewCheckResult;
-
+  
   if (data) {
     const result = data.check_result;
     if (!result) return null;
@@ -203,7 +203,7 @@ function getFormErrorMessage(
   previewCheckResult: ReturnType<typeof usePreviewCheckResult>
 ): string | null {
   const {data, error} = previewCheckResult;
-
+  
   if (data) {
     const result = data.check_result;
     if (!result) return null;
@@ -241,10 +241,11 @@ function getFormErrorMessage(
 interface AssertionFormErrorProps {
   erroredOp: Op | undefined;
   op: Op;
-  previewCheckResult: ReturnType<typeof usePreviewCheckResult>;
 }
 
-export function AssertionFormError({op, erroredOp, previewCheckResult}: AssertionFormErrorProps) {
+export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
+  const previewCheckResult = usePreviewCheckResult();
+
   if (!erroredOp || erroredOp.id !== op.id) {
     return null;
   }

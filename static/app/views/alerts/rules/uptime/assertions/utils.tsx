@@ -359,12 +359,7 @@ export const isLeafOp = (op: Op) =>
   op.op === OpType.JSON_PATH ||
   op.op === OpType.HEADER_CHECK;
 
-/**
- * Compares two leaf ops by value, ignoring `id`. Used to find which sibling in
- * rootOp corresponds to the single failing child in assertion_failure_data.
- * Returns false for non-leaf ops (they are matched structurally by op type).
- */
-export function leafOpsMatch(a: Op, b: Op): boolean {
+export function leafOpsMatchByValue(a: Op, b: Op): boolean {
   if (a.op !== b.op) return false;
 
   if (a.op === OpType.STATUS_CODE_CHECK && b.op === OpType.STATUS_CODE_CHECK) {
