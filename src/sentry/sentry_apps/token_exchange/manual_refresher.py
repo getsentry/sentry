@@ -73,11 +73,18 @@ class ManualTokenRefresher:
                         webhook_context=context,
                     )
 
+                original_token_id = installation.api_token_id
                 token = None
                 with lock_context, transaction.atomic(router.db_for_write(ApiToken)):
                     self._validate()
                     # Re-fetch to verify token still exists inside lock
                     installation.refresh_from_db()
+                    if installation.api_token_id != original_token_id:
+                        raise SentryAppIntegratorError(
+                            message="Token was already refreshed",
+                            status_code=409,
+                            webhook_context=context,
+                        )
                     if installation.api_token is None:
                         raise SentryAppIntegratorError(
                             message="Installation does not have a token",
