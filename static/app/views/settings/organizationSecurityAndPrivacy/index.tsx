@@ -441,7 +441,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
                     onChange={field.handleChange}
                     placeholder="e.g. email"
                     disabled={!hasOrgWrite}
-                    rows={1}
+                    autosize
                   />
                 </field.Layout.Row>
               )}
@@ -460,7 +460,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
                     onChange={field.handleChange}
                     placeholder={t('e.g. business-email')}
                     disabled={!hasOrgWrite}
-                    rows={1}
+                    autoSize
                   />
                 </field.Layout.Row>
               )}
