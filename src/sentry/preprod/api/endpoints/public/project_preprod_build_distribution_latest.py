@@ -36,7 +36,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="List latest builds for a project",
+        operation_id="List latest installable builds for a project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -106,10 +106,10 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         project: Project,
     ) -> Response:
         """
-        List latest builds for a project.
+        List latest installable builds for a project.
 
-        Returns the latest builds matching filter criteria, paginated.
-        Only processed builds are returned.
+        Returns the latest installable builds matching filter criteria, paginated.
+        Only processed builds with an installable app file are returned.
         """
 
         if not features.has(
