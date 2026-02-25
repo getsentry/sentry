@@ -2301,6 +2301,247 @@ describe('useWidgetBuilderState', () => {
       );
     });
 
+    it('preserves equation as aggregate when switching to categorical bar', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            field: ['event.type', 'equation|count() / 5'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.CATEGORICAL_BAR,
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Equation should be preserved as the aggregate
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'event.type'},
+              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+
+      // Sort should use equation[0] alias format
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-equation[0]'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('preserves equation aggregate and equation sort when X-axis changes', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+            ]),
+            sort: ['-equation[0]'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'release',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Equation should be preserved in fields
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'release'},
+              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+
+      // Sort should NOT be reset since equation[0] is still valid
+      expect(mockNavigate).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: expect.anything(),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('resets sort when X-axis changes and sort was on a stale equation alias', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+            sort: ['-equation[0]'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'release',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Sort should be reset to first aggregate since there are no equations in fields
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count()'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('preserves all aggregates and equations when switching from line to categorical bar', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['count()', 'equation|count() / 5'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.CATEGORICAL_BAR,
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Both the function and equation should be preserved
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'title'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+
+      // Sort should be on the last aggregate (equation) by default
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-equation[0]'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('selectedAggregate defaults to last aggregate for categorical bar with multiple aggregates', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+            ]),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // selectedAggregate should default to the last aggregate index (1, since
+      // there are 2 aggregates: count() and equation)
+      expect(result.current.state.selectedAggregate).toBe(1);
+    });
+
+    it('selectedAggregate is undefined for categorical bar with single aggregate', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // selectedAggregate should be undefined when there's only one aggregate
+      expect(result.current.state.selectedAggregate).toBeUndefined();
+    });
+
     it('sets default X-axis and aggregate when dataset changes with categorical bar', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({

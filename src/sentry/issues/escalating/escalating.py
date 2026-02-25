@@ -186,8 +186,7 @@ def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountRespons
         if len(all_group_ids) == 1:
             query_string = f"group_id:{all_group_ids[0]}"
         else:
-            group_id_filter = " OR ".join([f"group_id:{gid}" for gid in all_group_ids])
-            query_string = f"({group_id_filter})"
+            query_string = f"group_id:[{', '.join(str(gid) for gid in all_group_ids)}]"
 
         snuba_params = SnubaParams(
             start=start_date,

@@ -1,6 +1,10 @@
 import {useCallback, useMemo} from 'react';
 
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -92,17 +96,6 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     [values, onAutogroupChange, onMissingInstrumentationChange]
   );
 
-  const menuFooter = (
-    <a
-      onClick={() => {
-        traceAnalytics.trackViewShortcuts(organization);
-        openModal(p => <TraceShortcutsModal {...p} />);
-      }}
-    >
-      {t('See Shortcuts')}
-    </a>
-  );
-
   return (
     <CompactSelect
       multiple
@@ -116,8 +109,17 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         />
       )}
       options={selectOptions}
+      menuFooter={
+        <MenuComponents.CTAButton
+          onClick={() => {
+            traceAnalytics.trackViewShortcuts(organization);
+            openModal(p => <TraceShortcutsModal {...p} />);
+          }}
+        >
+          {t('See Shortcuts')}
+        </MenuComponents.CTAButton>
+      }
       onChange={onChange}
-      menuFooter={menuFooter}
       menuWidth={300}
     />
   );
