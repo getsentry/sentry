@@ -44,7 +44,6 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -137,16 +136,13 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            # TODO: replace with convert_args when fully switching over
-            # TODO: handle single written rules that won't be in ARW
-            arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-
             workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
                 expand=request.GET.getlist("expand", []),
                 prepare_component_fields=True,
                 project_slug=project.slug,
             )
-            serialized_rule = serialize(arw.workflow, request.user, workflow_engine_rule_serializer)
+            # XXX: Note that "rule" here is actually a Workflow object
+            serialized_rule = serialize(rule, request.user, workflow_engine_rule_serializer)
         else:
             # Serialize Rule object
             rule_serializer = RuleSerializer(

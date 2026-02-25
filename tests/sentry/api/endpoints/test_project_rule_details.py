@@ -30,10 +30,11 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import AlertRuleWorkflow
-from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
@@ -136,7 +137,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         ]
 
 
-class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
+class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase, BaseWorkflowTest):
     def test_simple(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200
@@ -156,7 +157,28 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_engine_serializer_single_written_rule(self) -> None:
-        pass
+        self.workflow = self.create_workflow()
+        self.detector = self.create_detector()
+        self.detector_workflow = self.create_detector_workflow(
+            detector=self.detector, workflow=self.workflow
+        )
+        self.dcg = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=self.dcg,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+
+        self.action_group, self.action = self.create_workflow_action(self.workflow)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.workflow.id, status_code=200
+        )
+        assert (
+            response.data["id"] == "1234"
+        )  # TODO: we probably don't want this, do the fake id stuff
+        assert response.data["environment"] is None
+        assert response.data["conditions"][0]["name"]
 
     def test_non_existing_rule(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)

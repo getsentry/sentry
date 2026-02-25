@@ -477,7 +477,8 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             result[workflow]["environment"] = workflow.environment
             result[workflow]["projects"] = list(workflow_to_projects[workflow])
-            result[workflow]["rule_id"] = workflow_rule_ids[workflow.id]
+            # XXX: for a single written workflow we won't have a rule id. we could generate a fake one?
+            result[workflow]["rule_id"] = workflow_rule_ids.get(workflow.id, "1234")
 
             result[workflow]["action_match"] = (
                 workflow.when_condition_group.logic_type if workflow.when_condition_group else None
