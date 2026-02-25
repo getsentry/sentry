@@ -14,6 +14,8 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
@@ -327,23 +329,13 @@ export type CodingAgentIntegration = {
   requires_identity?: boolean;
 };
 
-export function useCodingAgentIntegrations() {
-  const organization = useOrganization();
-
-  return useApiQuery<{
+export function organizationIntegrationsCodingAgents(organization: Organization) {
+  return apiOptions.as<{
     integrations: CodingAgentIntegration[];
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
-      }),
-    ],
-    {
-      staleTime: 5 * 60 * 1000,
-    }
-  );
+  }>()('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
+    path: {organizationIdOrSlug: organization.slug},
+    staleTime: 5 * 60 * 1000,
+  });
 }
 
 interface LaunchCodingAgentParams {

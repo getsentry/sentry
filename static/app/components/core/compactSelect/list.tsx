@@ -184,8 +184,8 @@ export function List<Value extends SelectKey>({
   );
 
   const sortedItems = useMemo(
-    () => (searchMatcher && scores.size > 0 ? getSortedItems(items, scores) : items),
-    [items, scores, searchMatcher]
+    () => (scores.size > 0 ? getSortedItems(items, scores) : items),
+    [items, scores]
   );
 
   /**

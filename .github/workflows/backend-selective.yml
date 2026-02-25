@@ -191,7 +191,7 @@ jobs:
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
   backend-test-selective:
-    if: "(github.event.action != 'labeled' || github.event.label.name == 'Trigger: Override Selective Testing') && needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0' && needs.calculate-shards.outputs.shard-count != ''"
+    if: "(github.event.action != 'labeled' || github.event.label.name == 'Trigger: Override Selective Testing') && needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0' && needs.calculate-shards.outputs.shard-count != '0' && needs.calculate-shards.outputs.shard-count != ''"
     needs: [files-changed, prepare-selective-tests, calculate-shards]
     name: backend tests
     runs-on: ubuntu-24.04

@@ -156,14 +156,8 @@ interface AutoSaveFieldProps<
 export function AutoSaveField<
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
->({
-  name,
-  schema,
-  initialValue,
-  mutationOptions,
-  confirm,
-  children,
-}: AutoSaveFieldProps<TSchema, TFieldName>) {
+>(props: AutoSaveFieldProps<TSchema, TFieldName>) {
+  const {name, schema, initialValue, mutationOptions, confirm, children} = props;
   const id = useId();
   const mutation = useMutation(mutationOptions);
   // Track pending confirmation to prevent duplicate modals

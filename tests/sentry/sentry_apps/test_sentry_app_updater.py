@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.db import router
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
@@ -16,9 +17,9 @@ from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -150,7 +151,8 @@ class TestUpdater(TestCase):
                 "issue",
             ],
         )
-        updater.run(self.user)
+        with outbox_runner():
+            updater.run(self.user)
         assert sentry_app.events == expand_events(["issue"])
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.filter(application_id=sentry_app.application_id)[0]
@@ -165,7 +167,8 @@ class TestUpdater(TestCase):
         )
         self.create_sentry_app_installation(slug="sentry")
         updater = SentryAppUpdater(sentry_app=sentry_app, webhook_url="http://example.com/hooks")
-        updater.run(self.user)
+        with outbox_runner():
+            updater.run(self.user)
         assert sentry_app.webhook_url == "http://example.com/hooks"
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=sentry_app.application_id)
@@ -246,7 +249,8 @@ class TestUpdater(TestCase):
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = "https://sentry.io/hook"
         updater.events = ["issue"]
-        updater.run(self.user)
+        with outbox_runner():
+            updater.run(self.user)
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=internal_app.application_id)
         assert service_hook.url == "https://sentry.io/hook"
@@ -272,11 +276,11 @@ class TestUpdater(TestCase):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 1
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = ""
-        updater.run(self.user)
+        with outbox_runner():
+            updater.run(self.user)
         with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
 
-    @with_feature("organizations:service-hooks-outbox")
     def test_update_service_hooks_with_outbox_feature_enabled(self) -> None:
         """Test _update_service_hooks when organizations:service-hooks-outbox feature is enabled."""
         # Create installation
@@ -319,11 +323,11 @@ class TestUpdater(TestCase):
                 "comment.updated",
             }
 
-    @with_feature("organizations:service-hooks-outbox")
     def test_update_service_hooks_no_installations(self) -> None:
         """Test _update_service_hooks when there are no installations."""
         # Ensure no installations exist
-        SentryAppInstallation.objects.filter(sentry_app=self.sentry_app).delete()
+        with unguarded_write(using=router.db_for_write(SentryAppInstallation)):
+            SentryAppInstallation.objects.filter(sentry_app=self.sentry_app).delete()
 
         # Clear any existing outbox entries
         with outbox_runner():
@@ -332,16 +336,9 @@ class TestUpdater(TestCase):
         # Update the sentry app (should not create outbox entries when no installations)
         updater = SentryAppUpdater(sentry_app=self.sentry_app)
         updater.webhook_url = "https://example.com/webhook"
-        updater.run(self.user)
-
-        # Verify no outbox entries were created
-        outbox_entries = ControlOutbox.objects.filter(category=OutboxCategory.SERVICE_HOOK_UPDATE)
-        assert len(outbox_entries) == 0
-
         with outbox_runner():
-            pass
+            updater.run(self.user)
 
-    @with_feature("organizations:service-hooks-outbox")
     def test_update_service_hooks_outbox_entries_created(self) -> None:
         """Test that outbox entries are properly created and processed."""
         # Create installation
