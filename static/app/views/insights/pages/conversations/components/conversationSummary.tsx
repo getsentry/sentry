@@ -176,6 +176,7 @@ function AggregateItem({
   return content;
 }
 
+// Monospace font has different baseline metrics, nudge up to visually align
 const ConversationId = styled(Text)`
   position: relative;
   top: -1px;
