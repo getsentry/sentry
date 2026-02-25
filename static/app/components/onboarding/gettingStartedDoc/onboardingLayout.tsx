@@ -182,14 +182,13 @@ export function OnboardingLayout({
               />
             ) : null}
           </Stack>
-          <Divider />
+          <Divider withBottomMargin />
           <div>
             {steps.map((step, index) => {
               const copyButton =
                 copyEnabled && index === 0 ? (
                   <OnboardingCopyMarkdownButton
                     steps={steps}
-                    borderless
                     source={newOrg ? 'first_time_setup' : 'project_getting_started'}
                   />
                 ) : null;
