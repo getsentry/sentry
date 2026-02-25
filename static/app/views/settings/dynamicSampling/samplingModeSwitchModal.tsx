@@ -52,7 +52,7 @@ function SamplingModeSwitchModal({
   samplingMode,
   initialTargetRate = 1,
 }: Props & ModalRenderProps) {
-  const {mutateAsync: updateOrganization, isPending} = useUpdateOrganization({
+  const {mutate: updateOrganization, isPending} = useUpdateOrganization({
     onMutate: () => {
       addLoadingMessage(t('Switching sampling mode...'));
     },
@@ -78,77 +78,87 @@ function SamplingModeSwitchModal({
       if (samplingMode === 'organization') {
         changes.targetSampleRate = parsePercent(value.targetSampleRate);
       }
-      return updateOrganization(changes);
+      updateOrganization(changes);
     },
   });
 
   return (
     <form.AppForm>
-      <Header>
-        <h5>
-          {samplingMode === 'organization'
-            ? t('Deactivate Advanced Mode')
-            : t('Activate Advanced Mode')}
-        </h5>
-      </Header>
-      <Body>
-        <p>
-          {samplingMode === 'organization'
-            ? tct(
-                'Deactivating advanced mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [learnMoreLink:Learn more]',
-                {
-                  learnMoreLink: (
-                    <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/" />
-                  ),
-                }
-              )
-            : tct(
-                'Switching to advanced mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. [prioritiesLink:Dynamic sampling priorities] continue to apply within the projects. [learnMoreLink:Learn more]',
-                {
-                  prioritiesLink: (
-                    <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities" />
-                  ),
-                  learnMoreLink: (
-                    <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#advanced-mode" />
-                  ),
-                }
+      <form.FormWrapper>
+        <Header>
+          <h5>
+            {samplingMode === 'organization'
+              ? t('Deactivate Advanced Mode')
+              : t('Activate Advanced Mode')}
+          </h5>
+        </Header>
+        <Body>
+          <p>
+            {samplingMode === 'organization'
+              ? tct(
+                  'Deactivating advanced mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [learnMoreLink:Learn more]',
+                  {
+                    learnMoreLink: (
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/" />
+                    ),
+                  }
+                )
+              : tct(
+                  'Switching to advanced mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. [prioritiesLink:Dynamic sampling priorities] continue to apply within the projects. [learnMoreLink:Learn more]',
+                  {
+                    prioritiesLink: (
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities" />
+                    ),
+                    learnMoreLink: (
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#advanced-mode" />
+                    ),
+                  }
+                )}
+          </p>
+          {samplingMode === 'organization' ? (
+            <form.AppField name="targetSampleRate">
+              {field => (
+                <field.Layout.Stack label={t('Global Target Sample Rate')} required>
+                  <PercentInput
+                    aria-label={t('Global Target Sample Rate')}
+                    value={field.state.value}
+                    onChange={e => field.handleChange(e.target.value)}
+                    disabled={isPending}
+                  />
+                </field.Layout.Stack>
               )}
-        </p>
-        {samplingMode === 'organization' ? (
-          <form.AppField name="targetSampleRate">
-            {field => (
-              <field.Layout.Stack label={t('Global Target Sample Rate')} required>
-                <PercentInput
-                  aria-label={t('Global Target Sample Rate')}
-                  value={field.state.value}
-                  onChange={e => field.handleChange(e.target.value)}
-                  disabled={isPending}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-        ) : null}
-        <p>
-          {samplingMode === 'organization'
-            ? tct(
-                'By deactivating advanced mode, [strong:you will lose your manually configured sample rates].',
-                {
-                  strong: <strong />,
-                }
-              )
-            : t('You can deactivate advanced mode at any time.')}
-        </p>
-      </Body>
-      <Footer>
-        <Flex gap="xl">
-          <Button disabled={isPending} onClick={closeModal}>
-            {t('Cancel')}
-          </Button>
-          <form.SubmitButton priority="primary">
-            {samplingMode === 'organization' ? t('Deactivate') : t('Activate')}
-          </form.SubmitButton>
-        </Flex>
-      </Footer>
+            </form.AppField>
+          ) : null}
+          <p>
+            {samplingMode === 'organization'
+              ? tct(
+                  'By deactivating advanced mode, [strong:you will lose your manually configured sample rates].',
+                  {
+                    strong: <strong />,
+                  }
+                )
+              : t('You can deactivate advanced mode at any time.')}
+          </p>
+        </Body>
+        <Footer>
+          <Flex gap="xl">
+            <Button disabled={isPending} onClick={closeModal}>
+              {t('Cancel')}
+            </Button>
+            <form.Subscribe selector={state => state.isSubmitting}>
+              {isSubmitting => (
+                <Button
+                  priority="primary"
+                  type="submit"
+                  disabled={isPending || isSubmitting}
+                >
+                  {samplingMode === 'organization' ? t('Deactivate') : t('Activate')}
+                </Button>
+              )}
+            </form.Subscribe>
+          </Flex>
+        </Footer>
+      </form.FormWrapper>
     </form.AppForm>
   );
 }
