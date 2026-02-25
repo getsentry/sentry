@@ -21,7 +21,8 @@ class GithubWebhookType(StrEnum):
     PUSH = "push"
 
 
-# Event types that the region webhook endpoint processes. INSTALLATION is handled in control only.
+# Event type strings (X-GitHub-Event header values) that the region webhook endpoint processes.
+# INSTALLATION is handled in control only.
 REGION_PROCESSED_GITHUB_EVENTS = frozenset(
-    t for t in GithubWebhookType if t != GithubWebhookType.INSTALLATION
+    t.value for t in GithubWebhookType if t != GithubWebhookType.INSTALLATION
 )
