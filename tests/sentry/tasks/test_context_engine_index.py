@@ -4,7 +4,7 @@ import orjson
 import pytest
 
 from sentry.seer.explorer.context_engine_utils import ProjectEventCounts
-from sentry.tasks.explorer_context_engine_tasks import (
+from sentry.tasks.context_engine_index import (
     index_org_project_knowledge,
     schedule_context_engine_indexing_tasks,
 )
@@ -27,7 +27,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
         org_without_projects = self.create_organization()
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
-                "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects"
+                "sentry.tasks.context_engine_index.get_event_counts_for_org_projects"
             ) as mock_counts:
                 index_org_project_knowledge(org_without_projects.id)
                 mock_counts.assert_not_called()
@@ -35,16 +35,16 @@ class TestIndexOrgProjectKnowledge(TestCase):
     def test_returns_early_when_no_high_volume_projects(self):
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
-                "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
+                "sentry.tasks.context_engine_index.get_event_counts_for_org_projects",
                 return_value={},
             ):
                 with mock.patch(
-                    "sentry.tasks.explorer_context_engine_tasks.make_signed_seer_api_request"
+                    "sentry.tasks.context_engine_index.make_signed_seer_api_request"
                 ) as mock_request:
                     index_org_project_knowledge(self.org.id)
                     mock_request.assert_not_called()
 
-    @mock.patch("sentry.tasks.explorer_context_engine_tasks.make_signed_seer_api_request")
+    @mock.patch("sentry.tasks.context_engine_index.make_signed_seer_api_request")
     def test_calls_seer_endpoint_with_correct_payload(self, mock_request):
         mock_request.return_value.status = 200
 
@@ -54,19 +54,19 @@ class TestIndexOrgProjectKnowledge(TestCase):
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
-                "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
+                "sentry.tasks.context_engine_index.get_event_counts_for_org_projects",
                 return_value=event_counts,
             ):
                 with mock.patch(
-                    "sentry.tasks.explorer_context_engine_tasks.get_top_transactions_for_org_projects",
+                    "sentry.tasks.context_engine_index.get_top_transactions_for_org_projects",
                     return_value={self.project.id: ["GET /api/0/projects/"]},
                 ):
                     with mock.patch(
-                        "sentry.tasks.explorer_context_engine_tasks.get_top_span_ops_for_org_projects",
+                        "sentry.tasks.context_engine_index.get_top_span_ops_for_org_projects",
                         return_value={self.project.id: [("db", "SELECT * FROM table")]},
                     ):
                         with mock.patch(
-                            "sentry.tasks.explorer_context_engine_tasks.get_sdk_names_for_org_projects",
+                            "sentry.tasks.context_engine_index.get_sdk_names_for_org_projects",
                             return_value={self.project.id: "sentry.python"},
                         ):
                             index_org_project_knowledge(self.org.id)
@@ -87,27 +87,27 @@ class TestIndexOrgProjectKnowledge(TestCase):
         assert project_payload["top_transactions"] == ["GET /api/0/projects/"]
         assert project_payload["top_span_operations"] == [["db", "SELECT * FROM table"]]
 
-    @mock.patch("sentry.tasks.explorer_context_engine_tasks.make_signed_seer_api_request")
+    @mock.patch("sentry.tasks.context_engine_index.make_signed_seer_api_request")
     def test_raises_on_seer_error(self, mock_request):
         mock_request.return_value.status = 500
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
-                "sentry.tasks.explorer_context_engine_tasks.get_event_counts_for_org_projects",
+                "sentry.tasks.context_engine_index.get_event_counts_for_org_projects",
                 return_value={
                     self.project.id: ProjectEventCounts(error_count=5000, transaction_count=2000)
                 },
             ):
                 with mock.patch(
-                    "sentry.tasks.explorer_context_engine_tasks.get_top_transactions_for_org_projects",
+                    "sentry.tasks.context_engine_index.get_top_transactions_for_org_projects",
                     return_value={},
                 ):
                     with mock.patch(
-                        "sentry.tasks.explorer_context_engine_tasks.get_top_span_ops_for_org_projects",
+                        "sentry.tasks.context_engine_index.get_top_span_ops_for_org_projects",
                         return_value={},
                     ):
                         with mock.patch(
-                            "sentry.tasks.explorer_context_engine_tasks.get_sdk_names_for_org_projects",
+                            "sentry.tasks.context_engine_index.get_sdk_names_for_org_projects",
                             return_value={},
                         ):
                             with pytest.raises(Exception):
@@ -116,10 +116,8 @@ class TestIndexOrgProjectKnowledge(TestCase):
 
 @django_db_all
 class TestScheduleContextEngineIndexingTasks(TestCase):
-    @mock.patch("sentry.tasks.explorer_context_engine_tasks.build_service_map.apply_async")
-    @mock.patch(
-        "sentry.tasks.explorer_context_engine_tasks.index_org_project_knowledge.apply_async"
-    )
+    @mock.patch("sentry.tasks.context_engine_index.build_service_map.apply_async")
+    @mock.patch("sentry.tasks.context_engine_index.index_org_project_knowledge.apply_async")
     def test_dispatches_for_allowed_orgs(self, mock_index, mock_build):
         org1 = self.create_organization()
         org2 = self.create_organization()
@@ -137,10 +135,8 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
         dispatched_index_ids = [c[1]["args"][0] for c in mock_index.call_args_list]
         assert dispatched_index_ids == [org1.id, org2.id]
 
-    @mock.patch("sentry.tasks.explorer_context_engine_tasks.build_service_map.apply_async")
-    @mock.patch(
-        "sentry.tasks.explorer_context_engine_tasks.index_org_project_knowledge.apply_async"
-    )
+    @mock.patch("sentry.tasks.context_engine_index.build_service_map.apply_async")
+    @mock.patch("sentry.tasks.context_engine_index.index_org_project_knowledge.apply_async")
     def test_noop_when_no_allowed_orgs(self, mock_index, mock_build):
         with override_options(
             {

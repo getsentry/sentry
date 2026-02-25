@@ -17,7 +17,7 @@ from sentry.seer.explorer.explorer_service_map_utils import (
     _query_service_dependencies,
     _send_to_seer,
 )
-from sentry.tasks.explorer_context_engine_tasks import build_service_map
+from sentry.tasks.context_engine_index import build_service_map
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -53,15 +53,26 @@ class TestSendToSeer(TestCase):
             },
         ]
 
+        edges = [
+            {
+                "source_project_id": 1,
+                "source_project_slug": "frontend",
+                "target_project_id": 2,
+                "target_project_slug": "api",
+                "count": 5,
+            }
+        ]
+
         with mock.patch(
             "sentry.seer.explorer.explorer_service_map_utils.orjson.dumps"
         ) as mock_dumps:
             mock_dumps.return_value = b"{}"
-            _send_to_seer(org.id, nodes)
+            _send_to_seer(org.id, nodes, edges)
 
         call_args = mock_dumps.call_args[0][0]
         assert call_args["organization_id"] == org.id
         assert call_args["nodes"] == nodes
+        assert call_args["edges"] == edges
         assert "generated_at" in call_args
 
 
@@ -72,14 +83,14 @@ class TestBuildServiceMap(TestCase):
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
-                "sentry.tasks.explorer_context_engine_tasks._query_service_dependencies"
+                "sentry.tasks.context_engine_index._query_service_dependencies"
             ) as mock_query:
                 build_service_map(org.id)
 
         mock_query.assert_not_called()
 
-    @mock.patch("sentry.tasks.explorer_context_engine_tasks._send_to_seer")
-    @mock.patch("sentry.tasks.explorer_context_engine_tasks._query_service_dependencies")
+    @mock.patch("sentry.tasks.context_engine_index._send_to_seer")
+    @mock.patch("sentry.tasks.context_engine_index._query_service_dependencies")
     def test_complete_workflow(self, mock_dependencies, mock_send):
         org = self.create_organization()
         project1 = self.create_project(organization=org)
@@ -97,21 +108,19 @@ class TestBuildServiceMap(TestCase):
         assert isinstance(snuba_params, SnubaParams)
         mock_send.assert_called_once()
 
-    @mock.patch("sentry.tasks.explorer_context_engine_tasks._query_service_dependencies")
+    @mock.patch("sentry.tasks.context_engine_index._query_service_dependencies")
     def test_handles_no_edges(self, mock_dependencies):
         org = self.create_organization()
 
         mock_dependencies.return_value = []
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
-            with mock.patch(
-                "sentry.tasks.explorer_context_engine_tasks._send_to_seer"
-            ) as mock_send:
+            with mock.patch("sentry.tasks.context_engine_index._send_to_seer") as mock_send:
                 build_service_map(org.id)
 
         mock_send.assert_not_called()
 
-    @mock.patch("sentry.tasks.explorer_context_engine_tasks._query_service_dependencies")
+    @mock.patch("sentry.tasks.context_engine_index._query_service_dependencies")
     def test_handles_exception(self, mock_dependencies):
         org = self.create_organization()
 
@@ -1079,7 +1088,7 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        with mock.patch("sentry.tasks.explorer_context_engine_tasks._send_to_seer") as mock_send:
+        with mock.patch("sentry.tasks.context_engine_index._send_to_seer") as mock_send:
             with override_options(
                 {
                     "explorer.context_engine_indexing.enable": True,
@@ -1089,12 +1098,21 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
                 build_service_map(self.organization.id)
 
         mock_send.assert_called_once()
-        _, nodes = mock_send.call_args[0]
+        _, nodes, edges = mock_send.call_args[0]
 
         node_by_slug = {n["project_slug"]: n for n in nodes}
 
         # Verify all 4 services are present
         assert set(node_by_slug.keys()) == {"frontend", "api", "database", "cache"}
+
+        # Verify edges are present and well-formed
+        assert len(edges) > 0
+        for edge in edges:
+            assert "source_project_id" in edge
+            assert "source_project_slug" in edge
+            assert "target_project_id" in edge
+            assert "target_project_slug" in edge
+            assert "count" in edge
 
         # Verify caller/callee relationships
         assert node_by_slug["frontend"]["callees"] == ["api"]

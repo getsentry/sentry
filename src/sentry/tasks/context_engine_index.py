@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.explorer_context_engine_tasks.index_org_project_knowledge",
+    name="sentry.tasks.context_engine_index.index_org_project_knowledge",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,
 )
@@ -127,7 +127,7 @@ def index_org_project_knowledge(org_id: int) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.explorer_context_engine_tasks.build_service_map",
+    name="sentry.tasks.context_engine_index.build_service_map",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,  # 10 minutes
 )
@@ -181,7 +181,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
 
         nodes = _build_nodes(edges)
 
-        _send_to_seer(organization_id, nodes)
+        _send_to_seer(organization_id, nodes, edges)
 
         logger.info(
             "Successfully completed service map build",
@@ -202,7 +202,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.explorer_context_engine_tasks.schedule_context_engine_indexing_tasks",
+    name="sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
     namespace=seer_tasks,
     processing_deadline_duration=30 * 60,
 )

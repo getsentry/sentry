@@ -3244,6 +3244,15 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set
+# exceeds this many bytes (via MEMORY USAGE). This avoids the expensive
+# re-serialisation of the entire destination set during SUNIONSTORE.
+register(
+    "spans.buffer.zero-copy-dest-threshold-bytes",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Latency threshold in milliseconds for logging slow EVALSHA pipeline operations
 register(
     "spans.buffer.evalsha-latency-threshold",
