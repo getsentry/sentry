@@ -52,7 +52,7 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
     return <Container padding="md xl">{spanDescription}</Container>;
   }
 
-  return `${spanOp} - ${spanDescription}`;
+  return <Wrapper>{`${spanOp} - ${spanDescription}`}</Wrapper>;
 }
 
 function HttpSpanVisualization(props: {
