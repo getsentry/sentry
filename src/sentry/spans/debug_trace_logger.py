@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from sentry import options
 from sentry.spans.segment_key import SegmentKey, parse_segment_key
@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from sentry_redis_tools.clients import RedisCluster, StrictRedis
+
+    from sentry.spans.buffer import Span
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +36,7 @@ class DebugTraceLogger:
         self,
         project_and_trace: str,
         parent_span_id: str,
-        subsegment: Sequence[Any],
-        now: int,
+        subsegment: Sequence[Span],
     ) -> None:
         _, _, trace_id = project_and_trace.partition(":")
         if trace_id not in self._get_debug_traces():
@@ -78,7 +79,6 @@ class DebugTraceLogger:
                 "sunion_existing_key_count": num_existing_keys,
                 "set_sizes": set_sizes,
                 "total_set_sizes": sum(set_sizes.values()),
-                "now": now,
                 "subsegment_spans": spans,
             },
         )
@@ -89,6 +89,7 @@ class DebugTraceLogger:
         segment_span_id: str,
         root_span_in_segment: bool,
         num_spans: int,
+        shard_id: int,
     ) -> None:
         project_id, trace_id, _ = parse_segment_key(segment_key)
         if trace_id.decode("ascii") not in self._get_debug_traces():
@@ -107,5 +108,6 @@ class DebugTraceLogger:
                 "has_root_span_flag": has_root_span_flag,
                 "root_span_in_segment": root_span_in_segment,
                 "num_spans": num_spans,
+                "shard_id": shard_id,
             },
         )

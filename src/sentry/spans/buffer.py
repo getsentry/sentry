@@ -241,7 +241,7 @@ class SpansBuffer:
                             if self._debug_trace_logger is None:
                                 self._debug_trace_logger = DebugTraceLogger(self.client)
                             self._debug_trace_logger.log_subsegment_info(
-                                project_and_trace, parent_span_id, subsegment, now
+                                project_and_trace, parent_span_id, subsegment
                             )
                         except Exception:
                             logger.exception("process_spans: Failed to log debug trace info")
@@ -556,6 +556,7 @@ class SpansBuffer:
                     segment_span_id,
                     has_root_span,
                     len(segment),
+                    shard,
                 )
             except Exception:
                 logger.exception("flush_segments: Failed to log debug trace flush info")
