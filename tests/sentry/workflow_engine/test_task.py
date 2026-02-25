@@ -1,6 +1,6 @@
-import pytest
 from unittest import mock
 
+import pytest
 import sentry_sdk
 from google.api_core.exceptions import RetryError
 
