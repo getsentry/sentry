@@ -107,8 +107,8 @@ def _is_race_condition_skipped_event(event: Event, event_grouphash: GroupHash) -
     # TODO: Temporary debugging for the fact that we're still sometimes seeing multiple events per
     # hash being let through
     initial_has_group = bool(event_grouphash.group_id)  # Should in theory always be False
+    new_has_group: Any = None  # mypy appeasement
     if not initial_has_group:
-        new_has_group: Any = None  # mypy appeasement
         try:
             event_grouphash.refresh_from_db()
             new_has_group = bool(event_grouphash.group_id)
