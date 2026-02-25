@@ -114,27 +114,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Verify New Password'),
     hintText: t('Verify your new password'),
   },
-  'project-user-feedback.feedback:branding': {
-    name: 'feedback:branding',
-    formId: 'project-user-feedback',
-    route: '/settings/:orgId/projects/:projectId/user-feedback/',
-    label: t('Show Sentry Branding in Crash Report Modal'),
-    hintText: t(
-      'Show "powered by Sentry" within the Crash Report Modal. We appreciate you helping get the word out about Sentry! <3'
-    ),
-  },
-  'project-user-feedback.sentry:feedback_user_report_notifications': {
-    name: 'sentry:feedback_user_report_notifications',
-    formId: 'project-user-feedback',
-    route: '/settings/:orgId/projects/:projectId/user-feedback/',
-    label: t('Enable Crash Report Notifications'),
-  },
-  'project-user-feedback.sentry:feedback_ai_spam_detection': {
-    name: 'sentry:feedback_ai_spam_detection',
-    formId: 'project-user-feedback',
-    route: '/settings/:orgId/projects/:projectId/user-feedback/',
-    label: t('Enable Spam Detection'),
-  },
   'csp.sentry:csp_ignored_sources_defaults': {
     name: 'sentry:csp_ignored_sources_defaults',
     formId: 'csp',
