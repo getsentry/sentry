@@ -67,19 +67,19 @@ class ApiApplicationTest(TestCase):
         assert not app.is_valid_redirect_uri("http://example.com/path/path/%2e./%2e./new/path")
 
     def test_is_valid_redirect_uri_multi_layer_encoding(self) -> None:
-        """Double/triple percent-encoding must be fully resolved, not just one layer."""
+        """Multi-layer percent-encoding must be rejected by the prefix match guard."""
         app = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="http://example.com/path/path/",
             version=0,
         )
 
-        # Double-encoded: %252e%252e → (unquote) %2e%2e → (unquote) ..
+        # Double-encoded: %252e%252e → (unquote) %2e%2e → rejected (residual encoding)
         assert not app.is_valid_redirect_uri(
             "http://example.com/path/path/%252e%252e/%252e%252e/new/path"
         )
 
-        # Triple-encoded: %25252e → %252e → %2e → .
+        # Triple-encoded: %25252e%25252e → (unquote) %252e%252e → rejected
         assert not app.is_valid_redirect_uri(
             "http://example.com/path/path/%25252e%25252e/%25252e%25252e/new/path"
         )

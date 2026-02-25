@@ -217,9 +217,11 @@ class ApiApplication(Model):
 
         # Then: prefix-only match (legacy behavior). Log on success.
         if not self.has_feature(ApiApplicationFeature.STRICT_REDIRECT_URI):
-            # After normalize_url, reject any redirect URI that contains a residual '%'
-            # in the path. Effectively prevent additional URL encoding.
-            if "%" in urlparse(value).path:
+            # Reject multi-layer percent-encoding: if decoding the
+            # already-decoded path changes it further, the input was
+            # double-encoded (or deeper) and must not be prefix-matched.
+            normalized_path = urlparse(value).path
+            if unquote(normalized_path) != normalized_path:
                 return False
             for ruri in normalized_ruris:
                 if value.startswith(ruri):
