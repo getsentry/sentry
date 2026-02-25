@@ -23,12 +23,11 @@ from sentry.models.organization import Organization
 from sentry.preprod.api.bases.preprod_artifact_endpoint import (
     PreprodArtifactResourceDoesNotExist,
 )
-from sentry.preprod.api.models.public_api_models import (
+from sentry.preprod.api.models.public.shared import create_app_info_dict, create_git_info_dict
+from sentry.preprod.api.models.public.size_analysis import (
     AppComponentResponseDict,
     SizeAnalysisResponseDict,
     build_comparison_data,
-    create_app_info_dict,
-    create_git_info_dict,
 )
 from sentry.preprod.models import (
     PreprodArtifact,
