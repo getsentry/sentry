@@ -124,7 +124,7 @@ export default function ProjectOwnership() {
   const hasCodeowners = organization.features?.includes('integrations-codeowners');
 
   const ownershipMutationOptions = {
-    mutationFn: (data: Record<string, unknown>) =>
+    mutationFn: (data: Partial<z.infer<typeof ownershipSchema>>) =>
       fetchMutation({
         url: `/projects/${organization.slug}/${project.slug}/ownership/`,
         method: 'PUT',
