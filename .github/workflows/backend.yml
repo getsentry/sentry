@@ -55,8 +55,6 @@ jobs:
           node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
-        with:
-          cache: true
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
