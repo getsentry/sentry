@@ -16,6 +16,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixCodeChange,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
+    SeerExplorerResponse,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
@@ -182,3 +183,60 @@ class SeerSlackRendererTest(TestCase):
         # Should only have link button, no next trigger button
         assert len(actions_block.elements) == 1
         assert isinstance(actions_block.elements[0], LinkButtonElement)
+
+
+class SeerSlackRendererExplorerTest(TestCase):
+    def _create_explorer_response(self, summary: str | None = None) -> SeerExplorerResponse:
+        return SeerExplorerResponse(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            explorer_link=f"https://sentry.sentry.io/explore/seer/{MOCK_RUN_ID}/",
+            summary=summary,
+        )
+
+    def test_render_explorer_response_with_summary(self) -> None:
+        data = self._create_explorer_response(
+            summary="Found a spike in 500 errors from the auth service."
+        )
+        renderable = SeerSlackRenderer._render_explorer_response(data)
+
+        assert renderable["text"] == "Seer Explorer has finished"
+        blocks = renderable["blocks"]
+        assert len(blocks) == 2
+
+        assert isinstance(blocks[0], SectionBlock)
+        assert blocks[0].text is not None
+        assert "Found a spike in 500 errors from the auth service." in blocks[0].text.text
+
+        assert isinstance(blocks[1], ActionsBlock)
+        assert len(blocks[1].elements) == 1
+        button = blocks[1].elements[0]
+        assert isinstance(button, LinkButtonElement)
+        assert button.url == data.explorer_link
+
+    def test_render_explorer_response_without_summary(self) -> None:
+        data = self._create_explorer_response()
+        renderable = SeerSlackRenderer._render_explorer_response(data)
+
+        blocks = renderable["blocks"]
+        assert len(blocks) == 2
+
+        assert isinstance(blocks[0], SectionBlock)
+        assert blocks[0].text is not None
+        assert "I've finished analyzing your question." in blocks[0].text.text
+
+        assert isinstance(blocks[1], ActionsBlock)
+        assert len(blocks[1].elements) == 1
+        button = blocks[1].elements[0]
+        assert isinstance(button, LinkButtonElement)
+        assert button.url == data.explorer_link
+
+    def test_render_dispatches_to_explorer_response(self) -> None:
+        data = self._create_explorer_response(summary="Test")
+        from sentry.notifications.platform.types import NotificationRenderedTemplate
+
+        renderable = SeerSlackRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="", body=[]),
+        )
+        assert renderable["text"] == "Seer Explorer has finished"

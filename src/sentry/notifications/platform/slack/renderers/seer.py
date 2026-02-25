@@ -26,6 +26,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerExplorerResponse,
 )
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -91,6 +92,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_autofix_error(data)
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data)
+        elif isinstance(data, SeerExplorerResponse):
+            return cls._render_explorer_response(data)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -179,6 +182,31 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             blocks.append(ActionsBlock(elements=action_elements))
 
         return SlackRenderable(blocks=blocks, text="Seer has emerged with news from its voyage")
+
+    @classmethod
+    def _render_explorer_response(cls, data: SeerExplorerResponse) -> SlackRenderable:
+        blocks: list[Block] = []
+
+        if data.summary:
+            blocks.append(SectionBlock(text=MarkdownTextObject(text=data.summary)))
+        else:
+            blocks.append(
+                SectionBlock(text=MarkdownTextObject(text="I've finished analyzing your question."))
+            )
+
+        blocks.append(
+            ActionsBlock(
+                elements=[
+                    LinkButtonElement(
+                        text="View in Sentry",
+                        url=data.explorer_link,
+                        style="primary",
+                    ),
+                ]
+            )
+        )
+
+        return SlackRenderable(blocks=blocks, text="Seer Explorer has finished")
 
     @classmethod
     def _render_link_button(

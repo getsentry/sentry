@@ -161,3 +161,29 @@ class SeerAutofixTrigger(NotificationData):
             organization_id=update.organization_id,
             stopping_point=stopping_point,
         )
+
+
+@dataclass(frozen=True)
+class SeerExplorerResponse(NotificationData):
+    """Notification data for Explorer completion response in Slack."""
+
+    run_id: int
+    organization_id: int
+    explorer_link: str
+    summary: str | None = None
+    source: NotificationSource = NotificationSource.SEER_EXPLORER_RESPONSE
+
+
+@template_registry.register(SeerExplorerResponse.source)
+class SeerExplorerResponseTemplate(NotificationTemplate[SeerExplorerResponse]):
+    category = NotificationCategory.SEER
+    example_data = SeerExplorerResponse(
+        run_id=12345,
+        organization_id=1,
+        explorer_link="https://sentry.sentry.io/explore/seer/12345/",
+        summary="I've analyzed your question about the increase in 500 errors.",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerExplorerResponse) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(subject="Seer Explorer Response", body=[])
