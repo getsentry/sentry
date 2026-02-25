@@ -481,7 +481,7 @@ def sync_project_options_to_wfe_detectors(
     """
     Sync ProjectOption settings to WFE Detector configs.
 
-    For each detector type with WFE mapping, updates or creates a Detector with:
+    For each detector type with WFE mapping, updates an existing Detector with:
     - Detector.enabled from detection_enabled setting
     - Detector.config from mapped config fields
 
@@ -521,18 +521,18 @@ def sync_project_options_to_wfe_detectors(
         if not detector:
             continue
 
-        changed = False
+        changed_fields: list[str] = []
         if new_enabled is not None and detector.enabled != new_enabled:
             detector.enabled = new_enabled
             detector.status = ObjectStatus.ACTIVE if new_enabled else ObjectStatus.DISABLED
-            changed = True
+            changed_fields.extend(["enabled", "status"])
         if new_config:
             merged_config = {**detector.config, **new_config}
             if detector.config != merged_config:
                 detector.config = merged_config
-                changed = True
-        if changed:
-            detector.save()
+                changed_fields.append("config")
+        if changed_fields:
+            detector.save(update_fields=changed_fields)
             updated[detector_type] = True
 
     return updated
@@ -573,11 +573,10 @@ def reset_wfe_detector_configs(
                 if wfe_field in detector.config:
                     preserved_config[wfe_field] = detector.config[wfe_field]
 
-        # Update detector if config changed
-        changed = False
+        changed_fields: list[str] = []
         if detector.config != preserved_config:
             detector.config = preserved_config
-            changed = True
+            changed_fields.append("config")
 
         # Reset detection_enabled if not in unchanged_options
         if mapping.detection_enabled_key not in unchanged_options:
@@ -585,10 +584,10 @@ def reset_wfe_detector_configs(
             if detector.enabled:
                 detector.enabled = False
                 detector.status = ObjectStatus.DISABLED
-                changed = True
+                changed_fields.extend(["enabled", "status"])
 
-        if changed:
-            detector.save()
+        if changed_fields:
+            detector.save(update_fields=changed_fields)
             updated[detector_type] = True
 
     return updated
