@@ -7,10 +7,10 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
 
-// Filters to root transaction spans (is_transaction:true) since app start measurements are
-// only set on root spans. OR is intentional: a screen may only have warm-start data (app
-// was already running) and should still appear.
-const APP_START_CONDITION = `is_transaction:true ${TRANSACTION_OP_CONDITION} (has:${SpanFields.APP_START_COLD} OR has:${SpanFields.APP_START_WARM})`;
+// Mirrors the appStarts.ts sub-dashboard which uses transaction.op without is_transaction:true.
+// The has: checks already restrict results to spans with app start data. OR is intentional:
+// a screen may only have warm-start data (app was already running) and should still appear.
+const APP_START_CONDITION = `${TRANSACTION_OP_CONDITION} (has:${SpanFields.APP_START_COLD} OR has:${SpanFields.APP_START_WARM})`;
 
 // Filters to root transaction spans (is_transaction:true) since TTID/TTFD are only set on
 // root spans. OR is intentional: TTFD can be absent while TTID is present
