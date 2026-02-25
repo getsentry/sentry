@@ -41,7 +41,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         # Make the Identity have an expired token
         idp = IdentityProvider.objects.get(external_id=self.vsts_account_id)
         identity = Identity.objects.get(idp_id=idp.id)
-        identity.data["expires"] = int(time()) - int(123456789)
+        identity.data["expires"] = int(time()) - 123456789
         identity.save()
 
         # New values VSTS will return on refresh
@@ -81,7 +81,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         # Make the Identity have an expired token
         idp = IdentityProvider.objects.get(external_id=self.vsts_account_id)
         identity = Identity.objects.get(idp_id=idp.id)
-        identity.data["expires"] = int(time()) - int(123456789)
+        identity.data["expires"] = int(time()) - 123456789
         identity.save()
 
         # New values VSTS will return on refresh
@@ -120,7 +120,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         # Make the Identity have a non-expired token
         idp = IdentityProvider.objects.get(external_id=self.vsts_account_id)
         identity = Identity.objects.get(idp_id=idp.id)
-        expires = int(time()) + int(123456789)
+        expires = int(time()) + 123456789
         identity.data["expires"] = expires
         access_token = identity.data["access_token"]
         refresh_token = identity.data["refresh_token"]

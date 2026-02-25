@@ -4,6 +4,7 @@ import {DataConditionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {IssueType} from 'sentry/types/group';
 import type {DataConditionHandler} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,
@@ -24,6 +25,9 @@ const dataConditionHandlers: DataConditionHandler[] = [
   }),
   DataConditionHandlerFixture({
     type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
+  }),
+  DataConditionHandlerFixture({
+    type: DataConditionType.ISSUE_TYPE,
   }),
   DataConditionHandlerFixture({
     type: DataConditionType.EVENT_FREQUENCY,
@@ -115,11 +119,12 @@ describe('DataConditionNodeList', () => {
     );
     await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
 
-    expect(screen.getAllByRole('menuitemradio')).toHaveLength(4);
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(5);
     expect(screen.getByRole('menuitemradio', {name: 'Issue age'})).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: 'Issue priority'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Issue type'})).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: 'Number of events'})
     ).toBeInTheDocument();
@@ -347,6 +352,39 @@ describe('DataConditionNodeList', () => {
 
       expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
         comparison: {value: 11, include: false},
+      });
+    });
+
+    it('issue type node', async () => {
+      const condition = DataConditionFixture({
+        id: 'issue-type',
+        type: DataConditionType.ISSUE_TYPE,
+        comparison: {
+          value: IssueType.ERROR,
+          include: true,
+        },
+      });
+
+      render(
+        <AutomationBuilderContext.Provider value={defaultContextProps}>
+          <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+            <AutomationBuilderConflictContext.Provider
+              value={defaultConflictContextProps}
+            >
+              <DataConditionNodeList {...defaultProps} conditions={[condition]} />
+            </AutomationBuilderConflictContext.Provider>
+          </AutomationBuilderErrorContext.Provider>
+        </AutomationBuilderContext.Provider>,
+        {organization}
+      );
+
+      await userEvent.click(await screen.findByLabelText('Issue type'));
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Issue Detected by Metric Monitor'})
+      );
+
+      expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-type', {
+        comparison: {value: IssueType.METRIC_ISSUE, include: true},
       });
     });
   });

@@ -13,7 +13,11 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.utils import json
 from sentry.utils.eap import hex_to_item_id
+
+# Max depth for recursive encoding to protobuf AnyValue.
+_ENCODE_MAX_DEPTH = 6
 
 
 def serialize_event_data_as_item(
@@ -30,13 +34,51 @@ def serialize_event_data_as_item(
             Timestamp(seconds=int(event_data["received"])) if "received" in event_data else None
         ),
         retention_days=event_data.get("retention_days", 90),
-        attributes=encode_attributes(
-            event, event_data, ignore_fields={"event_id", "timestamp", "tags"}
+        attributes=_encode_attributes(
+            event, event_data, ignore_fields={"event_id", "timestamp", "tags", "spans", "'spans'"}
         ),
     )
 
 
-def _encode_value(value: Any) -> AnyValue:
+def _encode_attributes(
+    event: Event | GroupEvent, event_data: Mapping[str, Any], ignore_fields: set[str] | None = None
+) -> Mapping[str, AnyValue]:
+    raw_tags = event_data.get("tags") or []
+    tags_dict = {kv[0]: kv[1] for kv in raw_tags if kv is not None and kv[1] is not None}
+
+    all_ignore_fields = (ignore_fields or set()) | {"tags"}
+    attributes = _build_occurrence_attributes(
+        event_data, tags=tags_dict, ignore_fields=all_ignore_fields
+    )
+
+    if event.group_id:
+        attributes["group_id"] = AnyValue(int_value=event.group_id)
+
+    return attributes
+
+
+def _build_occurrence_attributes(
+    data: Mapping[str, Any],
+    tags: Mapping[str, str] | None = None,
+    ignore_fields: set[str] | None = None,
+) -> dict[str, AnyValue]:
+    ignore_fields = ignore_fields or set()
+    attributes: dict[str, AnyValue] = {
+        k: _encode_value(v) for k, v in data.items() if k not in ignore_fields and v is not None
+    }
+
+    tag_attrs = {f"tags[{k}]": _encode_value(v) for k, v in (tags or {}).items()}
+    attributes.update(tag_attrs)
+    attributes["tag_keys"] = _encode_value(sorted(tag_attrs.keys()))
+
+    return attributes
+
+
+def _encode_value(value: Any, _depth: int = 0) -> AnyValue:
+    if _depth > _ENCODE_MAX_DEPTH:
+        # Beyond max depth, stringify to prevent protobuf nesting limit errors.
+        return AnyValue(string_value=json.dumps(value))
+
     if isinstance(value, str):
         return AnyValue(string_value=value)
     elif isinstance(value, bool):
@@ -53,14 +95,16 @@ def _encode_value(value: Any) -> AnyValue:
     elif isinstance(value, list) or isinstance(value, tuple):
         # Not yet processed on EAP side
         return AnyValue(
-            array_value=ArrayValue(values=[_encode_value(v) for v in value if v is not None])
+            array_value=ArrayValue(
+                values=[_encode_value(v, _depth + 1) for v in value if v is not None]
+            )
         )
     elif isinstance(value, dict):
         # Not yet processed on EAP side
         return AnyValue(
             kvlist_value=KeyValueList(
                 values=[
-                    KeyValue(key=str(kv[0]), value=_encode_value(kv[1]))
+                    KeyValue(key=str(kv[0]), value=_encode_value(kv[1], _depth + 1))
                     for kv in value.items()
                     if kv[1] is not None
                 ]
@@ -68,39 +112,3 @@ def _encode_value(value: Any) -> AnyValue:
         )
     else:
         raise NotImplementedError(f"encode not supported for {type(value)}")
-
-
-def encode_attributes(
-    event: Event | GroupEvent, event_data: Mapping[str, Any], ignore_fields: set[str] | None = None
-) -> Mapping[str, AnyValue]:
-    attributes = {}
-    ignore_fields = ignore_fields or set()
-
-    for key, value in event_data.items():
-        if key in ignore_fields:
-            continue
-        if value is None:
-            continue
-        attributes[key] = _encode_value(value)
-
-    if event.group_id:
-        attributes["group_id"] = AnyValue(int_value=event.group_id)
-
-    format_tag_key = lambda key: f"tags[{key}]"
-
-    tag_keys = set()
-    tags = event_data.get("tags")
-    if tags is not None:
-        for tag in tags:
-            if tag is None:
-                continue
-            key, value = tag
-            if value is None:
-                continue
-            formatted_key = format_tag_key(key)
-            attributes[formatted_key] = _encode_value(value)
-            tag_keys.add(formatted_key)
-
-    attributes["tag_keys"] = _encode_value(sorted(tag_keys))
-
-    return attributes

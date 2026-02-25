@@ -62,6 +62,8 @@ import useHasPlatformizedBackendOverview from 'sentry/views/insights/pages/front
 import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {PlatformizedLaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel/platformizedLaravelOverviewPage';
+import useHasPlatformizedLaravelOverview from 'sentry/views/insights/pages/platform/laravel/useHasPlatformizedLaravelOverview';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {PlatformizedNextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextJsOverviewPage';
@@ -80,21 +82,30 @@ interface BackendOverviewPageProps {
 function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
+  const hasPlatformizedLaravelOverview = useHasPlatformizedLaravelOverview();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const hasPlatformizedNextJsOverview = useHasPlatformizedNextJsOverview();
   const isNewBackendExperienceEnabled = useInsightsEap();
   const hasPlatformizedBackendOverview = useHasPlatformizedBackendOverview();
-  if (isNextJsPageEnabled && hasPlatformizedNextJsOverview) {
-    return <PlatformizedNextJsOverviewPage />;
+
+  if (isLaravelPageAvailable) {
+    return hasPlatformizedLaravelOverview ? (
+      <PlatformizedLaravelOverviewPage />
+    ) : (
+      <LaravelOverviewPage datePageFilterProps={datePageFilterProps} />
+    );
   }
+
+  if (isNextJsPageEnabled) {
+    return hasPlatformizedNextJsOverview ? (
+      <PlatformizedNextJsOverviewPage />
+    ) : (
+      <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />
+    );
+  }
+
   if (hasPlatformizedBackendOverview) {
     return <PlatformizedBackendOverviewPage />;
-  }
-  if (isLaravelPageAvailable) {
-    return <LaravelOverviewPage datePageFilterProps={datePageFilterProps} />;
-  }
-  if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />;
   }
   if (isNewBackendExperienceEnabled) {
     return <EAPBackendOverviewPage datePageFilterProps={datePageFilterProps} />;

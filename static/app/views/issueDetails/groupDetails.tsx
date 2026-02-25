@@ -71,6 +71,7 @@ import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
+import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -542,9 +543,7 @@ function useTrackView({
     ref_fallback,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
-    enforced_streamlined_ui:
-      organization.features.includes('issue-details-streamline-enforce') &&
-      user?.options?.prefersIssueDetailsStreamlinedUI === null,
+    enforced_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
     has_streamlined_ui: hasStreamlinedUI,
     has_seer_access: hasAutofixQuota,
@@ -732,6 +731,8 @@ function GroupDetailsContent({
     organization,
     hasAutofixQuota,
   });
+
+  useEngagedViewTracking({group, project});
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,

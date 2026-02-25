@@ -562,7 +562,10 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_calls_function(self, mock_trigger):
         """Test _trigger_coding_agent_handoff calls the trigger function correctly."""
-        mock_trigger.return_value = {"successes": [{"repo": "owner/repo"}], "failures": []}
+        mock_trigger.return_value = {
+            "successes": [{"repo": "owner/repo"}],
+            "failures": [],
+        }
         handoff_config = self._make_handoff_config()
 
         AutofixOnCompletionHook._trigger_coding_agent_handoff(

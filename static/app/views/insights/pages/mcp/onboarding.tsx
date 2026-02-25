@@ -11,6 +11,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
   StepIndexProvider,
   TabSelectionScope,
 } from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -117,16 +121,19 @@ function StepRenderer({
   step,
   stepIndex,
   isLastStep,
+  trailingItems,
 }: {
   isLastStep: boolean;
   project: Project;
   step: OnboardingStep;
   stepIndex: number;
+  trailingItems?: React.ReactNode;
 }) {
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
+      trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
         <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
@@ -209,6 +216,7 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -341,6 +349,15 @@ export function Onboarding() {
             step={step}
             stepIndex={index}
             isLastStep={index === steps.length - 1}
+            trailingItems={
+              index === 0 && copyEnabled ? (
+                <OnboardingCopyMarkdownButton
+                  borderless
+                  steps={steps}
+                  source="mcp_onboarding"
+                />
+              ) : undefined
+            }
           />
         ))}
       </GuidedSteps>

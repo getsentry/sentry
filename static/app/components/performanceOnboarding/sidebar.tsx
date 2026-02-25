@@ -11,6 +11,10 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -229,6 +233,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const [received, setReceived] = useState<boolean>(false);
 
   const previousProject = usePrevious(currentProject);
@@ -340,7 +345,22 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       )}
       <Steps>
         {steps.map((step, index) => {
-          return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
+          return (
+            <Step
+              key={step.title ?? step.type}
+              stepIndex={index}
+              {...step}
+              trailingItems={
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="performance_sidebar_onboarding"
+                  />
+                ) : undefined
+              }
+            />
+          );
         })}
       </Steps>
       <EventWaiter

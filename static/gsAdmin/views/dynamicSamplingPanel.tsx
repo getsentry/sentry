@@ -415,7 +415,11 @@ function DynamicSamplingRulesTable({
                   row.impact > 0 ? 'increases' : 'decreases'
                 } sample rate of matching events`}
               >
-                <ImpactIndicatorIcon impact={row.impact} size="xs" />
+                <ImpactIndicatorIcon
+                  direction={row.impact > 0 ? 'up' : 'down'}
+                  impact={row.impact}
+                  size="xs"
+                />
               </Tooltip>
             </Flex>
             <div>{row.target}</div>
@@ -429,7 +433,6 @@ function DynamicSamplingRulesTable({
 const ImpactIndicatorIcon = styled(IconArrow)<{impact: number}>`
   display: ${p => (p.impact === 0 ? 'none' : 'inline-block')};
   color: ${p => (p.impact > 0 ? p.theme.colors.green400 : p.theme.colors.red400)};
-  transform: ${p => (p.impact > 0 ? 'rotate(45deg)' : 'rotate(135deg)')};
 `;
 
 const PanelHeaderRight = styled('div')`

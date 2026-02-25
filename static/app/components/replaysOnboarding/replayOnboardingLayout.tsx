@@ -4,6 +4,10 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -35,6 +39,7 @@ export function ReplayOnboardingLayout({
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -142,7 +147,20 @@ export function ReplayOnboardingLayout({
           {introduction && <Stack margin="0 0 xl 0">{introduction}</Stack>}
           <Stack gap="lg">
             {transformedSteps.map((step, index) => (
-              <Step key={step.title ?? step.type} stepIndex={index} {...step} />
+              <Step
+                key={step.title ?? step.type}
+                stepIndex={index}
+                {...step}
+                trailingItems={
+                  index === 0 && copyEnabled ? (
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={transformedSteps}
+                      source="replay_onboarding"
+                    />
+                  ) : undefined
+                }
+              />
             ))}
           </Stack>
         </Wrapper>

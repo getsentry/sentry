@@ -34,7 +34,7 @@ class AppPlatformEventBody[T: Mapping[str, Any]](TypedDict):
     actor: AppPlatformEventActor
 
 
-class AppPlatformEvent[T: Mapping[str, Any]]():
+class AppPlatformEvent[T: Mapping[str, Any]]:
     """
     This data structure encapsulates the payload sent to a SentryApp's webhook.
 

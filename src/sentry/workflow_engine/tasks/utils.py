@@ -107,7 +107,6 @@ def build_workflow_event_data_from_activity(
     activity_id: int,
     group_id: int,
 ) -> WorkflowEventData:
-
     activity = Activity.objects.get(id=activity_id)
     group = Group.objects.get(id=group_id)
 

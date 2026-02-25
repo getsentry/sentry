@@ -54,7 +54,7 @@ def get_or_create_mapper(
     # check if a mapper of the type already exists
     if mapper_class:
         for mapper in mappers:
-            if mapper_class == type(mapper):
+            if type(mapper) is mapper_class:
                 # if a mapper already exists, return the existing mapper
                 return mapper
         else:

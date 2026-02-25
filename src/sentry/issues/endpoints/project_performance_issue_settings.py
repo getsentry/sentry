@@ -158,16 +158,24 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
         required=False, min_value=100000, max_value=TEN_MB
     )
     consecutive_db_min_time_saved_threshold = serializers.IntegerField(
-        required=False, min_value=50, max_value=5000  # ms
+        required=False,
+        min_value=50,
+        max_value=5000,  # ms
     )
     n_plus_one_api_calls_total_duration_threshold = serializers.IntegerField(
-        required=False, min_value=100, max_value=TEN_SECONDS  # ms
+        required=False,
+        min_value=100,
+        max_value=TEN_SECONDS,  # ms
     )
     consecutive_http_spans_min_time_saved_threshold = serializers.IntegerField(
-        required=False, min_value=1000, max_value=TEN_SECONDS  # ms
+        required=False,
+        min_value=1000,
+        max_value=TEN_SECONDS,  # ms
     )
     http_request_delay_threshold = serializers.IntegerField(
-        required=False, min_value=200, max_value=TEN_SECONDS  # ms
+        required=False,
+        min_value=200,
+        max_value=TEN_SECONDS,  # ms
     )
     web_vitals_count = serializers.IntegerField(required=False, min_value=5, max_value=100)
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
@@ -336,13 +344,11 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         disabled_options = get_disabled_threshold_options(threshold_options, project_settings)
 
         if project_settings:
-            unchanged_options = (
-                {  # Management settings and disabled threshold settings can not be reset
-                    option: project_settings[option]
-                    for option in project_settings
-                    if option in management_options or option in disabled_options
-                }
-            )
+            unchanged_options = {  # Management settings and disabled threshold settings can not be reset
+                option: project_settings[option]
+                for option in project_settings
+                if option in management_options or option in disabled_options
+            }
             project.update_option(SETTINGS_PROJECT_OPTION_KEY, unchanged_options)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -299,7 +299,8 @@ function NumericFilterSelector({
           : () => (
               <StyledButton
                 aria-label={t('Remove Filter')}
-                size="zero"
+                size="xs"
+                priority="transparent"
                 onClick={() => onRemoveFilter(globalFilter)}
               >
                 {t('Remove Filter')}
@@ -393,7 +394,7 @@ const StyledOperatorButton = styled(Button)`
 `;
 
 const StyledButton = styled(Button)`
-  font-size: inherit;
+  font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};

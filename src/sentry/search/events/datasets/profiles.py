@@ -388,7 +388,7 @@ class ProfilesDatasetConfig(DatasetConfig):
             )
             if fixed_percentile == 1
             else Function(
-                f'quantile({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                f"quantile({fixed_percentile if fixed_percentile is not None else args['percentile']})",
                 [args["column"]],
                 alias,
             )

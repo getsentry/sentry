@@ -21,7 +21,7 @@ describe('SubscriptionUpsellBanner', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/org-slug/`,
+      url: `/customers/org-slug/`,
       body: {},
     });
     MockApiClient.addMockResponse({

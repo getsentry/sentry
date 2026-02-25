@@ -48,7 +48,6 @@ class SelectRequester:
     dependent_data: str | None = field(default=None)
 
     def run(self) -> SelectRequesterResult:
-
         response: list[dict[str, str]] = []
         url = None
 

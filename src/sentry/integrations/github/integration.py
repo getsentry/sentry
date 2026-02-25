@@ -237,6 +237,10 @@ class GitHubIntegration(
 ):
     integration_name = IntegrationProviderSlug.GITHUB
 
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
+
     # IssueSyncIntegration configuration keys
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -772,7 +776,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
-
         # Check if this is the Codecov GitHub app to trigger account linking
         github_app_id = extra.get("app_id")
         SENTRY_GITHUB_APP_ID = options.get("github-app.id")

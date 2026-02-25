@@ -1,0 +1,75 @@
+---
+title: InfoTip
+description: Info icon with a tooltip for supplementary help. Use this next to labels or headings to provide additional context.
+category: overlays
+source: '@sentry/scraps/info'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/info/infoTip.tsx
+---
+
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/info/infoTip';
+
+export {documentation};
+
+`InfoTip` renders an info icon that reveals a tooltip on hover or focus. It's keyboard accessible out of the box and provides a consistent pattern for supplementary help.
+
+<Storybook.Demo>
+  <Flex gap="xs" align="center">
+    <Text>Retention Period</Text>
+    <InfoTip title="The number of days event data is stored before being automatically deleted." />
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Flex gap="xs" align="center">
+  <Text>Retention Period</Text>
+  <InfoTip title="The number of days event data is stored..." />
+</Flex>
+```
+
+## Size
+
+The `size` prop controls the icon size. Available sizes are `xs`, `sm` (default), and `md`.
+
+<Storybook.Demo>
+  <Flex gap="lg" align="center">
+    <Flex gap="xs" align="center">
+      <Text size="sm">Extra small</Text>
+      <InfoTip title="xs size" size="xs" />
+    </Flex>
+    <Flex gap="xs" align="center">
+      <Text>Small (default)</Text>
+      <InfoTip title="sm size" size="sm" />
+    </Flex>
+    <Flex gap="xs" align="center">
+      <Text size="lg">Medium</Text>
+      <InfoTip title="md size" size="md" />
+    </Flex>
+  </Flex>
+</Storybook.Demo>
+```jsx
+<InfoTip title="Extra small" size="xs" />
+<InfoTip title="Small (default)" size="sm" />
+<InfoTip title="Medium" size="md" />
+```
+
+## When to Use
+
+Use `InfoTip` to:
+
+- Add context to headings or section titles
+- Show supplementary information without inline text
+- Explain settings or configuration options
+
+Prefer `InfoTip` over adding a `Tooltip` to an arbitrary icon.
+
+## Accessibility
+
+- **Keyboard accessible**: Users can Tab to focus the icon and reveal the tooltip
+- **Focus indicator**: A visible focus ring appears when focused
+- **Screen reader support**: The icon has `role="img"` and `aria-label="More information"`

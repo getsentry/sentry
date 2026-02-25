@@ -190,9 +190,9 @@ class ReactPageViewTest(TestCase):
             url_name_is_non_customer_domain = any(
                 fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES
             )
-            assert (
-                url_name_is_non_customer_domain
-            ), "precondition missing. org-create should be non-customer-domain"
+            assert url_name_is_non_customer_domain, (
+                "precondition missing. org-create should be non-customer-domain"
+            )
 
             # Induce last active org.
             assert "activeorg" not in self.client.session

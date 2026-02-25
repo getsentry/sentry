@@ -587,16 +587,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         # Near 12h, but 15 minutes before the boundary for end
         start = datetime.datetime(2015, 5, 1, 0, 15, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 1, 12, 0, 0, tzinfo=timezone.utc)
-        assert (
-            get_granularity(start, end) == 60
-        ), "12h at boundary, but 15 min before the boundary for end"
+        assert get_granularity(start, end) == 60, (
+            "12h at boundary, but 15 min before the boundary for end"
+        )
 
         # Near 12h, but 15 minutes after the boundary for start
         start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 1, 12, 15, 0, tzinfo=timezone.utc)
-        assert (
-            get_granularity(start, end) == 60
-        ), "12h at boundary, but 15 min after the boundary for start"
+        assert get_granularity(start, end) == 60, (
+            "12h at boundary, but 15 min after the boundary for start"
+        )
 
     def test_get_snql_query(self) -> None:
         query = MetricsQueryBuilder(
@@ -1744,15 +1744,15 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # granularity
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 15, 15, 1, tzinfo=timezone.utc)
-        assert (
-            get_granularity(start, end, 900) == 60
-        ), "A few hours, but random minute, 15min interval"
-        assert (
-            get_granularity(start, end, 3600) == 3600
-        ), "A few hours, but random minute, 1hr interval"
-        assert (
-            get_granularity(start, end, 86400) == 3600
-        ), "A few hours, but random minute, 1d interval"
+        assert get_granularity(start, end, 900) == 60, (
+            "A few hours, but random minute, 15min interval"
+        )
+        assert get_granularity(start, end, 3600) == 3600, (
+            "A few hours, but random minute, 1hr interval"
+        )
+        assert get_granularity(start, end, 86400) == 3600, (
+            "A few hours, but random minute, 1d interval"
+        )
 
         # Less than a minute, no reason to work hard for such a small window, just use a minute
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
@@ -3159,7 +3159,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
@@ -3215,7 +3214,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[field],
                 config=QueryBuilderConfig(
-                    use_metrics_layer=False,
                     on_demand_metrics_enabled=True,
                     on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                     skip_time_conditions=False,
@@ -3268,7 +3266,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
@@ -3314,7 +3311,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
@@ -3343,7 +3339,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We set here the skipping of conditions, since this is true for alert subscriptions, but we want to verify
@@ -3370,7 +3365,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p75(measurements.fp)"],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We want to test the snql generation when a time range is not supplied, which is the case for alert
@@ -3429,7 +3423,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We want to test the snql generation when a time range is supplied.
@@ -3491,8 +3484,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             offset=None,
             config=QueryBuilderConfig(
                 skip_time_conditions=True,
-                use_metrics_layer=True,
-                insights_metrics_override_metric_layer=True,
             ),
         )
 
@@ -3553,7 +3544,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[field],
                 config=QueryBuilderConfig(
-                    use_metrics_layer=False,
                     on_demand_metrics_enabled=True,
                     on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                     skip_time_conditions=False,
@@ -3623,7 +3613,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,

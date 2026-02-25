@@ -7,7 +7,6 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import Feature from 'sentry/components/acl/feature';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {DateTime} from 'sentry/components/dateTime';
@@ -411,16 +410,14 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
         </Flex>
         <ButtonBarWrapper data-test-id="seer-button-bar">
           <Grid flow="column" align="center" gap="md">
-            <Feature features={['organizations:autofix-seer-preferences']}>
-              <LinkButton
-                external
-                href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                size="xs"
-                tooltipProps={{title: t('Project Settings for Seer')}}
-                aria-label={t('Project Settings for Seer')}
-                icon={<IconSettings />}
-              />
-            </Feature>
+            <LinkButton
+              external
+              href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+              size="xs"
+              tooltipProps={{title: t('Project Settings for Seer')}}
+              aria-label={t('Project Settings for Seer')}
+              icon={<IconSettings />}
+            />
             {aiConfig.hasAutofix && (
               <Button
                 size="xs"

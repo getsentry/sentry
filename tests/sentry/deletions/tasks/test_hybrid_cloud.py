@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Generator
 from operator import itemgetter
-from typing import Any, ContextManager, NotRequired, TypedDict
+from typing import Any, ContextManager, NotRequired, TypedDict, cast
 from unittest.mock import patch
 
 import pytest
@@ -92,7 +92,7 @@ def reset_watermarks() -> None:
 
 @pytest.fixture
 def saved_search_owner_id_field() -> HybridCloudForeignKey[int, int]:
-    return SavedSearch._meta.get_field("owner_id")
+    return cast(HybridCloudForeignKey[int, int], SavedSearch._meta.get_field("owner_id"))
 
 
 @django_db_all
@@ -766,9 +766,9 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                     transaction_id="foobar",
                 ),
             )
-            assert (
-                ids == bounds_with_expected_results
-            ), f"Expected  IDs '{bounds_with_expected_results}', got '{ids}', for input: '{bounds}'"
+            assert ids == bounds_with_expected_results, (
+                f"Expected  IDs '{bounds_with_expected_results}', got '{ids}', for input: '{bounds}'"
+            )
 
     def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self) -> None:
         data = setup_cross_db_deletion_data()

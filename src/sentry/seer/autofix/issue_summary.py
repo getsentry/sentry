@@ -5,7 +5,6 @@ from datetime import timedelta
 from typing import Any
 
 import orjson
-import requests
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -21,11 +20,13 @@ from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autof
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
+    AutofixReferrer,
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    autofix_connection_pool,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
@@ -34,7 +35,10 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.models import SummarizeIssueResponse
-from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_summarization_default_connection_pool,
+)
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -52,6 +56,12 @@ auto_run_source_map = {
     SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
     SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
+}
+
+referrer_map = {
+    SeerAutomationSource.ISSUE_DETAILS: AutofixReferrer.ISSUE_SUMMARY_FIXABILITY,
+    SeerAutomationSource.ALERT: AutofixReferrer.ISSUE_SUMMARY_ALERT_FIXABILITY,
+    SeerAutomationSource.POST_PROCESS: AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
 }
 
 STOPPING_POINT_HIERARCHY = {
@@ -86,16 +96,15 @@ def _fetch_user_preference(project_id: int) -> str | None:
         path = "/v1/project-preference"
         body = orjson.dumps({"project_id": project_id})
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            autofix_connection_pool,
+            path,
+            body,
             timeout=5,
         )
-        response.raise_for_status()
+
+        if response.status >= 400:
+            raise Exception(f"Seer request failed with status {response.status}")
 
         result = response.json()
         preference = result.get("preference")
@@ -148,6 +157,7 @@ def _trigger_autofix_task(
     event_id: str,
     user_id: int | None,
     auto_run_source: str,
+    referrer: AutofixReferrer = AutofixReferrer.UNKNOWN,
     stopping_point: AutofixStoppingPoint | None = None,
 ):
     """
@@ -188,6 +198,7 @@ def _trigger_autofix_task(
                 group=group,
                 event_id=event_id,
                 user=user,
+                referrer=referrer,
                 auto_run_source=auto_run_source,
                 stopping_point=stopping_point,
             )
@@ -253,16 +264,15 @@ def _call_seer(
     )
 
     # Route to summarization URL
-    response = requests.post(
-        f"{settings.SEER_SUMMARIZATION_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        seer_summarization_default_connection_pool,
+        path,
+        body,
         timeout=30,
     )
-    response.raise_for_status()
+
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
 
     return SummarizeIssueResponse.validate(response.json())
 
@@ -363,6 +373,7 @@ def run_automation(
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
+    referrer = referrer_map.get(source, AutofixReferrer.UNKNOWN)
 
     sentry_sdk.set_tags(
         {
@@ -395,6 +406,7 @@ def run_automation(
         event_id=event.event_id,
         user_id=user_id,
         auto_run_source=auto_run_source,
+        referrer=referrer,
         stopping_point=stopping_point,
     )
 
@@ -419,7 +431,7 @@ def is_group_triggering_automation(group: Group) -> bool:
     if not has_budget:
         return False
 
-    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
+    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project)
     if is_rate_limited:
         return False
 

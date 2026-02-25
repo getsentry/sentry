@@ -11,6 +11,10 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
   StepIndexProvider,
   TabSelectionScope,
 } from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -91,6 +95,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     useSourcePackageRegistries(organization);
 
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(
@@ -200,7 +205,20 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                   const title = step.title ?? StepTitles[step.type ?? 'install'];
                   const isLastStep = index === steps.length - 1;
                   return (
-                    <GuidedSteps.Step key={index} stepKey={title} title={title}>
+                    <GuidedSteps.Step
+                      key={index}
+                      stepKey={title}
+                      title={title}
+                      trailingItems={
+                        index === 0 && copyEnabled ? (
+                          <OnboardingCopyMarkdownButton
+                            borderless
+                            steps={steps}
+                            source="issues_onboarding"
+                          />
+                        ) : undefined
+                      }
+                    >
                       <StepIndexProvider index={index}>
                         <ContentBlocksRenderer
                           contentBlocks={step.content}

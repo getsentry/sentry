@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
 import emailImage from 'sentry-images/spot/releases-tour-email.svg';
@@ -17,6 +17,11 @@ import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
+import {
+  CopyMarkdownButton,
+  CopySetupInstructionsGate,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
@@ -105,6 +110,7 @@ function ReleasesPromo({organization, project}: Props) {
   );
 
   const api = useApi();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [token, setToken] = useState<string | null>(null);
   const [apps, setApps] = useState<SentryApp[]>([]);
   const [selectedApp, setSelectedApp] = useState<SentryApp | null>(null);
@@ -121,6 +127,17 @@ function ReleasesPromo({organization, project}: Props) {
       project_id: project.id,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const getMarkdown = useCallback(() => {
+    if (!containerRef.current) {
+      return '';
+    }
+    try {
+      return simpleHtmlToMarkdown(containerRef.current.innerHTML);
+    } catch {
+      return '';
+    }
   }, []);
 
   const trackQuickstartCopy = useCallback(() => {
@@ -216,66 +233,77 @@ sentry-cli releases finalize "$VERSION"`;
           )}
         </Text>
 
-        <CompactSelect
-          size="sm"
-          options={apps.map(makeAppOption)}
-          value={selectedApp?.slug}
-          emptyMessage={t('No Integrations')}
-          searchable
-          disabled={false}
-          menuFooter={({closeOverlay}) => (
-            <Button
-              tooltipProps={{
-                title: canMakeIntegration
-                  ? undefined
-                  : t(
-                      'You must be an organization owner, manager or admin to create an integration.'
-                    ),
-              }}
-              size="xs"
-              priority="transparent"
-              disabled={!canMakeIntegration}
-              onClick={() => {
-                closeOverlay();
-                openCreateReleaseIntegration({
-                  organization,
-                  project,
-                  onCreateSuccess: (app: SentryApp) => {
-                    setApps([app, ...apps]);
-                    setSelectedApp(app);
-                    generateAndSetNewToken(app.slug);
-                    trackQuickstartCreatedIntegration(app);
-                  },
-                  onCancel: trackCreateIntegrationModalClose,
-                });
-              }}
-            >
-              {t('Add New Integration')}
-            </Button>
-          )}
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              prefix={selectedApp ? t('Token From') : undefined}
-            >
-              {selectedApp ? triggerProps.children : t('Select Integration')}
-            </OverlayTrigger.Button>
-          )}
-          onChange={option => {
-            const app = apps.find(i => i.slug === option.value)!;
-            setSelectedApp(app);
-            generateAndSetNewToken(app.slug);
-          }}
-        />
-
-        <CodeBlock
-          dark
-          language="bash"
-          hideCopyButton={!token || !selectedApp}
-          onCopy={trackQuickstartCopy}
-        >
-          {setupExample}
-        </CodeBlock>
+        <Flex justify="between" align="center">
+          <CompactSelect
+            style={{minWidth: 0}}
+            size="sm"
+            options={apps.map(makeAppOption)}
+            value={selectedApp?.slug}
+            emptyMessage={t('No Integrations')}
+            search
+            disabled={false}
+            menuFooter={({closeOverlay}) => (
+              <Button
+                tooltipProps={{
+                  title: canMakeIntegration
+                    ? undefined
+                    : t(
+                        'You must be an organization owner, manager or admin to create an integration.'
+                      ),
+                }}
+                size="xs"
+                priority="transparent"
+                disabled={!canMakeIntegration}
+                onClick={() => {
+                  closeOverlay();
+                  openCreateReleaseIntegration({
+                    organization,
+                    project,
+                    onCreateSuccess: (app: SentryApp) => {
+                      setApps([app, ...apps]);
+                      setSelectedApp(app);
+                      generateAndSetNewToken(app.slug);
+                      trackQuickstartCreatedIntegration(app);
+                    },
+                    onCancel: trackCreateIntegrationModalClose,
+                  });
+                }}
+              >
+                {t('Add New Integration')}
+              </Button>
+            )}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                prefix={selectedApp ? t('Token From') : undefined}
+              >
+                {selectedApp ? triggerProps.children : t('Select Integration')}
+              </OverlayTrigger.Button>
+            )}
+            onChange={option => {
+              const app = apps.find(i => i.slug === option.value)!;
+              setSelectedApp(app);
+              generateAndSetNewToken(app.slug);
+            }}
+          />
+          <CopySetupInstructionsGate>
+            <CopyMarkdownButton
+              borderless
+              getMarkdown={getMarkdown}
+              source="releases_quickstart"
+            />
+          </CopySetupInstructionsGate>
+        </Flex>
+        <div ref={containerRef}>
+          <CodeBlock
+            dark
+            language="bash"
+            hideCopyButton={!token || !selectedApp}
+            onCopy={trackQuickstartCopy}
+          >
+            {setupExample}
+          </CodeBlock>
+        </div>
       </Stack>
     </Panel>
   );

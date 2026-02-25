@@ -12,6 +12,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_coding_agent_handoff,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
+from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import Artifact
 from sentry.seer.explorer.client_utils import fetch_run_status
@@ -22,8 +23,10 @@ from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
 )
 from sentry.seer.supergroups import trigger_supergroups_embedding
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.seer.explorer.client_models import SeerRunState
@@ -101,6 +104,10 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
         webhook_payload = {"run_id": run_id}
 
+        group_id = state.metadata.get("group_id") if state.metadata else None
+        if group_id is not None:
+            webhook_payload["group_id"] = group_id
+
         # Iterate through blocks in reverse order (most recent first)
         # to find which step just completed
         webhook_action_type: SeerActionType | None = None
@@ -134,23 +141,48 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         elif current_step == AutofixStep.TRIAGE:
             webhook_action_type = SeerActionType.TRIAGE_COMPLETED
 
-        if webhook_action_type:
-            try:
-                broadcast_webhooks_for_organization.delay(
-                    resource_name="seer",
-                    event_name=webhook_action_type.value,
-                    organization_id=organization.id,
-                    payload=webhook_payload,
+        if not webhook_action_type:
+            return
+
+        event_name = webhook_action_type.value
+
+        event_type = f"seer.{event_name}"
+        try:
+            sentry_app_event_type = SentryAppEventType(event_type)
+            if SeerOperator.has_access(organization=organization):
+                metrics.incr(
+                    "autofix.on_completion_hook.process_autofix_updates",
+                    tags={"event_type": str(event_type)},
                 )
-            except Exception:
-                logger.exception(
-                    "autofix.on_completion_hook.webhook_failed",
-                    extra={
-                        "run_id": run_id,
+                process_autofix_updates.apply_async(
+                    kwargs={
+                        "event_type": sentry_app_event_type,
+                        "event_payload": webhook_payload,
                         "organization_id": organization.id,
-                        "webhook_event": webhook_action_type.value,
-                    },
+                    }
                 )
+        except ValueError:
+            logger.exception(
+                "autofix.on_completion_hook.webhook_invalid_event_type",
+                extra={"event_type": event_type},
+            )
+
+        try:
+            broadcast_webhooks_for_organization.delay(
+                resource_name="seer",
+                event_name=event_name,
+                organization_id=organization.id,
+                payload=webhook_payload,
+            )
+        except Exception:
+            logger.exception(
+                "autofix.on_completion_hook.webhook_failed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "webhook_event": event_name,
+                },
+            )
 
     @classmethod
     def _maybe_trigger_supergroups_embedding(

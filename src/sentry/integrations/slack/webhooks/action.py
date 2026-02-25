@@ -56,8 +56,8 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
 from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.slack.entrypoint import SlackEntrypoint
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser

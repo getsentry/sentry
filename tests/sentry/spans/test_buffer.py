@@ -8,7 +8,8 @@ import orjson
 import pytest
 from sentry_redis_tools.clients import StrictRedis
 
-from sentry.spans.buffer import FlushedSegment, OutputSpan, SegmentKey, Span, SpansBuffer
+from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
+from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
 DEFAULT_OPTIONS = {
@@ -22,12 +23,14 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.backpressure-seconds": 10,
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
     "spans.buffer.flusher.use-stuck-detector": False,
+    "spans.buffer.flusher-cumulative-logger-enabled": False,
     "spans.buffer.compression.level": 0,
     "spans.buffer.pipeline-batch-size": 0,
     "spans.buffer.max-spans-per-evalsha": 0,
     "spans.buffer.evalsha-latency-threshold": 100,
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
+    "spans.buffer.oob-threshold-bytes": 0,
 }
 
 
@@ -287,6 +290,62 @@ def test_observability_metrics(
 
     assert_clean(buffer.client)
     emit_observability_metrics.assert_called_once()
+
+
+@mock.patch("sentry.spans.buffer.emit_observability_metrics")
+def test_observability_metrics_parent_span_already_oversized(
+    emit_observability_metrics: mock.MagicMock,
+    buffer: SpansBuffer,
+) -> None:
+    # Disable compression so payload size in Redis is predictable, then force a
+    # low max-segment-bytes threshold so the destination set is already too
+    # large before merge.
+    oversized_parent_payload = orjson.dumps({"span_id": "b" * 16, "blob": "x" * 2048})
+    spans = [
+        Span(
+            # payload=_payload("a" * 16),
+            payload=oversized_parent_payload,
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+        Span(
+            # payload=oversized_parent_payload,
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+    ]
+
+    with override_options(
+        {"spans.buffer.max-segment-bytes": 200, "spans.buffer.compression.level": -1}
+    ):
+        process_spans(spans, buffer, now=0)
+
+    emit_observability_metrics.assert_called_once()
+    args, _ = emit_observability_metrics.call_args
+    gauge_metrics = args[1]
+
+    oversized_metric_values = [
+        value
+        for evalsha_metrics in gauge_metrics
+        for metric_name, value in evalsha_metrics
+        if metric_name == b"parent_span_set_already_oversized"
+    ]
+    assert oversized_metric_values, (
+        "Expected parent_span_set_already_oversized metric to be emitted"
+    )
+    assert 1 in oversized_metric_values, (
+        "Expected at least one evalsha call with an already oversized parent set"
+    )
 
 
 @pytest.mark.parametrize(
@@ -1009,3 +1068,197 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
     assert list(buffer.get_memory_info())
 
     assert_clean(buffer.client)
+
+
+def test_oob_storage_basic(buffer: SpansBuffer) -> None:
+    """Test OOB storage with threshold=1, forcing all payloads to be stored OOB."""
+    spans = [
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            project_id=1,
+            segment_id=None,
+            is_segment_span=True,
+            end_timestamp=1700000000.0,
+        ),
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+    ]
+
+    with override_options({"spans.buffer.oob-threshold-bytes": 1}):
+        process_spans(spans, buffer, now=0)
+
+        # OOB keys should exist
+        oob_keys = buffer.client.keys("span-buf:p:*")
+        assert len(oob_keys) > 0
+
+        assert_ttls(buffer.client)
+
+        rv = buffer.flush_segments(now=11)
+        _normalize_output(rv)
+        assert rv == {
+            _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+                queue_key=mock.ANY,
+                spans=[
+                    _output_segment(b"a" * 16, b"b" * 16, False),
+                    _output_segment(b"b" * 16, b"b" * 16, True),
+                ],
+                oob_keys=mock.ANY,
+            )
+        }
+
+        # Verify OOB keys are tracked in the flushed segment
+        segment = rv[_segment_id(1, "a" * 32, "b" * 16)]
+        assert len(segment.oob_keys) > 0
+
+        buffer.done_flush_segments(rv)
+
+        # OOB keys should be cleaned up
+        oob_keys_after = buffer.client.keys("span-buf:p:*")
+        assert len(oob_keys_after) == 0
+
+        assert_clean(buffer.client)
+
+
+def test_oob_storage_threshold(buffer: SpansBuffer) -> None:
+    """Test that compressed blobs below the threshold stay inline."""
+    spans = [
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            project_id=1,
+            segment_id=None,
+            is_segment_span=True,
+            end_timestamp=1700000000.0,
+        ),
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+    ]
+
+    # Threshold larger than compressed blob size — should stay inline
+    with override_options({"spans.buffer.oob-threshold-bytes": 100000}):
+        process_spans(spans, buffer, now=0)
+
+        oob_keys = buffer.client.keys("span-buf:p:*")
+        assert len(oob_keys) == 0
+
+        # Set should contain inline compressed data, not OOB references
+        segment_key = _segment_id(1, "a" * 32, "b" * 16)
+        set_members = buffer.client.smembers(segment_key)
+        for member in set_members:
+            assert not member.startswith(b"span-buf:p:")
+
+        rv = buffer.flush_segments(now=11)
+        _normalize_output(rv)
+
+        segment = list(rv.values())[0]
+        span_ids = {span.payload["span_id"] for span in segment.spans}
+        assert span_ids == {"a" * 16, "b" * 16}
+        assert len(segment.oob_keys) == 0
+
+        buffer.done_flush_segments(rv)
+        assert_clean(buffer.client)
+
+
+@mock.patch("sentry.spans.buffer.Project")
+def test_oob_key_missing(mock_project_model, buffer: SpansBuffer) -> None:
+    """Test graceful handling when OOB key expires/is deleted before flush."""
+    mock_project = mock.Mock()
+    mock_project.id = 1
+    mock_project.organization_id = 100
+    mock_project_model.objects.get_from_cache.return_value = mock_project
+
+    spans = [
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            project_id=1,
+            segment_id=None,
+            is_segment_span=True,
+            end_timestamp=1700000000.0,
+        ),
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+    ]
+
+    with override_options({"spans.buffer.oob-threshold-bytes": 1}):
+        process_spans(spans, buffer, now=0)
+
+        # Delete OOB keys to simulate expiry
+        oob_keys = buffer.client.keys("span-buf:p:*")
+        assert len(oob_keys) > 0
+        for key in oob_keys:
+            buffer.client.delete(key)
+
+        # Flush should succeed gracefully, returning no spans since all were OOB
+        rv = buffer.flush_segments(now=11)
+        segment_key = _segment_id(1, "a" * 32, "b" * 16)
+        assert segment_key in rv
+        # All payloads were OOB and their keys are missing, so no spans
+        assert len(rv[segment_key].spans) == 0
+
+        buffer.done_flush_segments(rv)
+
+
+def test_oob_cleanup(buffer: SpansBuffer) -> None:
+    """Test that OOB keys are deleted after done_flush_segments."""
+    spans = [
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id=None,
+            project_id=1,
+            segment_id=None,
+            is_segment_span=True,
+            end_timestamp=1700000000.0,
+        ),
+    ]
+
+    with override_options({"spans.buffer.oob-threshold-bytes": 1}):
+        process_spans(spans, buffer, now=0)
+
+        # Verify OOB keys exist
+        oob_keys = buffer.client.keys("span-buf:p:*")
+        assert len(oob_keys) > 0
+
+        rv = buffer.flush_segments(now=11)
+        segment = list(rv.values())[0]
+        assert len(segment.oob_keys) > 0
+
+        # OOB keys still exist before cleanup
+        assert len(buffer.client.keys("span-buf:p:*")) > 0
+
+        buffer.done_flush_segments(rv)
+
+        # OOB keys cleaned up
+        assert len(buffer.client.keys("span-buf:p:*")) == 0
+
+        assert_clean(buffer.client)
