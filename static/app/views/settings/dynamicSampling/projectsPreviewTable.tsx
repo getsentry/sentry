@@ -16,7 +16,7 @@ import type {
   ProjectSampleCount,
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
-export interface Props {
+export interface ProjectsPreviewTableProps {
   actions: React.ReactNode;
   isLoading: boolean;
   onTargetSampleRateChange: (value: string) => void;
@@ -36,7 +36,7 @@ export function ProjectsPreviewTable({
   savedTargetSampleRate,
   onTargetSampleRateChange,
   targetSampleRateError,
-}: Props) {
+}: ProjectsPreviewTableProps) {
   const debouncedTargetSampleRate = useDebouncedValue(
     targetSampleRate,
     // For longer lists we debounce the input to avoid too many re-renders

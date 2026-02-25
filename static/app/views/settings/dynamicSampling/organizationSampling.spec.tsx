@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
-import type {Props as ProjectsPreviewTableProps} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
+import type {ProjectsPreviewTableProps} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 
 // Render only the form-relevant parts: the input and the action buttons.
 // This avoids pulling in the virtualized ProjectsTable.
