@@ -52,6 +52,8 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
     onChange: (newValue: string) => {
       onChange(newValue);
       if (autoSaveContext) {
+        // Radios should reset to previous value on error
+        autoSaveContext.resetOnErrorRef.current = true;
         field.handleBlur();
       }
     },
