@@ -33,7 +33,7 @@ jobs:
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
       # When true, skip selective testing and run the full backend suite
-      skip_selective_testing: "${{ contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
+      skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
