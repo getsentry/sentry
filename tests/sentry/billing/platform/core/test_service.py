@@ -37,7 +37,7 @@ class TestBillingService:
         service = TestService()
 
         with pytest.raises(TypeError, match="expects a protobuf Message"):
-            service.process("not a protobuf")
+            service.process("not a protobuf")  # type: ignore[arg-type]
 
     def test_service_method_validates_return_type(self):
         """Service methods reject non-protobuf return values."""
@@ -45,7 +45,7 @@ class TestBillingService:
         class TestService(BillingService):
             @service_method
             def bad_return(self, request: StringValue) -> StringValue:
-                return "not a protobuf"
+                return "not a protobuf"  # type: ignore[return-value]
 
         service = TestService()
 
