@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 # Example dart symbol map for testing
 DART_SYMBOLS_UUID = "b8e43a-f242-3d73-a453-aeb6a777ef75"
-DART_PARTIAL_SYMBOLS_UUID = "c9f54b-g353-4e84-b564-bfc7b888fg86"
+DART_PARTIAL_SYMBOLS_UUID = "2a68dffb-fd23-4373-bf08-be9c0aeca62d"
 DART_SYMBOLS_DATA = (
     b'["NetworkException", "xyz", "DatabaseException", "abc", "FileNotFoundException", "def"]'
 )
