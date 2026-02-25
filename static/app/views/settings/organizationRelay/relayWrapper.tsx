@@ -118,9 +118,6 @@ export function RelayWrapper() {
                 <field.Switch
                   checked={field.state.value}
                   onChange={field.handleChange}
-                  aria-label={t(
-                    'Enable to require events to be ingested only through trusted relays'
-                  )}
                   disabled={disabled}
                 />
               </field.Layout.Row>
