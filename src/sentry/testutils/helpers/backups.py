@@ -104,6 +104,7 @@ from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
+from sentry.models.seerorganizationsettings import SeerOrganizationSettings
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.sentry_apps.logic import SentryAppUpdater
@@ -474,6 +475,7 @@ class ExhaustiveFixtures(Fixtures):
         OrganizationOption.objects.create(
             organization=org, key="sentry:scrape_javascript", value=True
         )
+        SeerOrganizationSettings.objects.create(organization=org)
 
         owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
         OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
