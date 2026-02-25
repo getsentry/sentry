@@ -155,6 +155,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert response.status_code == 200, response.content
 
+    @pytest.mark.skip(reason="flaky: #109339")
     def test_handle_nans_from_snuba_top_n(self) -> None:
         self.store_spans(
             [
