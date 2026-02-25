@@ -84,8 +84,10 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         data = response.json()
         assert data["state"] == "PENDING"
         assert data["buildId"] == str(self.preprod_artifact.id)
-        assert "downloadSize" not in data
-        assert "installSize" not in data
+        assert data["downloadSize"] is None
+        assert data["installSize"] is None
+        assert data["errorCode"] is None
+        assert data["errorMessage"] is None
 
     def test_pending_state(self):
         self.create_preprod_artifact_size_metrics(
@@ -100,8 +102,8 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["buildId"] == str(self.preprod_artifact.id)
         assert data["state"] == "PENDING"
         assert data["gitInfo"] is None
-        assert "downloadSize" not in data
-        assert "installSize" not in data
+        assert data["downloadSize"] is None
+        assert data["installSize"] is None
 
     def test_processing_state(self):
         self.create_preprod_artifact_size_metrics(
@@ -130,6 +132,8 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["state"] == "FAILED"
         assert data["errorCode"] == 1
         assert data["errorMessage"] == "Analysis failed"
+        assert data["downloadSize"] is None
+        assert data["installSize"] is None
 
     def test_completed_state(self):
         analysis_data = self._make_analysis_data(
@@ -175,6 +179,11 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["insights"]["platform"] == "android"
         assert len(data["appComponents"]) == 1
         assert data["appComponents"][0]["name"] == "Watch App"
+        assert data["baseBuildId"] is None
+        assert data["baseAppInfo"] is None
+        assert data["comparisons"] is None
+        assert data["errorCode"] is None
+        assert data["errorMessage"] is None
         assert "treemap" not in data
         assert "fileAnalysis" not in data
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, assert_never, cast
+from typing import assert_never, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -40,8 +40,26 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
-def _camel_response(data: dict[str, Any], **kwargs: Any) -> Response:
-    return Response(convert_dict_key_case(data, snake_to_camel_case), **kwargs)
+def _base_response(
+    head_artifact: PreprodArtifact,
+) -> SizeAnalysisResponseDict:
+    return {
+        "buildId": str(head_artifact.id),
+        "state": "PENDING",
+        "appInfo": create_app_info_dict(head_artifact),
+        "gitInfo": create_git_info_dict(head_artifact),
+        "errorCode": None,
+        "errorMessage": None,
+        "downloadSize": None,
+        "installSize": None,
+        "analysisDuration": None,
+        "analysisVersion": None,
+        "insights": None,
+        "appComponents": None,
+        "baseBuildId": None,
+        "baseAppInfo": None,
+        "comparisons": None,
+    }
 
 
 @extend_schema(tags=["Mobile Builds"])
@@ -74,7 +92,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "SizeAnalysisResponse", cast(type, SizeAnalysisResponseDict)
+                "SizeAnalysisResponse", SizeAnalysisResponseDict
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
@@ -114,20 +132,12 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
 
-        app_info = create_app_info_dict(head_artifact)
-        git_info = create_git_info_dict(head_artifact)
+        response_data = _base_response(head_artifact)
 
         size_metrics = list(head_artifact.get_size_metrics())
 
         if not size_metrics:
-            return _camel_response(
-                {
-                    "state": "PENDING",
-                    "build_id": str(head_artifact.id),
-                    "app_info": app_info,
-                    "git_info": git_info,
-                }
-            )
+            return Response(response_data)
 
         main_metric = next(
             (
@@ -150,48 +160,28 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
                 {"detail": "There was an error retrieving size analysis results"}, status=500
             )
 
+        response_data["state"] = state_enum.name
+
         match state_enum:
-            case PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
-                return _camel_response(
-                    {
-                        "state": "PENDING",
-                        "build_id": str(head_artifact.id),
-                        "app_info": app_info,
-                        "git_info": git_info,
-                    }
-                )
-            case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
-                return _camel_response(
-                    {
-                        "state": "PROCESSING",
-                        "build_id": str(head_artifact.id),
-                        "app_info": app_info,
-                        "git_info": git_info,
-                    }
-                )
+            case (
+                PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
+                | PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
+            ):
+                return Response(response_data)
             case (
                 PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
                 | PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
             ):
-                return _camel_response(
-                    {
-                        "state": state_enum.name,
-                        "build_id": str(head_artifact.id),
-                        "app_info": app_info,
-                        "git_info": git_info,
-                        "error_code": main_metric.error_code,
-                        "error_message": main_metric.error_message,
-                    },
-                    status=200,
-                )
+                response_data["errorCode"] = main_metric.error_code
+                response_data["errorMessage"] = main_metric.error_message
+                return Response(response_data)
             case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
                 return self._build_completed_response(
                     request,
                     organization,
                     head_artifact,
                     main_metric,
-                    app_info,
-                    git_info,
+                    response_data,
                     size_metrics,
                 )
             case _:
@@ -203,8 +193,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         organization: Organization,
         head_artifact: PreprodArtifact,
         main_metric: PreprodArtifactSizeMetrics,
-        app_info: dict[str, Any],
-        git_info: dict[str, Any] | None,
+        response_data: SizeAnalysisResponseDict,
         size_metrics: list[PreprodArtifactSizeMetrics],
     ) -> Response:
         """Build response for a completed size analysis."""
@@ -243,33 +232,36 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
                 {"detail": "There was an error retrieving size analysis results"}, status=500
             )
 
-        response_data: dict[str, Any] = {
-            "build_id": str(head_artifact.id),
-            "state": "COMPLETED",
-            "app_info": app_info,
-            "git_info": git_info,
-            "download_size": analysis_results.download_size,
-            "install_size": analysis_results.install_size,
-            "analysis_duration": analysis_results.analysis_duration,
-            "analysis_version": analysis_results.analysis_version,
-            "insights": analysis_results.insights.dict() if analysis_results.insights else None,
-            "app_components": cast(
+        response_data["downloadSize"] = analysis_results.download_size
+        response_data["installSize"] = analysis_results.install_size
+        response_data["analysisDuration"] = analysis_results.analysis_duration
+        response_data["analysisVersion"] = analysis_results.analysis_version
+        response_data["insights"] = (
+            convert_dict_key_case(analysis_results.insights.dict(), snake_to_camel_case)
+            if analysis_results.insights
+            else None
+        )
+        response_data["appComponents"] = (
+            cast(
                 list[AppComponentResponseDict],
-                [c.dict(exclude={"model_config"}) for c in analysis_results.app_components],
+                [
+                    convert_dict_key_case(c.dict(exclude={"model_config"}), snake_to_camel_case)
+                    for c in analysis_results.app_components
+                ],
             )
             if analysis_results.app_components
-            else None,
-        }
+            else None
+        )
 
         base_artifact = self._get_base_artifact(request, organization, head_artifact)
         if base_artifact:
             comparisons = build_comparison_data(base_artifact, size_metrics)
             if comparisons:
-                response_data["base_build_id"] = str(base_artifact.id)
-                response_data["base_app_info"] = create_app_info_dict(base_artifact)
+                response_data["baseBuildId"] = str(base_artifact.id)
+                response_data["baseAppInfo"] = create_app_info_dict(base_artifact)
                 response_data["comparisons"] = comparisons
 
-        return _camel_response(response_data)
+        return Response(response_data)
 
     def _get_base_artifact(
         self,

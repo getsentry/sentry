@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.models.files.file import File
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -88,99 +89,59 @@ class ComparisonResponseDict(TypedDict):
     sizeMetricDiff: NotRequired[SizeMetricDiffResponseDict | None]
 
 
-class SizeAnalysisPendingResponseDict(TypedDict):
+class SizeAnalysisResponseDict(TypedDict):
     buildId: str
-    state: Literal["PENDING"]
-    appInfo: AppInfoResponseDict
-    gitInfo: GitInfoResponseDict | None
-
-
-class SizeAnalysisProcessingResponseDict(TypedDict):
-    buildId: str
-    state: Literal["PROCESSING"]
-    appInfo: AppInfoResponseDict
-    gitInfo: GitInfoResponseDict | None
-
-
-class SizeAnalysisFailedResponseDict(TypedDict):
-    buildId: str
-    state: Literal["FAILED"]
+    state: str
     appInfo: AppInfoResponseDict
     gitInfo: GitInfoResponseDict | None
     errorCode: int | None
     errorMessage: str | None
-
-
-class SizeAnalysisNotRanResponseDict(TypedDict):
-    buildId: str
-    state: Literal["NOT_RAN"]
-    appInfo: AppInfoResponseDict
-    gitInfo: GitInfoResponseDict | None
-    errorCode: int | None
-    errorMessage: str | None
-
-
-# Keep in sync with internal models in sentry.preprod.size_analysis.models
-class SizeAnalysisCompletedResponseDict(TypedDict):
-    buildId: str
-    state: Literal["COMPLETED"]
-    appInfo: AppInfoResponseDict
-    gitInfo: GitInfoResponseDict | None
-    downloadSize: int
-    installSize: int
+    downloadSize: int | None
+    installSize: int | None
     analysisDuration: float | None
     analysisVersion: str | None
-    insights: NotRequired[dict[str, Any] | None]
-    appComponents: NotRequired[list[AppComponentResponseDict] | None]
-    baseBuildId: NotRequired[str | None]
-    baseAppInfo: NotRequired[AppInfoResponseDict | None]
-    comparisons: NotRequired[list[ComparisonResponseDict] | None]
+    insights: dict[str, Any] | None
+    appComponents: list[AppComponentResponseDict] | None
+    baseBuildId: str | None
+    baseAppInfo: AppInfoResponseDict | None
+    comparisons: list[ComparisonResponseDict] | None
 
 
-SizeAnalysisResponseDict = (
-    SizeAnalysisPendingResponseDict
-    | SizeAnalysisProcessingResponseDict
-    | SizeAnalysisFailedResponseDict
-    | SizeAnalysisNotRanResponseDict
-    | SizeAnalysisCompletedResponseDict
-)
-
-
-def create_app_info_dict(artifact: PreprodArtifact) -> dict[str, Any]:
+def create_app_info_dict(artifact: PreprodArtifact) -> AppInfoResponseDict:
     mobile_app_info = getattr(artifact, "mobile_app_info", None)
 
     return {
-        "app_id": artifact.app_id,
+        "appId": artifact.app_id,
         "name": mobile_app_info.app_name if mobile_app_info else None,
         "version": mobile_app_info.build_version if mobile_app_info else None,
-        "build_number": mobile_app_info.build_number if mobile_app_info else None,
-        "artifact_type": artifact.artifact_type,
-        "date_added": artifact.date_added.isoformat() if artifact.date_added else None,
-        "date_built": artifact.date_built.isoformat() if artifact.date_built else None,
+        "buildNumber": mobile_app_info.build_number if mobile_app_info else None,
+        "artifactType": artifact.artifact_type,
+        "dateAdded": artifact.date_added.isoformat() if artifact.date_added else None,
+        "dateBuilt": artifact.date_built.isoformat() if artifact.date_built else None,
     }
 
 
-def create_git_info_dict(artifact: PreprodArtifact) -> dict[str, Any] | None:
+def create_git_info_dict(artifact: PreprodArtifact) -> GitInfoResponseDict | None:
     commit_comparison = getattr(artifact, "commit_comparison", None)
     if commit_comparison is None:
         return None
 
     return {
-        "head_sha": commit_comparison.head_sha,
-        "base_sha": commit_comparison.base_sha,
+        "headSha": commit_comparison.head_sha,
+        "baseSha": commit_comparison.base_sha,
         "provider": commit_comparison.provider,
-        "head_repo_name": commit_comparison.head_repo_name,
-        "base_repo_name": commit_comparison.base_repo_name,
-        "head_ref": commit_comparison.head_ref,
-        "base_ref": commit_comparison.base_ref,
-        "pr_number": commit_comparison.pr_number,
+        "headRepoName": commit_comparison.head_repo_name,
+        "baseRepoName": commit_comparison.base_repo_name,
+        "headRef": commit_comparison.head_ref,
+        "baseRef": commit_comparison.base_ref,
+        "prNumber": commit_comparison.pr_number,
     }
 
 
 def build_comparison_data(
     base_artifact: PreprodArtifact,
     head_size_metrics: list[PreprodArtifactSizeMetrics],
-) -> list[dict[str, Any]] | None:
+) -> list[ComparisonResponseDict] | None:
     """Build comparison results for head vs base artifact."""
     base_size_metrics = list(
         PreprodArtifactSizeMetrics.objects.filter(
@@ -193,7 +154,7 @@ def build_comparison_data(
 
     matched = match_and_fetch_comparisons(head_size_metrics, base_size_metrics)
 
-    comparisons: list[dict[str, Any]] = []
+    comparisons: list[ComparisonResponseDict] = []
     for match in matched:
         if not match.base_metric:
             comparisons.append(
@@ -218,20 +179,20 @@ def _build_failed_comparison(
     head_metric: PreprodArtifactSizeMetrics,
     error_code: str | None,
     error_message: str | None,
-) -> dict[str, Any]:
+) -> ComparisonResponseDict:
     return {
-        "metrics_artifact_type": head_metric.metrics_artifact_type,
+        "metricsArtifactType": head_metric.metrics_artifact_type,
         "identifier": head_metric.identifier,
         "state": PreprodArtifactSizeComparison.State.FAILED,
-        "error_code": error_code,
-        "error_message": error_message,
+        "errorCode": error_code,
+        "errorMessage": error_message,
     }
 
 
 def _build_comparison_result(
     head_metric: PreprodArtifactSizeMetrics,
     comparison_obj: PreprodArtifactSizeComparison,
-) -> dict[str, Any]:
+) -> ComparisonResponseDict:
     """Build a single comparison result."""
     if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
         return _build_success_comparison(head_metric, comparison_obj)
@@ -245,7 +206,7 @@ def _build_comparison_result(
         )
     else:
         return {
-            "metrics_artifact_type": head_metric.metrics_artifact_type,
+            "metricsArtifactType": head_metric.metrics_artifact_type,
             "identifier": head_metric.identifier,
             "state": PreprodArtifactSizeComparison.State.PROCESSING,
         }
@@ -254,7 +215,7 @@ def _build_comparison_result(
 def _build_success_comparison(
     head_metric: PreprodArtifactSizeMetrics,
     comparison_obj: PreprodArtifactSizeComparison,
-) -> dict[str, Any]:
+) -> ComparisonResponseDict:
     """Build a comparison result with inlined diff data for SUCCESS state."""
 
     if comparison_obj.file_id is None:
@@ -272,14 +233,14 @@ def _build_success_comparison(
         comparison_data = json.loads(content)
         comparison_results = ComparisonResults(**comparison_data)
 
-        comparison_dict = comparison_results.dict()
+        comparison_dict = convert_dict_key_case(comparison_results.dict(), snake_to_camel_case)
         return {
-            "metrics_artifact_type": head_metric.metrics_artifact_type,
+            "metricsArtifactType": head_metric.metrics_artifact_type,
             "identifier": head_metric.identifier,
             "state": PreprodArtifactSizeComparison.State.SUCCESS,
-            "diff_items": comparison_dict["diff_items"],
-            "insight_diff_items": comparison_dict["insight_diff_items"],
-            "size_metric_diff": comparison_dict["size_metric_diff_item"],
+            "diffItems": comparison_dict["diffItems"],
+            "insightDiffItems": comparison_dict["insightDiffItems"],
+            "sizeMetricDiff": comparison_dict["sizeMetricDiffItem"],
         }
 
     except File.DoesNotExist:
