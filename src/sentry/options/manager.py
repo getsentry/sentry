@@ -313,19 +313,7 @@ class OptionsManager:
                 record_option(key, result)
                 return result
 
-        # Some values we don't want to allow them to be configured through
-        # config files and should only exist in the datastore
-        if opt.has_any_flag({FLAG_STOREONLY}):
-            optval = opt.default()
-        else:
-            try:
-                # default to the hardcoded local configuration for this key
-                optval = settings.SENTRY_OPTIONS[key]
-            except KeyError:
-                try:
-                    optval = settings.SENTRY_DEFAULT_OPTIONS[key]
-                except KeyError:
-                    optval = opt.default()
+        optval = self._get_default(opt)
         # options already present in store are cached by store
         # caching here to avoid database queries
         self.store.set_cache(opt, optval)
