@@ -1,4 +1,5 @@
 from functools import cached_property
+from time import time
 from unittest.mock import MagicMock, patch
 from uuid import uuid1
 
@@ -297,6 +298,26 @@ class OptionsStoreTest(TestCase):
         store = self.store
         results = store.get_many([])
         assert results == {}
+
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
+    def test_get_many_grace_fallback(self) -> None:
+        store = self.store
+        key1 = self.make_key(ttl=10, grace=20)
+
+        # Populate local cache via set (creates entry with expiry and grace window)
+        store.set(key1, "stale_val", UpdateChannel.CLI)
+
+        # Advance time past TTL but within grace window
+        with patch("sentry.options.store.time") as mocked_time:
+            mocked_time.return_value = time() + 15  # past ttl=10, within grace=20
+
+            # Local cache miss (expired), Redis fails, DB returns nothing
+            with patch.object(store.cache, "get_many", side_effect=RuntimeError()):
+                with patch.object(store, "get_store_many", return_value={}):
+                    results = store.get_many([key1], silent=True)
+
+            # Should return stale value from grace period fallback
+            assert results == {key1.name: "stale_val"}
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_get_many_cache_error_falls_back_to_db(self) -> None:

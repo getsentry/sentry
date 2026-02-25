@@ -285,6 +285,15 @@ class OptionsStore:
             store_results = self.get_store_many(keys_needing_store, silent=silent)
             results.update(store_results)
 
+            # 4. Last ditch effort: return stale-but-within-grace-window values
+            # from local cache for keys that both Redis and DB failed to return.
+            # This matches the disaster-recovery fallback in get().
+            for key in keys_needing_store:
+                if key.name not in results:
+                    value = self.get_local_cache(key, force_grace=True)
+                    if value is not None:
+                        results[key.name] = value
+
         return results
 
     def get_store_many(self, keys: Sequence[Key], silent: bool = False) -> dict[str, Any]:
