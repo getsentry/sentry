@@ -72,7 +72,7 @@ import math
 import time
 import uuid
 from collections.abc import Generator, MutableMapping, Sequence
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 
 import orjson
 import zstandard
@@ -530,9 +530,10 @@ class SpansBuffer:
                 span: SpanEvent = orjson.loads(payload)
 
                 if not attribute_value(span, "sentry.segment.id"):
-                    if not isinstance(span.get("attributes"), dict):
-                        span["attributes"] = {}
-                    span["attributes"]["sentry.segment.id"] = {
+                    attributes = span.get("attributes")
+                    if not isinstance(attributes, dict):
+                        span["attributes"] = attributes = {}
+                    attributes["sentry.segment.id"] = {
                         "type": "string",
                         "value": segment_span_id,
                     }
@@ -542,7 +543,7 @@ class SpansBuffer:
                 if is_segment:
                     has_root_span = True
 
-                output_spans.append(OutputSpan(payload=span))
+                output_spans.append(OutputSpan(payload=cast(dict[str, Any], span)))
 
             metrics.incr(
                 "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}
