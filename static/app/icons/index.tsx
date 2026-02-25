@@ -95,6 +95,7 @@ export {IconPrevious} from './iconPrevious';
 export {IconPrint} from './iconPrint';
 export {IconProfiling} from './iconProfiling';
 export {IconProject} from './iconProject';
+export {IconPullRequest} from './iconPullRequest';
 export {IconQuestion} from './iconQuestion';
 export {IconReceipt} from './iconReceipt';
 export {IconRefresh} from './iconRefresh';
