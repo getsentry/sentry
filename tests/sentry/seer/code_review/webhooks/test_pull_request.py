@@ -331,7 +331,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 organization=self.organization,
                 repo=self.create_repo(project=self.project, provider="integrations:github"),
                 org_code_review_settings=CodeReviewSettings(enabled=True, triggers=[]),
-                extra={},
+                tags={},
             )
 
             self.mock_seer.assert_not_called()
