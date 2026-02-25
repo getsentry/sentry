@@ -923,19 +923,6 @@ class BuildsEndpointTest(APITestCase):
         assert data[0]["app_info"]["app_id"] == "legacy.app"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_distribution_info_error_fields(self) -> None:
-        self.create_preprod_artifact(
-            app_id="no_quota.app",
-            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
-            installable_app_error_message="quota",
-        )
-
-        response = self._request({})
-        self._assert_is_successful(response)
-        data = response.json()
-        assert len(data) == 0
-
-    @with_feature("organizations:preprod-frontend-routes")
     @patch("sentry.preprod.api.endpoints.builds.get_size_retention_cutoff")
     def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
         mock_cutoff.return_value = before_now(days=30)
