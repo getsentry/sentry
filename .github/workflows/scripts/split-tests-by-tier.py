@@ -156,39 +156,48 @@ def flat_lpt_shard(
     n_workers: int,
     durations: dict[str, float],
 ) -> list[list[str]]:
-    """Flat LPT for --dist=load: minimise max(sum(shard_durations) / n_workers).
+    """Flat LPT for --dist=load with heavy-scope penalty.
 
     Under --dist=load, xdist dispatches individual tests to workers, so a
-    scope's tests scatter roughly evenly across N workers. Wall-clock for a
-    shard ≈ total_scope_duration / n_workers. Minimising the max shard total
-    is therefore equivalent to minimising the max shard wall-clock.
+    shard's wall-clock ≈ total_duration / n_workers when tests are uniformly
+    sized. However, heavy scopes contain slow individual tests that block
+    workers, achieving ~2x parallelism instead of 3x. Pure flat LPT packs
+    heavy scopes together (equal total_dur) but the resulting shard runs
+    slower due to worse intra-shard parallelism.
+
+    Fix: use d^1.3 as the LPT weight instead of d. This penalizes heavy
+    scopes super-linearly, causing the greedy algorithm to spread them
+    across more shards instead of concentrating them.
     """
     fallback = _get_fallback(durations)
+    exponent = 1.3
 
-    sorted_scopes = sorted(
-        scopes,
-        key=lambda s: durations.get(s, fallback),
-        reverse=True,
-    )
+    def weight(scope: str) -> float:
+        return durations.get(scope, fallback) ** exponent
+
+    sorted_scopes = sorted(scopes, key=weight, reverse=True)
 
     shard_loads = [0.0] * n_shards
     shards: list[list[str]] = [[] for _ in range(n_shards)]
 
     for scope in sorted_scopes:
-        dur = durations.get(scope, fallback)
+        w = weight(scope)
         min_idx = min(range(n_shards), key=lambda i: shard_loads[i])
         shards[min_idx].append(scope)
-        shard_loads[min_idx] += dur
+        shard_loads[min_idx] += w
 
-    max_load = max(shard_loads)
-    min_load = min(shard_loads)
-    total = sum(shard_loads)
+    # Log using raw durations for interpretability.
+    raw_loads = [sum(durations.get(s, fallback) for s in shard) for shard in shards]
+    max_raw = max(raw_loads)
+    min_raw = min(raw_loads)
+    total = sum(raw_loads)
+    scope_counts = [len(s) for s in shards]
     print(
-        f"[lpt-flat] {n_shards} shards × {n_workers} workers (--dist=load): "
+        f"[lpt-flat] {n_shards} shards × {n_workers} workers (--dist=load, d^{exponent}): "
         f"total={total:.0f}s, "
-        f"predicted max_wallclock={max_load / n_workers:.1f}s, "
-        f"predicted min_wallclock={min_load / n_workers:.1f}s, "
-        f"predicted spread={( max_load - min_load) / n_workers:.1f}s",
+        f"predicted max_wallclock={max_raw / n_workers:.1f}s, "
+        f"predicted min_wallclock={min_raw / n_workers:.1f}s, "
+        f"scopes/shard: {min(scope_counts)}-{max(scope_counts)}",
         file=sys.stderr,
     )
 
