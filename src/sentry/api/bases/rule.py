@@ -26,17 +26,16 @@ class RuleEndpoint(ProjectEndpoint):
         if not rule_id.isdigit():
             raise ResourceDoesNotExist
 
-        else:
-            # Mark that we're using legacy Rule models (before query to track failures too)
-            report_used_legacy_models()
+        # Mark that we're using legacy Rule models (before query to track failures too)
+        report_used_legacy_models()
 
-            try:
-                kwargs["rule"] = Rule.objects.get(
-                    project=project,
-                    id=rule_id,
-                )
-            except Rule.DoesNotExist:
-                raise ResourceDoesNotExist
+        try:
+            kwargs["rule"] = Rule.objects.get(
+                project=project,
+                id=rule_id,
+            )
+        except Rule.DoesNotExist:
+            raise ResourceDoesNotExist
 
         return args, kwargs
 
@@ -53,7 +52,9 @@ class WorkflowEngineRuleEndpoint(RuleEndpoint):
 
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
             try:
-                arw = AlertRuleWorkflow.objects.get(rule_id=rule_id)
+                arw = AlertRuleWorkflow.objects.get(
+                    rule_id=rule_id, workflow__organization=project.organization
+                )
                 kwargs["rule"] = arw.workflow
             except AlertRuleWorkflow.DoesNotExist:
                 # XXX: this means the workflow was single written and has no ARW or related Rule object
