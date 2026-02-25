@@ -188,6 +188,7 @@ export function OnboardingLayout({
             <Flex justify="end" margin="0 0 md">
               <OnboardingCopyMarkdownButton
                 steps={steps}
+                borderless
                 source={newOrg ? 'first_time_setup' : 'project_getting_started'}
               />
             </Flex>
