@@ -1,5 +1,6 @@
+import {Fragment} from 'react';
+
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
 
 import {useCopySetupInstructionsEnabled} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {IconCopy} from 'sentry/icons';
@@ -19,7 +20,7 @@ export function ManualInstrumentationNote({docsLink}: {docsLink: React.ReactNode
   }
 
   return (
-    <Stack gap="xl">
+    <Fragment>
       <p>
         {tct(
           'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
@@ -27,7 +28,7 @@ export function ManualInstrumentationNote({docsLink}: {docsLink: React.ReactNode
         )}
       </p>
       <CopyLLMPromptButton />
-    </Stack>
+    </Fragment>
   );
 }
 
