@@ -435,6 +435,8 @@ function UnsupportedPlatformOnboarding({
   platformName: string;
   project: Project;
 }) {
+  const copyEnabled = useCopySetupInstructionsEnabled();
+
   return (
     <OnboardingPanel project={project}>
       <DescriptionWrapper>
@@ -447,15 +449,24 @@ function UnsupportedPlatformOnboarding({
           )}
         </p>
         <p>
-          {tct(
-            'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-              ),
-              bold: <strong />,
-            }
-          )}
+          {copyEnabled
+            ? tct(
+                'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+                  ),
+                  bold: <strong />,
+                }
+              )
+            : tct(
+                'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or use an AI coding agent to do it for you.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+                  ),
+                }
+              )}
         </p>
         <CopyInstructionsButton />
       </DescriptionWrapper>
@@ -464,6 +475,8 @@ function UnsupportedPlatformOnboarding({
 }
 
 function NoDocsOnboarding({project}: {project: Project}) {
+  const copyEnabled = useCopySetupInstructionsEnabled();
+
   return (
     <OnboardingPanel project={project}>
       <DescriptionWrapper>
@@ -474,15 +487,24 @@ function NoDocsOnboarding({project}: {project: Project}) {
           )}
         </p>
         <p>
-          {tct(
-            'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-              ),
-              bold: <strong />,
-            }
-          )}
+          {copyEnabled
+            ? tct(
+                'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
+                  ),
+                  bold: <strong />,
+                }
+              )
+            : tct(
+                'You can set up the Sentry SDK by following our [link:documentation], or use an AI coding agent to do it for you.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
+                  ),
+                }
+              )}
         </p>
         <CopyInstructionsButton />
       </DescriptionWrapper>
