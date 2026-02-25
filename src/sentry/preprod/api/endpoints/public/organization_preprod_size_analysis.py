@@ -25,7 +25,7 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import (
 )
 from sentry.preprod.api.models.public_api_models import (
     AppComponentResponseDict,
-    SizeAnalysisCompletedResponseDict,
+    SizeAnalysisResponseDict,
     build_comparison_data,
     create_app_info_dict,
     create_git_info_dict,
@@ -74,7 +74,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "SizeAnalysisResponse", SizeAnalysisCompletedResponseDict
+                "SizeAnalysisResponse", SizeAnalysisResponseDict
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
@@ -89,7 +89,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         artifact_id: str,
     ) -> Response:
         """
-        Retrieve size analysis results for a build artifact.
+        Retrieve size analysis results for a given artifact.
 
         Returns size metrics including download size, install size, and optional insights.
         When a base artifact exists (either from commit comparison or via the `baseArtifactId` parameter),
@@ -144,7 +144,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.invalid_state",
                 level="warning",
-                extras={"artifact_id": head_artifact.id, "state": main_metric.state},
+                extra={"artifact_id": head_artifact.id, "state": main_metric.state},
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500
@@ -213,7 +213,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.no_file_id",
                 level="warning",
-                extras={"artifact_id": head_artifact.id, "size_metric_id": main_metric.id},
+                extra={"artifact_id": head_artifact.id, "size_metric_id": main_metric.id},
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500
@@ -225,7 +225,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.file_not_found",
                 level="warning",
-                extras={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
+                extra={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
             )
             return Response({"detail": "Analysis file not found"}, status=404)
 

@@ -261,7 +261,7 @@ def _build_success_comparison(
         sentry_sdk.capture_message(
             "preprod.public_api.compare.success_no_file",
             level="warning",
-            extras={"comparison_id": comparison_obj.id},
+            extra={"comparison_id": comparison_obj.id},
         )
         return _build_failed_comparison(head_metric, "FILE_ERROR", "Comparison file missing")
 
@@ -286,7 +286,7 @@ def _build_success_comparison(
         sentry_sdk.capture_message(
             "preprod.public_api.compare.file_not_found",
             level="warning",
-            extras={"comparison_id": comparison_obj.id, "file_id": comparison_obj.file_id},
+            extra={"comparison_id": comparison_obj.id, "file_id": comparison_obj.file_id},
         )
         return _build_failed_comparison(head_metric, "FILE_ERROR", "Comparison file not found")
     except Exception:

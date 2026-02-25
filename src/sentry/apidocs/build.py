@@ -219,7 +219,7 @@ OPENAPI_TAGS = [
         "x-display-description": False,
         "externalDocs": {
             "description": "Found an error? Let us know.",
-            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/mobile-builds/&template=api_error_template.md",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/organizations/preprodartifacts/size-analysis/&template=api_error_template.md",
         },
     },
 ]
