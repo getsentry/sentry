@@ -264,19 +264,36 @@ def test_convert_renamed_attribute_meta() -> None:
 @pytest.mark.parametrize(
     "key_id, expected_key_id",
     [(123, 123), (None, 0)],
-    ids=["with_key_id", "without_key_id"],
+    ids=["int_key_id", "none_key_id"],
 )
 def test_convert_outcomes_when_not_emitted(key_id, expected_key_id) -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     message["accepted_outcome_emitted"] = False
-    if key_id is not None:
-        message["key_id"] = key_id
+    message["key_id"] = key_id
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
     assert item.HasField("outcomes")
     assert item.outcomes == Outcomes(
         key_id=expected_key_id,
+        category_count=[
+            CategoryCount(
+                data_category=int(DataCategory.SPAN_INDEXED),
+                quantity=1,
+            ),
+        ],
+    )
+
+
+def test_convert_outcomes_when_not_emitted_missing_key_id() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["accepted_outcome_emitted"] = False
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.HasField("outcomes")
+    assert item.outcomes == Outcomes(
+        key_id=0,
         category_count=[
             CategoryCount(
                 data_category=int(DataCategory.SPAN_INDEXED),
