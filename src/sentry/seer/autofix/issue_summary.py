@@ -319,17 +319,22 @@ def get_and_update_group_fixability_score(
     if not force_generate and group.seer_fixability_score is not None:
         return group.seer_fixability_score
 
-    # Read summary from cache to pass to Seer, avoiding a DB lookup
     summary = None
-    cache_key = get_issue_summary_cache_key(group.id)
-    cached = cache.get(cache_key)
-    if cached:  # If it's not in the cache, we fallback to reading from Seer DB
-        required_fields = ["headline", "whats_wrong", "trace", "possible_cause"]
-        if all(cached.get(k) is not None for k in required_fields):
-            summary = {
-                "group_id": group.id,
-                **{k: cached[k] for k in required_fields},
-            }
+    try:
+        cache_key = get_issue_summary_cache_key(group.id)
+        cached = cache.get(cache_key)
+        if cached:
+            required_fields = ["headline", "whats_wrong", "trace", "possible_cause"]
+            if all(cached.get(k) is not None for k in required_fields):
+                summary = {
+                    "group_id": group.id,
+                    **{k: cached[k] for k in required_fields},
+                }
+    except Exception:
+        logger.exception(
+            "Failed to read issue summary from cache for fixability score",
+            extra={"group_id": group.id},
+        )
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
         issue_summary = _generate_fixability_score(group, summary=summary)
@@ -493,7 +498,6 @@ def _generate_summary(
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id
-
     cache.set(cache_key, summary_dict, timeout=int(timedelta(days=7).total_seconds()))
 
     if should_run_automation:
