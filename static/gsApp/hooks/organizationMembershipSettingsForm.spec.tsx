@@ -102,7 +102,7 @@ describe('OrganizationMembershipSettings', () => {
   it('disables member project creation if org does not have team-roles', () => {
     const organization = OrganizationFixture({
       features: ['invite-members'],
-      access: [],
+      access: ['org:write'],
     });
     renderComponent(organization);
     expect(

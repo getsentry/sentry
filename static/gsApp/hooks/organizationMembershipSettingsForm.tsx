@@ -158,7 +158,11 @@ function OrganizationMembershipSettingsForm({
               <field.Switch
                 checked={field.state.value}
                 onChange={field.handleChange}
-                disabled={!hasOrgWrite}
+                disabled={
+                  !hasOrgWrite ||
+                  (!features.has('team-roles') &&
+                    t('You must be on a business plan to toggle this feature.'))
+                }
               />
             </field.Layout.Row>
           )}
