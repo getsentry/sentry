@@ -1,9 +1,13 @@
-import {Fragment} from 'react';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormOptions,
+  FieldGroup,
+  FormSearch,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -82,7 +86,7 @@ export default function TeamSettings() {
   const isIdpProvisioned = team.flags['idp:provisioned'];
 
   return (
-    <Fragment>
+    <FormSearch route="/settings/:orgId/teams/:teamId/settings/">
       <SentryDocumentTitle title={t('Team Settings')} orgSlug={organization.slug} />
 
       <ProjectPermissionAlert access={['team:write']} team={team} />
@@ -188,6 +192,6 @@ export default function TeamSettings() {
           </div>
         </LegacyFieldGroup>
       </Panel>
-    </Fragment>
+    </FormSearch>
   );
 }
