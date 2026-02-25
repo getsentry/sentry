@@ -133,7 +133,7 @@ if #sunionstore_args > 0 then
     local already_oversized = dest_memory > max_segment_bytes
     table.insert(metrics_table, {"parent_span_set_already_oversized", already_oversized and 1 or 0})
 
-    local use_zero_copy_dest = zero_copy_dest_threshold > 0 and dest_memory > zero_copy_dest_threshold
+    local use_zero_copy_dest = not already_oversized and zero_copy_dest_threshold > 0 and dest_memory > zero_copy_dest_threshold
 
     local start_output_size = redis.call("scard", set_key)
     local scard_end_time_ms = get_time_ms()
@@ -154,8 +154,12 @@ if #sunionstore_args > 0 then
                 all_members[#all_members + 1] = members[j]
             end
         end
-        if #all_members > 0 then
-            redis.call("sadd", set_key, unpack(all_members))
+        table.insert(metrics_table, {"zero_copy_dest_source_members", #all_members})
+        -- Batch SADD in chunks to avoid exceeding Lua's unpack() stack limit.
+        local BATCH = 7000
+        for i = 1, #all_members, BATCH do
+            local last = math.min(i + BATCH - 1, #all_members)
+            redis.call("sadd", set_key, unpack(all_members, i, last))
         end
         output_size = redis.call("scard", set_key)
     else
