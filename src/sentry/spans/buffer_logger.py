@@ -243,7 +243,16 @@ def emit_observability_metrics(
     gauge_metrics_dict: dict[
         str, tuple[float, float, float, float]
     ] = {}  # metric, min, max, sum, count
+    oversized_count = 0
 
+    size_buckets = {
+        "<1000": 0,
+        "1000-2000": 0,
+        "2000-5000": 0,
+        "5000-10000": 0,
+        "10000-20000": 0,
+        ">20000": 0,
+    }
     for evalsha_latency_metrics, evalsha_gauge_metrics in zip(latency_metrics, gauge_metrics):
         for raw_key, value in evalsha_latency_metrics:
             key = raw_key.decode("utf-8")
@@ -256,8 +265,24 @@ def emit_observability_metrics(
                     latency_metrics_dict[key][2] + value,
                     latency_metrics_dict[key][3] + 1.0,
                 )
+
         for raw_key, value in evalsha_gauge_metrics:
             key = raw_key.decode("utf-8")
+            # Temporary metrics for potential limits being added
+            if key == "parent_span_set_after_size":
+                if value > 20000:
+                    size_buckets[">20000"] += 1
+                elif value > 10000:
+                    size_buckets["10000-20000"] += 1
+                elif value > 5000:
+                    size_buckets["5000-10000"] += 1
+                elif value > 2000:
+                    size_buckets["2000-5000"] += 1
+                elif value > 1000:
+                    size_buckets["1000-2000"] += 1
+                else:
+                    size_buckets["<1000"] += 1
+
             if key not in gauge_metrics_dict:
                 gauge_metrics_dict[key] = (value, value, value, 1.0)
             else:
@@ -267,19 +292,46 @@ def emit_observability_metrics(
                     gauge_metrics_dict[key][2] + value,
                     gauge_metrics_dict[key][3] + 1.0,
                 )
+            if raw_key == b"parent_span_set_already_oversized":
+                oversized_count += int(value)
+
+    # Temporary metrics for potential limits being added
+    for size, scount in size_buckets.items():
+        if scount > 0:
+            metrics.incr(
+                "spans.buffer.parent_span_set_after_size_bucket", scount, tags={"size": size}
+            )
 
     for metric, (min_value, max_value, sum_value, count) in latency_metrics_dict.items():
-        metrics.timing(f"spans.buffer.process_spans.avg_{metric}", sum_value / count)
-        metrics.timing(f"spans.buffer.process_spans.min_{metric}", min_value)
-        metrics.timing(f"spans.buffer.process_spans.max_{metric}", max_value)
+        tags = {"stage": metric}
+        metrics.timing(
+            "spans.buffer.process_spans.avg_step_latency_ms", sum_value / count, tags=tags
+        )
+        metrics.timing("spans.buffer.process_spans.min_step_latency_ms", min_value, tags=tags)
+        metrics.timing("spans.buffer.process_spans.max_step_latency_ms", max_value, tags=tags)
     for metric, (min_value, max_value, sum_value, count) in gauge_metrics_dict.items():
-        metrics.gauge(f"spans.buffer.avg_{metric}", sum_value / count)
-        metrics.gauge(f"spans.buffer.min_{metric}", min_value)
-        metrics.gauge(f"spans.buffer.max_{metric}", max_value)
+        tags = {"stage": metric}
+        metrics.gauge("spans.buffer.avg_gauge_metric", sum_value / count, tags=tags)
+        metrics.gauge("spans.buffer.min_gauge_metric", min_value, tags=tags)
+        metrics.gauge("spans.buffer.max_gauge_metric", max_value, tags=tags)
 
-    for data_point in longest_evalsha_data[1]:  # latency_metrics
-        key = data_point[0].decode("utf-8")
-        metrics.timing(f"spans.buffer.process_spans.longest_evalsha.latency.{key}", data_point[1])
-    for data_point in longest_evalsha_data[2]:  # gauge_metrics
-        key = data_point[0].decode("utf-8")
-        metrics.gauge(f"spans.buffer.process_spans.longest_evalsha.{key}", data_point[1])
+    for raw_key, value in longest_evalsha_data[1]:  # latency_metrics
+        key = raw_key.decode("utf-8")
+        metrics.timing(
+            "spans.buffer.process_spans.longest_evalsha.step_latency_ms",
+            value,
+            tags={"stage": key},
+        )
+    for raw_key, value in longest_evalsha_data[2]:  # gauge_metrics
+        key = raw_key.decode("utf-8")
+        metrics.gauge(
+            "spans.buffer.process_spans.longest_evalsha.gauge_metric",
+            value,
+            tags={"stage": key},
+        )
+
+    if oversized_count > 0:
+        metrics.incr(
+            "spans.buffer.process_spans.parent_span_set_already_oversized.count",
+            amount=oversized_count,
+        )

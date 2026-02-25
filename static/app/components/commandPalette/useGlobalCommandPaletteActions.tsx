@@ -274,10 +274,7 @@ function useNavigationActions(): CommandPaletteAction[] {
           hidden: !organization.features.includes('prevent-test-analytics'),
         }),
       ],
-      hidden: !(
-        organization.features.includes('prevent-ai') &&
-        organization.features.includes('prevent-test-analytics')
-      ),
+      hidden: !organization.features.includes('prevent-test-analytics'),
     }),
     makeCommandPaletteGroup({
       groupingKey: 'navigate',

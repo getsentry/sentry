@@ -37,7 +37,7 @@ describe('RepositoryRow', () => {
       expect(screen.getByText('github.com/example/repo-name')).toBeInTheDocument();
 
       // Trash button should display enabled
-      expect(screen.getByRole('button', {name: 'delete'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Delete'})).toBeEnabled();
 
       // No cancel button
       expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('RepositoryRow', () => {
       });
 
       // Trash button should be disabled
-      expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
 
       // Cancel button active
       expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
@@ -96,7 +96,7 @@ describe('RepositoryRow', () => {
       });
 
       // Trash button should be disabled
-      expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
     });
 
     it('displays disabled cancel', () => {
@@ -126,7 +126,7 @@ describe('RepositoryRow', () => {
         organization,
       });
       renderGlobalModal();
-      await userEvent.click(screen.getByRole('button', {name: 'delete'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
       // Confirm modal
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));

@@ -302,6 +302,41 @@ class UpdateGroupsTest(TestCase):
         assert group.status == GroupStatus.RESOLVED
         assert send_robust.called
 
+    def test_get_group_list_filters_by_project_access(self) -> None:
+        """
+        Test that get_group_list properly filters groups by project access when using qualified short IDs.
+        This prevents IDOR vulnerabilities where a user could access groups from projects they don't have access to.
+        """
+        # Create a second project in the same organization
+        project2 = self.create_project(organization=self.organization, name="Project 2")
+
+        # Create groups in both projects
+        group1 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        group2 = self.create_group(project=project2, status=GroupStatus.UNRESOLVED)
+
+        # User only has access to self.project, not project2
+        # When requesting group2 using qualified short ID, it should be filtered out
+        group_list = get_group_list(
+            self.organization.id, [self.project], [group2.qualified_short_id]
+        )
+
+        # The group from the inaccessible project should be filtered out
+        assert group_list == []
+
+        # But when requesting a group from an accessible project, it should work
+        group_list = get_group_list(
+            self.organization.id, [self.project], [group1.qualified_short_id]
+        )
+        assert group_list == [group1]
+
+        # When user has access to both projects, both groups should be returned
+        group_list = get_group_list(
+            self.organization.id,
+            [self.project, project2],
+            [group1.qualified_short_id, group2.qualified_short_id],
+        )
+        assert set(group_list) == {group1, group2}
+
     def test_unresolve_clears_commit_resolution_links(self) -> None:
         """
         Test that when an issue is unresolved, commit resolution links are deleted

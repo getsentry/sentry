@@ -155,7 +155,7 @@ export default function UsageLog() {
     <Fragment>
       <Grid gap="2xl" flow="row">
         <CompactSelect
-          searchable
+          search
           clearable
           menuTitle={t('Subscription Actions')}
           options={eventNameOptions}

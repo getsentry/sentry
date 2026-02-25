@@ -5,7 +5,7 @@ import {type BaseFieldProps} from './baseField';
 
 export function NumberField(
   props: BaseFieldProps &
-    Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur' | 'disabled'> & {
+    Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
       onChange: (value: number) => void;
       value: number;
       disabled?: boolean | string;

@@ -9,6 +9,7 @@ from fixtures.page_objects.issue_list import IssueListPage
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
+from sentry.users.models.user_option import UserOption
 
 event_time = before_now(days=3)
 
@@ -43,6 +44,9 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.create_environment(name="prod", project=self.project_2)
 
         self.login_as(self.user)
+        UserOption.objects.set_value(
+            user=self.user, key="prefers_issue_details_streamlined_ui", value=False
+        )
         self.dismiss_assistant()
 
         self.issues_list = IssueListPage(self.browser, self.client)

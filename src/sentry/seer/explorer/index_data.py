@@ -505,13 +505,18 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
 
         serialized_event = serialize(full_event, user=None, serializer=EventSerializer())
 
+        group_metadata = (group.data or {}).get("metadata", {})
         issue_data_list.append(
             IssueDetails(
                 id=group.id,
                 title=group.title,
+                short_id=group.qualified_short_id,
                 culprit=group.culprit,
                 transaction=full_event.transaction,
                 events=[serialized_event],
+                project=group.project_id,
+                filename=group_metadata.get("filename"),
+                function=group_metadata.get("function"),
             )
         )
 

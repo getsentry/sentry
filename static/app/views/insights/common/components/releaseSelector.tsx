@@ -119,7 +119,11 @@ function SingleReleaseSelector({
       )}
       menuTitle={t('Filter Release')}
       loading={isLoading}
-      searchable
+      search={{
+        onChange: debounce(val => {
+          setSearchTerm(val);
+        }, DEFAULT_DEBOUNCE_DURATION),
+      }}
       value={selectorValue || ''}
       options={[
         {
@@ -142,9 +146,6 @@ function SingleReleaseSelector({
             selectorValue && selectorValue !== '' ? options.slice(2) : options.slice(1),
         },
       ]}
-      onSearch={debounce(val => {
-        setSearchTerm(val);
-      }, DEFAULT_DEBOUNCE_DURATION)}
       onChange={onChange}
       onClose={() => {
         setSearchTerm(undefined);

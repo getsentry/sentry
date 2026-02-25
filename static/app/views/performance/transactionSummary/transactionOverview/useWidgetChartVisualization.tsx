@@ -1,10 +1,13 @@
 import {useTheme} from '@emotion/react';
 
+import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -73,8 +76,10 @@ function useDurationBreakdownVisualization({
   query,
 }: DurationBreakdownVisualizationOptions) {
   const location = useLocation();
+  const navigate = useNavigate();
   const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const {selection} = usePageFilters();
+  const legendSelection = getSeriesSelection(location);
 
   const {releases: releasesWithDate} = useReleaseStats(selection);
   const releases =
@@ -104,11 +109,11 @@ function useDurationBreakdownVisualization({
         'p100(span.duration)',
         'p99(span.duration)',
         'p95(span.duration)',
-        'p90(span.duration)',
         'p75(span.duration)',
         'p50(span.duration)',
       ],
       query: newQuery,
+      interval: getInterval(selection.datetime, 'high'),
       enabled,
     },
     REFERRER
@@ -122,13 +127,28 @@ function useDurationBreakdownVisualization({
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
 
-  const plottables = spanSeriesData?.timeSeries.map(series => new Line(series));
+  const plottables =
+    spanSeriesData?.timeSeries.map(series => {
+      const name = `${parseFunction(series.yAxis)?.name}()`;
+      return new Line(series, {name, alias: name});
+    }) ?? [];
 
   return (
     <TimeSeriesWidgetVisualization
       plottables={plottables}
       releases={releases}
       showReleaseAs="bubble"
+      legendSelection={legendSelection}
+      onLegendSelectionChange={selected => {
+        const unselected = Object.keys(selected).filter(key => !selected[key]);
+        navigate({
+          ...location,
+          query: {
+            ...location.query,
+            unselectedSeries: unselected,
+          },
+        });
+      }}
     />
   );
 }

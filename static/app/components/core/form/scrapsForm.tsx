@@ -13,6 +13,7 @@ import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
+import {PasswordField} from './field/passwordField';
 import {RangeField} from './field/rangeField';
 import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
@@ -37,6 +38,7 @@ export const defaultFormOptions = formOptions({
 const fieldComponents = {
   Input: InputField,
   Number: NumberField,
+  Password: PasswordField,
   Range: RangeField,
   Select: SelectField,
   SelectAsync: SelectAsyncField,
@@ -62,13 +64,14 @@ const {useAppForm} = createFormHook({
 function SubmitButton(props: ButtonProps) {
   const form = useFormContext();
   return (
-    <form.Subscribe selector={state => state.isSubmitting}>
-      {isSubmitting => (
+    <form.Subscribe selector={state => state.isSubmitting || state.isDefaultValue}>
+      {isDisabled => (
         <Button
           {...props}
           priority="primary"
           type="submit"
-          disabled={isSubmitting || props.disabled}
+          form={form.formId}
+          disabled={isDisabled || props.disabled}
         />
       )}
     </form.Subscribe>
@@ -80,6 +83,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 
   return (
     <form
+      data-test-id={form.formId}
       id={form.formId}
       onSubmit={e => {
         e.preventDefault();
@@ -120,7 +124,6 @@ type InferFormData<T> = T extends {state: {values: infer D}} ? D : never;
  *   'address.city': { message: 'City not found' },
  * });
  * ```
- * @public
  */
 export function setFieldErrors<
   TForm extends {setErrorMap: (...args: any[]) => unknown; state: {values: unknown}},

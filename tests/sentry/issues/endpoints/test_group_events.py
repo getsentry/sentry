@@ -1,13 +1,17 @@
 from datetime import timedelta
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 from rest_framework.response import Response
+from urllib3.connectionpool import ConnectionPool
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.utils.snuba import SnubaError
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -592,3 +596,20 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
+
+    @patch("sentry.issues.endpoints.group_events.run_group_events_query")
+    def test_snuba_read_timeout_returns_504(self, mock_query: MagicMock) -> None:
+        mock_query.side_effect = SnubaError(
+            ReadTimeoutError(ConnectionPool("dummy"), "/events/snql", "Read timed out")
+        )
+        self.login_as(user=self.user)
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/"
+        response = self.do_request(url)
+        assert response.status_code == 504

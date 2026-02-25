@@ -142,7 +142,10 @@ describe('TeamSettings', () => {
         "This team is managed through your organization's identity provider. These settings cannot be modified."
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Team Slug'})).toBeDisabled();
+    expect(screen.getByRole('textbox', {name: 'Team Slug'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByTestId('button-remove-team')).toBeDisabled();
   });
 });
