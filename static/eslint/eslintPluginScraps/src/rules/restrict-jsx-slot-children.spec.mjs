@@ -204,6 +204,11 @@ ruleTester.run('restrict-jsx-slot-children', restrictJsxSlotChildren, {
       code: `${IMPORTS}<CompactSelect menuHeaderTrailingItems={condition ? <MenuComponents.HeaderButton/> : null} />`,
       filename: '/static/app/foo.tsx',
     },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={someVar ?? <MenuComponents.ApplyButton/>} />`,
+      filename: '/static/app/foo.tsx',
+    },
 
     // ── Falsy / non-JSX prop values are ignored ───────────────────────────────
     {
@@ -407,6 +412,12 @@ import {Flex as FlexLayout} from '@sentry/scraps/layout';
       code: `${IMPORTS}<CompactSelect menuHeaderTrailingItems={condition && <Button/>} />`,
       filename: '/static/app/foo.tsx',
       errors: [forbidden('Button', 'menuHeaderTrailingItems')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={someVar ?? <Button/>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
     },
 
     // ── Content inside a member expression element is checked ────────────────

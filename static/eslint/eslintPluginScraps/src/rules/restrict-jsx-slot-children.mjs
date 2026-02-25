@@ -19,7 +19,8 @@
  *   - Disallowed elements are reported immediately (children are not checked).
  *
  * The rule handles direct JSX, arrow-function expression bodies, top-level
- * ternary / logical expressions, and JSXExpressionContainers inside children.
+ * ternary / logical (&&, ||, ??) expressions, and JSXExpressionContainers
+ * inside children.
  *
  * Known limitations:
  *   - Block-body callbacks (`() => { return <Elem>; }`) are not checked.
@@ -278,11 +279,11 @@ export const restrictJsxSlotChildren = {
         return;
       }
 
-      // condition && <A/>  /  condition || <A/>
+      // condition && <A/>  /  condition || <A/>  /  condition ?? <A/>
       if (expr.type === 'LogicalExpression') {
         if (expr.operator === '&&') {
           checkExpression(expr.right, propName, state);
-        } else if (expr.operator === '||') {
+        } else if (expr.operator === '||' || expr.operator === '??') {
           checkExpression(expr.left, propName, state);
           checkExpression(expr.right, propName, state);
         }
