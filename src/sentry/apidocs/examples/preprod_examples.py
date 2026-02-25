@@ -105,6 +105,99 @@ class PreprodExamples:
         ],
     }
 
+    EXAMPLE_INSTALL_INFO_INSTALLABLE = {
+        "buildId": "12345",
+        "appInfo": _APP_INFO,
+        "platform": "android",
+        "isInstallable": True,
+        "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=apk",
+        "downloadCount": 5,
+        "releaseNotes": "Bug fixes and performance improvements.",
+        "isCodeSignatureValid": None,
+        "profileName": None,
+        "codesigningType": None,
+        "installableAppErrorCode": None,
+        "installableAppErrorMessage": None,
+    }
+
+    EXAMPLE_INSTALL_INFO_NOT_INSTALLABLE = {
+        "buildId": "12345",
+        "appInfo": _APP_INFO,
+        "platform": "android",
+        "isInstallable": False,
+        "installUrl": None,
+        "downloadCount": 0,
+        "releaseNotes": None,
+        "isCodeSignatureValid": None,
+        "profileName": None,
+        "codesigningType": None,
+        "installableAppErrorCode": None,
+        "installableAppErrorMessage": None,
+    }
+
+    EXAMPLE_INSTALL_INFO_IOS = {
+        "buildId": "12346",
+        "appInfo": {
+            **_APP_INFO,
+            "artifactType": "XCARCHIVE",
+        },
+        "platform": "ios",
+        "isInstallable": True,
+        "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=plist",
+        "downloadCount": 3,
+        "releaseNotes": None,
+        "isCodeSignatureValid": True,
+        "profileName": "iOS Team Provisioning Profile",
+        "codesigningType": "development",
+        "installableAppErrorCode": None,
+        "installableAppErrorMessage": None,
+    }
+
+    GET_INSTALL_INFO = [
+        OpenApiExample(
+            "Installable Artifact",
+            value=EXAMPLE_INSTALL_INFO_INSTALLABLE,
+            status_codes=["200"],
+            response_only=True,
+        ),
+        OpenApiExample(
+            "Non-Installable Artifact",
+            value=EXAMPLE_INSTALL_INFO_NOT_INSTALLABLE,
+            status_codes=["200"],
+            response_only=True,
+        ),
+        OpenApiExample(
+            "iOS Artifact with Code Signing",
+            value=EXAMPLE_INSTALL_INFO_IOS,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    EXAMPLE_BUILD_SUMMARY = {
+        "buildId": "12345",
+        "state": "PROCESSED",
+        "appInfo": _APP_INFO,
+        "gitInfo": _GIT_INFO,
+        "platform": "android",
+        "projectId": "1",
+        "projectSlug": "my-project",
+        "buildConfiguration": "release",
+        "distributionInfo": {
+            "isInstallable": True,
+            "downloadCount": 5,
+        },
+    }
+
+    GET_BUILDS = [
+        OpenApiExample(
+            "Build List",
+            value=[EXAMPLE_BUILD_SUMMARY],
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
     GET_SIZE_ANALYSIS = [
         OpenApiExample(
             "Pending Analysis",
