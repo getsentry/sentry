@@ -1,0 +1,214 @@
+import {Fragment, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useDetectorAttributeComparison} from 'sentry/views/detectors/hooks/useDetectorAttributeComparison';
+import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import {Chart} from 'sentry/views/explore/components/attributeBreakdowns/cohortComparisonChart';
+import {COHORT_2_COLOR} from 'sentry/views/explore/components/attributeBreakdowns/constants';
+import {AttributeBreakdownsComponent} from 'sentry/views/explore/components/attributeBreakdowns/styles';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+
+const CHARTS_COLUMN_COUNT = 2;
+const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 3; // 6 charts per page
+
+type SortingMethod = 'rrr';
+
+type AttributeComparisonSectionProps = {
+  isOpenPeriodLoading: boolean;
+  openPeriodEnd: string;
+  openPeriodStart: string;
+  projectId: string | number;
+  snubaQuery: SnubaQuery;
+};
+
+export function AttributeComparisonSection({
+  snubaQuery,
+  openPeriodStart,
+  openPeriodEnd,
+  projectId,
+  isOpenPeriodLoading,
+}: AttributeComparisonSectionProps) {
+  const organization = useOrganization();
+  const theme = useTheme();
+  const {data, isLoading, error} = useDetectorAttributeComparison({
+    query: snubaQuery.query,
+    aggregate: snubaQuery.aggregate,
+    openPeriodStart,
+    openPeriodEnd,
+    projectId,
+    isOpenPeriodLoading,
+  });
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const sortingMethod: SortingMethod = 'rrr';
+  const [page, setPage] = useState(0);
+
+  const filteredRankedAttributes = useMemo(() => {
+    const attrs = data?.rankedAttributes;
+    if (!attrs) {
+      return [];
+    }
+
+    let filteredAttrs = attrs;
+    if (searchQuery.trim()) {
+      const searchFor = searchQuery.toLocaleLowerCase().trim();
+      filteredAttrs = attrs.filter(attr =>
+        attr.attributeName.toLocaleLowerCase().trim().includes(searchFor)
+      );
+    }
+
+    return [...filteredAttrs].sort((a, b) => {
+      const aOrder = a.order[sortingMethod];
+      const bOrder = b.order[sortingMethod];
+      if (aOrder === null && bOrder === null) return 0;
+      if (aOrder === null) return 1;
+      if (bOrder === null) return -1;
+      return aOrder - bOrder;
+    });
+  }, [searchQuery, data?.rankedAttributes, sortingMethod]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filteredRankedAttributes]);
+
+  const exploreUrl = useMemo(() => {
+    const openPeriodStartMs = new Date(openPeriodStart).getTime();
+    const openPeriodEndMs = new Date(openPeriodEnd).getTime();
+
+    const chartSelection: ChartSelectionQueryParam = {
+      chartIndex: 0,
+      range: [openPeriodStartMs, openPeriodEndMs],
+      // panelId format matches what the explore chart grid generates
+      panelId: 'grid--\u0000series\u00000\u00000',
+    };
+
+    const BASELINE_DAYS = 7;
+    const baselineStart = new Date(
+      openPeriodStartMs - BASELINE_DAYS * 24 * 60 * 60 * 1000
+    );
+
+    return getExploreUrl({
+      organization,
+      selection: {
+        datetime: {
+          start: baselineStart,
+          end: openPeriodEnd,
+          period: null,
+          utc: null,
+        },
+        environments: snubaQuery.environment ? [snubaQuery.environment] : [],
+        projects: [Number(projectId)],
+      },
+      visualize: [
+        {
+          chartType: ChartType.LINE,
+          yAxes: [snubaQuery.aggregate],
+        },
+      ],
+      query: snubaQuery.query,
+      mode: Mode.SAMPLES,
+      table: 'attribute_breakdowns',
+      chartSelection,
+    });
+  }, [organization, openPeriodStart, openPeriodEnd, snubaQuery, projectId]);
+
+  return (
+    <InterimSection
+      title={t('Attribute Comparison')}
+      type="attribute_comparison"
+      actions={
+        <LinkButton size="xs" to={exploreUrl}>
+          {t('View All')}
+        </LinkButton>
+      }
+    >
+      <Flex direction="column" gap="md">
+        <AttributeBreakdownsComponent.ControlsContainer>
+          <AttributeBreakdownsComponent.StyledBaseSearchBar
+            placeholder={t('Search attributes')}
+            onChange={setSearchQuery}
+            query={searchQuery}
+            size="sm"
+          />
+        </AttributeBreakdownsComponent.ControlsContainer>
+        <Stack gap="xs">
+          <LegendHint backgroundColor={theme.chart.getColorPalette(0)?.[0]}>
+            {t('Open period data')}
+          </LegendHint>
+          <LegendHint backgroundColor={COHORT_2_COLOR}>
+            {t('Baseline is 7 days before the open period')}
+          </LegendHint>
+        </Stack>
+        {isLoading ? (
+          <Placeholder height="200px" />
+        ) : error ? (
+          <AttributeBreakdownsComponent.ErrorState error={error} />
+        ) : filteredRankedAttributes.length > 0 ? (
+          <Fragment>
+            <SidebarChartsGrid>
+              {filteredRankedAttributes
+                .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
+                .map(attribute => (
+                  <Chart
+                    key={attribute.attributeName}
+                    attribute={attribute}
+                    theme={theme}
+                    cohort1Total={data?.cohort1Total ?? 0}
+                    cohort2Total={data?.cohort2Total ?? 0}
+                    query={snubaQuery.query}
+                  />
+                ))}
+            </SidebarChartsGrid>
+            {filteredRankedAttributes.length > CHARTS_PER_PAGE && (
+              <AttributeBreakdownsComponent.Pagination
+                isNextDisabled={
+                  page >= Math.ceil(filteredRankedAttributes.length / CHARTS_PER_PAGE) - 1
+                }
+                isPrevDisabled={page === 0}
+                onNextClick={() => setPage(p => p + 1)}
+                onPrevClick={() => setPage(p => p - 1)}
+              />
+            )}
+          </Fragment>
+        ) : (
+          <AttributeBreakdownsComponent.EmptySearchState />
+        )}
+      </Flex>
+    </InterimSection>
+  );
+}
+
+const SidebarChartsGrid = styled(Grid)`
+  grid-template-columns: repeat(${CHARTS_COLUMN_COUNT}, 1fr);
+  gap: ${p => p.theme.space.md};
+`;
+
+const LegendHint = styled(Text)<{backgroundColor?: string}>`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: ${p => p.backgroundColor || p.theme.colors.gray500};
+    margin-right: ${space(0.5)};
+    flex-shrink: 0;
+  }
+`;
