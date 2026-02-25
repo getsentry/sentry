@@ -2,13 +2,10 @@ from typing import Any
 
 from rest_framework.request import Request
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.rule import Rule
-from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
-from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 
@@ -25,20 +22,6 @@ class RuleEndpoint(ProjectEndpoint):
         if not rule_id.isdigit():
             raise ResourceDoesNotExist
 
-        if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            # Try to get the workflow ID with this rule ID from AlertRuleWorkflow lookup table
-            # If if does not exist, then this was an object that wasn't dual written, so get the real ID from fake ID
-            # Get the workflow from the workflow ID and return the workflow
-            try:
-                arw = AlertRuleWorkflow.objects.get(rule_id=rule_id)
-                kwargs["rule"] = arw.workflow
-            except AlertRuleWorkflow.DoesNotExist:
-                # this means the workflow was single written and has no ARW or related Rule object
-                try:
-                    workflow = Workflow.objects.get(id=rule_id)
-                    kwargs["rule"] = workflow
-                except Workflow.DoesNotExist:
-                    raise ResourceDoesNotExist
         else:
             # Mark that we're using legacy Rule models (before query to track failures too)
             report_used_legacy_models()

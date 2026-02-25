@@ -16,6 +16,7 @@ from sentry.analytics.events.rule_disable_opt_out import (
 from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
@@ -157,28 +158,37 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase, BaseWorkflowTest):
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_engine_serializer_single_written_rule(self) -> None:
-        self.workflow = self.create_workflow()
+        # self.workflow = self.create_workflow()
         self.detector = self.create_detector()
+        self.workflow_triggers = self.create_data_condition_group()
+        self.workflow = self.create_workflow(when_condition_group=self.workflow_triggers)
         self.detector_workflow = self.create_detector_workflow(
             detector=self.detector, workflow=self.workflow
         )
-        self.dcg = self.create_data_condition_group()
-        self.create_data_condition(
-            condition_group=self.dcg,
-            type=Condition.FIRST_SEEN_EVENT,
-            comparison=True,
+        self.create_data_condition(  # trigger condition
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1d", "value": 100},
             condition_result=True,
         )
-
+        self.workflow_filters = self.create_data_condition_group()
+        self.workflow_dcg = self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=self.workflow_filters
+        )
+        self.create_data_condition(  # filter condition
+            condition_group=self.workflow_filters,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "python"},
+            condition_result=True,
+        )
         self.action_group, self.action = self.create_workflow_action(self.workflow)
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.workflow.id, status_code=200
         )
-        assert (
-            response.data["id"] == "1234"
-        )  # TODO: we probably don't want this, do the fake id stuff
+        assert response.data["id"] == str(get_fake_id_from_object_id(self.workflow.id))
         assert response.data["environment"] is None
         assert response.data["conditions"][0]["name"]
+        assert response.data["filters"][0]["name"]
 
     def test_non_existing_rule(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)

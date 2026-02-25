@@ -449,6 +449,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         return {wf_id: date for wf_id, date in results.items() if date is not None}
 
     def get_attrs(self, item_list: Sequence[Workflow], user, **kwargs):
+        from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
         from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 
         # Bulk fetch users that created workflows
@@ -477,8 +478,9 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             result[workflow]["environment"] = workflow.environment
             result[workflow]["projects"] = list(workflow_to_projects[workflow])
-            # XXX: for a single written workflow we won't have a rule id. we could generate a fake one?
-            result[workflow]["rule_id"] = workflow_rule_ids.get(workflow.id, "1234")
+            result[workflow]["rule_id"] = workflow_rule_ids.get(
+                workflow.id, get_fake_id_from_object_id(workflow.id)
+            )
 
             result[workflow]["action_match"] = (
                 workflow.when_condition_group.logic_type if workflow.when_condition_group else None
@@ -522,7 +524,6 @@ class WorkflowEngineRuleSerializer(Serializer):
             conditions, filters = self._generate_rule_conditions_filters(
                 workflow, result[workflow]["projects"][0], workflow_dcg
             )
-
             result[workflow]["conditions"] = conditions
             result[workflow]["filters"] = filters
 

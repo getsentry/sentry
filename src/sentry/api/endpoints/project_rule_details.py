@@ -19,6 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
@@ -44,6 +45,8 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
+from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -136,13 +139,24 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
+            # TODO this won't work because convert_args may have already failed to find a rule with a matching id
+            # however we also can't have this logic in convert_args because other unrelated endpoints use the base class
+            try:
+                arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+                workflow = arw.workflow
+            except AlertRuleWorkflow.DoesNotExist:
+                # this means the workflow was single written and has no ARW or related Rule object
+                try:
+                    workflow = Workflow.objects.get(id=rule.id)
+                except Workflow.DoesNotExist:
+                    raise ResourceDoesNotExist
+
             workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
                 expand=request.GET.getlist("expand", []),
                 prepare_component_fields=True,
                 project_slug=project.slug,
             )
-            # XXX: Note that "rule" here is actually a Workflow object
-            serialized_rule = serialize(rule, request.user, workflow_engine_rule_serializer)
+            serialized_rule = serialize(workflow, request.user, workflow_engine_rule_serializer)
         else:
             # Serialize Rule object
             rule_serializer = RuleSerializer(
