@@ -507,12 +507,13 @@ import {FormSearch} from 'sentry/components/core/form';
 
 **Props:**
 
-| Prop       | Type        | Description                                                                                  |
-| ---------- | ----------- | -------------------------------------------------------------------------------------------- |
+| Prop       | Type        | Description                                                                                          |
+| ---------- | ----------- | ---------------------------------------------------------------------------------------------------- |
 | `route`    | `string`    | The settings route for this form (e.g., `'/settings/account/details/'`). Used for search navigation. |
-| `children` | `ReactNode` | The form content — rendered unchanged at runtime.                                            |
+| `children` | `ReactNode` | The form content — rendered unchanged at runtime.                                                    |
 
 **Rules:**
+
 - The `route` must match the settings page URL exactly (including trailing slash).
 - Wrap the **entire form section** with a single `FormSearch`, not individual fields.
 - Every `<AutoSaveField>` or `<form.AppField>` inside a `FormSearch` will be indexed. Make sure `label` and `hintText` are plain string literals or `t()` calls — computed/dynamic strings will be skipped by the extractor.
