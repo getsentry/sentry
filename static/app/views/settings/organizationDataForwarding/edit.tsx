@@ -180,32 +180,35 @@ function ProviderEditForm({
 
   const handleSubmit = (payload: DataForwarderPayload) => updateDataForwarder(payload);
 
-  if (provider === DataForwarderProviderSlug.SQS) {
-    return (
-      <SQSEditForm
-        dataForwarder={dataForwarder}
-        projects={projects}
-        disabled={disabled}
-        onSubmit={handleSubmit}
-      />
-    );
+  switch (provider) {
+    case DataForwarderProviderSlug.SQS:
+      return (
+        <SQSEditForm
+          dataForwarder={dataForwarder}
+          projects={projects}
+          disabled={disabled}
+          onSubmit={handleSubmit}
+        />
+      );
+    case DataForwarderProviderSlug.SEGMENT:
+      return (
+        <SegmentEditForm
+          dataForwarder={dataForwarder}
+          projects={projects}
+          disabled={disabled}
+          onSubmit={handleSubmit}
+        />
+      );
+    case DataForwarderProviderSlug.SPLUNK:
+      return (
+        <SplunkEditForm
+          dataForwarder={dataForwarder}
+          projects={projects}
+          disabled={disabled}
+          onSubmit={handleSubmit}
+        />
+      );
+    default:
+      return null;
   }
-  if (provider === DataForwarderProviderSlug.SEGMENT) {
-    return (
-      <SegmentEditForm
-        dataForwarder={dataForwarder}
-        projects={projects}
-        disabled={disabled}
-        onSubmit={handleSubmit}
-      />
-    );
-  }
-  return (
-    <SplunkEditForm
-      dataForwarder={dataForwarder}
-      projects={projects}
-      disabled={disabled}
-      onSubmit={handleSubmit}
-    />
-  );
 }

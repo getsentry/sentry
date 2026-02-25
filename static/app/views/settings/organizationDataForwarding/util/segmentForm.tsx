@@ -22,11 +22,11 @@ import {
   type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
-export const segmentSchema = baseDataForwarderSchema.extend({
+const segmentSchema = baseDataForwarderSchema.extend({
   write_key: z.string().min(1, t('Write key is required')),
 });
 
-export const segmentDefaults = {
+const segmentDefaults = {
   write_key: '',
 };
 
@@ -42,13 +42,13 @@ function buildSegmentConfig(
 /**
  * Reusable field group for Segment-specific configuration fields.
  */
-export const SegmentConfigFields = withFieldGroup({
+const SegmentConfigFields = withFieldGroup({
   defaultValues: segmentDefaults,
   props: {disabled: false},
   render: ({group, disabled}) => (
     <group.FieldGroup title={t('Global Configuration')}>
       <group.AppField name="write_key">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Write Key')}
             hintText={t(

@@ -102,7 +102,7 @@ export const EnablementFields = withFieldGroup({
   render: ({group, disabled, isSetup}) => (
     <group.FieldGroup title={t('Enablement')}>
       <group.AppField name="is_enabled">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Enable data forwarding')}
             hintText={
@@ -133,7 +133,7 @@ export const ProjectConfigFields = withFieldGroup({
   render: ({group, disabled, projectOptions}) => (
     <group.FieldGroup title={t('Project Configuration')}>
       <group.AppField name="enroll_new_projects">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Auto-enroll new projects')}
             hintText={t('Should new projects automatically forward their data?')}
@@ -147,7 +147,7 @@ export const ProjectConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="project_ids">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Forwarding projects')}
             hintText={t('Select the projects which should forward their data.')}

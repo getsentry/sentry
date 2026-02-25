@@ -22,7 +22,7 @@ import {
   type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
-export const sqsSchema = baseDataForwarderSchema.extend({
+const sqsSchema = baseDataForwarderSchema.extend({
   queue_url: z.string().min(1, t('Queue URL is required')),
   region: z.string().min(1, t('Region is required')),
   access_key: z.string().min(1, t('Access key is required')),
@@ -31,7 +31,7 @@ export const sqsSchema = baseDataForwarderSchema.extend({
   s3_bucket: z.string(),
 });
 
-export const sqsDefaults = {
+const sqsDefaults = {
   queue_url: '',
   region: '',
   access_key: '',
@@ -59,13 +59,13 @@ function buildSqsConfig(
 /**
  * Reusable field group for SQS-specific configuration fields.
  */
-export const SQSConfigFields = withFieldGroup({
+const SQSConfigFields = withFieldGroup({
   defaultValues: sqsDefaults,
   props: {disabled: false},
   render: ({group, disabled}) => (
     <group.FieldGroup title={t('Global Configuration')}>
       <group.AppField name="queue_url">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Queue URL')}
             hintText={t('The URL of the SQS queue to forward events to.')}
@@ -81,7 +81,7 @@ export const SQSConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="region">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Region')}
             hintText={t('The region of the SQS queue to forward events to.')}
@@ -97,7 +97,7 @@ export const SQSConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="access_key">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Access Key')}
             hintText={t('Currently only long-term IAM access keys are supported.')}
@@ -113,7 +113,7 @@ export const SQSConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="secret_key">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Secret Key')}
             hintText={t('Only visible once when the access key is created.')}
@@ -129,7 +129,7 @@ export const SQSConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="message_group_id">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Message Group ID')}
             hintText={t('Required for FIFO queues, exclude for standard queues')}
@@ -144,7 +144,7 @@ export const SQSConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="s3_bucket">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('S3 Bucket')}
             hintText={t(

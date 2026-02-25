@@ -22,14 +22,14 @@ import {
   type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
-export const splunkSchema = baseDataForwarderSchema.extend({
+const splunkSchema = baseDataForwarderSchema.extend({
   instance_url: z.string().min(1, t('Instance URL is required')),
   token: z.string().min(1, t('Token is required')),
   index: z.string().min(1, t('Index is required')),
   source: z.string().min(1, t('Source is required')),
 });
 
-export const splunkDefaults = {
+const splunkDefaults = {
   instance_url: '',
   token: '',
   index: 'main',
@@ -53,13 +53,13 @@ function buildSplunkConfig(
 /**
  * Reusable field group for Splunk-specific configuration fields.
  */
-export const SplunkConfigFields = withFieldGroup({
+const SplunkConfigFields = withFieldGroup({
   defaultValues: splunkDefaults,
   props: {disabled: false},
   render: ({group, disabled}) => (
     <group.FieldGroup title={t('Global Configuration')}>
       <group.AppField name="instance_url">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Instance URL')}
             hintText={t(
@@ -77,7 +77,7 @@ export const SplunkConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="token">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Token')}
             hintText={t('The token generated for your HTTP Event Collector.')}
@@ -93,7 +93,7 @@ export const SplunkConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="index">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Index')}
             hintText={t('The index to use for the events.')}
@@ -109,7 +109,7 @@ export const SplunkConfigFields = withFieldGroup({
         )}
       </group.AppField>
       <group.AppField name="source">
-        {(field: any) => (
+        {field => (
           <field.Layout.Row
             label={t('Source')}
             hintText={t('The source to use for the events.')}
