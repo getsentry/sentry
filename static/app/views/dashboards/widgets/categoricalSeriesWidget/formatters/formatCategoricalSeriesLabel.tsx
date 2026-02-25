@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 /**
@@ -23,5 +24,6 @@ export function formatCategoricalSeriesLabel(series: CategoricalSeries): string 
       .join(',');
   }
 
-  return series.valueAxis;
+  const label = series.valueAxis;
+  return isEquation(label) ? stripEquationPrefix(label) : label;
 }
