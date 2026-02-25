@@ -128,6 +128,8 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         ).filter(
             project=project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
+            installable_app_file_id__isnull=False,
+            mobile_app_info__build_number__isnull=False,
         )
 
         platform = params.get("platform")
