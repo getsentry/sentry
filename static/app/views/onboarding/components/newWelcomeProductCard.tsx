@@ -44,8 +44,6 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
       radius="lg"
       padding="xl"
       background={consideredSeerCard ? 'secondary' : 'primary'}
-      overflow={consideredSeerCard ? 'hidden' : undefined}
-      position={consideredSeerCard ? 'relative' : undefined}
       seer={consideredSeerCard}
     >
       <Grid
