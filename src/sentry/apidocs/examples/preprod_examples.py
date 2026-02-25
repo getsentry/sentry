@@ -48,7 +48,7 @@ class PreprodExamples:
     EXAMPLE_SIZE_ANALYSIS_FAILED = {
         **_BASE_RESPONSE,
         "state": "FAILED",
-        "errorCode": 1,
+        "errorCode": "TIMEOUT",
         "errorMessage": "Failed to analyze artifact: unsupported format",
     }
 
@@ -76,9 +76,9 @@ class PreprodExamples:
         },
         "comparisons": [
             {
-                "metricsArtifactType": 0,
+                "metricsArtifactType": "MAIN_ARTIFACT",
                 "identifier": None,
-                "state": 1,
+                "state": "SUCCESS",
                 "errorCode": None,
                 "errorMessage": None,
                 "diffItems": [
@@ -94,7 +94,7 @@ class PreprodExamples:
                 ],
                 "insightDiffItems": None,
                 "sizeMetricDiff": {
-                    "metricsArtifactType": 0,
+                    "metricsArtifactType": "MAIN_ARTIFACT",
                     "identifier": None,
                     "headInstallSize": 10240000,
                     "headDownloadSize": 5120000,
