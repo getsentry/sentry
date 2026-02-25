@@ -116,7 +116,9 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
                 "identifier": str(fake_incident_id),
             }
         )
-        assert serialized_incident == self.incident_expected
+        assert self._sort_triggers(serialized_incident) == self._sort_triggers(
+            self.incident_expected
+        )
 
     def test_with_activities(self) -> None:
         gopa = GroupOpenPeriodActivity.objects.create(
