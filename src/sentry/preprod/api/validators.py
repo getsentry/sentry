@@ -93,7 +93,7 @@ class PreprodPublicBuildsValidator(serializers.Serializer[Any]):
     """Validator for the public builds list endpoint (camelCase params)."""
 
     platform = serializers.ChoiceField(
-        choices=[("ios", "iOS"), ("android", "Android")],
+        choices=[("apple", "Apple"), ("android", "Android")],
         required=False,
         help_text="Filter by platform",
     )

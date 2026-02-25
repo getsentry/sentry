@@ -90,6 +90,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert build["buildId"] == str(self.artifact.id)
         assert build["state"] == "PROCESSED"
         assert build["platform"] == "android"
+
         assert build["projectId"] == str(self.project.id)
         assert build["projectSlug"] == self.project.slug
         assert build["buildConfiguration"] == "release"
@@ -125,7 +126,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["buildId"] == str(self.artifact.id)
 
-    def test_filter_by_platform_ios(self):
+    def test_filter_by_platform_apple(self):
         ios_file = self.create_file(name="test.xcarchive", type="application/octet-stream")
         ios_artifact = self._create_installable_artifact(
             file_id=ios_file.id,
@@ -133,12 +134,12 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
             app_id="com.example.iosapp",
         )
 
-        response = self.client.get(self._get_url(), {"platform": "ios"})
+        response = self.client.get(self._get_url(), {"platform": "apple"})
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
         assert data[0]["buildId"] == str(ios_artifact.id)
-        assert data[0]["platform"] == "ios"
+        assert data[0]["platform"] == "apple"
 
     def test_filter_by_platform_android(self):
         self._create_installable_artifact(

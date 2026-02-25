@@ -10,7 +10,7 @@ def platform_from_artifact_type(artifact_type: int | None) -> str | None:
         return None
     match artifact_type:
         case PreprodArtifact.ArtifactType.XCARCHIVE:
-            return "ios"
+            return "apple"
         case PreprodArtifact.ArtifactType.AAB | PreprodArtifact.ArtifactType.APK:
             return "android"
         case _:

@@ -42,7 +42,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             OpenApiParameter(
                 name="platform",
-                description='Filter by platform: "ios" or "android".',
+                description='Filter by platform: "apple" or "android".',
                 required=False,
                 type=str,
                 location="query",
@@ -134,7 +134,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
 
         platform = params.get("platform")
         if platform:
-            if platform == "ios":
+            if platform == "apple":
                 queryset = queryset.filter(artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE)
             elif platform == "android":
                 queryset = queryset.filter(

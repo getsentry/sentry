@@ -75,6 +75,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["installUrl"] is None
         assert data["downloadCount"] == 0
         assert data["platform"] == "android"
+
         assert data["appInfo"]["appId"] == "com.example.app"
         assert data["errorCode"] is None
         assert data["errorMessage"] is None
@@ -100,6 +101,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
         assert data["platform"] == "android"
+
         assert data["isCodeSignatureValid"] is None
 
     def test_installable_ios_artifact_valid_signature(self):
@@ -125,7 +127,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         data = response.json()
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
-        assert data["platform"] == "ios"
+        assert data["platform"] == "apple"
         assert data["isCodeSignatureValid"] is True
         assert data["profileName"] == "iOS Team Provisioning Profile"
         assert data["codesigningType"] == "development"

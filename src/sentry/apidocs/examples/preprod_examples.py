@@ -135,13 +135,13 @@ class PreprodExamples:
         "errorMessage": None,
     }
 
-    EXAMPLE_INSTALL_INFO_IOS = {
+    EXAMPLE_INSTALL_INFO_APPLE = {
         "buildId": "12346",
         "appInfo": {
             **_APP_INFO,
             "artifactType": "XCARCHIVE",
         },
-        "platform": "ios",
+        "platform": "apple",
         "isInstallable": True,
         "installUrl": "https://sentry.io/api/0/projects/org/project/files/installablepreprodartifact/abc123/?response_format=plist",
         "downloadCount": 3,
@@ -167,8 +167,8 @@ class PreprodExamples:
             response_only=True,
         ),
         OpenApiExample(
-            "iOS Artifact with Code Signing",
-            value=EXAMPLE_INSTALL_INFO_IOS,
+            "Apple Artifact with Code Signing",
+            value=EXAMPLE_INSTALL_INFO_APPLE,
             status_codes=["200"],
             response_only=True,
         ),
