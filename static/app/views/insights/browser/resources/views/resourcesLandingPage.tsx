@@ -10,10 +10,12 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import ResourceView from 'sentry/views/insights/browser/resources/components/resourceView';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
+import useHasPlatformizedAssets from 'sentry/views/insights/browser/resources/utils/useHasPlatformizedAssets';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {PlatformizedAssetsOverview} from 'sentry/views/insights/browser/resources/views/platformizedOverview';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -75,6 +77,12 @@ function PageWithProviders() {
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const hasPlatformizedAssets = useHasPlatformizedAssets();
+
+  if (hasPlatformizedAssets) {
+    return <PlatformizedAssetsOverview />;
+  }
 
   return (
     <ModulePageProviders

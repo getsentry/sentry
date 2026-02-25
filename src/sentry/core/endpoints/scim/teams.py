@@ -41,7 +41,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.signals import team_created
-from sentry.users.services.user.service import user_service
+from sentry.tasks.scim.privilege_sync import sync_scim_team_privileges
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 from sentry.utils.snowflake import MaxSnowflakeRetryError
@@ -366,67 +366,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             )
         )
 
-    def _grant_privilege(self, member: OrganizationMember, team: Team) -> None:
-        if not self._should_manage_privileges(team) or not member.user_id:
-            return
-
-        attrs = {}
-        permission_added = False
-
-        if team.slug == settings.SENTRY_SCIM_STAFF_TEAM_SLUG:
-            attrs["is_staff"] = True
-        elif team.slug == settings.SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG:
-            attrs["is_superuser"] = True
-        elif team.slug == settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG:
-            attrs["is_superuser"] = True
-            # Add permission first, track if successful
-            permission_added = user_service.add_permission(
-                user_id=member.user_id, permission="superuser.write"
-            )
-
-        if attrs:
-            try:
-                user_service.update_user(user_id=member.user_id, attrs=attrs)
-                metrics.incr(
-                    "sentry.scim.team.grant_privilege",
-                    tags={
-                        "organization": team.organization.slug,
-                        "team": team.slug,
-                    },
-                )
-            except Exception:
-                # Rollback: remove permission if we added it
-                if permission_added:
-                    user_service.remove_permission(
-                        user_id=member.user_id, permission="superuser.write"
-                    )
-                raise
-
-    def _revoke_privileges(self, member: OrganizationMember, team: Team) -> None:
-        if not self._should_manage_privileges(team) or not member.user_id:
-            return
-
-        attrs = {}
-
-        if team.slug == settings.SENTRY_SCIM_STAFF_TEAM_SLUG:
-            attrs["is_staff"] = False
-        elif team.slug == settings.SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG:
-            attrs["is_superuser"] = False
-        elif team.slug == settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG:
-            attrs["is_superuser"] = False
-            # Remove permission - if update_user fails later, we keep permission removed
-            user_service.remove_permission(user_id=member.user_id, permission="superuser.write")
-
-        if attrs:
-            user_service.update_user(user_id=member.user_id, attrs=attrs)
-            metrics.incr(
-                "sentry.scim.team.revoke_privileges",
-                tags={
-                    "organization": team.organization.slug,
-                    "team": team.slug,
-                },
-            )
-
     def _add_members_operation(self, request: Request, operation, team) -> list[OrganizationMember]:
         added_members = []
 
@@ -452,14 +391,16 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
         return added_members
 
-    def _remove_members_operation(self, request: Request, member_id, team) -> None:
+    def _remove_member_operation(
+        self, request: Request, member_id, team
+    ) -> OrganizationMember | None:
         member = OrganizationMember.objects.get(organization=team.organization, id=member_id)
 
         with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             try:
                 omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
             except OrganizationMemberTeam.DoesNotExist:
-                return
+                return None
 
             self.create_audit_entry(
                 request=request,
@@ -470,6 +411,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 data=omt.get_audit_log_data(),
             )
             omt.delete()
+
+        return member
 
     def _rename_team_operation(self, request: Request, new_name, team):
         serializer = TeamSerializer(
@@ -504,7 +447,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Update a team's attributes with a SCIM Group PATCH Request.
         """
-
         serializer = SCIMTeamPatchRequestSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -515,49 +457,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         if len(operations) > 100:
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
 
-        members_to_revoke: list[tuple[OrganizationMember, Team]] = []
-
-        for operation in operations:
-            op = operation["op"].lower()
-
-            if op == TeamPatchOps.REMOVE and "members" in operation["path"]:
-                try:
-                    member_id = self._get_member_id_for_remove_op(operation)
-                    member = OrganizationMember.objects.get(
-                        organization=team.organization, id=member_id
-                    )
-                    members_to_revoke.append((member, team))
-                except OrganizationMember.DoesNotExist:
-                    pass
-
-            elif op == TeamPatchOps.REPLACE:
-                path = operation.get("path")
-                if path == "members":
-                    existing = OrganizationMemberTeam.objects.filter(
-                        team_id=team.id
-                    ).select_related("organizationmember")
-                    for omt in existing:
-                        members_to_revoke.append((omt.organizationmember, team))
-
-        for member, team_obj in members_to_revoke:
-            try:
-                self._revoke_privileges(member, team_obj)
-            except Exception:
-                logger.exception(
-                    "scim.privilege_revocation_failed",
-                    extra={
-                        "organization_id": team.organization.id,
-                        "team_id": team.id,
-                        "member_id": member.id,
-                    },
-                )
-                return Response(
-                    {"detail": "Failed to revoke user privileges"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+        user_ids_to_revoke: list[int] = []
 
         members_to_grant_privileges: list[OrganizationMember] = []
-
         try:
             with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                 team.idp_provisioned = True
@@ -571,9 +473,13 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         members_to_grant_privileges.extend(added_members)
 
                     elif op == TeamPatchOps.REMOVE and "members" in operation["path"]:
-                        self._remove_members_operation(
-                            request, self._get_member_id_for_remove_op(operation), team
+                        member_id = self._get_member_id_for_remove_op(operation)
+                        member = OrganizationMember.objects.get(
+                            organization=team.organization, id=member_id
                         )
+                        if member.user_id:
+                            user_ids_to_revoke.append(member.user_id)
+                        self._remove_member_operation(request, member_id, team)
 
                     elif op == TeamPatchOps.REPLACE:
                         path = operation.get("path")
@@ -582,6 +488,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                             # delete all the current team members
                             # and replace with the ones in the operation list
                             with transaction.atomic(router.db_for_write(OrganizationMember)):
+                                # TODO: We're not removing the members's privileges if they're removed here.
+                                # We should probably find the removed members list by diff-ing the
+                                # existing members and the members in this replace operation.
                                 existing_members = list(
                                     OrganizationMemberTeam.objects.filter(team_id=team.id)
                                 )
@@ -610,22 +519,16 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             sentry_sdk.capture_exception(e)
             return Response(SCIM_400_INTEGRITY_ERROR, status=400)
 
-        for member in members_to_grant_privileges:
-            try:
-                self._grant_privilege(member, team)
-            except Exception:
-                logger.exception(
-                    "scim.privilege_grant_failed",
-                    extra={
-                        "organization_id": team.organization.id,
-                        "team_id": team.id,
-                        "member_id": member.id,
-                    },
-                )
-                return Response(
-                    {"detail": "Failed to grant user privileges"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+        user_ids_to_grant = [m.user_id for m in members_to_grant_privileges if m.user_id]
+
+        should_manage_privileges = self._should_manage_privileges(team)
+        if should_manage_privileges:
+            sync_scim_team_privileges.delay(
+                team_slug=team.slug,
+                organization_id=team.organization.id,
+                user_ids_to_grant=user_ids_to_grant,
+                user_ids_to_revoke=user_ids_to_revoke,
+            )
 
         metrics.incr("sentry.scim.team.update", tags={"organization": organization})
         return self.respond(status=204)
@@ -644,27 +547,21 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Delete a team with a SCIM Group DELETE Request.
         """
-        # Revoke privileges from all team members before deletion
         if self._should_manage_privileges(team):
-            members = OrganizationMemberTeam.objects.filter(team=team).select_related(
-                "organizationmember"
-            )
-            for omt in members:
-                try:
-                    self._revoke_privileges(omt.organizationmember, team)
-                except Exception:
-                    logger.exception(
-                        "scim.privilege_revocation_on_team_delete_failed",
-                        extra={
-                            "organization_id": team.organization.id,
-                            "team_id": team.id,
-                            "member_id": omt.organizationmember.id,
-                        },
-                    )
-                    return Response(
-                        {"detail": "Failed to revoke user privileges"},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    )
+            user_ids_to_revoke = [
+                omt.organizationmember.user_id
+                for omt in OrganizationMemberTeam.objects.filter(team=team).select_related(
+                    "organizationmember"
+                )
+                if omt.organizationmember.user_id
+            ]
+            if user_ids_to_revoke:
+                sync_scim_team_privileges.delay(
+                    team_slug=team.slug,
+                    organization_id=team.organization.id,
+                    user_ids_to_grant=[],
+                    user_ids_to_revoke=user_ids_to_revoke,
+                )
 
         metrics.incr("sentry.scim.team.delete")
         return super().delete(request, team)

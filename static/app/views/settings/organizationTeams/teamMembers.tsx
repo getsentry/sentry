@@ -3,8 +3,11 @@ import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
-import {Button} from '@sentry/scraps/button';
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -163,15 +166,13 @@ function AddMemberDropdown({
                 memberId: selection.value,
               })
       }
-      menuHeaderTrailingItems={
-        <Button
-          size="zero"
-          priority="link"
+      menuFooter={
+        <MenuComponents.CTAButton
           onClick={() => openInviteMembersModal({source: 'teams'})}
           data-test-id="invite-member"
         >
           {t('Invite Member')}
-        </Button>
+        </MenuComponents.CTAButton>
       }
       data-test-id="add-member-menu"
       disabled={isDropdownDisabled}

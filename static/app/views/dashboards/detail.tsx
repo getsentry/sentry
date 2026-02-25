@@ -46,6 +46,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {QueryClient, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
@@ -138,6 +139,7 @@ type Props = {
   organization: Organization;
   params: RouteParams;
   projects: Project[];
+  queryClient: QueryClient;
   router: InjectedRouter;
   theme: Theme;
   children?: React.ReactNode;
@@ -448,7 +450,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
-    const {api, organization, location} = this.props;
+    const {api, organization, location, queryClient} = this.props;
     if (!dashboard?.id) {
       return;
     }
@@ -456,7 +458,7 @@ class DashboardDetail extends Component<Props, State> {
     const previousDashboardState = this.state.dashboardState;
 
     this.setState({dashboardState: DashboardState.PENDING_DELETE}, () => {
-      deleteDashboard(api, organization.slug, dashboard.id)
+      deleteDashboard(api, dashboard.id, queryClient, organization)
         .then(() => {
           addSuccessMessage(t('Dashboard deleted'));
           trackAnalytics('dashboards2.delete', {organization});
@@ -1394,6 +1396,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'location'
   | 'params'
   | 'router'
+  | 'queryClient'
 > {}
 
 export default function DashboardDetailWithInjectedProps(
@@ -1408,7 +1411,7 @@ export default function DashboardDetailWithInjectedProps(
   const params = useParams<RouteParams>();
   const router = useRouter();
   const [chartInterval] = useChartInterval();
-
+  const queryClient = useQueryClient();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1428,6 +1431,7 @@ export default function DashboardDetailWithInjectedProps(
       params={params}
       router={router}
       widgetInterval={widgetInterval}
+      queryClient={queryClient}
     />
   );
 }

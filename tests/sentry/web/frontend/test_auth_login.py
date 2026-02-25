@@ -18,6 +18,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.newsletter.dummy import DummyNewsletter
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -27,8 +28,10 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import json
+from sentry.web.frontend.auth_login import AuthLoginView
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
@@ -77,6 +80,17 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         ]
 
     @override_settings(SENTRY_SELF_HOSTED=False)
+    @mock.patch.object(
+        AuthLoginView,
+        "rate_limits",
+        RateLimitConfig(
+            limit_overrides={
+                "GET": {
+                    RateLimitCategory.IP: RateLimit(limit=20, window=60),
+                }
+            }
+        ),
+    )
     def test_login_ratelimited_ip_gets(self) -> None:
         url = reverse("sentry-login")
 

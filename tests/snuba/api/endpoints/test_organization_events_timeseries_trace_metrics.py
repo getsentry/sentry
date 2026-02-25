@@ -360,3 +360,96 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         # The valueUnit should be '1/minute' since per_minute formula implies per minute rate
         assert timeseries["meta"]["valueType"] == "rate"
         assert timeseries["meta"]["valueUnit"] == "1/minute"
+
+    def test_aggregate_with_unit_filters_for_correct_items(self):
+        trace_metrics = [
+            self.create_trace_metric("request_count", 1, "counter", timestamp=self.start),
+            self.create_trace_metric(
+                "request_count", 1, "counter", metric_unit="millisecond", timestamp=self.start
+            ),
+            self.create_trace_metric(
+                "request_count", 1, "counter", metric_unit="millisecond", timestamp=self.start
+            ),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=1),
+                "interval": "1h",
+                "yAxis": "count(value,request_count,counter,millisecond)",
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 1
+        assert len(response.data["timeSeries"][0]["values"]) == 1
+
+        # only the metrics with a unit of millisecond should be counted
+        assert response.data["timeSeries"][0]["values"][0]["value"] == 2
+
+    def test_aggregate_with_placeholder_unit_returns_metrics_for_all_unit_types(self):
+        trace_metrics = [
+            self.create_trace_metric("request_count", 1, "counter", timestamp=self.start),
+            self.create_trace_metric(
+                "request_count", 1, "counter", metric_unit="second", timestamp=self.start
+            ),
+            self.create_trace_metric(
+                "request_count", 1, "counter", metric_unit="millisecond", timestamp=self.start
+            ),
+            self.create_trace_metric(
+                "request_count", 1, "counter", metric_unit="byte", timestamp=self.start
+            ),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=1),
+                "interval": "1h",
+                "yAxis": "count(value,request_count,counter,-)",
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 1
+        assert len(response.data["timeSeries"][0]["values"]) == 1
+
+        # all metrics should be counted
+        assert response.data["timeSeries"][0]["values"][0]["value"] == 4
+
+    def test_aggregate_with_explicit_none_unit_returns_metrics_for_no_unit_items(self):
+        trace_metrics = [
+            self.create_trace_metric("request_count", 1, "counter", timestamp=self.start),
+            self.create_trace_metric(
+                "request_count", 1, "counter", metric_unit="second", timestamp=self.start
+            ),
+            self.create_trace_metric(
+                "request_count", 1, "counter", metric_unit="millisecond", timestamp=self.start
+            ),
+            self.create_trace_metric(
+                "request_count", 1, "counter", metric_unit="byte", timestamp=self.start
+            ),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=1),
+                "interval": "1h",
+                "yAxis": "count(value,request_count,counter,none)",
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 1
+        assert len(response.data["timeSeries"][0]["values"]) == 1
+
+        # only the metrics with a unit of none should be counted
+        assert response.data["timeSeries"][0]["values"][0]["value"] == 1
