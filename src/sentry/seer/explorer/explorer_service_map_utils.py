@@ -14,7 +14,6 @@ from collections import defaultdict
 from typing import Any, cast
 
 import orjson
-from django.utils import timezone as django_timezone
 
 from sentry import options
 from sentry.search.eap.types import SearchResolverConfig
@@ -312,7 +311,6 @@ def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
         "organization_id": org_id,
         "nodes": valid_nodes,
         "edges": valid_edges,
-        "generated_at": django_timezone.now().isoformat(),
     }
 
     body = orjson.dumps(payload)
