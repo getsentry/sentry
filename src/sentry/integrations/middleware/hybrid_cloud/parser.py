@@ -215,6 +215,13 @@ class BaseRequestParser(ABC):
             )
             return str(integration.id)
 
+        return self._build_bucketed_identifier(integration, data)
+
+    def _build_bucketed_identifier(
+        self, integration: RpcIntegration | Integration, data: dict[str, Any]
+    ) -> str:
+        """Compute a sub-mailbox identifier from mailbox_bucket_id, falling back to
+        the integration-level mailbox when no bucket ID is available."""
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
             metrics.incr(
