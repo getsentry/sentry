@@ -49,6 +49,10 @@ describe('ProfilePreviewSection', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    localStorage.removeItem(getFoldSectionKey(SectionKey.PROFILE_PREVIEW));
+  });
+
   it('does not render when event has no profiler_id', () => {
     const event = EventFixture({
       contexts: {},
