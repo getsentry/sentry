@@ -7,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -499,17 +498,6 @@ function ProjectSeer({
 export default function ProjectSeerContainer() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-
-  if (!organization.features.includes('autofix-seer-preferences')) {
-    return (
-      <FeatureDisabled
-        features={['organizations:autofix-seer-preferences']}
-        hideHelpToggle
-        message={t('Autofix is not enabled for this organization.')}
-        featureName={t('Autofix')}
-      />
-    );
-  }
 
   return <ProjectSeer organization={organization} project={project} />;
 }

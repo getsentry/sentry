@@ -381,3 +381,61 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             call_kwargs = self.mock_seer.call_args[1]
             payload = call_kwargs["payload"]
             assert payload["request_type"] == SeerCodeReviewRequestType.PR_CLOSED.value
+
+    def test_validation_happens_before_task_scheduling_pr_closed(self) -> None:
+        """Test that invalid pr-closed payloads are caught before scheduling the Celery task."""
+        with (
+            self.code_review_setup(),
+            self.tasks(),
+            patch(
+                "sentry.seer.code_review.webhooks.task.transform_webhook_to_codegen_request"
+            ) as mock_transform,
+        ):
+            # Return an invalid payload missing required fields for pr-closed
+            mock_transform.return_value = {
+                "request_type": "pr-closed",
+                "data": {
+                    # Missing required fields like repo, pr_id, etc.
+                    "invalid": "payload"
+                },
+            }
+
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "closed"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            # Task should NOT be scheduled due to validation failure
+            self.mock_seer.assert_not_called()
+
+    def test_validation_happens_before_task_scheduling_pr_review(self) -> None:
+        """Test that invalid pr-review payloads are caught before scheduling the Celery task."""
+        with (
+            self.code_review_setup(),
+            self.tasks(),
+            patch(
+                "sentry.seer.code_review.webhooks.task.transform_webhook_to_codegen_request"
+            ) as mock_transform,
+        ):
+            # Return an invalid payload missing required fields for pr-review
+            mock_transform.return_value = {
+                "request_type": "pr-review",
+                "data": {
+                    # Missing required fields
+                    "invalid": "payload"
+                },
+            }
+
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "opened"
+
+            self._send_webhook_event(
+                GithubWebhookType.PULL_REQUEST,
+                orjson.dumps(event),
+            )
+
+            # Task should NOT be scheduled due to validation failure
+            self.mock_seer.assert_not_called()

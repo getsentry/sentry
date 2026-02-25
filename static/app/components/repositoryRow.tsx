@@ -51,80 +51,83 @@ export default function RepositoryRow({
       () => {}
     );
 
-  const renderDeleteButton = (hasAccess: boolean) => (
-    <Tooltip
-      title={t(
-        'You must be an organization owner, manager or admin to remove a repository.'
-      )}
-      disabled={hasAccess}
-    >
-      <Confirm
-        disabled={
-          !hasAccess || (!isActive && repository.status !== RepositoryStatus.DISABLED)
-        }
-        onConfirm={deleteRepo}
-        message={t(
-          'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
-        )}
-      >
-        <StyledButton
-          size="xs"
-          icon={<IconDelete />}
-          aria-label={t('delete')}
-          disabled={!hasAccess}
-        />
-      </Confirm>
-    </Tooltip>
-  );
-
   return (
     <Access access={['org:integrations']}>
       {({hasAccess}) => (
         <StyledPanelItem status={repository.status}>
-          <Stack>
-            <RepositoryTitle>
-              <strong>{repository.name}</strong>
-              {!isActive && <small> &mdash; {getRepoStatusLabel(repository)}</small>}
-              {repository.status === RepositoryStatus.PENDING_DELETION && (
-                <StyledButton
-                  size="xs"
-                  onClick={cancelDelete}
-                  disabled={!hasAccess}
-                  data-test-id="repo-cancel"
-                >
-                  {t('Cancel')}
-                </StyledButton>
-              )}
-            </RepositoryTitle>
-            <div>
-              {showProvider && (
-                <Flex as="span" align="center" gap="xs" display="inline-flex">
-                  <small>{repository.provider.name}</small>
-                  {repository.provider.id === 'unknown' && (
-                    <QuestionTooltip
-                      isHoverable
+          <Flex gap="md" justify="between" align="center" flex={1}>
+            <Stack>
+              <RepositoryTitle>
+                <Flex gap="md">
+                  <strong>{repository.name}</strong>
+                  {!isActive && <small> &mdash; {getRepoStatusLabel(repository)}</small>}
+                  {repository.status === RepositoryStatus.PENDING_DELETION && (
+                    <Button
                       size="xs"
-                      title={tct(
-                        'This repository is not linked to a source code management integration. It was detected from your release or stack trace data. [link:Set up an integration].',
-                        {
-                          link: <Link to={`/settings/${orgSlug}/integrations/`} />,
-                        }
-                      )}
-                    />
+                      onClick={cancelDelete}
+                      disabled={!hasAccess}
+                      data-test-id="repo-cancel"
+                    >
+                      {t('Cancel')}
+                    </Button>
                   )}
                 </Flex>
+              </RepositoryTitle>
+              <div>
+                {showProvider && (
+                  <Flex as="span" align="center" gap="xs" display="inline-flex">
+                    <small>{repository.provider.name}</small>
+                    {repository.provider.id === 'unknown' && (
+                      <QuestionTooltip
+                        isHoverable
+                        size="xs"
+                        title={tct(
+                          'This repository is not linked to a source code management integration. It was detected from your release or stack trace data. [link:Set up an integration].',
+                          {
+                            link: <Link to={`/settings/${orgSlug}/integrations/`} />,
+                          }
+                        )}
+                      />
+                    )}
+                  </Flex>
+                )}
+                {showProvider && repository.url && <span>&nbsp;&mdash;&nbsp;</span>}
+                {repository.url && (
+                  <small>
+                    <ExternalLink href={repository.url}>
+                      {repository.url.replace('https://', '')}
+                    </ExternalLink>
+                  </small>
+                )}
+              </div>
+            </Stack>
+            <Tooltip
+              title={t(
+                'You must be an organization owner, manager or admin to remove a repository.'
               )}
-              {showProvider && repository.url && <span>&nbsp;&mdash;&nbsp;</span>}
-              {repository.url && (
-                <small>
-                  <ExternalLink href={repository.url}>
-                    {repository.url.replace('https://', '')}
-                  </ExternalLink>
-                </small>
-              )}
-            </div>
-          </Stack>
-          {renderDeleteButton(hasAccess)}
+              disabled={hasAccess}
+            >
+              <Confirm
+                disabled={
+                  !hasAccess ||
+                  (!isActive && repository.status !== RepositoryStatus.DISABLED)
+                }
+                onConfirm={deleteRepo}
+                message={t(
+                  'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
+                )}
+              >
+                <Button
+                  size="xs"
+                  priority="danger"
+                  icon={<IconDelete />}
+                  disabled={!hasAccess}
+                >
+                  {t('Delete')}
+                </Button>
+              </Confirm>
+            </Tooltip>
+          </Flex>
         </StyledPanelItem>
       )}
     </Access>
@@ -148,10 +151,6 @@ const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
   &:last-child {
     border-bottom: none;
   }
-`;
-
-const StyledButton = styled(Button)`
-  margin-left: ${space(1)};
 `;
 
 const RepositoryTitle = styled('div')`
