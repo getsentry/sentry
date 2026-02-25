@@ -8,6 +8,17 @@ from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
+class CodingAgent(models.TextChoices):
+    SEER = "seer", "Seer"
+    CURSOR = "cursor", "Cursor"
+
+
+# Agents that require an integration to be configured.
+# Validated at the API/serializer layer (not via DB constraint) so that adding
+# new agents doesn't require a migration to update a CheckConstraint.
+INTEGRATION_REQUIRED_AGENTS: frozenset[str] = frozenset({CodingAgent.CURSOR})
+
+
 @region_silo_model
 class SeerOrganizationSettings(DefaultFieldsModel):
     """
@@ -21,10 +32,18 @@ class SeerOrganizationSettings(DefaultFieldsModel):
     organization = FlexibleForeignKey(
         "sentry.Organization", on_delete=models.CASCADE, unique=True, db_index=True
     )
-    # When null, the default coding agent is Sentry's built-in Seer agent.
-    # When set, overrides the default to use a specific integration (e.g. a
-    # Cursor integration). HybridCloudForeignKey because Integration
-    # is a @control_silo_model.
+    # Which coding agent to use for new projects in this org.
+    # "seer" = Sentry's built-in Seer agent (default)
+    # "cursor" = Cursor (requires default_coding_agent_integration_id)
+    # null = disabled, don't run any coding agent
+    default_coding_agent = models.CharField(
+        max_length=32,
+        choices=CodingAgent.choices,
+        default=CodingAgent.SEER,
+        null=True,
+    )
+    # Only set when default_coding_agent requires an integration (e.g. "cursor").
+    # HybridCloudForeignKey because Integration is a @control_silo_model.
     default_coding_agent_integration_id = HybridCloudForeignKey(
         "sentry.Integration", on_delete="SET_NULL", null=True, blank=True, db_index=True
     )
@@ -33,4 +52,4 @@ class SeerOrganizationSettings(DefaultFieldsModel):
         app_label = "seer"
         db_table = "seer_organizationsettings"
 
-    __repr__ = sane_repr("organization_id", "default_coding_agent_integration_id")
+    __repr__ = sane_repr("organization_id", "default_coding_agent")
