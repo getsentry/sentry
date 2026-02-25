@@ -225,3 +225,51 @@ Frontend (`static/`) and backend (`src/`, `tests/`) are **not atomically deploye
 - If your changes touch both frontend and backend, split them into **separate PRs**.
 - Land the backend PR first when the frontend depends on new API changes.
 - Pure test additions alongside `src/` changes are fine in one PR.
+
+## Cursor Cloud specific instructions
+
+### Environment overview
+
+The `devenv` CLI is macOS-only. On Cursor Cloud (Linux), dependencies are installed manually:
+
+- **Python 3.13** via deadsnakes PPA, venv at `.venv/`
+- **Node.js 22.16.0** via nvm
+- **pnpm 10.30.2** via npm global install
+- **uv** (Python package manager) at `~/.local/bin/uv`
+- **Docker** for devservices (Postgres, Redis, Kafka/ClickHouse via Snuba, Relay, Spotlight)
+
+### Starting services
+
+```bash
+# Ensure PATH includes all tools
+export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/v22.16.0/bin:/workspace/.venv/bin:$PATH"
+export VIRTUAL_ENV="/workspace/.venv"
+export SENTRY_CONF="$HOME/.sentry"
+export NODE_OPTIONS="--max-old-space-size=4096 --experimental-transform-types"
+
+# Start Docker daemon (if not running)
+sudo dockerd &>/tmp/dockerd.log &
+sleep 5
+sudo chmod 666 /var/run/docker.sock
+
+# Start devservices (default mode: Postgres, Redis, Snuba, Relay, Spotlight)
+devservices up --mode default
+
+# Start the dev server (backend only, no watchers for faster startup)
+sentry devserver 0.0.0.0:8000 --no-watchers &
+
+# For frontend with hot reload, also run:
+pnpm run dev-ui
+```
+
+### Gotchas
+
+- **No `devenv sync` on Linux**: Run `uv sync --frozen --inexact --quiet --active` and `pnpm install --frozen-lockfile` manually instead.
+- **`fast_editable` required**: After `uv sync`, run `.venv/bin/python -m tools.fast_editable --path .` to make `sentry` importable.
+- **Docker socket permissions**: After starting `dockerd`, run `sudo chmod 666 /var/run/docker.sock`.
+- **Kafka connection errors during `sentry upgrade`**: Expected when running in `migrations` mode (no Kafka). These are non-fatal warnings.
+- **Frontend assets**: The devserver with `--no-watchers` serves pre-built assets. Either run `pnpm run build` once, or use `pnpm run dev-ui` alongside the devserver for hot reload.
+- **Login credentials**: `admin@sentry.io` / `admin` (created via `sentry createuser --superuser`).
+- **Backend tests**: Use `pytest -svv --reuse-db` (no `--timeout` flag; it's not a recognized argument).
+- **Frontend tests**: Always use `CI=true pnpm test <file>` to prevent watch mode.
+- **Pre-commit hooks**: If `core.hooksPath` is set, unset it first: `git config --unset-all core.hooksPath`.
