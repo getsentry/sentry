@@ -11,6 +11,8 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLog';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -42,11 +44,12 @@ export default function ProjectReplaySettings() {
 
   const mutationOptions = {
     mutationFn: (data: Partial<ReplaySchema>) =>
-      fetchMutation({
+      fetchMutation<Project>({
         url: projectEndpoint,
         method: 'PUT',
         data: {options: data},
       }),
+    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
   };
 
   const {getParamValue, setParamValue} = useUrlParams(
