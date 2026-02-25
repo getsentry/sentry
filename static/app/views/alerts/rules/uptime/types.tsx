@@ -199,7 +199,7 @@ interface PreviewCheckStatusReason {
   type: PreviewCheckStatusReasonType;
 }
 
-export interface PreviewCheckResponse {
+export interface PreviewCheckResult {
   check_result?: {
     actual_check_time_ms: number;
     assertion_failure_data: Assertion | null;
@@ -332,7 +332,7 @@ export interface AssertionSuggestion {
 }
 
 export interface AssertionSuggestionsResponse {
-  preview_result: PreviewCheckResponse;
+  preview_result: PreviewCheckResult;
   suggested_assertion: Assertion | null;
   suggestions: AssertionSuggestion[] | null;
 }

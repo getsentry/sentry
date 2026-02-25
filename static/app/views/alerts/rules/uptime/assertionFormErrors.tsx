@@ -14,7 +14,7 @@ import {
   type NotOp,
   type Op,
   type PreviewCheckCompilationError,
-  type PreviewCheckResponse,
+  type PreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/types';
 import {isLeafOp, leafOpsMatch} from 'sentry/views/alerts/rules/uptime/assertions/utils';
 
@@ -163,7 +163,7 @@ export function mapPreviewCheckErrorToMessage(
 }
 
 export function mapPreviewCheckResponseToMessage(
-  response: PreviewCheckResponse
+  response: PreviewCheckResult
 ): string | null {
   const result = response.check_result;
   if (!result) return null;
@@ -249,7 +249,7 @@ function resolveOpFromAssertPath(assertPath: string[], rootOp: AndOp): Op | null
  * the specific Op that caused the failure, or null if one cannot be identified.
  */
 export function resolveErroredOp(
-  state: {data: PreviewCheckResponse | null; error: PreviewCheckCompilationError | null},
+  state: {data: PreviewCheckResult | null; error: PreviewCheckCompilationError | null},
   rootOp: AndOp
 ): Op | null {
   if (state.data) {
@@ -290,7 +290,7 @@ const ASSERTION_ERROR_TYPE_LABELS: Partial<Record<string, string>> = {
 };
 
 function getAssertionFormErrorMessage(
-  state: {data: PreviewCheckResponse | null; error: PreviewCheckCompilationError | null}
+  state: {data: PreviewCheckResult | null; error: PreviewCheckCompilationError | null}
 ): string | null {
   if (state.data) {
     const result = state.data.check_result;
@@ -329,7 +329,7 @@ function getAssertionFormErrorMessage(
 interface AssertionFormErrorProps {
   erroredOp: Op | null;
   op: Op;
-  state: {data: PreviewCheckResponse | null; error: PreviewCheckCompilationError | null};
+  state: {data: PreviewCheckResult | null; error: PreviewCheckCompilationError | null};
 }
 
 export function AssertionFormError({op, erroredOp, state}: AssertionFormErrorProps) {

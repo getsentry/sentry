@@ -45,8 +45,8 @@ import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
 import {HTTPSnippet} from './httpSnippet';
 import {
   extractCompilationError,
-  PreviewCheckResultsProvider,
-  usePreviewCheckResults,
+  PreviewCheckResultProvider,
+  usePreviewCheckResult,
 } from './previewCheckContext';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
@@ -104,9 +104,9 @@ function getFormDataFromRule(rule: UptimeRule) {
 
 export function UptimeAlertForm({handleDelete, rule}: Props) {
   return (
-    <PreviewCheckResultsProvider>
+    <PreviewCheckResultProvider>
       <UptimeAlertFormContent handleDelete={handleDelete} rule={rule} />
-    </PreviewCheckResultsProvider>
+    </PreviewCheckResultProvider>
   );
 }
 
@@ -117,7 +117,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
-  const {setData, setError} = usePreviewCheckResults();
+  const {setPreviewCheckData, setPreviewCheckError} = usePreviewCheckResult();
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -223,7 +223,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
       mapFormErrors={responseJson => {
-        setError(extractCompilationError(responseJson));
+        setPreviewCheckError(extractCompilationError(responseJson));
         return mapAssertionFormErrors(responseJson);
       }}
       onFieldChange={onFieldChange}
@@ -292,10 +292,10 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
                 };
               }}
               onSuccess={response => {
-                setData(response);
+                setPreviewCheckData(response);
               }}
               onValidationError={responseJson => {
-                setError(extractCompilationError(responseJson));
+                setPreviewCheckError(extractCompilationError(responseJson));
                 const mapped = mapAssertionFormErrors(responseJson);
                 formModel.handleErrorResponse({responseJSON: mapped});
               }}

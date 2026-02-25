@@ -2,7 +2,7 @@ import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {uniqueId} from 'sentry/utils/guid';
 import {resolveErroredOp} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
-import {usePreviewCheckResults} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
+import {usePreviewCheckResult} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 import {
   ComparisonType,
   OpType,
@@ -12,7 +12,6 @@ import {
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionOpGroup} from './opGroup';
-import { toJS } from 'mobx';
 
 /**
  * Recursively normalizes assertion values to ensure they are valid before submission.
@@ -83,7 +82,7 @@ function createDefaultAssertionRoot(): AndOp {
 // abysmal, so we're leaving this untyped for now.
 
 function UptimeAssertionsControl({onChange, onBlur, value}: any) {
-  const {data, error, reset} = usePreviewCheckResults();
+  const {data, error, resetPreviewCheckResult} = usePreviewCheckResult();
 
   // value is an Assertion object from initialData or defaultValue.
   // During initial render, value may briefly be undefined before FormField processes defaultValue.
@@ -94,15 +93,13 @@ function UptimeAssertionsControl({onChange, onBlur, value}: any) {
   const rootOp: AndOp = value.root;
   const erroredOp = resolveErroredOp({data, error}, rootOp);
 
-  console.log('erroredOp', erroredOp?.id ?? null, 'rootOp', toJS(rootOp));
-
   return (
     <AssertionOpGroup
       root
       value={rootOp}
       erroredOp={erroredOp}
       onChange={op => {
-        reset();
+        resetPreviewCheckResult();
         onChange({root: op}, {});
         onBlur({root: op}, {});
       }}

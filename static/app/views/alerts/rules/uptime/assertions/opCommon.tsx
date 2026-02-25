@@ -12,7 +12,7 @@ import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ComparisonType, type Op} from 'sentry/views/alerts/rules/uptime/types';
 import {AssertionFormError} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
-import {usePreviewCheckResults} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
+import {usePreviewCheckResult} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 
 interface AnimatedOpProps
   extends MotionProps, Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
@@ -75,7 +75,7 @@ export function OpContainer({
       data: op,
     });
 
-  const {data, error} = usePreviewCheckResults();
+  const {data, error} = usePreviewCheckResult();
 
   return (
     <Flex direction="column" gap="sm">
@@ -157,6 +157,6 @@ export const COMPARISON_OPTIONS: Array<SelectOption<ComparisonType> & {symbol: s
 export const STRING_OPERAND_OPTIONS: Array<
   SelectOption<'literal' | 'glob'> & {symbol: string}
 > = [
-  {value: 'literal', label: t('Literal'), symbol: '""'},
+  {value: 'literal', label: t('Literal'), symbol: '""',},
   {value: 'glob', label: t('Glob Pattern'), symbol: '\u2217'},
 ];

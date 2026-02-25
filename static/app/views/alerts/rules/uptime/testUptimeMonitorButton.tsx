@@ -11,7 +11,7 @@ import {
   PreviewCheckStatus,
   type Assertion,
   type PreviewCheckPayload,
-  type PreviewCheckResponse,
+  type PreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 interface TestUptimeMonitorButtonProps {
@@ -35,7 +35,7 @@ interface TestUptimeMonitorButtonProps {
    * Called when the preview check completes successfully. Receives the full
    * response so callers can store the result in context.
    */
-  onSuccess?: (response: PreviewCheckResponse) => void;
+  onSuccess?: (response: PreviewCheckResult) => void;
   /**
    * Called when the preview check returns a validation error (e.g. assertion
    * compilation errors). Receives the parsed response JSON so callers can
@@ -58,12 +58,12 @@ export function TestUptimeMonitorButton({
   const organization = useOrganization();
 
   const {mutate: runPreviewCheck, isPending} = useMutation<
-    PreviewCheckResponse,
+    PreviewCheckResult,
     RequestError,
     PreviewCheckPayload
   >({
     mutationFn: (payload: PreviewCheckPayload) =>
-      fetchMutation<PreviewCheckResponse>({
+      fetchMutation<PreviewCheckResult>({
         url: `/organizations/${organization.slug}/uptime-preview-check/`,
         method: 'POST',
         data: {...payload},

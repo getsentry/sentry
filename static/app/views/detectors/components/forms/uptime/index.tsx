@@ -8,8 +8,8 @@ import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {mapAssertionFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
 import {
   extractCompilationError,
-  PreviewCheckResultsProvider,
-  usePreviewCheckResults,
+  PreviewCheckResultProvider,
+  usePreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
@@ -71,15 +71,15 @@ function UptimeDetectorForm() {
 
 export function NewUptimeDetectorForm() {
   return (
-    <PreviewCheckResultsProvider>
+    <PreviewCheckResultProvider>
       <NewUptimeDetectorFormContent />
-    </PreviewCheckResultsProvider>
+    </PreviewCheckResultProvider>
   );
 }
 
 function NewUptimeDetectorFormContent() {
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
-  const {setError} = usePreviewCheckResults();
+  const {setPreviewCheckError} = usePreviewCheckResult();
 
   return (
     <NewDetectorLayout
@@ -96,7 +96,7 @@ function NewUptimeDetectorFormContent() {
         ) : undefined
       }
       mapFormErrors={responseJson => {
-        setError(extractCompilationError(responseJson));
+        setPreviewCheckError(extractCompilationError(responseJson));
         return mapAssertionFormErrors(responseJson);
       }}
     >
@@ -107,9 +107,9 @@ function NewUptimeDetectorFormContent() {
 
 export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDetector}) {
   return (
-    <PreviewCheckResultsProvider>
+    <PreviewCheckResultProvider>
       <EditExistingUptimeDetectorFormContent detector={detector} />
-    </PreviewCheckResultsProvider>
+    </PreviewCheckResultProvider>
   );
 }
 
@@ -119,7 +119,7 @@ function EditExistingUptimeDetectorFormContent({
   detector: UptimeDetector;
 }) {
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
-  const {setError} = usePreviewCheckResults();
+  const {setPreviewCheckError} = usePreviewCheckResult();
 
   return (
     <EditDetectorLayout
@@ -138,7 +138,7 @@ function EditExistingUptimeDetectorFormContent({
         ) : undefined
       }
       mapFormErrors={responseJson => {
-        setError(extractCompilationError(responseJson));
+        setPreviewCheckError(extractCompilationError(responseJson));
         return mapAssertionFormErrors(responseJson);
       }}
     >

@@ -2,51 +2,53 @@ import {createContext, useContext, useState} from 'react';
 
 import type {
   PreviewCheckCompilationError,
-  PreviewCheckResponse,
+  PreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 export {extractCompilationError} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
 
-type PreviewCheckResultsState = {
-  data: PreviewCheckResponse | null;
+type PreviewCheckResultState = {
+  data: PreviewCheckResult | null;
   error: PreviewCheckCompilationError | null;
 };
 
-type PreviewCheckResultsContextType = PreviewCheckResultsState & {
-  setData: (data: PreviewCheckResponse | null) => void;
-  setError: (error: PreviewCheckCompilationError | null) => void;
-  reset: () => void;
+type PreviewCheckResultContextType = PreviewCheckResultState & {
+  setPreviewCheckData: (data: PreviewCheckResult | null) => void;
+  setPreviewCheckError: (error: PreviewCheckCompilationError | null) => void;
+  resetPreviewCheckResult: () => void;
 };
 
-const PreviewCheckResultsContext =
-  createContext<PreviewCheckResultsContextType | null>(null);
+const PreviewCheckResultContext =
+  createContext<PreviewCheckResultContextType | null>(null);
 
-export function PreviewCheckResultsProvider({children}: {children: React.ReactNode}) {
-  const [state, setState] = useState<PreviewCheckResultsState>({
+export function PreviewCheckResultProvider({children}: {children: React.ReactNode}) {
+  const [state, setState] = useState<PreviewCheckResultState>({
     data: null,
     error: null,
   });
 
-  const setData = (data: PreviewCheckResponse | null) =>
+  const setPreviewCheckData = (data: PreviewCheckResult | null) =>
     setState({data, error: null});
 
-  const setError = (error: PreviewCheckCompilationError | null) =>
+  const setPreviewCheckError = (error: PreviewCheckCompilationError | null) =>
     setState({data: null, error});
 
-  const reset = () => setState({data: null, error: null});
+  const resetPreviewCheckResult = () => setState({data: null, error: null});
 
   return (
-    <PreviewCheckResultsContext.Provider value={{...state, setData, setError, reset}}>
+    <PreviewCheckResultContext.Provider
+      value={{...state, setPreviewCheckData, setPreviewCheckError, resetPreviewCheckResult}}
+    >
       {children}
-    </PreviewCheckResultsContext.Provider>
+    </PreviewCheckResultContext.Provider>
   );
 }
 
-export function usePreviewCheckResults() {
-  const context = useContext(PreviewCheckResultsContext);
+export function usePreviewCheckResult() {
+  const context = useContext(PreviewCheckResultContext);
   if (!context) {
     throw new Error(
-      'usePreviewCheckResults must be used within a PreviewCheckResultsProvider'
+      'usePreviewCheckResult must be used within a PreviewCheckResultProvider'
     );
   }
   return context;
