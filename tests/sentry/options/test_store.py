@@ -176,3 +176,141 @@ class OptionsStoreTest(TestCase):
         mocked_time.return_value = 26
         store.clean_local_cache()
         assert not store._local_cache
+
+    def test_set_cache_many(self) -> None:
+        store = self.store
+        key1 = self.make_key()
+        key2 = self.make_key()
+        key3 = self.make_key()
+
+        # Batch set multiple values using list of tuples
+        result = store.set_cache_many([(key1, "val1"), (key2, "val2"), (key3, "val3")])
+        assert result is True
+
+        # Verify local cache was populated
+        assert key1.cache_key in store._local_cache
+        assert key2.cache_key in store._local_cache
+        assert key3.cache_key in store._local_cache
+
+        # Verify network cache was populated (flush local, then get)
+        store.flush_local_cache()
+        assert store.cache.get(key1.cache_key) == "val1"
+        assert store.cache.get(key2.cache_key) == "val2"
+        assert store.cache.get(key3.cache_key) == "val3"
+
+    def test_set_cache_many_empty(self) -> None:
+        store = self.store
+        result = store.set_cache_many([])
+        assert result is True
+
+    def test_set_cache_many_without_cache(self) -> None:
+        store = OptionsStore(cache=None)
+        key = self.make_key()
+        result = store.set_cache_many([(key, "val")])
+        assert result is None
+
+    def test_get_many_all_local_cache(self) -> None:
+        store = self.store
+        key1 = self.make_key()
+        key2 = self.make_key()
+
+        # Populate local cache via set
+        store.set(key1, "val1", UpdateChannel.CLI)
+        store.set(key2, "val2", UpdateChannel.CLI)
+
+        # Get many should hit local cache only (no network calls)
+        with patch.object(store.cache, "get_many") as mock_get_many:
+            results = store.get_many([key1, key2])
+            mock_get_many.assert_not_called()
+
+        assert results == {key1.name: "val1", key2.name: "val2"}
+
+    def test_get_many_all_network_cache(self) -> None:
+        store = self.store
+        key1 = self.make_key()
+        key2 = self.make_key()
+
+        # Populate network cache directly
+        store.cache.set(key1.cache_key, "val1", 60)
+        store.cache.set(key2.cache_key, "val2", 60)
+
+        # Ensure local cache is empty
+        store.flush_local_cache()
+
+        results = store.get_many([key1, key2])
+        assert results == {key1.name: "val1", key2.name: "val2"}
+
+        # Local cache should now be populated
+        assert key1.cache_key in store._local_cache
+        assert key2.cache_key in store._local_cache
+
+    def test_get_many_db_fallback(self) -> None:
+        store = self.store
+        key1 = self.make_key()
+        key2 = self.make_key()
+
+        # Store values in DB via full set
+        store.set(key1, "db_val1", UpdateChannel.CLI)
+        store.set(key2, "db_val2", UpdateChannel.CLI)
+
+        # Clear all caches
+        store.flush_local_cache()
+        store.cache.clear()
+
+        # get_many should fall back to DB
+        results = store.get_many([key1, key2])
+        assert results == {key1.name: "db_val1", key2.name: "db_val2"}
+
+        # Should have populated both local and network cache
+        assert key1.cache_key in store._local_cache
+        assert key2.cache_key in store._local_cache
+        assert store.cache.get(key1.cache_key) == "db_val1"
+        assert store.cache.get(key2.cache_key) == "db_val2"
+
+    def test_get_many_mixed_sources(self) -> None:
+        store = self.store
+        key1 = self.make_key()  # will be in local cache
+        key2 = self.make_key()  # will be in network cache only
+        key3 = self.make_key()  # will be in DB only
+        key4 = self.make_key()  # won't exist anywhere
+
+        # Set up key1 in local cache
+        store.set(key1, "local_val", UpdateChannel.CLI)
+
+        # Set up key2 in network cache only
+        store.cache.set(key2.cache_key, "network_val", 60)
+
+        # Set up key3 in DB only
+        store.set(key3, "db_val", UpdateChannel.CLI)
+        store.flush_local_cache()
+        store.cache.delete(key3.cache_key)
+
+        # Get all keys
+        results = store.get_many([key1, key2, key3, key4])
+
+        assert results[key1.name] == "local_val"
+        assert results[key2.name] == "network_val"
+        assert results[key3.name] == "db_val"
+        assert key4.name not in results  # Not found anywhere
+
+    def test_get_many_empty(self) -> None:
+        store = self.store
+        results = store.get_many([])
+        assert results == {}
+
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
+    def test_get_many_cache_error_falls_back_to_db(self) -> None:
+        store = self.store
+        key1 = self.make_key()
+
+        # Store in DB
+        store.set(key1, "db_val", UpdateChannel.CLI)
+        store.flush_local_cache()
+        store.cache.clear()
+
+        # Make network cache fail
+        with patch.object(store.cache, "get_many", side_effect=RuntimeError()):
+            results = store.get_many([key1], silent=True)
+
+        # Should still get value from DB
+        assert results == {key1.name: "db_val"}

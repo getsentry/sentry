@@ -332,6 +332,76 @@ class OptionsManager:
         record_option(key, optval)
         return optval
 
+    def get_many(self, keys: Sequence[str], silent: bool = False) -> dict[str, TAny]:
+        """
+        Get values for multiple options in a single batch.
+        Returns a dict mapping key -> value.
+
+        This is more efficient than calling get() in a loop as it batches
+        Redis cache lookups into a single MGET call.
+        """
+
+        results: dict[str, TAny] = {}
+        store_keys: list[Key] = []
+
+        for key_name in keys:
+            opt = self.lookup_key(key_name)
+
+            # Check FLAG_PRIORITIZE_DISK first
+            if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
+                try:
+                    result = settings.SENTRY_OPTIONS[key_name]
+                    if result is not None:
+                        results[key_name] = result
+                        record_option(key_name, result)
+                        continue
+                except KeyError:
+                    pass
+
+            if not (opt.flags & FLAG_NOSTORE):
+                store_keys.append(opt)
+            else:
+                # For NOSTORE options, use defaults
+                default_val = self._get_default(opt)
+                results[key_name] = default_val
+                record_option(key_name, default_val)
+
+        # Batch fetch from store (uses MGET internally)
+        if store_keys:
+            store_results = self.store.get_many(store_keys, silent=silent)
+
+            # Collect defaults that need caching as list of tuples
+            defaults_to_cache: list[tuple[Key, TAny]] = []
+
+            for opt in store_keys:
+                if opt.name in store_results and store_results[opt.name] is not None:
+                    results[opt.name] = store_results[opt.name]
+                    record_option(opt.name, results[opt.name])
+                else:
+                    # Fall back to default
+                    default_val = self._get_default(opt)
+                    results[opt.name] = default_val
+                    defaults_to_cache.append((opt, default_val))
+                    record_option(opt.name, default_val)
+
+            # Bulk cache defaults (1 Redis call via set_many)
+            if defaults_to_cache:
+                self.store.set_cache_many(defaults_to_cache)
+
+        return results
+
+    def _get_default(self, opt: Key) -> TAny:
+        """Get default value for an option."""
+        if opt.has_any_flag({FLAG_STOREONLY}):
+            return opt.default()
+        try:
+            return settings.SENTRY_OPTIONS[opt.name]
+        except KeyError:
+            try:
+                return settings.SENTRY_DEFAULT_OPTIONS[opt.name]
+            except KeyError:
+                return opt.default()
+
     def delete(self, key: str):
         """
         Permanently remove the value of an option.

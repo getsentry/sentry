@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+from collections.abc import Sequence
 from random import random
 from time import time
 from typing import Any
@@ -236,6 +237,91 @@ class OptionsStore:
                     )
         return value
 
+    def get_many(self, keys: Sequence[Key], silent: bool = False) -> dict[str, Any]:
+        """
+        Fetch multiple values from the options store in a single batch.
+        Returns a dict mapping key.name -> value (only for keys that have values).
+        """
+        results: dict[str, Any] = {}
+        keys_needing_cache: list[Key] = []
+
+        # 1. Check local cache first (no network calls)
+        for key in keys:
+            value = self.get_local_cache(key)
+            if value is not None:
+                results[key.name] = value
+            else:
+                keys_needing_cache.append(key)
+
+        if not keys_needing_cache:
+            return results
+
+        # 2. Batch fetch from network cache using MGET (1 Redis call)
+        assert self.cache is not None, (
+            "Options requested before cache initialization, which could result in excessive store queries"
+        )
+
+        cache_keys_map = {key.cache_key: key for key in keys_needing_cache}
+        try:
+            cache_results = self.cache.get_many(list(cache_keys_map))
+        except Exception:
+            if not silent:
+                logger.warning("options.get_many.cache_error", exc_info=True)
+            cache_results = {}
+
+        keys_needing_store: list[Key] = []
+        for cache_key, key in cache_keys_map.items():
+            value = cache_results.get(cache_key)
+            if value is not None:
+                results[key.name] = value
+                # Populate local cache (no network call)
+                if key.ttl > 0:
+                    self._local_cache[cache_key] = _make_cache_value(key, value)
+            else:
+                keys_needing_store.append(key)
+
+        # 3. Batch fetch remaining from database (1 DB query)
+        if keys_needing_store:
+            store_results = self.get_store_many(keys_needing_store, silent=silent)
+            results.update(store_results)
+
+        return results
+
+    def get_store_many(self, keys: Sequence[Key], silent: bool = False) -> dict[str, Any]:
+        """
+        Batch fetch from database and populate caches.
+        Uses set_cache_many for bulk Redis write.
+        """
+        results: dict[str, Any] = {}
+        key_map = {key.name: key for key in keys}
+
+        items_to_cache: list[tuple[Key, Any]] = []
+        try:
+            with in_test_hide_transaction_boundary():
+                # 1 DB query for all keys
+                db_results = self.model.objects.filter(key__in=key_map)
+
+                for opt in db_results:
+                    results[opt.key] = opt.value
+                    items_to_cache.append((key_map[opt.key], opt.value))
+
+        except (ProgrammingError, OperationalError):
+            pass
+        except Exception:
+            if settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS:
+                raise
+            elif not silent:
+                logger.exception("option.failed-lookup-many")
+        else:
+            if items_to_cache:
+                try:
+                    self.set_cache_many(items_to_cache)
+                except Exception:
+                    if not silent:
+                        logger.warning("options.get_store_many.cache_error", exc_info=True)
+
+        return results
+
     def get_last_update_channel(self, key) -> UpdateChannel | None:
         """
         Gets how the option was last updated to check for drift.
@@ -283,6 +369,34 @@ class OptionsStore:
             return True
         except Exception:
             logger.warning(CACHE_UPDATE_ERR, key.name, extra={"key": key.name}, exc_info=True)
+            return False
+
+    def set_cache_many(self, items: Sequence[tuple[Key, Any]]) -> bool | None:
+        """
+        Batch set multiple values in both local and network cache.
+        Returns True if network cache write succeeded.
+
+        Args:
+            items: Sequence of (Key, value) tuples to cache
+        """
+        if self.cache is None:
+            return None
+
+        cache_items: dict[str, Any] = {}
+        for key, value in items:
+            cache_key = key.cache_key
+            if key.ttl > 0:
+                self._local_cache[cache_key] = _make_cache_value(key, value)
+            cache_items[cache_key] = value
+
+        if not cache_items:
+            return True
+
+        try:
+            self.cache.set_many(cache_items, self.ttl)
+            return True
+        except Exception:
+            logger.warning("options.set_cache_many.error", exc_info=True)
             return False
 
     def delete(self, key):

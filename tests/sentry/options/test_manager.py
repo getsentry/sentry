@@ -401,3 +401,118 @@ class OptionsManagerTest(TestCase):
         assert opt.has_any_flag({FLAG_NOSTORE})
         assert opt.has_any_flag({FLAG_NOSTORE, FLAG_REQUIRED})
         assert not opt.has_any_flag({FLAG_REQUIRED})
+
+    def test_get_many_simple(self) -> None:
+        self.manager.register("option1", default="default1")
+        self.manager.register("option2", default="default2")
+
+        # Set some values
+        self.manager.set("option1", "value1")
+        self.manager.set("option2", "value2")
+
+        results = self.manager.get_many(["option1", "option2", "foo"])
+        assert results["option1"] == "value1"
+        assert results["option2"] == "value2"
+        assert results["foo"] == ""  # default for "foo" which was registered in fixture
+
+    def test_get_many_returns_defaults(self) -> None:
+        self.manager.register("with_default", default="my_default")
+
+        # Don't set any value, should return default
+        results = self.manager.get_many(["with_default"])
+        assert results["with_default"] == "my_default"
+
+    def test_get_many_respects_flag_nostore(self) -> None:
+        self.manager.register("nostore_option", flags=FLAG_NOSTORE, default="nostore_default")
+
+        # NOSTORE options should not touch the store at all
+        with patch.object(self.store, "get_many") as mock_get_many:
+            results = self.manager.get_many(["nostore_option"])
+            mock_get_many.assert_not_called()
+
+        assert results["nostore_option"] == "nostore_default"
+
+    def test_get_many_respects_flag_prioritize_disk(self) -> None:
+        self.manager.register("disk_option", flags=FLAG_PRIORITIZE_DISK, default="disk_default")
+
+        # Set a value in the store
+        self.manager.set("disk_option", "store_value")
+
+        # Without disk setting, should get store value
+        results = self.manager.get_many(["disk_option"])
+        assert results["disk_option"] == "store_value"
+
+        # With disk setting, should prioritize disk
+        with self.settings(SENTRY_OPTIONS={"disk_option": "disk_value"}):
+            results = self.manager.get_many(["disk_option"])
+            assert results["disk_option"] == "disk_value"
+
+    def test_get_many_batches_cache_writes(self) -> None:
+        self.manager.register("batch1", default="default1")
+        self.manager.register("batch2", default="default2")
+
+        # Clear store completely
+        self.store.flush_local_cache()
+        self.store.cache.clear()
+
+        # Mock set_cache_many to verify it's called
+        with (
+            patch.object(self.store, "set_cache_many") as mock_set_cache_many,
+            patch.object(self.store, "get_many") as mock_get_many,
+        ):
+            mock_set_cache_many.return_value = True
+            mock_get_many.return_value = {}
+            results = self.manager.get_many(["batch1", "batch2"])
+
+            # Should have called set_cache_many once with both defaults
+            mock_set_cache_many.assert_called_once()
+            call_args = mock_set_cache_many.call_args[0][0]
+            assert len(call_args) == 2
+
+        assert results["batch1"] == "default1"
+        assert results["batch2"] == "default2"
+
+    def test_get_many_empty(self) -> None:
+        results = self.manager.get_many([])
+        assert results == {}
+
+    def test_get_many_mixed_flags(self) -> None:
+        self.manager.register("normal", default="normal_default")
+        self.manager.register("nostore", flags=FLAG_NOSTORE, default="nostore_default")
+        self.manager.register("disk", flags=FLAG_PRIORITIZE_DISK, default="disk_default")
+
+        self.manager.set("normal", "normal_value")
+
+        with self.settings(SENTRY_OPTIONS={"disk": "disk_value"}):
+            results = self.manager.get_many(["normal", "nostore", "disk"])
+
+        assert results["normal"] == "normal_value"
+        assert results["nostore"] == "nostore_default"
+        assert results["disk"] == "disk_value"
+
+    def test_get_many_uses_store_get_many(self) -> None:
+        self.manager.register("stored1", default="default1")
+        self.manager.register("stored2", default="default2")
+
+        # Populate store
+        self.manager.set("stored1", "value1")
+        self.manager.set("stored2", "value2")
+        self.store.flush_local_cache()
+
+        # Mock store.get_many to verify batch fetching
+        with patch.object(self.store, "get_many") as mock_get_many:
+            mock_get_many.return_value = {"stored1": "value1", "stored2": "value2"}
+            results = self.manager.get_many(["stored1", "stored2"])
+
+            # Should call get_many once with both keys
+            mock_get_many.assert_called_once()
+            call_keys = [key.name for key in mock_get_many.call_args[0][0]]
+            assert "stored1" in call_keys
+            assert "stored2" in call_keys
+
+        assert results["stored1"] == "value1"
+        assert results["stored2"] == "value2"
+
+    def test_get_many_raises_on_unknown_key(self) -> None:
+        with pytest.raises(UnknownOption):
+            self.manager.get_many(["totally_unknown_key"])
