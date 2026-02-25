@@ -84,6 +84,7 @@ export default function TeamSettings() {
   const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
   const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
   const isIdpProvisioned = team.flags['idp:provisioned'];
+  const isDisabled = isIdpProvisioned || !hasTeamWrite;
 
   return (
     <FormSearch route="/settings/:orgId/teams/:teamId/settings/">
@@ -114,7 +115,7 @@ export default function TeamSettings() {
                     value={field.state.value}
                     onChange={value => field.handleChange(slugify(value))}
                     placeholder="e.g. operations, web-frontend, mobile-ios"
-                    disabled={isIdpProvisioned || !hasTeamWrite}
+                    disabled={isDisabled}
                   />
                 </field.Layout.Row>
               )}
@@ -136,25 +137,27 @@ export default function TeamSettings() {
               )}
             </form.AppField>
 
-            <Flex gap="md" align="center" padding="sm">
-              <form.Subscribe selector={state => state.values.slug !== team.slug}>
-                {hasChanged => (
-                  <Flex
-                    flex="1"
-                    minWidth={0}
-                    style={{visibility: hasChanged ? 'visible' : 'hidden'}}
-                  >
-                    <Alert variant="info">
-                      {t('You will be redirected to the new team slug after saving.')}
-                    </Alert>
-                  </Flex>
-                )}
-              </form.Subscribe>
-              <Flex gap="sm" flexShrink={0}>
-                <Button onClick={() => form.reset()}>{t('Cancel')}</Button>
-                <form.SubmitButton>{t('Save')}</form.SubmitButton>
+            {isDisabled ? null : (
+              <Flex gap="md" align="center" padding="sm">
+                <form.Subscribe selector={state => state.values.slug !== team.slug}>
+                  {hasChanged => (
+                    <Flex
+                      flex="1"
+                      minWidth={0}
+                      style={{visibility: hasChanged ? 'visible' : 'hidden'}}
+                    >
+                      <Alert variant="info">
+                        {t('You will be redirected to the new team slug after saving.')}
+                      </Alert>
+                    </Flex>
+                  )}
+                </form.Subscribe>
+                <Flex gap="sm" flexShrink={0}>
+                  <Button onClick={() => form.reset()}>{t('Cancel')}</Button>
+                  <form.SubmitButton>{t('Save')}</form.SubmitButton>
+                </Flex>
               </Flex>
-            </Flex>
+            )}
           </FieldGroup>
         </form.FormWrapper>
       </form.AppForm>
