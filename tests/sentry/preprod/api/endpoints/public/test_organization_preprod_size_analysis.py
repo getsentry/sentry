@@ -83,9 +83,9 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["state"] == "PENDING"
-        assert data["build_id"] == str(self.preprod_artifact.id)
-        assert "download_size" not in data
-        assert "install_size" not in data
+        assert data["buildId"] == str(self.preprod_artifact.id)
+        assert "downloadSize" not in data
+        assert "installSize" not in data
 
     def test_pending_state(self):
         self.create_preprod_artifact_size_metrics(
@@ -97,11 +97,11 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         response = self.client.get(self._get_url())
         assert response.status_code == 200
         data = response.json()
-        assert data["build_id"] == str(self.preprod_artifact.id)
+        assert data["buildId"] == str(self.preprod_artifact.id)
         assert data["state"] == "PENDING"
-        assert data["git_info"] is None
-        assert "download_size" not in data
-        assert "install_size" not in data
+        assert data["gitInfo"] is None
+        assert "downloadSize" not in data
+        assert "installSize" not in data
 
     def test_processing_state(self):
         self.create_preprod_artifact_size_metrics(
@@ -128,8 +128,8 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["state"] == "FAILED"
-        assert data["error_code"] == 1
-        assert data["error_message"] == "Analysis failed"
+        assert data["errorCode"] == 1
+        assert data["errorMessage"] == "Analysis failed"
 
     def test_completed_state(self):
         analysis_data = self._make_analysis_data(
@@ -168,15 +168,15 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["state"] == "COMPLETED"
-        assert data["download_size"] == 512000
-        assert data["install_size"] == 1024000
-        assert data["analysis_duration"] == 1.5
-        assert data["analysis_version"] == "1.0.0"
+        assert data["downloadSize"] == 512000
+        assert data["installSize"] == 1024000
+        assert data["analysisDuration"] == 1.5
+        assert data["analysisVersion"] == "1.0.0"
         assert data["insights"]["platform"] == "android"
-        assert len(data["app_components"]) == 1
-        assert data["app_components"][0]["name"] == "Watch App"
+        assert len(data["appComponents"]) == 1
+        assert data["appComponents"][0]["name"] == "Watch App"
         assert "treemap" not in data
-        assert "file_analysis" not in data
+        assert "fileAnalysis" not in data
 
     def test_completed_state_with_base_build(self):
         commit_comparison = self.create_commit_comparison(
@@ -252,14 +252,14 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
 
         assert response.status_code == 200
         data = response.json()
-        assert data["base_build_id"] == str(base_artifact.id)
-        assert data["base_app_info"] is not None
+        assert data["baseBuildId"] == str(base_artifact.id)
+        assert data["baseAppInfo"] is not None
         assert data["comparisons"] is not None
         assert len(data["comparisons"]) == 1
         comparison = data["comparisons"][0]
         assert comparison["state"] == PreprodArtifactSizeComparison.State.SUCCESS
-        assert comparison["diff_items"] is not None
-        assert comparison["size_metric_diff"] is not None
+        assert comparison["diffItems"] is not None
+        assert comparison["sizeMetricDiff"] is not None
 
     def test_completed_state_with_explicit_base_id(self):
         base_file = self.create_file(name="base_artifact.apk", type="application/octet-stream")
@@ -317,11 +317,11 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             file_id=comparison_file.id,
         )
 
-        response = self.client.get(self._get_url() + f"?base_artifact_id={base_artifact.id}")
+        response = self.client.get(self._get_url() + f"?baseArtifactId={base_artifact.id}")
 
         assert response.status_code == 200
         data = response.json()
-        assert data["base_build_id"] == str(base_artifact.id)
+        assert data["baseBuildId"] == str(base_artifact.id)
         assert data["comparisons"] is not None
 
     def test_invalid_base_id(self):
@@ -336,7 +336,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             max_download_size=512000,
         )
 
-        response = self.client.get(self._get_url() + "?base_artifact_id=999999")
+        response = self.client.get(self._get_url() + "?baseArtifactId=999999")
 
         assert response.status_code == 404
         assert "base preprod artifact does not exist" in response.json()["detail"]
@@ -378,7 +378,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             max_download_size=512000,
         )
 
-        response = self.client.get(self._get_url() + f"?base_artifact_id={other_artifact.id}")
+        response = self.client.get(self._get_url() + f"?baseArtifactId={other_artifact.id}")
 
         assert response.status_code == 404
         assert "base preprod artifact does not exist" in response.json()["detail"]

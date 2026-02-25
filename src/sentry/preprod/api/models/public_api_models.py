@@ -19,121 +19,121 @@ logger = logging.getLogger(__name__)
 
 
 class AppInfoResponseDict(TypedDict):
-    app_id: str | None
+    appId: str | None
     name: str | None
     version: str | None
-    build_number: int | None
-    artifact_type: int | None
-    date_added: str | None
-    date_built: str | None
+    buildNumber: int | None
+    artifactType: int | None
+    dateAdded: str | None
+    dateBuilt: str | None
 
 
 class GitInfoResponseDict(TypedDict):
-    head_sha: str | None
-    base_sha: str | None
+    headSha: str | None
+    baseSha: str | None
     provider: str | None
-    head_repo_name: str | None
-    base_repo_name: str | None
-    head_ref: str | None
-    base_ref: str | None
-    pr_number: int | None
+    headRepoName: str | None
+    baseRepoName: str | None
+    headRef: str | None
+    baseRef: str | None
+    prNumber: int | None
 
 
 class AppComponentResponseDict(TypedDict):
-    component_type: int
+    componentType: int
     name: str
-    app_id: str
+    appId: str
     path: str
-    download_size: int
-    install_size: int
+    downloadSize: int
+    installSize: int
 
 
 class DiffItemResponseDict(TypedDict):
-    size_diff: int
-    head_size: int | None
-    base_size: int | None
+    sizeDiff: int
+    headSize: int | None
+    baseSize: int | None
     path: str
-    item_type: str | None
+    itemType: str | None
     type: str
     # Recursive type (list[DiffItemResponseDict]) breaks drf-spectacular schema generation
-    diff_items: list[Any] | None
+    diffItems: list[Any] | None
 
 
 class SizeMetricDiffResponseDict(TypedDict):
-    metrics_artifact_type: int
+    metricsArtifactType: int
     identifier: str | None
-    head_install_size: int
-    head_download_size: int
-    base_install_size: int
-    base_download_size: int
+    headInstallSize: int
+    headDownloadSize: int
+    baseInstallSize: int
+    baseDownloadSize: int
 
 
 class InsightDiffItemResponseDict(TypedDict):
-    insight_type: str
+    insightType: str
     status: str
-    total_savings_change: int
-    file_diffs: list[DiffItemResponseDict]
-    group_diffs: list[DiffItemResponseDict]
+    totalSavingsChange: int
+    fileDiffs: list[DiffItemResponseDict]
+    groupDiffs: list[DiffItemResponseDict]
 
 
 # Keep in sync with internal models in sentry.preprod.size_analysis.models
 class ComparisonResponseDict(TypedDict):
-    metrics_artifact_type: int
+    metricsArtifactType: int
     identifier: str | None
     state: int
-    error_code: NotRequired[str | None]
-    error_message: NotRequired[str | None]
-    diff_items: NotRequired[list[DiffItemResponseDict] | None]
-    insight_diff_items: NotRequired[list[InsightDiffItemResponseDict] | None]
-    size_metric_diff: NotRequired[SizeMetricDiffResponseDict | None]
+    errorCode: NotRequired[str | None]
+    errorMessage: NotRequired[str | None]
+    diffItems: NotRequired[list[DiffItemResponseDict] | None]
+    insightDiffItems: NotRequired[list[InsightDiffItemResponseDict] | None]
+    sizeMetricDiff: NotRequired[SizeMetricDiffResponseDict | None]
 
 
 class SizeAnalysisPendingResponseDict(TypedDict):
-    build_id: str
+    buildId: str
     state: Literal["PENDING"]
-    app_info: AppInfoResponseDict
-    git_info: GitInfoResponseDict | None
+    appInfo: AppInfoResponseDict
+    gitInfo: GitInfoResponseDict | None
 
 
 class SizeAnalysisProcessingResponseDict(TypedDict):
-    build_id: str
+    buildId: str
     state: Literal["PROCESSING"]
-    app_info: AppInfoResponseDict
-    git_info: GitInfoResponseDict | None
+    appInfo: AppInfoResponseDict
+    gitInfo: GitInfoResponseDict | None
 
 
 class SizeAnalysisFailedResponseDict(TypedDict):
-    build_id: str
+    buildId: str
     state: Literal["FAILED"]
-    app_info: AppInfoResponseDict
-    git_info: GitInfoResponseDict | None
-    error_code: int | None
-    error_message: str | None
+    appInfo: AppInfoResponseDict
+    gitInfo: GitInfoResponseDict | None
+    errorCode: int | None
+    errorMessage: str | None
 
 
 class SizeAnalysisNotRanResponseDict(TypedDict):
-    build_id: str
+    buildId: str
     state: Literal["NOT_RAN"]
-    app_info: AppInfoResponseDict
-    git_info: GitInfoResponseDict | None
-    error_code: int | None
-    error_message: str | None
+    appInfo: AppInfoResponseDict
+    gitInfo: GitInfoResponseDict | None
+    errorCode: int | None
+    errorMessage: str | None
 
 
 # Keep in sync with internal models in sentry.preprod.size_analysis.models
 class SizeAnalysisCompletedResponseDict(TypedDict):
-    build_id: str
+    buildId: str
     state: Literal["COMPLETED"]
-    app_info: AppInfoResponseDict
-    git_info: GitInfoResponseDict | None
-    download_size: int
-    install_size: int
-    analysis_duration: float | None
-    analysis_version: str | None
+    appInfo: AppInfoResponseDict
+    gitInfo: GitInfoResponseDict | None
+    downloadSize: int
+    installSize: int
+    analysisDuration: float | None
+    analysisVersion: str | None
     insights: NotRequired[dict[str, Any] | None]
-    app_components: NotRequired[list[AppComponentResponseDict] | None]
-    base_build_id: NotRequired[str | None]
-    base_app_info: NotRequired[AppInfoResponseDict | None]
+    appComponents: NotRequired[list[AppComponentResponseDict] | None]
+    baseBuildId: NotRequired[str | None]
+    baseAppInfo: NotRequired[AppInfoResponseDict | None]
     comparisons: NotRequired[list[ComparisonResponseDict] | None]
 
 
@@ -146,41 +146,41 @@ SizeAnalysisResponseDict = (
 )
 
 
-def create_app_info_dict(artifact: PreprodArtifact) -> AppInfoResponseDict:
+def create_app_info_dict(artifact: PreprodArtifact) -> dict[str, Any]:
     mobile_app_info = getattr(artifact, "mobile_app_info", None)
 
-    return AppInfoResponseDict(
-        app_id=artifact.app_id,
-        name=mobile_app_info.app_name if mobile_app_info else None,
-        version=mobile_app_info.build_version if mobile_app_info else None,
-        build_number=mobile_app_info.build_number if mobile_app_info else None,
-        artifact_type=artifact.artifact_type,
-        date_added=artifact.date_added.isoformat() if artifact.date_added else None,
-        date_built=artifact.date_built.isoformat() if artifact.date_built else None,
-    )
+    return {
+        "app_id": artifact.app_id,
+        "name": mobile_app_info.app_name if mobile_app_info else None,
+        "version": mobile_app_info.build_version if mobile_app_info else None,
+        "build_number": mobile_app_info.build_number if mobile_app_info else None,
+        "artifact_type": artifact.artifact_type,
+        "date_added": artifact.date_added.isoformat() if artifact.date_added else None,
+        "date_built": artifact.date_built.isoformat() if artifact.date_built else None,
+    }
 
 
-def create_git_info_dict(artifact: PreprodArtifact) -> GitInfoResponseDict | None:
+def create_git_info_dict(artifact: PreprodArtifact) -> dict[str, Any] | None:
     commit_comparison = getattr(artifact, "commit_comparison", None)
     if commit_comparison is None:
         return None
 
-    return GitInfoResponseDict(
-        head_sha=commit_comparison.head_sha,
-        base_sha=commit_comparison.base_sha,
-        provider=commit_comparison.provider,
-        head_repo_name=commit_comparison.head_repo_name,
-        base_repo_name=commit_comparison.base_repo_name,
-        head_ref=commit_comparison.head_ref,
-        base_ref=commit_comparison.base_ref,
-        pr_number=commit_comparison.pr_number,
-    )
+    return {
+        "head_sha": commit_comparison.head_sha,
+        "base_sha": commit_comparison.base_sha,
+        "provider": commit_comparison.provider,
+        "head_repo_name": commit_comparison.head_repo_name,
+        "base_repo_name": commit_comparison.base_repo_name,
+        "head_ref": commit_comparison.head_ref,
+        "base_ref": commit_comparison.base_ref,
+        "pr_number": commit_comparison.pr_number,
+    }
 
 
 def build_comparison_data(
     base_artifact: PreprodArtifact,
     head_size_metrics: list[PreprodArtifactSizeMetrics],
-) -> list[ComparisonResponseDict] | None:
+) -> list[dict[str, Any]] | None:
     """Build comparison results for head vs base artifact."""
     base_size_metrics = list(
         PreprodArtifactSizeMetrics.objects.filter(
@@ -193,7 +193,7 @@ def build_comparison_data(
 
     matched = match_and_fetch_comparisons(head_size_metrics, base_size_metrics)
 
-    comparisons: list[ComparisonResponseDict] = []
+    comparisons: list[dict[str, Any]] = []
     for match in matched:
         if not match.base_metric:
             comparisons.append(
@@ -218,7 +218,7 @@ def _build_failed_comparison(
     head_metric: PreprodArtifactSizeMetrics,
     error_code: str | None,
     error_message: str | None,
-) -> ComparisonResponseDict:
+) -> dict[str, Any]:
     return {
         "metrics_artifact_type": head_metric.metrics_artifact_type,
         "identifier": head_metric.identifier,
@@ -231,7 +231,7 @@ def _build_failed_comparison(
 def _build_comparison_result(
     head_metric: PreprodArtifactSizeMetrics,
     comparison_obj: PreprodArtifactSizeComparison,
-) -> ComparisonResponseDict:
+) -> dict[str, Any]:
     """Build a single comparison result."""
     if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
         return _build_success_comparison(head_metric, comparison_obj)
@@ -254,7 +254,7 @@ def _build_comparison_result(
 def _build_success_comparison(
     head_metric: PreprodArtifactSizeMetrics,
     comparison_obj: PreprodArtifactSizeComparison,
-) -> ComparisonResponseDict:
+) -> dict[str, Any]:
     """Build a comparison result with inlined diff data for SUCCESS state."""
 
     if comparison_obj.file_id is None:

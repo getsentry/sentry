@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import assert_never, cast
+from typing import Any, assert_never, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -13,7 +13,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.files.file import File
@@ -23,8 +25,6 @@ from sentry.preprod.api.bases.preprod_artifact_endpoint import (
 )
 from sentry.preprod.api.models.public_api_models import (
     AppComponentResponseDict,
-    AppInfoResponseDict,
-    GitInfoResponseDict,
     SizeAnalysisCompletedResponseDict,
     build_comparison_data,
     create_app_info_dict,
@@ -40,7 +40,11 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
-@extend_schema(tags=["Builds"])
+def _camel_response(data: dict[str, Any], **kwargs: Any) -> Response:
+    return Response(convert_dict_key_case(data, snake_to_camel_case), **kwargs)
+
+
+@extend_schema(tags=["Mobile Builds"])
 @region_silo_endpoint
 class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
@@ -60,7 +64,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
                 location="path",
             ),
             OpenApiParameter(
-                name="base_artifact_id",
+                name="baseArtifactId",
                 description="Optional ID of the base artifact to compare against. If not provided, uses the default base head artifact.",
                 required=False,
                 type=str,
@@ -76,6 +80,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=PreprodExamples.GET_SIZE_ANALYSIS,
     )
     def get(
         self,
@@ -87,8 +92,14 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         Retrieve size analysis results for a build artifact.
 
         Returns size metrics including download size, install size, and optional insights.
-        When a base artifact exists (either from commit comparison or via the base_artifact_id parameter),
+        When a base artifact exists (either from commit comparison or via the `baseArtifactId` parameter),
         comparison data showing size differences is included.
+
+        The response `state` field indicates the analysis status:
+        - `PENDING`: Analysis has not started yet.
+        - `PROCESSING`: Analysis is currently running.
+        - `FAILED` / `NOT_RAN`: Analysis did not complete; `errorCode` and `errorMessage` are included.
+        - `COMPLETED`: Analysis finished successfully with full size data.
         """
 
         if not features.has(
@@ -109,7 +120,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         size_metrics = list(head_artifact.get_size_metrics())
 
         if not size_metrics:
-            return Response(
+            return _camel_response(
                 {
                     "state": "PENDING",
                     "build_id": str(head_artifact.id),
@@ -141,7 +152,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
 
         match state_enum:
             case PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
-                return Response(
+                return _camel_response(
                     {
                         "state": "PENDING",
                         "build_id": str(head_artifact.id),
@@ -150,7 +161,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
                     }
                 )
             case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
-                return Response(
+                return _camel_response(
                     {
                         "state": "PROCESSING",
                         "build_id": str(head_artifact.id),
@@ -162,7 +173,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
                 PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
                 | PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
             ):
-                return Response(
+                return _camel_response(
                     {
                         "state": state_enum.name,
                         "build_id": str(head_artifact.id),
@@ -192,8 +203,8 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         organization: Organization,
         head_artifact: PreprodArtifact,
         main_metric: PreprodArtifactSizeMetrics,
-        app_info: AppInfoResponseDict,
-        git_info: GitInfoResponseDict | None,
+        app_info: dict[str, Any],
+        git_info: dict[str, Any] | None,
         size_metrics: list[PreprodArtifactSizeMetrics],
     ) -> Response:
         """Build response for a completed size analysis."""
@@ -232,7 +243,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
                 {"detail": "There was an error retrieving size analysis results"}, status=500
             )
 
-        response_data: SizeAnalysisCompletedResponseDict = {
+        response_data: dict[str, Any] = {
             "build_id": str(head_artifact.id),
             "state": "COMPLETED",
             "app_info": app_info,
@@ -258,7 +269,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
                 response_data["base_app_info"] = create_app_info_dict(base_artifact)
                 response_data["comparisons"] = comparisons
 
-        return Response(response_data)
+        return _camel_response(response_data)
 
     def _get_base_artifact(
         self,
@@ -266,7 +277,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         organization: Organization,
         head_artifact: PreprodArtifact,
     ) -> PreprodArtifact | None:
-        base_artifact_id = request.GET.get("base_artifact_id")
+        base_artifact_id = request.GET.get("baseArtifactId")
 
         if base_artifact_id:
             try:
