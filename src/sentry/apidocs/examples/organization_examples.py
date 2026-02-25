@@ -312,6 +312,7 @@ class OrganizationExamples:
                 "orgRole": "owner",
                 "pendingAccessRequests": 0,
                 "isDynamicallySampled": False,
+                "defaultCodingAgentIntegrationId": None,
                 "teams": [
                     {
                         "id": "1",
