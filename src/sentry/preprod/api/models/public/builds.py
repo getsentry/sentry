@@ -8,15 +8,7 @@ from sentry.preprod.api.models.public.shared import (
     create_app_info_dict,
     create_git_info_dict,
 )
-from sentry.preprod.build_distribution_utils import (
-    is_installable_artifact,
-)
 from sentry.preprod.models import PreprodArtifact
-
-
-class BuildDistributionInfoResponseDict(TypedDict):
-    isInstallable: bool
-    downloadCount: int
 
 
 class BuildSummaryResponseDict(TypedDict):
@@ -28,7 +20,7 @@ class BuildSummaryResponseDict(TypedDict):
     projectId: str
     projectSlug: str
     buildConfiguration: str | None
-    distributionInfo: BuildDistributionInfoResponseDict
+    downloadCount: int
 
 
 def _platform_from_artifact_type(artifact_type: int | None) -> str | None:
@@ -44,7 +36,6 @@ def _platform_from_artifact_type(artifact_type: int | None) -> str | None:
 
 
 def create_build_summary_dict(artifact: PreprodArtifact) -> BuildSummaryResponseDict:
-    installable = is_installable_artifact(artifact)
     download_count = int(getattr(artifact, "download_count", 0) or 0)
 
     return {
@@ -58,8 +49,5 @@ def create_build_summary_dict(artifact: PreprodArtifact) -> BuildSummaryResponse
         "buildConfiguration": (
             artifact.build_configuration.name if artifact.build_configuration else None
         ),
-        "distributionInfo": {
-            "isInstallable": installable,
-            "downloadCount": download_count if installable else 0,
-        },
+        "downloadCount": download_count,
     }

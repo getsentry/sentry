@@ -97,8 +97,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert build["gitInfo"] is not None
         assert build["gitInfo"]["headRef"] == "feature/test"
         assert build["gitInfo"]["prNumber"] == 42
-        assert build["distributionInfo"]["isInstallable"] is True
-        assert build["distributionInfo"]["downloadCount"] == 0
+        assert build["downloadCount"] == 0
 
     def test_excludes_non_installable_builds(self):
         self.create_preprod_artifact(
@@ -247,8 +246,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
         artifact_data = next(b for b in data if b["buildId"] == str(artifact.id))
-        assert artifact_data["distributionInfo"]["isInstallable"] is True
-        assert artifact_data["distributionInfo"]["downloadCount"] == 5
+        assert artifact_data["downloadCount"] == 5
 
     def test_aab_artifact_included_in_android_filter(self):
         aab_artifact = self._create_installable_artifact(
