@@ -8,6 +8,8 @@ from typing import Any, TypeVar
 
 from google.protobuf.message import Message
 
+from sentry.utils import metrics
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=Message)
@@ -69,6 +71,7 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
     def wrapper(self: BillingService, request: T) -> R:
         service_name = self.__class__.__name__
         method_name = func.__name__
+        metric_tags = {"service": service_name, "method": method_name}
 
         # Validate input is a protobuf message
         if not isinstance(request, Message):
@@ -78,6 +81,8 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
             )
 
         start_time = time.time()
+
+        metrics.incr("billing.service.method.called", tags=metric_tags)
 
         try:
             logger.info(
@@ -100,6 +105,9 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
 
             duration_ms = (time.time() - start_time) * 1000
 
+            metrics.timing("billing.service.method.duration", duration_ms, tags=metric_tags)
+            metrics.incr("billing.service.method.success", tags=metric_tags)
+
             logger.info(
                 "billing.service.method.success",
                 extra={
@@ -114,6 +122,12 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
+
+            metrics.timing("billing.service.method.duration", duration_ms, tags=metric_tags)
+            metrics.incr(
+                "billing.service.method.error",
+                tags={**metric_tags, "error_type": type(e).__name__},
+            )
 
             logger.exception(
                 "billing.service.method.error",
