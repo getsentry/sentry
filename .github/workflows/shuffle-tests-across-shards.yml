@@ -1,0 +1,134 @@
+name: shuffle-tests-across-shards
+
+on:
+  # gh api repos/getsentry/sentry/actions/workflows/shuffle-tests-across-shards.yml/dispatches -f ref=shuffle-tests-across-shards
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: The seed for the test ordering (all shards must share the same seed)
+        required: false
+
+  # run every 30 minutes between 6PM-9AM PST
+  schedule:
+    - cron: '*/30 2-17 * * *'
+
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
+
+jobs:
+  backend-test:
+    name: run backend tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      issues: write
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    env:
+      # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
+      MATRIX_INSTANCE_TOTAL: 11
+      SENTRY_SHUFFLE_TESTS: 1
+      # All shards must share the same seed; github.run_id is consistent across matrix instances
+      SENTRY_SHUFFLE_TESTS_SEED: ${{ inputs.seed || github.run_id }}
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        id: run-tests
+        run: |
+          # override --reruns from setup-sentry: retries would mask the
+          # order-dependent failures this workflow is designed to catch.
+          PYTEST_ADDOPTS= \
+          python3 -b -m pytest \
+          --exitfirst \
+          tests \
+          --reuse-db \
+          --ignore tests/acceptance \
+          --ignore tests/apidocs \
+          --ignore tests/js \
+          --ignore tests/tools \
+          --ignore tests/relay_integration \
+          --ignore tests/symbolicator
+
+      - name: Truncate testids
+        if: failure()
+        run: |
+          test -f "$GITHUB_WORKSPACE/failing-testid" || exit 0
+          # Keep only tests up to and including the failing test;
+          # tests that run after it cannot be polluting it.
+          read -r FAILING_TESTID < "$GITHUB_WORKSPACE/failing-testid"
+          head -n "$(grep -nF "$FAILING_TESTID" "$GITHUB_WORKSPACE/testids-full" | head -1 | cut -d: -f1)" "$GITHUB_WORKSPACE/testids-full" > "$GITHUB_WORKSPACE/testids"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: testids-${{ matrix.instance }}
+          path: ${{ github.workspace }}/testids
+          if-no-files-found: ignore
+
+      - name: Detect test pollution
+        id: detect-test-pollution
+        if: failure()
+        env:
+          # just so we get realtime output since detect-test-pollution doesn't print much
+          PYTHONUNBUFFERED: 1
+        run: |
+          test -f "$GITHUB_WORKSPACE/failing-testid" || exit 0
+          read -r FAILING_TESTID < "$GITHUB_WORKSPACE/failing-testid"
+          python .github/workflows/scripts/detect_test_pollution.py \
+            --failing-test "$FAILING_TESTID" \
+            --testids-file "$GITHUB_WORKSPACE/testids" \
+            | tee "$GITHUB_WORKSPACE/detect-test-pollution-output"
+          read -r POLLUTING_TESTID < <(tail -1 "$GITHUB_WORKSPACE/detect-test-pollution-output")
+          {
+            echo "detected test pollution: \`pytest $POLLUTING_TESTID $FAILING_TESTID\`"
+            echo "sentry sha: ${{ github.sha }}"
+            echo "run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } | tee -a "$GITHUB_STEP_SUMMARY" > "$GITHUB_WORKSPACE/issue-body"
+
+      - name: Create GitHub issue for test pollution
+        if: failure() && steps.detect-test-pollution.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -f "$GITHUB_WORKSPACE/failing-testid" || exit 0
+          read -r FAILING_TESTID < "$GITHUB_WORKSPACE/failing-testid"
+          gh issue create \
+            --title "Test pollution: $FAILING_TESTID" \
+            --label test-pollution \
+            --body "$(cat "$GITHUB_WORKSPACE/issue-body")"
+
+      - name: Create GitHub issue for flaky test
+        if: failure() && steps.detect-test-pollution.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -f "$GITHUB_WORKSPACE/failing-testid" || exit 0
+          read -r FAILING_TESTID < "$GITHUB_WORKSPACE/failing-testid"
+          LONGREPR=$(cat "$GITHUB_WORKSPACE/failing-testid-longrepr" 2>/dev/null || echo "no failure detail available")
+          BODY="Failing test: \`$FAILING_TESTID\`
+          Sentry sha: ${{ github.sha }}
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          \`\`\`
+          $LONGREPR
+          \`\`\`"
+          gh issue create \
+            --title "Flaky test: $FAILING_TESTID" \
+            --label flaky-test \
+            --body "$BODY"

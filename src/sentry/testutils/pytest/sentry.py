@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+import collections.abc
 import os
 import random
 import shutil
@@ -355,6 +356,18 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
         del TaskNamespace._original_send_task
 
+    # When running shuffled tests with --exitfirst, record the first failing
+    # test ID so the CI workflow can pass it to detect-test-pollution.
+    failing_testid = getattr(session, "_shuffle_failing_testid", None)
+    if failing_testid and exitstatus != 0:
+        outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
+        with open(f"{outdir}/failing-testid", "w") as f:
+            f.write(failing_testid + "\n")
+        longrepr = getattr(session, "_shuffle_failing_longrepr", None)
+        if longrepr:
+            with open(f"{outdir}/failing-testid-longrepr", "w") as f:
+                f.write(longrepr)
+
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.config.getvalue("nomigrations") and any(
@@ -490,9 +503,27 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     if shuffle_enabled:
         _shuffle(items, random.Random(seed))
 
+        # Write the final ordered test IDs to a file for detect-test-pollution
+        outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
+        with open(f"{outdir}/testids-full", "w") as f:
+            f.write("\n".join(item.nodeid for item in items) + "\n")
+
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo[None]
+) -> collections.abc.Generator[None]:
+    outcome = yield
+    report = outcome.get_result()
+    # Track the last failing test for detect-test-pollution (written to disk
+    # in pytest_sessionfinish only when the session actually fails).
+    if os.environ.get("SENTRY_SHUFFLE_TESTS") and report.failed and report.when == "call":
+        item.session._shuffle_failing_testid = item.nodeid  # type: ignore[attr-defined]
+        item.session._shuffle_failing_longrepr = str(report.longrepr)  # type: ignore[attr-defined]
 
 
 def pytest_xdist_setupnodes() -> None:
