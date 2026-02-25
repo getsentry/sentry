@@ -2,8 +2,6 @@ import base64
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
-from django.test.utils import override_settings
-
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.explorer.client_utils import collect_user_org_context
 from sentry.silo.safety import unguarded_write
@@ -73,36 +71,6 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 400
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
-    def test_post_without_streaming_flag_no_conduit(self, mock_client_class: MagicMock):
-        mock_client_class.return_value.start_run.return_value = 123
-
-        response = self.client.post(self.url, {"query": "test"}, format="json")
-
-        assert response.status_code == 200
-        assert response.data == {"run_id": 123}
-        assert "conduit" not in response.data
-
-    @override_settings(**CONDUIT_SETTINGS)
-    @with_feature("organizations:seer-explorer-streaming")
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
-    def test_post_with_streaming_flag_includes_conduit(self, mock_client_class: MagicMock):
-        mock_client_class.return_value.start_run.return_value = 123
-
-        response = self.client.post(self.url, {"query": "test"}, format="json")
-
-        assert response.status_code == 200
-        assert response.data["run_id"] == 123
-        assert "conduit" in response.data
-        assert "token" in response.data["conduit"]
-        assert "channel_id" in response.data["conduit"]
-        assert "url" in response.data["conduit"]
-        # Verify conduit params passed to client
-        mock_client_class.return_value.start_run.assert_called_once()
-        call_kwargs = mock_client_class.return_value.start_run.call_args.kwargs
-        assert call_kwargs["conduit_channel_id"] is not None
-        assert call_kwargs["conduit_url"] is not None
-
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
     def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
         mock_client = MagicMock()
         mock_client.start_run.return_value = 456
@@ -121,8 +89,6 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         mock_client.start_run.assert_called_once_with(
             prompt="What is this error about?",
             on_page_context=None,
-            conduit_channel_id=None,
-            conduit_url=None,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -147,8 +113,6 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             mock_client.start_run.assert_called_once_with(
                 prompt="What is this error about?",
                 on_page_context=None,
-                conduit_channel_id=None,
-                conduit_url=None,
             )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -175,8 +139,6 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             prompt="Follow up question",
             insert_index=2,
             on_page_context=None,
-            conduit_channel_id=None,
-            conduit_url=None,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -208,8 +170,6 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 prompt="Follow up question",
                 insert_index=2,
                 on_page_context=None,
-                conduit_channel_id=None,
-                conduit_url=None,
             )
 
 
