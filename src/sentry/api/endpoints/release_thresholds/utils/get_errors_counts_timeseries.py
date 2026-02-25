@@ -151,15 +151,15 @@ def _get_errors_counts_timeseries_eap(
     if len(release_value_list) == 1:
         query_parts.append(f'release:"{release_value_list[0]}"')
     else:
-        release_filter = " OR ".join([f'release:"{r}"' for r in release_value_list])
-        query_parts.append(f"({release_filter})")
+        release_filter = ", ".join([f'"{r}"' for r in release_value_list])
+        query_parts.append(f"release:[{release_filter}]")
 
     if environments_list:
         if len(environments_list) == 1:
             query_parts.append(f'environment:"{environments_list[0]}"')
         else:
-            env_filter = " OR ".join([f'environment:"{e}"' for e in environments_list])
-            query_parts.append(f"({env_filter})")
+            env_filter = ", ".join([f'"{e}"' for e in environments_list])
+            query_parts.append(f"environment:[{env_filter}]")
 
     query_string = " ".join(query_parts)
 
