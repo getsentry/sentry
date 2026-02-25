@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from typing import TypedDict
 
-import requests
-from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
@@ -15,9 +13,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -84,23 +85,23 @@ class SeerModelsEndpoint(Endpoint):
         path = "/v1/models"
 
         try:
-            response = requests.get(
-                f"{settings.SEER_AUTOFIX_URL}{path}",
-                headers={
-                    "content-type": "application/json;charset=utf-8",
-                    **sign_with_seer_secret(b""),
-                },
+            response = make_signed_seer_api_request(
+                seer_autofix_default_connection_pool,
+                path,
+                b"",
                 timeout=5,
+                method="GET",
             )
-            response.raise_for_status()
+            if response.status >= 400:
+                raise SeerApiError("Seer request failed", response.status)
 
             data = response.json()
             cache.set(SEER_MODELS_CACHE_KEY, data, SEER_MODELS_CACHE_TIMEOUT)
             return Response(data, status=200)
 
-        except requests.exceptions.Timeout:
+        except TimeoutError:
             logger.warning("Timeout when fetching models from Seer")
             raise SeerTimeoutError()
-        except (requests.exceptions.RequestException, json.JSONDecodeError):
+        except Exception:
             logger.exception("Error fetching models from Seer")
             raise SeerConnectionError()

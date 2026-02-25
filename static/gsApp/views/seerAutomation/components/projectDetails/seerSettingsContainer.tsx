@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
-import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
+import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import AutoTriggeredFixesToggle from 'getsentry/views/seerAutomation/components/projectDetails/autoTriggeredFixesToggle';
@@ -29,8 +30,9 @@ interface Props {
 export default function SeerSettingsContainer({canWrite, preference, project}: Props) {
   const organization = useOrganization();
 
-  const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} =
-    useCodingAgentIntegrations();
+  const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
 
   const supportedIntegrations = useMemo(
     () =>

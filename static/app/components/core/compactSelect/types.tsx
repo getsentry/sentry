@@ -59,7 +59,7 @@ export interface SearchMatchResult {
 export interface SearchConfig<Value extends SelectKey> {
   /**
    * Controls client-side option filtering:
-   * - Omitted: default case-insensitive substring filter
+   * - Omitted: default fuzzy (fzf) filter, results sorted by match score
    * - Function: custom matcher (receives option + search string, returns SearchMatchResult)
    * - `false`: disables client-side filtering entirely (use with `onChange` for server-side search)
    */

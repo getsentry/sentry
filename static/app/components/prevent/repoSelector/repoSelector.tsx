@@ -2,17 +2,13 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
 
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {useInfiniteRepositories} from 'sentry/components/prevent/repoSelector/useInfiniteRepositories';
-import {IconInfo} from 'sentry/icons';
 import {IconRepository} from 'sentry/icons/iconRepository';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
@@ -21,30 +17,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useSyncRepos} from './useSyncRepos';
-
-interface MenuFooterProps {
-  repoAccessLink: string;
-}
-
-function MenuFooter({repoAccessLink}: MenuFooterProps) {
-  return (
-    <Grid columns="max-content 1fr" gap="sm">
-      {props => (
-        <Text variant="muted" size="sm" {...props}>
-          <IconInfo size="sm" />
-          <div>
-            {tct(
-              "Sentry only displays repos you've authorized. Manage [repoAccessLink:repo access] in your GitHub settings.",
-              {
-                repoAccessLink: <ExternalLink openInNewTab href={repoAccessLink} />,
-              }
-            )}
-          </div>
-        </Text>
-      )}
-    </Grid>
-  );
-}
 
 export function RepoSelector() {
   const {
@@ -164,16 +136,22 @@ export function RepoSelector() {
       onOpenChange={_ => setSearchValue(undefined)}
       menuWidth="16rem"
       menuHeaderTrailingItems={
-        <Syncbutton
-          disabled={isSyncing}
-          onClick={() => triggerResync()}
-          size="zero"
-          priority="transparent"
-        >
+        <MenuComponents.HeaderButton disabled={isSyncing} onClick={() => triggerResync()}>
           {t('Sync Repos')}
-        </Syncbutton>
+        </MenuComponents.HeaderButton>
       }
-      menuFooter={<MenuFooter repoAccessLink={currentOrgGHIntegrationRepoAccessLink} />}
+      menuFooter={
+        <MenuComponents.Alert variant="info">
+          {tct(
+            "Sentry only displays repos you've authorized. Manage [repoAccessLink:repo access] in your GitHub settings.",
+            {
+              repoAccessLink: (
+                <ExternalLink openInNewTab href={currentOrgGHIntegrationRepoAccessLink} />
+              ),
+            }
+          )}
+        </MenuComponents.Alert>
+      }
       disabled={disabled}
       emptyMessage={getEmptyMessage()}
       trigger={triggerProps => {
@@ -202,12 +180,4 @@ const TriggerLabel = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
-`;
-
-const Syncbutton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${p => p.theme.space.xs};
-  margin: -${p => p.theme.space['2xs']} -${p => p.theme.space.xs};
 `;

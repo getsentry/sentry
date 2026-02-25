@@ -10,3 +10,11 @@ allow_all = true
 [[skills]]
 name = "*"
 source = "getsentry/skills"
+
+[[skills]]
+name = "warden-sweep"
+source = "getsentry/warden"
+
+[[skills]]
+name = "warden"
+source = "getsentry/warden"
