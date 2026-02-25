@@ -2,14 +2,12 @@ import {Fragment, useMemo, useState} from 'react';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import IdBadge from 'sentry/components/idBadge';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
@@ -20,13 +18,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
-  buildDataForwardingProviderConfig,
-  buildDataForwardingProviderSchema,
-} from 'sentry/views/settings/organizationDataForwarding/util/forms';
-import {
   useDataForwarders,
   useMutateDataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/hooks';
+import {SegmentSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/segmentForm';
+import {SplunkSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/splunkForm';
+import {SQSSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/sqsForm';
 import {
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
@@ -136,7 +133,7 @@ export default function OrganizationDataForwardingSetup() {
                 </TabList>
               </Tabs>
               {provider && (
-                <DataForwarderSetupForm
+                <ProviderSetupForm
                   key={provider}
                   provider={provider}
                   projects={projects}
@@ -152,7 +149,7 @@ export default function OrganizationDataForwardingSetup() {
   );
 }
 
-function DataForwarderSetupForm({
+function ProviderSetupForm({
   provider,
   projects,
   disabled,
@@ -163,297 +160,13 @@ function DataForwarderSetupForm({
   projects: Project[];
   provider: DataForwarderProviderSlug;
 }) {
-  const schema = useMemo(() => buildDataForwardingProviderSchema(provider), [provider]);
-
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {
-      is_enabled: true,
-      enroll_new_projects: false,
-      project_ids: [] as string[],
-      queue_url: '',
-      region: '',
-      access_key: '',
-      secret_key: '',
-      message_group_id: '',
-      s3_bucket: '',
-      write_key: '',
-      instance_url: '',
-      token: '',
-      index: 'main',
-      source: 'sentry',
-    },
-    validators: {onDynamic: schema},
-    onSubmit: ({value}) => {
-      const {is_enabled, enroll_new_projects, project_ids = [], ...allFields} = value;
-      onCreate({
-        provider,
-        config: buildDataForwardingProviderConfig(provider, allFields),
-        is_enabled,
-        enroll_new_projects,
-        project_ids,
-      } satisfies DataForwarderPayload);
-    },
-  });
-
-  const projectOptions = projects.map(project => ({
-    value: project.id,
-    label: project.slug,
-    leadingItems: <IdBadge project={project} avatarSize={16} disableLink hideName />,
-  }));
-
-  return (
-    <form.AppForm>
-      <form.FormWrapper>
-        <form.FieldGroup title={t('Enablement')}>
-          <form.AppField name="is_enabled">
-            {field => (
-              <field.Layout.Row
-                label={t('Enable data forwarding')}
-                hintText={t('Will be enabled after the initial setup is complete.')}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-        </form.FieldGroup>
-
-        {provider === DataForwarderProviderSlug.SQS && (
-          <form.FieldGroup title={t('Global Configuration')}>
-            <form.AppField name="queue_url">
-              {field => (
-                <field.Layout.Row
-                  label={t('Queue URL')}
-                  hintText={t('The URL of the SQS queue to forward events to.')}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. https://sqs.us-east-1.amazonaws.com/12345678/myqueue"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="region">
-              {field => (
-                <field.Layout.Row
-                  label={t('Region')}
-                  hintText={t('The region of the SQS queue to forward events to.')}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. us-east-1"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="access_key">
-              {field => (
-                <field.Layout.Row
-                  label={t('Access Key')}
-                  hintText={t('Currently only long-term IAM access keys are supported.')}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. AKIAIOSFODNN7EXAMPLE"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="secret_key">
-              {field => (
-                <field.Layout.Row
-                  label={t('Secret Key')}
-                  hintText={t('Only visible once when the access key is created.')}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. wJalrXUtnFEMI1K7MDENGSbPxRfiCYEXAMPLEKEY"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="message_group_id">
-              {field => (
-                <field.Layout.Row
-                  label={t('Message Group ID')}
-                  hintText={t('Required for FIFO queues, exclude for standard queues')}
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. my-message-group-id"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="s3_bucket">
-              {field => (
-                <field.Layout.Row
-                  label={t('S3 Bucket')}
-                  hintText={t(
-                    'Specify a bucket to store events in S3. The SQS message will contain a reference to the payload location in S3. If no S3 bucket is provided, events over the SQS limit of 256KB will not be forwarded.'
-                  )}
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. my-s3-bucket"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-          </form.FieldGroup>
-        )}
-
-        {provider === DataForwarderProviderSlug.SEGMENT && (
-          <form.FieldGroup title={t('Global Configuration')}>
-            <form.AppField name="write_key">
-              {field => (
-                <field.Layout.Row
-                  label={t('Write Key')}
-                  hintText={t(
-                    'Add an HTTP API Source to your Segment workspace to generate a write key.'
-                  )}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-          </form.FieldGroup>
-        )}
-
-        {provider === DataForwarderProviderSlug.SPLUNK && (
-          <form.FieldGroup title={t('Global Configuration')}>
-            <form.AppField name="instance_url">
-              {field => (
-                <field.Layout.Row
-                  label={t('Instance URL')}
-                  hintText={t(
-                    'The HTTP Event Collector endpoint for your Splunk instance. Ensure indexer acknowledgement is disabled.'
-                  )}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. https://input-foo.cloud.splunk.com:8088"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="token">
-              {field => (
-                <field.Layout.Row
-                  label={t('Token')}
-                  hintText={t('The token generated for your HTTP Event Collector.')}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. ab13cdef-45aa-1bcd-a123-bcEXAMPLEKEY"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="index">
-              {field => (
-                <field.Layout.Row
-                  label={t('Index')}
-                  hintText={t('The index to use for the events.')}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. main"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="source">
-              {field => (
-                <field.Layout.Row
-                  label={t('Source')}
-                  hintText={t('The source to use for the events.')}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value ?? ''}
-                    onChange={field.handleChange}
-                    placeholder="e.g. sentry"
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-          </form.FieldGroup>
-        )}
-
-        <form.FieldGroup title={t('Project Configuration')}>
-          <form.AppField name="enroll_new_projects">
-            {field => (
-              <field.Layout.Row
-                label={t('Auto-enroll new projects')}
-                hintText={t('Should new projects automatically forward their data?')}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={disabled}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-          <form.AppField name="project_ids">
-            {field => (
-              <field.Layout.Row
-                label={t('Forwarding projects')}
-                hintText={t('Select the projects which should forward their data.')}
-              >
-                <field.Select
-                  multiple
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  options={projectOptions}
-                  disabled={disabled}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-        </form.FieldGroup>
-
-        <Flex justify="end" padding="lg">
-          <form.SubmitButton disabled={disabled}>{t('Complete Setup')}</form.SubmitButton>
-        </Flex>
-      </form.FormWrapper>
-    </form.AppForm>
-  );
+  if (provider === DataForwarderProviderSlug.SQS) {
+    return <SQSSetupForm projects={projects} disabled={disabled} onSubmit={onCreate} />;
+  }
+  if (provider === DataForwarderProviderSlug.SEGMENT) {
+    return (
+      <SegmentSetupForm projects={projects} disabled={disabled} onSubmit={onCreate} />
+    );
+  }
+  return <SplunkSetupForm projects={projects} disabled={disabled} onSubmit={onCreate} />;
 }
