@@ -10,6 +10,9 @@ ADD --chmod=755 \
     https://github.com/dmtrKovalenko/odiff/releases/download/v4.3.2/odiff-linux-arm64 \
     /odiff
 
+ARG TARGETARCH
+FROM odiff-${TARGETARCH} AS odiff
+
 FROM python:3.13.1-slim-bookworm
 
 LABEL maintainer="oss@sentry.io"
@@ -32,8 +35,7 @@ RUN : \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-ARG TARGETARCH
-COPY --from=odiff-${TARGETARCH} /odiff /usr/local/bin/odiff
+COPY --from=odiff /odiff /usr/local/bin/odiff
 
 WORKDIR /usr/src/sentry
 
