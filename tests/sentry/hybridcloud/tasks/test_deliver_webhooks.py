@@ -1110,7 +1110,7 @@ class PushTriggerTest(TestCase):
     def test_push_trigger_enqueues_drain_for_idle_mailbox(self, mock_drain: MagicMock) -> None:
         webhook = self.create_webhook_payload(mailbox_name="github:123", region_name="us")
         maybe_trigger_drain(webhook.mailbox_name, webhook.id)
-        mock_drain.delay.assert_called_once_with(webhook.id, webhook.mailbox_name)
+        mock_drain.delay.assert_called_once_with(webhook.id)
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
@@ -1133,7 +1133,7 @@ class PushTriggerTest(TestCase):
         # Trigger with the newer webhook's ID, as get_response_from_webhookpayload does
         maybe_trigger_drain(newer_webhook.mailbox_name, newer_webhook.id)
         # Must drain from the head of the mailbox so the older payload is not skipped
-        mock_drain.delay.assert_called_once_with(older_webhook.id, newer_webhook.mailbox_name)
+        mock_drain.delay.assert_called_once_with(older_webhook.id)
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
@@ -1228,21 +1228,18 @@ class PushTriggerTest(TestCase):
         assert cache.get(f"wh:drain_active:{webhook_one.mailbox_name}") is None
         webhook_two = self.create_webhook_payload(mailbox_name="github:123", region_name="us")
         maybe_trigger_drain(webhook_two.mailbox_name, webhook_two.id)
-        mock_drain.delay.assert_called_once_with(webhook_two.id, webhook_two.mailbox_name)
+        mock_drain.delay.assert_called_once_with(webhook_two.id)
 
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
-    def test_drain_releases_lock_on_replica_does_not_exist(self) -> None:
+    def test_push_trigger_lock_released_on_enqueue_failure(self, mock_drain: MagicMock) -> None:
         from django.core.cache import cache
 
-        mailbox_name = "github:123"
-        lock_key = f"wh:drain_active:{mailbox_name}"
+        webhook = self.create_webhook_payload(mailbox_name="github:123", region_name="us")
+        mock_drain.delay.side_effect = Exception("Celery broker unavailable")
 
-        # Simulate maybe_trigger_drain acquiring the lock before enqueuing the task
-        cache.add(lock_key, 1, timeout=15)
-        assert cache.get(lock_key) is not None
+        # Should not raise — error is counted as a metric and swallowed
+        maybe_trigger_drain(webhook.mailbox_name, webhook.id)
 
-        # Simulate replication lag: drain_mailbox runs but the payload isn't on the replica yet
-        drain_mailbox(payload_id=999999, mailbox_name=mailbox_name)
-
-        # Lock must be released so push triggers and the scheduler can reach this mailbox
-        assert cache.get(lock_key) is None
+        # Lock must be released so the scheduler can still reach this mailbox
+        assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None

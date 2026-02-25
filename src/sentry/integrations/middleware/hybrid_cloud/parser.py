@@ -177,9 +177,10 @@ class BaseRequestParser(ABC):
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         shard_identifier = identifier or self.webhook_identifier.value
-        seen_mailboxes: set[str] = set()
-        for region in regions:
-            payload = WebhookPayload.create_from_request(
+        # mailbox_name is provider:identifier, which is constant for all regions in
+        # this loop. Create all payloads first, then trigger a single drain.
+        payloads = [
+            WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_REGION,
                 region=region.name,
                 provider=self.provider,
@@ -187,9 +188,10 @@ class BaseRequestParser(ABC):
                 integration_id=integration_id,
                 request=self.request,
             )
-            if payload.mailbox_name not in seen_mailboxes:
-                seen_mailboxes.add(payload.mailbox_name)
-                maybe_trigger_drain(payload.mailbox_name, payload.id)
+            for region in regions
+        ]
+        if payloads:
+            maybe_trigger_drain(payloads[0].mailbox_name, payloads[0].id)
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
