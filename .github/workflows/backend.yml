@@ -21,7 +21,6 @@ env:
 
 jobs:
   files-changed:
-    if: "github.event.action != 'labeled' || github.event.label.name == 'Trigger: Override Selective Testing'"
     name: detect what files changed
     runs-on: ubuntu-24.04
     timeout-minutes: 3
