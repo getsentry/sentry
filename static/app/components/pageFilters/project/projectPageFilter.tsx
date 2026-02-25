@@ -8,12 +8,7 @@ import sortBy from 'lodash/sortBy';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import type {
-  SelectKey,
-  SelectOption,
-  SelectOptionOrSection,
-  SelectOptionWithKey,
-} from '@sentry/scraps/compactSelect';
+import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -37,7 +32,6 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {fzf} from 'sentry/utils/search/fzf';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -80,19 +74,6 @@ export interface ProjectPageFilterProps extends Partial<
    * TODO: ideally this can be determined by what's set in the PageFiltersContainer
    */
   storageNamespace?: string;
-}
-
-/**
- * fzf-based search matcher for the project dropdown. Runs the fzf v1 algorithm
- * against the option's textValue (project slug) so that fuzzy/subsequence matches
- * are ranked by score rather than relying on plain substring inclusion.
- */
-function projectSearchMatcher(option: SelectOptionWithKey<SelectKey>, search: string) {
-  const text = option.textValue ?? (typeof option.label === 'string' ? option.label : '');
-  if (!text) {
-    return {score: 0};
-  }
-  return fzf(text, search.toLowerCase(), false);
 }
 
 /**
@@ -449,10 +430,10 @@ export function ProjectPageFilter({
 
   return (
     <HybridFilter
+      search
       ref={hybridFilterRef}
       {...selectProps}
       stagedSelect={stagedSelect}
-      search={{filter: projectSearchMatcher}}
       options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}

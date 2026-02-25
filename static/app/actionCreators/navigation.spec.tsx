@@ -115,6 +115,20 @@ describe('navigation ActionCreator', () => {
     expect(router.push).toHaveBeenCalledWith('/settings/projects/project-slug/alerts/');
   });
 
+  it('should open modal for teamId and require both org and team context', () => {
+    navigateTo('/settings/:orgId/teams/:teamId/settings/', router);
+    expect(openModal).toHaveBeenCalled();
+
+    const modalFactory = (openModal as jest.Mock).mock.calls[0]?.[0];
+    if (!modalFactory) {
+      throw new Error('Expected openModal to be called with a renderer');
+    }
+
+    const modal = modalFactory({closeModal: jest.fn()} as any);
+    expect(modal.props.needOrg).toBe(true);
+    expect(modal.props.needTeam).toBe(true);
+  });
+
   it('preserves query parameters in path object', () => {
     router.location.query.project = '2';
     navigateTo(
