@@ -102,6 +102,19 @@ class SentryAppAlertRuleActionRequester:
             )
 
     def _build_url(self) -> str:
+        if not self.sentry_app.webhook_url:
+            raise SentryAppIntegratorError(
+                message="Sentry app webhook_url is not configured",
+                webhook_context={
+                    "error_type": FAILURE_REASON_BASE.format(
+                        SentryAppExternalRequestFailureReason.MISSING_URL
+                    ),
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "uri": self.uri,
+                },
+                status_code=500,
+            )
+
         urlparts = list(urlparse(self.sentry_app.webhook_url))
         urlparts[2] = self.uri
         return urlunparse(urlparts)

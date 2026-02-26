@@ -142,6 +142,17 @@ class IssueLinkRequester:
             return response
 
     def _build_url(self) -> str:
+        if not self.sentry_app.webhook_url:
+            raise SentryAppIntegratorError(
+                message="Sentry app webhook_url is not configured",
+                webhook_context={
+                    "error_type": BAD_RESPONSE_HALT_REASON,
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "uri": self.uri,
+                },
+                status_code=500,
+            )
+
         urlparts = urlparse(self.sentry_app.webhook_url)
         return f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
 
