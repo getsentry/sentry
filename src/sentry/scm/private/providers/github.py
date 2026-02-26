@@ -27,6 +27,9 @@ from sentry.scm.types import (
     GitRef,
     GitTree,
     InputTreeEntry,
+    PaginatedActionResult,
+    PaginatedResponseMeta,
+    PaginationParams,
     PullRequest,
     PullRequestBranch,
     PullRequestCommit,
@@ -36,6 +39,7 @@ from sentry.scm.types import (
     ReactionResult,
     Referrer,
     Repository,
+    RequestOptions,
     ResourceId,
     Review,
     ReviewComment,
@@ -114,6 +118,9 @@ GITHUB_REVIEW_EVENT_MAP: dict[ReviewEvent, str] = {
 #       remain unchanged.
 REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
 
+# Placeholder pagination meta until the GitHub client supports pagination.
+_DEFAULT_PAGINATED_META: PaginatedResponseMeta = PaginatedResponseMeta(next_cursor=None)
+
 
 def catch_provider_exception(fn):
     @functools.wraps(fn)
@@ -143,12 +150,18 @@ class GitHubProvider:
         )
 
     @catch_provider_exception
-    def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]:
+    def get_issue_comments(
+        self,
+        issue_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Comment]:
         raw_comments = self.client.get_issue_comments(self.repository["name"], issue_id)
-        return ActionResult(
+        return PaginatedActionResult(
             data=[map_comment(c) for c in raw_comments],
             type="github",
             raw=raw_comments,
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     @catch_provider_exception
@@ -161,22 +174,32 @@ class GitHubProvider:
         self.client.delete_issue_comment(self.repository["name"], comment_id)
 
     @catch_provider_exception
-    def get_pull_request(self, pull_request_id: str) -> ActionResult[PullRequest]:
+    def get_pull_request(
+        self,
+        pull_request_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[PullRequest]:
         raw = self.client.get_pull_request(self.repository["name"], pull_request_id)
         return map_action(raw, map_pull_request)
 
     @catch_provider_exception
-    def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]:
+    def get_pull_request_comments(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Comment]:
         owner, repo = self.repository["name"].split("/", 1)
         raw = self.client.get_pull_request_comments_graphql(
             owner,
             repo,
             int(pull_request_id),
         )
-        return ActionResult(
+        return PaginatedActionResult(
             data=map_graphql_pr_comments(raw),
             type="github",
             raw=raw,
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     @catch_provider_exception
@@ -189,12 +212,18 @@ class GitHubProvider:
         self.client.delete_issue_comment(self.repository["name"], comment_id)
 
     @catch_provider_exception
-    def get_issue_comment_reactions(self, comment_id: str) -> ActionResult[list[ReactionResult]]:
+    def get_issue_comment_reactions(
+        self,
+        comment_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
         raw_reactions = self.client.get_comment_reactions(self.repository["name"], comment_id)
-        return ActionResult(
+        return PaginatedActionResult(
             data=[map_reaction(r) for r in raw_reactions],
             type="github",
             raw={"items": raw_reactions},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     @catch_provider_exception
@@ -213,9 +242,12 @@ class GitHubProvider:
 
     @catch_provider_exception
     def get_pull_request_comment_reactions(
-        self, comment_id: str
-    ) -> ActionResult[list[ReactionResult]]:
-        return self.get_issue_comment_reactions(comment_id)
+        self,
+        comment_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
+        return self.get_issue_comment_reactions(comment_id, pagination, request_options)
 
     @catch_provider_exception
     def create_pull_request_comment_reaction(
@@ -228,12 +260,18 @@ class GitHubProvider:
         return self.delete_issue_comment_reaction(comment_id, reaction_id)
 
     @catch_provider_exception
-    def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
+    def get_issue_reactions(
+        self,
+        issue_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
         raw_reactions = self.client.get_issue_reactions(self.repository["name"], issue_id)
-        return ActionResult(
+        return PaginatedActionResult(
             data=[map_reaction(r) for r in raw_reactions],
             type="github",
             raw={"items": raw_reactions},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     @catch_provider_exception
@@ -250,9 +288,12 @@ class GitHubProvider:
 
     @catch_provider_exception
     def get_pull_request_reactions(
-        self, pull_request_id: str
-    ) -> ActionResult[list[ReactionResult]]:
-        return self.get_issue_reactions(pull_request_id)
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
+        return self.get_issue_reactions(pull_request_id, pagination, request_options)
 
     @catch_provider_exception
     def create_pull_request_reaction(
@@ -265,7 +306,11 @@ class GitHubProvider:
         return self.delete_issue_reaction(pull_request_id, reaction_id)
 
     @catch_provider_exception
-    def get_branch(self, branch: BranchName) -> ActionResult[GitRef]:
+    def get_branch(
+        self,
+        branch: BranchName,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitRef]:
         raw = self.client.get_branch(self.repository["name"], branch)
         return map_action(raw, map_git_ref)
 
@@ -287,12 +332,21 @@ class GitHubProvider:
         return map_action(raw, map_git_blob)
 
     @catch_provider_exception
-    def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]:
+    def get_file_content(
+        self,
+        path: str,
+        ref: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[FileContent]:
         raw = self.client.get_file_content(self.repository["name"], path, ref)
         return map_action(raw, map_file_content)
 
     @catch_provider_exception
-    def get_commit(self, sha: CommitSHA) -> ActionResult[Commit]:
+    def get_commit(
+        self,
+        sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[Commit]:
         raw = self.client.get_commit(self.repository["name"], sha)
         return map_action(raw, map_commit)
 
@@ -301,28 +355,43 @@ class GitHubProvider:
         self,
         sha: CommitSHA | None = None,
         path: str | None = None,
-    ) -> ActionResult[list[Commit]]:
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
         raw_commits = self.client.get_commits(self.repository["name"], sha=sha, path=path)
-        return ActionResult(
+        return PaginatedActionResult(
             data=[map_commit(c) for c in raw_commits],
             type="github",
             raw={"items": raw_commits},
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     @catch_provider_exception
     def compare_commits(
-        self, start_sha: CommitSHA, end_sha: CommitSHA
+        self,
+        start_sha: CommitSHA,
+        end_sha: CommitSHA,
+        request_options: RequestOptions | None = None,
     ) -> ActionResult[CommitComparison]:
         raw = self.client.compare_commits(self.repository["name"], start_sha, end_sha)
         return map_action(raw, map_commit_comparison)  # type: ignore[arg-type]
 
     @catch_provider_exception
-    def get_tree(self, tree_sha: CommitSHA, recursive: bool = True) -> ActionResult[GitTree]:
+    def get_tree(
+        self,
+        tree_sha: CommitSHA,
+        recursive: bool = True,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitTree]:
         raw = self.client.get_tree_full(self.repository["name"], tree_sha, recursive=recursive)
         return map_action(raw, map_git_tree)
 
     @catch_provider_exception
-    def get_git_commit(self, sha: CommitSHA) -> ActionResult[GitCommitObject]:
+    def get_git_commit(
+        self,
+        sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitCommitObject]:
         raw = self.client.get_git_commit(self.repository["name"], sha)
         return map_action(raw, map_git_commit_object)
 
@@ -354,44 +423,64 @@ class GitHubProvider:
         return map_action(raw, map_git_commit_object)
 
     @catch_provider_exception
-    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
+    def get_pull_request_files(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequestFile]:
         raw_files = self.client.get_pull_request_files(self.repository["name"], pull_request_id)
-        return ActionResult(
+        return PaginatedActionResult(
             data=[map_pull_request_file(f) for f in raw_files],
             type="github",
             raw=raw_files,
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     @catch_provider_exception
     def get_pull_request_commits(
-        self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestCommit]]:
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequestCommit]:
         raw_commits = self.client.get_pull_request_commits(self.repository["name"], pull_request_id)
-        return ActionResult(
+        return PaginatedActionResult(
             data=[map_pull_request_commit(c) for c in raw_commits],
             type="github",
             raw=raw_commits,
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     @catch_provider_exception
-    def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
+    def get_pull_request_diff(
+        self,
+        pull_request_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[str]:
         resp = self.client.get_pull_request_diff(self.repository["name"], pull_request_id)
         return ActionResult(
             data=resp.text,
             type="github",
             raw={},
+            meta={},
         )
 
     @catch_provider_exception
     def get_pull_requests(
-        self, state: PullRequestState | None = "open", head: BranchName | None = None
-    ) -> ActionResult[list[PullRequest]]:
+        self,
+        state: PullRequestState | None = "open",
+        head: BranchName | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequest]:
         github_state = state if state is not None else "all"
         raw_prs = self.client.list_pull_requests(self.repository["name"], github_state, head)
-        return ActionResult(
+        return PaginatedActionResult(
             data=[map_pull_request(pr) for pr in raw_prs],
             type="github",
             raw=raw_prs,
+            meta=_DEFAULT_PAGINATED_META,
         )
 
     @catch_provider_exception
@@ -516,7 +605,11 @@ class GitHubProvider:
         return map_action(raw, map_check_run)
 
     @catch_provider_exception
-    def get_check_run(self, check_run_id: ResourceId) -> ActionResult[CheckRun]:
+    def get_check_run(
+        self,
+        check_run_id: ResourceId,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[CheckRun]:
         raw = self.client.get_check_run(self.repository["name"], int(check_run_id))
         return map_action(raw, map_check_run)
 
@@ -779,4 +872,5 @@ def map_action[T](raw: dict[str, Any], fn: Callable[[dict[str, Any]], T]) -> Act
         "data": fn(raw),
         "type": "github",
         "raw": raw,
+        "meta": {},
     }

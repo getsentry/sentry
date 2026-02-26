@@ -7,7 +7,7 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.scm.actions import SourceCodeManager
 from sentry.scm.errors import SCMCodedError, SCMProviderException
-from sentry.scm.types import ActionResult, ReactionResult, Repository
+from sentry.scm.types import PaginatedActionResult, ReactionResult, Repository
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 
@@ -599,7 +599,9 @@ def test_provider_exception_is_not_wrapped():
     """SCMProviderException should pass through exec_provider_fn, not be wrapped as SCMUnhandledException."""
 
     class FailingProvider(BaseTestProvider):
-        def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
+        def get_issue_reactions(
+            self, issue_id: str, pagination=None, request_options=None
+        ) -> PaginatedActionResult[ReactionResult]:
             raise SCMProviderException("GitHub API error")
 
     scm = SourceCodeManager(

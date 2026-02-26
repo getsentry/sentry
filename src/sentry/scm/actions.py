@@ -28,6 +28,8 @@ from sentry.scm.types import (
     GitRef,
     GitTree,
     InputTreeEntry,
+    PaginatedActionResult,
+    PaginationParams,
     Provider,
     PullRequest,
     PullRequestCommit,
@@ -38,6 +40,7 @@ from sentry.scm.types import (
     Referrer,
     Repository,
     RepositoryId,
+    RequestOptions,
     ResourceId,
     Review,
     ReviewComment,
@@ -125,9 +128,14 @@ class SourceCodeManager:
             provider_fn=provider_fn,
         )
 
-    def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]:
+    def get_issue_comments(
+        self,
+        issue_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Comment]:
         """Get comments on an issue."""
-        return self._exec(lambda p: p.get_issue_comments(issue_id))
+        return self._exec(lambda p: p.get_issue_comments(issue_id, pagination, request_options))
 
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
         """Create a comment on an issue."""
@@ -137,13 +145,24 @@ class SourceCodeManager:
         """Delete a comment on an issue."""
         return self._exec(lambda p: p.delete_issue_comment(comment_id))
 
-    def get_pull_request(self, pull_request_id: str) -> ActionResult[PullRequest]:
+    def get_pull_request(
+        self,
+        pull_request_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[PullRequest]:
         """Get a pull request."""
-        return self._exec(lambda p: p.get_pull_request(pull_request_id))
+        return self._exec(lambda p: p.get_pull_request(pull_request_id, request_options))
 
-    def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]:
+    def get_pull_request_comments(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Comment]:
         """Get comments on a pull request."""
-        return self._exec(lambda p: p.get_pull_request_comments(pull_request_id))
+        return self._exec(
+            lambda p: p.get_pull_request_comments(pull_request_id, pagination, request_options)
+        )
 
     def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
         """Create a comment on a pull request."""
@@ -153,9 +172,16 @@ class SourceCodeManager:
         """Delete a comment on a pull request."""
         return self._exec(lambda p: p.delete_pull_request_comment(comment_id))
 
-    def get_issue_comment_reactions(self, comment_id: str) -> ActionResult[list[ReactionResult]]:
+    def get_issue_comment_reactions(
+        self,
+        comment_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
         """Get reactions on an issue comment."""
-        return self._exec(lambda p: p.get_issue_comment_reactions(comment_id))
+        return self._exec(
+            lambda p: p.get_issue_comment_reactions(comment_id, pagination, request_options)
+        )
 
     def create_issue_comment_reaction(
         self, comment_id: str, reaction: Reaction
@@ -168,10 +194,15 @@ class SourceCodeManager:
         return self._exec(lambda p: p.delete_issue_comment_reaction(comment_id, reaction_id))
 
     def get_pull_request_comment_reactions(
-        self, comment_id: str
-    ) -> ActionResult[list[ReactionResult]]:
+        self,
+        comment_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
         """Get reactions on a pull request comment."""
-        return self._exec(lambda p: p.get_pull_request_comment_reactions(comment_id))
+        return self._exec(
+            lambda p: p.get_pull_request_comment_reactions(comment_id, pagination, request_options)
+        )
 
     def create_pull_request_comment_reaction(
         self, comment_id: str, reaction: Reaction
@@ -183,9 +214,14 @@ class SourceCodeManager:
         """Delete a reaction on a pull request comment."""
         return self._exec(lambda p: p.delete_pull_request_comment_reaction(comment_id, reaction_id))
 
-    def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]:
+    def get_issue_reactions(
+        self,
+        issue_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
         """Get reactions on an issue."""
-        return self._exec(lambda p: p.get_issue_reactions(issue_id))
+        return self._exec(lambda p: p.get_issue_reactions(issue_id, pagination, request_options))
 
     def create_issue_reaction(
         self, issue_id: str, reaction: Reaction
@@ -198,10 +234,15 @@ class SourceCodeManager:
         return self._exec(lambda p: p.delete_issue_reaction(issue_id, reaction_id))
 
     def get_pull_request_reactions(
-        self, pull_request_id: str
-    ) -> ActionResult[list[ReactionResult]]:
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]:
         """Get reactions on a pull request."""
-        return self._exec(lambda p: p.get_pull_request_reactions(pull_request_id))
+        return self._exec(
+            lambda p: p.get_pull_request_reactions(pull_request_id, pagination, request_options)
+        )
 
     def create_pull_request_reaction(
         self, pull_request_id: str, reaction: Reaction
@@ -213,9 +254,13 @@ class SourceCodeManager:
         """Delete a reaction on a pull request."""
         return self._exec(lambda p: p.delete_pull_request_reaction(pull_request_id, reaction_id))
 
-    def get_branch(self, branch: BranchName) -> ActionResult[GitRef]:
+    def get_branch(
+        self,
+        branch: BranchName,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitRef]:
         """Get a branch reference."""
-        return self._exec(lambda p: p.get_branch(branch))
+        return self._exec(lambda p: p.get_branch(branch, request_options))
 
     def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]:
         """Create a new branch pointing at the given SHA."""
@@ -229,29 +274,58 @@ class SourceCodeManager:
         """Create a git blob object."""
         return self._exec(lambda p: p.create_git_blob(content, encoding))
 
-    def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]:
-        return self._exec(lambda p: p.get_file_content(path, ref))
+    def get_file_content(
+        self,
+        path: str,
+        ref: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[FileContent]:
+        return self._exec(lambda p: p.get_file_content(path, ref, request_options))
 
-    def get_commit(self, sha: CommitSHA) -> ActionResult[Commit]:
-        return self._exec(lambda p: p.get_commit(sha))
+    def get_commit(
+        self,
+        sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[Commit]:
+        return self._exec(lambda p: p.get_commit(sha, request_options))
 
     def get_commits(
         self,
         sha: CommitSHA | None = None,
         path: str | None = None,
-    ) -> ActionResult[list[Commit]]:
-        return self._exec(lambda p: p.get_commits(sha=sha, path=path))
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        return self._exec(
+            lambda p: p.get_commits(
+                sha=sha, path=path, pagination=pagination, request_options=request_options
+            )
+        )
 
     def compare_commits(
-        self, start_sha: CommitSHA, end_sha: CommitSHA
+        self,
+        start_sha: CommitSHA,
+        end_sha: CommitSHA,
+        request_options: RequestOptions | None = None,
     ) -> ActionResult[CommitComparison]:
-        return self._exec(lambda p: p.compare_commits(start_sha, end_sha))
+        return self._exec(lambda p: p.compare_commits(start_sha, end_sha, request_options))
 
-    def get_tree(self, tree_sha: CommitSHA, recursive: bool = True) -> ActionResult[GitTree]:
-        return self._exec(lambda p: p.get_tree(tree_sha, recursive=recursive))
+    def get_tree(
+        self,
+        tree_sha: CommitSHA,
+        recursive: bool = True,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitTree]:
+        return self._exec(
+            lambda p: p.get_tree(tree_sha, recursive=recursive, request_options=request_options)
+        )
 
-    def get_git_commit(self, sha: CommitSHA) -> ActionResult[GitCommitObject]:
-        return self._exec(lambda p: p.get_git_commit(sha))
+    def get_git_commit(
+        self,
+        sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitCommitObject]:
+        return self._exec(lambda p: p.get_git_commit(sha, request_options))
 
     def create_git_tree(
         self,
@@ -265,23 +339,41 @@ class SourceCodeManager:
     ) -> ActionResult[GitCommitObject]:
         return self._exec(lambda p: p.create_git_commit(message, tree_sha, parent_shas))
 
-    def get_pull_request_files(self, pull_request_id: str) -> ActionResult[list[PullRequestFile]]:
-        return self._exec(lambda p: p.get_pull_request_files(pull_request_id))
+    def get_pull_request_files(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequestFile]:
+        return self._exec(
+            lambda p: p.get_pull_request_files(pull_request_id, pagination, request_options)
+        )
 
     def get_pull_request_commits(
-        self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestCommit]]:
-        return self._exec(lambda p: p.get_pull_request_commits(pull_request_id))
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequestCommit]:
+        return self._exec(
+            lambda p: p.get_pull_request_commits(pull_request_id, pagination, request_options)
+        )
 
-    def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]:
-        return self._exec(lambda p: p.get_pull_request_diff(pull_request_id))
+    def get_pull_request_diff(
+        self,
+        pull_request_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[str]:
+        return self._exec(lambda p: p.get_pull_request_diff(pull_request_id, request_options))
 
     def get_pull_requests(
         self,
         state: PullRequestState | None = "open",
         head: BranchName | None = None,
-    ) -> ActionResult[list[PullRequest]]:
-        return self._exec(lambda p: p.get_pull_requests(state, head))
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequest]:
+        return self._exec(lambda p: p.get_pull_requests(state, head, pagination, request_options))
 
     def create_pull_request(
         self,
@@ -367,8 +459,12 @@ class SourceCodeManager:
             )
         )
 
-    def get_check_run(self, check_run_id: ResourceId) -> ActionResult[CheckRun]:
-        return self._exec(lambda p: p.get_check_run(check_run_id))
+    def get_check_run(
+        self,
+        check_run_id: ResourceId,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[CheckRun]:
+        return self._exec(lambda p: p.get_check_run(check_run_id, request_options))
 
     def update_check_run(
         self,

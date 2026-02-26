@@ -106,6 +106,52 @@ type PullRequestState = Literal["open", "closed"]
 type ReviewEvent = Literal["approve", "change_request", "comment"]
 
 
+class PaginationParams(TypedDict, total=False):
+    """Controls page traversal for list endpoints.
+
+    - cursor: an opaque token returned from a previous page's `next_cursor`
+    - per_page: how many items to return per page
+    """
+
+    cursor: str
+    per_page: int
+
+
+class RequestOptions(TypedDict, total=False):
+    """Transport-level options for single-resource fetches.
+
+    - if_none_match: send an `If-None-Match` header (ETag-based caching)
+    - if_modified_since: send an `If-Modified-Since` header (UTC datetime)
+    """
+
+    if_none_match: str
+    if_modified_since: datetime
+
+
+class ResponseMeta(TypedDict, total=False):
+    """Transport-level metadata attached to a single-resource provider response.
+
+    - etag: the `ETag` header value, usable in a subsequent `if_none_match`
+    - last_modified: UTC datetime parsed from the `Last-Modified` header
+    """
+
+    etag: str
+    last_modified: datetime
+
+
+class PaginatedResponseMeta(TypedDict, total=False):
+    """Transport-level metadata attached to a paginated provider response.
+
+    Carries all fields from `ResponseMeta` plus a required `next_cursor`
+    that callers can pass back to `PaginationParams.cursor` to fetch the
+    next page. `None` means there are no more pages.
+    """
+
+    etag: str
+    last_modified: datetime
+    next_cursor: Required[str | None]
+
+
 class Author(TypedDict):
     """Normalized author identity returned by all SCM providers."""
 
@@ -157,11 +203,29 @@ class ActionResult[T](TypedDict):
     Pairs a normalized domain object with the provider name and raw API
     payload. This lets callers work with a stable interface while still
     having access to provider-specific fields when needed.
+
+    The `meta` field carries transport-level metadata such as ETags.
+    Pass an empty dict when the provider does not supply any metadata.
     """
 
     data: T
     type: ProviderName
     raw: dict[str, Any]
+    meta: ResponseMeta
+
+
+class PaginatedActionResult[T](TypedDict):
+    """Wraps a paginated provider response.
+
+    Identical to `ActionResult` but carries a `PaginatedResponseMeta` with a required
+    `page_info`, guaranteeing that callers of list endpoints always have access to pagination
+    state.
+    """
+
+    data: list[T]
+    type: ProviderName
+    raw: dict[str, Any]
+    meta: PaginatedResponseMeta
 
 
 class Repository(TypedDict):
@@ -323,15 +387,144 @@ class Provider(Protocol):
 
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
 
-    def get_pull_request(self, pull_request_id: str) -> ActionResult[PullRequest]: ...
+    # -- Single-resource endpoints ------------------------------------------------
 
-    def get_issue_comments(self, issue_id: str) -> ActionResult[list[Comment]]: ...
+    def get_pull_request(
+        self,
+        pull_request_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[PullRequest]: ...
+
+    def get_branch(
+        self,
+        branch: BranchName,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitRef]: ...
+
+    def get_file_content(
+        self,
+        path: str,
+        ref: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[FileContent]: ...
+
+    def get_commit(
+        self,
+        sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[Commit]: ...
+
+    def compare_commits(
+        self,
+        start_sha: CommitSHA,
+        end_sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[CommitComparison]: ...
+
+    def get_tree(
+        self,
+        tree_sha: CommitSHA,
+        recursive: bool = True,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitTree]: ...
+
+    def get_git_commit(
+        self,
+        sha: CommitSHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitCommitObject]: ...
+
+    def get_pull_request_diff(
+        self,
+        pull_request_id: str,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[str]: ...
+
+    def get_check_run(
+        self,
+        check_run_id: ResourceId,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[CheckRun]: ...
+
+    # -- List endpoints ---------------------------------------------------------
+
+    def get_issue_comments(
+        self,
+        issue_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Comment]: ...
+
+    def get_pull_request_comments(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Comment]: ...
+
+    def get_issue_comment_reactions(
+        self,
+        comment_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]: ...
+
+    def get_pull_request_comment_reactions(
+        self,
+        comment_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]: ...
+
+    def get_issue_reactions(
+        self,
+        issue_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]: ...
+
+    def get_pull_request_reactions(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[ReactionResult]: ...
+
+    def get_commits(
+        self,
+        sha: CommitSHA | None = None,
+        path: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]: ...
+
+    def get_pull_request_files(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequestFile]: ...
+
+    def get_pull_request_commits(
+        self,
+        pull_request_id: str,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequestCommit]: ...
+
+    def get_pull_requests(
+        self,
+        state: PullRequestState | None = "open",
+        head: BranchName | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[PullRequest]: ...
+
+    # -- Mutations --------------------------------------------------------------
 
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]: ...
 
     def delete_issue_comment(self, comment_id: str) -> None: ...
-
-    def get_pull_request_comments(self, pull_request_id: str) -> ActionResult[list[Comment]]: ...
 
     def create_pull_request_comment(
         self, pull_request_id: str, body: str
@@ -339,19 +532,11 @@ class Provider(Protocol):
 
     def delete_pull_request_comment(self, comment_id: str) -> None: ...
 
-    def get_issue_comment_reactions(
-        self, comment_id: str
-    ) -> ActionResult[list[ReactionResult]]: ...
-
     def create_issue_comment_reaction(
         self, comment_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]: ...
 
     def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None: ...
-
-    def get_pull_request_comment_reactions(
-        self, comment_id: str
-    ) -> ActionResult[list[ReactionResult]]: ...
 
     def create_pull_request_comment_reaction(
         self, comment_id: str, reaction: Reaction
@@ -359,17 +544,11 @@ class Provider(Protocol):
 
     def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None: ...
 
-    def get_issue_reactions(self, issue_id: str) -> ActionResult[list[ReactionResult]]: ...
-
     def create_issue_reaction(
         self, issue_id: str, reaction: Reaction
     ) -> ActionResult[ReactionResult]: ...
 
     def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None: ...
-
-    def get_pull_request_reactions(
-        self, pull_request_id: str
-    ) -> ActionResult[list[ReactionResult]]: ...
 
     def create_pull_request_reaction(
         self, pull_request_id: str, reaction: Reaction
@@ -377,29 +556,11 @@ class Provider(Protocol):
 
     def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None: ...
 
-    def get_branch(self, branch: BranchName) -> ActionResult[GitRef]: ...
-
     def create_branch(self, branch: BranchName, sha: CommitSHA) -> ActionResult[GitRef]: ...
 
     def update_branch(self, branch: BranchName, sha: CommitSHA, force: bool = False) -> None: ...
 
     def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]: ...
-
-    def get_file_content(self, path: str, ref: str | None = None) -> ActionResult[FileContent]: ...
-
-    def get_commit(self, sha: CommitSHA) -> ActionResult[Commit]: ...
-
-    def get_commits(
-        self, sha: CommitSHA | None = None, path: str | None = None
-    ) -> ActionResult[list[Commit]]: ...
-
-    def compare_commits(
-        self, start_sha: CommitSHA, end_sha: CommitSHA
-    ) -> ActionResult[CommitComparison]: ...
-
-    def get_tree(self, tree_sha: CommitSHA, recursive: bool = True) -> ActionResult[GitTree]: ...
-
-    def get_git_commit(self, sha: CommitSHA) -> ActionResult[GitCommitObject]: ...
 
     def create_git_tree(
         self, tree: list[InputTreeEntry], base_tree: CommitSHA | None = None
@@ -408,20 +569,6 @@ class Provider(Protocol):
     def create_git_commit(
         self, message: str, tree_sha: CommitSHA, parent_shas: list[CommitSHA]
     ) -> ActionResult[GitCommitObject]: ...
-
-    def get_pull_request_files(
-        self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestFile]]: ...
-
-    def get_pull_request_commits(
-        self, pull_request_id: str
-    ) -> ActionResult[list[PullRequestCommit]]: ...
-
-    def get_pull_request_diff(self, pull_request_id: str) -> ActionResult[str]: ...
-
-    def get_pull_requests(
-        self, state: PullRequestState | None = "open", head: BranchName | None = None
-    ) -> ActionResult[list[PullRequest]]: ...
 
     def create_pull_request(
         self,
@@ -474,8 +621,6 @@ class Provider(Protocol):
         completed_at: str | None = None,
         output: CheckRunOutput | None = None,
     ) -> ActionResult[CheckRun]: ...
-
-    def get_check_run(self, check_run_id: ResourceId) -> ActionResult[CheckRun]: ...
 
     def update_check_run(
         self,
