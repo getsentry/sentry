@@ -1,8 +1,7 @@
-/* eslint-disable import/no-nodejs-modules */
+// eslint-disable-next-line import/no-nodejs-modules
 import {existsSync, mkdirSync, writeFileSync} from 'node:fs';
+// eslint-disable-next-line import/no-nodejs-modules
 import path from 'node:path';
-
-/* eslint-enable import/no-nodejs-modules */
 
 import {createElement, type ReactElement} from 'react';
 import {renderToString} from 'react-dom/server';
@@ -10,6 +9,8 @@ import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import createEmotionServer from '@emotion/server/create-instance';
 import {chromium} from 'playwright';
+
+import type {SnapshotImageMetadata} from 'sentry-test/snapshots/snapshot-image-metadata';
 
 // eslint-disable-next-line no-restricted-imports -- SSR rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
@@ -137,7 +138,22 @@ export async function takeSnapshot(
       mkdirSync(outputDir, {recursive: true});
     }
 
+    // TODO: parallelize this with writeFileSync
     writeFileSync(path.join(outputDir, filename), screenshot);
+
+    // PNG width/height are stored as 4-byte big-endian integers at offsets 16 and 20
+    const width = screenshot.readUInt32BE(16);
+    const height = screenshot.readUInt32BE(20);
+    const metadata: SnapshotImageMetadata = {
+      display_name: name,
+      image_file_name: filename,
+      width,
+      height,
+    };
+    writeFileSync(
+      path.join(outputDir, `${sanitizedName}-${themeName}.json`),
+      JSON.stringify(metadata, null, 2)
+    );
   } finally {
     await context.close();
   }

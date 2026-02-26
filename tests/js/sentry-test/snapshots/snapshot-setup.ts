@@ -41,8 +41,8 @@ if (typeof globalThis.window === 'undefined') {
 }
 
 // Suppress React SSR useLayoutEffect warnings
-const originalConsoleError = console.error; // eslint-disable-line no-console
-// eslint-disable-next-line no-console
+/* eslint-disable no-console */
+const originalConsoleError = console.error;
 console.error = (...args: unknown[]) => {
   const message = typeof args[0] === 'string' ? args[0] : '';
   if (message.includes('useLayoutEffect does nothing on the server')) {
@@ -50,3 +50,4 @@ console.error = (...args: unknown[]) => {
   }
   originalConsoleError.apply(console, args);
 };
+/* eslint-enable no-console */

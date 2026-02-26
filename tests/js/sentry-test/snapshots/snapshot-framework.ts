@@ -2,13 +2,6 @@ import type {ReactElement} from 'react';
 
 import {takeSnapshot, type SnapshotOptions} from './snapshot';
 
-/**
- * Registers `it.snapshot()` on the Jest test API.
- *
- * Usage:
- *   it.snapshot('button-default', () => <Button>Click me</Button>);
- *   it.snapshot('button-dark', { theme: 'dark' }, () => <Button>Click me</Button>);
- */
 function snapshotTest(
   name: string,
   optionsOrRenderFn: SnapshotOptions | (() => ReactElement),
