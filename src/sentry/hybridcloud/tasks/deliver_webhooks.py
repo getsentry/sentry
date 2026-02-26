@@ -136,7 +136,7 @@ def maybe_trigger_drain(mailbox_name: str, payload_id: int) -> None:
                     cache.delete(lock_key)
                     metrics.incr("hybridcloud.deliver_webhooks.push_trigger.backoff")
                     return
-                drain_mailbox.delay(head_id)
+                drain_mailbox.delay(head_id, mailbox_name=mailbox_name)
             except Exception:
                 # Enqueue failed — release the lock so delivery isn't blocked for 15s.
                 try:
@@ -237,7 +237,7 @@ def schedule_webhook_delivery() -> None:
     processing_deadline_duration=300,
     silo_mode=SiloMode.CONTROL,
 )
-def drain_mailbox(payload_id: int) -> None:
+def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
     """
     Attempt deliver up to 50 webhooks from the mailbox that `id` is from.
 
@@ -253,6 +253,15 @@ def drain_mailbox(payload_id: int) -> None:
         # and let the other process continue, or a future process.
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
         logger.info("deliver_webhook.potential_race", extra={"id": payload_id})
+        # Release the drain lock if we know the mailbox name. This can happen when
+        # maybe_trigger_drain queries the primary for head_id then drain_mailbox fetches
+        # from the replica — replication lag causes DoesNotExist, but the lock is still
+        # held, blocking both push triggers and the scheduler for the full 15s TTL.
+        if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            try:
+                cache.delete(_drain_lock_key(mailbox_name))
+            except Exception:
+                pass
         return
 
     _set_webhook_delivery_sentry_context(payload)
