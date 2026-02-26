@@ -179,22 +179,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   }, [onStagedValueChange, stagedValue]);
 
   useEffect(() => {
-    const onKeyChange = (e: KeyboardEvent) => {
-      keyRef.current = e.shiftKey
-        ? 'shift'
-        : (isAppleDevice() ? e.altKey : e.ctrlKey) || (isMac() ? e.metaKey : e.ctrlKey)
-          ? 'modifier'
-          : null;
-    };
-    window.addEventListener('keydown', onKeyChange);
-    window.addEventListener('keyup', onKeyChange);
-    return () => {
-      window.removeEventListener('keydown', onKeyChange);
-      window.removeEventListener('keyup', onKeyChange);
-    };
-  }, []);
-
-  useEffect(() => {
     if (state.stagedValue === null && hasExternalChanges) {
       dispatch({type: 'clear anchor'});
     }
