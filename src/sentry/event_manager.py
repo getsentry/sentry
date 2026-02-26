@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, overload
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, overload
 
 import orjson
 import psycopg2.errors
@@ -1965,12 +1965,14 @@ severity_connection_pool = connection_from_url(
 )
 
 
-class SeverityScoreRequest(Protocol):
+class SeverityScoreRequest(TypedDict):
     message: str
     has_stacktrace: int
     handled: bool
     org_id: int
     project_id: int
+    trigger_timeout: NotRequired[bool]
+    trigger_error: NotRequired[bool]
 
 
 def make_severity_score_request(
@@ -1978,10 +1980,15 @@ def make_severity_score_request(
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
 ) -> BaseHTTPResponse:
+    payload: SeverityScoreRequest = {**body}
+    if options.get("processing.severity-backlog-test.timeout"):
+        payload["trigger_timeout"] = True
+    if options.get("processing.severity-backlog-test.error"):
+        payload["trigger_error"] = True
     return make_signed_seer_api_request(
         connection_pool or severity_connection_pool,
         "/v0/issues/severity-score",
-        body=orjson.dumps(body),
+        body=orjson.dumps(payload),
         timeout=timeout,
     )
 
@@ -2186,18 +2193,13 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         )
         return 0.0, "bad_title"
 
-    payload = {
+    payload: SeverityScoreRequest = {
         "message": title,
         "has_stacktrace": int(has_stacktrace(event.data)),
         "handled": is_handled(event.data),
         "org_id": event.project.organization_id,
         "project_id": event.project_id,
     }
-
-    if options.get("processing.severity-backlog-test.timeout"):
-        payload["trigger_timeout"] = True
-    if options.get("processing.severity-backlog-test.error"):
-        payload["trigger_error"] = True
 
     logger_data["payload"] = payload
 
