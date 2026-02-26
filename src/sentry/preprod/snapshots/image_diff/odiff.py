@@ -174,6 +174,3 @@ class OdiffServer:
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             pass
-
-    def __del__(self) -> None:
-        self.close()
