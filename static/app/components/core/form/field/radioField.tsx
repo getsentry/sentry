@@ -5,9 +5,8 @@ import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useFieldStateIndicator, useLabelId} from './baseField';
+import {FieldStatus, useAutoSaveIndicator, useLabelId} from './baseField';
 import {GroupProvider} from './groupContext';
 
 // Context for Radio.Group -> Radio.Item communication
@@ -42,10 +41,9 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
   const field = useFieldContext();
   const labelId = useLabelId();
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useFieldStateIndicator();
+  const indicator = useAutoSaveIndicator();
 
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
-  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
 
   const contextValue: RadioContextValue = {
     name: field.name,
@@ -63,22 +61,17 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
     'aria-invalid': !field.state.meta.isValid,
   };
 
-  const content = (
+  return (
     <GroupProvider>
       <RadioContext value={contextValue}>
         <Flex role="radiogroup" aria-labelledby={labelId} gap="md" align="center">
           {children}
-          {indicator}
+          {indicator ?? <Flex width="14px" flexShrink={0} />}
+          <FieldStatus disabled={disabled} />
         </Flex>
       </RadioContext>
     </GroupProvider>
   );
-
-  if (disabledReason) {
-    return <Tooltip title={disabledReason}>{content}</Tooltip>;
-  }
-
-  return content;
 }
 
 // Radio.Item component
