@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import select
 import shutil
 import subprocess
@@ -61,7 +62,7 @@ class OdiffServer:
             if proc and proc.stderr:
                 readable, _, _ = select.select([proc.stderr], [], [], 5)
                 if readable:
-                    stderr = proc.stderr.read()
+                    stderr = os.read(proc.stderr.fileno(), 4096)
             raise RuntimeError(
                 f"odiff server exited unexpectedly: {stderr.decode(errors='replace')}"
             )
