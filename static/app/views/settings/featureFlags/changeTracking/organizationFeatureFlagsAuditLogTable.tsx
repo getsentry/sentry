@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 
+import {Text} from '@sentry/scraps/text';
+
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
@@ -10,7 +12,6 @@ import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'provider', name: t('Provider')},
@@ -75,11 +76,11 @@ export function OrganizationFeatureFlagsAuditLogTable({
   return (
     <Fragment>
       <h5>{t('Audit Logs')}</h5>
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {t(
           'Verify your webhook integration(s) by checking the audit logs below for recent changes to your feature flags.'
         )}
-      </TextBlock>
+      </Text>
       <FeatureFlagsLogTable
         columns={columns}
         flags={flags?.data ?? []}

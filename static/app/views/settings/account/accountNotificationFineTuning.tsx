@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Text} from '@sentry/scraps/text';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -36,7 +38,6 @@ import {
   isGroupedByProject,
 } from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const PanelBodyLineItem = styled(PanelBody)`
   font-size: 1rem;
@@ -279,7 +280,11 @@ function AccountNotificationFineTuning({
   return (
     <div>
       <SettingsPageHeader title={field.title} />
-      {field.description && <TextBlock>{field.description}</TextBlock>}
+      {field.description && (
+        <Text as="div" density="comfortable">
+          {field.description}
+        </Text>
+      )}
       <Panel>
         <StyledPanelHeader hasButtons={isProject}>
           {isProject ? (

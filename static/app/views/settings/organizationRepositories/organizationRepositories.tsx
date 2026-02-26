@@ -1,6 +1,7 @@
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
@@ -12,7 +13,6 @@ import {t, tct} from 'sentry/locale';
 import type {Repository, RepositoryStatus} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   itemList: Repository[];
@@ -35,7 +35,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
       </AlertLink.Container>
       {!hasItemList && (
         <div className="m-b-2">
-          <TextBlock>
+          <Text as="div" density="comfortable">
             {t(
               "Connecting a repository allows Sentry to capture commit data via webhooks. This enables features like suggested assignees and resolving issues via commit message. Once you've connected a repository, you can associate commits with releases via the API."
             )}
@@ -43,7 +43,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
             {tct('See our [link:documentation] for more details.', {
               link: <ExternalLink href="https://docs.sentry.io/learn/releases/" />,
             })}
-          </TextBlock>
+          </Text>
         </div>
       )}
 

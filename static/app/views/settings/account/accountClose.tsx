@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
@@ -23,7 +23,6 @@ import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
@@ -33,12 +32,14 @@ function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
     <div>
       <Header>{t('Closing Account')}</Header>
       <Body>
-        <TextBlock>
-          {t('Your account has been deactivated and scheduled for removal.')}
-        </TextBlock>
-        <TextBlock>
-          {t('Thanks for using Sentry! We hope to see you again soon!')}
-        </TextBlock>
+        <Stack gap="2xl">
+          <Text as="div" density="comfortable">
+            {t('Your account has been deactivated and scheduled for removal.')}
+          </Text>
+          <Text as="div" density="comfortable">
+            {t('Thanks for using Sentry! We hope to see you again soon!')}
+          </Text>
+        </Stack>
       </Body>
       <Footer>
         <LinkButton href={BYE_URL}>{t('Goodbye')}</LinkButton>
@@ -143,12 +144,12 @@ function AccountClose() {
       <SentryDocumentTitle title={t('Close Account')} />
       <SettingsPageHeader title={t('Close Account')} />
 
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {t(
           'This will permanently remove all associated data for your user. Any specified organizations will also be deleted. '
         )}
         <strong>{t('Closing your account is permanent and cannot be undone')}!</strong>
-      </TextBlock>
+      </Text>
 
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>

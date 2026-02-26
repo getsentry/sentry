@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Input} from '@sentry/scraps/input';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import List from 'sentry/components/list';
@@ -32,7 +33,6 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useUser} from 'sentry/utils/useUser';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const IsPrimaryUserContext = createContext<boolean>(false);
 
@@ -233,7 +233,7 @@ function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProp
   return (
     <Fragment>
       <StyledListItem>{t('Select Your Accounts')}</StyledListItem>
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           `Select the accounts that you want to merge into your currently active account,
           then confirm and merge. [strong:The accounts that you do not select will be deleted!]`,
@@ -241,12 +241,16 @@ function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProp
             strong: <strong />,
           }
         )}
-      </TextBlock>
-      <TextBlock>{t(`Your currently active account:`)}</TextBlock>
+      </Text>
+      <Text as="div" density="comfortable">
+        {t(`Your currently active account:`)}
+      </Text>
       <IsPrimaryUserContext value>
         <Users users={currentAccount} onSelect={onSelect} selectedUsers={selectedUsers} />
       </IsPrimaryUserContext>
-      <TextBlock>{t(`Your other accounts:`)}</TextBlock>
+      <Text as="div" density="comfortable">
+        {t(`Your other accounts:`)}
+      </Text>
       <IsPrimaryUserContext value={false}>
         <Users users={otherAccounts} onSelect={onSelect} selectedUsers={selectedUsers} />
       </IsPrimaryUserContext>

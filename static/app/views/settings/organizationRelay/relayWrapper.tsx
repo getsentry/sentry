@@ -5,6 +5,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -21,7 +22,6 @@ import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import Add from './modals/add';
@@ -125,12 +125,12 @@ export function RelayWrapper() {
           </AutoSaveField>
         </FieldGroup>
       )}
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
           {link: <ExternalLink href={RELAY_DOCS_LINK} />}
         )}
-      </TextBlock>
+      </Text>
       {relays.length === 0 ? (
         <EmptyState />
       ) : (

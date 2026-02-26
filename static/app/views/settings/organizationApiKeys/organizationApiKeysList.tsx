@@ -4,6 +4,7 @@ import {AlertLink} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import Confirm from 'sentry/components/confirm';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -12,7 +13,6 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import type {DeprecatedApiKey} from './types';
 
@@ -61,7 +61,7 @@ function OrganizationApiKeysList({
     <div>
       <SettingsPageHeader title={t('API Keys')} action={action} />
 
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           `API keys grant access to the [api:developer web API].
           If you're looking to configure a Sentry client, you'll need a
@@ -70,7 +70,7 @@ function OrganizationApiKeysList({
             api: <ExternalLink href="https://docs.sentry.io/api/" />,
           }
         )}
-      </TextBlock>
+      </Text>
 
       <AlertLink.Container>
         <AlertLink to="/settings/account/api/auth-tokens/" variant="info">

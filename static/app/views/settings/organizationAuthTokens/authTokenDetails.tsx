@@ -3,8 +3,9 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -32,7 +33,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {
   makeFetchOrgAuthTokensForOrgQueryKey,
   tokenPreview,
@@ -194,19 +194,21 @@ function OrganizationAuthTokensDetails() {
       <SentryDocumentTitle title={t('Edit Organization Token')} />
       <SettingsPageHeader title={t('Edit Organization Token')} />
 
-      <TextBlock>
-        {t(
-          "Authentication tokens allow you to perform actions against the Sentry API on behalf of your organization. They're the easiest way to get started using the API."
-        )}
-      </TextBlock>
-      <TextBlock>
-        {tct(
-          'For more information on how to use the web API, see our [link:documentation].',
-          {
-            link: <ExternalLink href="https://docs.sentry.io/api/" />,
-          }
-        )}
-      </TextBlock>
+      <Stack gap="2xl">
+        <Text as="div" density="comfortable">
+          {t(
+            "Authentication tokens allow you to perform actions against the Sentry API on behalf of your organization. They're the easiest way to get started using the API."
+          )}
+        </Text>
+        <Text as="div" density="comfortable">
+          {tct(
+            'For more information on how to use the web API, see our [link:documentation].',
+            {
+              link: <ExternalLink href="https://docs.sentry.io/api/" />,
+            }
+          )}
+        </Text>
+      </Stack>
 
       {isError && (
         <LoadingError

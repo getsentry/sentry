@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -25,7 +26,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
 import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
@@ -40,20 +40,20 @@ export default function OrganizationGeneralSettings() {
 
   const removeConfirmMessage = (
     <Fragment>
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
           {
             name: organization && <strong>{organization.name}</strong>,
           }
         )}
-      </TextBlock>
+      </Text>
 
       {!!projects.length && (
         <Fragment>
-          <TextBlock>
+          <Text as="div" density="comfortable">
             {t('This will also remove the following associated projects:')}
-          </TextBlock>
+          </Text>
           <List symbol="bullet" data-test-id="removed-projects-list">
             {projects.map(project => (
               <ListItem key={project.slug}>{project.slug}</ListItem>

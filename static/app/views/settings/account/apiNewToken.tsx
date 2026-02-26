@@ -1,6 +1,8 @@
 import {useCallback, useState} from 'react';
 
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
@@ -18,7 +20,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
@@ -67,19 +68,21 @@ export default function ApiNewToken() {
     <SentryDocumentTitle title={t('Create New Personal Token')}>
       <div>
         <SettingsPageHeader title={t('Create New Personal Token')} />
-        <TextBlock>
-          {t(
-            "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-          )}
-        </TextBlock>
-        <TextBlock>
-          {tct(
-            'For more information on how to use the web API, see our [link:documentation].',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/api/" />,
-            }
-          )}
-        </TextBlock>
+        <Stack gap="2xl">
+          <Text as="div" density="comfortable">
+            {t(
+              "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+            )}
+          </Text>
+          <Text as="div" density="comfortable">
+            {tct(
+              'For more information on how to use the web API, see our [link:documentation].',
+              {
+                link: <ExternalLink href="https://docs.sentry.io/api/" />,
+              }
+            )}
+          </Text>
+        </Stack>
         <ApiForm
           apiMethod="POST"
           apiEndpoint="/api-tokens/"

@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -27,7 +28,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -208,7 +208,7 @@ export default function ProjectKeys() {
         }
       />
 
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           `To send data to Sentry you will need to configure an SDK with a client key
           (usually referred to as the [code:SENTRY_DSN] value). For more
@@ -221,7 +221,7 @@ export default function ProjectKeys() {
             code: <code />,
           }
         )}
-      </TextBlock>
+      </Text>
 
       <ProjectPermissionAlert project={project} />
 

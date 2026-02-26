@@ -4,6 +4,7 @@ import sortBy from 'lodash/sortBy';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -39,7 +40,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import RepositoryProjectPathConfigForm from './repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
@@ -271,7 +271,7 @@ export default function IntegrationCodeMappings({
 
   return (
     <Fragment>
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           `Code Mappings are used to map stack trace file paths to source code file paths. These mappings are the basis for features like Stack Trace Linking. To learn more, [link: read the docs].`,
           {
@@ -289,7 +289,7 @@ export default function IntegrationCodeMappings({
             ),
           }
         )}
-      </TextBlock>
+      </Text>
 
       <Panel>
         <PanelHeader disablePadding hasButtons>

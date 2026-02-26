@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
 
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingError from 'sentry/components/loadingError';
@@ -21,7 +22,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import ReportUri from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
 function ProjectSecurityHeaders() {
@@ -84,14 +84,14 @@ function ProjectSecurityHeaders() {
       <Panel>
         <PanelHeader>{t('Additional Configuration')}</PanelHeader>
         <PanelBody withPadding>
-          <TextBlock style={{marginBottom: 20}}>
+          <Text as="div" density="comfortable">
             {tct(
               'In addition to the [key_param] parameter, you may also pass the following within the querystring for the report URI:',
               {
                 key_param: <code>sentry_key</code>,
               }
             )}
-          </TextBlock>
+          </Text>
           <KeyValueTable>
             <KeyValueTableRow
               keyName="sentry_environment"

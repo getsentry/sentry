@@ -1,4 +1,6 @@
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -24,7 +26,6 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useMutateApiToken from 'sentry/utils/useMutateApiToken';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
@@ -118,19 +119,21 @@ function ApiTokenDetails() {
       <SentryDocumentTitle title={t('Edit Personal Token')} />
       <SettingsPageHeader title={t('Edit Personal Token')} />
 
-      <TextBlock>
-        {t(
-          "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-        )}
-      </TextBlock>
-      <TextBlock>
-        {tct(
-          'For more information on how to use the web API, see our [link:documentation].',
-          {
-            link: <ExternalLink href="https://docs.sentry.io/api/" />,
-          }
-        )}
-      </TextBlock>
+      <Stack gap="2xl">
+        <Text as="div" density="comfortable">
+          {t(
+            "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+          )}
+        </Text>
+        <Text as="div" density="comfortable">
+          {tct(
+            'For more information on how to use the web API, see our [link:documentation].',
+            {
+              link: <ExternalLink href="https://docs.sentry.io/api/" />,
+            }
+          )}
+        </Text>
+      </Stack>
       <Panel>
         <PanelHeader>{t('Personal Token Details')}</PanelHeader>
 

@@ -6,6 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
 import Confirm from 'sentry/components/confirm';
@@ -26,7 +27,6 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const EMPTY_ARRAY: any = [];
 const IDENTITIES_ENDPOINT = getApiUrl('/users/$userId/user-identities/', {
@@ -97,13 +97,13 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
                     })}
                   </Alert>
                 </Alert.Container>
-                <TextBlock>
+                <Text as="div" density="comfortable">
                   {identity.isLogin
                     ? t(
                         'After disconnecting, you will need to use a password or another identity to sign in.'
                       )
                     : t("This action can't be undone.")}
-                </TextBlock>
+                </Text>
               </Fragment>
             }
           >

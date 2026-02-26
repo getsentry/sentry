@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Access from 'sentry/components/acl/access';
@@ -36,7 +37,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
@@ -222,14 +222,14 @@ export function SourceMapsList({project}: Props) {
   return (
     <Fragment>
       <SettingsPageHeader title={t('Source Map Uploads')} />
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           `These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
           {
             link: <ExternalLink href={sourceMapsLinks.sourcemaps} />,
           }
         )}
-      </TextBlock>
+      </Text>
       <SearchBarWithMarginBottom
         placeholder={t('Filter by Debug ID or Upload ID')}
         onSearch={handleSearch}

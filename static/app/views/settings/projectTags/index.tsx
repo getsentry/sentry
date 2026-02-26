@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
@@ -34,7 +35,6 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -102,7 +102,7 @@ export default function ProjectTags() {
       <SettingsPageHeader title={t('Tags & Context')} />
       <ProjectPermissionAlert project={project} />
       <HighlightsSettingsForm projectSlug={project.slug} />
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           `Each event in Sentry may be annotated with various tags (key and value pairs).
                  Learn how to [link:add custom tags].`,
@@ -110,7 +110,7 @@ export default function ProjectTags() {
             link: <ExternalLink href={TAGS_DOCS_LINK} />,
           }
         )}
-      </TextBlock>
+      </Text>
       <Panel>
         <PanelHeader>{t('Tags')}</PanelHeader>
         <PanelBody>

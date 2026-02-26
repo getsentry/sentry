@@ -2,6 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -17,7 +18,6 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -62,7 +62,7 @@ export default function ProjectLoaderScript() {
     <Fragment>
       <SettingsPageHeader title={t('Loader Script')} />
 
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           'The Loader Script is the easiest way to initialize the Sentry SDK. The Loader Script automatically keeps your Sentry SDK up to date and offers configuration for different Sentry features. [docsLink:Learn more about the Loader Script]. Note: The Loader Script is bound to a Client Key (DSN), to create a new Script, go to the [clientKeysLink:Client Keys page].',
           {
@@ -76,7 +76,7 @@ export default function ProjectLoaderScript() {
             ),
           }
         )}
-      </TextBlock>
+      </Text>
 
       {isPending && <LoadingIndicator />}
       {!!error && (

@@ -10,6 +10,7 @@ import {
 } from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -41,7 +42,6 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import TeamMembersRow, {
   GRID_TEMPLATE,
@@ -365,7 +365,9 @@ export default function TeamMembers() {
 
   return (
     <Fragment>
-      <TextBlock>{renderPageTextBlock()}</TextBlock>
+      <Text as="div" density="comfortable">
+        {renderPageTextBlock()}
+      </Text>
 
       <ProjectPermissionAlert
         access={organization.openMembership ? ['org:read'] : ['team:write']}

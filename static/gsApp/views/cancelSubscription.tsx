@@ -6,6 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import RadioGroupField from 'sentry/components/forms/fields/radioField';
@@ -26,7 +27,6 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {ANNUAL} from 'getsentry/constants';
 import subscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -216,9 +216,9 @@ function CancelSubscriptionForm() {
 
         <PanelBody withPadding>
           <Form onSubmit={handleSubmit} onSubmitSuccess={handleSubmitSuccess} hideFooter>
-            <TextBlock>
+            <Text as="div" density="comfortable">
               {t('Please help us understand why you are cancelling:')}
-            </TextBlock>
+            </Text>
 
             <RadioGroupContainer
               stacked

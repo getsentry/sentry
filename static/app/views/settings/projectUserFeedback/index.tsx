@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
 
 import Access from 'sentry/components/acl/access';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -14,7 +15,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -68,13 +68,13 @@ export default function ProjectUserFeedback() {
           </ButtonList>
         }
       />
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {t(
           `Don't rely on stack traces and graphs alone to understand
             the cause and impact of errors. Enable the User Feedback Widget to collect
             your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs.`
         )}
-      </TextBlock>
+      </Text>
       <ProjectPermissionAlert project={project} />
       <Form
         saveOnBlur

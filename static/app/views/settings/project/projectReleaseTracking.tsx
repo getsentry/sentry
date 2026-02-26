@@ -1,6 +1,7 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -27,7 +28,6 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type TokenResponse = {
@@ -137,11 +137,11 @@ export default function ProjectReleaseTracking() {
     <div>
       <SentryDocumentTitle title={t('Releases')} projectSlug={project.slug} />
       <SettingsPageHeader title={t('Release Tracking')} />
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {t(
           'Configure release tracking for this project to automatically record new releases of your application.'
         )}
-      </TextBlock>
+      </Text>
 
       {!hasWrite && (
         <Alert.Container>

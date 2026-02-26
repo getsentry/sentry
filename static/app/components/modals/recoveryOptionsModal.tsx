@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import LoadingError from 'sentry/components/loadingError';
@@ -12,7 +14,6 @@ import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = ModalRenderProps & {
   authenticatorName: string;
@@ -72,12 +73,14 @@ function RecoveryOptionsModal({
       <Header closeButton>{t('Two-Factor Authentication Enabled')}</Header>
 
       <Body>
-        <TextBlock>
-          {t('Two-factor authentication via %s has been enabled.', authenticatorName)}
-        </TextBlock>
-        <TextBlock>
-          {t('You should now set up recovery options to secure your account.')}
-        </TextBlock>
+        <Stack gap="2xl">
+          <Text as="div" density="comfortable">
+            {t('Two-factor authentication via %s has been enabled.', authenticatorName)}
+          </Text>
+          <Text as="div" density="comfortable">
+            {t('You should now set up recovery options to secure your account.')}
+          </Text>
+        </Stack>
 
         {displaySmsPrompt ? (
           // set up backup phone number

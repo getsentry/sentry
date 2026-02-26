@@ -1,6 +1,8 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -11,7 +13,6 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   name: string;
@@ -75,18 +76,20 @@ export default function RequestIntegrationModal(props: Props) {
         <CloseButton />
       </Header>
       <Body>
-        <TextBlock>
-          {t(
-            'Looks like your organization owner, manager, or admin needs to install %s. Want to send them a request?',
-            name
-          )}
-        </TextBlock>
-        <TextBlock>
-          {t(
-            '(Optional) You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
-            name
-          )}
-        </TextBlock>
+        <Stack gap="2xl">
+          <Text as="div" density="comfortable">
+            {t(
+              'Looks like your organization owner, manager, or admin needs to install %s. Want to send them a request?',
+              name
+            )}
+          </Text>
+          <Text as="div" density="comfortable">
+            {t(
+              '(Optional) You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
+              name
+            )}
+          </Text>
+        </Stack>
         <TextareaField
           inline={false}
           flexibleControlStateSize
@@ -96,11 +99,11 @@ export default function RequestIntegrationModal(props: Props) {
           onChange={setMessage}
           placeholder={t('Optional message…')}
         />
-        <TextBlock>
+        <Text as="div" density="comfortable">
           {t(
-            'When you click “Send Request”, we’ll email your request to your organization’s owners. So just keep that in mind.'
+            'When you click “Send Request", we’ll email your request to your organization’s owners. So just keep that in mind.'
           )}
-        </TextBlock>
+        </Text>
       </Body>
       <Footer>
         <Button onClick={() => sendRequestMutation.mutate()}>{buttonText}</Button>

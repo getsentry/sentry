@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -26,7 +27,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationFeatureFlagsAuditLogTable} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsAuditLogTable';
 import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
 
@@ -157,7 +157,7 @@ function OrganizationFeatureFlagsChangeTracking() {
     <Fragment>
       <SentryDocumentTitle title={t('Change Tracking')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Change Tracking')} />
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
           {
@@ -166,18 +166,18 @@ function OrganizationFeatureFlagsChangeTracking() {
             ),
           }
         )}
-      </TextBlock>
+      </Text>
 
       <Flex justify="between">
         <h5>{t('Providers')}</h5>
         {addNewProvider(hasAccess)}
       </Flex>
 
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {t(
           'Look below for a list of the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
         )}
-      </TextBlock>
+      </Text>
       <ResponsivePanelTable
         isLoading={isPending || isError}
         isEmpty={!isPending && !secretList?.data?.length}

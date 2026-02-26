@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -9,7 +10,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {FeatureFilter} from './featureFilter';
 import {StatusCheckRules} from './statusCheckRules';
@@ -37,11 +37,11 @@ export default function PreprodSettings() {
             </Grid>
           }
         />
-        <TextBlock>
+        <Text as="div" density="comfortable">
           {t(
             'Configure status checks and thresholds for your mobile build size analysis.'
           )}
-        </TextBlock>
+        </Text>
         <PreprodQuotaAlert />
         <Stack gap="lg">
           <StatusCheckRules />

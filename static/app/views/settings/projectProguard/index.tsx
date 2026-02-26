@@ -2,6 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Pagination from 'sentry/components/pagination';
@@ -16,7 +17,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import ProjectProguardRow from './projectProguardRow';
@@ -110,7 +110,7 @@ export default function ProjectProguard() {
         }
       />
 
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {tct(
           `ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. To learn more about proguard mapping files, [link: read the docs].`,
           {
@@ -119,7 +119,7 @@ export default function ProjectProguard() {
             ),
           }
         )}
-      </TextBlock>
+      </Text>
 
       <StyledPanelTable
         headers={[t('Mapping'), <SizeColumn key="size">{t('File Size')}</SizeColumn>, '']}

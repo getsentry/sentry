@@ -6,6 +6,7 @@ import {z} from 'zod';
 import {LinkButton} from '@sentry/scraps/button';
 import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import LoadingError from 'sentry/components/loadingError';
@@ -28,7 +29,6 @@ import {
 } from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const NOTIFICATIONS_ENDPOINT = getApiUrl('/users/$userId/notifications/', {
   path: {userId: 'me'},
@@ -113,14 +113,14 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
       <SentryDocumentTitle title={t('Notifications')} />
       <SettingsPageHeader title={t('Notifications')} />
       <FormSearch route="/settings/account/notifications/">
-        <TextBlock>
+        <Text as="div" density="comfortable">
           {tct(
             'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
             {
               link: <Link to="/settings/account/emails" />,
             }
           )}
-        </TextBlock>
+        </Text>
         {isError && <LoadingError onRetry={refetch} />}
         <Panel>
           <PanelHeader>{t('Notification')}</PanelHeader>

@@ -3,6 +3,7 @@ import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-quer
 import {z} from 'zod';
 
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,7 +18,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import type {
   DefaultSettings,
@@ -484,7 +484,11 @@ export function NotificationSettingsByType({notificationType}: Props) {
     <Fragment>
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
-      {description && <TextBlock>{description}</TextBlock>}
+      {description && (
+        <Text as="div" density="comfortable">
+          {description}
+        </Text>
+      )}
       <FieldGroup
         title={
           isGroupedByProject(notificationType)

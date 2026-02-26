@@ -10,6 +10,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingLayout';
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/onboarding/featureFlagOtherPlatformOnboarding';
@@ -33,7 +34,6 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export function useFeatureFlagOnboardingDrawer() {
   const organization = useOrganization();
@@ -164,9 +164,9 @@ function SidebarContent() {
         {currentProject ? (
           <OnboardingContent currentProject={currentProject} />
         ) : (
-          <TextBlock>
+          <Text as="div" density="comfortable">
             {t('Select a project from the drop-down to view set up instructions.')}
-          </TextBlock>
+          </Text>
         )}
       </TaskList>
     </Fragment>

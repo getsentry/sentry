@@ -1,4 +1,5 @@
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -15,7 +16,6 @@ import {
 } from 'sentry/utils/project/useDetailedProject';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 interface HighlightsSettingsFormProps {
   projectSlug: any;
@@ -58,11 +58,11 @@ export default function HighlightsSettingsForm({
   };
   return (
     <Form {...formProps}>
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {t(
           `Setup Highlights to promote your event data to the top of the issue page for quicker debugging.`
         )}
-      </TextBlock>
+      </Text>
       <JsonForm
         access={access}
         disabled={!hasEveryAccess(['project:write'], {organization, project})}

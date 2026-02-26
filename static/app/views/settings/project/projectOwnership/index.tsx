@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
@@ -27,7 +28,6 @@ import {
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
@@ -178,7 +178,7 @@ export default function ProjectOwnership() {
             </Grid>
           }
         />
-        <TextBlock>
+        <Text as="div" density="comfortable">
           {tct(
             `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
             {
@@ -187,7 +187,7 @@ export default function ProjectOwnership() {
               ),
             }
           )}
-        </TextBlock>
+        </Text>
         <ProjectPermissionAlert
           access={editOwnershipRulesDisabled ? ['project:write'] : ['project:read']}
           project={project}

@@ -1,12 +1,11 @@
-import {Fragment} from 'react';
-
 import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   hasAccess: boolean;
@@ -52,18 +51,18 @@ function Actions({onEdit, onDelete, hasFeature, hasAccess}: Props) {
           onAction: () => {
             openConfirmModal({
               message: (
-                <Fragment>
-                  <TextBlock>
+                <Stack gap="2xl">
+                  <Text as="div" density="comfortable">
                     <strong>
                       {t('Removing this repository applies instantly to new events.')}
                     </strong>
-                  </TextBlock>
-                  <TextBlock>
+                  </Text>
+                  <Text as="div" density="comfortable">
                     {t(
                       'Debug files from this repository will not be used to symbolicate future events. This may create new issues and alert members in your organization.'
                     )}
-                  </TextBlock>
-                </Fragment>
+                  </Text>
+                </Stack>
               ),
               onConfirm: onDelete,
             });

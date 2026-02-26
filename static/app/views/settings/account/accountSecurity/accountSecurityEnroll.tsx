@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -42,7 +43,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {AuthenticatorHeader} from './components/authenticatorHeader';
 
@@ -456,7 +456,9 @@ export default function AccountSecurityEnroll() {
         }
       />
 
-      <TextBlock>{authenticator.description}</TextBlock>
+      <Text as="div" density="comfortable">
+        {authenticator.description}
+      </Text>
 
       {authenticator.rotationWarning && authenticator.status === 'rotation' && (
         <Alert.Container>

@@ -19,7 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
 
@@ -61,9 +60,9 @@ export default function ConsoleSDKInvitesSettings() {
           </Tooltip>
         }
       />
-      <TextBlock>
+      <Text as="div" density="comfortable">
         {t('Manage invitations to our private gaming console SDK GitHub repositories.')}
-      </TextBlock>
+      </Text>
       {!userHasConsoleAccess && <NoAccessAlert />}
       {!isPending && !isError && userHasConsoleAccess && !userHasQuotaRemaining && (
         <NoQuotaRemaining organization={organization} />

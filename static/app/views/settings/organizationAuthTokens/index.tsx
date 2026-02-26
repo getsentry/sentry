@@ -2,7 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
@@ -25,7 +27,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
 type FetchOrgAuthTokensResponse = OrgAuthToken[];
@@ -174,19 +175,21 @@ export function OrganizationAuthTokensIndex({
           />
           <SettingsPageHeader title={t('Organization Tokens')} action={createNewToken} />
 
-          <TextBlock>
-            {t(
-              'Organization Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
-            )}
-          </TextBlock>
-          <TextBlock>
-            {tct(
-              'For more information on how to use the web API, see our [link:documentation].',
-              {
-                link: <ExternalLink href="https://docs.sentry.io/api/" />,
-              }
-            )}
-          </TextBlock>
+          <Stack gap="2xl">
+            <Text as="div" density="comfortable">
+              {t(
+                'Organization Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+              )}
+            </Text>
+            <Text as="div" density="comfortable">
+              {tct(
+                'For more information on how to use the web API, see our [link:documentation].',
+                {
+                  link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                }
+              )}
+            </Text>
+          </Stack>
 
           <ResponsivePanelTable
             isLoading={isPending || isError}

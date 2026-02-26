@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -23,7 +23,6 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = getApiUrl('/users/$userId/subscriptions/', {path: {userId: 'me'}});
 
@@ -76,18 +75,20 @@ function AccountSubscriptions() {
       <SentryDocumentTitle title={subscriptionText} />
       <SettingsPageHeader title={subscriptionText} />
 
-      <TextBlock>
-        {t(`Sentry is committed to respecting your inbox. Our goal is to
+      <Stack gap="2xl">
+        <Text as="div" density="comfortable">
+          {t(`Sentry is committed to respecting your inbox. Our goal is to
               provide useful content and resources that make fixing errors less
               painful. Enjoyable even.`)}
-      </TextBlock>
+        </Text>
 
-      <TextBlock>
-        {t(`As part of our compliance with the EU's General Data Protection
+        <Text as="div" density="comfortable">
+          {t(`As part of our compliance with the EU's General Data Protection
               Regulation (GDPR), starting on 25 May 2018, we'll only email you
               according to the marketing categories to which you've explicitly
               opted-in.`)}
-      </TextBlock>
+        </Text>
+      </Stack>
 
       {subscriptions.length ? (
         <FormSearch route="/settings/account/subscriptions/">
@@ -186,19 +187,21 @@ function AccountSubscriptions() {
         </Panel>
       )}
 
-      <TextBlock>
-        {t(`We're applying GDPR consent and privacy policies to all Sentry
+      <Stack gap="2xl">
+        <Text as="div" density="comfortable">
+          {t(`We're applying GDPR consent and privacy policies to all Sentry
               contacts, regardless of location. You'll be able to manage your
               subscriptions here and from an Unsubscribe link in the footer of
               all marketing emails.`)}
-      </TextBlock>
+        </Text>
 
-      <TextBlock>
-        {tct(
-          'Please contact [email:learn@sentry.io] with any questions or suggestions.',
-          {email: <a href="mailto:learn@sentry.io" />}
-        )}
-      </TextBlock>
+        <Text as="div" density="comfortable">
+          {tct(
+            'Please contact [email:learn@sentry.io] with any questions or suggestions.',
+            {email: <a href="mailto:learn@sentry.io" />}
+          )}
+        </Text>
+      </Stack>
     </div>
   );
 }

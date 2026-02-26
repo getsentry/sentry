@@ -9,6 +9,7 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
@@ -27,7 +28,6 @@ import RecoveryCodes from 'sentry/views/settings/account/accountSecurity/compone
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {AuthenticatorHeader} from './components/authenticatorHeader';
 
@@ -184,7 +184,9 @@ export default function AccountSecurityDetails() {
         }
       />
 
-      <TextBlock>{authenticator.description}</TextBlock>
+      <Text as="div" density="comfortable">
+        {authenticator.description}
+      </Text>
 
       <AuthenticatorDates>
         <AuthenticatorDate label={t('Created at')} date={authenticator.createdAt} />

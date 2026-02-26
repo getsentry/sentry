@@ -1,5 +1,7 @@
 import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -24,7 +26,6 @@ import {
 import useApi from 'sentry/utils/useApi';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const PAGE_TITLE = t('Personal Tokens');
 const API_TOKEN_QUERY_KEY = [getApiUrl('/api-tokens/')] as const;
@@ -111,19 +112,21 @@ function ApiTokens() {
   return (
     <SentryDocumentTitle title={PAGE_TITLE}>
       <SettingsPageHeader title={PAGE_TITLE} action={action} />
-      <TextBlock>
-        {t(
-          "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-        )}
-      </TextBlock>
-      <TextBlock>
-        {tct(
-          'For more information on how to use the web API, see our [link:documentation].',
-          {
-            link: <ExternalLink href="https://docs.sentry.io/api/" />,
-          }
-        )}
-      </TextBlock>
+      <Stack gap="2xl">
+        <Text as="div" density="comfortable">
+          {t(
+            "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+          )}
+        </Text>
+        <Text as="div" density="comfortable">
+          {tct(
+            'For more information on how to use the web API, see our [link:documentation].',
+            {
+              link: <ExternalLink href="https://docs.sentry.io/api/" />,
+            }
+          )}
+        </Text>
+      </Stack>
       <PanelTable
         headers={[t('Token'), t('Created On'), t('Scopes'), '']}
         isEmpty={isEmpty}
