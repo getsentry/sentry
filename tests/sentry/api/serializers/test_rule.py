@@ -1,4 +1,5 @@
 import pytest
+import responses
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -29,6 +30,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import WorkflowDataConditionGroup, WorkflowFireHistory
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 
 ValidationError = serializers.ValidationError
@@ -113,16 +115,22 @@ class WorkflowRuleSerializerTest(TestCase):
 
     def assert_equal_serializers(self, issue_alert):
         RuleFireHistory.objects.create(project=self.project, rule=issue_alert, group=self.group)
-        serialized_rule = serialize(issue_alert)
+        serialized_rule = serialize(
+            issue_alert, self.user, RuleSerializer(prepare_component_fields=True)
+        )
 
-        workflow = IssueAlertMigrator(issue_alert).run()
+        arw = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
+        workflow = arw.workflow
+
         WorkflowFireHistory.objects.create(
             workflow=workflow,
             group=self.group,
             event_id="fc6d8c0c43fc4630ad850ee518f1b9d0",
         )
 
-        serialized_workflow_rule = serialize(workflow, self.user, WorkflowEngineRuleSerializer())
+        serialized_workflow_rule = serialize(
+            workflow, self.user, WorkflowEngineRuleSerializer(prepare_component_fields=True)
+        )
 
         # Pop and compare lists of dicts
         rule_conditions = serialized_rule.pop("conditions")
@@ -294,9 +302,17 @@ class WorkflowRuleSerializerTest(TestCase):
 
     def test_rule_serializer(self) -> None:
         # default issue alert rule has legacy plugins and webhook actions
-        self.issue_alert.update(owner_user_id=self.user.id)
-        self.issue_alert.refresh_from_db()
-        self.assert_equal_serializers(self.issue_alert)
+        issue_alert = self.create_project_rule(
+            name="test",
+            condition_data=self.conditions,
+            action_match="any",
+            filter_match="any",
+            frequency=5,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+            owner_user_id=self.user.id,
+        )
+        self.assert_equal_serializers(issue_alert)
 
     def test_special_condition(self) -> None:
         condition = {
@@ -633,7 +649,18 @@ class WorkflowRuleSerializerTest(TestCase):
         )
         self.assert_equal_serializers(rule)
 
+    @responses.activate
     def test_sentry_app_render_label(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json=[
+                {"value": "bob", "label": "Bob"},
+                {"value": "jess", "label": "Jess"},
+            ],
+            status=200,
+        )
+
         schema = {"elements": [self.create_alert_rule_action_schema()]}
         sentry_app = self.create_sentry_app(
             organization=self.organization,
@@ -644,14 +671,20 @@ class WorkflowRuleSerializerTest(TestCase):
         installation = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization
         )
-
-        action_data = {
-            "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-            "sentryAppInstallationUuid": installation.uuid,
-        }
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": installation.uuid,
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Hellboy"},
+                ],
+            }
+        ]
         rule = self.create_project_rule(
             project=self.project,
-            action_data=[action_data],
+            action_data=actions,
             condition_data=self.conditions,
             include_legacy_rule_id=False,
             include_workflow_id=False,
@@ -684,7 +717,17 @@ class WorkflowRuleSerializerTest(TestCase):
         with pytest.raises(ValidationError):
             self.assert_equal_serializers(rule)
 
+    @responses.activate
     def test_sentry_app_render_label_no_installation(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json=[
+                {"value": "bob", "label": "Bob"},
+                {"value": "jess", "label": "Jess"},
+            ],
+            status=200,
+        )
         schema = {"elements": [self.create_alert_rule_action_schema()]}
         sentry_app = self.create_sentry_app(
             organization=self.organization,
@@ -696,16 +739,23 @@ class WorkflowRuleSerializerTest(TestCase):
             slug=sentry_app.slug, organization=self.organization
         )
 
-        action_data = {
-            "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-            "sentryAppInstallationUuid": installation.uuid,
-        }
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": installation.uuid,
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Hellboy"},
+                ],
+            }
+        ]
         with assume_test_silo_mode(SiloMode.CONTROL):
             installation.delete()
 
         rule = self.create_project_rule(
             project=self.project,
-            action_data=[action_data],
+            action_data=actions,
             condition_data=self.conditions,
             include_legacy_rule_id=False,
             include_workflow_id=False,

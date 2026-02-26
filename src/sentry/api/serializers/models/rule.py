@@ -180,7 +180,6 @@ class RuleSerializer(Serializer):
                     rpc_install = install_context.installation
                     rpc_component = install_context.component
                     rpc_app = rpc_install.sentry_app
-
                     component = (
                         prepare_ui_component(
                             rpc_install,
@@ -450,6 +449,7 @@ class WorkflowEngineRuleSerializer(Serializer):
 
     def get_attrs(self, item_list: Sequence[Workflow], user, **kwargs):
         from sentry.notifications.notification_action.registry import issue_alert_handler_registry
+        from sentry.sentry_apps.services.app import app_service
 
         # Bulk fetch users that created workflows
         users = self._fetch_workflow_users(item_list)
@@ -487,6 +487,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
             serialized_actions = []
+            errors = []
             for action in self._fetch_actions(workflow_dcg.condition_group):
                 try:
                     handler = issue_alert_handler_registry.get(action.type)
@@ -496,6 +497,36 @@ class WorkflowEngineRuleSerializer(Serializer):
 
                 action_data = handler.build_rule_action_blob(action, workflow.organization_id)
                 action_data["name"] = handler.render_label(workflow.organization_id, action_data)
+
+                # Handle component fields
+                sentry_app_uuid = action_data.get("sentryAppInstallationUuid")
+                if self.prepare_component_fields and sentry_app_uuid:
+                    install_contexts = app_service.get_component_contexts(
+                        filter={"uuids": [sentry_app_uuid]}, component_type="alert-rule-action"
+                    )
+                    if install_contexts:
+                        rpc_install = install_contexts[0].installation
+                        rpc_component = install_contexts[0].component
+                        rpc_app = rpc_install.sentry_app
+
+                        component = (
+                            prepare_ui_component(
+                                rpc_install,
+                                rpc_component,
+                                self.project_slug,
+                                action.data.get("settings"),
+                            )
+                            if rpc_component
+                            else None
+                        )
+                        if component is None:
+                            errors.append(
+                                {"detail": f"Could not fetch details from {rpc_app.name}"}
+                            )
+                            action_data["disabled"] = True
+                            continue
+
+                        action_data["formFields"] = component.app_schema.get("settings", {})
 
                 # HACKs below - we don't want to change the underlying data we render for ACI but we need to return it in the expected issue alert format
 
@@ -517,6 +548,8 @@ class WorkflowEngineRuleSerializer(Serializer):
 
                 serialized_actions.append(action_data)
 
+            if len(errors):
+                result[workflow]["errors"] = errors
             # Generate conditions and filters
             conditions, filters = self._generate_rule_conditions_filters(
                 workflow, result[workflow]["projects"][0], workflow_dcg
