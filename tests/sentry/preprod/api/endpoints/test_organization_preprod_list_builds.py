@@ -762,15 +762,11 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         assert "com.example.app" in app_ids
 
     def test_list_builds_filter_by_distribution_error_code_string(self) -> None:
-        self.artifact1.installable_app_error_code = (
-            PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
-        )
+        self.artifact1.installable_app_error_code = PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
         self.artifact1.installable_app_error_message = "Distribution quota exceeded"
         self.artifact1.save()
 
-        self.artifact2.installable_app_error_code = (
-            PreprodArtifact.InstallableAppErrorCode.SKIPPED
-        )
+        self.artifact2.installable_app_error_code = PreprodArtifact.InstallableAppErrorCode.SKIPPED
         self.artifact2.installable_app_error_message = "Distribution not requested"
         self.artifact2.save()
 
@@ -786,9 +782,7 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         assert builds[0]["distribution_info"]["error_code"] == "no_quota"
 
     def test_list_builds_filter_by_distribution_error_code_int(self) -> None:
-        self.artifact1.installable_app_error_code = (
-            PreprodArtifact.InstallableAppErrorCode.SKIPPED
-        )
+        self.artifact1.installable_app_error_code = PreprodArtifact.InstallableAppErrorCode.SKIPPED
         self.artifact1.installable_app_error_message = "Distribution not requested"
         self.artifact1.save()
 
