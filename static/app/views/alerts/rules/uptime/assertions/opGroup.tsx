@@ -31,7 +31,7 @@ interface AssertionOpGroupProps {
   onChange: (op: UptimeLogicalOp) => void;
   value: UptimeLogicalOp;
   disableDropping?: boolean;
-  erroredOp?: Op;
+  erroredOp?: UptimeOp;
   onRemove?: () => void;
   root?: boolean;
 }

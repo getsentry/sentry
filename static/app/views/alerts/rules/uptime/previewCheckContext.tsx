@@ -12,14 +12,15 @@ type PreviewCheckResultState = {
   error: PreviewCheckError | null;
 };
 
-type PreviewCheckResultContextType = PreviewCheckResultState & {
+type PreviewCheckResultContextValue = PreviewCheckResultState & {
+  resetPreviewCheckResult: () => void;
   setPreviewCheckData: (data: PreviewCheckResult | null) => void;
   setPreviewCheckError: (error: PreviewCheckError | null) => void;
-  resetPreviewCheckResult: () => void;
 };
 
-const PreviewCheckResultContext =
-  createContext<PreviewCheckResultContextType | null>(null);
+const PreviewCheckResultContext = createContext<PreviewCheckResultContextValue | null>(
+  null
+);
 
 export function PreviewCheckResultProvider({children}: {children: React.ReactNode}) {
   const [state, setState] = useState<PreviewCheckResultState>({
@@ -37,13 +38,18 @@ export function PreviewCheckResultProvider({children}: {children: React.ReactNod
 
   return (
     <PreviewCheckResultContext.Provider
-      value={{...state, setPreviewCheckData, setPreviewCheckError, resetPreviewCheckResult}}
+      value={{
+        ...state,
+        setPreviewCheckData,
+        setPreviewCheckError,
+        resetPreviewCheckResult,
+      }}
     >
       {children}
     </PreviewCheckResultContext.Provider>
   );
 }
 
-export function usePreviewCheckResult(): PreviewCheckResultContextType | null {
+export function usePreviewCheckResult(): PreviewCheckResultContextValue | null {
   return useContext(PreviewCheckResultContext);
 }

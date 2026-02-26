@@ -15,8 +15,6 @@ import {
   type PreviewCheckError,
   type PreviewCheckResult,
   type UptimeAndOp,
-  type UptimeGroupOp,
-  type UptimeNotOp,
   type UptimeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
@@ -111,10 +109,10 @@ function matchFailureDataLeafOp(
     (failureDataOp.op === UptimeOpType.AND || failureDataOp.op === UptimeOpType.OR) &&
     (assertionOp.op === UptimeOpType.AND || assertionOp.op === UptimeOpType.OR)
   ) {
-    const [failingChild] = (failureDataOp as UptimeGroupOp).children;
+    const [failingChild] = failureDataOp.children;
     if (!failingChild) return null;
     // For leaves, also match by value to distinguish siblings of the same op type.
-    const match = (assertionOp as UptimeGroupOp).children.find(
+    const match = assertionOp.children.find(
       c =>
         c.op === failingChild.op &&
         (isLeafOp(failingChild) ? leafOpsMatchByValue(failingChild, c) : true)
@@ -125,10 +123,7 @@ function matchFailureDataLeafOp(
 
   // NOT wraps a group op in `operand`; descend into it for both sides
   if (failureDataOp.op === UptimeOpType.NOT && assertionOp.op === UptimeOpType.NOT) {
-    return matchFailureDataLeafOp(
-      (failureDataOp as UptimeNotOp).operand,
-      (assertionOp as UptimeNotOp).operand
-    );
+    return matchFailureDataLeafOp(failureDataOp.operand, assertionOp.operand);
   }
 
   return null;
@@ -155,11 +150,11 @@ function resolveErroredOpFromAssertPath(
     if (isNaN(index)) return null;
 
     if (current.op === UptimeOpType.AND || current.op === UptimeOpType.OR) {
-      const next: UptimeOp | undefined = (current as UptimeGroupOp).children[index];
+      const next: UptimeOp | undefined = current.children[index];
       if (!next) return null;
       current = next;
     } else if (current.op === UptimeOpType.NOT) {
-      current = (current as UptimeNotOp).operand;
+      current = current.operand;
     } else {
       // At a leaf op; return it as the errored op.
       return current;
