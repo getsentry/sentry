@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Assembly} from 'sentry/components/events/interfaces/frame/assembly';
@@ -21,10 +22,11 @@ import {getFileExtension} from 'sentry/utils/fileExtension';
 const SOURCE_LINE_NUMBER_DIGITS = 4;
 
 export function FrameContext() {
-  const {event, frame, frameIndex, isExpanded, platform} = useStackTraceFrameContext();
+  const {event, frame, frameContextId, frameIndex, isExpanded, platform} =
+    useStackTraceFrameContext();
   const {frames, lastFrameIndex, meta, stacktrace} = useStackTraceContext();
-  const contextLines = frame.context ?? [];
-  const fileExtension = getFileExtension(frame.filename ?? '') ?? '';
+  const contextLines = isExpanded ? (frame.context ?? []) : [];
+  const fileExtension = isExpanded ? (getFileExtension(frame.filename ?? '') ?? '') : '';
   const prismLines = usePrismTokensSourceContext({
     contextLines,
     lineNo: frame.lineNo,
@@ -48,7 +50,13 @@ export function FrameContext() {
   }
 
   return (
-    <FrameContextContainer data-test-id="core-stacktrace-frame-context">
+    <Container
+      id={frameContextId}
+      borderTop="primary"
+      background="primary"
+      overflowX="hidden"
+      data-test-id="core-stacktrace-frame-context"
+    >
       {hasSourceContext ? (
         <FrameSourceGrid>
           {contextLines.map(([lineNumber, lineValue], lineIndex) => (
@@ -57,7 +65,13 @@ export function FrameContext() {
               data-test-id="core-stacktrace-frame-source-row"
               isActive={lineNumber === frame.lineNo}
             >
-              <FrameSourceLineNumber data-test-id="core-stacktrace-frame-line-number">
+              <FrameSourceLineNumber
+                as="div"
+                size="sm"
+                variant="muted"
+                monospace
+                data-test-id="core-stacktrace-frame-line-number"
+              >
                 {lineNumber}
               </FrameSourceLineNumber>
               <FrameSourceCode
@@ -77,54 +91,49 @@ export function FrameContext() {
           ))}
         </FrameSourceGrid>
       ) : shouldShowNoDetails ? (
-        <NoDetailsContainer>
+        <Container padding="sm md">
           <Text size="xs" variant="muted">
             {t('No additional details are available for this frame.')}
           </Text>
-        </NoDetailsContainer>
+        </Container>
       ) : null}
       {hasFrameVariables ? (
-        <FrameVariablesContainer data-test-id="core-stacktrace-frame-vars">
+        <Container
+          borderTop="primary"
+          padding="sm md"
+          data-test-id="core-stacktrace-frame-vars"
+        >
           <FrameVariablesGrid
             platform={platform}
             data={frameVariables}
             meta={meta?.frames?.[frameIndex]?.vars}
           />
-        </FrameVariablesContainer>
+        </Container>
       ) : null}
       {hasFrameRegisters ? (
-        <FrameDetailsSection data-test-id="core-stacktrace-frame-registers">
+        <Container borderTop="primary" data-test-id="core-stacktrace-frame-registers">
           <FrameRegisters
             registers={expandedFrameRegisters}
             meta={meta?.registers}
             deviceArch={event.contexts?.device?.arch}
           />
-        </FrameDetailsSection>
+        </Container>
       ) : null}
       {hasFrameAssembly ? (
-        <FrameDetailsSection data-test-id="core-stacktrace-frame-assembly">
+        <Container borderTop="primary" data-test-id="core-stacktrace-frame-assembly">
           <Assembly {...parseAssembly(frame.package ?? null)} />
-        </FrameDetailsSection>
+        </Container>
       ) : null}
-    </FrameContextContainer>
+    </Container>
   );
 }
 
-const FrameContextContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.tokens.background.primary};
-  padding: 0;
-  overflow-x: hidden;
-`;
-
-const FrameSourceGrid = styled('div')`
-  display: grid;
+const FrameSourceGrid = styled(Grid)`
   width: 100%;
   min-width: 0;
 `;
 
-const FrameSourceRow = styled('div')<{isActive: boolean}>`
-  display: grid;
+const FrameSourceRow = styled(Grid)<{isActive: boolean}>`
   grid-template-columns:
     calc(${SOURCE_LINE_NUMBER_DIGITS}ch + ${p => p.theme.space.sm})
     1fr;
@@ -133,10 +142,7 @@ const FrameSourceRow = styled('div')<{isActive: boolean}>`
   background: ${p => (p.isActive ? p.theme.tokens.background.secondary : 'transparent')};
 `;
 
-const FrameSourceLineNumber = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.sm};
+const FrameSourceLineNumber = styled(Text)`
   line-height: 1.8;
   text-align: right;
   user-select: none;
@@ -161,17 +167,4 @@ const FrameSourceCode = styled('code')`
     word-break: break-word;
     background: transparent;
   }
-`;
-
-const NoDetailsContainer = styled('div')`
-  padding: ${p => `${p.theme.space.sm} ${p.theme.space.md}`};
-`;
-
-const FrameVariablesContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${p => `${p.theme.space.sm} ${p.theme.space.md}`};
-`;
-
-const FrameDetailsSection = styled('div')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;

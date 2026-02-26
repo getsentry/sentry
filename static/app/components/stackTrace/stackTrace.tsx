@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useId, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -252,11 +252,13 @@ function FrameRoot({row, children}: StackTraceFrameProps) {
   });
 
   const isExpanded = !!expandedFrames[row.frameIndex];
+  const frameContextId = useId();
 
   const value = useMemo<StackTraceFrameContextValue>(
     () => ({
       event,
       frame: row.frame,
+      frameContextId,
       frameIndex: row.frameIndex,
       hiddenFrameCount: row.hiddenFrameCount,
       hiddenFramesExpanded: !!hiddenFrameToggleMap[row.frameIndex],
@@ -274,6 +276,7 @@ function FrameRoot({row, children}: StackTraceFrameProps) {
     }),
     [
       event,
+      frameContextId,
       hiddenFrameToggleMap,
       isExpanded,
       isFrameExpandable,
@@ -306,7 +309,9 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
   const [start, end] = omittedFrames;
   return (
     <OmittedRow>
-      {t('Frames %d to %d were omitted and not available.', start, end)}
+      <Text size="xs" variant="muted">
+        {t('Frames %d to %d were omitted and not available.', start, end)}
+      </Text>
     </OmittedRow>
   );
 }
@@ -363,10 +368,7 @@ const FrameRowContainer = styled('div')`
   }
 `;
 
-const OmittedRow = styled('div')`
-  color: #493e54;
-  font-size: ${p => p.theme.font.size.xs};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
+const OmittedRow = styled(Container)`
   border-left: 2px solid ${p => p.theme.colors.red400};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.colors.red100};

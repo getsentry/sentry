@@ -1,5 +1,8 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+
+import {Container, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import StructuredEventData from 'sentry/components/structuredEventData';
 import type {PlatformKey} from 'sentry/types/project';
@@ -32,11 +35,24 @@ export function FrameVariablesGrid({data, meta, platform}: FrameVariablesGridPro
   const rows = Object.keys(data).reverse();
 
   return (
-    <VariablesGrid data-test-id="core-stacktrace-vars-grid">
+    <Grid
+      data-test-id="core-stacktrace-vars-grid"
+      columns="max-content minmax(0, 1fr)"
+      gap="xs md"
+      align="start"
+    >
       {rows.map(rawKey => (
-        <VariablesRow data-test-id="core-stacktrace-vars-row" key={rawKey}>
-          <VariablesKey>{formatVariableKey(rawKey)}</VariablesKey>
-          <VariablesValue>
+        <Fragment key={rawKey}>
+          <Container
+            data-test-id="core-stacktrace-vars-row"
+            padding="sm sm 0 sm"
+            whiteSpace="nowrap"
+          >
+            <Text as="div" size="sm" monospace bold density="comfortable">
+              {formatVariableKey(rawKey)}
+            </Text>
+          </Container>
+          <VariablesValue minWidth="0">
             {/*
               StructuredEventData expects record-like meta for each value; skip invalid meta entries.
             */}
@@ -47,39 +63,13 @@ export function FrameVariablesGrid({data, meta, platform}: FrameVariablesGridPro
               withAnnotatedText
             />
           </VariablesValue>
-        </VariablesRow>
+        </Fragment>
       ))}
-    </VariablesGrid>
+    </Grid>
   );
 }
 
-const VariablesGrid = styled('div')`
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  column-gap: ${p => p.theme.space.md};
-  row-gap: ${p => p.theme.space.xs};
-  align-items: start;
-`;
-
-const VariablesRow = styled('div')`
-  display: contents;
-`;
-
-const VariablesKey = styled('div')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 1.6;
-  white-space: nowrap;
-  padding-left: ${p => p.theme.space.sm};
-  padding-right: ${p => p.theme.space.sm};
-  padding-top: ${p => p.theme.space.sm};
-`;
-
-const VariablesValue = styled('div')`
-  min-width: 0;
-
+const VariablesValue = styled(Container)`
   > * {
     margin: 0;
   }

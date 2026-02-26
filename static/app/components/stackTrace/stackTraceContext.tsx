@@ -32,6 +32,7 @@ export interface StackTraceContextValue {
 export interface StackTraceFrameContextValue {
   event: Event;
   frame: Frame;
+  frameContextId: string;
   frameIndex: number;
   hiddenFrameCount: number | undefined;
   hiddenFramesExpanded: boolean;

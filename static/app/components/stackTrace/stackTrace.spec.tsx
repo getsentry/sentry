@@ -125,6 +125,38 @@ describe('Core StackTrace', () => {
     expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
   });
 
+  it('toggles frame expansion when pressing Enter on the chevron button', async () => {
+    renderStackTrace();
+
+    const firstChevron = screen.getAllByTestId('core-stacktrace-chevron-toggle')[0]!;
+
+    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
+    firstChevron.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
+  });
+
+  it('toggles frame expansion when pressing Space on the chevron button', async () => {
+    renderStackTrace();
+
+    const firstChevron = screen.getAllByTestId('core-stacktrace-chevron-toggle')[0]!;
+
+    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
+    firstChevron.focus();
+    await userEvent.keyboard('{Space}');
+    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
+  });
+
+  it('wires chevron controls to the frame context region', () => {
+    renderStackTrace();
+
+    const firstChevron = screen.getAllByTestId('core-stacktrace-chevron-toggle')[0]!;
+    const frameContext = screen.getByTestId('core-stacktrace-frame-context');
+
+    expect(firstChevron).toHaveAttribute('aria-controls', frameContext.id);
+    expect(firstChevron).toHaveAttribute('aria-expanded', 'true');
+  });
+
   it('toggles frame expansion when clicking the right trailing area', async () => {
     renderStackTrace();
 

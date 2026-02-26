@@ -58,6 +58,7 @@ export function FrameHeader() {
   const {
     event,
     frame,
+    frameContextId,
     hiddenFrameCount,
     hiddenFramesExpanded,
     isExpandable,
@@ -97,9 +98,6 @@ export function FrameHeader() {
     <FrameHeaderContainer
       data-test-id="core-stacktrace-frame-title"
       isExpandable={isExpandable}
-      role={isExpandable ? 'button' : undefined}
-      aria-expanded={isExpandable ? isExpanded : undefined}
-      tabIndex={isExpandable ? 0 : -1}
       onClick={mouseEvent => {
         if (!isExpandable || isInteractiveClickTarget(mouseEvent.target)) {
           return;
@@ -109,16 +107,6 @@ export function FrameHeader() {
       }}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
-      onKeyDown={keyboardEvent => {
-        if (!isExpandable) {
-          return;
-        }
-
-        if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
-          keyboardEvent.preventDefault();
-          toggleExpansion();
-        }
-      }}
     >
       <FrameHeaderMain direction="column" align="start" flex="1" gap="2xs" minWidth={0}>
         <FrameTitle>
@@ -228,6 +216,8 @@ export function FrameHeader() {
             <ChevronToggle
               type="button"
               aria-label={isExpanded ? t('Collapse frame') : t('Expand frame')}
+              aria-controls={frameContextId}
+              aria-expanded={isExpanded}
               data-test-id="core-stacktrace-chevron-toggle"
               data-stacktrace-interactive="true"
               onClick={() => toggleExpansion()}
@@ -268,10 +258,6 @@ const FrameHeaderContainer = styled(Flex)<{isExpandable: boolean}>`
   text-align: left;
   padding: ${p => `${p.theme.space.md} ${p.theme.space.md}`};
   background: ${p => p.theme.tokens.background.tertiary};
-
-  &:focus-visible {
-    ${p => p.theme.focusRing()}
-  }
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
