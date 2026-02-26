@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from django.conf import settings
+from django.test import override_settings
 
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -20,10 +20,10 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     @with_feature("organizations:onboarding")
+    @override_settings(
+        PRIVACY_URL="https://sentry.io/privacy/", TERMS_URL="https://sentry.io/terms/"
+    )
     def test_quick_start_sidebar_is_not_automatically_opened_after_project_creation(self) -> None:
-        settings.PRIVACY_URL = "https://sentry.io/privacy/"
-        settings.TERMS_URL = "https://sentry.io/terms/"
-
         self.browser.get("/organizations/new/")
 
         self.browser.element('input[name="name"]').send_keys("new org")

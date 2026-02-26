@@ -1237,7 +1237,7 @@ class PostRelocationsTest(APITestCase):
                     )
 
                     # Simulate completion of relocation job
-                    relocation = Relocation.objects.all()[0]
+                    relocation = Relocation.objects.order_by("id")[0]
                     relocation.status = Relocation.Status.SUCCESS.value
                     relocation.save()
                     relocation.refresh_from_db()
@@ -1307,7 +1307,7 @@ class PostRelocationsTest(APITestCase):
                     )
 
                     # Simulate completion of relocation job
-                    relocation = Relocation.objects.all()[0]
+                    relocation = Relocation.objects.order_by("id")[0]
                     relocation.status = Relocation.Status.SUCCESS.value
                     relocation.save()
                     relocation.refresh_from_db()
@@ -1391,7 +1391,7 @@ class PostRelocationsTest(APITestCase):
                     )
 
                     # Simulate completion of relocation job
-                    relocation = Relocation.objects.all()[0]
+                    relocation = Relocation.objects.order_by("id")[0]
                     relocation.status = Relocation.Status.SUCCESS.value
                     relocation.save()
                     relocation.refresh_from_db()
@@ -1480,7 +1480,7 @@ class PostRelocationsTest(APITestCase):
                     )
 
                     # Simulate completion of relocation job
-                    relocation = Relocation.objects.all()[0]
+                    relocation = Relocation.objects.order_by("id")[0]
                     relocation.status = Relocation.Status.SUCCESS.value
                     relocation.save()
                     relocation.refresh_from_db()
@@ -1565,7 +1565,7 @@ class PostRelocationsTest(APITestCase):
                     )
 
                     # Simulate completion of relocation job
-                    relocation = Relocation.objects.all()[0]
+                    relocation = Relocation.objects.order_by("id")[0]
                     relocation.status = Relocation.Status.SUCCESS.value
                     relocation.save()
                     relocation.refresh_from_db()

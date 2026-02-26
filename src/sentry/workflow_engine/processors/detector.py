@@ -279,9 +279,21 @@ def _is_issue_stream_detector_enabled(event_data: WorkflowEventData) -> bool:
     if group_type_id not in disabled_type_ids:
         return True
 
-    return group_type_id == MetricIssue.type_id and features.has(
-        "organizations:workflow-engine-metric-issue-ui", event_data.event.project.organization
+    if group_type_id != MetricIssue.type_id:
+        return False
+
+    organization = event_data.event.project.organization
+
+    has_metric_issue_ui = features.has(
+        "organizations:workflow-engine-metric-issue-ui", organization
     )
+    # For most users, the issue stream detector for metric issues will be rolled out along with the metric issue UI.
+    # For users who find that behavior undesirable, this feature flag will disable it for them.
+    disable_issue_stream_detector_for_metric_issues = features.has(
+        "organizations:workflow-engine-metric-issue-disable-issue-detector-notifications",
+        organization,
+    )
+    return has_metric_issue_ui and not disable_issue_stream_detector_for_metric_issues
 
 
 def get_detectors_for_event_data(
