@@ -76,7 +76,12 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["downloadCount"] == 0
         assert data["platform"] == "android"
 
-        assert data["appInfo"]["appId"] == "com.example.app"
+        app_info = data["appInfo"]
+        assert app_info["appId"] == "com.example.app"
+        assert app_info["version"] == "1.0.0"
+        assert app_info["buildNumber"] == 42
+        assert app_info["artifactType"] == "APK"
+
         # iOS fields should be None for android
         assert data["isCodeSignatureValid"] is None
         assert data["profileName"] is None
@@ -91,6 +96,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
             app_id="com.example.app",
             build_version="1.0.0",
             build_number=42,
+            extras={"release_notes": "Bug fixes and improvements"},
         )
 
         response = self.client.get(self._get_url(artifact_id=artifact.id))
@@ -99,7 +105,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["isInstallable"] is True
         assert data["installUrl"] is not None
         assert data["platform"] == "android"
-
+        assert data["releaseNotes"] == "Bug fixes and improvements"
         assert data["isCodeSignatureValid"] is None
 
     def test_installable_ios_artifact_valid_signature(self):
@@ -150,48 +156,3 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
         assert data["isCodeSignatureValid"] is False
-
-    def test_ios_artifact_no_extras(self):
-        ios_file = self.create_file(name="test.xcarchive", type="application/octet-stream")
-        installable_file = self.create_file(name="test.ipa", type="application/octet-stream")
-        artifact = self.create_preprod_artifact(
-            project=self.project,
-            file_id=ios_file.id,
-            installable_app_file_id=installable_file.id,
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-            app_id="com.example.iosapp",
-            build_version="1.0.0",
-            build_number=1,
-        )
-
-        response = self.client.get(self._get_url(artifact_id=artifact.id))
-        assert response.status_code == 200
-        data = response.json()
-        assert data["isInstallable"] is False
-        assert data["isCodeSignatureValid"] is False
-
-    def test_release_notes(self):
-        artifact = self.create_preprod_artifact(
-            project=self.project,
-            file_id=self.file.id,
-            artifact_type=PreprodArtifact.ArtifactType.APK,
-            app_id="com.example.app",
-            build_version="1.0.0",
-            build_number=42,
-            extras={"release_notes": "Bug fixes and improvements"},
-        )
-
-        response = self.client.get(self._get_url(artifact_id=artifact.id))
-        assert response.status_code == 200
-        data = response.json()
-        assert data["releaseNotes"] == "Bug fixes and improvements"
-
-    def test_app_info_populated(self):
-        response = self.client.get(self._get_url())
-        assert response.status_code == 200
-        data = response.json()
-        app_info = data["appInfo"]
-        assert app_info["appId"] == "com.example.app"
-        assert app_info["version"] == "1.0.0"
-        assert app_info["buildNumber"] == 42
-        assert app_info["artifactType"] == "APK"

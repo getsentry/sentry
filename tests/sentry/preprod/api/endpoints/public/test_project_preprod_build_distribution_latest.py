@@ -100,7 +100,8 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert build["gitInfo"]["prNumber"] == 42
         assert build["downloadCount"] == 0
 
-    def test_excludes_non_installable_builds(self):
+    def test_excludes_non_eligible_builds(self):
+        # No installable file
         self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
@@ -109,14 +110,7 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
             build_number=2,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-
-        response = self.client.get(self._get_url())
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["buildId"] == str(self.artifact.id)
-
-    def test_hides_non_processed_builds(self):
+        # Non-processed states
         self._create_installable_artifact(state=PreprodArtifact.ArtifactState.UPLOADING)
         self._create_installable_artifact(state=PreprodArtifact.ArtifactState.FAILED)
 
@@ -146,12 +140,18 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             app_id="com.example.iosapp",
         )
+        aab_artifact = self._create_installable_artifact(
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            app_id="com.example.aab",
+        )
 
         response = self.client.get(self._get_url(), {"platform": "android"})
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["buildId"] == str(self.artifact.id)
+        build_ids = [b["buildId"] for b in data]
+        assert len(build_ids) == 2
+        assert str(self.artifact.id) in build_ids
+        assert str(aab_artifact.id) in build_ids
 
     def test_filter_by_app_id(self):
         self._create_installable_artifact(app_id="com.other.app")
@@ -207,19 +207,6 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["gitInfo"]["prNumber"] == 42
 
-    def test_combined_filters(self):
-        response = self.client.get(
-            self._get_url(),
-            {
-                "platform": "android",
-                "appId": "com.example.app",
-                "branch": "feature/test",
-            },
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 1
-
     def test_pagination(self):
         for _ in range(3):
             self._create_installable_artifact()
@@ -248,16 +235,3 @@ class ProjectPreprodBuildDistributionLatestEndpointTest(APITestCase):
         data = response.json()
         artifact_data = next(b for b in data if b["buildId"] == str(artifact.id))
         assert artifact_data["downloadCount"] == 5
-
-    def test_aab_artifact_included_in_android_filter(self):
-        aab_artifact = self._create_installable_artifact(
-            artifact_type=PreprodArtifact.ArtifactType.AAB,
-            app_id="com.example.aab",
-        )
-
-        response = self.client.get(self._get_url(), {"platform": "android"})
-        assert response.status_code == 200
-        data = response.json()
-        build_ids = [b["buildId"] for b in data]
-        assert str(self.artifact.id) in build_ids
-        assert str(aab_artifact.id) in build_ids
