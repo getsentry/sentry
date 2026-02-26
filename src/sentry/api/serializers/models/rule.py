@@ -523,7 +523,7 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             serialized_actions = []
             errors = []
-            for action in actions:
+            for action in list(action_to_handler.keys()):
                 action_data = action_to_action_data[action]
                 action_data["name"] = action_to_handler[action].render_label(
                     workflow.organization_id, action_data
