@@ -42,6 +42,7 @@ from .project_preprod_artifact_install_details import ProjectPreprodInstallDetai
 from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoint
 from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
 from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
+from .project_preprod_distribution import ProjectPreprodDistributionEndpoint
 from .project_preprod_size import (
     ProjectPreprodSizeEndpoint,
     ProjectPreprodSizeWithIdentifierEndpoint,
@@ -274,6 +275,11 @@ preprod_internal_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/assemble-generic/$",
         ProjectPreprodArtifactAssembleGenericEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-assemble-generic",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/distribution/$",
+        ProjectPreprodDistributionEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-distribution",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/size/$",
