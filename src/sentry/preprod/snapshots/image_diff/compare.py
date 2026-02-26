@@ -14,6 +14,10 @@ from .types import DiffResult
 
 logger = logging.getLogger(__name__)
 
+# Nonzero defaults are intentional: threshold=0 means exact pixel matching where
+# font antialiasing, subpixel smoothing, and minor rendering engine variance all
+# flag as changes, making diffs unusably noisy for visual regression.
+#
 # odiff pixel color distance threshold — ignores antialiasing artifacts
 BASE_THRESHOLD = 0.15
 # Lower threshold to catch subtle color shifts missed by base
@@ -22,6 +26,9 @@ COLOR_SENSITIVE_THRESHOLD = 0.0225
 DEFAULT_THRESHOLD_SCALE = 25
 
 
+# PIL (Pillow) Image — the standard Python image manipulation library.
+# Used here to decode raw bytes into pixel data for saving as PNG files
+# that odiff can compare.
 def _as_image(source: bytes | Image.Image) -> Image.Image:
     if isinstance(source, bytes):
         img = Image.open(io.BytesIO(source))
@@ -114,6 +121,13 @@ def _compare_single_pair(
         base_output = tmpdir_path / f"diff_base_{idx}.png"
         color_output = tmpdir_path / f"diff_color_{idx}.png"
 
+        # Two-pass comparison strategy:
+        # Pass 1 uses a higher threshold to ignore antialiasing, subpixel
+        # smoothing, and font rendering noise — only real layout/content
+        # changes survive. Pass 2 uses a lower threshold to catch subtle
+        # color shifts that pass 1 misses. We take whichever pass reports
+        # a higher diff percentage, avoiding both false positives (noisy
+        # antialiasing diffs) and false negatives (missed color changes).
         base_resp = server.compare(
             before_path,
             after_path,
