@@ -50,9 +50,9 @@ export default function CursorAgentSettings({
           },
           {
             onSuccess: () =>
-              value
-                ? addSuccessMessage(t('Enabled pull request creation'))
-                : addSuccessMessage(t('Disabled pull request creation')),
+              addSuccessMessage(
+                value ? t('Enabled PR auto creation') : t('Disabled PR auto creation')
+              ),
             onError: () =>
               addErrorMessage(t('Error while changing pull request settings')),
           }
