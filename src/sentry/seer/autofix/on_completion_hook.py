@@ -127,6 +127,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             webhook_payload["code_changes"] = {
                 repo: [
                     {
+                        "diff": p.diff,
                         "path": p.patch.path,
                         "type": p.patch.type,
                         "added": p.patch.added,

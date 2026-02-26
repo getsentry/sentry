@@ -67,7 +67,7 @@ export function AggregateFlamegraphSidePanel({
   const examples = useMemo(() => {
     const referenceNodes = frame ? [frame] : flamegraph.root.children;
 
-    const seen: Set<Profiling.ProfileReference> = new Set();
+    const seen = new Set<Profiling.ProfileReference>();
 
     const allExamples = [];
 
