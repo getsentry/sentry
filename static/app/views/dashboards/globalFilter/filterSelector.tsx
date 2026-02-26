@@ -386,7 +386,6 @@ function FilterSelector({
     <CompactSelect
       grid
       multiple
-      closeOnSelect
       {...stagedSelect.compactSelectProps}
       search={{
         placeholder: t('Search or enter a custom value...'),

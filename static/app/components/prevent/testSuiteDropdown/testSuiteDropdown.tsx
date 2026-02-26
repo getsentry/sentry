@@ -99,7 +99,6 @@ export function TestSuiteDropdown() {
     <CompactSelect
       grid
       multiple
-      closeOnSelect
       {...stagedSelect.compactSelectProps}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}

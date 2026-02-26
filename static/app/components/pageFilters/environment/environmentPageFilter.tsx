@@ -231,8 +231,6 @@ export function EnvironmentPageFilter({
       multiple
       {...selectProps}
       {...stagedSelect.compactSelectProps}
-      search
-      closeOnSelect
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
