@@ -1,0 +1,21 @@
+# logging the node version in actions/github-script
+name: testing node version
+
+on:
+  push:
+
+jobs:
+  dispatch:
+    name: log node version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Console logs
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            console.log('node.js version: ' + process.version);
+            console.log('process:', process);
